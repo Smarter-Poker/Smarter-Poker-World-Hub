@@ -1,0 +1,1293 @@
+{
+  "venues": [
+    {
+      "venue_id": 2621,
+      "venue_name": "Poker Night in America (PNIA)",
+      "city": "Stamford",
+      "state": "CT",
+      "best_pa_match": "American Place Casino",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 2738,
+      "venue_name": "WPT Prime",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Playtime Casino",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2740,
+      "venue_name": "WSOP Online",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Spin Poker Clube",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2741,
+      "venue_name": "888poker LIVE",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Livermore Casino",
+      "match_score": 0.47
+    },
+    {
+      "venue_id": 2744,
+      "venue_name": "Foxwoods World Poker Finals",
+      "city": "Mashantucket",
+      "state": "CT",
+      "best_pa_match": "Resorts World Catskills",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2727,
+      "venue_name": "Battles at the Beach",
+      "city": "Valley Center",
+      "state": "CA",
+      "best_pa_match": "Seat Open at The Cat's Paw",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2055,
+      "venue_name": "One-Eyed Jacks",
+      "city": "Sarasota",
+      "state": "FL",
+      "best_pa_match": "KoJack's Poker Club",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2439,
+      "venue_name": "Palace Poker Grand Prairie",
+      "city": "Grand Prairie",
+      "state": "TX",
+      "best_pa_match": "Grand River Casino",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2489,
+      "venue_name": "Gray Wolf Peak Casino",
+      "city": "Missoula",
+      "state": "MT",
+      "best_pa_match": "Grand Royal Wolinak Casino",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2130,
+      "venue_name": "Wynn",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Wynn Las Vegas",
+      "match_score": 0.44
+    },
+    {
+      "venue_id": 2480,
+      "venue_name": "Boot Hill Casino",
+      "city": "Dodge City",
+      "state": "KS",
+      "best_pa_match": "El Dorado Hills Casino",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2313,
+      "venue_name": "Rivers Chicago",
+      "city": "Chicago",
+      "state": "IL",
+      "best_pa_match": "Ameristar Casino East Chicago",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2495,
+      "venue_name": "Bally Tiverton",
+      "city": "Tiverton",
+      "state": "RI",
+      "best_pa_match": "Bally's Twin River Casino",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 1984,
+      "venue_name": "Aria Resort & Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Aria Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2131,
+      "venue_name": "Venetian",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Venetian Las Vegas",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 1998,
+      "venue_name": "Bill Henricks ",
+      "city": "Las Vegas",
+      "state": "IL",
+      "best_pa_match": "Big Slick Club",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 1849,
+      "venue_name": "Potawatomi Casino",
+      "city": "Milwaukee",
+      "state": "WI",
+      "best_pa_match": "Potawatomi Hotel &amp; Casino",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2316,
+      "venue_name": "Harrahs Joliet",
+      "city": "Joliet",
+      "state": "IL",
+      "best_pa_match": "Harrah's Laughlin",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2613,
+      "venue_name": "PokerStars LIVE",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Stars Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 1819,
+      "venue_name": "Resorts World Las Vegas",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Wynn Las Vegas",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 1996,
+      "venue_name": "Club JAQK",
+      "city": "Louisville",
+      "state": "KY",
+      "best_pa_match": "KoJack's Poker Club",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2340,
+      "venue_name": "Ameristar Council Bluffs",
+      "city": "Council Bluffs",
+      "state": "IA",
+      "best_pa_match": "Horseshoe Casino Council Bluffs",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 1893,
+      "venue_name": "Muckleshoot Casino",
+      "city": "Auburn",
+      "state": "WA",
+      "best_pa_match": "Muskegon Poker Room",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2326,
+      "venue_name": "Greektown Casino",
+      "city": "Detroit",
+      "state": "MI",
+      "best_pa_match": "Pure Casino Edmonton",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2346,
+      "venue_name": "Ameristar Kansas City",
+      "city": "Kansas City",
+      "state": "MO",
+      "best_pa_match": "Harrah's Kansas City",
+      "match_score": 0.7
+    },
+    {
+      "venue_id": 2200,
+      "venue_name": "Valley View Casino",
+      "city": "Valley Center",
+      "state": "CA",
+      "best_pa_match": "Carson Valley Inn",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2222,
+      "venue_name": "Black Oak Casino",
+      "city": "Tuolumne",
+      "state": "CA",
+      "best_pa_match": "Black Pearl Casino",
+      "match_score": 0.7
+    },
+    {
+      "venue_id": 2482,
+      "venue_name": "Tin Lizzie Gaming",
+      "city": "Deadwood",
+      "state": "SD",
+      "best_pa_match": "Stones Gambling Hall",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 2485,
+      "venue_name": "Ho-Chunk Gaming Madison",
+      "city": "Madison",
+      "state": "WI",
+      "best_pa_match": "Ocean Gaming at Hampton Beach",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 2490,
+      "venue_name": "4 Bears Casino",
+      "city": "New Town",
+      "state": "ND",
+      "best_pa_match": "7 Cedars Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2183,
+      "venue_name": "Bicycle Casino",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "best_pa_match": "Parkwest Bicycle Casino",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 1894,
+      "venue_name": "Tulalip Resort Casino",
+      "city": "Tulalip",
+      "state": "WA",
+      "best_pa_match": "Atlantis Casino",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2739,
+      "venue_name": "WPT Voyage",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "The Royal Card Club",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2223,
+      "venue_name": "Chukchansi Gold",
+      "city": "Coarsegold",
+      "state": "CA",
+      "best_pa_match": "Lucky Chances Casino",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2230,
+      "venue_name": "Gulfstream Park",
+      "city": "Hallandale Beach",
+      "state": "FL",
+      "best_pa_match": "Hialeah Park Casino",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2418,
+      "venue_name": "Paramount Social Club",
+      "city": "Houston",
+      "state": "TX",
+      "best_pa_match": "9 Dragons Social Club",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 1991,
+      "venue_name": "Sunset Station",
+      "city": "Henderson",
+      "state": "NV",
+      "best_pa_match": "Santa Fe Station",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2505,
+      "venue_name": "The Bicycle Casino",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "best_pa_match": "Parkwest Bicycle Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 1840,
+      "venue_name": "Choctaw Casino Resort",
+      "city": "Durant",
+      "state": "OK",
+      "best_pa_match": "Choctaw Casino Durant",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2488,
+      "venue_name": "Coeur d Alene Casino",
+      "city": "Worley",
+      "state": "ID",
+      "best_pa_match": "Lancer Lanes",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2006,
+      "venue_name": "E2E Test Poker Room",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Golden West Casino",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2134,
+      "venue_name": "Resorts World",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "WinStar World Casino",
+      "match_score": 0.7
+    },
+    {
+      "venue_id": 2142,
+      "venue_name": "Mirage",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Empire Poker Club",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2140,
+      "venue_name": "Sahara",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Casino Club Santa Rosa",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2158,
+      "venue_name": "Texas Station",
+      "city": "N Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Santa Fe Station",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2201,
+      "venue_name": "Agua Caliente Rancho Mirage",
+      "city": "Rancho Mirage",
+      "state": "CA",
+      "best_pa_match": "Agua Caliente Casino",
+      "match_score": 0.65
+    },
+    {
+      "venue_id": 2338,
+      "venue_name": "Mystic Lake",
+      "city": "Prior Lake",
+      "state": "MN",
+      "best_pa_match": "Casino Majestic Lima",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2146,
+      "venue_name": "Fremont",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Pure Casino Edmonton",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2145,
+      "venue_name": "Binions",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Indigo Sky Casino",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2147,
+      "venue_name": "Four Queens",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Northern Quest Casino",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2148,
+      "venue_name": "The D",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "The War Room",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2156,
+      "venue_name": "Palace Station",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Santa Fe Station",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2161,
+      "venue_name": "Eastside Cannery",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Westside Lanes &amp; Fun Center",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2162,
+      "venue_name": "M Resort",
+      "city": "Henderson",
+      "state": "NV",
+      "best_pa_match": "Casino Rama",
+      "match_score": 0.4
+    },
+    {
+      "venue_id": 1895,
+      "venue_name": "Snoqualmie Casino",
+      "city": "Snoqualmie",
+      "state": "WA",
+      "best_pa_match": "Seven Mile Casino",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2165,
+      "venue_name": "Arizona Charlies Boulder",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "MGM National Harbor",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2160,
+      "venue_name": "Cannery",
+      "city": "N Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Bankers Casino",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2497,
+      "venue_name": "Dover Downs",
+      "city": "Dover",
+      "state": "DE",
+      "best_pa_match": "Tioga Downs Casino",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2188,
+      "venue_name": "Normandie Casino",
+      "city": "Gardena",
+      "state": "CA",
+      "best_pa_match": "Windsor Marapendi Hotel",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2178,
+      "venue_name": "Ballys Lake Tahoe",
+      "city": "Stateline",
+      "state": "NV",
+      "best_pa_match": "Bally's Black Hawk Casino",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2176,
+      "venue_name": "Boomtown Reno",
+      "city": "Verdi",
+      "state": "NV",
+      "best_pa_match": "Boomtown Casino New Orleans",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2181,
+      "venue_name": "Eureka Mesquite",
+      "city": "Mesquite",
+      "state": "NV",
+      "best_pa_match": "Terre Haute Casino",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 2189,
+      "venue_name": "Crystal Park Casino",
+      "city": "Compton",
+      "state": "CA",
+      "best_pa_match": "Canterbury Park",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2193,
+      "venue_name": "San Manuel",
+      "city": "Highland",
+      "state": "CA",
+      "best_pa_match": "SA Card House",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2199,
+      "venue_name": "Barona",
+      "city": "Lakeside",
+      "state": "CA",
+      "best_pa_match": "Arena Poker Club",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2205,
+      "venue_name": "Paiute Palace",
+      "city": "Bishop",
+      "state": "CA",
+      "best_pa_match": "Caesars Palace",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2473,
+      "venue_name": "Route 66 Casino",
+      "city": "Albuquerque",
+      "state": "NM",
+      "best_pa_match": "Roundtree Poker Room",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2481,
+      "venue_name": "Deadwood Mountain Grand",
+      "city": "Deadwood",
+      "state": "SD",
+      "best_pa_match": "Ute Mountain Casino",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 1828,
+      "venue_name": "Lodge Poker Club",
+      "city": "Round Rock",
+      "state": "TX",
+      "best_pa_match": "Lodge Card Club Austin",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2136,
+      "venue_name": "Planet Hollywood",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Hollywood Park Casino",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2218,
+      "venue_name": "Cache Creek",
+      "city": "Brooks",
+      "state": "CA",
+      "best_pa_match": "Little Creek Casino",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2478,
+      "venue_name": "Mardi Gras Casino",
+      "city": "Cross Lanes",
+      "state": "WV",
+      "best_pa_match": "River Rats Poker Club",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2262,
+      "venue_name": "Prime Social",
+      "city": "Houston",
+      "state": "TX",
+      "best_pa_match": "VIP Social Club",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2247,
+      "venue_name": "Calder Casino",
+      "city": "Miami Gardens",
+      "state": "FL",
+      "best_pa_match": "Chasers Poker Room",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2256,
+      "venue_name": "Sarasota Kennel Club",
+      "city": "Sarasota",
+      "state": "FL",
+      "best_pa_match": "Palm Beach Kennel Club",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2281,
+      "venue_name": "SA Poker Club",
+      "city": "San Antonio",
+      "state": "TX",
+      "best_pa_match": "Stars Casino",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2274,
+      "venue_name": "Dallas Poker Room",
+      "city": "Arlington",
+      "state": "TX",
+      "best_pa_match": "Cedar Lakes Casino Hotel",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 1885,
+      "venue_name": "Seven Feathers Casino Resort",
+      "city": "Canyonville",
+      "state": "OR",
+      "best_pa_match": "Queen of Hearts Card Club",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2416,
+      "venue_name": "Gin Mill Card Club Houston",
+      "city": "Webster",
+      "state": "TX",
+      "best_pa_match": "Gin Mill Card Club Lubbock",
+      "match_score": 0.65
+    },
+    {
+      "venue_id": 2413,
+      "venue_name": "Elite Social Club",
+      "city": "Houston",
+      "state": "TX",
+      "best_pa_match": "VIP Social Club",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2286,
+      "venue_name": "Corpus Christi Poker",
+      "city": "Corpus Christi",
+      "state": "TX",
+      "best_pa_match": "Coushatta Casino Resort",
+      "match_score": 0.52
+    },
+    {
+      "venue_id": 2309,
+      "venue_name": "Presque Isle Downs",
+      "city": "Erie",
+      "state": "PA",
+      "best_pa_match": "Treasure Island Casino",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2291,
+      "venue_name": "Harrahs AC",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "best_pa_match": "Harrah's Laughlin",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 1883,
+      "venue_name": "Spirit Mountain Casino",
+      "city": "Grand Ronde",
+      "state": "OR",
+      "best_pa_match": "Ute Mountain Casino",
+      "match_score": 0.74
+    },
+    {
+      "venue_id": 2296,
+      "venue_name": "Resorts Casino",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "best_pa_match": "Nash Casino",
+      "match_score": 0.4
+    },
+    {
+      "venue_id": 2344,
+      "venue_name": "River City Casino",
+      "city": "St. Louis",
+      "state": "MO",
+      "best_pa_match": "River Spirit Casino",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2322,
+      "venue_name": "Blue Chip",
+      "city": "Michigan City",
+      "state": "IN",
+      "best_pa_match": "Blue Lake Casino",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2342,
+      "venue_name": "Prairie Meadows",
+      "city": "Altoona",
+      "state": "IA",
+      "best_pa_match": "Portland Meadows",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2166,
+      "venue_name": "Jokers Wild",
+      "city": "Henderson",
+      "state": "NV",
+      "best_pa_match": "Jokers Casino",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2191,
+      "venue_name": "Tachi Palace",
+      "city": "Lemoore",
+      "state": "CA",
+      "best_pa_match": "Palace Poker Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2325,
+      "venue_name": "MotorCity Casino",
+      "city": "Detroit",
+      "state": "MI",
+      "best_pa_match": "Gate City Casino",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2469,
+      "venue_name": "Seneca Niagara",
+      "city": "Niagara Falls",
+      "state": "NY",
+      "best_pa_match": "Casino Niagara",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2301,
+      "venue_name": "Sands Bethlehem",
+      "city": "Bethlehem",
+      "state": "PA",
+      "best_pa_match": "Wind Creek Bethlehem",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2810,
+      "venue_name": "OP Social Club / Outlaw Poker",
+      "city": "Lafayette",
+      "state": "IN",
+      "best_pa_match": "PH Social Club Dallas",
+      "match_score": 0.65
+    },
+    {
+      "venue_id": 1872,
+      "venue_name": "MotorCity Casino Hotel",
+      "city": "Detroit",
+      "state": "MI",
+      "best_pa_match": "Gate City Casino",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2137,
+      "venue_name": "Flamingo",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Alamo Casino",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2471,
+      "venue_name": "Seneca Buffalo Creek",
+      "city": "Buffalo",
+      "state": "NY",
+      "best_pa_match": "Seminole Coconut Creek",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2806,
+      "venue_name": "Shark Tank Poker Club",
+      "city": "Columbus",
+      "state": "OH",
+      "best_pa_match": "Saracen Casino Resort",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2175,
+      "venue_name": "Nugget Sparks",
+      "city": "Sparks",
+      "state": "NV",
+      "best_pa_match": "Montana Nugget Kalispell",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2807,
+      "venue_name": "The Reserve Poker Club",
+      "city": "Toledo",
+      "state": "OH",
+      "best_pa_match": "The River Poker Club",
+      "match_score": 0.7
+    },
+    {
+      "venue_id": 2163,
+      "venue_name": "Aliante",
+      "city": "N Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Atlantis Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2227,
+      "venue_name": "Rolling Hills Casino",
+      "city": "Corning",
+      "state": "CA",
+      "best_pa_match": "El Dorado Hills Casino",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2813,
+      "venue_name": "Concord Casino",
+      "city": "Concord",
+      "state": "NH",
+      "best_pa_match": "Hard Rock Casino Rockford",
+      "match_score": 0.48
+    },
+    {
+      "venue_id": 2646,
+      "venue_name": "Beau Rivage Million Dollar Heater",
+      "city": "Biloxi",
+      "state": "MS",
+      "best_pa_match": "Beau Rivage Resort &amp; Casino",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2241,
+      "venue_name": "Ocala Poker",
+      "city": "Ocala",
+      "state": "FL",
+      "best_pa_match": "OcalaBetS",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2817,
+      "venue_name": "ACES Charity Poker \u2014 Atmosphere Sports Bar",
+      "city": "Loganville",
+      "state": "GA",
+      "best_pa_match": "Sierra Poker Sports",
+      "match_score": 0.45
+    },
+    {
+      "venue_id": 2321,
+      "venue_name": "Hollywood Lawrenceburg",
+      "city": "Lawrenceburg",
+      "state": "IN",
+      "best_pa_match": "Hollywood Casino Aurora",
+      "match_score": 0.68
+    },
+    {
+      "venue_id": 2820,
+      "venue_name": "Michigan Charitable Gaming Association (MiCGA)",
+      "city": "Lansing",
+      "state": "MI",
+      "best_pa_match": "Chicago Charitable Games",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2809,
+      "venue_name": "River Room Players Club",
+      "city": "Akron",
+      "state": "OH",
+      "best_pa_match": "Rivers Casino Des Plaines",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2261,
+      "venue_name": "Elite Poker",
+      "city": "Austin",
+      "state": "TX",
+      "best_pa_match": "Elite Poker Lounge",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2811,
+      "venue_name": "Queens Club Inc.",
+      "city": "Raleigh",
+      "state": "NC",
+      "best_pa_match": "Casino Buenos Aires",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2329,
+      "venue_name": "Four Winds New Buffalo",
+      "city": "New Buffalo",
+      "state": "MI",
+      "best_pa_match": "Four Winds South Bend",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2816,
+      "venue_name": "RVA Charity Poker",
+      "city": "Midlothian",
+      "state": "VA",
+      "best_pa_match": "Chicagoland Charity Poker",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2827,
+      "venue_name": "Monroe Boat Club (MBC-A Charity Poker)",
+      "city": "Westland",
+      "state": "MI",
+      "best_pa_match": "Horseshoe Casino Bossier City",
+      "match_score": 0.48
+    },
+    {
+      "venue_id": 2164,
+      "venue_name": "Arizona Charlies Decatur",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Casino Rio Cali",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2264,
+      "venue_name": "52 Social",
+      "city": "Houston",
+      "state": "TX",
+      "best_pa_match": "VIP Social Club",
+      "match_score": 0.74
+    },
+    {
+      "venue_id": 2812,
+      "venue_name": "Kontenders Poker League",
+      "city": "Multiple Locations",
+      "state": "NC",
+      "best_pa_match": "The River League",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2818,
+      "venue_name": "ACES Charity Poker \u2014 Del Rio Mexican Grill",
+      "city": "Dacula",
+      "state": "GA",
+      "best_pa_match": "Texas Card House Rio Grande Valley",
+      "match_score": 0.46
+    },
+    {
+      "venue_id": 2486,
+      "venue_name": "Ho-Chunk Gaming Wisconsin Dells",
+      "city": "Baraboo",
+      "state": "WI",
+      "best_pa_match": "Champions Social Club Dallas",
+      "match_score": 0.52
+    },
+    {
+      "venue_id": 2825,
+      "venue_name": "High Stax Poker",
+      "city": "Jacksonville",
+      "state": "NC",
+      "best_pa_match": "High Mountain Poker",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2819,
+      "venue_name": "ACES Charity Poker \u2014 SportsLine Bar & Grille",
+      "city": "Loganville",
+      "state": "GA",
+      "best_pa_match": "Dealer Sports PUB Alphaville",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2221,
+      "venue_name": "Twin Pine Casino",
+      "city": "Middletown",
+      "state": "CA",
+      "best_pa_match": "Win-River Casino",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2307,
+      "venue_name": "Meadows Casino",
+      "city": "Washington",
+      "state": "PA",
+      "best_pa_match": "Portland Meadows",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2824,
+      "venue_name": "Chicagoland Poker",
+      "city": "Chicago NW Suburbs",
+      "state": "IL",
+      "best_pa_match": "Chicagoland Charity Poker",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2319,
+      "venue_name": "Harrahs Hoosier Park",
+      "city": "Anderson",
+      "state": "IN",
+      "best_pa_match": "Harrah's Cherokee",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2457,
+      "venue_name": "Beaumont Card Club",
+      "city": "Beaumont",
+      "state": "TX",
+      "best_pa_match": "The Diamond Poker Club",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2198,
+      "venue_name": "Harrahs SoCal",
+      "city": "Valley Center",
+      "state": "CA",
+      "best_pa_match": "Harrah's Laughlin",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2202,
+      "venue_name": "Spotlight 29",
+      "city": "Coachella",
+      "state": "CA",
+      "best_pa_match": "Starlight Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2728,
+      "venue_name": "TCH Houston Space City Stacks",
+      "city": "Houston",
+      "state": "TX",
+      "best_pa_match": "Houston Social Cardroom",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2826,
+      "venue_name": "Westfield Lions Club Poker",
+      "city": "Westfield",
+      "state": "IN",
+      "best_pa_match": "Wild Goose Casino",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2474,
+      "venue_name": "Buffalo Thunder",
+      "city": "Santa Fe",
+      "state": "NM",
+      "best_pa_match": "Fortune Poker Club",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2233,
+      "venue_name": "TGT Poker",
+      "city": "Tampa",
+      "state": "FL",
+      "best_pa_match": "Westgate Poker Room",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2729,
+      "venue_name": "Milly in Philly",
+      "city": "Bensalem",
+      "state": "PA",
+      "best_pa_match": "Gin Mill Card Club Farwell",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2196,
+      "venue_name": "Viejas Casino",
+      "city": "Alpine",
+      "state": "CA",
+      "best_pa_match": "Big Easy Casino",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2000,
+      "venue_name": "John Donnahue",
+      "city": "Las Vegas",
+      "state": "IL",
+      "best_pa_match": "Johny's Social Card Club",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 1985,
+      "venue_name": "WSOP Room at Paris",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Imperial Club Paris",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2244,
+      "venue_name": "Seminole Brighton",
+      "city": "Okeechobee",
+      "state": "FL",
+      "best_pa_match": "Seminole Coconut Creek",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2829,
+      "venue_name": "Evlos Charity Poker",
+      "city": "Baltimore",
+      "state": "MD",
+      "best_pa_match": "Sun City Card Club",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2440,
+      "venue_name": "Oak Cliff Card Club",
+      "city": "Dallas",
+      "state": "TX",
+      "best_pa_match": "Casino Rio Cali",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 1821,
+      "venue_name": "The Bicycle Hotel & Casino",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "best_pa_match": "The Big Blind",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2835,
+      "venue_name": "Poker For Good",
+      "city": "National",
+      "state": "US",
+      "best_pa_match": "Foxwoods Casino",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 1837,
+      "venue_name": "Live! Casino Maryland",
+      "city": "Hanover",
+      "state": "MD",
+      "best_pa_match": "Live! Casino Philadelphia",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2310,
+      "venue_name": "Lady Luck Nemacolin",
+      "city": "Farmington",
+      "state": "PA",
+      "best_pa_match": "Black Pearl Casino",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2001,
+      "venue_name": "Johnny\u2019s Game ",
+      "city": "Las Vegas",
+      "state": "IL",
+      "best_pa_match": "Johny's Social Card Club",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2804,
+      "venue_name": "Rockford Charitable Games (RCG Poker)",
+      "city": "Rosemont",
+      "state": "IL",
+      "best_pa_match": "Chicago Charitable Games",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 1897,
+      "venue_name": "Potawatomi Casino Hotel",
+      "city": "Milwaukee",
+      "state": "WI",
+      "best_pa_match": "Potawatomi Hotel &amp; Casino",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 1867,
+      "venue_name": "Barona Resort & Casino",
+      "city": "Lakeside",
+      "state": "CA",
+      "best_pa_match": "California Grand Casino",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2323,
+      "venue_name": "Tropicana Evansville",
+      "city": "Evansville",
+      "state": "IN",
+      "best_pa_match": "Bally's Evansville",
+      "match_score": 0.65
+    },
+    {
+      "venue_id": 1989,
+      "venue_name": "Station Casinos Red Rock",
+      "city": "Las Vegas",
+      "state": "NV",
+      "best_pa_match": "Red Rock Casino",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2417,
+      "venue_name": "Offsuit Poker Lounge",
+      "city": "Houston",
+      "state": "TX",
+      "best_pa_match": "Elite Poker Lounge",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2204,
+      "venue_name": "Soboba Casino",
+      "city": "San Jacinto",
+      "state": "CA",
+      "best_pa_match": "Bombinhas Poker Clube",
+      "match_score": 0.47
+    },
+    {
+      "venue_id": 2173,
+      "venue_name": "Eldorado",
+      "city": "Reno",
+      "state": "NV",
+      "best_pa_match": "El Dorado Hills Casino",
+      "match_score": 0.7
+    },
+    {
+      "venue_id": 2177,
+      "venue_name": "Harveys Lake Tahoe",
+      "city": "Stateline",
+      "state": "NV",
+      "best_pa_match": "Caesars Republic Lake Tahoe",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2225,
+      "venue_name": "Elk Valley Casino",
+      "city": "Crescent City",
+      "state": "CA",
+      "best_pa_match": "Napa Valley Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2245,
+      "venue_name": "Seminole Immokalee",
+      "city": "Immokalee",
+      "state": "FL",
+      "best_pa_match": "Seminole Coconut Creek",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2493,
+      "venue_name": "Oxford Casino",
+      "city": "Oxford",
+      "state": "ME",
+      "best_pa_match": "Oxford Downs",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2302,
+      "venue_name": "SugarHouse Philadelphia",
+      "city": "Philadelphia",
+      "state": "PA",
+      "best_pa_match": "Live! Casino Philadelphia",
+      "match_score": 0.68
+    },
+    {
+      "venue_id": 2470,
+      "venue_name": "Seneca Allegany",
+      "city": "Salamanca",
+      "state": "NY",
+      "best_pa_match": "Seneca Salamanca Casino",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2304,
+      "venue_name": "Valley Forge Casino",
+      "city": "King of Prussia",
+      "state": "PA",
+      "best_pa_match": "Green Valley Ranch Casino",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 1970,
+      "venue_name": "Owosso Poker Room",
+      "city": "Owosso",
+      "state": "MI",
+      "best_pa_match": "Cowboys Casino",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2192,
+      "venue_name": "Pechanga",
+      "city": "Temecula",
+      "state": "CA",
+      "best_pa_match": "Pure Casino Calgary",
+      "match_score": 0.6
+    }
+  ],
+  "count": 161
+}

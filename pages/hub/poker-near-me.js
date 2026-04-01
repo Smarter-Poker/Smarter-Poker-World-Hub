@@ -1674,25 +1674,22 @@ export default function PokerNearMePage() {
                     {/* Room List Below Map */}
                     <div className="map-room-list">
                         <h3 className="room-list-title">Closest Poker Rooms</h3>
-                        <div className="room-list-grid">
-                            {filteredVenues.slice(0, 6).map((venue, i) => (
-                                <div key={venue.id || i} className="room-list-card" onClick={() => setSelectedRoom(venue)}>
-                                    <div className="room-card-header">
-                                        <span className="room-name">{venue.name}</span>
-                                        <span className="room-hours">{venue.is_24_hours ? '24/7' : venue.hours_of_operation || '—'}</span>
-                                    </div>
-                                    <div className="room-card-location">
-                                        {venue.city}, {venue.state}
-                                        {venue.distance_mi && <span className="room-distance"> • {venue.distance_mi.toFixed(1)} mi</span>}
-                                    </div>
-                                    <div className="room-card-tags">
-                                        {venue.venue_type && <span className="room-tag">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>}
-                                        {venue.has_tournaments && <span className="room-tag"> • Tournaments</span>}
-                                        {venue.games_offered && venue.games_offered.length > 0 && <span className="room-tag"> • {venue.games_offered.slice(0, 3).join(', ')}</span>}
-                                    </div>
-                                    <button className="room-view-btn" onClick={(e) => { e.stopPropagation(); router.push(venue.is_social_page ? `/club/${venue.social_page_id}` : `/hub/venues/${venue.id}`); }}>View Room</button>
-                                </div>
-                            ))}
+                        <div className="card-grid">
+                            {filteredVenues.slice(0, 6).map((venue, i) => {
+                                const maxGtd = venueMaxGtd[String(venue.id)] || 0;
+                                return (
+                                    <VenueCard
+                                        key={venue.id || i}
+                                        venue={{ ...venue, max_gtd: maxGtd }}
+                                        index={i}
+                                        isFavorited={isFavorited('venue', venue.id)}
+                                        isNewcomer={isNewcomerFriendly(venue)}
+                                        hasPromo={promotionVenueIds.has(String(venue.id))}
+                                        onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                                        onNavigate={(path) => router.push(path)}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

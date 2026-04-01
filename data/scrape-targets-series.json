@@ -1,0 +1,1364 @@
+{
+  "targets": [
+    {
+      "venue_id": 2628,
+      "venue_name": "WinStar Poker Series",
+      "city": "Thackerville",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "WinStar World Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2610,
+      "venue_name": "RunGood Poker Series (RGPS)",
+      "city": "Tulsa",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2631,
+      "venue_name": "Thunder Valley Poker Series",
+      "city": "Lincoln",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Thunder Valley Casino",
+      "match_score": 0.8
+    },
+    {
+      "venue_id": 2609,
+      "venue_name": "Heartland Poker Tour (HPT)",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Great Canadian Casino Resort Toronto",
+      "match_score": 0.51
+    },
+    {
+      "venue_id": 2633,
+      "venue_name": "Lodge Poker Series",
+      "city": "Round Rock",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2608,
+      "venue_name": "Mid-States Poker Tour (MSPT)",
+      "city": "Minneapolis",
+      "state": "MN",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.47
+    },
+    {
+      "venue_id": 2732,
+      "venue_name": "Spring Fling Poker Series",
+      "city": "Sarasota",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2733,
+      "venue_name": "Grande Series",
+      "city": "Austin",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Grand Sierra Resort Casino",
+      "match_score": 0.72
+    },
+    {
+      "venue_id": 2712,
+      "venue_name": "Jamul Casino Poker Room Series",
+      "city": "Jamul",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2612,
+      "venue_name": "Ante Up Poker Tour",
+      "city": "Clearwater",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Santa Fe Station",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2667,
+      "venue_name": "Tulalip Poker Series",
+      "city": "Tulalip",
+      "state": "WA",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2611,
+      "venue_name": "Card Player Poker Tour (CPPT)",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Playground Poker Club",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2606,
+      "venue_name": "World Poker Tour (WPT)",
+      "city": "Los Angeles",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.46
+    },
+    {
+      "venue_id": 2619,
+      "venue_name": "Bike Series (The Bicycle Casino)",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Parkwest Bicycle Casino",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2659,
+      "venue_name": "Black Hawk Poker Classic",
+      "city": "Black Hawk",
+      "state": "CO",
+      "is_series": true,
+      "best_pa_match": "Bally's Black Hawk Casino",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2666,
+      "venue_name": "Muckleshoot Poker Series",
+      "city": "Auburn",
+      "state": "WA",
+      "is_series": true,
+      "best_pa_match": "Shooters Poker Room",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2668,
+      "venue_name": "Prairie Meadows Poker Series",
+      "city": "Altoona",
+      "state": "IA",
+      "is_series": true,
+      "best_pa_match": "Prairie Meadows Racetrack &amp; Casino",
+      "match_score": 0.65
+    },
+    {
+      "venue_id": 2710,
+      "venue_name": "Wind Creek Bethlehem Poker Series",
+      "city": "Bethlehem",
+      "state": "PA",
+      "is_series": true,
+      "best_pa_match": "Wind Creek Bethlehem",
+      "match_score": 0.85
+    },
+    {
+      "venue_id": 2660,
+      "venue_name": "Ameristar Black Hawk Poker Series",
+      "city": "Black Hawk",
+      "state": "CO",
+      "is_series": true,
+      "best_pa_match": "Ameristar Casino Black Hawk",
+      "match_score": 0.85
+    },
+    {
+      "venue_id": 2614,
+      "venue_name": "Venetian DeepStack Extravaganza",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.49
+    },
+    {
+      "venue_id": 2671,
+      "venue_name": "L'Auberge Poker Series",
+      "city": "Lake Charles",
+      "state": "LA",
+      "is_series": true,
+      "best_pa_match": "L'Auberge Casino Baton Rouge",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2737,
+      "venue_name": "Macau Poker Open",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.48
+    },
+    {
+      "venue_id": 2618,
+      "venue_name": "Seminole Hard Rock Poker Open",
+      "city": "Hollywood",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Seminole Hard Rock Tampa",
+      "match_score": 0.85
+    },
+    {
+      "venue_id": 2715,
+      "venue_name": "Poker House Dallas Tournament Series",
+      "city": "Dallas",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Card House Port St. Lucie",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2689,
+      "venue_name": "Palm Beach Kennel Club Poker Series",
+      "city": "West Palm Beach",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Palm Beach Kennel Club",
+      "match_score": 0.81
+    },
+    {
+      "venue_id": 2694,
+      "venue_name": "Soaring Eagle Poker Classic",
+      "city": "Mt. Pleasant",
+      "state": "MI",
+      "is_series": true,
+      "best_pa_match": "Soaring Eagle Casino",
+      "match_score": 0.76
+    },
+    {
+      "venue_id": 2672,
+      "venue_name": "Caesars Palace Poker Classic",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Caesars Palace",
+      "match_score": 0.78
+    },
+    {
+      "venue_id": 2677,
+      "venue_name": "Horseshoe Las Vegas Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Horseshoe Las Vegas",
+      "match_score": 0.84
+    },
+    {
+      "venue_id": 2705,
+      "venue_name": "Downstream Casino Poker Classic",
+      "city": "Quapaw",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "Downstream Casino",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2617,
+      "venue_name": "LA Poker Classic (Commerce Casino)",
+      "city": "Commerce",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Commerce Casino",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2629,
+      "venue_name": "Hard Rock Poker Tour",
+      "city": "Hollywood",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Hard Rock Tulsa",
+      "match_score": 0.83
+    },
+    {
+      "venue_id": 2720,
+      "venue_name": "Foxwoods Mega Stack Challenge",
+      "city": "Mashantucket",
+      "state": "CT",
+      "is_series": true,
+      "best_pa_match": "Hollywood Casino at Charles Town Races",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2756,
+      "venue_name": "Circa Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Chasers Poker Room",
+      "match_score": 0.63
+    },
+    {
+      "venue_id": 2725,
+      "venue_name": "Cincinnati Poker Open",
+      "city": "Elizabeth",
+      "state": "IN",
+      "is_series": true,
+      "best_pa_match": "Hard Rock Casino Cincinnati",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2734,
+      "venue_name": "Trailblazer Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2696,
+      "venue_name": "Jack Casino Cincinnati Poker Series",
+      "city": "Cincinnati",
+      "state": "OH",
+      "is_series": true,
+      "best_pa_match": "Hard Rock Casino Cincinnati",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2679,
+      "venue_name": "Hawaiian Gardens Poker Series",
+      "city": "Hawaiian Gardens",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "The Gardens Casino",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2685,
+      "venue_name": "bestbet Orange Park Poker Series",
+      "city": "Orange Park",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "bestbet Orange Park",
+      "match_score": 0.84
+    },
+    {
+      "venue_id": 2699,
+      "venue_name": "Palms Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2750,
+      "venue_name": "Prime Social Poker Series",
+      "city": "Houston",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Imperial Club Paris",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2703,
+      "venue_name": "Northwest Poker Championship",
+      "city": "Auburn",
+      "state": "WA",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2683,
+      "venue_name": "Cache Creek Poker Classic",
+      "city": "Brooks",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.47
+    },
+    {
+      "venue_id": 2686,
+      "venue_name": "Hialeah Park Poker Series",
+      "city": "Hialeah",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Hialeah Park Casino",
+      "match_score": 0.77
+    },
+    {
+      "venue_id": 2751,
+      "venue_name": "Kings Poker Room Series",
+      "city": "Houston",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Kings Card Club",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2622,
+      "venue_name": "bestbet Jax Poker Tour",
+      "city": "Jacksonville",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "bestbet Orange Park",
+      "match_score": 0.63
+    },
+    {
+      "venue_id": 2704,
+      "venue_name": "Cherokee Nation Poker Series",
+      "city": "Tulsa",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "Cherokee Casino West Siloam Springs",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2758,
+      "venue_name": "M Resort Poker Series",
+      "city": "Henderson",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2624,
+      "venue_name": "Golden Nugget Grand Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Golden Nugget Las Vegas",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2700,
+      "venue_name": "MGM Grand Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "MGM Grand Detroit",
+      "match_score": 0.79
+    },
+    {
+      "venue_id": 2743,
+      "venue_name": "Mohegan Sun Fall Poker Championship",
+      "city": "Uncasville",
+      "state": "CT",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2747,
+      "venue_name": "Viejas Casino Poker Series",
+      "city": "Alpine",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Vegas Poker Club Recife",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2762,
+      "venue_name": "Michigan Poker Championship",
+      "city": "Battle Creek",
+      "state": "MI",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2722,
+      "venue_name": "Mid-America Poker Series",
+      "city": "Kansas City",
+      "state": "MO",
+      "is_series": true,
+      "best_pa_match": "Ameristar Casino St. Charles",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2674,
+      "venue_name": "Red Rock Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Red Rock Casino",
+      "match_score": 0.7
+    },
+    {
+      "venue_id": 2749,
+      "venue_name": "TCH Austin Poker Series",
+      "city": "Austin",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "TCH Social Austin",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2643,
+      "venue_name": "Mohegan Sun Poker Series",
+      "city": "Uncasville",
+      "state": "CT",
+      "is_series": true,
+      "best_pa_match": "Mohegan Sun",
+      "match_score": 0.76
+    },
+    {
+      "venue_id": 2748,
+      "venue_name": "TCH Dallas Poker Series",
+      "city": "Dallas",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Chasers Poker Room",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2676,
+      "venue_name": "Resorts World Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.83
+    },
+    {
+      "venue_id": 2724,
+      "venue_name": "PacWest Poker Classic",
+      "city": "Lincoln City",
+      "state": "OR",
+      "is_series": true,
+      "best_pa_match": "Parkwest Casino Lodi",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2642,
+      "venue_name": "Foxwoods Poker Classic",
+      "city": "Mashantucket",
+      "state": "CT",
+      "is_series": true,
+      "best_pa_match": "Foxwoods Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2661,
+      "venue_name": "Canterbury Park Poker Classic",
+      "city": "Shakopee",
+      "state": "MN",
+      "is_series": true,
+      "best_pa_match": "Canterbury Park",
+      "match_score": 0.79
+    },
+    {
+      "venue_id": 2678,
+      "venue_name": "Hustler Casino Live Poker Series",
+      "city": "Gardena",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Hustler Casino",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 2708,
+      "venue_name": "Tampa Bay Downs Poker Series",
+      "city": "Tampa",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Silks @ Tampa Bay Downs",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2723,
+      "venue_name": "Deep Stack Poker Tour",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Boulder Station",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2675,
+      "venue_name": "Orleans Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2638,
+      "venue_name": "Arizona State Poker Championship",
+      "city": "Scottsdale",
+      "state": "AZ",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2681,
+      "venue_name": "San Manuel Poker Series",
+      "city": "Highland",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Managua Princess Casino",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2714,
+      "venue_name": "Livermore Poker Room Series",
+      "city": "Livermore",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Livermore Casino",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2687,
+      "venue_name": "Isle Casino Poker Series",
+      "city": "Pompano Beach",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2656,
+      "venue_name": "River Spirit Poker Series",
+      "city": "Tulsa",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "River Spirit Casino",
+      "match_score": 0.77
+    },
+    {
+      "venue_id": 2662,
+      "venue_name": "Running Aces Poker Series",
+      "city": "Columbus",
+      "state": "MN",
+      "is_series": true,
+      "best_pa_match": "Running Aces Casino &amp; Racetrack",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2664,
+      "venue_name": "Talking Stick Poker Series",
+      "city": "Scottsdale",
+      "state": "AZ",
+      "is_series": true,
+      "best_pa_match": "Talking Stick Resort",
+      "match_score": 0.79
+    },
+    {
+      "venue_id": 2753,
+      "venue_name": "Seminole Brighton Poker Series",
+      "city": "Okeechobee",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Seminole Coconut Creek",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2607,
+      "venue_name": "WSOP Circuit (WSOPC)",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.45
+    },
+    {
+      "venue_id": 2691,
+      "venue_name": "Tropicana AC Poker Series",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "is_series": true,
+      "best_pa_match": "Tropicana Casino",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2644,
+      "venue_name": "Rivers Casino Poker Series",
+      "city": "Des Plaines",
+      "state": "IL",
+      "is_series": true,
+      "best_pa_match": "River Spirit Casino",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2719,
+      "venue_name": "Snoqualmie Casino Poker Series",
+      "city": "Snoqualmie",
+      "state": "WA",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2690,
+      "venue_name": "Caesars AC Poker Classic",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "is_series": true,
+      "best_pa_match": "Caesars Palace",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2680,
+      "venue_name": "Pechanga Poker Series",
+      "city": "Temecula",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Chasers Poker Room",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2697,
+      "venue_name": "Hollywood Columbus Poker Series",
+      "city": "Columbus",
+      "state": "OH",
+      "is_series": true,
+      "best_pa_match": "Hollywood Casino Columbus",
+      "match_score": 0.84
+    },
+    {
+      "venue_id": 2752,
+      "venue_name": "Hard Rock Tampa Poker Series",
+      "city": "Tampa",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Hard Rock Hotel &amp; Casino Bristol",
+      "match_score": 0.72
+    },
+    {
+      "venue_id": 2693,
+      "venue_name": "Cherokee Poker Classic",
+      "city": "Cherokee",
+      "state": "NC",
+      "is_series": true,
+      "best_pa_match": "Cherokee Casino West Siloam Springs",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2669,
+      "venue_name": "Horseshoe Council Bluffs Poker Series",
+      "city": "Council Bluffs",
+      "state": "IA",
+      "is_series": true,
+      "best_pa_match": "Horseshoe Casino Council Bluffs",
+      "match_score": 0.87
+    },
+    {
+      "venue_id": 2695,
+      "venue_name": "Jack Casino Cleveland Poker Series",
+      "city": "Cleveland",
+      "state": "OH",
+      "is_series": true,
+      "best_pa_match": "JACK Cleveland Casino",
+      "match_score": 0.8
+    },
+    {
+      "venue_id": 2650,
+      "venue_name": "Parx Big Stax Poker Series",
+      "city": "Bensalem",
+      "state": "PA",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.46
+    },
+    {
+      "venue_id": 2760,
+      "venue_name": "Wisconsin State Poker Championship",
+      "city": "Baraboo",
+      "state": "WI",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.71
+    },
+    {
+      "venue_id": 2711,
+      "venue_name": "Live Casino Poker Series",
+      "city": "Hanover",
+      "state": "MD",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2645,
+      "venue_name": "Beau Rivage Poker Series",
+      "city": "Biloxi",
+      "state": "MS",
+      "is_series": true,
+      "best_pa_match": "Beau Rivage Resort &amp; Casino",
+      "match_score": 0.65
+    },
+    {
+      "venue_id": 2688,
+      "venue_name": "Coconut Creek Lucky Hearts Open",
+      "city": "Coconut Creek",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Kickapoo Lucky Eagle Casino",
+      "match_score": 0.51
+    },
+    {
+      "venue_id": 2663,
+      "venue_name": "Horseshoe Indiana Poker Series",
+      "city": "Elizabeth",
+      "state": "IN",
+      "is_series": true,
+      "best_pa_match": "Horseshoe Indianapolis",
+      "match_score": 0.78
+    },
+    {
+      "venue_id": 2665,
+      "venue_name": "Fort McDowell Poker Series",
+      "city": "Fort McDowell",
+      "state": "AZ",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2615,
+      "venue_name": "Wynn Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Wynn Las Vegas",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2684,
+      "venue_name": "Graton Poker Series",
+      "city": "Rohnert Park",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Grand Sierra Resort Casino",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2682,
+      "venue_name": "Morongo Poker Series",
+      "city": "Cabazon",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Morongo Casino",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2713,
+      "venue_name": "Jackson Rancheria Poker Series",
+      "city": "Jackson",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Jackson Rancheria Casino Resort",
+      "match_score": 0.83
+    },
+    {
+      "venue_id": 2742,
+      "venue_name": "Potawatomi Poker Series",
+      "city": "Milwaukee",
+      "state": "WI",
+      "is_series": true,
+      "best_pa_match": "Potawatomi Hotel &amp; Casino",
+      "match_score": 0.63
+    },
+    {
+      "venue_id": 2702,
+      "venue_name": "Gulf Coast Poker Championship",
+      "city": "Biloxi",
+      "state": "MS",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.7
+    },
+    {
+      "venue_id": 2616,
+      "venue_name": "Borgata Poker Open",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "is_series": true,
+      "best_pa_match": "Borgata Hotel Casino &amp; Spa",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2717,
+      "venue_name": "Monarch Black Hawk Poker Classic",
+      "city": "Black Hawk",
+      "state": "CO",
+      "is_series": true,
+      "best_pa_match": "Monarch Black Hawk",
+      "match_score": 0.82
+    },
+    {
+      "venue_id": 2648,
+      "venue_name": "Pearl River Poker Open",
+      "city": "Philadelphia",
+      "state": "MS",
+      "is_series": true,
+      "best_pa_match": "Pearl River Resort",
+      "match_score": 0.81
+    },
+    {
+      "venue_id": 2620,
+      "venue_name": "Station Casinos Poker Classic",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Action's Card House",
+      "match_score": 0.53
+    },
+    {
+      "venue_id": 2735,
+      "venue_name": "Elite Poker Lounge Series",
+      "city": "Houston",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Elite Poker Lounge",
+      "match_score": 0.77
+    },
+    {
+      "venue_id": 2625,
+      "venue_name": "Lucky Hearts Poker Open",
+      "city": "Hollywood",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Lucky Chances Casino",
+      "match_score": 0.6
+    },
+    {
+      "venue_id": 2701,
+      "venue_name": "Great Lakes Poker Tour",
+      "city": "Detroit",
+      "state": "MI",
+      "is_series": true,
+      "best_pa_match": "Seat Open Lakeside on Hauser",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2627,
+      "venue_name": "Choctaw Poker Series",
+      "city": "Durant",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "Jena Choctaw Pines Casino",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2630,
+      "venue_name": "Aria Poker Classic",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "American Place Casino",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2632,
+      "venue_name": "Harrahs Cherokee Poker Series",
+      "city": "Cherokee",
+      "state": "NC",
+      "is_series": true,
+      "best_pa_match": "Harrah's Cherokee",
+      "match_score": 0.82
+    },
+    {
+      "venue_id": 2634,
+      "venue_name": "South Point Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "South Point Casino",
+      "match_score": 0.76
+    },
+    {
+      "venue_id": 2745,
+      "venue_name": "Agua Caliente Poker Championship",
+      "city": "Rancho Mirage",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2657,
+      "venue_name": "Texas Card House Tournament Series",
+      "city": "Austin",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Texas Card House Spring",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2692,
+      "venue_name": "Ocean Casino Poker Series",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "is_series": true,
+      "best_pa_match": "Oceanview Casino",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2670,
+      "venue_name": "Boomtown Poker Series",
+      "city": "Harvey",
+      "state": "LA",
+      "is_series": true,
+      "best_pa_match": "Boomtown Casino Biloxi",
+      "match_score": 0.67
+    },
+    {
+      "venue_id": 2698,
+      "venue_name": "Green Valley Ranch Poker Series",
+      "city": "Henderson",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Green Valley Ranch Casino",
+      "match_score": 0.84
+    },
+    {
+      "venue_id": 2730,
+      "venue_name": "Live Poker Classic",
+      "city": "Hanover",
+      "state": "MD",
+      "is_series": true,
+      "best_pa_match": "Lilac Club Casino",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2761,
+      "venue_name": "Illinois Poker Championship",
+      "city": "Des Plaines",
+      "state": "IL",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2718,
+      "venue_name": "Lodge Casino Poker Series",
+      "city": "Black Hawk",
+      "state": "CO",
+      "is_series": true,
+      "best_pa_match": "Lodge Card Club Austin",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2746,
+      "venue_name": "San Diego Poker Series",
+      "city": "El Cajon",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "Indigo Sky Casino",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 2757,
+      "venue_name": "Downtown Grand Poker Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2764,
+      "venue_name": "River Poker Series",
+      "city": "Thackerville",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "River Spirit Casino",
+      "match_score": 0.75
+    },
+    {
+      "venue_id": 2763,
+      "venue_name": "Colorado Poker Championship",
+      "city": "Black Hawk",
+      "state": "CO",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.64
+    },
+    {
+      "venue_id": 2736,
+      "venue_name": "DeepStack Showdown",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "Spades Poker House Baytown",
+      "match_score": 0.51
+    },
+    {
+      "venue_id": 2706,
+      "venue_name": "Hard Rock Cherokee Poker Classic",
+      "city": "Cherokee",
+      "state": "NC",
+      "is_series": true,
+      "best_pa_match": "Harrah's Cherokee",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2246,
+      "venue_name": "Seminole Classic",
+      "city": "Hollywood",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Seminole Coconut Creek",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2636,
+      "venue_name": "Rough N Rowdy Poker Tour",
+      "city": "Deadwood",
+      "state": "SD",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.47
+    },
+    {
+      "venue_id": 2639,
+      "venue_name": "Lone Star Poker Series",
+      "city": "Houston",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Lone Star Social",
+      "match_score": 0.75
+    },
+    {
+      "venue_id": 2640,
+      "venue_name": "FireKeepers Casino Poker Series",
+      "city": "Battle Creek",
+      "state": "MI",
+      "is_series": true,
+      "best_pa_match": "FireKeepers Casino",
+      "match_score": 0.73
+    },
+    {
+      "venue_id": 2635,
+      "venue_name": "PokerGO Tour (PGT)",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.43
+    },
+    {
+      "venue_id": 2647,
+      "venue_name": "Horseshoe Tunica Poker Series",
+      "city": "Tunica",
+      "state": "MS",
+      "is_series": true,
+      "best_pa_match": "Horseshoe Casino Tunica",
+      "match_score": 0.82
+    },
+    {
+      "venue_id": 2649,
+      "venue_name": "Turning Stone Poker Classic",
+      "city": "Verona",
+      "state": "NY",
+      "is_series": true,
+      "best_pa_match": "Turning Stone Casino",
+      "match_score": 0.76
+    },
+    {
+      "venue_id": 2707,
+      "venue_name": "Derby Lane Poker Series",
+      "city": "St. Petersburg",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Derby Lane Poker Room",
+      "match_score": 0.74
+    },
+    {
+      "venue_id": 2651,
+      "venue_name": "SugarHouse Poker Series",
+      "city": "Philadelphia",
+      "state": "PA",
+      "is_series": true,
+      "best_pa_match": "Texas Card House Spring",
+      "match_score": 0.57
+    },
+    {
+      "venue_id": 2652,
+      "venue_name": "Seneca Niagara Poker Series",
+      "city": "Niagara Falls",
+      "state": "NY",
+      "is_series": true,
+      "best_pa_match": "Casino Niagara",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2721,
+      "venue_name": "No Limit Gaming Tour",
+      "city": "Orlando",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Nickels Gaming Parlour",
+      "match_score": 0.62
+    },
+    {
+      "venue_id": 2653,
+      "venue_name": "Maryland Live Poker Series",
+      "city": "Hanover",
+      "state": "MD",
+      "is_series": true,
+      "best_pa_match": "Maryland Live! Casino at Arundel Mills",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2731,
+      "venue_name": "PGT PLO Series",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.55
+    },
+    {
+      "venue_id": 2765,
+      "venue_name": "Chickasaw Poker Series",
+      "city": "Thackerville",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "Chasers Poker Room",
+      "match_score": 0.61
+    },
+    {
+      "venue_id": 2658,
+      "venue_name": "Lodge Championship Series",
+      "city": "Round Rock",
+      "state": "TX",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.58
+    },
+    {
+      "venue_id": 2673,
+      "venue_name": "Bellagio Five Diamond Poker Classic",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "NO MATCH",
+      "match_score": 0.47
+    },
+    {
+      "venue_id": 2654,
+      "venue_name": "Horseshoe Baltimore Poker Series",
+      "city": "Baltimore",
+      "state": "MD",
+      "is_series": true,
+      "best_pa_match": "Horseshoe Baltimore",
+      "match_score": 0.84
+    },
+    {
+      "venue_id": 2754,
+      "venue_name": "Magic City Poker Open",
+      "city": "Miami",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Magic City Casino",
+      "match_score": 0.8
+    },
+    {
+      "venue_id": 2755,
+      "venue_name": "Oxford Downs Poker Series",
+      "city": "Oxford",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Oxford Downs",
+      "match_score": 0.77
+    },
+    {
+      "venue_id": 2759,
+      "venue_name": "All In For Charity Poker Tour",
+      "city": "Various",
+      "state": "US",
+      "is_series": true,
+      "best_pa_match": "All In Poker Club Araraquara",
+      "match_score": 0.59
+    },
+    {
+      "venue_id": 2605,
+      "venue_name": "World Series of Poker (WSOP)",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.81
+    },
+    {
+      "venue_id": 2623,
+      "venue_name": "Chukchansi Gold Poker Series",
+      "city": "Coarsegold",
+      "state": "CA",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.54
+    },
+    {
+      "venue_id": 2834,
+      "venue_name": "Charity Series of Poker (CSOP)",
+      "city": "Las Vegas",
+      "state": "NV",
+      "is_series": true,
+      "best_pa_match": "World Series of Poker",
+      "match_score": 0.56
+    },
+    {
+      "venue_id": 2655,
+      "venue_name": "Hard Rock Tulsa Poker Series",
+      "city": "Catoosa",
+      "state": "OK",
+      "is_series": true,
+      "best_pa_match": "Hard Rock Tulsa",
+      "match_score": 0.81
+    },
+    {
+      "venue_id": 2803,
+      "venue_name": "Windy City Poker Championship",
+      "city": "Homewood",
+      "state": "IL",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 1.0
+    },
+    {
+      "venue_id": 2709,
+      "venue_name": "Sarasota Kennel Club Poker Series",
+      "city": "Sarasota",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Paris Club Elys\u00e9es",
+      "match_score": 0.5
+    },
+    {
+      "venue_id": 2637,
+      "venue_name": "Florida State Poker Championship",
+      "city": "Jacksonville",
+      "state": "FL",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.69
+    },
+    {
+      "venue_id": 2641,
+      "venue_name": "Motor City Poker Championship",
+      "city": "Detroit",
+      "state": "MI",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.78
+    },
+    {
+      "venue_id": 2726,
+      "venue_name": "SD State Poker Championship",
+      "city": "Deadwood",
+      "state": "SD",
+      "is_series": true,
+      "best_pa_match": "Windy City Poker Championship",
+      "match_score": 0.73
+    }
+  ],
+  "count": 151
+}
