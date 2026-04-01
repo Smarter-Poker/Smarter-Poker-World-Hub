@@ -857,15 +857,15 @@ export default function PokerNearMePage() {
         setSelectedCity(null);
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
-        setGpsLocationLabel('Locating...');
+        // Show coordinates immediately while geocoding resolves
+        setGpsLocationLabel(`${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`);
         setHasSearched(true);
         setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
-        setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
         setGpsLoading(false);
+        setTimeout(() => { fetchAllData({ includeVenues: true }); }, 0);
         // Resolve city/state asynchronously
         reverseGeocode(loc.lat, loc.lng).then(label => {
             if (label) setGpsLocationLabel(label);
-            else setGpsLocationLabel(`${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}`);
         });
     }, [reverseGeocode]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -877,10 +877,18 @@ export default function PokerNearMePage() {
         setGpsLoading(true);
         setGpsLocationLabel('Locating...');
         // Tier 1: High accuracy (GPS/cellular)
+        const gpsTimeoutId = setTimeout(() => {
+            // Failsafe: if GPS hasn't responded in 20s, stop loading
+            setGpsLoading(false);
+            if (!userLocation) {
+                setGpsLocationLabel(null);
+            }
+        }, 20000);
         navigator.geolocation.getCurrentPosition(
-            handleGpsSuccess,
+            (pos) => { clearTimeout(gpsTimeoutId); handleGpsSuccess(pos); },
             (highAccErr) => {
                 if (highAccErr.code === 1) {
+                    clearTimeout(gpsTimeoutId);
                     alert('Location access denied. Please enable location services in your browser settings.');
                     setGpsLoading(false);
                     setGpsLocationLabel(null);
@@ -888,8 +896,9 @@ export default function PokerNearMePage() {
                 }
                 // Tier 2: Fallback to WiFi/IP-based (works on desktops)
                 navigator.geolocation.getCurrentPosition(
-                    handleGpsSuccess,
+                    (pos) => { clearTimeout(gpsTimeoutId); handleGpsSuccess(pos); },
                     () => {
+                        clearTimeout(gpsTimeoutId);
                         alert('Unable to determine your location. Please enter a city manually or try enabling location services.');
                         setGpsLoading(false);
                         setGpsLocationLabel(null);
@@ -2630,18 +2639,7 @@ export default function PokerNearMePage() {
                                         </select>
                                     </div>
 
-                                    <div className="sidebar-filter-group">
-                                        <label>Sort By</label>
-                                        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="sidebar-select">
-                                            <option value="default">{userLocation ? 'Distance (Nearest)' : 'Default'}</option>
-                                            <option value="trust-desc">Trust (High to Low)</option>
-                                            <option value="distance">Distance (Nearest)</option>
-                                            <option value="name-az">Name (A-Z)</option>
-                                            <option value="venue-type">Venue Type</option>
-                                            <option value="state-az">State (A-Z)</option>
-                                            <option value="most-tables">Most Tables</option>
-                                        </select>
-                                    </div>
+
 
                                     {/* ─── APPLY FILTERS BUTTON ─── */}
                                     <button

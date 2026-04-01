@@ -245,64 +245,43 @@ export default async function handler(req, res) {
         }
 
         // ═══ EXECUTE ATOMIC TRANSFER ═══
-        // Step 1: Deduct from sender (atomic — .gte prevents over-deduction)
-        // BUG-FIX: Use read-after-write pattern instead of pre-calculated balance
-        // to prevent race conditions with concurrent transfers
-        const { data: deductData, error: deductErr } = await getSupabase()
+        // Step 1: Deduct from sender using atomic RPC (diamonds = diamonds - amount WHERE diamonds >= amount)
+        // This prevents race conditions — no stale snapshot arithmetic
+        const { data: deductResult, error: deductErr } = await getSupabase()
             .rpc('transfer_diamonds_deduct', {
                 sender_id: userId,
                 deduct_amount: amount,
             });
 
-        // Fallback if RPC doesn't exist: use update with gte guard
-        let actualSenderBalance;
-        if (deductErr?.code === '42883') {
-            // RPC not found — fall back to update with gte guard + re-read
-            const { data: fallbackData, error: fallbackErr } = await getSupabase()
-                .from('profiles')
-                .update({ diamonds: (senderProfile.diamonds ?? 0) - amount, updated_at: now.toISOString() })
-                .eq('id', userId)
-                .gte('diamonds', amount) // Atomic guard: only deduct if still has enough
-                .select('id, diamonds');
-
-            if (fallbackErr) {
-                console.error('Transfer deduct error:', fallbackErr);
-                return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
-            }
-            if (!fallbackData || fallbackData.length === 0) {
-                return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
-            }
-            actualSenderBalance = fallbackData[0].diamonds;
-        } else if (deductErr) {
+        if (deductErr) {
             console.error('Transfer deduct error:', deductErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — please try again' });
-        } else {
-            // RPC succeeded — deductData contains the new balance
-            actualSenderBalance = deductData;
-            if (actualSenderBalance === null || actualSenderBalance === undefined) {
-                return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
-            }
         }
 
-        // Step 2: Credit recipient — use increment pattern for safety
-        const { data: creditData, error: creditErr } = await getSupabase()
-            .from('profiles')
-            .update({ diamonds: (recipientProfile.diamonds ?? 0) + amount, updated_at: now.toISOString() })
-            .eq('id', recipientId)
-            .select('id, diamonds');
+        // RPC returns NULL if insufficient funds (WHERE diamonds >= amount matched 0 rows)
+        if (deductResult === null || deductResult === undefined) {
+            return res.status(400).json({ success: false, error: 'Insufficient diamond balance (concurrent transfer detected)' });
+        }
+        const actualSenderBalance = deductResult;
+
+        // Step 2: Credit recipient using atomic RPC (diamonds = diamonds + amount)
+        const { data: creditResult, error: creditErr } = await getSupabase()
+            .rpc('transfer_diamonds_credit', {
+                recipient_id: recipientId,
+                credit_amount: amount,
+            });
 
         if (creditErr) {
-            // ROLLBACK: Restore sender's balance to what it was before deduction
-            await getSupabase()
-                .from('profiles')
-                .update({ diamonds: actualSenderBalance + amount, updated_at: now.toISOString() })
-                .eq('id', userId);
+            // ROLLBACK: Restore sender's balance atomically
+            await getSupabase().rpc('transfer_diamonds_credit', {
+                recipient_id: userId,
+                credit_amount: amount,
+            });
             console.error('Transfer credit error (rolled back):', creditErr);
             return res.status(500).json({ success: false, error: 'Transfer failed — your diamonds have been restored' });
         }
 
-        // Read actual post-credit balance for accurate transaction logging
-        const actualRecipientBalance = creditData?.[0]?.diamonds ?? ((recipientProfile.diamonds ?? 0) + amount);
+        const actualRecipientBalance = creditResult ?? ((recipientProfile.diamonds ?? 0) + amount);
 
         // Step 3: Log sender transaction (using actual post-deduct balance)
         const recipientName = recipientProfile.display_name || recipientProfile.username || 'friend';

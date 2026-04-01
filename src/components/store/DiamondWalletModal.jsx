@@ -164,18 +164,23 @@ function persistRecipients(recipients) {
 
 // ── R8-I3: Rate-limit error parser ──
 function parseRateLimitError(errorText) {
+    if (!errorText) return null;
     // Parse "wait X seconds between transfers" and "cooldown: X seconds remaining" formats
-    const secondsMatch = errorText?.match(/(\d+)\s*seconds?/i);
-    const minutesMatch = errorText?.match(/(\d+)\s*minutes?/i);
+    const secondsMatch = errorText.match(/(\d+)\s*seconds?/i);
+    const minutesMatch = errorText.match(/(\d+)\s*minutes?/i);
     if (/wait/i.test(errorText) && secondsMatch) {
         return { type: 'cooldown', seconds: parseInt(secondsMatch[1]) };
     }
     if (/wait/i.test(errorText) && minutesMatch) {
         return { type: 'cooldown', seconds: parseInt(minutesMatch[1]) * 60 };
     }
-    // Parse "daily limit reached" or "Daily transfer limit" type messages
-    if (/daily\s*(transfer\s*)?limit/i.test(errorText)) return { type: 'daily_limit' };
-    // Parse "per-friend limit" or "per-recipient" messages
+    // Parse "Daily transfer limit reached" type messages (Guard 3)
+    if (/daily\s*(transfer\s*)?limit\s*reached/i.test(errorText)) return { type: 'daily_limit' };
+    // Parse "per day to the same friend" messages (Guard 10)
+    if (/per\s*day\s*to\s*(the\s*)?same\s*friend/i.test(errorText)) return { type: 'friend_limit' };
+    // Parse "daily receive limit" messages (Guard 12)
+    if (/daily\s*receive\s*limit/i.test(errorText)) return { type: 'daily_limit' };
+    // Parse "per-friend limit" or "per-recipient" messages (generic)
     if (/per[- ]?(friend|recipient)/i.test(errorText)) return { type: 'friend_limit' };
     return null;
 }
