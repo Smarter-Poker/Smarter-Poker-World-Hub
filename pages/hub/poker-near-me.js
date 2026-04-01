@@ -967,8 +967,9 @@ export default function PokerNearMePage() {
             if (userLocation) {
                 params.set('lat', userLocation.lat.toString());
                 params.set('lng', userLocation.lng.toString());
-                const kmRadius = filters.radius === 'Any' ? 5000 : Math.round(filters.radius * 1.60934);
-                params.set('radius', String(kmRadius));
+                // Send radius in miles — API compares against distance_mi
+                const miRadius = filters.radius === 'Any' ? 5000 : Number(filters.radius);
+                params.set('radius', String(miRadius));
             }
             if (searchQuery) {
                 params.set('search', searchQuery);
