@@ -167,7 +167,8 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (recentTransfer) {
-            return res.status(429).json({ success: false, error: 'Please wait 60 seconds between transfers' });
+            // Calculate exact seconds remaining for client countdown timer
+            return res.status(429).json({ success: false, error: `Please wait ${COOLDOWN_SECONDS} seconds between transfers (cooldown remaining)` });
         }
 
         // ── Guard 3: Daily limit check (tier-aware) ──
@@ -223,7 +224,7 @@ export default async function handler(req, res) {
         if (recentRecipientTransfer) {
             return res.status(429).json({
                 success: false,
-                error: `Please wait 5 minutes between transfers to the same friend`
+                error: `Please wait ${PER_RECIPIENT_COOLDOWN_SECONDS} seconds between transfers to the same friend`
             });
         }
 
