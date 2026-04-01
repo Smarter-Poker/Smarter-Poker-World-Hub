@@ -648,13 +648,15 @@ export default async function handler(req, res) {
                   };
               });
 
-              // Filter venues WITH coordinates by radius; KEEP venues without coordinates (sorted to end)
+              // Filter venues WITH coordinates by radius
               const withinRadius = venues.filter(v => v.distance_mi != null && v.distance_mi <= maxRadius);
-              const noCoords = venues.filter(v => v.distance_mi == null);
 
-              // Sort: distance-first for GPS venues, then no-coord venues (charity, clubs, home games) at end
+              // Sort distance-first
               withinRadius.sort((a, b) => a.distance_mi - b.distance_mi);
-              venues = [...withinRadius, ...noCoords];
+              
+              // Only include noCoords if no explicit GPS filter was requested OR if they matched explicit search params
+              // Since this block is inside hasGps, we drop un-locatable venues from a localized radius search
+              venues = withinRadius;
           }
 
           // --- Single venue by ID: attach daily tournament schedules + venue news ---
