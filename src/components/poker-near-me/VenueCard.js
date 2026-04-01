@@ -486,7 +486,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-identity { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
                 .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); }
-                .vc3-logo-img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+                .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; }
                 .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
                 .vc3-open-dot.closed { background: #ef4444; animation: none; }

@@ -1990,66 +1990,37 @@ export default function PokerNearMePage() {
                     </div>
                 </div>
 
-                {/* ═══ CLICKABLE MAP CARD (same size as venue cards) ═══ */}
-                <div className="map-preview-card" onClick={() => setMapFullscreen(true)}>
-                    <div className="map-preview-expand-badge">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
-                            <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
-                        </svg>
-                        Expand Map · {sorted.length} Venues
+                {/* ═══ MAP CARD — Toggles between preview and full-screen in-place ═══ */}
+                <div className={`map-preview-card${mapFullscreen ? ' map-preview-fullscreen' : ''}`}>
+                    <div className="map-preview-expand-badge" onClick={(e) => { e.stopPropagation(); setMapFullscreen(!mapFullscreen); }} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
+                        {mapFullscreen ? (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
+                                    <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
+                                </svg>
+                                Collapse Map
+                            </>
+                        ) : (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+                                    <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
+                                </svg>
+                                Expand Map · {sorted.length} Venues
+                            </>
+                        )}
                     </div>
                     <MapErrorBoundary>
                         <VenueMap
-                            key="venues-preview"
+                            key={mapFullscreen ? 'venues-fullscreen' : 'venues-preview'}
                             venues={sorted}
                             userLocation={userLocation}
+                            fullHeight={mapFullscreen}
                             onVenueClick={onMapVenueClick}
                         />
                     </MapErrorBoundary>
                 </div>
-
-                {/* ═══ FULLSCREEN MAP MODAL ═══ */}
-                {mapFullscreen && (
-                    <div className="map-fullscreen-backdrop" onClick={() => setMapFullscreen(false)}>
-                        <div className="map-fullscreen-modal" onClick={(e) => e.stopPropagation()}>
-                            <div className="map-fullscreen-header">
-                                <h2 className="map-fullscreen-title">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
-                                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                                        <line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
-                                    </svg>
-                                    Poker Venues Map
-                                </h2>
-                                <div className="map-fullscreen-info">
-                                    <span className="map-fullscreen-count">{sorted.length} venues</span>
-                                    {userLocation && (
-                                        <button className="map-recenter-btn" onClick={requestGpsLocation}>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>
-                                            My Location
-                                        </button>
-                                    )}
-                                </div>
-                                <button className="map-fullscreen-close" onClick={() => setMapFullscreen(false)} aria-label="Close map">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                                </button>
-                            </div>
-                            <div className="map-fullscreen-body">
-                                <div className="map-fullscreen-map">
-                                    <MapErrorBoundary>
-                                        <VenueMap
-                                            key="fullscreen-map"
-                                            venues={sorted}
-                                            userLocation={userLocation}
-                                            fullHeight
-                                            onVenueClick={onMapVenueClick}
-                                        />
-                                    </MapErrorBoundary>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* ═══ FULL-WIDTH VENUE CARDS BELOW MAP ═══ */}
                 <div className="venues-cards-section">
@@ -2092,7 +2063,12 @@ export default function PokerNearMePage() {
                         if (canExpandRadius) {
                             return (
                                 <div className="load-more">
-                                    <button className="load-more-btn" onClick={() => loadMore('venues')}>
+                                    <button className="expand-radius-btn" onClick={() => loadMore('venues')}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <polyline points="8 12 12 16 16 12" />
+                                            <line x1="12" y1="8" x2="12" y2="16" />
+                                        </svg>
                                         Search Farther — Expand To {nextTier} Miles
                                     </button>
                                 </div>
@@ -4403,22 +4379,30 @@ export default function PokerNearMePage() {
                         box-shadow:
                             inset 0 1px 0 rgba(255,255,255,0.06),
                             0 4px 20px rgba(0,0,0,0.4);
-                        margin-bottom: 16px;
+                        margin-bottom: 2px;
                         min-height: 320px;
                         height: auto;
-                        cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                     }
-                    .map-preview-card:hover {
-                        border-color: rgba(212,168,83,0.4);
-                        box-shadow:
-                            inset 0 1px 0 rgba(212,168,83,0.1),
-                            0 8px 32px rgba(0,0,0,0.5),
-                            0 0 0 1px rgba(212,168,83,0.1);
-                        transform: translateY(-2px);
+                    /* ═══ FULLSCREEN MODE — expands map in-place ═══ */
+                    .map-preview-card.map-preview-fullscreen {
+                        position: fixed;
+                        inset: 0;
+                        z-index: 99990;
+                        border-radius: 0;
+                        border: none;
+                        margin: 0;
+                        min-height: 100vh;
+                        height: 100vh;
                     }
-                    .map-preview-card .leaflet-container,
-                    .map-preview-card > div:last-child {
+                    .map-preview-card.map-preview-fullscreen .leaflet-container,
+                    .map-preview-card.map-preview-fullscreen > div:last-child {
+                        height: 100vh !important;
+                        min-height: 100vh !important;
+                        pointer-events: auto;
+                    }
+                    .map-preview-card:not(.map-preview-fullscreen) .leaflet-container,
+                    .map-preview-card:not(.map-preview-fullscreen) > div:last-child {
                         height: 100% !important;
                         min-height: 100% !important;
                         pointer-events: none;
@@ -4427,7 +4411,7 @@ export default function PokerNearMePage() {
                         position: absolute;
                         top: 12px;
                         right: 12px;
-                        z-index: 10;
+                        z-index: 99991;
                         display: flex;
                         align-items: center;
                         gap: 6px;
@@ -4440,18 +4424,18 @@ export default function PokerNearMePage() {
                         font-size: 12px;
                         font-weight: 700;
                         letter-spacing: 0.3px;
-                        pointer-events: none;
+                        cursor: pointer;
                         transition: all 0.3s;
                         box-shadow: 0 4px 16px rgba(0,0,0,0.4);
                     }
-                    .map-preview-card:hover .map-preview-expand-badge {
+                    .map-preview-expand-badge:hover {
                         background: rgba(212,168,83,0.15);
                         border-color: rgba(212,168,83,0.6);
                         color: #f0d48a;
                         box-shadow: 0 4px 24px rgba(212,168,83,0.2);
                     }
                     .venues-cards-section {
-                        margin-top: 4px;
+                        margin-top: 2px;
                     }
                     .results-showing {
                         font-size: 12px;
@@ -4631,7 +4615,7 @@ export default function PokerNearMePage() {
                             border-left: none;
                             border-top: 2px solid rgba(148,163,184,0.1);
                         }
-                        .map-preview-card {
+                        .map-preview-card:not(.map-preview-fullscreen) {
                             height: 180px;
                         }
                     }
@@ -4752,6 +4736,46 @@ export default function PokerNearMePage() {
                             inset 0 1px 0 rgba(212,168,83,0.15),
                             0 0 12px rgba(212,168,83,0.1),
                             0 2px 6px rgba(0,0,0,0.3);
+                    }
+
+                    /* Expand Radius — Prominent CTA Button */
+                    .expand-radius-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        padding: 14px 36px;
+                        background: linear-gradient(135deg, rgba(212,168,83,0.22) 0%, rgba(184,134,11,0.10) 100%);
+                        border: 2px solid rgba(212,168,83,0.5);
+                        border-radius: 12px;
+                        color: #f0d48a;
+                        font-size: 15px;
+                        font-weight: 700;
+                        letter-spacing: 0.3px;
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.15),
+                            0 4px 16px rgba(0,0,0,0.3),
+                            0 0 0 1px rgba(212,168,83,0.08);
+                        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+                    }
+                    .expand-radius-btn:hover {
+                        background: linear-gradient(135deg, rgba(212,168,83,0.35) 0%, rgba(184,134,11,0.18) 100%);
+                        border-color: rgba(212,168,83,0.7);
+                        color: #fff;
+                        transform: translateY(-2px);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.2),
+                            0 8px 24px rgba(0,0,0,0.4),
+                            0 0 20px rgba(212,168,83,0.15),
+                            0 0 0 1px rgba(212,168,83,0.15);
+                    }
+                    .expand-radius-btn:active {
+                        transform: translateY(0);
+                        box-shadow:
+                            inset 0 2px 4px rgba(0,0,0,0.3),
+                            0 2px 8px rgba(0,0,0,0.3);
                     }
 
                     /* Live Games */
