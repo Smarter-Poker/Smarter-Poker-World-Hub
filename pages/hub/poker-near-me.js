@@ -808,6 +808,8 @@ export default function PokerNearMePage() {
             case 'venue-type': return sorted.sort((a, b) => (VENUE_TYPE_ORDER[a.venue_type] ?? 99) - (VENUE_TYPE_ORDER[b.venue_type] ?? 99));
             case 'state-az': return sorted.sort((a, b) => (a.state || '').localeCompare(b.state || ''));
             case 'most-tables': return sorted.sort((a, b) => (b.poker_tables || 0) - (a.poker_tables || 0));
+            case 'most-games': return sorted.sort((a, b) => ((b.games_offered || []).length) - ((a.games_offered || []).length));
+            case 'city-az': return sorted.sort((a, b) => (a.city || '').localeCompare(b.city || ''));
             default: return sorted;
         }
     };
@@ -1798,10 +1800,32 @@ export default function PokerNearMePage() {
 
         return (
             <>
-                {/* Results count bar */}
+                {/* Results count bar with Sort dropdown */}
                 <div className="results-bar">
-                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found{userLocation && sortBy === 'default' ? ' (sorted by distance)' : ''}</span>
-                    <span className="results-showing">Showing {displayed.length} of {venues.length}</span>
+                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
+                    <div className="results-bar-right">
+                        <div className="sort-results-wrapper">
+                            <label className="sort-results-label">Sort:</label>
+                            <select
+                                value={sortBy}
+                                onChange={e => setSortBy(e.target.value)}
+                                className="sort-results-select"
+                            >
+                                <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
+                                <option value="distance">Distance (Nearest)</option>
+                                <option value="trust-desc">Trust Score (High → Low)</option>
+                                <option value="trust-asc">Trust Score (Low → High)</option>
+                                <option value="name-az">Name (A → Z)</option>
+                                <option value="name-za">Name (Z → A)</option>
+                                <option value="venue-type">Venue Type</option>
+                                <option value="state-az">State (A → Z)</option>
+                                <option value="most-tables">Most Tables</option>
+                                <option value="most-games">Most Games Offered</option>
+                                <option value="city-az">City (A → Z)</option>
+                            </select>
+                        </div>
+                        <span className="results-showing">Showing {displayed.length} of {venues.length}</span>
+                    </div>
                 </div>
 
                 {/* ═══ CLICKABLE MAP CARD (same size as venue cards) ═══ */}
@@ -4104,6 +4128,47 @@ export default function PokerNearMePage() {
                         color: rgba(255,255,255,0.6);
                         font-weight: 600;
                     }
+                    .results-bar-right {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        flex-wrap: wrap;
+                    }
+                    .sort-results-wrapper {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                    }
+                    .sort-results-label {
+                        font-size: 12px;
+                        color: rgba(148,163,184,0.6);
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        white-space: nowrap;
+                    }
+                    .sort-results-select {
+                        padding: 5px 28px 5px 10px;
+                        border-radius: 8px;
+                        border: 1px solid rgba(212,168,83,0.25);
+                        background: rgba(10,16,28,0.8);
+                        color: #d4a853;
+                        font-size: 12px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        appearance: none;
+                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4a853' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+                        background-repeat: no-repeat;
+                        background-position: right 8px center;
+                        transition: all 0.2s;
+                    }
+                    .sort-results-select:hover,
+                    .sort-results-select:focus {
+                        border-color: rgba(212,168,83,0.5);
+                        outline: none;
+                        box-shadow: 0 0 8px rgba(212,168,83,0.15);
+                    }
                     .sort-controls {
                         display: flex;
                         align-items: center;
@@ -4135,8 +4200,8 @@ export default function PokerNearMePage() {
                             inset 0 1px 0 rgba(255,255,255,0.06),
                             0 4px 20px rgba(0,0,0,0.4);
                         margin-bottom: 16px;
-                        aspect-ratio: 16 / 9;
-                        max-height: 280px;
+                        min-height: 320px;
+                        height: auto;
                         cursor: pointer;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     }
