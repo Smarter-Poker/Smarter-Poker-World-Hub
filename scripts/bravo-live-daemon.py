@@ -1027,6 +1027,9 @@ def run_scrape_cycle(mgr):
     consecutive_venue_failures = 0
     cycle_aborted = False
 
+    in_cycle_reconnects = 0
+    MAX_IN_CYCLE_RECONNECTS = 2  # Max mid-cycle reconnects before giving up
+
     for i, slug in enumerate(slugs):
         # CIRCUIT BREAKER: If too many consecutive venues fail, abort and reconnect
         if consecutive_venue_failures >= CIRCUIT_BREAKER_THRESHOLD:
@@ -1035,6 +1038,27 @@ def run_scrape_cycle(mgr):
             mgr.tier2_failures = 0
             cycle_aborted = True
             break
+
+        # IN-CYCLE SESSION RECOVERY: If session died mid-cycle, reconnect
+        # immediately instead of wasting venues on doomed Tier 2/3 attempts.
+        # This recovers ~130 venues per cycle that were previously lost.
+        if mgr._session_dead and in_cycle_reconnects < MAX_IN_CYCLE_RECONNECTS:
+            log.info(f'🔄 In-cycle reconnect #{in_cycle_reconnects + 1} (session died at venue {i})...')
+            # Flush any accumulated results before reconnect
+            if chunk_results:
+                chunk_num += 1
+                saved, ok = publish_chunk(chunk_results, batch_id, chunk_num)
+                total_saved += saved
+                chunk_results = []
+
+            if mgr.connect():
+                in_cycle_reconnects += 1
+                consecutive_venue_failures = 0
+                log.info(f'  ✅ In-cycle reconnect succeeded — resuming at venue {i+1}/{len(slugs)}')
+            else:
+                log.error(f'  ❌ In-cycle reconnect failed — aborting cycle')
+                cycle_aborted = True
+                break
 
         # PAGE RECYCLING: Prevent browser memory leaks
         if (i + 1) % PAGE_RECYCLE_INTERVAL == 0 and not mgr._session_dead:
@@ -1225,32 +1249,45 @@ def _network_available():
 # ZOMBIE BROWSER CLEANUP
 # ============================================================
 def _kill_zombie_browsers():
-    """Kill orphaned camoufox/chromium processes that leak on crash.
+    """Kill orphaned camoufox/chromium processes that belong to THIS daemon.
     
-    When StealthySession crashes, it can leave headless browser processes
-    running that consume CPU. This function cleans them up before
-    starting a new session.
+    IMPORTANT: Only kills processes in our own process tree. Previous versions
+    used `pgrep -f chromium` which killed ALL browser processes, including 
+    the OTHER daemon's live browser — causing cascading context-dead errors.
+    
+    Now uses `pgrep -P <our_pid>` to scope kills to our own children,
+    then recursively kills their children.
     """
     my_pid = os.getpid()
-    for proc_name in ('camoufox', 'firefox', 'chromium'):
+    killed = 0
+    
+    def _kill_tree(parent_pid):
+        """Recursively kill all children of a process."""
+        nonlocal killed
         try:
+            # Get children of this process
             result = subprocess.run(
-                ['pgrep', '-f', proc_name],
+                ['pgrep', '-P', str(parent_pid)],
                 capture_output=True, text=True, timeout=5
             )
             if result.stdout.strip():
-                pids = [int(p) for p in result.stdout.strip().split('\n') if p.strip()]
-                for pid in pids:
-                    if pid != my_pid:
-                        try:
-                            os.kill(pid, signal.SIGKILL)
-                            log.info(f'  🧹 Killed zombie {proc_name} process (PID {pid})')
-                        except ProcessLookupError:
-                            pass
-                        except PermissionError:
-                            pass
+                child_pids = [int(p) for p in result.stdout.strip().split('\n') if p.strip()]
+                for cpid in child_pids:
+                    # Recursively kill grandchildren first
+                    _kill_tree(cpid)
+                    try:
+                        os.kill(cpid, signal.SIGKILL)
+                        killed += 1
+                        log.info(f'  🧹 Killed child process (PID {cpid})')
+                    except (ProcessLookupError, PermissionError):
+                        pass
         except Exception:
             pass
+    
+    _kill_tree(my_pid)
+    
+    if killed:
+        log.info(f'  🧹 Cleaned up {killed} child processes')
 
 
 def _hard_kill_on_hang(reason):

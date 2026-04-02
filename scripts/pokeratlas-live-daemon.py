@@ -1135,27 +1135,42 @@ def _network_available():
 # ZOMBIE BROWSER CLEANUP
 # ============================================================
 def _kill_zombie_browsers():
-    """Kill orphaned camoufox/chromium processes that leak on crash."""
+    """Kill orphaned browser processes that belong to THIS daemon.
+    
+    IMPORTANT: Only kills processes in our own process tree. Previous versions
+    used `pgrep -f chromium` which killed ALL browser processes, including 
+    the OTHER daemon's live browser — causing cascading context-dead errors.
+    
+    Now uses `pgrep -P <our_pid>` to scope kills to our own children.
+    """
     my_pid = os.getpid()
-    for proc_name in ('camoufox', 'firefox', 'chromium'):
+    killed = 0
+    
+    def _kill_tree(parent_pid):
+        """Recursively kill all children of a process."""
+        nonlocal killed
         try:
             result = subprocess.run(
-                ['pgrep', '-f', proc_name],
+                ['pgrep', '-P', str(parent_pid)],
                 capture_output=True, text=True, timeout=5
             )
             if result.stdout.strip():
-                pids = [int(p) for p in result.stdout.strip().split('\n') if p.strip()]
-                for pid in pids:
-                    if pid != my_pid:
-                        try:
-                            os.kill(pid, signal.SIGKILL)
-                            log.info(f'  🧹 Killed zombie {proc_name} process (PID {pid})')
-                        except ProcessLookupError:
-                            pass
-                        except PermissionError:
-                            pass
+                child_pids = [int(p) for p in result.stdout.strip().split('\n') if p.strip()]
+                for cpid in child_pids:
+                    _kill_tree(cpid)
+                    try:
+                        os.kill(cpid, signal.SIGKILL)
+                        killed += 1
+                        log.info(f'  🧹 Killed child process (PID {cpid})')
+                    except (ProcessLookupError, PermissionError):
+                        pass
         except Exception:
             pass
+    
+    _kill_tree(my_pid)
+    
+    if killed:
+        log.info(f'  🧹 Cleaned up {killed} child processes')
 
 
 def _hard_kill_on_hang(reason):
