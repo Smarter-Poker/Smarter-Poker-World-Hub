@@ -12146,6 +12146,53 @@
       "has_tournaments": true
     },
     {
+      "id": 3026,
+      "name": "Wind Creek Chicago Southland",
+      "type": "casino",
+      "state": "IL",
+      "city": "East Hazel Crest",
+      "sources": [
+        {
+          "tier": 1,
+          "source": "venue_website",
+          "url": "https://windcreek.com/chicagosouthland/casino/poker",
+          "scrape_for": [
+            "hours",
+            "address",
+            "phone",
+            "games",
+            "stakes",
+            "news"
+          ]
+        },
+        {
+          "tier": 2,
+          "source": "pokeratlas",
+          "url": "https://www.pokeratlas.com/poker-room/wind-creek-chicago-southland-hazel-crest",
+          "scrape_for": [
+            "tables",
+            "stakes",
+            "games",
+            "hours"
+          ],
+          "tournament_url": "https://www.pokeratlas.com/poker-room/wind-creek-chicago-southland-hazel-crest/tournaments",
+          "cash_games_url": "https://www.pokeratlas.com/poker-room/wind-creek-chicago-southland-hazel-crest/cash-games"
+        }
+      ],
+      "data_completeness": {
+        "has_address": true,
+        "has_phone": true,
+        "has_games": true,
+        "has_stakes": true,
+        "has_hours": true,
+        "has_tables": true,
+        "has_coords": true,
+        "has_tournaments": true,
+        "has_website": true
+      },
+      "has_tournaments": true
+    },
+    {
       "id": 2318,
       "name": "Horseshoe Indiana",
       "type": "casino",

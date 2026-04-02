@@ -4713,6 +4713,38 @@
       "about": "Charity poker tournaments and cash games in Chicagoland. Weekly schedule: Thu-Sun. $20-$150 buy-ins. VFW Warrenville location."
     },
     {
+      "id": 3026,
+      "name": "Wind Creek Chicago Southland",
+      "slug": "wind-creek-chicago-southland",
+      "website": "https://windcreek.com/chicagosouthland/casino/poker",
+      "address": "17300 South Halsted Street",
+      "city": "East Hazel Crest",
+      "state": "IL",
+      "phone": "(866) 946-3361",
+      "venue_type": "casino",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/wind-creek-chicago-southland-hazel-crest",
+      "hours": null,
+      "latitude": 41.5531,
+      "longitude": -87.6346,
+      "trust_score": 4.3,
+      "games_offered": [
+        "NLH",
+        "PLO",
+        "Stud",
+        "Omaha Hi-Lo",
+        "Mixed"
+      ],
+      "stakes_cash": [
+        "$1/$3",
+        "$2/$5"
+      ],
+      "poker_tables": 10,
+      "hours_weekday": "24/7",
+      "hours_weekend": null,
+      "about": "10-table smoke-free poker room featuring Bad Beat Jackpot, dedicated cage, and a wide range of live games including No Limit Hold'em, Pot Limit Omaha, Seven Card Stud, and mixed games. Part of the Wind Creek Hospitality family (Poarch Creek Indians)."
+    },
+    {
       "id": 2319,
       "name": "Harrahs Hoosier Park",
       "slug": null,

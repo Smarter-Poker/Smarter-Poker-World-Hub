@@ -6043,6 +6043,33 @@
       "hours_weekday": "24/7"
     },
     {
+      "id": 3026,
+      "name": "Wind Creek Chicago Southland",
+      "state": "IL",
+      "city": "East Hazel Crest",
+      "venue_type": "casino",
+      "website": "https://windcreek.com/chicagosouthland/casino/poker",
+      "pokeratlas_url": "https://www.pokeratlas.com/poker-room/wind-creek-chicago-southland-hazel-crest",
+      "address": "17300 South Halsted Street",
+      "phone": "(866) 946-3361",
+      "has_tournaments": true,
+      "latitude": 41.5531,
+      "longitude": -87.6346,
+      "games_offered": [
+        "NLH",
+        "PLO",
+        "Stud",
+        "Omaha Hi-Lo",
+        "Mixed"
+      ],
+      "stakes_cash": [
+        "$1/$3",
+        "$2/$5"
+      ],
+      "poker_tables": 10,
+      "hours_weekday": "24/7"
+    },
+    {
       "id": 2317,
       "name": "Par-A-Dice",
       "state": "IL",
