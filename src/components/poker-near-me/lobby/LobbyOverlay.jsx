@@ -113,9 +113,7 @@ export default function LobbyOverlay({
 
       {/* TOP BAR — Title + Search */}
       <header className="lobby-topbar" style={{ pointerEvents: 'none' }}>
-        {/* POKER NEAR ME Title */}
-        <h1 className="lobby-title" style={{ textShadow: '0 0 40px rgba(110, 231, 239, 0.5), 0 0 80px rgba(110, 231, 239, 0.2)' }}>POKER NEAR ME</h1>
-
+        {/* POKER NEAR ME Title removed per user optimization for icon-only layout */}
         <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative', pointerEvents: 'auto' }}>
           <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`} style={{
             backdropFilter: 'blur(16px)',
@@ -416,9 +414,9 @@ export default function LobbyOverlay({
         msOverflowStyle: 'none',
       }}>
         <div style={{ position: 'relative', maxWidth: 900, width: '100%' }}>
-          {/* Grid image — JPG for 1MB savings over PNG */}
+          {/* Grid image — PNG to preserve "Home Games" update */}
           <img
-            src="/images/lobby-pods/poker-near-me-grid.jpg"
+            src="/images/lobby-pods/poker-near-me-grid.png"
             alt="Poker Near Me Feature Grid"
             loading="eager"
             fetchpriority="high"
