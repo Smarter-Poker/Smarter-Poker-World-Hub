@@ -14,8 +14,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
 import { getCardImagePath } from './Card';
 
-// Convert abstract hand notation ("K5o", "AKs", "TT") to two specific card objects with suits (memoized)
-const handToCards = React.memo((hand) => {
+// Convert abstract hand notation ("K5o", "AKs", "TT") to two specific card objects with suits
+function handToCards(hand) {
     if (!hand) return [{ rank: 'A', suit: 'h' }, { rank: 'K', suit: 's' }];
     if (hand.length === 2) {
         // Pair: "AA", "KK" → same rank, different suits
@@ -31,7 +31,7 @@ const handToCards = React.memo((hand) => {
         return [{ rank: r1, suit: 'h' }, { rank: r2, suit: 'd' }];
     }
     return [{ rank: hand[0] || 'A', suit: 'h' }, { rank: hand[1] || 'K', suit: 's' }];
-});
+}
 
 // ═══ STANDARD GTO PREFLOP RANGES (RFI — Raise First In) ═══
 // These are simplified solver-derived open-raising ranges by position (6-max, 100BB)
