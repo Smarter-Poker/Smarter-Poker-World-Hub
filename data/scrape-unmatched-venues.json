@@ -137,14 +137,6 @@
       "match_score": 0.71
     },
     {
-      "venue_id": 2316,
-      "venue_name": "Harrahs Joliet",
-      "city": "Joliet",
-      "state": "IL",
-      "best_pa_match": "Harrah's Laughlin",
-      "match_score": 0.67
-    },
-    {
       "venue_id": 2613,
       "venue_name": "PokerStars LIVE",
       "city": "Las Vegas",

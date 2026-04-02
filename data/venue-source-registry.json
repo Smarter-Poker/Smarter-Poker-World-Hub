@@ -11830,52 +11830,6 @@
       }
     },
     {
-      "id": 2316,
-      "name": "Harrahs Joliet",
-      "type": "casino",
-      "state": "IL",
-      "city": "Joliet",
-      "sources": [
-        {
-          "tier": 1,
-          "source": "venue_website",
-          "url": "http://www.harrahsjoliet.com/",
-          "scrape_for": [
-            "hours",
-            "address",
-            "phone",
-            "games",
-            "stakes",
-            "news"
-          ]
-        },
-        {
-          "tier": 2,
-          "source": "pokeratlas",
-          "url": "https://www.pokeratlas.com/poker-room/harrahs-joliet",
-          "scrape_for": [
-            "tables",
-            "stakes",
-            "games",
-            "hours"
-          ],
-          "tournament_url": "https://www.pokeratlas.com/poker-room/harrahs-joliet/tournaments",
-          "cash_games_url": "https://www.pokeratlas.com/poker-room/harrahs-joliet/cash-games"
-        }
-      ],
-      "data_completeness": {
-        "has_address": true,
-        "has_phone": true,
-        "has_games": true,
-        "has_stakes": true,
-        "has_hours": true,
-        "has_tables": true,
-        "has_coords": true,
-        "has_tournaments": false,
-        "has_website": true
-      }
-    },
-    {
       "id": 2317,
       "name": "Par-A-Dice",
       "type": "casino",

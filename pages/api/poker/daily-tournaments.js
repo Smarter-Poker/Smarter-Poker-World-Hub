@@ -128,6 +128,28 @@ export default async function handler(req, res) {
           query = query.limit(parsedLimit);
 
           const { data: dbTournaments, error } = await query;
+          
+          // Also fetch active charity events from charity_events_schedule
+          let charityQuery = getSupabase()
+              .from('charity_events_schedule')
+              .select('*')
+              .eq('data_quality', 'scraped_verified');
+              
+          if (state) {
+              charityQuery = charityQuery.ilike('state', state);
+          }
+          const { data: dbCharityEvents } = await charityQuery;
+          
+          // Fetch active poker tour series events happening on the target day
+          let toursQuery = getSupabase()
+              .from('poker_tour_series_events')
+              .select('*')
+              .eq('data_quality', 'scraped_verified');
+              
+          if (state) {
+              toursQuery = toursQuery.ilike('state', state);
+          }
+          const { data: dbToursEvents } = await toursQuery;
 
           let tournaments = [];
 
@@ -161,6 +183,52 @@ export default async function handler(req, res) {
                   tournaments = tournaments.filter(t =>
                       t.venueType?.toLowerCase().includes(type.toLowerCase())
                   );
+              }
+              
+              // Integrate charity events dynamically
+              if (dbCharityEvents && dbCharityEvents.length > 0) {
+                  dbCharityEvents.forEach(c => {
+                      tournaments.push({
+                          id: `charity_${c.id}`,
+                          venue_id: `charity_${c.id}`,
+                          venue_name: c.charity_name,
+                          venueType: 'Charity Room',
+                          day_of_week: c.start_date, // Mapped for sorting/fallback
+                          start_time: '12:00 PM', // Default
+                          buy_in: 0, // Or extract if available
+                          game_type: 'NLH',
+                          format: c.event_description,
+                          guaranteed: 0,
+                          tournament_name: c.charity_name + " Event",
+                          source_url: c.source_url,
+                          state: c.state,
+                          city: c.location_address, // Use address as locator
+                          pokerAtlasUrl: c.source_url
+                      });
+                  });
+              }
+              
+              // Integrate traveling tours and series events dynamically
+              if (dbToursEvents && dbToursEvents.length > 0) {
+                  dbToursEvents.forEach(e => {
+                      tournaments.push({
+                          id: `tour_event_${e.id}`,
+                          venue_id: `tour_event_${e.id}`,
+                          venue_name: e.venue_name || e.event_name,
+                          venueType: 'Tournament Series',
+                          day_of_week: e.event_date,
+                          start_time: '11:00 AM', // Default
+                          buy_in: e.buy_in || 0,
+                          game_type: 'NLH', // General mapping
+                          format: e.tour_code + " Event",
+                          guaranteed: e.guaranteed || 0,
+                          tournament_name: e.event_name,
+                          source_url: e.source_url,
+                          state: e.state,
+                          city: e.location_address, // Use address as locator
+                          pokerAtlasUrl: e.source_url
+                      });
+                  });
               }
           } else {
               // No database data available — return empty (never generate fake data)
