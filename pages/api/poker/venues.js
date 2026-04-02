@@ -529,19 +529,19 @@ export default async function handler(req, res) {
                               const trustScore = sp._resolvedTrustScore || null;
                               const isFeatured = sp._resolvedIsFeatured || false;
 
-                              // For charities: create one entry per unique geocoded schedule location
-                              if (sp.page_type === 'charity' && Object.keys(schedule).length > 0) {
-                                  const seenLocs = new Set();
-                                  for (const dayKey of DAYS_ORDER) {
-                                      const dayData = schedule[dayKey];
-                                      if (!dayData || !dayData.open || !dayData.location) continue;
+                              if (sp.page_type === 'charity') {
+                                  // Only process if they have a schedule and are explicitly open today
+                                  const dayData = schedule[todayKey];
+                                  if (dayData && dayData.open && dayData.location) {
                                       const locKey = dayData.location.trim();
-                                      if (seenLocs.has(locKey)) continue;
-                                      seenLocs.add(locKey);
-
                                       const coords = geocoded[locKey] || null;
+                                      
+                                      // Inherit the latitude/longitude if missing from coords dictionary
+                                      let resolveLat = coords ? coords.lat : primaryLat;
+                                      let resolveLng = coords ? coords.lng : primaryLng;
+
                                       mappedPages.push({
-                                          id: `sp-${sp.id}-${dayKey}`,
+                                          id: `sp-${sp.id}-${todayKey}`,
                                           name: sp.name,
                                           city: locKey.split(',')[0]?.trim() || sp.location_city,
                                           state: locKey.split(',')[1]?.trim() || sp.location_state,
@@ -552,35 +552,14 @@ export default async function handler(req, res) {
                                           is_social_page: true,
                                           social_page_id: sp.id,
                                           follower_count: sp.follower_count || 0,
-                                          latitude: coords ? coords.lat : null,
-                                          longitude: coords ? coords.lng : null,
-                                          games_offered: dayData.games || [],
+                                          latitude: resolveLat,
+                                          longitude: resolveLng,
+                                          games_offered: dayData.games || schedGames || [],
                                           has_tournaments: hasTourneys,
                                           is_featured: isFeatured,
                                           schedule_location: locKey,
-                                          schedule_day: dayKey,
-                                          is_today: dayKey === todayKey,
-                                      });
-                                  }
-                                  // If no schedule locations found, still add primary entry
-                                  if (seenLocs.size === 0) {
-                                      mappedPages.push({
-                                          id: `sp-${sp.id}`,
-                                          name: sp.name,
-                                          city: sp.location_city,
-                                          state: sp.location_state,
-                                          venue_type: 'charity',
-                                          profile_photo_url: sp.avatar_url,
-                                          about: sp.description,
-                                          trust_score: trustScore,
-                                          is_social_page: true,
-                                          social_page_id: sp.id,
-                                          follower_count: sp.follower_count || 0,
-                                          latitude: primaryLat,
-                                          longitude: primaryLng,
-                                          games_offered: schedGames,
-                                          has_tournaments: hasTourneys,
-                                          is_featured: isFeatured,
+                                          schedule_day: todayKey,
+                                          is_today: true,
                                       });
                                   }
                               } else {
@@ -733,6 +712,19 @@ export default async function handler(req, res) {
                   hasGpsData: hasGps,
               });
           }
+
+          // --- Filter out Tours/Series not active today (Rule: Only display when active for the day) ---
+          const cstOffset = -6 * 3600 * 1000; // Roughly Central Standard Time for comparison
+          const todayDateStr = new Date(new Date().getTime() + cstOffset).toISOString().split('T')[0];
+          venues = venues.filter(v => {
+              if (v.venue_type === 'series' || v.venue_type === 'tour') {
+                  const active = v.tournament_settings?.active_dates;
+                  // If we don't have active dates recorded, or today is strictly outside the range: DROP
+                  if (!active || !active.start_date || !active.end_date) return false;
+                  if (todayDateStr < active.start_date || todayDateStr > active.end_date) return false;
+              }
+              return true;
+          });
 
           // --- Filter by games (NLH, PLO, Mixed) ---
           if (hasNLH === 'true') {
