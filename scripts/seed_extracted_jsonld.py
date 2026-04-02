@@ -54,6 +54,34 @@ def process_evidence_file(file_path):
     if not events:
         return
         
+    # --- PHASE 4: ANTI-HALLUCINATION CHECK ---
+    sys.path.append(str(BASE_DIR / 'scripts'))
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("anti_hallucination", str(BASE_DIR / 'scripts' / 'anti-hallucination-check.py'))
+        anti_hallucination = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(anti_hallucination)
+        
+        # We must format records so the detector understands them
+        test_records = []
+        for e in events:
+            test_records.append({
+                'event_name': e.get('name'),
+                'buy_in': 0, # not usually present in jsonld
+                'scrape_timestamp': payload.get('scrape_timestamp'),
+                'scrape_html_hash': payload.get('scrape_html_hash'),
+                'source_url': payload.get('scrape_url')
+            })
+            
+        passed, results = anti_hallucination.run_all_checks(test_records)
+        if not passed:
+            print(f"  ❌ SKIPPING {file_path} - FAILED ANTI-HALLUCINATION CHECKS")
+            return
+    except Exception as e:
+        print(f"  ⚠️ Warning: Could not run hallucination checks - {e}")
+        # Default to strict - we don't insert if we can't check
+        return
+
     records = []
     for evt in events:
         try:
@@ -74,7 +102,7 @@ def process_evidence_file(file_path):
             pass
             
     if records:
-        print(f"  -> Upserting {len(records)} events to poker_tour_series_events")
+        print(f"  -> Upserting {len(records)} events to poker_tour_series_events (Hallucination checks passed)")
         sb_upsert("poker_tour_series_events", records)
 
 def main():

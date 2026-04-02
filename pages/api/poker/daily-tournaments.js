@@ -92,6 +92,7 @@ export default async function handler(req, res) {
                   is_active
               `)
               .eq('is_active', true)
+              .eq('data_quality', 'scraped_verified')
               .order('buy_in', { ascending: true });
 
           // Filter by day

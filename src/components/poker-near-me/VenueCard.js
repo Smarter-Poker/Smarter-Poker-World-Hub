@@ -406,21 +406,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
             </div>
 
-            {/* === TRUST SCORE === */}
-            <div className="vc3-trust">
-                <div className="vc3-trust-header">
-                    <span className="vc3-trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                    <span className="vc3-trust-val" style={{ color: trust.color }}>{venue.trust_score || '-'}/5</span>
-                </div>
-                <div className="vc3-trust-track">
-                    <div className="vc3-trust-fill" style={{
-                        width: mounted ? trust.pct + '%' : '0%',
-                        background: `linear-gradient(90deg, ${trust.color}, ${trust.color}77)`,
-                        boxShadow: `0 0 8px ${trust.color}33`,
-                    }} />
-                </div>
-            </div>
-
             {/* === ACTION BAR === */}
             <div className="vc3-actions">
                 {/* Secondary actions (Web/Call/Map) */}
@@ -468,6 +453,21 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         </svg>
                         <span>Details</span>
                     </button>
+                </div>
+            </div>
+
+            {/* === TRUST SCORE === */}
+            <div className="vc3-trust" style={{ marginTop: '0px' }}>
+                <div className="vc3-trust-header">
+                    <span className="vc3-trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
+                    <span className="vc3-trust-val" style={{ color: trust.color }}>{venue.trust_score || '-'}/5</span>
+                </div>
+                <div className="vc3-trust-track">
+                    <div className="vc3-trust-fill" style={{
+                        width: mounted ? trust.pct + '%' : '0%',
+                        background: `linear-gradient(90deg, ${trust.color}, ${trust.color}77)`,
+                        boxShadow: `0 0 8px ${trust.color}33`,
+                    }} />
                 </div>
             </div>
 

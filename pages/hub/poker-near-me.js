@@ -1987,32 +1987,33 @@ export default function PokerNearMePage() {
 
                 {/* Results bar: results count + Sort + Expand Map — ALL ON ONE LINE BELOW MAP */}
                 <div className="results-bar">
-                    <span className="results-count">{venues.length} result{venues.length !== 1 ? 's' : ''} found</span>
-                    <div className="results-bar-right">
-                        <div className="sort-results-wrapper">
-                            <label className="sort-results-label">Sort:</label>
-                            <select
-                                value={sortBy}
-                                onChange={e => setSortBy(e.target.value)}
-                                className="sort-results-select"
-                            >
-                                <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
-                                <option value="distance">Distance (Nearest)</option>
-                                <option value="trust-desc">Trust Score (High → Low)</option>
-                                <option value="trust-asc">Trust Score (Low → High)</option>
-                                <option value="name-az">Name (A → Z)</option>
-                                <option value="name-za">Name (Z → A)</option>
-                                <option value="venue-type">Venue Type</option>
-                                <option value="state-az">State (A → Z)</option>
-                                <option value="most-tables">Most Tables</option>
-                                <option value="most-games">Most Games Offered</option>
-                                <option value="city-az">City (A → Z)</option>
-                            </select>
-                        </div>
-                        <span className="results-showing">
-                            {(userLocation || nearestDistance) ? `Nearest: ~${nearestDistance || '0'} miles` : `Showing ${displayed.length} of ${venues.length}`}
-                        </span>
+                    <span className="results-count">{venues.length} Result{venues.length !== 1 ? 's' : ''} Found</span>
+                    
+                    <div className="sort-results-wrapper">
+                        <label className="sort-results-label">Sort:</label>
+                        <select
+                            value={sortBy}
+                            onChange={e => setSortBy(e.target.value)}
+                            className="sort-results-select"
+                        >
+                            <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
+                            <option value="distance">Distance (Nearest)</option>
+                            <option value="trust-desc">Trust Score (High → Low)</option>
+                            <option value="trust-asc">Trust Score (Low → High)</option>
+                            <option value="name-az">Name (A → Z)</option>
+                            <option value="name-za">Name (Z → A)</option>
+                            <option value="venue-type">Venue Type</option>
+                            <option value="state-az">State (A → Z)</option>
+                            <option value="most-tables">Most Tables</option>
+                            <option value="most-games">Most Games Offered</option>
+                            <option value="city-az">City (A → Z)</option>
+                        </select>
                     </div>
+
+                    <span className="results-showing">
+                        {(userLocation || nearestDistance) ? `Nearest: ~${nearestDistance || '0'} miles` : `Showing ${displayed.length} of ${venues.length}`}
+                    </span>
+                    
                     {/* Expand Map button — on same line */}
                     {!mapFullscreen && (
                         <button className="expand-map-inline-btn" onClick={() => setMapFullscreen(true)}>
@@ -4322,12 +4323,12 @@ export default function PokerNearMePage() {
                     /* Results Bar */
                     .results-bar {
                         display: flex;
-                        justify-content: space-between;
+                        justify-content: center;
                         align-items: center;
                         padding: 8px 4px;
                         margin-bottom: 2px;
                         flex-wrap: wrap;
-                        gap: 8px;
+                        gap: 16px;
                     }
                     .expand-map-inline-btn {
                         display: inline-flex;
