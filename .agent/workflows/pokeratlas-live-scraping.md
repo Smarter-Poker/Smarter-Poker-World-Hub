@@ -1,19 +1,24 @@
 ---
-description: Locked-in PokerAtlas scraping protocol — bypasses Cloudflare with StealthySession, extracts game catalog data from 149 venues across 11 regions
+description: Locked-in PokerAtlas scraping protocol — bypasses Cloudflare with StealthySession, extracts game catalog data from 147+ venues across 27 regions
 ---
 
-# PokerAtlas Live Games Scraping Protocol (LOCKED IN)
+# PokerAtlas Live Games Scraping Protocol (LOCKED IN) — v3.1
 
 > **MANDATORY**: This is the ONLY way to scrape PokerAtlas. Mirrors the Bravo daemon architecture.
 
 ## Architecture (DO NOT MODIFY)
 
 ```
-StealthySession(headless=True, solve_cloudflare=True)
-  → session.fetch('https://www.pokeratlas.com/poker-cash-games/{region-slug}')
-    → Extract venue_name, game_name, buy-in, runs schedule
-    → Atomic batch upsert to Supabase (source='pokeratlas')
-    → Delete stale records (source=eq.pokeratlas only)
+_network_available() → HEAD https://1.1.1.1
+  → StealthySession(headless=True, solve_cloudflare=True)
+    → session.fetch('https://www.pokeratlas.com/poker-cash-games/{region-slug}')
+      → Redirect detection: <title> check for "Las Vegas"
+      → Extract venue_name, game_name, buy-in, runs schedule
+      → Atomic batch upsert to Supabase (source='pokeratlas')
+      → Delete stale records (source=eq.pokeratlas only)
+      → Dedup against Bravo venues
+    → Daily discovery pass (abort after 3 consecutive failures)
+    → Sleep/wake drift detection between cycles
 ```
 
 ## Critical Differences from Bravo
@@ -24,7 +29,7 @@ StealthySession(headless=True, solve_cloudflare=True)
 | **Fetch method** | `context.new_page()` + `page.goto()` | `session.fetch()` direct |
 | **Data type** | Real-time table counts | Game catalog + schedules |
 | **Navigation** | Per-venue slug | Per-region slug |
-| **Regions** | 156 venue slugs | 11 validated region slugs |
+| **Regions** | 156 venue slugs | 27 validated region slugs |
 
 ## Critical Rules
 
@@ -35,10 +40,29 @@ StealthySession(headless=True, solve_cloudflare=True)
 5. **Source isolation** — ALWAYS set `source='pokeratlas'` and scope deletes to `source=eq.pokeratlas`
 6. **Rate limit: 1s between regions** — Prevents rate-limiting
 7. **Use ONLY validated region slugs** from `data/pokeratlas-room-registry.json`
+8. **Network pre-check before browser launch** — HEAD to 1.1.1.1 to avoid wasting time when offline
+9. **Pre-flight reconnect** — `fetch_with_fallback()` auto-reconnects if session is dead before attempting Tier 1
+10. **Discovery abort-on-fail** — `discover_regions()` aborts after 3 consecutive failures (prevents 30+ doomed iterations)
 
-## Validated Region Slugs (11 TOTAL)
+## Resilience Features (v3.1)
 
-These are the ONLY slugs that return unique data. All others redirect to Las Vegas.
+| Feature | Description |
+|---|---|
+| **Network pre-check** | HEAD request to `1.1.1.1` before launching browser |
+| **Pre-flight reconnect** | `fetch_with_fallback()` detects dead session and reconnects before Tier 1 attempt |
+| **Discovery abort guard** | `discover_regions()` aborts after 3 consecutive failures — prevents 30+ doomed iterations on dead session |
+| **Discovery session recovery** | Reconnects session mid-discovery when browser context dies |
+| **Sleep/wake detection** | Wall-clock drift check after each cycle — force session reconnect if machine was sleeping |
+| **Multi-tier fallback** | Tier 0: Pre-flight reconnect → Tier 1: StealthySession → Tier 2: PlayWrightFetcher → Tier 3: urllib |
+| **Circuit breaker** | Aborts cycle + forces reconnect after 5 consecutive region failures |
+| **Bravo dedup** | Fetches Bravo venue names before insert — prevents duplicate records |
+| **Proactive session refresh** | Forces new session after 60 minutes |
+| **Watchdog** | Hard-exit after 30min with no data — launchd `KeepAlive` restarts |
+| **Connect timeout** | 60s hard-kill if `connect()` hangs |
+
+## Validated Region Slugs (27 TOTAL)
+
+Core 11 validated regions + 16 expanded coverage regions:
 
 | Region | Venues | Games |
 |---|---|---|
@@ -53,6 +77,22 @@ These are the ONLY slugs that return unique data. All others redirect to Las Veg
 | `laughlin-nevada` | 2 | 9 |
 | `virginia` | 1 | 34 |
 | `georgia` | 1 | 6 |
+| `los-angeles-california` | expanded | — |
+| `south-florida` | expanded | — |
+| `san-francisco-bay-area-california` | expanded | — |
+| `connecticut` | expanded | — |
+| `michigan` | expanded | — |
+| `pennsylvania` | expanded | — |
+| `maryland` | expanded | — |
+| `tampa-florida` | expanded | — |
+| `central-florida` | expanded | — |
+| `north-florida` | expanded | — |
+| `san-diego-california` | expanded | — |
+| `sacramento-california` | expanded | — |
+| `reno-nevada` | expanded | — |
+| `colorado` | expanded | — |
+| `arizona` | expanded | — |
+| `new-york` | expanded | — |
 
 ## HTML Data Extraction Pattern
 
@@ -100,10 +140,13 @@ These are the ONLY slugs that return unique data. All others redirect to Las Veg
 | Error Code | Cause | Fix |
 |---|---|---|
 | `ERROR_CF_BLOCKED` | Cloudflare rotated challenge | Full session restart with `google_search=True` |
-| `ERROR_SESSION_DEAD` | Browser crashed | Reconnect `StealthySession` |
+| `ERROR_SESSION_DEAD` | Browser crashed | Reconnect `StealthySession` (auto-handles via pre-flight reconnect) |
 | `ERROR_SUPABASE` | DB write failed | Retry 3x with exponential backoff |
 | Silent redirect (301) | Invalid region slug | Detected via title check; use only validated slugs |
 | Duplicate LV data | Multiple redirects | Redirect detection blocks this; registry limits slugs |
+| `⚠️ Discovery aborted` | Session died during discovery | Auto-reconnects or aborts after 3 fails (was 30+ in v3.0) |
+| `⏰ Sleep/wake detected` | Machine was sleeping | Auto-forces session reconnect on next cycle |
+| `⚠️ Network unavailable` | No internet | Skips browser launch, retries with backoff |
 
 ## Running the Daemon
 
@@ -116,6 +159,9 @@ launchctl unload ~/Library/LaunchAgents/com.smarter-poker.pokeratlas-daemon.plis
 
 # Check logs:
 tail -f data/pokeratlas-logs/daemon_$(date +%Y%m%d).log
+
+# Check heartbeat:
+cat data/pokeratlas-logs/heartbeat.json
 
 # Manual foreground run:
 cd /Users/smarter.poker/Documents/Smarter-Poker-World-Hub
@@ -131,3 +177,5 @@ PYTHONUNBUFFERED=1 .venv/bin/python3 scripts/pokeratlas-live-daemon.py
 5. **Session crash?** → Daemon auto-reconnects with exponential backoff; `KeepAlive: true` in launchd
 6. **New regions added to PokerAtlas?** → Run discovery script; update `data/pokeratlas-room-registry.json`
 7. **Duplicate venue names?** → `bravo_slug` is prefixed with `pa-{region}` to avoid key collision with Bravo
+8. **Discovery spamming errors?** → Fixed in v3.1: aborts after 3 fails + auto-reconnects dead session
+9. **10+ hour data gap after sleep?** → Fixed in v3.1: sleep/wake drift detection forces session reconnect

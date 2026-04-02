@@ -402,12 +402,18 @@ class BravoSessionManager:
         
         Protected by CONNECT_TIMEOUT_SECONDS hard-kill timer to prevent
         zombie states when StealthySession.start() hangs.
+        Includes network pre-check and retry on initial CF-solve fetch.
         """
         from scrapling.fetchers import StealthySession
 
         # Close any existing session and kill zombie browser processes
         self.disconnect()
         _kill_zombie_browsers()
+
+        # Network pre-check — don't waste time on browser if network is down
+        if not _network_available():
+            log.warning('  ⚠️  Network unavailable — skipping browser launch')
+            return False
 
         log.info('🔌 Establishing new StealthySession...')
 
@@ -427,12 +433,34 @@ class BravoSessionManager:
             self._session_dead = False
             self.consecutive_nav_failures = 0
 
-            # Step 1: Solve Cloudflare Turnstile
-            log.info('  ☁️  Solving Cloudflare Turnstile...')
-            resp = self.session.fetch(BRAVO_LOGIN_URL, google_search=True)
+            # Step 1: Solve Cloudflare Turnstile (with retry)
+            # The first fetch can fail with ERR_INTERNET_DISCONNECTED if network
+            # just came back from sleep. Retry up to 3 times with backoff.
+            resp = None
+            for cf_attempt in range(3):
+                try:
+                    log.info(f'  ☁️  Solving Cloudflare Turnstile (attempt {cf_attempt + 1})...')
+                    resp = self.session.fetch(BRAVO_LOGIN_URL, google_search=True)
+                    if resp.status == 200 or resp.status == 307:
+                        break
+                    log.warning(f'  Attempt {cf_attempt + 1} returned HTTP {resp.status}')
+                except Exception as e:
+                    log.warning(f'Attempt {cf_attempt + 1} failed: {e}. Retrying in {2 ** cf_attempt}s...')
+                    if cf_attempt < 2:
+                        time.sleep(2 ** cf_attempt)
+                        # Browser context may have died, need fresh session
+                        try:
+                            self.session.close()
+                        except Exception:
+                            pass
+                        _kill_zombie_browsers()
+                        self.session = StealthySession(headless=True, solve_cloudflare=True)
+                        self.session.start()
+                    else:
+                        raise
 
-            if resp.status != 200:
-                log.error(f'  {ERROR_CF_BLOCKED}: Status {resp.status}')
+            if not resp or resp.status not in (200, 307):
+                log.error(f'  {ERROR_CF_BLOCKED}: Status {resp.status if resp else "None"}')
                 watchdog_timer.cancel()
                 return False
 
@@ -1172,6 +1200,28 @@ def _maybe_rotate_log():
         log.info(f'📅 Rotated log file to {new_path}')
 
 # ============================================================
+# NETWORK PRE-CHECK
+# ============================================================
+def _network_available():
+    """Quick network check before launching a browser.
+    
+    Prevents wasting 30-60s on StealthySession.start() when network is down
+    (e.g., machine waking from sleep, WiFi reconnecting).
+    """
+    try:
+        req = urllib.request.Request('https://1.1.1.1', method='HEAD')
+        urllib.request.urlopen(req, timeout=5)
+        return True
+    except Exception:
+        try:
+            req = urllib.request.Request('https://www.google.com', method='HEAD')
+            urllib.request.urlopen(req, timeout=5)
+            return True
+        except Exception:
+            return False
+
+
+# ============================================================
 # ZOMBIE BROWSER CLEANUP
 # ============================================================
 def _kill_zombie_browsers():
@@ -1278,11 +1328,23 @@ def main():
             except Exception:
                 pass
 
-        # Sleep in 1s intervals for signal responsiveness
+        # Sleep in 1s intervals for signal responsiveness with sleep/wake detection
+        sleep_start = time.time()
         for _ in range(SCRAPE_INTERVAL):
             if not running:
                 break
             time.sleep(1)
+        
+        # SLEEP/WAKE DETECTION: If wall-clock time drifted significantly,
+        # the machine was likely sleeping. Force session reconnect.
+        actual_elapsed = time.time() - sleep_start
+        if actual_elapsed > SCRAPE_INTERVAL * 2:
+            log.warning(
+                f'⏰ Sleep/wake detected: expected {SCRAPE_INTERVAL}s sleep, '
+                f'actual {actual_elapsed:.0f}s. Forcing session reconnect.'
+            )
+            mgr._session_dead = True
+            mgr.consecutive_failures = 0  # Reset — this isn't a real failure
 
     # Clean shutdown
     log.info('🛑 Shutting down, closing session...')

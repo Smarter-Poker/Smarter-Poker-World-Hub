@@ -483,11 +483,17 @@ class PokerAtlasSessionManager:
         
         Protected by CONNECT_TIMEOUT_SECONDS hard-kill timer to prevent
         zombie states when StealthySession.start() hangs.
+        Includes network pre-check to avoid wasting browser startup when offline.
         """
         from scrapling.fetchers import StealthySession
 
         self.disconnect()
         _kill_zombie_browsers()
+
+        # Network pre-check — don't waste time on browser if network is down
+        if not _network_available():
+            log.warning('  ⚠️  Network unavailable — skipping browser launch')
+            return False
 
         log.info('🔌 Establishing new StealthySession...')
 
@@ -583,14 +589,23 @@ class PokerAtlasSessionManager:
     def fetch_with_fallback(self, url, expected_slug=None):
         """Fetch a page with multi-tier fallback.
         
+        Tier 0: Pre-flight reconnect if session is dead
         Tier 1: Primary StealthySession
         Tier 2: PlayWrightFetcher
         Tier 3: Raw urllib
         """
+        # === TIER 0: Pre-flight reconnect if session is dead ===
+        if self._session_dead or not self.session:
+            log.info('  🔄 Session dead — attempting reconnect before fetch')
+            if not self.connect():
+                # Fall through to Tier 2/3 without a live session
+                pass
+
         # === TIER 1 ===
-        result = self.fetch_page(url, expected_slug=expected_slug)
-        if result is not None:
-            return result
+        if self.session and not self._session_dead:
+            result = self.fetch_page(url, expected_slug=expected_slug)
+            if result is not None:
+                return result
 
         # === TIER 2: PlayWrightFetcher ===
         if self.tier2_failures < 5:
@@ -771,6 +786,9 @@ def discover_regions(mgr):
     
     Runs once per day. Saves any newly discovered valid regions to a cache file
     so they get included in the fast primary loop.
+    
+    HARDENED: Reconnects session on dead browser context and aborts after
+    MAX_DISCOVERY_FAILS consecutive failures to prevent 30+ doomed iterations.
     """
     global _last_discovery_date
     today = datetime.now().strftime('%Y%m%d')
@@ -782,10 +800,24 @@ def discover_regions(mgr):
     
     log.info('\U0001f4e1 Running daily discovery pass (all regions)...')
     new_valid = []
+    consecutive_discovery_fails = 0
+    MAX_DISCOVERY_FAILS = 3  # Abort discovery after this many consecutive failures
     
     for slug in PA_ALL_REGION_SLUGS:
         if slug in PA_VALIDATED_REGIONS:
             continue  # Already in primary list
+        
+        # ABORT GUARD: Stop wasting cycles on a dead session
+        if consecutive_discovery_fails >= MAX_DISCOVERY_FAILS:
+            log.warning(f'  ⚠️  Discovery aborted: {consecutive_discovery_fails} consecutive failures')
+            break
+        
+        # SESSION RECOVERY: Reconnect if session died during discovery
+        if mgr._session_dead or not mgr.session:
+            log.info('  🔄 Session dead during discovery — reconnecting...')
+            if not mgr.connect():
+                log.warning('  ⚠️  Discovery aborted: session reconnect failed')
+                break
         
         url = f'https://www.pokeratlas.com/poker-cash-games/{slug}'
         html = mgr.fetch_with_fallback(url, expected_slug=slug)
@@ -795,6 +827,11 @@ def discover_regions(mgr):
             if venues:
                 new_valid.append(slug)
                 log.info(f'  \U0001f4a1 NEW valid region: {slug} ({len(venues)} venues)')
+            consecutive_discovery_fails = 0  # Reset on successful fetch
+        elif html is None:
+            consecutive_discovery_fails += 1
+        else:
+            consecutive_discovery_fails = 0  # REDIRECT is a valid response
         
         time.sleep(RATE_LIMIT_DELAY)
     
@@ -1073,6 +1110,28 @@ def _maybe_rotate_log():
         log.info(f'\U0001f4c5 Rotated log file to {new_path}')
 
 # ============================================================
+# NETWORK PRE-CHECK
+# ============================================================
+def _network_available():
+    """Quick network check before launching a browser.
+    
+    Prevents wasting 30-60s on StealthySession.start() when network is down
+    (e.g., machine waking from sleep, WiFi reconnecting).
+    """
+    try:
+        req = urllib.request.Request('https://1.1.1.1', method='HEAD')
+        urllib.request.urlopen(req, timeout=5)
+        return True
+    except Exception:
+        try:
+            req = urllib.request.Request('https://www.google.com', method='HEAD')
+            urllib.request.urlopen(req, timeout=5)
+            return True
+        except Exception:
+            return False
+
+
+# ============================================================
 # ZOMBIE BROWSER CLEANUP
 # ============================================================
 def _kill_zombie_browsers():
@@ -1166,11 +1225,23 @@ def main():
             except Exception:
                 pass
 
-        # Sleep for interval
+        # Sleep for interval with sleep/wake drift detection
+        sleep_start = time.time()
         for _ in range(SCRAPE_INTERVAL):
             if not running:
                 break
             time.sleep(1)
+        
+        # SLEEP/WAKE DETECTION: If wall-clock time drifted significantly,
+        # the machine was likely sleeping. Force session reconnect.
+        actual_elapsed = time.time() - sleep_start
+        if actual_elapsed > SCRAPE_INTERVAL * 2:
+            log.warning(
+                f'⏰ Sleep/wake detected: expected {SCRAPE_INTERVAL}s sleep, '
+                f'actual {actual_elapsed:.0f}s. Forcing session reconnect.'
+            )
+            mgr._session_dead = True
+            mgr.consecutive_fetch_failures = 0  # Reset — this isn't a real failure
 
     log.info('🛑 Shutting down...')
     mgr.disconnect()
