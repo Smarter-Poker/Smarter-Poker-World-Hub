@@ -7,8 +7,55 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   disable: process.env.NODE_ENV === 'development', // Only active in production
   // NOTE: fallbacks removed — next-pwa@5.6.0 crashes with 'precacheFallback' TypeError
   // when injecting fallback handlers into runtimeCaching entries. All PWA caching remains intact.
+  cacheOnFrontEndNav: false, // Don't cache client-side navigations — prevents stale page renders
+  reloadOnOnline: true,      // Force reload when coming back online to bust stale cache
   runtimeCaching: [
-    // Cache static assets (images, fonts) - cache first
+    // ─── CRITICAL: Override next-pwa defaults that cause stale pages on mobile ───
+    // next-pwa defaults use CacheFirst for /_next/static JS, which means mobile
+    // browsers (especially Safari) serve old page JS from SW cache indefinitely.
+    // These rules MUST come first to take priority over the library defaults.
+
+    // Page JS chunks — ALWAYS fetch latest, fall back to cache if offline
+    {
+      urlPattern: /\/_next\/static\/chunks\/pages\/.+\.js$/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'page-js-chunks',
+        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 }, // 24h
+        networkTimeoutSeconds: 5, // If network takes >5s, serve cache
+      },
+    },
+    // Next.js data routes — ALWAYS fetch latest page data
+    {
+      urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'next-data',
+        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 },
+        networkTimeoutSeconds: 5,
+      },
+    },
+    // Framework/vendor JS — these are content-hashed and safe to cache aggressively
+    // (webpack chunk hash changes when content changes, so CacheFirst is correct here)
+    {
+      urlPattern: /\/_next\/static\/chunks\/(?!pages\/).+\.js$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'framework-js',
+        expiration: { maxEntries: 128, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+      },
+    },
+    // HTML page requests — always try network first
+    {
+      urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'document',
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'pages-html',
+        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 },
+        networkTimeoutSeconds: 5,
+      },
+    },
+    // Cache static assets (images, fonts) - cache first (content-hashed, safe)
     {
       urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
       handler: 'CacheFirst',
@@ -240,4 +287,3 @@ const pwaConfig = process.env.NODE_ENV === 'development' ? nextConfig : withPWA(
 module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.SENTRY_AUTH_TOKEN && process.env.NODE_ENV !== 'development'
   ? withSentryConfig(pwaConfig, sentryWebpackPluginOptions, sentryOptions)
   : pwaConfig;
-
