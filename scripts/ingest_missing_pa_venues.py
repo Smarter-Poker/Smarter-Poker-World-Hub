@@ -144,7 +144,7 @@ async def scrape_venue_page(session, url):
 
     # Fallback phone from HTML pattern (only if JSON-LD missing)
     if not venue_data.get('phone'):
-        phone_matches = re.findall(r'\(?\d{3}\)?[\.\-\s]?\d{3}[\.\-\s]?\d{4}', html)
+        phone_matches = re.findall(r'\(?\d{3}\)?[.\s-]?\d{3}[.\s-]?\d{4}', html)
         if phone_matches:
             venue_data['phone'] = phone_matches[0]
 
