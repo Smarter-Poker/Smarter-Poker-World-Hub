@@ -28,7 +28,7 @@ const QuizGauntlet = dynamic(() => import('../../../pages/hub/training/quiz-gaun
 // Components defined locally within this file or in other imports
 import useGTOTrainer from '../../hooks/useGTOTrainer';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
-import Confetti from 'react-confetti';
+const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';

@@ -107,7 +107,7 @@ export default function OrbPage() {
         const dedicatedPages = {
             'diamond-arcade': '/hub/diamond-arcade',
             'trivia': '/hub/trivia',
-            'poker-near-me': '/hub/poker-near-me-lobby',
+            'poker-near-me': '/hub/poker-near-me',
         };
 
         if (dedicatedPages[key]) {

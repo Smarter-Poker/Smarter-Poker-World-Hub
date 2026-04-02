@@ -210,8 +210,6 @@ const nextConfig = {
       { source: '/legal/terms', destination: '/terms', permanent: true },
       // Live help → messenger with Jarvis
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
-      // Poker Near Me — old tab-based page permanently redirects to the new lobby
-      { source: '/hub/poker-near-me', destination: '/hub/poker-near-me-lobby', permanent: true },
       // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
     ];
