@@ -235,12 +235,12 @@ function createVenueIcon(L, venueType) {
   const colors = VENUE_TYPE_COLORS[venueType] || DEFAULT_VENUE_COLOR;
   return L.divIcon({
     className: 'venue-map-marker',
-    html: `<div style="position:relative;width:22px;height:22px;">
-      <div style="position:absolute;inset:0;border-radius:50%;background:${colors.glow};animation:markerPulse 3s ease-in-out infinite;"></div>
-      <div style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:${colors.fill};border:2px solid rgba(255,255,255,0.85);box-shadow:0 0 10px ${colors.glow};--marker-glow:${colors.glow};animation:markerGlow 3s ease-in-out infinite;"></div>
+    html: `<div style="position:relative;width:26px;height:26px;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:${colors.fill};opacity:0.4;animation:markerPulse 3s ease-in-out infinite;"></div>
+      <div style="position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:${colors.fill};border:2.5px solid #ffffff;box-shadow:0 3px 6px rgba(0,0,0,0.8), 0 0 12px ${colors.fill};"></div>
     </div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
     popupAnchor: [0, -14],
   });
 }
@@ -532,7 +532,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
       spiderfyOnMaxZoom: true,
       showCoverageOnHover: false,
       zoomToBoundsOnClick: true,
-      disableClusteringAtZoom: 10,
+      disableClusteringAtZoom: 8,
     });
 
     const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
@@ -591,13 +591,15 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
     // ═══ SHOW USER LOCATION PIN IMMEDIATELY IF AVAILABLE ═══
     if (userLocation) {
       const userIcon = L.divIcon({
-        className: 'user-location-dot',
-        html: '<div style="position:relative;width:28px;height:28px;">' +
-          '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.3);animation:userPulse 2s ease-in-out infinite;"></div>' +
-          '<div style="position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 16px rgba(59,130,246,0.9), 0 0 32px rgba(59,130,246,0.4);"></div>' +
-          '</div>',
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        className: 'user-location-pin',
+        html: '<div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));">' +
+          '<svg width="40" height="40" viewBox="0 0 24 24" fill="#ef4444" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">' +
+          '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>' +
+          '<circle cx="12" cy="10" r="4" fill="#ffffff" stroke="none"></circle>' +
+          '</svg></div>',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
       });
 
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
@@ -626,13 +628,15 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
 
     if (userLocation) {
       const userIcon = L.divIcon({
-        className: 'user-location-dot',
-        html: '<div style="position:relative;width:24px;height:24px;">' +
-          '<div style="position:absolute;inset:0;border-radius:50%;background:rgba(59,130,246,0.3);animation:userPulse 2s ease-in-out infinite;"></div>' +
-          '<div style="position:absolute;top:5px;left:5px;width:14px;height:14px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 12px rgba(59,130,246,0.8);"></div>' +
-          '</div>',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+        className: 'user-location-pin',
+        html: '<div style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6));">' +
+          '<svg width="40" height="40" viewBox="0 0 24 24" fill="#ef4444" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">' +
+          '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>' +
+          '<circle cx="12" cy="10" r="4" fill="#ffffff" stroke="none"></circle>' +
+          '</svg></div>',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
       });
 
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
