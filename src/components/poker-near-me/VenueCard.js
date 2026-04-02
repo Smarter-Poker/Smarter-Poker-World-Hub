@@ -404,6 +404,37 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         </span>
                     </div>
                 )}
+
+                {/* Tournaments Badge */}
+                {venue.has_tournaments && (
+                    <div className="vc3-tourneys" style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'linear-gradient(90deg, rgba(212,168,83,0.15), rgba(212,168,83,0.05))',
+                        border: '1px solid rgba(212,168,83,0.3)',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '11px',
+                        color: '#d4a853',
+                        fontWeight: '600',
+                        marginTop: '2px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.4px',
+                        width: 'fit-content',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ flexShrink: 0 }}>
+                            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                            <path d="M4 22h16" />
+                            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                        </svg>
+                        Daily Tournaments
+                    </div>
+                )}
             </div>
 
             {/* === ACTION BAR === */}
