@@ -278,6 +278,10 @@ export default function VenueDetailPage() {
   // Related tours/series state
   const [relatedSeries, setRelatedSeries] = useState([]);
 
+  // Bravo Live Tables state (scraped real-time data)
+  const [bravoLiveTables, setBravoLiveTables] = useState(null);
+  const [bravoLiveLoading, setBravoLiveLoading] = useState(false);
+
   // Waitlist board state
   const [waitlistData, setWaitlistData] = useState([]);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
@@ -355,6 +359,31 @@ export default function VenueDetailPage() {
     if (!id) return;
     fetchLiveGames();
   }, [id]);
+
+  // Fetch Bravo live table data (scraped real-time from Bravo Poker Live)
+  useEffect(function () {
+    if (!venue || !venue.name) return;
+    setBravoLiveLoading(true);
+    fetch('/api/poker/live-tables?search=' + encodeURIComponent(venue.name))
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.venues && json.venues.length > 0) {
+          // Find best match by name similarity
+          var venueLower = venue.name.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+          var best = json.venues.find(function (v) {
+            var bName = (v.venue_name || '').toLowerCase().replace(/[^a-z0-9\s]/g, '');
+            return bName === venueLower || bName.includes(venueLower) || venueLower.includes(bName);
+          }) || null;
+          // If no name match, try the first result if only 1 venue returned
+          if (!best && json.venues.length === 1) best = json.venues[0];
+          setBravoLiveTables(best);
+        } else {
+          setBravoLiveTables(null);
+        }
+      })
+      .catch(function () { setBravoLiveTables(null); })
+      .finally(function () { setBravoLiveLoading(false); });
+  }, [venue]);
 
   // Fetch waitlist data for board display
   var fetchWaitlist = async function () {
@@ -1134,6 +1163,80 @@ export default function VenueDetailPage() {
                 )}
               </div>
             </header>
+
+            {/* ============================================ */}
+            {/* BRAVO LIVE GAMES BANNER (top of page)        */}
+            {/* ============================================ */}
+            {bravoLiveTables && bravoLiveTables.games && bravoLiveTables.games.length > 0 && (
+              <section className="bravo-live-banner">
+                <div className="bravo-live-header">
+                  <div className="bravo-live-title-row">
+                    <span className="bravo-live-pulse" />
+                    <h2 className="bravo-live-title">Live Games Right Now</h2>
+                    <span className="bravo-live-count">
+                      {bravoLiveTables.games.reduce(function (sum, g) { return sum + (g.tables_running || 0); }, 0)} Tables Running
+                    </span>
+                  </div>
+                  {bravoLiveTables.last_updated && (
+                    <span className="bravo-live-updated">
+                      Updated {timeAgo(bravoLiveTables.last_updated)}
+                    </span>
+                  )}
+                </div>
+                <div className="bravo-live-games-grid">
+                  {bravoLiveTables.games.map(function (g, idx) {
+                    var totalTables = g.tables_running || 0;
+                    var waiting = g.players_waiting || 0;
+                    return (
+                      <div key={idx} className="bravo-live-game-card">
+                        <div className="bravo-game-name">{g.game}</div>
+                        <div className="bravo-game-stats">
+                          <span className="bravo-game-tables">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
+                              <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
+                            </svg>
+                            {totalTables} {totalTables === 1 ? 'Table' : 'Tables'}
+                          </span>
+                          {waiting > 0 && (
+                            <span className="bravo-game-waiting">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                              </svg>
+                              {waiting} Waiting
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="bravo-live-footer">
+                  <span className="bravo-live-source">Data From Bravo Poker Live</span>
+                  <button
+                    className="bravo-live-scroll-btn"
+                    onClick={function () {
+                      var el = document.querySelector('.live-games-section');
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                  >
+                    View Full Details
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Loading state for Bravo data */}
+            {bravoLiveLoading && (
+              <div className="bravo-live-loading">
+                <div className="bravo-loading-pulse" />
+                <span>Checking For Live Games...</span>
+              </div>
+            )}
 
             {/* Contact & Info Section */}
             <section className="info-section">
@@ -3868,6 +3971,186 @@ export default function VenueDetailPage() {
         }
 
         /* ========================================= */
+        /* BRAVO LIVE GAMES BANNER                   */
+        /* ========================================= */
+        .bravo-live-banner {
+          max-width: 900px;
+          margin: 24px auto 0;
+          padding: 0 24px;
+        }
+        .bravo-live-banner > * {
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(0, 212, 255, 0.06) 100%);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          border-radius: 16px;
+          box-shadow: 0 0 24px rgba(34, 197, 94, 0.08), 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+        .bravo-live-banner {
+          background: none !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        .bravo-live-header {
+          padding: 16px 20px 12px;
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.10) 0%, rgba(0, 212, 255, 0.06) 100%);
+          border: 1px solid rgba(34, 197, 94, 0.28);
+          border-radius: 16px 16px 0 0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .bravo-live-title-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .bravo-live-pulse {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #4ade80;
+          box-shadow: 0 0 12px #4ade80, 0 0 24px rgba(34, 197, 94, 0.4);
+          animation: bravoPulse 1.5s ease-in-out infinite;
+          flex-shrink: 0;
+        }
+        @keyframes bravoPulse {
+          0% { opacity: 1; transform: scale(1); box-shadow: 0 0 12px #4ade80, 0 0 24px rgba(34, 197, 94, 0.4); }
+          50% { opacity: 0.6; transform: scale(1.2); box-shadow: 0 0 20px #4ade80, 0 0 40px rgba(34, 197, 94, 0.6); }
+          100% { opacity: 1; transform: scale(1); box-shadow: 0 0 12px #4ade80, 0 0 24px rgba(34, 197, 94, 0.4); }
+        }
+        .bravo-live-title {
+          font-size: 18px;
+          font-weight: 800;
+          color: #4ade80;
+          margin: 0;
+          letter-spacing: 0.3px;
+          text-transform: uppercase;
+        }
+        .bravo-live-count {
+          font-size: 13px;
+          font-weight: 700;
+          color: #fff;
+          background: rgba(34, 197, 94, 0.2);
+          border: 1px solid rgba(34, 197, 94, 0.35);
+          padding: 4px 12px;
+          border-radius: 20px;
+          letter-spacing: 0.3px;
+        }
+        .bravo-live-updated {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.4);
+          font-style: italic;
+        }
+        .bravo-live-games-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 8px;
+          padding: 12px 16px;
+          background: rgba(15, 23, 42, 0.4);
+          border-left: 1px solid rgba(34, 197, 94, 0.18);
+          border-right: 1px solid rgba(34, 197, 94, 0.18);
+        }
+        .bravo-live-game-card {
+          padding: 10px 14px;
+          background: rgba(34, 197, 94, 0.06);
+          border: 1px solid rgba(34, 197, 94, 0.15);
+          border-radius: 10px;
+          transition: all 0.2s;
+        }
+        .bravo-live-game-card:hover {
+          background: rgba(34, 197, 94, 0.12);
+          border-color: rgba(34, 197, 94, 0.3);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .bravo-game-name {
+          font-size: 13px;
+          font-weight: 700;
+          color: #f1f5f9;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.2px;
+          line-height: 1.3;
+        }
+        .bravo-game-stats {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .bravo-game-tables {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #4ade80;
+        }
+        .bravo-game-waiting {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #f59e0b;
+        }
+        .bravo-live-footer {
+          padding: 10px 16px;
+          background: rgba(15, 23, 42, 0.3);
+          border: 1px solid rgba(34, 197, 94, 0.18);
+          border-top: none;
+          border-radius: 0 0 16px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .bravo-live-source {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.35);
+          letter-spacing: 0.3px;
+          text-transform: uppercase;
+          font-weight: 600;
+        }
+        .bravo-live-scroll-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          background: rgba(0, 212, 255, 0.12);
+          border: 1px solid rgba(0, 212, 255, 0.25);
+          border-radius: 8px;
+          color: #00D4FF;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          letter-spacing: 0.2px;
+        }
+        .bravo-live-scroll-btn:hover {
+          background: rgba(0, 212, 255, 0.22);
+          box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+        }
+        .bravo-live-loading {
+          max-width: 900px;
+          margin: 16px auto 0;
+          padding: 0 24px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.4);
+          font-style: italic;
+        }
+        .bravo-loading-pulse {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: rgba(34, 197, 94, 0.5);
+          animation: bravoPulse 1.2s ease-in-out infinite;
+        }
+
+        /* ========================================= */
         /* MOBILE RESPONSIVE                         */
         /* ========================================= */
         @media (max-width: 640px) {
@@ -3876,6 +4159,24 @@ export default function VenueDetailPage() {
           }
           .info-grid {
             grid-template-columns: 1fr;
+          }
+          .bravo-live-banner {
+            padding: 0 16px;
+          }
+          .bravo-live-title {
+            font-size: 15px;
+          }
+          .bravo-live-games-grid {
+            grid-template-columns: 1fr;
+          }
+          .bravo-live-footer {
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+            text-align: center;
+          }
+          .bravo-live-scroll-btn {
+            justify-content: center;
           }
           .venue-header,
           .info-section,
