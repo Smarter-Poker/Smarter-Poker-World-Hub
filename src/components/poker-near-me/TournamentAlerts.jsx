@@ -22,7 +22,7 @@ function savePrefs(prefs, userId) {
     } catch { /* ignore */ }
     // Sync to Supabase if userId available (fire-and-forget)
     if (userId) {
-        fetch('/api/poker/preferences', {
+        fetch('/api/poker/tournament-alerts', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId, key: 'tournament_alerts', value: prefs }),
