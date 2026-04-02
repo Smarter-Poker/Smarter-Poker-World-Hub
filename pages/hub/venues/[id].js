@@ -1010,7 +1010,7 @@ export default function VenueDetailPage() {
             <div className="error-icon">!</div>
             <h2>Venue Not Found</h2>
             <p>{error}</p>
-            <Link href="/hub/poker-near-me" legacyBehavior>
+            <Link href="/hub/poker-near-me-lobby" legacyBehavior>
               <a className="back-link-btn">Back To Poker Near Me</a>
             </Link>
           </div>
@@ -1026,7 +1026,7 @@ export default function VenueDetailPage() {
                   <span className="breadcrumb-sep">/</span>
                 </li>
                 <li className="breadcrumb-item">
-                  <Link href="/hub/poker-near-me" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+                  <Link href="/hub/poker-near-me-lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
                   <span className="breadcrumb-sep">/</span>
                 </li>
                 <li className="breadcrumb-item breadcrumb-current">

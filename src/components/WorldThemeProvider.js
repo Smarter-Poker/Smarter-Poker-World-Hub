@@ -17,7 +17,7 @@ const ROUTE_TO_WORLD = {
     '/hub/memory-games': 'memory-games',
     // memory-campaign removed - use memory-games
     '/hub/bankroll-manager': 'bankroll-manager',
-    '/hub/poker-near-me': 'poker-near-me',
+    '/hub/poker-near-me-lobby': 'poker-near-me',
     '/hub/diamond-store': 'marketplace',
     '/hub/club-arena': 'club-arena',
     '/hub/video-library': 'video-library',

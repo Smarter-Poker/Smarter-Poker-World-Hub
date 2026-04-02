@@ -5831,7 +5831,7 @@ function SocialMediaPage() {
                             </svg>
                             <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>News</span>
                         </Link>
-                        <Link href="/hub/poker-near-me" onClick={() => setSidebarOpen(false)} style={{
+                        <Link href="/hub/poker-near-me-lobby" onClick={() => setSidebarOpen(false)} style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                             background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                         }}>

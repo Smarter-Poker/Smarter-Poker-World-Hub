@@ -316,7 +316,7 @@ export default function PromotionsPage() {
                             <span>Home</span>
                         </a>
                     </Link>
-                    <Link href="/hub/poker-near-me" legacyBehavior>
+                    <Link href="/hub/poker-near-me-lobby" legacyBehavior>
                         <a className="nav-item">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8" />

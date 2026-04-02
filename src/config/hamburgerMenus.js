@@ -442,11 +442,11 @@ export const MENU_CONFIGS = {
     'poker-near-me': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Browse'),
-            createMenuItem.navigation('Venues', '/hub/poker-near-me?tab=venues'),
-            createMenuItem.navigation('Events', '/hub/poker-near-me?tab=events'),
-            createMenuItem.navigation('Live Games', '/hub/poker-near-me?tab=live'),
-            createMenuItem.navigation('Map View', '/hub/poker-near-me?tab=map'),
-            createMenuItem.navigation('Saved', '/hub/poker-near-me?tab=saved'),
+            createMenuItem.navigation('Venues', '/hub/poker-near-me-lobby?pod=search'),
+            createMenuItem.navigation('Events', '/hub/poker-near-me-lobby?pod=tours'),
+            createMenuItem.navigation('Live Games', '/hub/poker-near-me-lobby?pod=livegames'),
+            createMenuItem.navigation('Map View', '/hub/poker-near-me-lobby?pod=mapview'),
+            createMenuItem.navigation('Saved', '/hub/poker-near-me-lobby?pod=favorites'),
             createMenuItem.divider(),
             createMenuItem.section('More Tools'),
             createMenuItem.navigation('Game Trends', '/hub/poker-near-me-lobby?pod=gametrends'),

@@ -416,7 +416,7 @@ export default function DailyTournaments() {
 
                         <div className="sidebar-section quick-links">
                             <h3>Quick Links</h3>
-                            <Link href="/hub/poker-near-me" className="quick-link">
+                            <Link href="/hub/poker-near-me-lobby" className="quick-link">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                                     <circle cx="12" cy="10" r="3" />

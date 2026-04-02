@@ -43,7 +43,7 @@ export const VIP_FEATURE_MATRIX = {
   // Poker Near Me Intelligence
   // ═══════════════════════════════════════════════════════════════
   'poker-near-me': {
-    page: '/hub/poker-near-me',
+    page: '/hub/poker-near-me-lobby',
     gate: 'MIXED',
     free: [
       'Browse venue list by location',

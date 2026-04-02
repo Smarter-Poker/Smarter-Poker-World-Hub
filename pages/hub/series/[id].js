@@ -284,7 +284,7 @@ export default function SeriesDetailPage() {
           <div className="error-container">
             <h2 className="error-title">Series Not Found</h2>
             <p className="error-text">{error || 'This tournament series could not be found.'}</p>
-            <Link href="/hub/poker-near-me" legacyBehavior>
+            <Link href="/hub/poker-near-me-lobby" legacyBehavior>
               <a className="back-link-btn">Back To Poker Near Me</a>
             </Link>
           </div>
@@ -322,7 +322,7 @@ export default function SeriesDetailPage() {
               <span className="breadcrumb-sep">/</span>
             </li>
             <li className="breadcrumb-item">
-              <Link href="/hub/poker-near-me" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+              <Link href="/hub/poker-near-me-lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
               <span className="breadcrumb-sep">/</span>
             </li>
             {series.tour && (
@@ -477,7 +477,7 @@ export default function SeriesDetailPage() {
               )}
               {(venueName || location.city) && (
                 <Link
-                  href={'/hub/poker-near-me?search=' + encodeURIComponent(venueName || location.city)}
+                  href={'/hub/poker-near-me-lobby?q=' + encodeURIComponent(venueName || location.city)}
                   legacyBehavior
                 >
                   <a className="venue-link">

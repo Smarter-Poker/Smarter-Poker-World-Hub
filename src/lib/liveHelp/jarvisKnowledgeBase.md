@@ -33,7 +33,7 @@ The World Hub uses a 3D carousel navigation system with 13 interactive orbs:
 | #6 | Memory Games | Aqua | `/hub/memory-games` | ⚠️ UNVERIFIED |
 | #7 | Trivia | Cyan | `/hub/trivia` | ⚠️ UNVERIFIED |
 | #8 | Video Library | Red | `/hub/reels` | ⚠️ UNVERIFIED |
-| #9 | Poker Near Me | White | `/hub/poker-near-me` | ✅ STABLE |
+| #9 | Poker Near Me | White | `/hub/poker-near-me-lobby` | ✅ STABLE |
 | #10 | Personal Assistant | Blue | `/hub/assistant` | ⚠️ UNVERIFIED |
 | #11 | Bankroll Manager | Magenta | `/hub/bankroll` | ⚠️ UNVERIFIED |
 | #12 | Marketplace | Gold | `/hub/diamond-store` | ⚠️ UNVERIFIED |
@@ -417,7 +417,7 @@ Poker Near Me helps you find live poker games and tournaments near you:
 - ** And 21 + more tours...**
 
 ### How to Use
-1. Navigate to Poker Near Me(Orb #9 or`/hub/poker-near-me`)
+1. Navigate to Poker Near Me(Orb #9 or`/hub/poker-near-me-lobby`)
 2. Allow location access(optional)
 3. Browse nearby venues or search by location
 4. View tournament schedules for each venue
@@ -619,7 +619,7 @@ A: Try password reset, clear cache, use incognito mode, or check browser compati
             - `/hub/diamond-store/checkout` - Checkout flow
 
 ### Other
-    - `/hub/poker-near-me` - Find live poker games
+    - `/hub/poker-near-me-lobby` - Find live poker games
         - `/hub/news` - Poker news
             - `/hub/diamond-arena` - Competitive poker
                 - `/hub/help` - Help center

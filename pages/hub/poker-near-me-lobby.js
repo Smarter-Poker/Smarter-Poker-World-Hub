@@ -1200,7 +1200,7 @@ export default function PokerNearMeLobby() {
 
     // "Near Me" pod navigates to the full Poker Near Me page (sidebar + map + filters)
     if (podId === 'nearme') {
-      router.push('/hub/poker-near-me');
+      router.push('/hub/poker-near-me-lobby');
       return;
     }
 
