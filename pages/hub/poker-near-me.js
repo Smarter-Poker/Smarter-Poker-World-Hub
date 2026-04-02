@@ -1722,7 +1722,7 @@ export default function PokerNearMePage() {
                             <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />
                         </div>
                         <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />
-                        <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />
+                        {/* TournamentAlerts component removed per user request */}
                         <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />
                         <div onClickCapture={(e) => {
                             if (!guardAction(() => {})) {
@@ -2673,7 +2673,7 @@ export default function PokerNearMePage() {
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
-                    <p className="pnm-subtitle">525+ Venues &bull; 40 States &bull; Real-Time Data</p>
+                    <p className="pnm-subtitle">700+ Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
@@ -2854,15 +2854,7 @@ export default function PokerNearMePage() {
                     {/* ─── MAIN CONTENT AREA ─── */}
                     <div className="pnm-main">
 
-                    {/* Distance / Geofence notices (below HUD) */}
-                    {geofenceStatus === 'denied' && (
-                        <div className="geofence-notice denied">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-                            </svg>
-                            <span>Notifications Blocked - Venue Alerts Will Show In-App Only</span>
-                        </div>
-                    )}
+                    {/* Notifications Blocked banner removed per user request */}
 
 
                     {/* Content area */}
@@ -2903,41 +2895,14 @@ export default function PokerNearMePage() {
                             </div>
                         )}
 
-                        {/* Push notification opt-in */}
-                        {pushPermission === 'default' && userLocation && (
-                            <div className="push-optin-banner">
-                                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: -2, marginRight: 4 }}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg> Get notified when you’re near a poker room?</span>
-                                <button onClick={requestPushPermission}>Enable</button>
-                                <button onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}>Dismiss</button>
-                            </div>
-                        )}
+                        {/* Push notification opt-in removed per user request */}
 
                         {renderContent()}
                     </div>{/* end pnm-content */}
                     </div>{/* end pnm-main */}
                 </div>{/* end pnm-layout */}
 
-                    {/* Geofence Alert Banner */}
-                    {geofenceAlert && (
-                        <GeofenceAlertBanner
-                            venue={geofenceAlert}
-                            onCheckin={() => {
-                                const gfUrl = geofenceAlert.is_social_page
-                                    ? '/club/' + geofenceAlert.social_page_id
-                                    : '/hub/venues/' + geofenceAlert.id;
-                                router.push(gfUrl + '?action=checkin');
-                                setGeofenceAlert(null);
-                            }}
-                            onReview={() => {
-                                const gfUrl = geofenceAlert.is_social_page
-                                    ? '/club/' + geofenceAlert.social_page_id
-                                    : '/hub/venues/' + geofenceAlert.id;
-                                router.push(gfUrl + '?action=review');
-                                setGeofenceAlert(null);
-                            }}
-                            onDismiss={() => setGeofenceAlert(null)}
-                        />
-                    )}
+                    {/* Geofence Alert Banner removed per user request for no notifications */}
 
                     {/* Voice Search Floating Button (Feature #11) */}
                     <VoiceSearch

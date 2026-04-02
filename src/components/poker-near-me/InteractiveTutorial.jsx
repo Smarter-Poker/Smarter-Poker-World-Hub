@@ -719,7 +719,7 @@ export default function InteractiveTutorial({
  * Lobby Page Tutorial Steps (12 Pods)
  */
 export const LOBBY_TUTORIAL_STEPS = [
-  { targetId: 'pod-nearme', title: 'Poker Near Me', desc: 'Find Poker Rooms Within Your Search Radius — Sorted By Distance When GPS Is Active. Tap To Browse All 525+ Venues Across The US.', tip: 'Enable GPS For Automatic Distance Sorting And Nearby Venue Discovery.' },
+  { targetId: 'pod-nearme', title: 'Poker Near Me', desc: 'Find Poker Rooms Within Your Search Radius — Sorted By Distance When GPS Is Active. Tap To Browse All 700+ Venues Across The US.', tip: 'Enable GPS For Automatic Distance Sorting And Nearby Venue Discovery.' },
   { targetId: 'pod-homegames', title: 'Home Games', desc: 'Search For Home Games Nearby Or List Your Own Private Game For Other Players To Find. Perfect For Building Your Local Poker Network.', tip: 'Home Games Are Verified By The Community For Safety And Fairness.' },
   { targetId: 'pod-livegames', title: 'Live Games', desc: 'See What Tables Are Running RIGHT NOW — Real-Time Data Scraped From Bravo Poker Live. Updated Every 2 Minutes.', tip: 'Green Indicators Mean The Data Was Refreshed Within The Last 5 Minutes.' },
   { targetId: 'pod-tours', title: 'Poker Tours', desc: 'Browse Upcoming Stops On Major Tours Like WSOP, WPT, MSPT, RGPS, And More. Never Miss A Tournament Series Near You.', tip: 'Tour Badges Are Color-Coded By Organization For Quick Identification.' },
@@ -740,7 +740,7 @@ export const PNM_TAB_TUTORIALS = {
   venues: [
     { targetId: 'pnm-search', title: 'Search Venues', desc: 'Search By City Name, Venue Name, Or Zip Code To Find Poker Rooms. Use GPS For Automatic Nearby Discovery.', tip: 'Try Searching "Las Vegas" Or "Atlantic City" To See Results Instantly.' },
     { targetId: 'pnm-gps', title: 'GPS Location', desc: 'Tap To Enable GPS — Venues Will Automatically Sort By Distance So You See The Closest Rooms First.', tip: 'Works On Both Mobile And Desktop. Desktop Uses WiFi Positioning.' },
-    { targetId: 'tab-venues', title: 'Venues Tab', desc: 'Browse All 525+ Poker Venues Across The United States. Each Card Shows Trust Scores, Game Types, And Distance From You.', tip: 'Tap Any Venue Card For Detailed Info, Reviews, And Live Game Status.' },
+    { targetId: 'tab-venues', title: 'Venues Tab', desc: 'Browse All 700+ Poker Venues Across The United States. Each Card Shows Trust Scores, Game Types, And Distance From You.', tip: 'Tap Any Venue Card For Detailed Info, Reviews, And Live Game Status.' },
   ],
   events: [
     { targetId: 'tab-events', title: 'Events Hub', desc: 'Your Central Hub For All Poker Events — Tours, Series, Daily Tournaments, And The Seasonal Calendar.', tip: 'Use The Sub-Tabs Below To Switch Between Event Types.' },

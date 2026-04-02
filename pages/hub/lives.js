@@ -268,17 +268,33 @@ export default function LivesPage() {
                         left: 0,
                         right: 0,
                         padding: '16px 20px',
-                        background: 'linear-gradient, paddingBottom: 70(to bottom, rgba(0,0,0,0.8), transparent)',
+                        background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
                         zIndex: 100,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                     }}>
-                        <div style={{ width: 60 }} />
+                        <button 
+                            onClick={() => window.history.length > 1 ? window.history.back() : window.location.href = '/hub'}
+                            style={{ 
+                                width: 32, 
+                                height: 32, 
+                                background: 'none', 
+                                border: 'none', 
+                                color: 'white', 
+                                fontSize: 24, 
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            ←
+                        </button>
                         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'white' }}>
                             🔴 Lives
                         </h1>
-                        <div style={{ width: 60 }} />
+                        <div style={{ width: 32 }} />
                     </div>
 
                     {/* Loading State */}
