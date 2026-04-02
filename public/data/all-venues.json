@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-04-02T04:10:36.164Z",
-  "total": 663,
+  "updated_at": "2026-04-02T04:59:47.588Z",
+  "total": 681,
   "venues": [
     {
       "id": 1856,
@@ -5481,8 +5481,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -5599,8 +5599,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "Mixed",
@@ -5628,8 +5628,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "Mixed",
@@ -5657,8 +5657,8 @@
       "has_tournaments": true,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -5687,8 +5687,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -5905,8 +5905,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -5960,8 +5960,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -6042,8 +6042,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -6209,8 +6209,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -6445,6 +6445,110 @@
       "logo_url": null
     },
     {
+      "id": 3069,
+      "name": "L'Auberge Casino Baton Rouge",
+      "slug": "lauberge-casino-baton-rouge",
+      "website": "https://www.lbatonrouge.com/casino/poker-room/",
+      "address": "777 Avenue L'Auberge",
+      "city": "Baton Rouge",
+      "state": "LA",
+      "phone": "(866) 261-7777",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/lauberge-casino-baton-rouge",
+      "hours": null,
+      "latitude": 30.34569,
+      "longitude": -91.15159,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/lbatonrouge.com.ico"
+    },
+    {
+      "id": 3067,
+      "name": "Horseshoe Casino Bossier City",
+      "slug": "horseshoe-bossier-bossier-city",
+      "website": "https://www.caesars.com/horseshoe-bossier-city/casino/poker",
+      "address": "711 Horseshoe Boulevard",
+      "city": "Bossier City",
+      "state": "LA",
+      "phone": "(318) 741-7901",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/horseshoe-bossier-bossier-city",
+      "hours": null,
+      "latitude": 32.51512,
+      "longitude": -93.73764,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/caesars.com.ico"
+    },
+    {
+      "id": 3068,
+      "name": "Jena Choctaw Pines Casino",
+      "slug": "jena-choctaw-pines-dry-prong",
+      "website": "http://www.jenachoctawpinescasino.com/",
+      "address": "21160 US Highway 167",
+      "city": "Dry Prong",
+      "state": "LA",
+      "phone": "(318) 628-9099",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/jena-choctaw-pines-dry-prong",
+      "hours": null,
+      "latitude": 31.43954,
+      "longitude": -92.4876,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/jenachoctawpinescasino.com.ico"
+    },
+    {
+      "id": 3064,
+      "name": "Boomtown Casino New Orleans",
+      "slug": "boomtown-new-orleans-harvey",
+      "website": "http://www.boomtownneworleans.com/",
+      "address": "4132 Peters Road",
+      "city": "Harvey",
+      "state": "LA",
+      "phone": "(504) 366-7711",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/boomtown-new-orleans-harvey",
+      "hours": null,
+      "latitude": 29.849,
+      "longitude": -90.0566,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/boomtownneworleans.com.ico"
+    },
+    {
       "id": 2670,
       "name": "Boomtown Poker Series",
       "slug": null,
@@ -6471,6 +6575,58 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/boomtownneworleans.com.ico"
     },
     {
+      "id": 3065,
+      "name": "Coushatta Casino Resort",
+      "slug": "coushatta-casino-kinder",
+      "website": "https://www.coushattacasinoresort.com/gaming/poker/",
+      "address": "777 Coushatta Drive",
+      "city": "Kinder",
+      "state": "LA",
+      "phone": "(337) 738-1370 ext. 7336",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/coushatta-casino-kinder",
+      "hours": null,
+      "latitude": 30.5449,
+      "longitude": -92.8123,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/coushattacasinoresort.com.ico"
+    },
+    {
+      "id": 3066,
+      "name": "Golden Nugget Lake Charles",
+      "slug": "golden-nugget-lc-lake-charles",
+      "website": "https://www.goldennugget.com/lake-charles/",
+      "address": "2550 Golden Nugget Blvd",
+      "city": "Lake Charles",
+      "state": "LA",
+      "phone": "(337) 508-7777",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/golden-nugget-lc-lake-charles",
+      "hours": null,
+      "latitude": 30.20375,
+      "longitude": -93.26673,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/goldennugget.com.ico"
+    },
+    {
       "id": 2671,
       "name": "L'Auberge Poker Series",
       "slug": null,
@@ -6495,6 +6651,32 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/llakecharles.com.ico"
+    },
+    {
+      "id": 3070,
+      "name": "Paragon Casino",
+      "slug": "paragon-casino-marksville",
+      "website": "http://www.paragoncasinoresort.com/",
+      "address": "711 Paragon Place",
+      "city": "Marksville",
+      "state": "LA",
+      "phone": "(800) 946-1946",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/paragon-casino-marksville",
+      "hours": null,
+      "latitude": 31.10633,
+      "longitude": -92.06086,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/paragoncasinoresort.com.ico"
     },
     {
       "id": 2059,
@@ -6524,6 +6706,32 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/caesars.com.ico"
+    },
+    {
+      "id": 3063,
+      "name": "Bally's Shreveport",
+      "slug": "ballys-shreveport",
+      "website": "https://casinos.ballys.com/shreveport/poker.htm",
+      "address": "451 Clyde Fant Parkway",
+      "city": "Shreveport",
+      "state": "LA",
+      "phone": "(318) 220-5274",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/ballys-shreveport",
+      "hours": null,
+      "latitude": 32.5168,
+      "longitude": -93.7452,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/casinos.ballys.com.ico"
     },
     {
       "id": 1870,
@@ -6733,8 +6941,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -6762,8 +6970,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -6869,8 +7077,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "PLO"
@@ -7081,8 +7289,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "Mixed",
@@ -7188,8 +7396,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -7768,8 +7976,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -7901,8 +8109,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -7987,8 +8195,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -8328,6 +8536,32 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/ameristarvicksburg.com.ico"
     },
     {
+      "id": 3080,
+      "name": "Bugz's Cardroom",
+      "slug": "bugzs-cardroom-billings",
+      "website": "http://www.pokermontana.com",
+      "address": "1341 Main St",
+      "city": "Billings",
+      "state": "MT",
+      "phone": "(406) 252-4112",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/bugzs-cardroom-billings",
+      "hours": null,
+      "latitude": 45.82349,
+      "longitude": -108.47064,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/pokermontana.com.ico"
+    },
+    {
       "id": 1942,
       "name": "Shooters Poker Room",
       "slug": "shooters-poker-room-billings",
@@ -8353,6 +8587,32 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/facebook.com.ico"
+    },
+    {
+      "id": 3079,
+      "name": "Black Eagle Country Club Poker Zone",
+      "slug": "black-eagle-country-club-poker-zone",
+      "website": "https://www.pokeratlas.com/poker-room/black-eagle-country-club-poker-zone",
+      "address": "1126 Smelter Avenue NE",
+      "city": "Black Eagle",
+      "state": "MT",
+      "phone": "(406) 403-3148",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/black-eagle-country-club-poker-zone",
+      "hours": null,
+      "latitude": 47.5245517,
+      "longitude": -111.2858657,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/pokeratlas.com.ico"
     },
     {
       "id": 1941,
@@ -8938,6 +9198,32 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/caesars.com.ico"
     },
     {
+      "id": 3072,
+      "name": "Isleta Casino",
+      "slug": "isleta-casino-albuquerque",
+      "website": "http://www.isleta.com/casino/",
+      "address": "11000 Broadway SE",
+      "city": "Albuquerque",
+      "state": "NM",
+      "phone": "(505) 724-3919",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/isleta-casino-albuquerque",
+      "hours": null,
+      "latitude": 34.93801,
+      "longitude": -106.66235,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/isleta.com.ico"
+    },
+    {
       "id": 2473,
       "name": "Route 66 Casino",
       "slug": null,
@@ -8967,6 +9253,32 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/rt66casino.com.ico"
     },
     {
+      "id": 3073,
+      "name": "Sandia",
+      "slug": "sandia-poker-room-albuquerque",
+      "website": "https://www.sandiacasino.com/casino/poker/",
+      "address": "30 Rainbow Road, NE",
+      "city": "Albuquerque",
+      "state": "NM",
+      "phone": "(505) 796-7744",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/sandia-poker-room-albuquerque",
+      "hours": null,
+      "latitude": 35.20677,
+      "longitude": -106.56692,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/sandiacasino.com.ico"
+    },
+    {
       "id": 2472,
       "name": "Sandia Resort Casino",
       "slug": "sandia-resort-casino-albuquerque",
@@ -8979,8 +9291,8 @@
       "has_tournaments": true,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -9009,8 +9321,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -9019,6 +9331,32 @@
         "$1/$2"
       ],
       "poker_tables": 6,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/innofthemountaingods.com.ico"
+    },
+    {
+      "id": 3071,
+      "name": "Inn of the Mountain Gods Casino",
+      "slug": "inn-of-mountain-gods-mescalero",
+      "website": "https://innofthemountaingods.com/casino/poker-room/",
+      "address": "287 Carrizo Canyon Road",
+      "city": "Mescalero",
+      "state": "NM",
+      "phone": "(575) 464-7799",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/inn-of-mountain-gods-mescalero",
+      "hours": null,
+      "latitude": 33.29527,
+      "longitude": -105.68981,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
@@ -11531,8 +11869,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -11643,8 +11981,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -12578,8 +12916,8 @@
       "has_tournaments": true,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "PLO"
@@ -12786,8 +13124,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "PLO"
@@ -13185,8 +13523,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -13244,8 +13582,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -13298,8 +13636,8 @@
       "has_tournaments": true,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -13354,8 +13692,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -13410,8 +13748,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -13629,8 +13967,8 @@
       "has_tournaments": true,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH",
@@ -13771,8 +14109,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -13828,8 +14166,8 @@
       "has_tournaments": true,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -13843,6 +14181,32 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/deadwoodmountaingrand.com.ico"
+    },
+    {
+      "id": 3077,
+      "name": "Saloon No. 10",
+      "slug": "saloon-no-10-deadwood",
+      "website": "http://www.saloon10.com/",
+      "address": "657 Main Street",
+      "city": "Deadwood",
+      "state": "SD",
+      "phone": "(605) 578-3346",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/saloon-no-10-deadwood",
+      "hours": null,
+      "latitude": 44.37727,
+      "longitude": -103.7298,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/saloon10.com.ico"
     },
     {
       "id": 2726,
@@ -13871,6 +14235,32 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/deadwoodmountaingrand.com.ico"
     },
     {
+      "id": 3078,
+      "name": "Silverado Franklin Casino",
+      "slug": "silverado-casino-deadwood",
+      "website": "https://www.silveradofranklin.com/gaming/poker-room.html",
+      "address": "709 Main Street",
+      "city": "Deadwood",
+      "state": "SD",
+      "phone": "(800) 584-7005",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/silverado-casino-deadwood",
+      "hours": null,
+      "latitude": 44.3761,
+      "longitude": -103.731,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/silveradofranklin.com.ico"
+    },
+    {
       "id": 2482,
       "name": "Tin Lizzie Gaming",
       "slug": null,
@@ -13883,8 +14273,8 @@
       "has_tournaments": false,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
@@ -13897,6 +14287,84 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/tinlizzie.com.ico"
+    },
+    {
+      "id": 3076,
+      "name": "Royal River Casino",
+      "slug": "royal-river-casino-flandreau",
+      "website": "http://www.royalrivercasino.com/",
+      "address": "607 S. Veterans Street",
+      "city": "Flandreau",
+      "state": "SD",
+      "phone": "(605) 997-5339",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/royal-river-casino-flandreau",
+      "hours": null,
+      "latitude": 44.0436,
+      "longitude": -96.6079,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/royalrivercasino.com.ico"
+    },
+    {
+      "id": 3075,
+      "name": "Grand River Casino",
+      "slug": "grand-river-casino-mobridge",
+      "website": "http://www.grandrivercasino.com/",
+      "address": "2 US Highway 12",
+      "city": "Mobridge",
+      "state": "SD",
+      "phone": "(800) 475-3321",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/grand-river-casino-mobridge",
+      "hours": null,
+      "latitude": 45.56143,
+      "longitude": -100.50669,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/grandrivercasino.com.ico"
+    },
+    {
+      "id": 3074,
+      "name": "Dakota Sioux Casino",
+      "slug": "dakota-sioux-watertown",
+      "website": "http://www.dakotasioux.com/",
+      "address": "16415 Sioux Conifer Rd.",
+      "city": "Watertown",
+      "state": "SD",
+      "phone": "(800) 658-4717 ext. 1686",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/dakota-sioux-watertown",
+      "hours": null,
+      "latitude": 45.00498,
+      "longitude": -97.14863,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/dakotasioux.com.ico"
     },
     {
       "id": 2938,
@@ -17934,8 +18402,8 @@
       "has_tournaments": true,
       "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
       "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
+      "latitude": null,
+      "longitude": null,
       "trust_score": 4.8,
       "games_offered": [
         "NLH"
