@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-04-02T04:59:47.588Z",
-  "total": 681,
+  "updated_at": "2026-04-02T06:28:14.459Z",
+  "total": 684,
   "venues": [
     {
       "id": 1856,
@@ -5922,62 +5922,6 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/caesars.com.ico"
     },
     {
-      "id": 3051,
-      "name": "Ameristar Casino East Chicago",
-      "slug": "ameristar-e-chicago-east-chicago",
-      "website": "http://www.ameristar.com/East_Chicago_Gaming.aspx",
-      "address": "777 Ameristar Blvd.",
-      "city": "East Chicago",
-      "state": "IN",
-      "phone": "(219) 378-3534",
-      "venue_type": "card_room",
-      "has_tournaments": true,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/ameristar-e-chicago-east-chicago",
-      "hours": null,
-      "latitude": 41.65232,
-      "longitude": -87.43628,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/ameristar.com.ico"
-    },
-    {
-      "id": 2320,
-      "name": "Ameristar East Chicago",
-      "slug": null,
-      "website": "https://www.caesars.com/ameristar-east-chicago",
-      "address": "3000 S. Las Vegas Blvd.",
-      "city": "East Chicago",
-      "state": "IN",
-      "phone": "(702) 676-7680",
-      "venue_type": "casino",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH",
-        "PLO"
-      ],
-      "stakes_cash": [
-        "$1/$2",
-        "$2/$5"
-      ],
-      "poker_tables": 15,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/caesars.com.ico"
-    },
-    {
       "id": 3053,
       "name": "Caesars Southern Indiana",
       "slug": "caesars-s-indiana-elizabeth",
@@ -8562,6 +8506,32 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/pokermontana.com.ico"
     },
     {
+      "id": 3082,
+      "name": "Doc & Eddy's",
+      "slug": "doc-eddys-billings",
+      "website": "https://www.pokeratlas.com/poker-room/doc-eddys-billings",
+      "address": "711 15th Street West",
+      "city": "Billings",
+      "state": "MT",
+      "phone": "(406) 259-0953",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/doc-eddys-billings",
+      "hours": null,
+      "latitude": 45.7772,
+      "longitude": -108.55359,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/pokeratlas.com.ico"
+    },
+    {
       "id": 1942,
       "name": "Shooters Poker Room",
       "slug": "shooters-poker-room-billings",
@@ -8639,6 +8609,110 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/seatopen.com.ico"
+    },
+    {
+      "id": 3081,
+      "name": "Butte Rats Poker",
+      "slug": "butte-rats-poker",
+      "website": "https://www.pokeratlas.com/poker-room/butte-rats-poker",
+      "address": "2121 Amherst Ave.",
+      "city": "Butte",
+      "state": "MT",
+      "phone": "8907300127",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/butte-rats-poker",
+      "hours": null,
+      "latitude": 45.9867025,
+      "longitude": -112.5064407,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/pokeratlas.com.ico"
+    },
+    {
+      "id": 3083,
+      "name": "Ike & Susan's Lounge & Casino",
+      "slug": "ike-susans-lounge-casino-great-falls",
+      "website": "https://www.pokeratlas.com/poker-room/ike-susans-lounge-casino-great-falls",
+      "address": "3716 2nd Ave N Great Falls, MT",
+      "city": "Great Falls",
+      "state": "MT",
+      "phone": "(406) 454-3360",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/ike-susans-lounge-casino-great-falls",
+      "hours": null,
+      "latitude": 47.5069158,
+      "longitude": -111.2422691,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/pokeratlas.com.ico"
+    },
+    {
+      "id": 3085,
+      "name": "Nickels Gaming Parlour",
+      "slug": "nickels-helena",
+      "website": "http://nickelsgaming.com",
+      "address": "2100 North Last Chance Gulch",
+      "city": "Helena",
+      "state": "MT",
+      "phone": "(406) 449-7013",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/nickels-helena",
+      "hours": null,
+      "latitude": 46.60568,
+      "longitude": -112.02342,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/nickelsgaming.com.ico"
+    },
+    {
+      "id": 3084,
+      "name": "Montana Nugget Kalispell",
+      "slug": "montana-nugget-kal-kalispell",
+      "website": "https://www.pokeratlas.com/poker-room/montana-nugget-kal-kalispell",
+      "address": "740 West Idaho St",
+      "city": "Kalispell",
+      "state": "MT",
+      "phone": "(406) 885-2148",
+      "venue_type": "card_room",
+      "has_tournaments": true,
+      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/montana-nugget-kal-kalispell",
+      "hours": null,
+      "latitude": 48.20033,
+      "longitude": -114.32599,
+      "trust_score": 4.8,
+      "games_offered": [
+        "NLH"
+      ],
+      "stakes_cash": null,
+      "poker_tables": null,
+      "hours_weekday": null,
+      "hours_weekend": null,
+      "about": null,
+      "logo_url": "https://icons.duckduckgo.com/ip3/pokeratlas.com.ico"
     },
     {
       "id": 2489,
