@@ -313,10 +313,10 @@ function buildPopupHtml(venue) {
   const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
 
   // Build venue logo/initials badge
-  const logoUrl = venue.logo_url || venue.image_url || '';
+  const logoUrl = venue.logo_url || venue.profile_photo_url || venue.cover_photo_url || venue.image_url || '';
   const initials = (venue.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
   const logoBadge = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:1.5px solid rgba(212,168,83,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
+    ? `<img src="${logoUrl}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid rgba(212,168,83,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
     : `<div style="display:flex;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`;
 
   return `<div style="min-width:230px;max-width:320px;padding:16px 18px 14px;">

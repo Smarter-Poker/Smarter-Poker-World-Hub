@@ -307,7 +307,7 @@ export default async function handler(req, res) {
                   const { data: dbVenues, error: dbErr, count: dbCount } = await q;
 
                   if (!dbErr && dbVenues && dbVenues.length > 0) {
-                      venues = dbVenues;
+                      venues = dbVenues.filter(v => !v.name?.toLowerCase().includes('harrah') || !v.name?.toLowerCase().includes('joliet'));
                       usedSupabase = true;
                   }
               } catch (dbErr) {
@@ -316,7 +316,8 @@ export default async function handler(req, res) {
 
               // JSON fallback if Supabase returned nothing
               if (!usedSupabase) {
-                  venues = applyFilters(getJsonVenues(), { state, city, type: effectiveType, tournaments, search, featured });
+                  venues = applyFilters(getJsonVenues(), { state, city, type: effectiveType, tournaments, search, featured })
+                      .filter(v => !v.name?.toLowerCase().includes('harrah') || !v.name?.toLowerCase().includes('joliet'));
               }
               venues.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
 

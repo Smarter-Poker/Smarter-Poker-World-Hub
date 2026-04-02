@@ -82,12 +82,14 @@ export function getVenueLogoUrl(venue) {
     if (!venue) return null;
     // Priority 1: Profile photo from social page (authenticated/scraped logo)
     if (venue.profile_photo_url) return venue.profile_photo_url;
-    // Priority 2: Cover photo
+    // Priority 2: Validated logo_url from JSON backend
+    if (venue.logo_url) return venue.logo_url;
+    // Priority 3: Cover photo
     if (venue.cover_photo_url) return venue.cover_photo_url;
     
     // We intentionally removed the dynamic s2/favicons fallback here because it generates 
     // generic blue globes without byte-size validation. The backend daemon already tests 
-    // Favicon API strictly, and injects verified ones into profile_photo_url.
+    // Favicon API strictly, and injects verified ones into logo_url/profile_photo_url.
     return null;
 }
 
