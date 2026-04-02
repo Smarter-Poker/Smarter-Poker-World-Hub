@@ -480,12 +480,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); }
                 .vc3-logo-img { width: 100%; height: 100%; object-fit: cover; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 0.5px; }
-                .vc3-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-                .vc3-fav { position: static; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; }
+                .vc3-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 60px; }
+                .vc3-fav { position: relative; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; align-self: flex-end; }
                 .vc3-fav:hover { transform: scale(1.15); }
                 .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
-                .vc3-distance { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; }
-                .vc3-hours-compact { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; }
+                .vc3-distance { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; width: 100%; }
+                .vc3-hours-compact { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; display: block; text-align: right; width: 100%; }
                 .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
                 .vc3-open-dot.closed { background: #ef4444; animation: none; }
                 .vc3-hours-next { color: rgba(255,255,255,0.3); font-size: 11px; }

@@ -2063,8 +2063,37 @@ export default function PokerNearMePage() {
                         }
                         if (canExpandRadius) {
                             return (
-                                <div className="load-more">
-                                    <button className="expand-radius-btn" onClick={() => loadMore('venues')}>
+                                <div className="load-more" style={{ marginTop: '30px', textAlign: 'center' }}>
+                                    <button 
+                                        className="expand-radius-btn" 
+                                        onClick={() => loadMore('venues')}
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '10px',
+                                            padding: '14px 36px',
+                                            background: 'linear-gradient(135deg, rgba(212,168,83,0.22) 0%, rgba(184,134,11,0.10) 100%)',
+                                            border: '2px solid rgba(212,168,83,0.5)',
+                                            borderRadius: '12px',
+                                            color: '#f0d48a',
+                                            fontSize: '15px',
+                                            fontWeight: '700',
+                                            letterSpacing: '0.3px',
+                                            cursor: 'pointer',
+                                            boxShadow: 'inset 0 1px 0 rgba(212,168,83,0.15), 0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(212,168,83,0.08)',
+                                            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212,168,83,0.35) 0%, rgba(184,134,11,0.18) 100%)';
+                                            e.currentTarget.style.color = '#fff';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212,168,83,0.22) 0%, rgba(184,134,11,0.10) 100%)';
+                                            e.currentTarget.style.color = '#f0d48a';
+                                        }}
+                                    >
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <circle cx="12" cy="12" r="10" />
                                             <polyline points="8 12 12 16 16 12" />
