@@ -107,7 +107,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1820,
@@ -295,7 +295,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1825,
@@ -423,7 +423,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1829,
@@ -846,7 +846,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1838,
@@ -1034,7 +1034,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1843,
@@ -1222,7 +1222,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1850,
@@ -1679,7 +1679,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1870,
@@ -1726,7 +1726,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1871,
@@ -2076,7 +2076,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1884,
@@ -2264,7 +2264,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1891,
@@ -2358,7 +2358,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1894,
@@ -2405,7 +2405,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1895,
@@ -2452,7 +2452,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1896,
@@ -2499,7 +2499,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1899,
@@ -2755,7 +2755,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1908,
@@ -3024,7 +3024,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1919,
@@ -3528,7 +3528,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1933,
@@ -3575,7 +3575,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1934,
@@ -3737,7 +3737,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1938,
@@ -4489,7 +4489,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1955,
@@ -4536,7 +4536,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1956,
@@ -4946,7 +4946,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1965,
@@ -4993,7 +4993,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1966,
@@ -5176,7 +5176,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1971,
@@ -5291,7 +5291,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1975,
@@ -5602,7 +5602,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1988,
@@ -5696,7 +5696,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1992,
@@ -5857,7 +5857,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 1998,
@@ -5904,7 +5904,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2000,
@@ -5951,7 +5951,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2001,
@@ -6139,7 +6139,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2020,
@@ -6523,7 +6523,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2059,
@@ -6617,7 +6617,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2129,
@@ -6758,7 +6758,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2133,
@@ -6852,7 +6852,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2136,
@@ -6899,7 +6899,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2137,
@@ -6946,7 +6946,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2138,
@@ -7087,7 +7087,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2142,
@@ -7134,7 +7134,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2143,
@@ -7228,7 +7228,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2145,
@@ -7322,7 +7322,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2147,
@@ -7369,7 +7369,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2148,
@@ -7510,7 +7510,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2153,
@@ -7604,7 +7604,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2156,
@@ -7651,7 +7651,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2157,
@@ -7698,7 +7698,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2158,
@@ -7745,7 +7745,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2159,
@@ -7792,7 +7792,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2160,
@@ -7839,7 +7839,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2161,
@@ -7886,7 +7886,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2162,
@@ -7933,7 +7933,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2163,
@@ -7980,7 +7980,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2164,
@@ -8027,7 +8027,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2165,
@@ -8074,7 +8074,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2166,
@@ -8121,7 +8121,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2167,
@@ -8168,7 +8168,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2169,
@@ -8309,7 +8309,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2173,
@@ -8356,7 +8356,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2175,
@@ -8450,7 +8450,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2177,
@@ -8497,7 +8497,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2178,
@@ -8544,7 +8544,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2181,
@@ -8591,7 +8591,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2185,
@@ -8847,7 +8847,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2192,
@@ -8894,7 +8894,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2193,
@@ -9035,7 +9035,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2196,
@@ -9082,7 +9082,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2198,
@@ -9197,7 +9197,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2201,
@@ -9244,7 +9244,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2202,
@@ -9291,7 +9291,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2203,
@@ -9419,7 +9419,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2206,
@@ -9560,7 +9560,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2211,
@@ -9607,7 +9607,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2215,
@@ -9654,7 +9654,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2218,
@@ -9748,7 +9748,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2220,
@@ -9795,7 +9795,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2221,
@@ -9842,7 +9842,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2222,
@@ -9889,7 +9889,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2223,
@@ -9936,7 +9936,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2224,
@@ -9983,7 +9983,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2225,
@@ -10030,7 +10030,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2226,
@@ -10252,7 +10252,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2235,
@@ -10299,7 +10299,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2237,
@@ -10440,7 +10440,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2242,
@@ -10555,7 +10555,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2245,
@@ -10602,7 +10602,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2246,
@@ -10649,7 +10649,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2247,
@@ -10696,7 +10696,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2249,
@@ -10790,7 +10790,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2256,
@@ -10837,7 +10837,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2261,
@@ -10871,7 +10871,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2262,
@@ -10965,7 +10965,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2264,
@@ -11046,7 +11046,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2274,
@@ -11080,7 +11080,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2276,
@@ -11114,7 +11114,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2281,
@@ -11148,7 +11148,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2284,
@@ -11195,7 +11195,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2286,
@@ -11229,7 +11229,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2291,
@@ -11263,7 +11263,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2292,
@@ -11310,7 +11310,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2293,
@@ -11626,7 +11626,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2304,
@@ -11673,7 +11673,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2305,
@@ -11861,7 +11861,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2309,
@@ -11908,7 +11908,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2310,
@@ -11955,7 +11955,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2313,
@@ -12049,7 +12049,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2315,
@@ -12237,7 +12237,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2320,
@@ -12284,7 +12284,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2321,
@@ -12331,7 +12331,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2322,
@@ -12378,7 +12378,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2323,
@@ -12425,7 +12425,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2325,
@@ -12472,7 +12472,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2326,
@@ -12519,7 +12519,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2327,
@@ -12660,7 +12660,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2330,
@@ -12707,7 +12707,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2333,
@@ -12754,7 +12754,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2338,
@@ -12801,7 +12801,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2339,
@@ -12895,7 +12895,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2342,
@@ -12942,7 +12942,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2343,
@@ -13036,7 +13036,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2345,
@@ -13083,7 +13083,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2346,
@@ -13130,7 +13130,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2347,
@@ -13177,7 +13177,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2416,
@@ -13211,7 +13211,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2417,
@@ -13258,7 +13258,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2418,
@@ -13305,7 +13305,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2419,
@@ -13399,7 +13399,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2430,
@@ -13608,7 +13608,7 @@
         "has_tournaments": false,
         "has_website": false
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2457,
@@ -13702,7 +13702,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2465,
@@ -13843,7 +13843,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2470,
@@ -13890,7 +13890,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2471,
@@ -13937,7 +13937,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2472,
@@ -14031,7 +14031,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2474,
@@ -14078,7 +14078,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2475,
@@ -14125,7 +14125,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2476,
@@ -14172,7 +14172,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2477,
@@ -14313,7 +14313,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2480,
@@ -14360,7 +14360,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2481,
@@ -14454,7 +14454,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2483,
@@ -14548,7 +14548,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2486,
@@ -14642,7 +14642,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2489,
@@ -14689,7 +14689,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2490,
@@ -14736,7 +14736,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2491,
@@ -14830,7 +14830,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2493,
@@ -14877,7 +14877,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2494,
@@ -14971,7 +14971,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2496,
@@ -15018,7 +15018,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2497,
@@ -16953,7 +16953,7 @@
         "has_tournaments": true,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2645,
@@ -22101,7 +22101,7 @@
         "has_tournaments": true,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "id": 2762,
@@ -22321,7 +22321,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Rockford Charitable Games (RCG Poker)",
@@ -22365,7 +22365,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Windy City Poker Championship",
@@ -22397,7 +22397,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Central Illinois Charitable Games (CICG Poker)",
@@ -22429,7 +22429,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Play Poker Chicago",
@@ -22461,7 +22461,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Chicagoland Poker",
@@ -22502,7 +22502,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "E3 Gaming — Westgate Poker Room",
@@ -22599,7 +22599,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Mr. B's Poker Room",
@@ -22632,7 +22632,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Paradise Poker",
@@ -22665,7 +22665,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Rosemack Poker Room",
@@ -22698,7 +22698,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Waterford Card Room at 300 Bowl",
@@ -22731,7 +22731,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Legends Poker Place of Metamora",
@@ -22764,7 +22764,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Momo's Poker Room",
@@ -22797,7 +22797,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "DiCicco's Poker Room",
@@ -22830,7 +22830,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Michigan Charitable Gaming Association",
@@ -22894,7 +22894,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Shark Tank Poker Club",
@@ -22927,7 +22927,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "The Reserve Poker Club",
@@ -22959,7 +22959,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "River Room Players Club",
@@ -22991,7 +22991,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "The Joker Club",
@@ -23024,7 +23024,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Westfield Lions Club Poker",
@@ -23055,7 +23055,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "OP Social Club / Outlaw Poker",
@@ -23086,7 +23086,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Queens Club Inc.",
@@ -23149,7 +23149,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Kontenders Poker League",
@@ -23180,7 +23180,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Revo Casino & Social House Manchester",
@@ -23214,7 +23214,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Concord Casino",
@@ -23257,7 +23257,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Revo Dover Poker Room",
@@ -23290,7 +23290,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Gate City Casino",
@@ -23333,7 +23333,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Pop's Poker",
@@ -23365,7 +23365,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "RVA Charity Poker",
@@ -23396,7 +23396,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Evlos Charity Poker",
@@ -23427,7 +23427,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Charity Series of Poker (CSOP)",
@@ -23459,7 +23459,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "ACES Charity Poker",
@@ -23490,7 +23490,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     },
     {
       "name": "Poker For Good",
@@ -23520,7 +23520,7 @@
         "has_tournaments": false,
         "has_website": true
       },
-      "has_tournaments": false
+      "has_tournaments": true
     }
   ]
 }
