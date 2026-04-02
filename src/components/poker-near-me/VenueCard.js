@@ -399,9 +399,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {/* Stakes */}
                 {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && (
                     <div className="vc3-stakes" style={{ flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'rgba(212,168,83,0.7)', letterSpacing: '0.5px' }}>STAKES PLAYED</span>
-                        <span style={{ color: '#d4a853' }}>
-                            {venue.stakes_cash.slice(0, 4).join(' ')} {venue.stakes_cash.length > 4 ? 'ETC' : ''}
+                        <span>
+                            STAKES PLAYED {venue.stakes_cash.slice(0, 4).join(' ')} {venue.stakes_cash.length > 4 ? 'ETC' : ''}
                         </span>
                     </div>
                 )}
