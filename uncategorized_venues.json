@@ -1,0 +1,112 @@
+[
+  {
+    "id": 2855,
+    "name": "Peppermill Poker Room",
+    "city": "West Wendover",
+    "state": "NV",
+    "venue_type": null,
+    "address": "680 Wendover Boulevard",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 2849,
+    "name": "Caesars Republic Lake Tahoe",
+    "city": "Stateline",
+    "state": "NV",
+    "venue_type": null,
+    "address": "18 U.S. Highway 50",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 3050,
+    "name": "Horseshoe Casino Council Bluffs",
+    "city": "Council Bluffs",
+    "state": "IA",
+    "venue_type": null,
+    "address": "2701 23rd Avenue",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 3030,
+    "name": "Bally's Black Hawk Casino Casino",
+    "city": "Black Hawk",
+    "state": "CO",
+    "venue_type": null,
+    "address": "261 Main Street",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 2961,
+    "name": "Chicagoland Charity Poker",
+    "city": "Schaumburg",
+    "state": "IL",
+    "venue_type": null,
+    "address": "800 National Pkwy",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 3073,
+    "name": "Sandia",
+    "city": "Albuquerque",
+    "state": "NM",
+    "venue_type": null,
+    "address": "30 Rainbow Road, NE",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 3051,
+    "name": "Ameristar Casino East Chicago",
+    "city": "East Chicago",
+    "state": "IN",
+    "venue_type": null,
+    "address": "777 Ameristar Blvd.",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 2970,
+    "name": "Legends Poker Place of Metamora",
+    "city": "Metamora",
+    "state": "MI",
+    "venue_type": null,
+    "address": "3546 S Lapeer Rd",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 3071,
+    "name": "Inn of the Mountain Gods Casino",
+    "city": "Mescalero",
+    "state": "NM",
+    "venue_type": null,
+    "address": "287 Carrizo Canyon Road",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 2898,
+    "name": "Silks @ Tampa Bay Downs",
+    "city": "Tampa",
+    "state": "FL",
+    "venue_type": null,
+    "address": "11225 Race Track Road",
+    "lat": null,
+    "lng": null
+  },
+  {
+    "id": 2874,
+    "name": "Graton Resort & Casino Casino",
+    "city": "Rohnert Park",
+    "state": "CA",
+    "venue_type": null,
+    "address": "288 Golf Course Drive West",
+    "lat": null,
+    "lng": null
+  }
+]

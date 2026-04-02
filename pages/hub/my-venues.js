@@ -603,7 +603,7 @@ export default function MyVenuesPage() {
       ` }} />
 
             <div style={{ minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif', color: C.text }}>
-                <UniversalHeader title="My Venues" backHref="/hub" backLabel="← Hub" />
+                <UniversalHeader pageDepth={2} />
 
                 <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px 80px' }}>
                     {loading ? (

@@ -768,11 +768,7 @@ export default function MyClubsPage() {
                 color: C.text,
                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif',
             }}>
-                <UniversalHeader
-                    title="My Clubs"
-                    backHref="/hub"
-                    backLabel="← Hub"
-                />
+                <UniversalHeader pageDepth={2} />
 
                 {/* Main Content Area */}
                 <div style={{

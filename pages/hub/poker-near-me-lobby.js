@@ -2935,7 +2935,27 @@ export default function PokerNearMeLobby() {
           </div>
         )}
 
-      {/* Geofence Alert Banner removed per user request for no notifications */}
+      {/* Geofence Alert Banner */}
+      {geofenceAlert && (
+          <GeofenceAlertBanner
+              venue={geofenceAlert}
+              onCheckin={() => {
+                  const gfUrl = geofenceAlert.is_social_page
+                      ? '/club/' + geofenceAlert.social_page_id
+                      : '/hub/venues/' + geofenceAlert.id;
+                  router.push(gfUrl + '?action=checkin');
+                  setGeofenceAlert(null);
+              }}
+              onReview={() => {
+                  const gfUrl = geofenceAlert.is_social_page
+                      ? '/club/' + geofenceAlert.social_page_id
+                      : '/hub/venues/' + geofenceAlert.id;
+                  router.push(gfUrl + '?action=review');
+                  setGeofenceAlert(null);
+              }}
+              onDismiss={() => setGeofenceAlert(null)}
+          />
+      )}
 
       {/* Global keyframes + VenueCard CSS (required for VenueCard component styling) */}
       <style jsx global>{`
