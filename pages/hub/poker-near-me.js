@@ -2009,7 +2009,9 @@ export default function PokerNearMePage() {
                                 <option value="city-az">City (A → Z)</option>
                             </select>
                         </div>
-                        <span className="results-showing">Showing {displayed.length} of {venues.length}</span>
+                        <span className="results-showing">
+                            {(userLocation || nearestDistance) ? `Nearest: ~${nearestDistance || '0'} miles` : `Showing ${displayed.length} of ${venues.length}`}
+                        </span>
                     </div>
                     {/* Expand Map button — on same line */}
                     {!mapFullscreen && (
@@ -2851,14 +2853,6 @@ export default function PokerNearMePage() {
                     <div className="pnm-main">
 
                     {/* Distance / Geofence notices (below HUD) */}
-                    {(userLocation || nearestDistance) && (
-                        <div className="distance-display" style={{ textAlign: 'center', padding: '6px 0', color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: -2, marginRight: 4 }}>
-                                <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                            </svg>
-                            <span>Nearest: ~{nearestDistance || '0'} miles</span>
-                        </div>
-                    )}
                     {geofenceStatus === 'denied' && (
                         <div className="geofence-notice denied">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
