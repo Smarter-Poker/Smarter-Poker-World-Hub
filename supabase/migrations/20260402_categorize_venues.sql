@@ -3,8 +3,7 @@
 
 -- 1. Deactivate Duplicates
 UPDATE poker_venues
-SET is_active = false,
-    updated_at = NOW()
+SET is_active = false
 WHERE id IN (
     '2855',
     '3071',
@@ -21,8 +20,7 @@ WHERE id IN (
 -- 2. Apply categories where venue_type IS NULL
 -- Category: poker_club
 UPDATE poker_venues
-SET venue_type = 'poker_club',
-    updated_at = NOW()
+SET venue_type = 'poker_club'
 WHERE id IN (
     '2906',
     '2907',
@@ -121,8 +119,7 @@ WHERE id IN (
 
 -- Category: casino
 UPDATE poker_venues
-SET venue_type = 'casino',
-    updated_at = NOW()
+SET venue_type = 'casino'
 WHERE id IN (
     '2869',
     '3083',
@@ -232,8 +229,7 @@ WHERE id IN (
 
 -- Category: card_room
 UPDATE poker_venues
-SET venue_type = 'card_room',
-    updated_at = NOW()
+SET venue_type = 'card_room'
 WHERE id IN (
     '2909',
     '2938',
@@ -257,16 +253,14 @@ WHERE id IN (
 
 -- Category: series
 UPDATE poker_venues
-SET venue_type = 'series',
-    updated_at = NOW()
+SET venue_type = 'series'
 WHERE id IN (
     '2846'
 );
 
 -- Category: charity
 UPDATE poker_venues
-SET venue_type = 'charity',
-    updated_at = NOW()
+SET venue_type = 'charity'
 WHERE id IN (
     '2960',
     '2959'
