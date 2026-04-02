@@ -2968,24 +2968,28 @@ export default function PokerNearMePage() {
 
                     <style jsx global>{`
                     .pnm-page {
-                        min-height: 100vh; padding-bottom: 70px;
+                        height: 100dvh;
+                        min-height: 100dvh;
+                        max-height: 100dvh;
+                        display: flex;
+                        flex-direction: column;
                         position: relative;
                         color: #fff;
                         font-family: 'Inter', -apple-system, sans-serif;
-                        overflow-x: hidden;
-                        padding-bottom: 40px;
+                        overflow: hidden;
                     }
 
                     /* ═══ PAGE TITLE BAR ═══ */
                     .pnm-title-bar {
                         text-align: center;
-                        padding: 28px 20px 18px;
+                        padding: clamp(12px, 2vh, 28px) 20px clamp(8px, 1.5vh, 18px);
                         position: relative;
+                        flex-shrink: 0;
                     }
                     .pnm-title {
-                        font-size: 36px;
+                        font-size: clamp(22px, 3.5vw, 36px);
                         font-weight: 900;
-                        letter-spacing: 3px;
+                        letter-spacing: clamp(1.5px, 0.3vw, 3px);
                         margin: 0;
                         background: linear-gradient(135deg, #d4a853 0%, #f5d799 40%, #d4a853 60%, #b8860b 100%);
                         -webkit-background-clip: text;
@@ -2995,8 +2999,8 @@ export default function PokerNearMePage() {
                         filter: drop-shadow(0 0 20px rgba(212,168,83,0.3));
                     }
                     .pnm-subtitle {
-                        margin: 6px 0 0;
-                        font-size: 14px;
+                        margin: clamp(3px, 0.5vh, 6px) 0 0;
+                        font-size: clamp(11px, 1.2vw, 14px);
                         color: rgba(148,163,184,0.6);
                         letter-spacing: 1px;
                         font-weight: 500;
@@ -3005,22 +3009,24 @@ export default function PokerNearMePage() {
                     /* ═══ SIDEBAR + MAIN LAYOUT ═══ */
                     .pnm-layout {
                         display: flex;
+                        flex: 1 1 0;
+                        min-height: 0;
+                        width: 100%;
                         max-width: 1600px;
                         margin: 0 auto;
-                        min-height: calc(100vh - 160px);
                         gap: 0;
+                        overflow: hidden;
                     }
 
                     /* ═══ LEFT SIDEBAR NAVIGATION ═══ */
                     .pnm-sidebar {
-                        width: 160px;
-                        min-width: 160px;
+                        width: clamp(130px, 12vw, 175px);
+                        min-width: clamp(130px, 12vw, 175px);
+                        flex-shrink: 0;
                         background: linear-gradient(180deg, rgba(12,20,35,0.97) 0%, rgba(8,14,26,0.99) 100%);
                         border-right: 2px solid rgba(148,163,184,0.12);
                         padding: 6px 0;
-                        position: sticky;
-                        top: 64px;
-                        height: calc(100vh - 64px);
+                        height: 100%;
                         overflow-y: auto;
                         overflow-x: hidden;
                         z-index: 50;
@@ -3337,48 +3343,71 @@ export default function PokerNearMePage() {
 
                     /* ═══ MAIN CONTENT AREA ═══ */
                     .pnm-main {
-                        flex: 1;
+                        flex: 1 1 0;
                         min-width: 0;
-                        padding: 0 20px 40px;
+                        min-height: 0;
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                        padding: 0 clamp(10px, 1.5vw, 20px) clamp(20px, 4vh, 60px);
+                        scroll-behavior: smooth;
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(212,168,83,0.2) transparent;
+                        -webkit-overflow-scrolling: touch;
                     }
+                    .pnm-main::-webkit-scrollbar { width: 4px; }
+                    .pnm-main::-webkit-scrollbar-thumb { background: rgba(212,168,83,0.2); border-radius: 2px; }
 
-                    /* ═══ MOBILE SIDEBAR → DRAWER ═══ */
+                    /* ═══ MOBILE SIDEBAR → TOP NAV BAR ═══ */
                     @media (max-width: 768px) {
-                        .pnm-title {
-                            font-size: 28px;
-                            letter-spacing: 2px;
+                        .pnm-page {
+                            height: 100dvh;
+                            min-height: 100dvh;
+                            max-height: 100dvh;
                         }
                         .pnm-title-bar {
-                            padding: 20px 16px 12px;
+                            padding: clamp(6px, 1.5vh, 14px) 14px clamp(4px, 1vh, 10px);
+                        }
+                        .pnm-title {
+                            font-size: clamp(20px, 5.5vw, 28px);
+                            letter-spacing: clamp(1px, 0.4vw, 2px);
+                        }
+                        .pnm-subtitle {
+                            font-size: clamp(10px, 2.5vw, 13px);
+                            letter-spacing: 0.5px;
                         }
                         .pnm-layout {
                             flex-direction: column;
+                            flex: 1 1 0;
+                            min-height: 0;
+                            overflow: hidden;
                         }
                         .pnm-sidebar {
                             width: 100%;
                             min-width: 100%;
-                            position: relative;
-                            top: 0;
                             height: auto;
+                            flex-shrink: 0;
                             max-height: none;
                             border-right: none;
                             border-bottom: 2px solid rgba(148,163,184,0.12);
                             box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-                            padding: 8px 0 12px;
+                            padding: 6px 0 8px;
+                            overflow-y: visible;
                         }
                         .sidebar-nav {
                             flex-direction: row;
                             overflow-x: auto;
                             -webkit-overflow-scrolling: touch;
+                            scrollbar-width: none;
                             gap: 4px;
-                            padding: 0 12px;
-                            margin-bottom: 8px;
+                            padding: 0 10px;
+                            margin-bottom: 6px;
                         }
+                        .sidebar-nav::-webkit-scrollbar { display: none; }
                         .sidebar-tab {
                             flex-direction: column;
-                            gap: 4px;
-                            padding: 10px 14px;
-                            min-width: 72px;
+                            gap: 3px;
+                            padding: 8px 12px;
+                            min-width: 60px;
                             align-items: center;
                             text-align: center;
                         }
@@ -3389,30 +3418,32 @@ export default function PokerNearMePage() {
                             box-shadow: inset 0 -2px 0 #d4a853, inset 0 0 8px rgba(212,168,83,0.08);
                         }
                         .sidebar-tab-label {
-                            font-size: 12px;
+                            font-size: 10px;
                         }
                         .sidebar-tab-icon {
-                            width: 22px;
-                            height: 22px;
+                            width: 20px;
+                            height: 20px;
                         }
                         .sidebar-sub-nav {
                             flex-direction: row;
                             margin-left: 0;
                             border-left: none;
                             gap: 4px;
-                            padding: 0 12px 8px;
+                            padding: 0 10px 6px;
                             overflow-x: auto;
+                            scrollbar-width: none;
                         }
+                        .sidebar-sub-nav::-webkit-scrollbar { display: none; }
                         .sidebar-sub-tab {
-                            padding: 8px 16px;
-                            font-size: 13px;
+                            padding: 6px 14px;
+                            font-size: 12px;
                             white-space: nowrap;
                         }
                         .sidebar-filters {
-                            padding: 0 12px 8px;
+                            padding: 0 10px 6px;
                             display: flex;
                             flex-wrap: wrap;
-                            gap: 8px;
+                            gap: 6px;
                             align-items: flex-start;
                         }
                         .sidebar-section-title {
@@ -3421,11 +3452,11 @@ export default function PokerNearMePage() {
                         }
                         .sidebar-search-form {
                             flex: 1;
-                            min-width: 200px;
+                            min-width: 160px;
                             margin-bottom: 0;
                         }
                         .sidebar-gps-btn {
-                            min-width: 120px;
+                            min-width: 110px;
                             flex: 0;
                             margin-bottom: 0;
                         }
@@ -3433,23 +3464,24 @@ export default function PokerNearMePage() {
                         .sidebar-filter-group {
                             margin-bottom: 0;
                         }
-                        .sidebar-chips {
-                            gap: 4px;
-                        }
+                        .sidebar-chips { gap: 4px; }
                         .sidebar-chip {
-                            padding: 6px 12px;
+                            padding: 5px 10px;
                             font-size: 12px;
                         }
                         .sidebar-select {
-                            font-size: 13px;
-                            padding: 8px 10px;
+                            font-size: 12px;
+                            padding: 6px 8px;
                         }
                         .sidebar-filter-group label {
-                            font-size: 12px;
-                            margin-bottom: 4px;
+                            font-size: 11px;
+                            margin-bottom: 3px;
                         }
                         .pnm-main {
-                            padding: 0 12px 40px;
+                            flex: 1 1 0;
+                            min-height: 0;
+                            padding: 0 10px clamp(70px, 10vh, 100px);
+                            overflow-y: auto;
                         }
                     }
 
@@ -3487,6 +3519,11 @@ export default function PokerNearMePage() {
                             radial-gradient(ellipse at 50% 0%, rgba(148,163,184,0.05) 0%, transparent 50%),
                             linear-gradient(180deg, rgba(3,7,18,0.4) 0%, transparent 15%, transparent 85%, rgba(3,7,18,0.6) 100%);
                         z-index: -1;
+                    }
+
+                    /* ═══ PAGE SHELL FLEX CHILDREN — Non-shrinkable ═══ */
+                    .universal-header {
+                        flex-shrink: 0;
                     }
 
                     /* ═══ CSS NATIVE SEARCH ROW — Metal Framed ═══ */
@@ -3608,9 +3645,10 @@ export default function PokerNearMePage() {
 
                     /* Main Content */
                     .pnm-content {
-                        padding: 0 20px;
-                        max-width: 1400px;
-                        margin: 0 auto;
+                        padding: 0;
+                        max-width: 100%;
+                        margin: 0;
+                        width: 100%;
                     }
 
                     /* Loading / Empty State — Metal Container */
@@ -4428,8 +4466,7 @@ export default function PokerNearMePage() {
                             inset 0 1px 0 rgba(255,255,255,0.06),
                             0 4px 20px rgba(0,0,0,0.4);
                         margin-bottom: 2px;
-                        min-height: 320px;
-                        height: auto;
+                        height: clamp(200px, 32dvh, 480px);
                         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                     }
                     /* ═══ FULLSCREEN MODE — expands map in-place ═══ */
@@ -4664,7 +4701,7 @@ export default function PokerNearMePage() {
                             border-top: 2px solid rgba(148,163,184,0.1);
                         }
                         .map-preview-card:not(.map-preview-fullscreen) {
-                            height: 180px;
+                            height: clamp(160px, 26dvh, 260px);
                         }
                     }
 
@@ -5421,7 +5458,8 @@ export default function PokerNearMePage() {
                     /* Base: padding/margin reductions */
                     @media (max-width: 640px) {
                         .pnm-page {
-                            padding-bottom: 24px;
+                            height: 100dvh;
+                            min-height: 100dvh;
                         }
                         .pnm-hud-panel {
                             padding: 0 2px;
