@@ -1026,7 +1026,7 @@ export default function PokerNearMePage() {
 
     const requestGpsLocation = () => {
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser');
+            setShowLocationModal(true);
             return;
         }
         setGpsLoading(true);
@@ -1054,7 +1054,7 @@ export default function PokerNearMePage() {
                     (pos) => { clearTimeout(gpsTimeoutId); handleGpsSuccess(pos); },
                     () => {
                         clearTimeout(gpsTimeoutId);
-                        alert('Unable to determine your location. Please enter a city manually or try enabling location services.');
+                        setShowLocationModal(true);
                         setGpsLoading(false);
                         setGpsLocationLabel(null);
                     },
