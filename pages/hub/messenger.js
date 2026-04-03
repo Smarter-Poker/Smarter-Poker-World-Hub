@@ -1191,7 +1191,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                     </div>
                                     {st === 'missed' && !isOwn && (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); initiateCall(tp === 'video' ? 'video' : 'audio'); }}
+                                            onClick={(e) => { e.stopPropagation(); startCall(tp === 'video' ? 'video' : 'audio'); }}
                                             style={{
                                                 background: '#4caf50', color: 'white', border: 'none',
                                                 borderRadius: 20, padding: '6px 14px', fontSize: 12,
@@ -1797,6 +1797,9 @@ function MessengerPage() {
 
     // Keep ref in sync so global RT channel can read it without re-subscribing
     useEffect(() => { activeConversationRef.current = activeConversation; }, [activeConversation]);
+    // DEEP-SWEEP FIX: callTypeRef prevents stale closure in broadcast handlers
+    const callTypeRef = useRef(callType);
+    useEffect(() => { callTypeRef.current = callType; }, [callType]);
 
     // Menu config with handlers
     const menuConfig = getMenuConfig('messenger', user, preferences, {
@@ -2273,22 +2276,26 @@ function MessengerPage() {
                     setToast({ type: 'info', message: reason });
 
                     // ── CALL RECEIPT: Save missed/declined receipt as message in chat ──
+                    // DEEP-SWEEP FIX: Use refs to avoid stale closure (this handler is created once at mount)
                     const receiptStatus = payload.payload.reason === 'timeout' ? 'missed' : 'declined';
-                    if (activeConversation?.id && user?.id) {
+                    const currentConvo = activeConversationRef.current;
+                    const currentCallType = callTypeRef.current;
+                    if (currentConvo?.id && user?.id) {
                         const receiptPayload = JSON.stringify({
-                            type: callType,
+                            type: currentCallType,
                             duration: 0,
                             status: receiptStatus,
                         });
                         supabase.rpc('fn_send_message', {
-                            p_conversation_id: activeConversation.id,
+                            p_conversation_id: currentConvo.id,
                             p_sender_id: user.id,
                             p_content: `[CALL_RECEIPT]${receiptPayload}`,
                         }).catch(() => {});
                     }
 
-                    // ── MISSED CALL NOTIFICATION: Insert into notifications table for header bell ──
-                    if (activeConversation?.otherUser?.id && user?.id) {
+                    // ── MISSED CALL NOTIFICATION: Only for timeout (not for active decline) ──
+                    // Declined = callee pressed Decline (they already know). Missed = timeout (they need to know).
+                    if (receiptStatus === 'missed' && currentConvo?.otherUser?.id && user?.id) {
                         const token = getAccessToken();
                         fetch('/api/messenger/insert-missed-call-notification', {
                             method: 'POST',
@@ -2297,8 +2304,8 @@ function MessengerPage() {
                                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
                             },
                             body: JSON.stringify({
-                                calleeId: activeConversation.otherUser.id,
-                                callType: callType,
+                                calleeId: currentConvo.otherUser.id,
+                                callType: currentCallType,
                                 reason: receiptStatus,
                             }),
                         }).catch(() => {});
