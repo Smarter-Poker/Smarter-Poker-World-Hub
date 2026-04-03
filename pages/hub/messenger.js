@@ -3469,26 +3469,34 @@ function MessengerPage() {
 
     // 📲 Link OneSignal to user ID for push notifications
     useEffect(() => {
+        let cancelled = false;
+        let promptTimer = null;
+
         if (user?.id && pushReady && setExternalUserId) {
             // Link user's Supabase ID to OneSignal for targeted notifications
             setExternalUserId(user.id);
 
             // Check Supabase for cross-device persistence (if localStorage missed it)
-            if (!pushPromptHandled) {
+            if (!pushPromptHandled && !pushSubscribed) {
                 supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle().then(({ data }) => {
+                    if (cancelled) return;
                     if (data?.messenger_preferences?.pushPromptHandled) {
                         setPushPromptHandled(true);
                         try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
-                        return; // Don't show prompt
+                        return;
                     }
-                    // Show prompt if not subscribed AND user hasn't handled it
-                    if (!pushSubscribed) {
-                        const timer = setTimeout(() => setShowPushPrompt(true), 3000);
-                        return () => clearTimeout(timer);
-                    }
+                    // User hasn't handled it — show prompt after 3s delay
+                    promptTimer = setTimeout(() => {
+                        if (!cancelled) setShowPushPrompt(true);
+                    }, 3000);
                 });
             }
         }
+
+        return () => {
+            cancelled = true;
+            if (promptTimer) clearTimeout(promptTimer);
+        };
     }, [user?.id, pushReady, pushSubscribed, pushPromptHandled, setExternalUserId]);
 
     // Start a Jitsi call - Now uses real-time signaling for instant popup
