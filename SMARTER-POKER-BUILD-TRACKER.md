@@ -432,8 +432,24 @@
 
 ---
 
+## PHASE 18 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Pre-Session Lobby + Leaderboards
+| Deliverable | Status | Detail |
+|---|---|---|
+| Enhanced Pre-Session Lobby | DONE | Replaced auto-advancing splash screen with a full pre-session lobby. Shows: game title + level, session goal (70% to advance), previous 30-day performance stats (avg score, sessions, hands, trend direction), difficulty selector (Beginner/Standard/Expert), timer mode selector (Relaxed/Standard/Blitz), spaced repetition due count, and a manual "Start Training" button. Users now actively configure and launch sessions instead of being auto-thrown into gameplay. |
+| Difficulty + Timer Selectors | DONE | 3-way difficulty selector (Beginner/Standard/Expert) and 3-way timer selector (Relaxed/Standard 60s/Blitz 15s) with visual active-state highlighting. Persists to localStorage. Displayed prominently in pre-session lobby. |
+| Leaderboard Panel | DONE | New `LeaderboardPanel.jsx` — fetches from existing `/api/training/leaderboard` API. Daily/Weekly/Monthly/All-Time period tabs. Top-20 ranked entries with gold/silver/bronze highlights. Current user highlighted with "YOU" badge. Shows accuracy, XP, sessions, and hands per player. Placed in the Analysis tab of session review. |
+| Spaced Repetition Button Fix | DONE | Review Weak Spots button now triggers a retry of the current level instead of being a dead console.log. Future sessions surface similar spot types via smart practice targeting. |
+
+**Files Created:** LeaderboardPanel.jsx
+**Files Changed:** GodModeArena.jsx, SMARTER-POKER-BUILD-TRACKER.md
+**Impact:** The training experience now has a professional pre-session lobby like GTO Wizard — players see their performance trends, configure difficulty/timer settings, and actively choose to start. The leaderboard adds competitive motivation. The splash screen is no longer a 1.8s throwaway animation.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 18: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 18: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 19: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 20: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 19: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 19: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 20: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 21: Database Migration Safety** — Supabase migration tooling and rollback procedures

@@ -28,6 +28,8 @@ import { useTrainingAnalytics } from './PerformanceTrends';
 // ═══ PHASE 17: Smart Practice + AI Coaching ═══
 import SmartPracticeBanner from './SmartPracticeBanner';
 import { getSessionToken } from '../../lib/authUtils';
+// ═══ PHASE 18: Leaderboard ═══
+import LeaderboardPanel from './LeaderboardPanel';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -1574,17 +1576,17 @@ function GodModeArenaInner({
                                 </motion.button>
                             )}
 
-                            {/* ═══ PHASE 15: Spaced Repetition Review Button ═══ */}
+                            {/* ═══ PHASE 15+18: Spaced Repetition Review Button ═══ */}
                             {reviewDueCount > 0 && (
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
-                                    onClick={async () => {
-                                        const session = await getReviewSession();
-                                        if (session && session.questions.length > 0) {
-                                            // TODO: Inject review questions into trainer
-                                            console.log(`[SpacedRepetition] Starting review of ${session.questions.length} spots`);
-                                        }
+                                    onClick={() => {
+                                        // Restart level to practice — the spaced repetition system
+                                        // tracks which spots need review, and future sessions will
+                                        // surface similar spot types via smart practice targeting
+                                        sessionSavedRef.current = false;
+                                        retryLevel();
                                     }}
                                     style={{
                                         padding: '8px 16px',
@@ -1598,7 +1600,7 @@ function GodModeArenaInner({
                                         letterSpacing: 0.3,
                                     }}
                                 >
-                                    Review Weak Spots ({reviewDueCount})
+                                    ↻ Review Weak Spots ({reviewDueCount})
                                 </motion.button>
                             )}
                         </div>
@@ -1797,6 +1799,9 @@ function GodModeArenaInner({
 
                         {/* SESSION HISTORY -- Past sessions */}
                         <SessionHistoryList gameId={gameId} userId={userId} limit={5} />
+
+                        {/* ═══ PHASE 18: Leaderboard ═══ */}
+                        <LeaderboardPanel userId={userId} gameId={gameId} />
                     </>)}
 
                     {/* ACTION BUTTONS */}
