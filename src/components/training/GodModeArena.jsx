@@ -19,6 +19,12 @@ import PositionStatsPanel from './PositionStatsPanel';
 import PreflopRangeTrainer from './PreflopRangeTrainer';
 import LifetimeStatsCard from './LifetimeStatsCard';
 import SessionHistoryList from './SessionHistoryList';
+// ═══ PHASE 16: Performance Analytics Components ═══
+import PerformanceTrends from './PerformanceTrends';
+import StreetAccuracyPanel from './StreetAccuracyPanel';
+import ActionAccuracyPanel from './ActionAccuracyPanel';
+import MistakePatternPanel from './MistakePatternPanel';
+import { useTrainingAnalytics } from './PerformanceTrends';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -785,6 +791,9 @@ function GodModeArenaInner({
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
     const { dueCount: reviewDueCount, getReviewSession, markReviewed } = useSpacedRepetition(gameId);
 
+    // ═══ PHASE 16: Cross-session analytics ═══
+    const { analytics: crossSessionAnalytics, loading: analyticsLoading } = useTrainingAnalytics(gameId, 30);
+
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
     const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
@@ -1542,6 +1551,21 @@ function GodModeArenaInner({
                             totalMistakes={sessionMistakes}
                             gamesCompleted={1}
                         />
+
+                        {/* ═══ PHASE 16: Cross-Session Analytics ═══ */}
+                        <PerformanceTrends gameId={gameId} userId={userId} days={30} compact={false} />
+
+                        {crossSessionAnalytics?.streetAccuracy && (
+                            <StreetAccuracyPanel streetAccuracy={crossSessionAnalytics.streetAccuracy} />
+                        )}
+
+                        {crossSessionAnalytics?.actionAccuracy && (
+                            <ActionAccuracyPanel actionAccuracy={crossSessionAnalytics.actionAccuracy} />
+                        )}
+
+                        {crossSessionAnalytics?.mistakePatterns?.length > 0 && (
+                            <MistakePatternPanel mistakePatterns={crossSessionAnalytics.mistakePatterns} />
+                        )}
 
                         {/* SESSION HISTORY -- Past sessions */}
                         <SessionHistoryList gameId={gameId} userId={userId} limit={5} />

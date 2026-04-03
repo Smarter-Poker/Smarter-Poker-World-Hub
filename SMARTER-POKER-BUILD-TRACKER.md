@@ -396,8 +396,26 @@
 
 ---
 
+## PHASE 16 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Performance Analytics Engine
+| Deliverable | Status | Detail |
+|---|---|---|
+| Analytics API | DONE | New `analytics.js` endpoint — aggregates `training_answers` + `training_sessions` across ALL sessions. Returns: scoreTrend, positionAccuracy, streetAccuracy, actionAccuracy, mistakePatterns, classificationTrend, milestones. Supports game filter, lookback window (1-365 days), response type selection. |
+| PerformanceTrends component | DONE | SVG line charts: GTOW score trend, EV loss/hand trend, classification distribution stacked area chart. Milestones row (score, EV/hand, streak, hands). 7/30/90 day range selector. `useTrainingAnalytics` reusable hook. |
+| StreetAccuracyPanel component | DONE | Horizontal bar chart of accuracy per street (Preflop/Flop/Turn/River). Classification breakdown on click-expand. EV loss per street. Strongest/weakest street insight. |
+| ActionAccuracyPanel component | DONE | Radial gauge grid for each action type (Fold/Call/Raise/Bet/Check/All-In). Action distribution stacked bar. EV loss badges. Weakest action insight. |
+| MistakePatternPanel component | DONE | Clusters mistakes by spotType × position × street. Severity ranking (HIGH/MEDIUM/LOW). Natural language insights ("You consistently over-fold facing c-bets from BB on the flop"). Top-20 patterns sorted by total EV impact. Spot type summary tags. |
+| GodModeArena integration | DONE | All 4 analytics components wired into the Analysis tab of session review. `useTrainingAnalytics` hook fetches on mount. Conditionally renders based on available data. |
+
+**Files Created:** analytics.js, PerformanceTrends.jsx, StreetAccuracyPanel.jsx, ActionAccuracyPanel.jsx, MistakePatternPanel.jsx
+**Files Changed:** GodModeArena.jsx, SMARTER-POKER-BUILD-TRACKER.md
+**Impact:** Players now see cross-session performance trends, street-by-street and action-by-action accuracy breakdowns, and clustered mistake patterns — all features that GTO Wizard charges for. The analytics API aggregates up to 5,000 answers and 200 sessions per request, with graceful degradation if tables don't exist.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 16: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 16: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 17: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 18: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 17: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 17: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 18: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 19: Database Migration Safety** — Supabase migration tooling and rollback procedures
