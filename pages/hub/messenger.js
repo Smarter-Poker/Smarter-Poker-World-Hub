@@ -4237,6 +4237,7 @@ function MessengerPage() {
                                         onClick={() => handleSelectConversation(conv)}
                                         currentUserId={user.id}
                                         onlineUsers={onlineUsers}
+                                        isPinned={pinnedConvoIds.includes(conv.id)}
                                     />
                                 ))}
                             </>

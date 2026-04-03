@@ -471,6 +471,7 @@ export default function SignUpPage() {
                         poker_alias: formData.pokerAlias,
                         city: formData.city,
                         state: formData.state,
+                        birth_year: parseInt(formData.birthYear),
                     },
                     // Enable email confirmation - redirect to /auth/callback after verification
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -560,6 +561,8 @@ export default function SignUpPage() {
                             vip_tier: 'monthly',
                             vip_expires_at: vipExpiresAt.toISOString(),
                             last_login: new Date().toISOString(),
+                            birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
+                            birth_year: parseInt(formData.birthYear),
                         })
                         .eq('id', authData.user.id);
 
@@ -592,6 +595,8 @@ export default function SignUpPage() {
                                 vip_expires_at: vipExpiresAtFallback.toISOString(),
                                 created_at: new Date().toISOString(),
                                 last_login: new Date().toISOString(),
+                                birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
+                                birth_year: parseInt(formData.birthYear),
                             });
 
                         if (insertError) {
