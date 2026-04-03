@@ -1695,6 +1695,12 @@ function MessengerPage() {
     const [callRoomName, setCallRoomName] = useState('');
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showPushPrompt, setShowPushPrompt] = useState(false);
+    const [pushPromptHandled, setPushPromptHandled] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('messenger_push_prompt_handled') === '1';
+        }
+        return false;
+    });
     // Editing State
     const [editingMessage, setEditingMessage] = useState(null); // message being edited
     const [editText, setEditText] = useState('');
@@ -3467,15 +3473,15 @@ function MessengerPage() {
             // Link user's Supabase ID to OneSignal for targeted notifications
             setExternalUserId(user.id);
 
-            // Show prompt if not subscribed after 3 seconds
-            if (!pushSubscribed) {
+            // Show prompt if not subscribed AND user hasn't already handled it
+            if (!pushSubscribed && !pushPromptHandled) {
                 const timer = setTimeout(() => {
                     setShowPushPrompt(true);
                 }, 3000);
                 return () => clearTimeout(timer);
             }
         }
-    }, [user?.id, pushReady, pushSubscribed, setExternalUserId]);
+    }, [user?.id, pushReady, pushSubscribed, pushPromptHandled, setExternalUserId]);
 
     // Start a Jitsi call - Now uses real-time signaling for instant popup
     const startCall = async (type) => {
@@ -3954,8 +3960,14 @@ function MessengerPage() {
                     <button
                         onClick={async () => {
                             const success = await subscribePush();
+                            // Persist choice permanently — never ask again
+                            setPushPromptHandled(true);
+                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
+                            if (user?.id) {
+                                supabase.from('profiles').update({ push_notifications_handled: true }).eq('id', user.id).then(() => {});
+                            }
+                            setShowPushPrompt(false);
                             if (success) {
-                                setShowPushPrompt(false);
                                 setToast({ type: 'success', message: 'Push Notifications Enabled!' });
                             }
                         }}
@@ -3970,7 +3982,15 @@ function MessengerPage() {
                         }}
                     >Enable</button>
                     <button
-                        onClick={() => setShowPushPrompt(false)}
+                        onClick={() => {
+                            // Persist dismissal permanently — never ask again
+                            setPushPromptHandled(true);
+                            try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
+                            if (user?.id) {
+                                supabase.from('profiles').update({ push_notifications_handled: true }).eq('id', user.id).then(() => {});
+                            }
+                            setShowPushPrompt(false);
+                        }}
                         style={{
                             background: 'none',
                             border: 'none',
