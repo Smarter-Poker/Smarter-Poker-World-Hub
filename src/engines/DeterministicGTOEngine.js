@@ -680,60 +680,107 @@ export class DeterministicGTOEngine {
 
         if (!optimalAction || validActions.length === 0) return null;
 
+        // ═══ EXTRACT BOARD & POSITION DATA (needed for node type detection) ═══
+        const board = parseBoardFromHash(scenario.scenario_hash);
+        const heroPosition = extractPositionFromHash(scenario.scenario_hash);
+        const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
+        const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
+
+        // ═══ PHASE 22: CONTEXT-AWARE ACTION FILTERING — GTO WIZARD PARITY ═══
+        // GTO Wizard NEVER shows Fold when hero is not facing a bet.
+        // GTO Wizard NEVER shows Check/Bet when hero IS facing a bet.
+        // This is fundamental poker logic that must be enforced regardless of solver data.
+        const nodeType = this.detectNodeType(validActions, scenario.street);
+
+        if (scenario.street !== 'preflop') {
+            const preFilterCount = validActions.length;
+            if (nodeType === 'hero_bets_or_checks') {
+                // Hero acts first or IP after check: only Check and Bet sizes are valid
+                // Remove: Fold, Call, Raise (these require facing a bet)
+                validActions = validActions.filter(a => {
+                    const al = a.toLowerCase();
+                    if (al === 'f') return false;                    // Fold — invalid
+                    if (al === 'call') return false;                  // Call — invalid
+                    if (al.startsWith('r') && al !== 'r') return false; // Raise sizes — invalid
+                    if (al === 'r') return false;                     // Generic raise — invalid
+                    return true; // Keep: check (c/x), bet sizes (b33, b66, etc.), allin
+                });
+            } else if (nodeType === 'hero_faces_bet') {
+                // Hero faces a bet: only Fold, Call, Raise are valid
+                // Remove: Check, Bet sizes (can't bet when facing a bet)
+                validActions = validActions.filter(a => {
+                    const al = a.toLowerCase();
+                    if (al === 'c' || al === 'x') return false;      // Check — invalid
+                    if (al.startsWith('b') && al !== 'b') return false; // Bet sizes — invalid (but keep generic 'b' as potential raise notation)
+                    return true; // Keep: fold (f), call, raise sizes (r50, r100, etc.), allin
+                });
+            }
+
+            // If filtering removed ALL actions, restore original (defensive fallback)
+            if (validActions.length === 0) {
+                console.warn(`[DeterministicEngine] Context filter removed all actions for ${scenario.scenario_hash} nodeType=${nodeType}, restoring originals`);
+                validActions = clampedActions.length > 0 ? clampedActions : actions.filter(a => handActions[a] !== undefined);
+            }
+
+            // Re-evaluate optimal action after filtering
+            if (!validActions.includes(optimalAction)) {
+                maxFreq = -1;
+                optimalAction = null;
+                validActions.forEach(action => {
+                    const freq = handActions[action] || 0;
+                    if (freq > maxFreq) {
+                        maxFreq = freq;
+                        optimalAction = action;
+                    }
+                });
+            }
+
+            if (preFilterCount !== validActions.length) {
+                console.log(`[DeterministicEngine] Context filter: ${preFilterCount} → ${validActions.length} actions (nodeType=${nodeType}) for ${scenario.scenario_hash}`);
+            }
+        }
+
         // ═══ BUILD GTO FREQUENCIES (0-100 scale) ═══
         const gtoFrequencies = {};
         validActions.forEach(action => {
             gtoFrequencies[action] = Math.round((handActions[action] || 0) * 100);
         });
 
-        // IMP-4: Frequency normalization validation — ensure frequencies sum to ~100%
+        // IMP-4: Frequency normalization — ensure frequencies sum to ~100%
         const freqSum = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
         if (freqSum > 0 && Math.abs(freqSum - 100) > 1) {
-            // Normalize and log warning
             const factor = 100 / freqSum;
             validActions.forEach(action => {
                 gtoFrequencies[action] = Math.round(gtoFrequencies[action] * factor);
             });
-            console.warn(`[DeterministicEngine] ⚠️ Frequencies summed to ${freqSum}%, normalized for ${heroHand} in ${scenario.scenario_hash}`);
         }
 
         // ═══ COMPUTE EV DATA (Real solver values only — no fabrication) ═══
         const heroHandEV = handEVs[heroHand] || 0;
         const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
         const maxHandEV = allEVs.length > 0 ? Math.max(...allEVs) : heroHandEV;
-        // BUG-A FIX: Removed fabricated actionEVs (heroHandEV * freq is nonsensical)
-        // Per-action EV requires per-action EV data from the solver, which we don't have.
-        // The frontend uses frequency deviation for EV loss instead.
 
-        // ═══ EXTRACT BOARD & POSITION DATA ═══
-        const board = parseBoardFromHash(scenario.scenario_hash);
-        const heroPosition = extractPositionFromHash(scenario.scenario_hash);
-        const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
-        const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
-
-        // ═══ BUILD OPTIONS — GTO WIZARD STYLE ═══
-        // Show ALL real solver actions (up to 9). Only add context-appropriate
-        // fillers when solver provides fewer than 2 actions.
-        // GTO Wizard shows exactly the actions the solver has for this spot.
-        const options = validActions.slice(0, 9).map(action => ({
+        // ═══ BUILD OPTIONS — GTO WIZARD PARITY ═══
+        // Show ALL real solver actions (context-filtered). Exact GTOW style:
+        //   Check/Bet node: Check → Bet sizes ascending
+        //   Facing-bet node: Fold → Call → Raise sizes ascending
+        // GTO Wizard shows ONLY what the solver has — no fillers unless absolutely needed.
+        const sortedActions = this.sortActionsGTOWStyle(validActions, nodeType);
+        const options = sortedActions.slice(0, 9).map(action => ({
             id: action,
-            text: this.getActionLabel(action, estimatedPot),
+            text: this.getActionLabelGTOW(action, estimatedPot),
             frequency: gtoFrequencies[action],
         }));
 
-        // ═══ CONTEXT-AWARE FILLER LOGIC ═══
-        // Determine the decision node type from solver actions to know what's valid.
-        // If solver provides ≥2 actions, trust the solver completely — no fillers needed.
-        // If solver provides only 1 action, add ONE contextually valid alternative.
+        // ═══ MINIMAL FILLER LOGIC (only when solver gives < 2 actions) ═══
+        // GTO Wizard always shows at least 2 options for a decision.
+        // If solver only has 1 action, add the most contextually natural alternative.
         if (options.length < 2) {
             const existingIds = new Set(options.map(o => o.id));
-            const nodeType = this.detectNodeType(validActions, scenario.street);
-
-            // Only add fillers that are contextually valid for this node type
             const contextFillers = this.getContextualFillers(nodeType, existingIds, estimatedPot);
 
             for (const filler of contextFillers) {
-                if (options.length >= 3) break; // Cap at 3 for single-action solver spots
+                if (options.length >= 3) break;
                 if (!existingIds.has(filler.id)) {
                     options.push({
                         id: filler.id,
