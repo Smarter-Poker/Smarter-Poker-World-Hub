@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-03-29
+**Last Updated:** 2026-04-02
 **Owner:** Dan / Antigravity Agents
 
 ---
@@ -308,8 +308,42 @@
 
 ---
 
+## PHASE 11 — Completed (2026-04-02)
+
+### Training Arena Overhaul
+| Deliverable | Status | Detail |
+|---|---|---|
+| Timer reconciliation | DONE | GodModeArena interval disabled when UDT CountdownTimer active — prevents double-tick bug |
+| Mistake replay system | DONE | useGTOTrainer tracks wrong answers in mistakeQuestionsRef, retrainMistakes() shuffles and re-injects |
+| Share-to-feed toast | DONE | Replaced undefined `toast` with shareStatus state + visual feedback |
+| Director hand type detection | DONE | Dynamic hand type from scenario (preflop open/3bet/blind defense, postflop cbet/value/check-raise) |
+| GameSession canCheck | DONE | Derived from solver node actions instead of hardcoded false |
+| Difficulty wiring | DONE | Derived from stack/BB ratio instead of hardcoded 'medium' |
+
+**Files Changed:** GodModeArena.jsx, useGTOTrainer.js, Director.tsx, GameSession.tsx
+**Commits:** b7c406d35, affc68f1a
+**Impact:** Training games now have accurate difficulty, proper timer behavior, mistake replay, and share functionality.
+
+---
+
+## PHASE 12 — Completed (2026-04-02)
+
+### Production Runtime Error Fixes (Second Wave)
+| Endpoint | Error | Fix | Status |
+|---|---|---|---|
+| /api/cron/pokernews-videos | RSS fetch timeout crash | Added Promise.race 15s timeout + graceful degradation | DONE |
+| /api/cron/refresh-venue-json | Column mismatch crash | Changed explicit column select to `select('*')` | DONE |
+| /api/cron/training-daily-report | undefined reportWeek var | Added `const reportWeek = reportDate` | DONE |
+| /api/notifications/send | OneSignal API transient 500 | Assessed — transient, no code fix needed | ASSESSED |
+| /api/rewards/daily-login | RPC transient failure | Assessed — intermittent DB issue, no code fix needed | ASSESSED |
+
+**Commit:** 8b89bfd19 (includes cron fixes alongside PNM lobby restore)
+**Impact:** 3 cron endpoints hardened against crashes. 2 transient errors triaged as non-actionable.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 11: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 12: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 13: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 14: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 13: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 14: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 15: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 16: Database Migration Safety** — Supabase migration tooling and rollback procedures
