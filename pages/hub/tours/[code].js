@@ -250,9 +250,6 @@ export default function TourDetailPage() {
             <div className="error-icon">!</div>
             <h2 className="error-title">Tour Not Found</h2>
             <p className="error-text">{error}</p>
-            <Link href="/hub/poker-near-me-lobby" legacyBehavior>
-              <a className="back-link-btn">Back To Poker Near Me</a>
-            </Link>
           </div>
         )}
 

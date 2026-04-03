@@ -283,9 +283,6 @@ export default function SeriesDetailPage() {
           <div className="error-container">
             <h2 className="error-title">Series Not Found</h2>
             <p className="error-text">{error || 'This tournament series could not be found.'}</p>
-            <Link href="/hub/poker-near-me-lobby" legacyBehavior>
-              <a className="back-link-btn">Back To Poker Near Me</a>
-            </Link>
           </div>
         </div>
         <style jsx>{styles}</style>

@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
-import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle, Heart } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import { supabase } from '../../../../../src/lib/supabase';
 import { useRequireAuth, getAccessToken } from '../../../../../src/lib/authUtils';
@@ -228,6 +228,7 @@ export default function ManageHomeGamePage() {
   const [members, setMembers] = useState([]);
   const [events, setEvents] = useState([]);
   const [escrowTransactions, setEscrowTransactions] = useState([]);
+  const [saves, setSaves] = useState([]); // Home Game 'Saves/Followers' tracking
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [activeTab, setActiveTab] = useState('events');
@@ -277,6 +278,19 @@ export default function ManageHomeGamePage() {
           setEscrowTransactions(escrowData.data?.transactions || []);
         }
       }
+      // Fetch Saves Data directly via client supabase
+      const { data: savesData, error: savesError } = await supabase
+        .from('poker_near_me_favorites')
+        .select(`
+          *,
+          profiles:user_id(id, display_name, avatar_url)
+        `)
+        .eq('venue_id', id);
+        
+      if (!savesError && savesData) {
+          setSaves(savesData);
+      }
+
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -546,6 +560,7 @@ export default function ManageHomeGamePage() {
               {[
                 { id: 'events', label: 'Upcoming Games', icon: Calendar },
                 { id: 'members', label: `Members (${members.length})`, icon: Users },
+                { id: 'saves', label: 'Audience', icon: Heart, badge: saves.length > 0 ? saves.length : null },
                 { id: 'finances', label: 'Finances', icon: Wallet, badge: pendingEscrow.length > 0 ? pendingEscrow.length : null },
                 { id: 'settings', label: 'Settings', icon: Settings }
               ].map(({ id: tabId, label, icon: Icon, badge }) => (
@@ -699,6 +714,52 @@ export default function ManageHomeGamePage() {
                     onRemove={handleRemoveMember}
                   />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Saves Tab */}
+          {activeTab === 'saves' && (
+            <div className="space-y-4">
+              <div className="cmd-panel">
+                <div className="p-4 border-b border-[#4A5E78]">
+                  <h3 className="font-semibold text-white">
+                    Saves / Favorites ({saves.length})
+                  </h3>
+                  <p className="text-sm text-[#64748B] mt-1">Users who tapped the Heart button on your Home Game.</p>
+                </div>
+                {saves.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Heart className="w-12 h-12 text-[#4A5E78] mx-auto mb-3" />
+                    <p className="text-[#64748B]">No Saves Yet</p>
+                    <p className="text-sm text-[#4A5E78] mt-1">
+                      When players find and heart your game on Poker Near Me, they appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#4A5E78]">
+                    {saves.map((saveItem) => {
+                      const profile = saveItem.profiles || {};
+                      return (
+                        <div key={saveItem.id} className="flex items-center gap-3 p-4">
+                          <div className="w-10 h-10 rounded-full bg-[#EF4444]/10 flex items-center justify-center overflow-hidden">
+                            {profile.avatar_url ? (
+                              <Image src={profile.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" unoptimized />
+                            ) : (
+                              <Heart className="w-5 h-5 text-[#EF4444]" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-white">{profile.display_name || 'Anonymous Poker Player'}</p>
+                            <p className="text-sm text-[#64748B]">
+                              Saved on {new Date(saveItem.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}

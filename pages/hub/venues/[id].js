@@ -794,6 +794,16 @@ export default function VenueDetailPage() {
           message: checkinMessage.trim() || null,
         }),
       });
+
+      // Register geofence visit for verified review eligibility
+      try {
+        await fetch('/api/venues/checkin', {
+          method: 'POST',
+          headers: fetchHeaders,
+          body: JSON.stringify({ venue_id: id }),
+        });
+      } catch (_e) { /* background process, do not fail UX */ }
+
       if (!res.ok) {
         var errBody = null;
         try { errBody = await res.json(); } catch (_e2) {}
@@ -1038,9 +1048,6 @@ export default function VenueDetailPage() {
             <div className="error-icon">!</div>
             <h2>Venue Not Found</h2>
             <p>{error}</p>
-            <Link href="/hub/poker-near-me-lobby" legacyBehavior>
-              <a className="back-link-btn">Back To Poker Near Me</a>
-            </Link>
           </div>
         )}
 

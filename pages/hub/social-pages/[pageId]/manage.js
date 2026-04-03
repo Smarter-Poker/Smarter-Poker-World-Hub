@@ -396,6 +396,73 @@ export default function ManageSocialPage() {
                             {/* Settings Tab */}
                             {tab === 'settings' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                    {/* --- Completeness Progress Bar --- */}
+                                    {(() => {
+                                        const checks = [
+                                            { label: 'Page Name', done: !!form.name?.trim() },
+                                            { label: 'Description', done: !!form.description?.trim() },
+                                            { label: 'Location (City & State)', done: !!(form.location_city?.trim() && form.location_state?.trim()) },
+                                            { label: 'Contact Info', done: !!(form.contact_email?.trim() || form.phone?.trim()) },
+                                            { label: 'Social Links', done: !!(form.social_instagram?.trim() || form.social_twitter?.trim() || form.social_facebook?.trim()) },
+                                            { label: 'Custom URL', done: !!form.slug?.trim() }
+                                        ];
+                                        const completed = checks.filter(c => c.done).length;
+                                        const percentage = Math.round((completed / checks.length) * 100);
+                                        const is100 = percentage === 100;
+                                        
+                                        return (
+                                            <div style={{
+                                                background: '#0D192E', border: '1px solid #4A5E78', borderRadius: 12, padding: 20, marginBottom: 8,
+                                                boxShadow: 'inset 0 0 16px rgba(0,0,0,0.4)',
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+                                                    <div>
+                                                        <h3 style={{ margin: 0, color: '#fff', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            Profile Completeness
+                                                            {is100 && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+                                                        </h3>
+                                                        <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: 13 }}>
+                                                            {is100 ? 'Your page is fully configured!' : 'Complete the checklist below to maximize discoverability.'}
+                                                        </p>
+                                                    </div>
+                                                    <div style={{ fontSize: 24, fontWeight: 800, color: is100 ? '#22D3EE' : '#fff' }}>
+                                                        {percentage}%
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Progress Track */}
+                                                <div style={{ height: 10, background: '#132240', borderRadius: 5, overflow: 'hidden', marginBottom: 16 }}>
+                                                    <div style={{
+                                                        height: '100%', width: `${percentage}%`,
+                                                        background: 'linear-gradient(90deg, #3B82F6 0%, #22D3EE 100%)',
+                                                        transition: 'width 0.4s ease-out',
+                                                        boxShadow: '0 0 10px rgba(34, 211, 238, 0.4)'
+                                                    }} />
+                                                </div>
+                                                
+                                                {/* Checklist */}
+                                                {!is100 && (
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                                        {checks.map(c => (
+                                                            <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                                <div style={{
+                                                                    width: 18, height: 18, borderRadius: '50%',
+                                                                    border: `2px solid ${c.done ? '#22D3EE' : '#4A5E78'}`,
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                }}>
+                                                                    {c.done && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>}
+                                                                </div>
+                                                                <span style={{ fontSize: 13, color: c.done ? '#94A3B8' : '#fff', textDecoration: c.done ? 'line-through' : 'none' }}>
+                                                                    {c.label}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                    
                                     <div>
                                         <label style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4, display: 'block' }}>
                                             Page Name

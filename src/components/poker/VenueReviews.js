@@ -113,7 +113,7 @@ export default function VenueReviews({ venueId, venueName }) {
 
         try {
             const token = getAccessToken();
-            const res = await fetch('/api/poker/reviews', {
+            const res = await fetch('/api/venues/reviews', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

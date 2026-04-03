@@ -211,6 +211,32 @@ async function createGroup(req, res) {
 
     if (error) throw error;
 
+    // --- PHASE 2: Auto-create linked Social Page ---
+    try {
+      const { data: socialPage } = await getSupabase()
+        .from('social_pages')
+        .insert({
+          owner_id: user.id,
+          name: `${name} Group`,
+          description: description || `Official social page for ${name}`,
+          category: 'home-game',
+          location_city: city || '',
+          location_state: state || '',
+          is_public: true,
+          metadata: { home_game_group_id: group.id }
+        })
+        .select()
+        .maybeSingle();
+
+      if (socialPage) {
+        // Append it to the response so the frontend knows the social page was created
+        group.social_page = socialPage;
+      }
+    } catch (createSocialError) {
+      console.error('Failed to auto-create social page:', createSocialError);
+      // Suppress error so we still return the home game successfully
+    }
+
     return res.status(201).json({ group });
   } catch (error) {
     console.error('Create group error:', error);

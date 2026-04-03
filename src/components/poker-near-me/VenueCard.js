@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { getAccessToken } from '../../lib/authUtils';
 import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData } from './pnm-utils';
 
 const formatMoney = (amount) => {
@@ -144,6 +145,33 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const [mounted, setMounted] = useState(false);
     const [logoError, setLogoError] = useState(false);
     const [logoFallbackTried, setLogoFallbackTried] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
+    
+    const handleFollowClick = async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (followLoading || isFollowing) return;
+        setFollowLoading(true);
+        try {
+            const token = getAccessToken();
+            if (!token) {
+                if (onNavigate) onNavigate('/auth/login');
+                return;
+            }
+            const res = await fetch('/api/social/pages/follow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ slug: venue.host_social_page_slug, action: 'follow' })
+            });
+            if (res.ok) setIsFollowing(true);
+        } catch (err) {
+            console.error('Follow error:', err);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
+
     const cardRef = useRef(null);
     useEffect(() => {
         const delay = Math.min(index * 40, 400);
@@ -275,12 +303,19 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {venue.venue_type === 'home_game' && (venue.host_social_page_slug || venue.saves_count > 0) && (
                 <div className="vc3-follow-row">
                     {venue.host_social_page_slug && (
-                        <a href={'/social/@' + venue.host_social_page_slug}
-                            onClick={e => e.stopPropagation()}
-                            className="vc3-follow-btn">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-                            Follow
-                        </a>
+                        <button
+                            onClick={handleFollowClick}
+                            disabled={followLoading}
+                            className={`vc3-follow-btn ${isFollowing ? 'following' : ''}`}
+                            style={isFollowing ? { background: '#10B981', color: '#fff', borderColor: '#10B981' } : {}}
+                        >
+                            {isFollowing ? (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                            ) : (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                            )}
+                            {followLoading ? 'Following...' : (isFollowing ? 'Followed' : 'Follow')}
+                        </button>
                     )}
                     {venue.saves_count > 0 && (
                         <span className="vc3-saves-count">

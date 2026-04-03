@@ -82,11 +82,24 @@ export default async function handler(req, res) {
           const authUser = await requireAuth(req, res);
           if (!authUser) return;
 
-          const { page_id, action, follower_id } = req.body;
+          let { page_id, action, follower_id, slug } = req.body;
           const user_id = authUser.id;
 
-          if (!page_id) {
-              return res.status(400).json({ success: false, error: 'page_id required' });
+          if (!page_id && !slug) {
+              return res.status(400).json({ success: false, error: 'page_id or slug required' });
+          }
+
+          if (!page_id && slug) {
+              const { data: pageLookup } = await getSupabase()
+                  .from('social_pages')
+                  .select('id')
+                  .eq('slug', slug)
+                  .single();
+              
+              if (!pageLookup?.id) {
+                  return res.status(404).json({ success: false, error: 'Social page not found' });
+              }
+              page_id = pageLookup.id;
           }
 
           // === Approve/Reject (Commander actions) ===

@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-04-02T06:28:14.459Z",
-  "total": 684,
+  "updated_at": "2026-04-03T17:16:56.265Z",
+  "total": 680,
   "venues": [
     {
       "id": 1856,
@@ -3919,32 +3919,6 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/hialeahparkcasino.com.ico"
     },
     {
-      "id": 2629,
-      "name": "Hard Rock Poker Tour",
-      "slug": null,
-      "website": "https://www.hardrock.com",
-      "address": null,
-      "city": "Hollywood",
-      "state": "FL",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/hardrock.com.ico"
-    },
-    {
       "id": 2246,
       "name": "Seminole Classic",
       "slug": null,
@@ -4059,32 +4033,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/seminoleimmokaleecasino.com.ico"
-    },
-    {
-      "id": 2622,
-      "name": "bestbet Jax Poker Tour",
-      "slug": null,
-      "website": "https://www.bestbetjax.com",
-      "address": null,
-      "city": "Jacksonville",
-      "state": "FL",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/bestbetjax.com.ico"
     },
     {
       "id": 2637,
@@ -9760,32 +9708,6 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/stationcasinospoker.com.ico"
     },
     {
-      "id": 2741,
-      "name": "888poker LIVE",
-      "slug": null,
-      "website": "https://www.888poker.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/888poker.com.ico"
-    },
-    {
       "id": 2630,
       "name": "Aria Poker Classic",
       "slug": null,
@@ -10395,32 +10317,6 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/goldennugget.com.ico"
     },
     {
-      "id": 2609,
-      "name": "Heartland Poker Tour (HPT)",
-      "slug": null,
-      "website": "https://hptpoker.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/hptpoker.com.ico"
-    },
-    {
       "id": 2677,
       "name": "Horseshoe Las Vegas Poker Series",
       "slug": null,
@@ -10834,32 +10730,6 @@
       "logo_url": "https://icons.duckduckgo.com/ip3/pokergo.com.ico"
     },
     {
-      "id": 2613,
-      "name": "PokerStars LIVE",
-      "slug": null,
-      "website": "https://www.pokerstars.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/pokerstars.com.ico"
-    },
-    {
       "id": 2674,
       "name": "Red Rock Poker Series",
       "slug": null,
@@ -11082,32 +10952,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/thed.com.ico"
-    },
-    {
-      "id": 2734,
-      "name": "Trailblazer Poker Series",
-      "slug": null,
-      "website": "https://www.trailblazerpoker.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/trailblazerpoker.com.ico"
     },
     {
       "id": 2141,
@@ -18545,6 +18389,20 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://icons.duckduckgo.com/ip3/wheelingisland.com.ico"
+    },
+    {
+      "id": "napt-poker-tour",
+      "name": "NAPT Poker Tour",
+      "slug": "napt-poker-tour",
+      "venue_type": "tour",
+      "website": "https://www.pokerstarslive.com/napt/"
+    },
+    {
+      "id": "rough-riders-poker-tour",
+      "name": "Rough Riders Poker Tour",
+      "slug": "rough-riders-poker-tour",
+      "venue_type": "tour",
+      "website": "https://www.roughriderspoker.com/"
     }
   ]
 }
