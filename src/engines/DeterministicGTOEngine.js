@@ -819,7 +819,7 @@ export class DeterministicGTOEngine {
                 villainPosition,
                 villainStack: scenario.stack_depth || 100,
                 action: this.buildActionDescription(validActions, scenario.street, heroPosition, villainPosition),
-                nodeType: this.detectNodeType(validActions, scenario.street),
+                nodeType,  // Phase 22: use already-computed node type
                 context: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition),
                 isMixedStrategy,
             },
@@ -1085,30 +1085,78 @@ export class DeterministicGTOEngine {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 22: GTO WIZARD OPTION PARITY — SORTING & LABELING
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Sort actions in GTO Wizard order:
+     *
+     * Check/Bet node:  Check → Bet sizes ascending (16%, 33%, 45%, 67%, 100%...) → All-In
+     * Facing-bet node: Fold → Call → Raise sizes ascending → All-In
+     * Preflop open:    Fold → Raise sizes ascending → All-In
+     * Preflop facing:  Fold → Call → 3-Bet sizes ascending → All-In
+     *
+     * GTO Wizard always puts the passive option first, then aggressive options ascending.
+     */
+    sortActionsGTOWStyle(actions, nodeType) {
+        const getActionSortKey = (action) => {
+            const a = action.toLowerCase();
+            if (a === 'c' || a === 'x') return 0;       // Check first
+            if (a === 'f') return 0;                      // Fold first (facing bet)
+            if (a === 'call') return 1;                   // Call second
+            const betMatch = a.match(/^b(\d+)$/);
+            if (betMatch) return 100 + parseInt(betMatch[1]);  // Bets ascending
+            const raiseMatch = a.match(/^r(\d+)$/);
+            if (raiseMatch) return 200 + parseInt(raiseMatch[1]); // Raises ascending
+            if (a === 'b') return 150;
+            if (a === 'r') return 250;
+            if (a === 'allin') return 9999;               // All-In last
+            return 500;
+        };
+        return [...actions].sort((a, b) => getActionSortKey(a) - getActionSortKey(b));
+    }
+
+    /**
+     * GTO Wizard-style action labels — clean percentage, no BB amounts.
+     *   "Check", "Bet 16%", "Bet 45%", "Bet 67%", "Bet Pot", "Overbet 150%"
+     *   "Fold", "Call", "Raise 50%", "Raise Pot", "All-In"
+     */
+    getActionLabelGTOW(actionCode, potSize = 6) {
+        const a = actionCode.toLowerCase();
+        if (a === 'c' || a === 'x') return 'Check';
+        if (a === 'f') return 'Fold';
+        if (a === 'call') return 'Call';
+        if (a === 'allin') return 'All-In';
+
+        const betMatch = a.match(/^b(\d+)$/);
+        if (betMatch) {
+            const pct = parseInt(betMatch[1]);
+            if (pct === 100) return 'Bet Pot';
+            if (pct > 100) return `Overbet ${pct}%`;
+            return `Bet ${pct}%`;
+        }
+
+        const raiseMatch = a.match(/^r(\d+)$/);
+        if (raiseMatch) {
+            const pct = parseInt(raiseMatch[1]);
+            if (pct === 100) return 'Raise Pot';
+            return `Raise ${pct}%`;
+        }
+
+        if (a === 'b') return 'Bet';
+        if (a === 'r') return 'Raise';
+        return actionCode.toUpperCase();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // UTILITIES
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Get human-readable action label with pot-relative BB sizing
+     * Get human-readable action label (delegates to GTOW-style)
      */
     getActionLabel(actionCode, potSize = 6) {
-        if (ACTION_LABELS[actionCode]) return ACTION_LABELS[actionCode];
-
-        // Parse bet sizes like "b33" → "Bet 33%"
-        const betMatch = actionCode.match(/^b(\d+)$/);
-        if (betMatch) {
-            const pct = parseInt(betMatch[1]);
-            const bbAmount = (potSize * pct / 100).toFixed(1);
-            return `Bet ${bbAmount} BB (${pct}%)`;
-        }
-
-        const raiseMatch = actionCode.match(/^r(\d+)$/);
-        if (raiseMatch) {
-            const pct = parseInt(raiseMatch[1]);
-            return `Raise ${pct}%`;
-        }
-
-        return actionCode.toUpperCase();
+        return this.getActionLabelGTOW(actionCode, potSize);
     }
 
     /**
