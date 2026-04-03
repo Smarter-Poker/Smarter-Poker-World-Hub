@@ -2014,7 +2014,12 @@ function MessengerPage() {
                     });
                 }
             })
-            .subscribe();
+            .subscribe((status) => {
+                // Phase 3 BUGFIX: Wire channel status into connectionStatus
+                if (status === 'SUBSCRIBED') setConnectionStatus('connected');
+                else if (status === 'CHANNEL_ERROR') setConnectionStatus('disconnected');
+                else if (status === 'TIMED_OUT') setConnectionStatus('reconnecting');
+            });
 
         return () => supabase.removeChannel(channel);
     }, [user?.id]);
@@ -2314,8 +2319,13 @@ function MessengerPage() {
     };
 
     // Broadcast our typing state — reuse the existing typing channel subscription
+    // Phase 3 BUGFIX: Throttle to max once every 2s to prevent flooding Supabase
+    const lastTypingBroadcast = useRef(0);
     const broadcastTyping = () => {
         if (!user || !activeConversation) return;
+        const now = Date.now();
+        if (now - lastTypingBroadcast.current < 2000) return; // Throttle: max once per 2s
+        lastTypingBroadcast.current = now;
         // Supabase reuses channels with the same name, so this is safe
         const ch = supabase.channel(`typing:${activeConversation.id}`);
         ch.send({
@@ -4400,6 +4410,7 @@ function MessengerPage() {
                     display: (isMobile && showSidebar) ? 'none' : 'flex',
                     flexDirection: 'column',
                     background: C.card,
+                    position: 'relative', // Phase 3 BUGFIX: anchor for scroll-to-bottom FAB
                 }}>
                     {
                         activeConversation ? (

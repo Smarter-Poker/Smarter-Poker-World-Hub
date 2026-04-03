@@ -519,6 +519,17 @@ export default function SignUpPage() {
                         }, {
                             onConflict: 'user_id',
                         });
+
+                    // RPC doesn't accept birthday params — persist it separately
+                    if (formData.birthYear && formData.birthMonth && formData.birthDay) {
+                        await supabase
+                            .from('profiles')
+                            .update({
+                                birthday: `${formData.birthYear}-${formData.birthMonth}-${formData.birthDay}`,
+                                birth_year: parseInt(formData.birthYear),
+                            })
+                            .eq('id', authData.user.id);
+                    }
                 } catch (rpcErr) {
                     // Fallback to direct insert
                     console.log('Fallback: Direct profile insert');
@@ -531,7 +542,7 @@ export default function SignUpPage() {
                         .limit(1)
                         .maybeSingle();
 
-                    const nextPlayerNumber = (maxData?.player_number || 1254) + 1;
+                    const nextPlayerNumber = (parseInt(maxData?.player_number, 10) || 1254) + 1;
                     console.log('Updating profile for user:', authData.user.id);
 
                     // UPDATE the profile created by the database trigger
