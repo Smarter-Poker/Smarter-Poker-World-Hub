@@ -419,7 +419,6 @@ export default function LiveGamesFeed({
         setSelectedVenue(v);
         setSearchQuery(v.name);
         setShowSuggestions(false);
-        setViewMode('list');
     };
 
     const handleClearSearch = () => {

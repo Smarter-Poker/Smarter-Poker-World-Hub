@@ -3,7 +3,8 @@
  * Allows players to report games running at poker venues
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getAccessToken } from '../../lib/authUtils';
 
 const GAME_TYPES = [
     { value: 'nlh', label: 'No-Limit Hold\'em' },
@@ -25,19 +26,29 @@ const GAME_QUALITY = [
     { value: 'tough', label: 'Tough (Competitive)' }
 ];
 
+const INITIAL_FORM = {
+    game_type: 'nlh',
+    stakes: '1/2',
+    customStakes: '',
+    seats_open: 0,
+    waitlist_size: 0,
+    table_count: 1,
+    game_quality: '',
+    notes: ''
+};
+
 export default function ReportGameModal({ venue, isOpen, onClose, onSubmit, user }) {
-    const [formData, setFormData] = useState({
-        game_type: 'nlh',
-        stakes: '1/2',
-        customStakes: '',
-        seats_open: 0,
-        waitlist_size: 0,
-        table_count: 1,
-        game_quality: '',
-        notes: ''
-    });
+    const [formData, setFormData] = useState(INITIAL_FORM);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Reset form when modal opens to prevent stale data from prior submissions
+    useEffect(() => {
+        if (isOpen) {
+            setFormData(INITIAL_FORM);
+            setError('');
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -64,7 +75,7 @@ export default function ReportGameModal({ venue, isOpen, onClose, onSubmit, user
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.access_token || ''}`
+                    'Authorization': `Bearer ${getAccessToken() || ''}`
                 },
                 body: JSON.stringify({
                     venue_id: venue.id,

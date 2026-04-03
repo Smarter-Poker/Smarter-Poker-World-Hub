@@ -115,7 +115,7 @@ export default function CreateHomeGamePage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   }
 
-  async function handleSubmit(signal) {
+  async function handleSubmit() {
     if (!formData.name.trim()) {
       setError('Please enter a group name');
       return;

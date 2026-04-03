@@ -707,26 +707,13 @@ export class DeterministicGTOEngine {
                 });
             } else if (nodeType === 'hero_faces_bet') {
                 // Hero faces a bet: only Fold, Call, Raise are valid
-                // IMPORTANT: In PioSolver, 'c' = "call" when facing a bet (not check!)
-                // We remap 'c' → 'call' and remove actual check/bet actions.
-                validActions = validActions.map(a => {
+                // Remove: Check, Bet sizes (can't bet when facing a bet)
+                validActions = validActions.filter(a => {
                     const al = a.toLowerCase();
-                    // Remap 'c' to 'call' in facing-bet context (PIO uses 'c' for both)
-                    if (al === 'c') return 'call';
-                    return a;
-                }).filter(a => {
-                    const al = a.toLowerCase();
-                    if (al === 'x') return false;                     // Check — invalid when facing bet
-                    if (al.startsWith('b')) return false;              // Bet sizes — invalid when facing a bet
+                    if (al === 'c' || al === 'x') return false;      // Check — invalid
+                    if (al.startsWith('b') && al !== 'b') return false; // Bet sizes — invalid (but keep generic 'b' as potential raise notation)
                     return true; // Keep: fold (f), call, raise sizes (r50, r100, etc.), allin
                 });
-
-                // Also remap handActions keys so frequencies carry over
-                if (handActions['c'] !== undefined && handActions['call'] === undefined) {
-                    handActions['call'] = handActions['c'];
-                }
-                // Remap optimal action if needed
-                if (optimalAction === 'c') optimalAction = 'call';
             }
 
             // If filtering removed ALL actions, restore original (defensive fallback)
@@ -844,17 +831,9 @@ export class DeterministicGTOEngine {
             correctAnswer: optimalAction,
             correctAnswerText: this.getActionLabel(optimalAction, estimatedPot),
             // ═══ REAL SOLVER DATA ═══
-            // Phase 22: Ensure rawFrequencies keys match remapped action IDs
-            // (e.g., if 'c' was remapped to 'call' in facing-bet context)
-            frequencies: handActions,         // Raw 0.0-1.0 per action (remapped)
+            frequencies: handActions,         // Raw 0.0-1.0 per action
             gtoFrequencies,                   // Percentage 0-100 per action for UI
-            rawFrequencies: (() => {
-                // If 'c' was remapped to 'call', add 'call' key to raw frequencies too
-                if (nodeType === 'hero_faces_bet' && frequencies['c'] && !frequencies['call']) {
-                    return { ...frequencies, call: frequencies['c'] };
-                }
-                return frequencies;
-            })(),       // Full per-hand matrix
+            rawFrequencies: frequencies,       // Full per-hand matrix
             evData: {
                 heroHandEV,
                 optimalEV: maxHandEV,
@@ -1181,39 +1160,31 @@ export class DeterministicGTOEngine {
     }
 
     /**
-     * Build deterministic explanation from solver data — GTO Wizard style.
-     * GTOW explanations are concise: action + frequency + hand strength context.
+     * Build deterministic explanation from solver data (no AI)
      */
     buildExplanation(heroHand, board, street, optimalAction, handActions, ev, validActions) {
-        const label = this.getActionLabelGTOW(optimalAction);
+        const label = ACTION_LABELS[optimalAction] || optimalAction;
         const freq = handActions[optimalAction] || 0;
         const freqPct = (freq * 100).toFixed(0);
+
+        // Identify hand strength category
         const handStrength = this.categorizeHand(heroHand, board);
 
-        // Pure strategy — one dominant action
         if (freq >= 0.95) {
-            return `${heroHand} (${handStrength}): Pure ${label}. The solver always plays this way here.`;
+            return `GTO solver: Pure ${label} (${freqPct}%). ${heroHand} is ${handStrength} on [${board.join(' ')}]. ` +
+                `This is a clear ${label.toLowerCase()} in the solver's strategy.`;
         }
 
-        // Near-pure — one clear best action but some mixing
-        if (freq >= 0.70) {
-            const altActions = validActions
-                .filter(a => a !== optimalAction && handActions[a] > 0.01)
-                .sort((a, b) => handActions[b] - handActions[a])
-                .slice(0, 2)
-                .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
-            return `${heroHand} (${handStrength}): ${label} ${freqPct}%${altActions.length > 0 ? `, mixing with ${altActions.join(', ')}` : ''}.`;
-        }
-
-        // True mixed strategy — no action dominates
+        // Mixed strategy explanation
         const mixedParts = validActions
             .filter(a => handActions[a] > 0.01)
             .sort((a, b) => handActions[b] - handActions[a])
-            .slice(0, 4)
-            .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`)
+            .map(a => `${ACTION_LABELS[a] || a} ${(handActions[a] * 100).toFixed(0)}%`)
             .join(', ');
 
-        return `${heroHand} (${handStrength}): Mixed strategy — ${mixedParts}. Close spot, multiple actions are GTO-correct.`;
+        return `GTO solver mixes: ${mixedParts}. ${heroHand} is ${handStrength} on [${board.join(' ')}]. ` +
+            `The highest-frequency play is ${label} at ${freqPct}%.` +
+            (freq < 0.6 ? ` This is a close spot — both actions are valid in GTO.` : '');
     }
 
     buildChartExplanation(heroHand, chart, pushFreq, correctAction) {
