@@ -12,7 +12,7 @@
  * "More Tools" are accessible via the hamburger menu.
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InteractiveTutorial, { LOBBY_TUTORIAL_STEPS } from '../InteractiveTutorial';
 
@@ -73,11 +73,54 @@ export default function LobbyOverlay({
   onRefresh,
   showTutorial = false,
   onTutorialDismiss,
+  venueCount = 0,
 }) {
   const searchRef = useRef(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   // tutorialStep state removed — managed by InteractiveTutorial
+
+  // ═══ RATCHET COUNTER — venue count only goes UP, never down ═══
+  // Uses localStorage to persist the high-water mark across sessions.
+  // Starts with the real total and only increments if new data is higher.
+  const highWaterRef = useRef(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = parseInt(localStorage.getItem('pnm_venue_hwm'), 10);
+        return isNaN(saved) ? 0 : saved;
+      } catch { return 0; }
+    }
+    return 0;
+  });
+  const [displayVenueCount, setDisplayVenueCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = parseInt(localStorage.getItem('pnm_venue_hwm'), 10);
+        return isNaN(saved) ? 0 : saved;
+      } catch { return 0; }
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (venueCount > 0) {
+      const currentHWM = typeof highWaterRef.current === 'function'
+        ? highWaterRef.current()
+        : highWaterRef.current;
+      const newHWM = Math.max(currentHWM, venueCount);
+      highWaterRef.current = newHWM;
+      setDisplayVenueCount(newHWM);
+      try { localStorage.setItem('pnm_venue_hwm', String(newHWM)); } catch {}
+    }
+  }, [venueCount]);
+
+  // Format venue count: "700+" style
+  const formattedVenueCount = useMemo(() => {
+    if (displayVenueCount <= 0) return '700+';
+    // Round down to nearest 50 and add "+"
+    const rounded = Math.floor(displayVenueCount / 50) * 50;
+    return `${rounded.toLocaleString()}+`;
+  }, [displayVenueCount]);
 
   const handleSearchSubmit = useCallback((e) => {
     e.preventDefault();
@@ -471,10 +514,9 @@ export default function LobbyOverlay({
         {/* ═══ LIVE STATS BAR — below the grid ═══ */}
         <div style={{
           display: 'flex',
-          justifyContent: 'center',
+          justifyContent: 'space-evenly',
           alignItems: 'center',
-          gap: 'clamp(16px, 3vw, 32px)',
-          padding: '14px 20px',
+          padding: '14px 0',
           marginTop: 12,
           maxWidth: 900,
           width: '100%',
@@ -487,13 +529,13 @@ export default function LobbyOverlay({
           pointerEvents: 'none',
         }}>
           {[
-            { value: '700+', label: 'Venues', color: '#6ee7ef' },
+            { value: formattedVenueCount, label: 'Venues', color: '#6ee7ef' },
             { value: liveData?.liveGameCount || 0, label: 'Live Tables', color: '#3fb950' },
             { value: liveData?.dailyCount || 0, label: "Today's Tournaments", color: '#d4a853' },
           ].map((stat, i) => (
-            <div key={i} style={{ textAlign: 'center', minWidth: 50 }}>
+            <div key={i} style={{ flex: 1, textAlign: 'center' }}>
               <div style={{
-                fontSize: 'clamp(18px, 2.5vw, 26px)',
+                fontSize: 'clamp(20px, 3vw, 28px)',
                 fontWeight: 800,
                 color: stat.color,
                 lineHeight: 1.1,
@@ -502,12 +544,13 @@ export default function LobbyOverlay({
                 <span>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</span>
               </div>
               <div style={{
-                fontSize: 'clamp(9px, 1.2vw, 11px)',
-                color: 'rgba(200,214,229,0.4)',
+                fontSize: 'clamp(9px, 1.3vw, 11px)',
+                color: 'rgba(200,214,229,0.45)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                marginTop: 2,
+                letterSpacing: '0.08em',
+                marginTop: 4,
+                whiteSpace: 'nowrap',
               }}>{stat.label}</div>
             </div>
           ))}

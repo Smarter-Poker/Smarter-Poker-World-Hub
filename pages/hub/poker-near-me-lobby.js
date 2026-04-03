@@ -235,6 +235,7 @@ export default function PokerNearMeLobby() {
   const [page, setPage] = useState(0);
   const [checkinCounts, setCheckinCounts] = useState({});
   const [liveGameCount, setLiveGameCount] = useState(0);
+  const [totalVenueCount, setTotalVenueCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [showTutorial, setShowTutorial] = useState(() => {
     if (typeof window !== 'undefined') return !localStorage.getItem('pnm_lobby_tutorial_seen');
@@ -550,6 +551,18 @@ export default function PokerNearMeLobby() {
         }
       })
       .catch(() => { /* live game count unavailable */ });
+  }, []);
+
+  // ─── Fetch total venue count (platform-wide) ───
+  useEffect(() => {
+    fetch('/data/all-venues.json')
+      .then(r => r.json())
+      .then(json => {
+        const v = json.venues || json.data || json || [];
+        const count = Array.isArray(v) ? v.length : 0;
+        if (count > 0) setTotalVenueCount(count);
+      })
+      .catch(() => { /* silent */ });
   }, []);
 
   // ─── Refresh all data callback ───
@@ -2300,6 +2313,7 @@ export default function PokerNearMeLobby() {
               }).catch(() => {});
             }
           }}
+          venueCount={totalVenueCount}
         />
 
 
