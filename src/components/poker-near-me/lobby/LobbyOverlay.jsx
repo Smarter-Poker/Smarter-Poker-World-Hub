@@ -114,12 +114,10 @@ export default function LobbyOverlay({
     }
   }, [venueCount]);
 
-  // Format venue count: "700+" style
+  // Format venue count: exact number, ratcheted (only goes up, never down)
   const formattedVenueCount = useMemo(() => {
-    if (displayVenueCount <= 0) return '700+';
-    // Round down to nearest 50 and add "+"
-    const rounded = Math.floor(displayVenueCount / 50) * 50;
-    return `${rounded.toLocaleString()}+`;
+    if (displayVenueCount <= 0) return '0';
+    return displayVenueCount.toLocaleString();
   }, [displayVenueCount]);
 
   const handleSearchSubmit = useCallback((e) => {
@@ -514,12 +512,12 @@ export default function LobbyOverlay({
         {/* ═══ LIVE STATS BAR — below the grid ═══ */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-evenly',
-          alignItems: 'center',
-          padding: '14px 0',
+          justifyContent: 'center',
+          alignItems: 'stretch',
+          padding: '14px 16px',
           marginTop: 12,
           maxWidth: 900,
-          width: '100%',
+          width: 'calc(100% - 8px)',
           background: 'linear-gradient(135deg, rgba(10,18,32,0.85), rgba(6,12,24,0.85))',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
@@ -527,15 +525,24 @@ export default function LobbyOverlay({
           border: '1px solid rgba(110,231,239,0.1)',
           fontFamily: 'Inter, system-ui, sans-serif',
           pointerEvents: 'none',
+          gap: 0,
         }}>
           {[
             { value: formattedVenueCount, label: 'Venues', color: '#6ee7ef' },
             { value: liveData?.liveGameCount || 0, label: 'Live Tables', color: '#3fb950' },
             { value: liveData?.dailyCount || 0, label: "Today's Tournaments", color: '#d4a853' },
           ].map((stat, i) => (
-            <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+            <div key={i} style={{
+              flex: '1 1 0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              minWidth: 0,
+            }}>
               <div style={{
-                fontSize: 'clamp(20px, 3vw, 28px)',
+                fontSize: 'clamp(20px, 3.5vw, 28px)',
                 fontWeight: 800,
                 color: stat.color,
                 lineHeight: 1.1,
@@ -544,13 +551,16 @@ export default function LobbyOverlay({
                 <span>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</span>
               </div>
               <div style={{
-                fontSize: 'clamp(9px, 1.3vw, 11px)',
+                fontSize: 'clamp(8px, 1.4vw, 11px)',
                 color: 'rgba(200,214,229,0.45)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
                 marginTop: 4,
                 whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
               }}>{stat.label}</div>
             </div>
           ))}
