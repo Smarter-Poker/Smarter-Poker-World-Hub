@@ -485,7 +485,6 @@ export default function MyClubsPage() {
                 try {
                     return localStorage.getItem('sp-anon-uid') || '';
                 } catch { return ''; }
-            setLoading(false);
             })();
             setUserId(resolvedUserId);
 
@@ -504,7 +503,7 @@ export default function MyClubsPage() {
                         });
                     }
                 } catch (e) {
-                setLoading(false);
+                    console.error('[my-clubs] Failed to load follows:', e);
                 }
             }
 
@@ -669,8 +668,26 @@ export default function MyClubsPage() {
     if (!userId) return;
     const _ch = supabase
       .channel(`my-clubs:${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${userId}` }, () => {
-        loadMyClubs();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${userId}` }, async () => {
+        // Reload Club Arena memberships on real-time change
+        try {
+          const { data: memberships } = await supabase
+            .from('club_members')
+            .select('club_id, role, clubs(*)')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .limit(50);
+          if (memberships && memberships.length > 0) {
+            const clubs = memberships
+              .map(m => ({ ...m.clubs, userRole: m.role }))
+              .filter(c => c && c.name);
+            setArenaClubs(clubs);
+          } else {
+            setArenaClubs([]);
+          }
+        } catch (e) {
+          console.error('[my-clubs] Realtime reload failed:', e);
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
