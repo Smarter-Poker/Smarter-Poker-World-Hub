@@ -65,7 +65,9 @@ export default async function handler(req, res) {
     if (venue) {
       query = query.eq('bravo_slug', venue);
     } else if (search) {
-      query = query.ilike('venue_name', `%${search}%`);
+      // Escape Postgres wildcard characters to prevent pattern injection
+      const safeSearch = String(search).replace(/[%_]/g, '\\$&').slice(0, 100);
+      query = query.ilike('venue_name', `%${safeSearch}%`);
     }
 
     const { data, error } = await query.limit(10000);

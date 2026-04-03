@@ -51,6 +51,15 @@ async function handlePost(req, res) {
         if (!stakes) {
             return res.status(400).json({ error: 'stakes is required' });
         }
+        // Validate stakes format (must be like "1/2", "5/10", "25/50", etc.)
+        if (typeof stakes !== 'string' || stakes.length > 20) {
+            return res.status(400).json({ error: 'Invalid stakes format' });
+        }
+        // Validate game_type against allowlist
+        const VALID_GAME_TYPES = ['nlh', 'plo', 'plo8', 'mixed', 'stud', 'omaha', 'other'];
+        if (!VALID_GAME_TYPES.includes(game_type)) {
+            return res.status(400).json({ error: 'Invalid game type' });
+        }
 
         // Get user from auth header (optional — allow anonymous reports)
         let reporter_id = null;
@@ -97,18 +106,26 @@ async function handlePost(req, res) {
             }
         }
 
+        // Sanitize and clamp inputs
+        const sanitizedNotes = notes
+            ? String(notes).replace(/<[^>]*>/g, '').trim().slice(0, 500)
+            : null;
+        const clampedSeats = Math.max(0, Math.min(10, parseInt(seats_open) || 0));
+        const clampedWaitlist = Math.max(0, Math.min(100, parseInt(waitlist_size) || 0));
+        const clampedTables = Math.max(1, Math.min(50, parseInt(table_count) || 1));
+
         // Insert the report
         const { data: game, error: insertError } = await supabase
             .from('venue_live_reports')
             .insert({
                 venue_id,
                 game_type,
-                stakes,
-                seats_open: parseInt(seats_open) || 0,
-                waitlist_size: parseInt(waitlist_size) || 0,
-                table_count: parseInt(table_count) || 1,
-                game_quality: game_quality || null,
-                notes: notes || null,
+                stakes: String(stakes).slice(0, 20),
+                seats_open: clampedSeats,
+                waitlist_size: clampedWaitlist,
+                table_count: clampedTables,
+                game_quality: game_quality && ['soft', 'average', 'tough'].includes(game_quality) ? game_quality : null,
+                notes: sanitizedNotes,
                 reporter_id,
                 reported_at: new Date().toISOString(),
                 expires_at: new Date(Date.now() + 4 * 3600000).toISOString() // Reports expire after 4 hours

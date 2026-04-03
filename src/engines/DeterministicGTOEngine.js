@@ -82,19 +82,8 @@ function parseHandToCards(hand, boardCards = []) {
         const s2 = findSafeSuit(r2, ['s', 'h', 'd', 'c'].filter(s => s !== s1));
         return [`${r1}${s1}`, `${r2}${s2}`];
     } else if (suffix === 's') {
-        // Suited: same suit — must avoid collisions for BOTH ranks with this suit
-        const suitOrder = ['s', 'h', 'd', 'c'];
-        let safeSuit = suitOrder[0];
-        for (const s of suitOrder) {
-            const card1 = `${r1}${s}`.toLowerCase();
-            const card2 = `${r2}${s}`.toLowerCase();
-            const c1Collision = boardCards.some(bc => bc && bc.toLowerCase() === card1);
-            const c2Collision = boardCards.some(bc => bc && bc.toLowerCase() === card2);
-            if (!c1Collision && !c2Collision) {
-                safeSuit = s;
-                break;
-            }
-        }
+        // Suited: same suit, pick one that doesn't collide
+        const safeSuit = findSafeSuit(r1, ['s', 'h', 'd', 'c']);
         return [`${r1}${safeSuit}`, `${r2}${safeSuit}`];
     } else {
         // Offsuit: different suits
@@ -496,12 +485,12 @@ export class DeterministicGTOEngine {
                 .limit(50); // Increased limit for semantic distance pool
 
             if (partialMatches && partialMatches.length > 0) {
-                // ═══ SEMANTIC DISTANCE CALCULATOR (v2 — Prioritized Iteration) ═══
-                // Sort ALL partial matches by distance, then iterate to find the first
-                // scenario where the hero's exact hole cards have a valid strategy presence.
-                // This prevents the "all zeros" fallback when the closest board has the
-                // hero's hand folded out of range in that specific solver tree.
+                // ═══ SEMANTIC DISTANCE CALCULATOR ═══
+                // Find the closest board runout in terms of rank, suit, and texture
                 const rankToVal = r => "23456789TJQKA".indexOf(r.toUpperCase()) + 2;
+                
+                let bestScenario = partialMatches[0];
+                let minDistance = 999999;
                 
                 // Track requested texture features
                 const getTexture = (cards) => {
@@ -510,14 +499,13 @@ export class DeterministicGTOEngine {
                     const hasPair = new Set(ranks).size < cards.length;
                     const maxSuitFreq = Math.max(...Object.values(suits.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {})));
                     const hasFlushDraw = maxSuitFreq >= 3;
-                    const hasFlush = maxSuitFreq >= 5;
+                    const hasFlush = maxSuitFreq >= 5; // flush is possible
                     return { hasPair, hasFlushDraw, hasFlush };
                 };
                 
                 const reqTexture = getTexture(boardCards);
 
-                // Compute distance for every partial match and sort ascending
-                const evaluatedMatches = partialMatches.map(scenario => {
+                partialMatches.forEach(scenario => {
                     const scenarioBoard = parseBoardFromHash(scenario.scenario_hash);
                     let dist = 0;
                     
@@ -536,24 +524,22 @@ export class DeterministicGTOEngine {
                     if (reqTexture.hasPair !== dbTexture.hasPair) dist += 25;
                     if (reqTexture.hasFlushDraw !== dbTexture.hasFlushDraw) dist += 15;
                     
-                    return { ...scenario, dist };
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        bestScenario = scenario;
+                    }
                 });
 
-                // Sort by semantic distance — closest boards first
-                evaluatedMatches.sort((a, b) => a.dist - b.dist);
+                const scenario = bestScenario;
+                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
 
-                // Iterate through prioritized matches — first valid strategy wins
-                for (const candidate of evaluatedMatches) {
-                    const question = this.buildQuestionFromScenario(candidate, gameConfig, 5, 0);
-                    if (question) {
-                        // Override board with our actual board (partial match may have different turn/river)
-                        question.scenario.board = boardCards.join(' ');
-                        question.boardCards = boardCards;
-                        console.log(`[DeterministicEngine] ✅ Multi-street: semantic match for ${street} (dist: ${candidate.dist}, tried ${evaluatedMatches.indexOf(candidate) + 1}/${evaluatedMatches.length})`);
-                        return question;
-                    }
+                if (question) {
+                    // Override board with our actual board (partial match may have different turn/river)
+                    question.scenario.board = boardCards.join(' ');
+                    question.boardCards = boardCards;
+                    console.log(`[DeterministicEngine] ✅ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
+                    return question;
                 }
-                console.log(`[DeterministicEngine] ⚠️ All ${evaluatedMatches.length} partial matches exhausted for ${street} — hero hand not in any solver range`);
             }
 
             // BUG-G FIX: Removed 3rd-tier 'ANY scenario' fallback.
@@ -694,80 +680,134 @@ export class DeterministicGTOEngine {
 
         if (!optimalAction || validActions.length === 0) return null;
 
-        // ═══ BUILD GTO FREQUENCIES (0-100 scale) — STRICT CLAMPED ═══
-        // Only include actions that survive the 1% clamp AND round to > 0%.
-        // This prevents ghost 0% buttons from leaking into the UI.
+        // ═══ EXTRACT BOARD & POSITION DATA (needed for node type detection) ═══
+        const board = parseBoardFromHash(scenario.scenario_hash);
+        const heroPosition = extractPositionFromHash(scenario.scenario_hash);
+        const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
+        const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
+
+        // ═══ PHASE 22: CONTEXT-AWARE ACTION FILTERING — GTO WIZARD PARITY ═══
+        // GTO Wizard NEVER shows Fold when hero is not facing a bet.
+        // GTO Wizard NEVER shows Check/Bet when hero IS facing a bet.
+        // This is fundamental poker logic that must be enforced regardless of solver data.
+        const nodeType = this.detectNodeType(validActions, scenario.street);
+
+        if (scenario.street !== 'preflop') {
+            const preFilterCount = validActions.length;
+            if (nodeType === 'hero_bets_or_checks') {
+                // Hero acts first or IP after check: only Check and Bet sizes are valid
+                // Remove: Fold, Call, Raise (these require facing a bet)
+                validActions = validActions.filter(a => {
+                    const al = a.toLowerCase();
+                    if (al === 'f') return false;                    // Fold — invalid
+                    if (al === 'call') return false;                  // Call — invalid
+                    if (al.startsWith('r') && al !== 'r') return false; // Raise sizes — invalid
+                    if (al === 'r') return false;                     // Generic raise — invalid
+                    return true; // Keep: check (c/x), bet sizes (b33, b66, etc.), allin
+                });
+            } else if (nodeType === 'hero_faces_bet') {
+                // Hero faces a bet: only Fold, Call, Raise are valid
+                // IMPORTANT: In PioSolver, 'c' = "call" when facing a bet (not check!)
+                // We remap 'c' → 'call' and remove actual check/bet actions.
+                validActions = validActions.map(a => {
+                    const al = a.toLowerCase();
+                    // Remap 'c' to 'call' in facing-bet context (PIO uses 'c' for both)
+                    if (al === 'c') return 'call';
+                    return a;
+                }).filter(a => {
+                    const al = a.toLowerCase();
+                    if (al === 'x') return false;                     // Check — invalid when facing bet
+                    if (al.startsWith('b')) return false;              // Bet sizes — invalid when facing a bet
+                    return true; // Keep: fold (f), call, raise sizes (r50, r100, etc.), allin
+                });
+
+                // Also remap handActions keys so frequencies carry over
+                if (handActions['c'] !== undefined && handActions['call'] === undefined) {
+                    handActions['call'] = handActions['c'];
+                }
+                // Remap optimal action if needed
+                if (optimalAction === 'c') optimalAction = 'call';
+            }
+
+            // If filtering removed ALL actions, restore original (defensive fallback)
+            if (validActions.length === 0) {
+                console.warn(`[DeterministicEngine] Context filter removed all actions for ${scenario.scenario_hash} nodeType=${nodeType}, restoring originals`);
+                validActions = clampedActions.length > 0 ? clampedActions : actions.filter(a => handActions[a] !== undefined);
+            }
+
+            // Re-evaluate optimal action after filtering
+            if (!validActions.includes(optimalAction)) {
+                maxFreq = -1;
+                optimalAction = null;
+                validActions.forEach(action => {
+                    const freq = handActions[action] || 0;
+                    if (freq > maxFreq) {
+                        maxFreq = freq;
+                        optimalAction = action;
+                    }
+                });
+            }
+
+            if (preFilterCount !== validActions.length) {
+                console.log(`[DeterministicEngine] Context filter: ${preFilterCount} → ${validActions.length} actions (nodeType=${nodeType}) for ${scenario.scenario_hash}`);
+            }
+        }
+
+        // ═══ PREFLOP: 'c' always means CALL (never check) ═══
+        if (scenario.street === 'preflop') {
+            const hasCAction = validActions.includes('c');
+            if (hasCAction) {
+                validActions = validActions.map(a => a === 'c' ? 'call' : a);
+                if (handActions['c'] !== undefined && handActions['call'] === undefined) {
+                    handActions['call'] = handActions['c'];
+                }
+                if (optimalAction === 'c') optimalAction = 'call';
+            }
+            // Also remap 'r' to specific raise sizes for cleaner labels
+            // PIO uses 'r' generically for open-raise preflop
+        }
+
+        // ═══ BUILD GTO FREQUENCIES (0-100 scale) ═══
         const gtoFrequencies = {};
         validActions.forEach(action => {
-            const rounded = Math.round((handActions[action] || 0) * 100);
-            if (rounded > 0) {
-                gtoFrequencies[action] = rounded;
-            }
+            gtoFrequencies[action] = Math.round((handActions[action] || 0) * 100);
         });
 
-        // If strict clamping removed everything, keep the optimal action at 100%
-        if (Object.keys(gtoFrequencies).length === 0 && optimalAction) {
-            gtoFrequencies[optimalAction] = 100;
-        }
-
-        // Update validActions to match what survived into gtoFrequencies
-        validActions = Object.keys(gtoFrequencies);
-
-        // IMP-4: Frequency normalization validation — ensure frequencies sum to exactly 100%
+        // IMP-4: Frequency normalization — ensure frequencies sum to ~100%
         const freqSum = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
         if (freqSum > 0 && Math.abs(freqSum - 100) > 1) {
-            // Normalize and log warning
             const factor = 100 / freqSum;
             validActions.forEach(action => {
-                if (gtoFrequencies[action] !== undefined) {
-                    gtoFrequencies[action] = Math.round(gtoFrequencies[action] * factor);
-                }
+                gtoFrequencies[action] = Math.round(gtoFrequencies[action] * factor);
             });
-            console.warn(`[DeterministicEngine] ⚠️ Frequencies summed to ${freqSum}%, normalized for ${heroHand} in ${scenario.scenario_hash}`);
-        }
-        // Fix rounding drift: adjust highest-freq action so sum === 100 exactly
-        const postNormSum = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
-        if (postNormSum > 0 && postNormSum !== 100 && optimalAction && gtoFrequencies[optimalAction] !== undefined) {
-            gtoFrequencies[optimalAction] += (100 - postNormSum);
         }
 
         // ═══ COMPUTE EV DATA (Real solver values only — no fabrication) ═══
         const heroHandEV = handEVs[heroHand] || 0;
         const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
         const maxHandEV = allEVs.length > 0 ? Math.max(...allEVs) : heroHandEV;
-        // BUG-A FIX: Removed fabricated actionEVs (heroHandEV * freq is nonsensical)
-        // Per-action EV requires per-action EV data from the solver, which we don't have.
-        // The frontend uses frequency deviation for EV loss instead.
 
-        // ═══ EXTRACT BOARD & POSITION DATA ═══
-        const board = parseBoardFromHash(scenario.scenario_hash);
-        const heroPosition = extractPositionFromHash(scenario.scenario_hash);
-        const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
-        const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
-
-        // ═══ BUILD OPTIONS — GTO WIZARD STYLE ═══
-        // Show ALL real solver actions (up to 9). Only add context-appropriate
-        // fillers when solver provides fewer than 2 actions.
-        // GTO Wizard shows exactly the actions the solver has for this spot.
-        const options = validActions.slice(0, 9).map(action => ({
+        // ═══ BUILD OPTIONS — GTO WIZARD PARITY ═══
+        // Show ALL real solver actions (context-filtered). Exact GTOW style:
+        //   Check/Bet node: Check → Bet sizes ascending
+        //   Facing-bet node: Fold → Call → Raise sizes ascending
+        // GTO Wizard shows ONLY what the solver has — no fillers unless absolutely needed.
+        const sortedActions = this.sortActionsGTOWStyle(validActions, nodeType);
+        const options = sortedActions.slice(0, 9).map(action => ({
             id: action,
-            text: this.getActionLabel(action, estimatedPot),
+            text: this.getActionLabelGTOW(action, estimatedPot),
             frequency: gtoFrequencies[action],
         }));
 
-        // ═══ CONTEXT-AWARE FILLER LOGIC ═══
-        // Determine the decision node type from solver actions to know what's valid.
-        // If solver provides ≥2 actions, trust the solver completely — no fillers needed.
-        // If solver provides only 1 action, add ONE contextually valid alternative.
+        // ═══ MINIMAL FILLER LOGIC (only when solver gives < 2 actions) ═══
+        // GTO Wizard always shows at least 2 options for a decision.
+        // If solver only has 1 action, add the most contextually natural alternative.
         if (options.length < 2) {
             const existingIds = new Set(options.map(o => o.id));
-            const nodeType = this.detectNodeType(validActions, scenario.street);
-
-            // Only add fillers that are contextually valid for this node type
             const contextFillers = this.getContextualFillers(nodeType, existingIds, estimatedPot);
 
             for (const filler of contextFillers) {
-                if (options.length >= 3) break; // Cap at 3 for single-action solver spots
+                if (options.length >= 3) break;
                 if (!existingIds.has(filler.id)) {
                     options.push({
                         id: filler.id,
@@ -806,21 +846,29 @@ export class DeterministicGTOEngine {
                 villainPosition,
                 villainStack: scenario.stack_depth || 100,
                 action: this.buildActionDescription(validActions, scenario.street, heroPosition, villainPosition),
-                nodeType: this.detectNodeType(validActions, scenario.street),
+                nodeType,  // Phase 22: use already-computed node type
                 context: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition),
                 isMixedStrategy,
             },
             heroCards: parseHandToCards(heroHand, board),
             // SYS-002 FIX: Populate boardCards array for PNG card rendering
             boardCards: board.length > 0 ? board : [],
-            question: this.buildQuestionText(heroHand, board, scenario.street, heroPosition, villainPosition, validActions, estimatedPot, scenario.scenario_hash),
+            question: this.buildQuestionText(heroHand, board, scenario.street, heroPosition, villainPosition, validActions, estimatedPot, scenario.scenario_hash, scenario.stack_depth),
             options,
             correctAnswer: optimalAction,
             correctAnswerText: this.getActionLabel(optimalAction, estimatedPot),
             // ═══ REAL SOLVER DATA ═══
-            frequencies: handActions,         // Raw 0.0-1.0 per action
+            // Phase 22: Ensure rawFrequencies keys match remapped action IDs
+            // (e.g., if 'c' was remapped to 'call' in facing-bet context)
+            frequencies: handActions,         // Raw 0.0-1.0 per action (remapped)
             gtoFrequencies,                   // Percentage 0-100 per action for UI
-            rawFrequencies: frequencies,       // Full per-hand matrix
+            rawFrequencies: (() => {
+                // If 'c' was remapped to 'call', add 'call' key to raw frequencies too
+                if (nodeType === 'hero_faces_bet' && frequencies['c'] && !frequencies['call']) {
+                    return { ...frequencies, call: frequencies['c'] };
+                }
+                return frequencies;
+            })(),       // Full per-hand matrix
             evData: {
                 heroHandEV,
                 optimalEV: maxHandEV,
@@ -939,8 +987,11 @@ export class DeterministicGTOEngine {
         const hasRaise = [...actionSet].some(a => a.startsWith('r'));
 
         if (street === 'preflop') {
-            if (hasRaise && hasFold && !hasBet) return 'preflop_facing_raise';
-            if (hasRaise && hasFold) return 'preflop_open';
+            // 'c' in preflop always means call (there's no check preflop unless BB checks option)
+            const hasCallPreflop = actionSet.has('c') || actionSet.has('call');
+            if (hasFold && hasCallPreflop && hasRaise) return 'preflop_facing_raise'; // F/C/R = facing raise
+            if (hasFold && hasRaise && !hasCallPreflop) return 'preflop_open';         // F/R only = RFI
+            if (hasFold && hasCallPreflop && !hasRaise) return 'preflop_facing_raise'; // F/C only = facing raise, no 3bet option
             return 'preflop_open';
         }
 
@@ -1029,46 +1080,203 @@ export class DeterministicGTOEngine {
      * Replaces the hardcoded "Villain checks" with accurate descriptions.
      */
     buildActionDescription(solverActions, street, heroPosition, villainPosition) {
-        if (street === 'preflop') {
-            return ''; // Preflop action context comes from scenario description
-        }
-
         const nodeType = this.detectNodeType(solverActions, street);
 
+        if (street === 'preflop') {
+            if (nodeType === 'preflop_open') return 'Folded to you';
+            if (nodeType === 'preflop_facing_raise') return `${villainPosition} opens`;
+            return '';
+        }
+
+        // For postflop: extract what villain did from the action context
         switch (nodeType) {
             case 'hero_bets_or_checks':
-                return `${villainPosition} checks`;
+                return `${villainPosition} checks to ${heroPosition}`;
             case 'hero_faces_bet':
-                return `${villainPosition} bets`;
+                // If solver has raise options, villain's bet was smaller; if only call/fold, bigger bet
+                const hasRaise = solverActions.some(a => a.toLowerCase().startsWith('r'));
+                return hasRaise
+                    ? `${villainPosition} bets into ${heroPosition}`
+                    : `${villainPosition} bets into ${heroPosition}`;
             default:
-                return `${villainPosition} checks`;
+                return `${villainPosition} checks to ${heroPosition}`;
         }
     }
 
     /**
      * Build a rich, contextual question text — GTO Wizard style.
-     * Instead of generic "What is the GTO play?", describe the full spot.
+     * Full spot description: game format, stack depth, positions, preflop action,
+     * board texture, street action, hand strength.
      */
-    buildQuestionText(heroHand, board, street, heroPosition, villainPosition, solverActions, pot, scenarioHash) {
+    buildQuestionText(heroHand, board, street, heroPosition, villainPosition, solverActions, pot, scenarioHash, stackDepth) {
         const nodeType = this.detectNodeType(solverActions, street);
         const boardStr = board.length > 0 ? board.join(' ') : '';
         const context = extractScenarioContext(scenarioHash, street, heroPosition, villainPosition);
+        const stackStr = stackDepth ? `${stackDepth}bb` : '';
+        const formatStr = context.gameFormat ? `${context.gameFormat} ` : '';
 
         if (street === 'preflop') {
-            return `${heroPosition} — You hold ${heroHand}. What is your action?`;
+            // GTOW-style preflop: "6-Max Cash 100bb • CO — Folded to you. You hold AKs. Your action?"
+            const stackPart = stackStr ? ` ${stackStr}` : '';
+            const prefix = formatStr ? `${formatStr}${stackPart} • ` : (stackPart ? `${stackPart} • ` : '');
+            if (nodeType === 'preflop_open') {
+                return `${prefix}${heroPosition} — Folded to you. You hold ${heroHand}. Your action?`;
+            } else if (nodeType === 'preflop_facing_raise') {
+                return `${prefix}${heroPosition} — ${villainPosition} opens. You hold ${heroHand}. Your action?`;
+            }
+            return `${prefix}${heroPosition} — You hold ${heroHand}. Your action?`;
         }
 
         const handStrength = this.categorizeHand(heroHand, board);
         const preflopLine = context.preflopAction ? `${context.preflopAction}. ` : '';
+        const streetLabel = street.charAt(0).toUpperCase() + street.slice(1);
+
+        // Board texture description for turn/river
+        const textureDesc = this.describeBoardTexture(board, street);
+        const texturePart = textureDesc ? ` (${textureDesc})` : '';
+
+        // Runout card highlight for turn/river
+        let runoutPart = '';
+        if (street === 'turn' && board.length >= 4) {
+            runoutPart = ` → ${board[3]}`;
+        } else if (street === 'river' && board.length >= 5) {
+            runoutPart = ` → ${board[4]}`;
+        }
+
+        // SPR context for river decisions (pot-to-stack ratio matters a lot)
+        let sprPart = '';
+        if (street === 'river' && stackDepth && pot) {
+            const effectiveStack = stackDepth - (pot / 2); // rough remaining stack
+            const spr = effectiveStack / pot;
+            if (spr < 1) sprPart = ' [Short SPR]';
+            else if (spr < 3) sprPart = ' [Medium SPR]';
+        }
 
         switch (nodeType) {
             case 'hero_bets_or_checks':
-                return `${preflopLine}${street.charAt(0).toUpperCase() + street.slice(1)}: [${boardStr}]. ${villainPosition} checks. You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}. ${villainPosition} checks to you.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             case 'hero_faces_bet':
-                return `${preflopLine}${street.charAt(0).toUpperCase() + street.slice(1)}: [${boardStr}]. ${villainPosition} bets. You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}. ${villainPosition} bets.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             default:
-                return `${preflopLine}${street.charAt(0).toUpperCase() + street.slice(1)}: [${boardStr}]. You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
         }
+    }
+
+    /**
+     * Describe board texture concisely — GTOW shows texture tags.
+     * e.g., "Monotone", "Two-tone", "Paired", "Rainbow", "Straight-heavy"
+     */
+    describeBoardTexture(board, street) {
+        if (!board || board.length < 3) return '';
+        // Defensive: filter out null/undefined/empty cards
+        const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
+        if (validBoard.length < 3) return '';
+
+        const ranks = validBoard.map(c => c[0].toUpperCase());
+        const suits = validBoard.map(c => c[1]?.toLowerCase());
+        const rankVals = ranks.map(r => '23456789TJQKA'.indexOf(r));
+
+        // Suit texture
+        const suitCounts = {};
+        suits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const maxSuitCount = Math.max(...Object.values(suitCounts));
+
+        let suitDesc = '';
+        if (maxSuitCount === validBoard.length) suitDesc = 'Monotone';       // ALL cards same suit
+        else if (maxSuitCount >= 3 && validBoard.length === 5) suitDesc = 'Flush possible';
+        else if (maxSuitCount >= 3) suitDesc = 'Flush draw';            // 3 of same suit on flop/turn
+        else if (maxSuitCount === 2) suitDesc = 'Two-tone';
+        else suitDesc = 'Rainbow';
+
+        // Pairing
+        const rankCounts = {};
+        ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
+        const maxRankCount = Math.max(...Object.values(rankCounts));
+        let pairDesc = '';
+        if (maxRankCount >= 3) pairDesc = 'Trips';
+        else if (maxRankCount === 2) pairDesc = 'Paired';
+
+        // Connectivity (check for 3+ cards within 4-rank window)
+        const sorted = [...new Set(rankVals)].sort((a, b) => a - b);
+        let connected = false;
+        for (let i = 0; i < sorted.length - 2; i++) {
+            if (sorted[i + 2] - sorted[i] <= 4) { connected = true; break; }
+        }
+        let connectDesc = connected ? 'Connected' : '';
+
+        // High card texture
+        const highCards = rankVals.filter(v => v >= 10).length; // T, J, Q, K, A
+        let highDesc = '';
+        if (highCards >= 3) highDesc = 'Broadway-heavy';
+        else if (highCards === 0) highDesc = 'Low';
+
+        // Combine — pick the 2 most relevant descriptors
+        const parts = [pairDesc, suitDesc, connectDesc || highDesc].filter(Boolean);
+        return parts.slice(0, 2).join(', ');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PHASE 22: GTO WIZARD OPTION PARITY — SORTING & LABELING
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Sort actions in GTO Wizard order:
+     *
+     * Check/Bet node:  Check → Bet sizes ascending (16%, 33%, 45%, 67%, 100%...) → All-In
+     * Facing-bet node: Fold → Call → Raise sizes ascending → All-In
+     * Preflop open:    Fold → Raise sizes ascending → All-In
+     * Preflop facing:  Fold → Call → 3-Bet sizes ascending → All-In
+     *
+     * GTO Wizard always puts the passive option first, then aggressive options ascending.
+     */
+    sortActionsGTOWStyle(actions, nodeType) {
+        const getActionSortKey = (action) => {
+            const a = action.toLowerCase();
+            if (a === 'c' || a === 'x') return 0;       // Check first
+            if (a === 'f') return 0;                      // Fold first (facing bet)
+            if (a === 'call') return 1;                   // Call second
+            const betMatch = a.match(/^b(\d+)$/);
+            if (betMatch) return 100 + parseInt(betMatch[1]);  // Bets ascending
+            const raiseMatch = a.match(/^r(\d+)$/);
+            if (raiseMatch) return 200 + parseInt(raiseMatch[1]); // Raises ascending
+            if (a === 'b') return 150;
+            if (a === 'r') return 250;
+            if (a === 'allin') return 9999;               // All-In last
+            return 500;
+        };
+        return [...actions].sort((a, b) => getActionSortKey(a) - getActionSortKey(b));
+    }
+
+    /**
+     * GTO Wizard-style action labels — clean percentage, no BB amounts.
+     *   "Check", "Bet 16%", "Bet 45%", "Bet 67%", "Bet Pot", "Overbet 150%"
+     *   "Fold", "Call", "Raise 50%", "Raise Pot", "All-In"
+     */
+    getActionLabelGTOW(actionCode, potSize = 6) {
+        const a = actionCode.toLowerCase();
+        if (a === 'c' || a === 'x') return 'Check';
+        if (a === 'f') return 'Fold';
+        if (a === 'call') return 'Call';
+        if (a === 'allin') return 'All-In';
+
+        const betMatch = a.match(/^b(\d+)$/);
+        if (betMatch) {
+            const pct = parseInt(betMatch[1]);
+            if (pct === 100) return 'Bet Pot';
+            if (pct > 100) return `Overbet ${pct}%`;
+            return `Bet ${pct}%`;
+        }
+
+        const raiseMatch = a.match(/^r(\d+)$/);
+        if (raiseMatch) {
+            const pct = parseInt(raiseMatch[1]);
+            if (pct === 100) return 'Raise Pot';
+            return `Raise ${pct}%`;
+        }
+
+        if (a === 'b') return 'Bet';
+        if (a === 'r') return 'Raise';
+        return actionCode.toUpperCase();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1076,54 +1284,65 @@ export class DeterministicGTOEngine {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Get human-readable action label with pot-relative BB sizing
+     * Get human-readable action label (delegates to GTOW-style)
      */
     getActionLabel(actionCode, potSize = 6) {
-        if (ACTION_LABELS[actionCode]) return ACTION_LABELS[actionCode];
-
-        // Parse bet sizes like "b33" → "Bet 33%"
-        const betMatch = actionCode.match(/^b(\d+)$/);
-        if (betMatch) {
-            const pct = parseInt(betMatch[1]);
-            const bbAmount = (potSize * pct / 100).toFixed(1);
-            return `Bet ${bbAmount} BB (${pct}%)`;
-        }
-
-        const raiseMatch = actionCode.match(/^r(\d+)$/);
-        if (raiseMatch) {
-            const pct = parseInt(raiseMatch[1]);
-            return `Raise ${pct}%`;
-        }
-
-        return actionCode.toUpperCase();
+        return this.getActionLabelGTOW(actionCode, potSize);
     }
 
     /**
-     * Build deterministic explanation from solver data (no AI)
+     * Build deterministic explanation from solver data — GTO Wizard style.
+     * GTOW explanations are concise: action + frequency + hand strength context.
      */
     buildExplanation(heroHand, board, street, optimalAction, handActions, ev, validActions) {
-        const label = ACTION_LABELS[optimalAction] || optimalAction;
+        const label = this.getActionLabelGTOW(optimalAction);
         const freq = handActions[optimalAction] || 0;
         const freqPct = (freq * 100).toFixed(0);
-
-        // Identify hand strength category
         const handStrength = this.categorizeHand(heroHand, board);
 
-        if (freq >= 0.95) {
-            return `GTO solver: Pure ${label} (${freqPct}%). ${heroHand} is ${handStrength} on [${board.join(' ')}]. ` +
-                `This is a clear ${label.toLowerCase()} in the solver's strategy.`;
+        // Street-specific reasoning context
+        let streetContext = '';
+        if (street === 'river') {
+            const isBet = optimalAction.startsWith('b') || optimalAction === 'allin';
+            const isCheck = optimalAction === 'c' || optimalAction === 'x';
+            const isFold = optimalAction === 'f';
+            const isCall = optimalAction === 'call';
+            if (isBet) streetContext = ' On the river, bets are either pure value or pure bluff.';
+            else if (isCheck) streetContext = ' Checking back to realize showdown value.';
+            else if (isFold) streetContext = ' Giving up — insufficient equity to continue on the river.';
+            else if (isCall) streetContext = ' Calling to catch bluffs — a bluff-catcher.';
+        } else if (street === 'turn') {
+            const isBet = optimalAction.startsWith('b') || optimalAction === 'allin';
+            const isCheck = optimalAction === 'c' || optimalAction === 'x';
+            if (isBet && handStrength.includes('draw')) streetContext = ' Semi-bluffing with draw equity on the turn.';
+            else if (isBet) streetContext = ' Building the pot on the turn for a river shove.';
+            else if (isCheck) streetContext = ' Pot control — keeping the pot manageable.';
         }
 
-        // Mixed strategy explanation
+        // Pure strategy — one dominant action
+        if (freq >= 0.95) {
+            return `${heroHand} (${handStrength}): Pure ${label}.${streetContext} The solver always plays this way here.`;
+        }
+
+        // Near-pure — one clear best action but some mixing
+        if (freq >= 0.70) {
+            const altActions = validActions
+                .filter(a => a !== optimalAction && handActions[a] > 0.01)
+                .sort((a, b) => handActions[b] - handActions[a])
+                .slice(0, 2)
+                .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
+            return `${heroHand} (${handStrength}): ${label} ${freqPct}%${altActions.length > 0 ? `, mixing with ${altActions.join(', ')}` : ''}.${streetContext}`;
+        }
+
+        // True mixed strategy — no action dominates
         const mixedParts = validActions
             .filter(a => handActions[a] > 0.01)
             .sort((a, b) => handActions[b] - handActions[a])
-            .map(a => `${ACTION_LABELS[a] || a} ${(handActions[a] * 100).toFixed(0)}%`)
+            .slice(0, 4)
+            .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`)
             .join(', ');
 
-        return `GTO solver mixes: ${mixedParts}. ${heroHand} is ${handStrength} on [${board.join(' ')}]. ` +
-            `The highest-frequency play is ${label} at ${freqPct}%.` +
-            (freq < 0.6 ? ` This is a close spot — both actions are valid in GTO.` : '');
+        return `${heroHand} (${handStrength}): Mixed strategy — ${mixedParts}.${streetContext} Close spot, multiple actions are GTO-correct.`;
     }
 
     buildChartExplanation(heroHand, chart, pushFreq, correctAction) {
@@ -1140,32 +1359,175 @@ export class DeterministicGTOEngine {
     }
 
     /**
-     * Categorize hand strength relative to board (deterministic, no AI)
+     * Categorize hand strength relative to board (deterministic, no AI).
+     * GTOW-style: Shows made hand + draw equity context.
+     * Detects: sets, two pair, overpairs, top pair, flush draws, straight draws,
+     * gutshots, overcards, air, and combo draws.
      */
     categorizeHand(heroHand, board) {
         if (!heroHand || heroHand.length < 2) return 'a hand';
         if (!board || board.length === 0) return 'a preflop hand';
+        // Defensive: filter out null/undefined/empty cards
+        const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
+        if (validBoard.length === 0) return 'a preflop hand';
 
         const r1 = heroHand[0].toUpperCase();
         const r2 = heroHand[1].toUpperCase();
+        const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
         const isPair = r1 === r2;
         const isHighCard = ['A', 'K', 'Q', 'J'].includes(r1);
-        const boardRanks = board.map(c => c[0].toUpperCase());
+        const boardRanks = validBoard.map(c => c[0].toUpperCase());
+        const boardSuits = validBoard.map(c => c[1]?.toLowerCase());
 
-        if (isPair) {
-            if (boardRanks.includes(r1)) return 'a set';
-            const rankOrder = RANKS.indexOf(r1);
-            const highestBoard = Math.max(...boardRanks.map(r => RANKS.indexOf(r)));
-            if (rankOrder > highestBoard) return 'an overpair';
-            if (rankOrder === highestBoard - 1) return 'a second pair';
-            return 'an underpair';
+        const rankVal = r => '23456789TJQKA'.indexOf(r);
+        const v1 = rankVal(r1);
+        const v2 = rankVal(r2);
+        const boardVals = boardRanks.map(r => rankVal(r));
+        const highestBoardVal = Math.max(...boardVals);
+        const sortedBoardVals = [...boardVals].sort((a, b) => a - b);
+
+        // ═══ FLUSH DRAW DETECTION ═══
+        let hasFlushDraw = false;
+        let hasFlush = false;
+        if (isSuited) {
+            // For suited hands, check if 2+ board cards share the suit
+            // We don't know the exact suits of hero's cards from notation,
+            // but we can check board suit frequency
+            const suitCounts = {};
+            boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+            const maxBoardSuit = Object.entries(suitCounts).sort((a, b) => b[1] - a[1])[0];
+            if (maxBoardSuit) {
+                if (maxBoardSuit[1] >= 3) hasFlush = true;  // 3 on board + 2 in hand = flush possible
+                if (maxBoardSuit[1] >= 2) hasFlushDraw = true;
+            }
         }
 
-        if (boardRanks.includes(r1) && boardRanks.includes(r2)) return 'two pair';
-        if (boardRanks.includes(r1)) return `top pair` + (isHighCard ? ' with a strong kicker' : '');
-        if (boardRanks.includes(r2)) return 'a pair with the board';
+        // ═══ STRAIGHT DRAW DETECTION ═══
+        // Check if hero cards + board cards create straight potential
+        const allValsSet = new Set([v1, v2, ...boardVals]);
+        const allVals = [...allValsSet].sort((a, b) => a - b);
 
-        return isHighCard ? 'high cards' : 'a drawing hand';
+        let straightOuts = 0;
+        let hasMadeStraight = false;
+        let hasOESD = false;
+        let hasGutshot = false;
+
+        // Check standard windows (2-3-4-5-6 through T-J-Q-K-A)
+        for (let start = 0; start <= 8; start++) {
+            const window = [start, start + 1, start + 2, start + 3, start + 4];
+            const have = window.filter(v => allValsSet.has(v)).length;
+            const heroContributes = window.includes(v1) || window.includes(v2);
+            if (have === 5 && heroContributes) {
+                hasMadeStraight = true;
+            } else if (have === 4 && heroContributes) {
+                straightOuts++;
+            }
+        }
+
+        // Special case: wheel straight (A-2-3-4-5) — Ace plays low
+        // Ranks: A=12, 2=0, 3=1, 4=2, 5=3
+        const wheelRanks = [12, 0, 1, 2, 3];
+        const wheelHave = wheelRanks.filter(v => allValsSet.has(v)).length;
+        const wheelHeroContributes = wheelRanks.includes(v1) || wheelRanks.includes(v2);
+        if (wheelHave === 5 && wheelHeroContributes) {
+            hasMadeStraight = true;
+        } else if (wheelHave === 4 && wheelHeroContributes && !hasMadeStraight) {
+            straightOuts++;
+        }
+
+        if (!hasMadeStraight) {
+            if (straightOuts >= 2) hasOESD = true;
+            else if (straightOuts === 1) hasGutshot = true;
+        }
+
+        // ═══ MADE HAND CLASSIFICATION ═══
+        let madeHand = '';
+        const r1BoardCount = boardRanks.filter(r => r === r1).length;
+        const r2BoardCount = boardRanks.filter(r => r === r2).length;
+
+        // Check for straights first (highest non-paired hand)
+        if (hasMadeStraight) {
+            madeHand = 'a straight';
+        } else if (isPair) {
+            // Board rank frequency for full house detection
+            const boardRankCounts = {};
+            boardRanks.forEach(r => { boardRankCounts[r] = (boardRankCounts[r] || 0) + 1; });
+
+            if (boardRanks.includes(r1)) {
+                // Hero pair + board match: set, quads, or full house
+                if (r1BoardCount >= 2) madeHand = 'quads';
+                else {
+                    // Set — but check if board has another pair (→ full house)
+                    const boardHasOtherPair = Object.entries(boardRankCounts)
+                        .some(([r, c]) => r !== r1 && c >= 2);
+                    madeHand = boardHasOtherPair ? 'a full house' : 'a set';
+                }
+            } else {
+                // Hero pair NOT on board — check if board has trips (→ full house)
+                const boardHasTrips = Object.values(boardRankCounts).some(c => c >= 3);
+                if (boardHasTrips) {
+                    madeHand = 'a full house';
+                } else {
+                    if (v1 > highestBoardVal) madeHand = 'an overpair';
+                    else if (v1 === highestBoardVal - 1) madeHand = 'second pair (pocket)';
+                    else madeHand = 'an underpair';
+                }
+            }
+        } else {
+            // Non-pair hands: check for trips, full house, two pair, one pair
+            const r1OnBoard = r1BoardCount > 0;
+            const r2OnBoard = r2BoardCount > 0;
+
+            // Full house: hero matches one paired rank + another paired rank on board
+            if (r1OnBoard && r2OnBoard && (r1BoardCount >= 2 || r2BoardCount >= 2)) {
+                madeHand = 'a full house';
+            } else if (r1OnBoard && r1BoardCount >= 2) {
+                // Hero has one card matching 2+ board cards = trips
+                madeHand = 'trips';
+            } else if (r2OnBoard && r2BoardCount >= 2) {
+                madeHand = 'trips';
+            } else if (r1OnBoard && r2OnBoard) {
+                madeHand = 'two pair';
+            } else if (r1OnBoard) {
+                // Which pair is it?
+                if (v1 === highestBoardVal) {
+                    madeHand = isHighCard ? 'top pair, strong kicker' : 'top pair';
+                } else if (sortedBoardVals.length >= 2 && v1 === sortedBoardVals[sortedBoardVals.length - 2]) {
+                    madeHand = 'second pair';
+                } else {
+                    madeHand = 'bottom pair';
+                }
+            } else if (r2OnBoard) {
+                if (v2 === highestBoardVal) {
+                    madeHand = 'top pair, weak kicker';
+                } else if (sortedBoardVals.length >= 2 && v2 === sortedBoardVals[sortedBoardVals.length - 2]) {
+                    madeHand = 'second pair';
+                } else {
+                    madeHand = 'bottom pair';
+                }
+            }
+        }
+
+        // ═══ COMBINE: Made hand + draw equity ═══
+        const draws = [];
+        if (hasFlush) draws.push('flush');
+        else if (hasFlushDraw) draws.push('flush draw');
+        if (hasOESD) draws.push('OESD');
+        else if (hasGutshot) draws.push('gutshot');
+
+        if (madeHand && draws.length > 0) {
+            return `${madeHand} + ${draws.join(' + ')}`;
+        }
+        if (madeHand) return madeHand;
+        if (draws.length > 0) {
+            if (draws.length >= 2) return `combo draw (${draws.join(' + ')})`;
+            return draws[0];
+        }
+
+        // No made hand, no draw
+        if (v1 > highestBoardVal && v2 > highestBoardVal) return 'two overcards';
+        if (v1 > highestBoardVal || v2 > highestBoardVal) return 'one overcard';
+        return isHighCard ? 'high cards, no pair' : 'air';
     }
 
     getStreetForLevel(level) {
