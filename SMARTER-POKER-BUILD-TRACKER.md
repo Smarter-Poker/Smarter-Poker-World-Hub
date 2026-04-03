@@ -468,8 +468,23 @@
 
 ---
 
+## PHASE 20 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Range Grid + EV Graph + Enhanced Hand History
+
+| Deliverable | Status | Detail |
+|---|---|---|
+| RangeGrid in Hand Replay | DONE | Wired the existing 13×13 `RangeGrid.jsx` component into `HandReplayViewer.jsx` detail view. When reviewing hands, users can expand "Solver Range View" to see the full solver range colored by action frequency for that exact spot. The grid highlights the hero's hand with a cyan glow. Collapsible to avoid overwhelming the UI. |
+| EVGraph in Analysis Tab | DONE | Wired existing `EVGraph.jsx` into GodModeArena's Analysis review tab. Shows street-by-street EV loss bars (Preflop → Flop → Turn → River) with green=gain, red=loss. Renders at the top of the Analysis tab for immediate visual insight. |
+| Hand History Data Enrichment | DONE | Extended `useGTOTrainer.js` to pass `rawFrequencies` (full solver matrix per action per hand), `heroHand`, `street`, and `scenarioHash` through the hand history. This data is now available to RangeGrid in hand review and enables future features like range comparison and spot drilling. |
+| RangeGrid in Post-Answer Feedback | VERIFIED | Already existed in `UniversalDynamicTable.jsx` — the range matrix shows inline after each answer when solver data is available. No changes needed. |
+
+**Files Changed:** HandReplayViewer.jsx, GodModeArena.jsx, useGTOTrainer.js, SMARTER-POKER-BUILD-TRACKER.md
+**Impact:** The training experience now has full GTO Wizard-style range visualization. Users can see the solver's entire strategy for every spot — both during gameplay (post-answer) and in session review (hand replay detail). The EV Graph provides at-a-glance street-by-street performance analysis.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 20: Advanced Training Features** — Hand history replay, custom spot drills, range viewer
 - **Phase 21: Commander SSR Auth** — Revisit when staging environment available
 - **Phase 22: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
 - **Phase 23: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)

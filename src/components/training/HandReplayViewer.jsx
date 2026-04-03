@@ -6,6 +6,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
+import RangeGrid from './RangeGrid';
 
 // Card display helper — renders a poker card (value + suit)
 function MiniCard({ card, size = 'sm' }) {
@@ -215,6 +216,15 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                         </motion.div>
                     </AnimatePresence>
 
+                    {/* ═══ PHASE 20: Range Grid — Full solver range for this spot ═══ */}
+                    {handData.rawFrequencies && Object.keys(handData.rawFrequencies).length > 0 && (
+                        <RangeGridSection
+                            rawFrequencies={handData.rawFrequencies}
+                            heroHand={handData.heroHand || (Array.isArray(handData.heroCards) ? handData.heroCards.map(c => c[0]).join('') : null)}
+                            actions={Object.keys(handData.rawFrequencies)}
+                        />
+                    )}
+
                     {/* Hand strip — clickable thumbnails */}
                     <div style={styles.handStrip}>
                         {handHistory.map((h, i) => {
@@ -276,6 +286,87 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                 </div>
             )}
         </div>
+    );
+}
+
+/**
+ * ═══ PHASE 20: Collapsible Range Grid Section ═══
+ * Shows the full 13×13 solver range colored by action frequency.
+ * Collapsed by default to avoid overwhelming the hand review.
+ */
+function RangeGridSection({ rawFrequencies, heroHand, actions }) {
+    const [expanded, setExpanded] = useState(false);
+
+    // Convert rawFrequencies to RangeGrid's gridData format
+    // rawFrequencies format from engine: { action → { hand → freq(0-1) } }
+    // RangeGrid gridData format: same — { action → { hand → freq(0-100) } }
+    const gridData = useMemo(() => {
+        if (!rawFrequencies) return {};
+        const data = {};
+        for (const [action, handFreqs] of Object.entries(rawFrequencies)) {
+            if (typeof handFreqs !== 'object') continue;
+            data[action] = {};
+            for (const [hand, freq] of Object.entries(handFreqs)) {
+                // Engine stores 0.0-1.0, RangeGrid expects 0-100
+                data[action][hand] = typeof freq === 'number' ? Math.round(freq * 100) : 0;
+            }
+        }
+        return data;
+    }, [rawFrequencies]);
+
+    if (!gridData || Object.keys(gridData).length === 0) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ marginTop: 16 }}
+        >
+            <button
+                onClick={() => setExpanded(prev => !prev)}
+                style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    background: expanded ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${expanded ? 'rgba(0,212,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius: 8,
+                    color: expanded ? '#00d4ff' : '#64748b',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'all 0.2s ease',
+                }}
+            >
+                <span>Solver Range View</span>
+                <span style={{ fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
+                    ▼
+                </span>
+            </button>
+            <AnimatePresence>
+                {expanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{ overflow: 'hidden', marginTop: 8 }}
+                    >
+                        <RangeGrid
+                            gridData={gridData}
+                            actions={actions}
+                            heroHand={heroHand}
+                            cellSize={22}
+                            compact={true}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 }
 

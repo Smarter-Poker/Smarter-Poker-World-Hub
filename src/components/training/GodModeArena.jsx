@@ -34,6 +34,8 @@ import LeaderboardPanel from './LeaderboardPanel';
 import SessionShareCard from './SessionShareCard';
 import AchievementToast from './AchievementToast';
 import { checkAllAchievements } from './utils/achievementChecker';
+// ═══ PHASE 20: EV Graph — Street-by-Street EV Visualization ═══
+import EVGraph from './EVGraph';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -1822,6 +1824,9 @@ function GodModeArenaInner({
 
                     {/* ═══ TAB: ANALYSIS ═══ */}
                     {reviewTab === 'analysis' && (<>
+
+                        {/* ═══ PHASE 20: EV by Street visualization ═══ */}
+                        <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
                         {/* POSITION STATS -- Per-position breakdown */}
                         <PositionStatsPanel handHistory={handHistory} />

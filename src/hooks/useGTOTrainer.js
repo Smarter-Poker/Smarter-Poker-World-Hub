@@ -422,6 +422,11 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 question: currentQuestion.question || currentQuestion.text,
                 source: currentQuestion.source || 'UNKNOWN',
                 gtoFrequencies: frequencies || {},
+                // ═══ PHASE 20: Raw solver matrix for RangeGrid display ═══
+                rawFrequencies: currentQuestion.rawFrequencies || null,
+                heroHand: currentQuestion.heroHand || scenario.heroHand || null,
+                street: scenario.street || null,
+                scenarioHash: scenario.scenarioHash || null,
             },
         });
 
