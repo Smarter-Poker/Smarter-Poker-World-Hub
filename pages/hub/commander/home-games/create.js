@@ -16,7 +16,12 @@ import {
   Calendar,
   Loader2,
   Check,
-  ChevronRight
+  ChevronRight,
+  Share2,
+  Users,
+  Clock,
+  Image as ImageIcon,
+  FileText
 } from 'lucide-react';
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
@@ -39,6 +44,16 @@ const STAKES_OPTIONS = [
   'Custom'
 ];
 
+const DAYS_OF_WEEK = [
+  { value: 'monday', label: 'Mon', full: 'Monday' },
+  { value: 'tuesday', label: 'Tue', full: 'Tuesday' },
+  { value: 'wednesday', label: 'Wed', full: 'Wednesday' },
+  { value: 'thursday', label: 'Thu', full: 'Thursday' },
+  { value: 'friday', label: 'Fri', full: 'Friday' },
+  { value: 'saturday', label: 'Sat', full: 'Saturday' },
+  { value: 'sunday', label: 'Sun', full: 'Sunday' },
+];
+
 export default function CreateHomeGamePage() {
   const router = useRouter();
 
@@ -46,6 +61,7 @@ export default function CreateHomeGamePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [createdGroup, setCreatedGroup] = useState(null);
+  const [createdSocialPage, setCreatedSocialPage] = useState(null);
   const [eventSubmitting, setEventSubmitting] = useState(false);
 
   // Form state
@@ -62,10 +78,38 @@ export default function CreateHomeGamePage() {
     requires_approval: true,
     city: '',
     state: '',
+    neighborhood: '',
+    approximate_lat: null,
+    approximate_lng: null,
     recurring: false,
-    day_of_week: 'saturday',
-    start_time: '19:00'
+    schedule_days: [],
+    start_time: '19:00',
+    end_time: '',
   });
+
+  // Toggle a day in the schedule_days array
+  function toggleDay(day) {
+    setFormData(prev => {
+      const days = prev.schedule_days.includes(day)
+        ? prev.schedule_days.filter(d => d !== day)
+        : [...prev.schedule_days, day];
+      return { ...prev, schedule_days: days };
+    });
+  }
+
+  // Build schedule summary text
+  function getScheduleSummary() {
+    if (!formData.recurring || formData.schedule_days.length === 0) return '';
+    const dayLabels = formData.schedule_days
+      .sort((a, b) => DAYS_OF_WEEK.findIndex(d => d.value === a) - DAYS_OF_WEEK.findIndex(d => d.value === b))
+      .map(d => DAYS_OF_WEEK.find(x => x.value === d)?.full || d);
+    const daysStr = dayLabels.length > 1
+      ? dayLabels.slice(0, -1).join(', ') + ' & ' + dayLabels[dayLabels.length - 1]
+      : dayLabels[0];
+    const startStr = formData.start_time ? new Date(`2000-01-01T${formData.start_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+    const endStr = formData.end_time ? new Date(`2000-01-01T${formData.end_time}`).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+    return `Every ${daysStr}${startStr ? `, ${startStr}` : ''}${endStr ? ` - ${endStr}` : ''}`;
+  }
 
   function updateField(field, value) {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -92,7 +136,8 @@ export default function CreateHomeGamePage() {
 
       const payload = {
         ...formData,
-        stakes: formData.stakes === 'Custom' ? formData.custom_stakes : formData.stakes
+        stakes: formData.stakes === 'Custom' ? formData.custom_stakes : formData.stakes,
+        schedule_summary: getScheduleSummary(),
       };
 
       const res = await fetch('/api/commander/home-games/groups', {
@@ -109,6 +154,36 @@ export default function CreateHomeGamePage() {
 
       if (data.success || data.group) {
         setCreatedGroup(data.group);
+
+        // Auto-create Social Page for this home game
+        try {
+          const pageRes = await fetch('/api/social/pages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              name: formData.name,
+              page_type: 'home_game',
+              description: formData.description || `Home game: ${formData.name}`,
+              location_city: formData.city,
+              location_state: formData.state,
+              category: 'poker',
+              is_public: formData.visibility === 'public',
+            })
+          });
+          if (pageRes.ok) {
+            const pageData = await pageRes.json();
+            if (pageData.success && pageData.data) {
+              setCreatedSocialPage(pageData.data);
+            }
+          }
+        } catch (pageErr) {
+          console.error('[CreateHomeGame] Social page auto-create failed:', pageErr);
+          // Non-blocking — game still created successfully
+        }
+
         setStep(4);
       } else {
         setError(data.error?.message || 'Failed to create group');
@@ -401,9 +476,17 @@ export default function CreateHomeGamePage() {
                   <MapPin className="w-5 h-5 text-[#EF4444]" />
                   Approximate Location
                 </h2>
-                <p className="text-sm text-[#64748B]">
-                  Your exact address is never shared. Only the approximate neighborhood is shown to players.
-                </p>
+                <div className="p-3 bg-[#0D192E] rounded-lg border border-[#4A5E78]/40 flex items-start gap-3">
+                  <MapPin className="w-4 h-4 text-[#EF4444] mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-[#94A3B8]">
+                      Drag the pin to set your approximate area. Your exact address is never shared.
+                    </p>
+                    {formData.neighborhood && (
+                      <p className="text-sm text-[#22D3EE] mt-1 font-medium">Selected Area: {formData.neighborhood}{formData.city ? `, ${formData.city}` : ''}</p>
+                    )}
+                  </div>
+                </div>
 
                 <GoogleMapPicker
                   value={{ city: formData.city, state: formData.state }}
@@ -416,7 +499,7 @@ export default function CreateHomeGamePage() {
                     if (loc.zipCode) updateField('zip_code', loc.zipCode);
                   }}
                   approximateOnly={true}
-                  height={250}
+                  height={350}
                 />
 
                 {/* Fallback manual inputs always visible below map */}
@@ -472,36 +555,57 @@ export default function CreateHomeGamePage() {
                 </div>
 
                 {formData.recurring && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-white mb-2">
-                        Day of Week
+                        Game Days (Select All That Apply)
                       </label>
-                      <select
-                        value={formData.day_of_week}
-                        onChange={(e) => updateField('day_of_week', e.target.value)}
-                        className="cmd-input w-full h-10 px-4"
-                      >
-                        <option value="monday">Monday</option>
-                        <option value="tuesday">Tuesday</option>
-                        <option value="wednesday">Wednesday</option>
-                        <option value="thursday">Thursday</option>
-                        <option value="friday">Friday</option>
-                        <option value="saturday">Saturday</option>
-                        <option value="sunday">Sunday</option>
-                      </select>
+                      <div className="flex flex-wrap gap-2">
+                        {DAYS_OF_WEEK.map(({ value, label }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => toggleDay(value)}
+                            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${formData.schedule_days.includes(value)
+                                ? 'border-[#8B5CF6] bg-[#8B5CF6]/15 text-[#C4B5FD] shadow-[0_0_8px_rgba(139,92,246,0.2)]'
+                                : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
+                              }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        Start Time
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.start_time}
-                        onChange={(e) => updateField('start_time', e.target.value)}
-                        className="cmd-input w-full h-10 px-4"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-white mb-2">
+                          Start Time
+                        </label>
+                        <input
+                          type="time"
+                          value={formData.start_time}
+                          onChange={(e) => updateField('start_time', e.target.value)}
+                          className="cmd-input w-full h-10 px-4"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-white mb-2">
+                          End Time (Optional)
+                        </label>
+                        <input
+                          type="time"
+                          value={formData.end_time}
+                          onChange={(e) => updateField('end_time', e.target.value)}
+                          className="cmd-input w-full h-10 px-4"
+                        />
+                      </div>
                     </div>
+                    {getScheduleSummary() && (
+                      <div className="p-3 bg-[#8B5CF6]/10 rounded-lg border border-[#8B5CF6]/25 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-[#C4B5FD]" />
+                        <span className="text-sm text-[#C4B5FD] font-medium">{getScheduleSummary()}</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -533,16 +637,78 @@ export default function CreateHomeGamePage() {
               </div>
             </div>
           )}
-          {/* Step 4: Group Created - Schedule First Event */}
+          {/* Step 4: Group Created + Social Page + Schedule */}
           {step === 4 && createdGroup && (
             <div className="space-y-6">
               <div className="cmd-panel p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-[#10B981]/20 flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-[#10B981]" />
                 </div>
-                <h2 className="text-xl font-bold text-white">Group Created</h2>
-                <p className="text-[#64748B] mt-1">{createdGroup.name} is ready. Schedule your first game below or skip for now.</p>
+                <h2 className="text-xl font-bold text-white">Game Created</h2>
+                <p className="text-[#64748B] mt-1">{createdGroup.name} is live. Your Social Page was auto-created.</p>
               </div>
+
+              {/* Social Page Progress Bar */}
+              {createdSocialPage && (() => {
+                const sp = createdSocialPage;
+                const checks = [
+                  { label: 'Name & Description', icon: FileText, done: !!(sp.name && sp.description) },
+                  { label: 'Profile Photo', icon: ImageIcon, done: !!sp.avatar_url },
+                  { label: 'Cover Photo', icon: ImageIcon, done: !!(sp.cover_url || sp.metadata?.cover_photo_url) },
+                  { label: 'Location', icon: MapPin, done: !!(sp.location_city) },
+                  { label: 'Schedule Set', icon: Clock, done: formData.schedule_days.length > 0 },
+                ];
+                const completed = checks.filter(c => c.done).length;
+                const pct = Math.round((completed / checks.length) * 100);
+                return (
+                  <div className="cmd-panel p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Share2 className="w-5 h-5 text-[#8B5CF6]" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white text-sm">Social Page: {sp.name}</h3>
+                        <p className="text-xs text-[#64748B] mt-0.5">Complete your page so players can follow and find your game</p>
+                      </div>
+                      <span className="text-xs font-bold text-[#C4B5FD]">{pct}%</span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="h-2 bg-[#1E293B] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{
+                        width: `${pct}%`,
+                        background: pct === 100 ? 'linear-gradient(90deg, #10B981, #22D3EE)' : 'linear-gradient(90deg, #8B5CF6, #C4B5FD)',
+                      }} />
+                    </div>
+                    {/* Checklist */}
+                    <div className="space-y-2">
+                      {checks.map((item, idx) => (
+                        <div key={idx} className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                          item.done ? 'bg-[#10B981]/10' : 'bg-[#0D192E] hover:bg-[#132240] cursor-pointer'
+                        }`}
+                          onClick={() => {
+                            if (!item.done && sp.id) {
+                              router.push(`/hub/social-pages/${sp.id}/manage`);
+                            }
+                          }}
+                        >
+                          {item.done ? (
+                            <Check className="w-4 h-4 text-[#10B981]" />
+                          ) : (
+                            <item.icon className="w-4 h-4 text-[#64748B]" />
+                          )}
+                          <span className={`text-sm ${item.done ? 'text-[#10B981] line-through' : 'text-white'}`}>{item.label}</span>
+                          {!item.done && <ChevronRight className="w-3 h-3 text-[#64748B] ml-auto" />}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => router.push(`/hub/social-pages/${sp.id}/manage`)}
+                      className="cmd-btn cmd-btn-secondary w-full h-10 text-sm flex items-center justify-center gap-2"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Complete Your Social Page
+                    </button>
+                  </div>
+                );
+              })()}
 
               <CreateGameForm
                 groupId={createdGroup.id}

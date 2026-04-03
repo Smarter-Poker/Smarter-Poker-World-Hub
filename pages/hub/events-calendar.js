@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import BackToLobbyBar from '../../src/components/ui/BackToLobbyBar';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
@@ -469,6 +470,7 @@ export default function EventsCalendarPage() {
         canonical="/hub/events-calendar"
       />
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+      <BackToLobbyBar />
       <HamburgerMenu
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}

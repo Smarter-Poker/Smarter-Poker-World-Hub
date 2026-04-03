@@ -9,6 +9,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import BackToLobbyBar from '../../src/components/ui/BackToLobbyBar';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
@@ -166,6 +167,7 @@ export default function DailyTournaments() {
                 <div className="space-overlay"></div>
 
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <BackToLobbyBar />
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}

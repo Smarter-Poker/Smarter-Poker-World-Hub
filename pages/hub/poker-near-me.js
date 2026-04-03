@@ -18,6 +18,7 @@ import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearch
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import BackToLobbyBar from '../../src/components/ui/BackToLobbyBar';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
@@ -2663,6 +2664,7 @@ export default function PokerNearMePage() {
                 <div className="space-overlay"></div>
 
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onSettingsClick={() => setMenuOpen(true)} />
+                <BackToLobbyBar />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
