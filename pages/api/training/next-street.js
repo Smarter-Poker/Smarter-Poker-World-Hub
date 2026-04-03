@@ -73,7 +73,7 @@ export default async function handler(req, res) {
               else { deadCards.add(`${r1}s`); deadCards.add(`${r2}h`); }
           }
 
-          // Deal new card — IMP-5 FIX: Deterministic seeded RNG + PHASE 21 texture-weighted dealing
+          // Deal new card — IMP-5 FIX: Use deterministic seeded RNG for consistent scenarios
           const allCards = [];
           for (const r of RANKS) {
               for (const s of SUITS) {
@@ -82,67 +82,14 @@ export default async function handler(req, res) {
                   }
               }
           }
-
-          // ═══ PHASE 21: Texture-weighted card selection ═══
-          // Weight cards that create more educational board textures:
-          // - Flush-completing cards (3rd of suit on turn, 4th never forced)
-          // - Straight-completing cards
-          // - Overcards / undercards
-          // - Board-pairing cards
-          // This creates more interesting decision points for training
-          const boardSuitCounts = {};
-          const boardRankSet = new Set();
-          const RANK_VALUES = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
-          parsedBoardCards.forEach(c => {
-              const s = c[c.length - 1].toLowerCase();
-              boardSuitCounts[s] = (boardSuitCounts[s] || 0) + 1;
-              boardRankSet.add(c[0].toUpperCase());
-          });
-          const boardRankVals = parsedBoardCards.map(c => RANK_VALUES[c[0].toUpperCase()] || 0);
-          const maxBoardRank = Math.max(...boardRankVals);
-
-          const weightedCards = allCards.map(card => {
-              const r = card[0].toUpperCase();
-              const s = card[card.length - 1].toLowerCase();
-              let weight = 1.0;
-
-              // Flush draw potential (3rd suited card = interesting, but not 4th which is too obvious)
-              if (boardSuitCounts[s] === 2) weight += 0.8;  // Creates flush draw
-              if (boardSuitCounts[s] === 3) weight += 0.3;  // Completes flush (less common = more interesting)
-
-              // Overcards to board (create interesting decision dynamics)
-              if ((RANK_VALUES[r] || 0) > maxBoardRank) weight += 0.5;
-
-              // Board-pairing cards (test for full house/trips understanding)
-              if (boardRankSet.has(r)) weight += 0.6;
-
-              // Connected cards for straight potential
-              const rv = RANK_VALUES[r] || 0;
-              const connectivity = boardRankVals.filter(v => Math.abs(v - rv) <= 2 && v !== rv).length;
-              if (connectivity >= 2) weight += 0.4;
-
-              return { card, weight };
-          });
-
           // Seeded hash based on hero hand + board state for deterministic dealing
           let cardSeed = 0;
           const seedStr = `${heroHand || ''}_${boardCards}_${street}`;
           for (let i = 0; i < seedStr.length; i++) {
               cardSeed = ((cardSeed << 5) - cardSeed + seedStr.charCodeAt(i)) | 0;
           }
-
-          // Weighted selection using seeded random
-          const totalWeight = weightedCards.reduce((sum, wc) => sum + wc.weight, 0);
-          const targetWeight = (Math.abs(cardSeed) % 10000) / 10000 * totalWeight;
-          let cumulative = 0;
-          let newCard = allCards[0]; // fallback
-          for (const wc of weightedCards) {
-              cumulative += wc.weight;
-              if (cumulative >= targetWeight) {
-                  newCard = wc.card;
-                  break;
-              }
-          }
+          const cardIdx = Math.abs(cardSeed) % allCards.length;
+          const newCard = allCards[cardIdx];
           const newBoardCards = [...parsedBoardCards, newCard];
 
           // Query solver for this street — inject service-role client

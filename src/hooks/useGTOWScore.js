@@ -145,17 +145,19 @@ export function simulateGTOFrequencies(options, correctAnswer, level = 1) {
 export function simulateEVLoss(classification, pot = 10) {
     const potFactor = Math.max(1, pot / 10); // Scale with pot size
 
+    // BUG-L FIX: Use deterministic midpoint values instead of Math.random()
+    // This ensures consistent EV loss display for the same classification
     switch (classification) {
         case MOVE_CLASSIFICATIONS.BEST:
             return 0;
         case MOVE_CLASSIFICATIONS.CORRECT:
             return 0; // Correct moves lose 0 EV (they're part of GTO)
         case MOVE_CLASSIFICATIONS.INACCURACY:
-            return Math.round((0.05 + Math.random() * 0.2) * potFactor * 100) / 100;
+            return Math.round(0.15 * potFactor * 100) / 100;  // midpoint of 0.05-0.25
         case MOVE_CLASSIFICATIONS.WRONG:
-            return Math.round((0.3 + Math.random() * 0.7) * potFactor * 100) / 100;
+            return Math.round(0.65 * potFactor * 100) / 100;  // midpoint of 0.3-1.0
         case MOVE_CLASSIFICATIONS.BLUNDER:
-            return Math.round((1.0 + Math.random() * 2.0) * potFactor * 100) / 100;
+            return Math.round(2.0 * potFactor * 100) / 100;   // midpoint of 1.0-3.0
         default:
             return 0;
     }
@@ -182,10 +184,20 @@ export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFr
     // If player chose the optimal action, EV loss = 0
     if (selectedAction === optimalAction) return 0;
 
-    // BUG-B FIX: Better EV loss approximation when per-action EV data isn't available.
-    // Use (1 - selectedFreq) as the primary signal — actions with 0% solver frequency
-    // have maximum EV loss, while actions with 40% frequency have minimal EV loss.
-    const selectedFreqNorm = (rawFrequencies && rawFrequencies[selectedAction]) ? rawFrequencies[selectedAction] : 0;
+    // ═══ BUG-K FIX: rawFrequencies is { action → { hand → freq } }, not { action → freq }.
+    // Must look up the HERO'S frequency for the selected action, not the action object itself.
+    let selectedFreqNorm = 0;
+    if (rawFrequencies && heroHand) {
+        const actionHandFreqs = rawFrequencies[selectedAction];
+        if (actionHandFreqs && typeof actionHandFreqs === 'object') {
+            // Look up hero's specific hand frequency (0.0-1.0)
+            selectedFreqNorm = actionHandFreqs[heroHand] || 0;
+        } else if (typeof actionHandFreqs === 'number') {
+            // Flat frequency format (fallback)
+            selectedFreqNorm = actionHandFreqs;
+        }
+    }
+
     const potFactor = Math.max(1, pot / 10);
 
     // Non-linear scaling: near-zero frequency actions lose much more EV
