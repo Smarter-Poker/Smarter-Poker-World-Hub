@@ -484,8 +484,25 @@
 
 ---
 
+## PHASE 21 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Blocker Analysis, Equity Matchup, Ghost Replay, Study Streak, Randomized Training
+
+| Deliverable | Status | Detail |
+|---|---|---|
+| fetchSolverPool Randomization | DONE | Fixed the core training pool query in `DeterministicGTOEngine.js`. Previously returned rows in DB insertion order (same N spots every session). Now over-fetches 4× and applies Fisher-Yates shuffle for truly randomized training scenarios each session. |
+| BlockerScorePanel in Hand Review | DONE | Wired `BlockerScorePanel.jsx` into HandReplayViewer's expanded Solver Range View. Shows blocker score (composite), blocks-value-hands %, blocks-bluff-hands %, and blocks-marginal-hands % with animated bars. Only renders when hero cards and board (3+ cards) are available. Converts gridData from RangeGrid format to BlockerScorePanel's 13×13 cell.actions format. |
+| EquityMatchup in Hand Review | DONE | Wired `EquityMatchup.jsx` into HandReplayViewer's Solver Range View. Approximates hero vs villain equity from solver action frequencies (aggressive actions → higher equity). Shows animated split-bar with Hero/Villain equity percentages and advantage indicator. |
+| StudyStreakMapAuto in Analysis Tab | DONE | Created self-fetching `StudyStreakMapAuto` wrapper component in `StudyStreakMap.jsx` that auto-loads session history. Wired into GodModeArena Analysis tab — shows GitHub-style 168-day contribution grid with current streak, best streak, and session count. |
+| GhostReplayEngine in Review | DONE | Wired `GhostReplayEngine.jsx` into GodModeArena review screen. Added "Ghost Replay — Review with GTO Line" button in Overview tab. Opens full-screen hand-by-hand replay showing player's decision alongside GTO optimal baseline. |
+
+**Files Changed:** DeterministicGTOEngine.js, HandReplayViewer.jsx, GodModeArena.jsx, StudyStreakMap.jsx, SMARTER-POKER-BUILD-TRACKER.md
+**Impact:** Six major features pushed the training experience significantly closer to GTO Wizard parity. Randomized pool fetch eliminates repetitive scenarios. Blocker analysis teaches card removal effects. Equity matchup shows range advantage. Ghost replay lets users study their GTO deviation hand-by-hand. Study streak map promotes daily training consistency.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 21: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 22: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 23: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 24: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 22: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 23: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 24: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 25: Database Migration Safety** — Supabase migration tooling and rollback procedures
