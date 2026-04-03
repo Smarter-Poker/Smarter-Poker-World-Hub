@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { radiusToZoom } from './pnm-utils';
 
 /**
  * VenueMapPanel — Leaflet map rendering for Poker Near Me venues.
@@ -8,7 +9,7 @@ import React, { useState, useEffect, useRef } from 'react';
  * the map to only render markers from the INITIAL render — meaning Live Games
  * mode always showed "0 venues on map" since live data arrives asynchronously.
  */
-export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
+export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect, radiusMiles }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
@@ -173,6 +174,17 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
     }
   }, [venues, userLocation]);
+
+  // ═══ DYNAMIC RADIUS ZOOM — Adjust zoom when radius filter changes ═══
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapReady) return;
+    // Only zoom when user location AND a specific radius are provided
+    if (!userLocation || !radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') return;
+
+    const zoom = radiusToZoom(radiusMiles);
+    map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
+  }, [radiusMiles, userLocation, mapReady]);
 
   return (
     <div style={{ position: 'relative' }}>

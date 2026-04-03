@@ -1847,6 +1847,7 @@ export default function PokerNearMePage() {
                             userLocation={userLocation}
                             fullHeight
                             onVenueClick={onMapVenueClick}
+                            radiusMiles={filters.radius}
                         />
                     </MapErrorBoundary>
                     </div>
@@ -1985,6 +1986,7 @@ export default function PokerNearMePage() {
                             userLocation={userLocation}
                             fullHeight={mapFullscreen}
                             onVenueClick={onMapVenueClick}
+                            radiusMiles={filters.radius}
                         />
                     </MapErrorBoundary>
                 </div>

@@ -16,6 +16,7 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
+import { radiusToZoom } from './pnm-utils';
 
 // ─── Constants ───
 const VENUE_TYPE_LABELS = {
@@ -344,7 +345,7 @@ function buildPopupHtml(venue) {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick, hideLegend = false }) {
+export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -646,6 +647,17 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
       // Do NOT auto-zoom — user explores the full map freely
     }
   }, [userLocation, mapReady]);
+
+  // ═══ DYNAMIC RADIUS ZOOM — Adjust map zoom when search radius changes ═══
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current) return;
+    // Only zoom when we have a user location AND a specific radius
+    if (!userLocation || !radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') return;
+
+    const map = mapInstanceRef.current;
+    const zoom = radiusToZoom(radiusMiles);
+    map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
+  }, [radiusMiles, userLocation, mapReady]);
 
   // Legend items
   const legendItems = [

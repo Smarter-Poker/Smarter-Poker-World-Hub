@@ -1904,7 +1904,7 @@ export default function PokerNearMeLobby() {
                 <span style={{ color: '#d4a853', fontWeight: 700 }}>{mapVenues.filter(v => v.latitude && v.longitude).length}</span> venues on map
               </span>
             </div>
-            <VenueMapPanel venues={mapVenues} userLocation={userLocation} onVenueSelect={(v) => { setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} />
+            <VenueMapPanel venues={mapVenues} userLocation={userLocation} radiusMiles={filters.nmRadius} onVenueSelect={(v) => { setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} />
           </div>
         );
         break;

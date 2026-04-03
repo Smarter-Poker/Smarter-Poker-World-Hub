@@ -426,6 +426,7 @@ export default function HomeGamesPage() {
                                                 userLocation={userLocation}
                                                 fullHeight={mapFullscreen}
                                                 hideLegend={true}
+                                                radiusMiles={filters.radius}
                                                 onVenueClick={(venue) => {
                                                     if (venue?.id) router.push('/hub/venues/' + venue.id);
                                                 }}

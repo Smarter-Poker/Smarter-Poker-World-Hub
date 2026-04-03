@@ -331,3 +331,48 @@ export function isStaleData(lastUpdated) {
     return { stale, age, minutes };
 }
 
+/**
+ * Map a search radius (in miles) to an appropriate Leaflet zoom level.
+ * Calibrated for US geography at mid-latitudes (~37°N).
+ * 
+ * Zoom levels approximate visible diameter:
+ *   5 mi  → zoom 12 (neighborhood level)
+ *   10 mi → zoom 11 (city district)
+ *   25 mi → zoom 10 (metro area)
+ *   50 mi → zoom 9  (metro region)
+ *   100 mi → zoom 8 (multi-county)
+ *   200 mi → zoom 7 (state-level)
+ *   250 mi → zoom 6 (multi-state)
+ *   500 mi → zoom 5 (regional US)
+ *   'any'  → zoom 4 (continental US)
+ * 
+ * @param {number|string} radiusMiles - Radius in miles, or 'any'/'Any' for full US
+ * @returns {number} Leaflet zoom level (4-12)
+ */
+export function radiusToZoom(radiusMiles) {
+    // 'any' or invalid → show full US
+    if (!radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') return 4;
+    
+    const miles = Number(radiusMiles);
+    if (isNaN(miles) || miles <= 0) return 4;
+    
+    // Sorted lookup table: [maxRadius, zoomLevel]
+    const ZOOM_TABLE = [
+        [5, 12],
+        [10, 11],
+        [25, 10],
+        [50, 9],
+        [100, 8],
+        [200, 7],
+        [250, 6],
+        [500, 5],
+    ];
+    
+    for (const [maxMiles, zoom] of ZOOM_TABLE) {
+        if (miles <= maxMiles) return zoom;
+    }
+    
+    // Beyond 500 miles → full US overview
+    return 4;
+}
+
