@@ -25,8 +25,9 @@ import StreetAccuracyPanel from './StreetAccuracyPanel';
 import ActionAccuracyPanel from './ActionAccuracyPanel';
 import MistakePatternPanel from './MistakePatternPanel';
 import { useTrainingAnalytics } from './PerformanceTrends';
-// ═══ PHASE 17: Smart Practice ═══
+// ═══ PHASE 17: Smart Practice + AI Coaching ═══
 import SmartPracticeBanner from './SmartPracticeBanner';
+import { getSessionToken } from '../../lib/authUtils';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -796,6 +797,127 @@ function GodModeArenaInner({
     // ═══ PHASE 16: Cross-session analytics ═══
     const { analytics: crossSessionAnalytics, loading: analyticsLoading } = useTrainingAnalytics(gameId, 30);
 
+    // ═══ PHASE 17: AI Coaching Debrief ═══
+    const [aiCoaching, setAiCoaching] = useState(null);
+    const [isLoadingCoaching, setIsLoadingCoaching] = useState(false);
+    const coachingFetchedRef = useRef(false);
+
+    useEffect(() => {
+        if (!gameComplete || coachingFetchedRef.current || !gameId) return;
+        coachingFetchedRef.current = true;
+
+        async function fetchCoaching() {
+            setIsLoadingCoaching(true);
+            try {
+                const token = getSessionToken();
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                // Build cross-session context from analytics
+                let crossSessionContext = null;
+                if (crossSessionAnalytics) {
+                    const findWeakest = (dataMap, labelKey) => {
+                        if (!dataMap) return null;
+                        const sorted = Object.entries(dataMap)
+                            .filter(([, v]) => v.total >= 5)
+                            .sort((a, b) => (a[1].correct / a[1].total) - (b[1].correct / b[1].total));
+                        if (!sorted[0]) return null;
+                        const [key, val] = sorted[0];
+                        return { [labelKey]: key, accuracy: Math.round((val.correct / val.total) * 100) };
+                    };
+                    crossSessionContext = {
+                        milestones: crossSessionAnalytics.milestones || null,
+                        mistakePatterns: crossSessionAnalytics.mistakePatterns?.slice(0, 3) || [],
+                        weakPosition: findWeakest(crossSessionAnalytics.positionAccuracy, 'position'),
+                        weakStreet: findWeakest(crossSessionAnalytics.streetAccuracy, 'street'),
+                    };
+                }
+
+                const totalQ = handHistory?.length || 0;
+                const correctQ = handHistory?.filter(h => h.classification === 'best' || h.classification === 'correct').length || 0;
+                const acc = totalQ > 0 ? Math.round((correctQ / totalQ) * 100) : 0;
+
+                // Build position stats
+                const posStats = {};
+                handHistory?.forEach(h => {
+                    const pos = h.handData?.heroPosition || 'UNK';
+                    if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0 };
+                    posStats[pos].total++;
+                    if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
+                });
+
+                // Build weak spots
+                const weakSpots = [];
+                const spotBuckets = {};
+                handHistory?.forEach(h => {
+                    if (h.classification === 'best' || h.classification === 'correct') return;
+                    const key = `${h.handData?.heroPosition || 'UNK'}|${h.handData?.street || 'flop'}|${h.handData?.spotType || 'general'}`;
+                    if (!spotBuckets[key]) spotBuckets[key] = { position: h.handData?.heroPosition || 'UNK', street: h.handData?.street || 'flop', spotType: h.handData?.spotType || 'general', mistakes: 0, total: 0 };
+                    spotBuckets[key].mistakes++;
+                });
+                handHistory?.forEach(h => {
+                    const key = `${h.handData?.heroPosition || 'UNK'}|${h.handData?.street || 'flop'}|${h.handData?.spotType || 'general'}`;
+                    if (spotBuckets[key]) spotBuckets[key].total++;
+                });
+                Object.values(spotBuckets).forEach(b => {
+                    if (b.total >= 2) weakSpots.push({ ...b, mistakeRate: b.mistakes / b.total });
+                });
+                weakSpots.sort((a, b) => b.mistakeRate - a.mistakeRate);
+
+                // Build mistakes array
+                const mistakesArr = handHistory
+                    ?.filter(h => h.classification && h.classification !== 'best' && h.classification !== 'correct')
+                    .slice(0, 8)
+                    .map(h => ({
+                        question: { question: h.questionText || 'GTO Decision', scenario: h.handData },
+                        userAnswer: h.userAnswer || '?',
+                        correctAnswer: h.correctAnswer || '?',
+                    })) || [];
+
+                const res = await fetch('/api/training/coaching-summary', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        gameId,
+                        gameName,
+                        level: currentLevel,
+                        questionsAnswered: totalQ,
+                        questionsCorrect: correctQ,
+                        accuracy: acc,
+                        streak: bestStreak,
+                        timeSpentSeconds: sessionElapsed,
+                        mistakes: mistakesArr,
+                        gtowScore,
+                        totalEVLoss,
+                        classificationCounts: (() => {
+                            const cc = {};
+                            handHistory?.forEach(h => { if (h.classification) cc[h.classification] = (cc[h.classification] || 0) + 1; });
+                            return cc;
+                        })(),
+                        positionStats: posStats,
+                        weakSpots: weakSpots.slice(0, 5),
+                        crossSessionContext,
+                    }),
+                });
+
+                const data = await res.json();
+                if (data.success && data.coaching) {
+                    setAiCoaching(data.coaching);
+                }
+            } catch (err) {
+                console.warn('[AICoaching] Fetch error:', err.message);
+            }
+            setIsLoadingCoaching(false);
+        }
+        fetchCoaching();
+    }, [gameComplete, gameId, crossSessionAnalytics]);
+
+    // Reset coaching when level changes
+    useEffect(() => {
+        coachingFetchedRef.current = false;
+        setAiCoaching(null);
+    }, [currentLevel]);
+
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
     const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
@@ -1234,14 +1356,98 @@ function GodModeArenaInner({
                                 // Reset to playing phase with smart practice targeting
                                 sessionSavedRef.current = false;
                                 if (config.suggestedLevel) {
-                                    // Level-up recommendation
                                     startNextLevel();
                                 } else {
-                                    // Targeted practice — retrain with filters
                                     retryLevel();
                                 }
                             }}
                         />
+
+                        {/* ═══ PHASE 17: AI Coaching Debrief ═══ */}
+                        {(isLoadingCoaching || aiCoaching) && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                style={{
+                                    marginBottom: 16, padding: '14px 16px',
+                                    background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(0,212,255,0.04) 100%)',
+                                    border: '1px solid rgba(139,92,246,0.2)',
+                                    borderRadius: 12,
+                                }}
+                            >
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: 14 }}>🧠</span> AI Coach Debrief
+                                </div>
+
+                                {isLoadingCoaching && !aiCoaching && (
+                                    <motion.div
+                                        animate={{ opacity: [0.4, 1, 0.4] }}
+                                        transition={{ duration: 1.5, repeat: Infinity }}
+                                        style={{ color: '#64748b', fontSize: 11, textAlign: 'center', padding: '8px 0' }}
+                                    >
+                                        Analyzing your session...
+                                    </motion.div>
+                                )}
+
+                                {aiCoaching && (
+                                    <>
+                                        {/* Headline */}
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>
+                                            {aiCoaching.headline || 'Session Complete'}
+                                        </div>
+
+                                        {/* Detailed feedback */}
+                                        <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.6, marginBottom: 10 }}>
+                                            {aiCoaching.detailedFeedback}
+                                        </div>
+
+                                        {/* Strengths + Areas to improve */}
+                                        <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+                                            {aiCoaching.strengths?.length > 0 && (
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 9, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Strengths</div>
+                                                    {aiCoaching.strengths.map((s, i) => (
+                                                        <div key={i} style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>• {s}</div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {aiCoaching.areasToImprove?.length > 0 && (
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 9, fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Focus Areas</div>
+                                                    {aiCoaching.areasToImprove.map((a, i) => (
+                                                        <div key={i} style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>• {a}</div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Recommended drill */}
+                                        {aiCoaching.recommendedDrill && (
+                                            <div style={{
+                                                padding: '8px 12px', borderRadius: 8,
+                                                background: 'rgba(0,212,255,0.06)',
+                                                border: '1px solid rgba(0,212,255,0.15)',
+                                                marginBottom: 8,
+                                            }}>
+                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', marginBottom: 2 }}>
+                                                    Recommended: {aiCoaching.recommendedDrill.name}
+                                                </div>
+                                                <div style={{ fontSize: 9, color: '#64748b' }}>
+                                                    {aiCoaching.recommendedDrill.reason}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Motivational quote */}
+                                        {aiCoaching.motivationalQuote && (
+                                            <div style={{ fontSize: 10, color: '#475569', fontStyle: 'italic', textAlign: 'center', marginTop: 4 }}>
+                                                {aiCoaching.motivationalQuote}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </motion.div>
+                        )}
 
                         <div style={styles.classBreakdown}>
                             <div style={styles.sectionTitle}>Move Breakdown</div>

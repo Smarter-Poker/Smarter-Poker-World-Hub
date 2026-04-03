@@ -414,8 +414,26 @@
 
 ---
 
+## PHASE 17 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Smart Practice + AI Coaching Debrief
+| Deliverable | Status | Detail |
+|---|---|---|
+| Smart Practice API | DONE | New `smart-practice.js` GET endpoint — analyzes position accuracy, street accuracy, mistake patterns (spot type clusters), spaced repetition due count, and level progression to produce priority-ranked training recommendations. Types: weak_position, weak_street, mistake_pattern, spaced_review, level_up, general. Parallel Supabase queries with graceful fallback. |
+| useSmartPractice hook | DONE | React hook returning: recommendation, alternatives, analytics, loading, error, refresh. Auto-fetches on mount with gameId filter. |
+| SmartPracticeBanner component | DONE | RecommendationCard with type-specific icons/colors, priority badges (CRITICAL/HIGH/MEDIUM/LOW). Primary recommendation with "Start Smart Practice →" button. Expandable alternatives list with AnimatePresence. Analytics summary row. |
+| AI Coaching Debrief | DONE | Integrated coaching-summary API call into GodModeArena review phase. Sends full session data + cross-session context (milestones, mistake patterns, weakest position/street) to Grok-3 for personalized post-game coaching. Displays headline, detailed feedback, strengths, focus areas, recommended drill, and motivational quote. |
+| Cross-Session Context in Coaching | DONE | coaching-summary.js API enhanced to accept crossSessionContext (milestones, mistakePatterns, weakPosition, weakStreet). Prompt includes rolling avg scores, trending direction, recurring mistakes, and cross-session weak spots for more personalized AI advice. |
+| GodModeArena integration | DONE | SmartPracticeBanner rendered at top of review overview tab. AI coaching debrief card below it with loading state animation. getSessionToken auth integration. Coaching auto-fetches on game completion, resets on level change. |
+
+**Files Created:** smart-practice.js, useSmartPractice.js, SmartPracticeBanner.jsx
+**Files Changed:** GodModeArena.jsx, coaching-summary.js, SMARTER-POKER-BUILD-TRACKER.md
+**Impact:** Players now receive intelligent recommendations on what to practice next based on their cross-session performance data, plus personalized AI coaching feedback that references their long-term trends and recurring mistakes — matching GTO Wizard's premium coaching features.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 17: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 17: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 18: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 19: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 18: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 18: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 19: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 20: Database Migration Safety** — Supabase migration tooling and rollback procedures
