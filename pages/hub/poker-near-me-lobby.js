@@ -2181,13 +2181,17 @@ export default function PokerNearMeLobby() {
     });
 
     // Today's tournaments — match by day_of_week OR by actual event date
-    const todayDateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Use local date (not UTC) — matches todayDay which uses local getDay()
+    const todayDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     const todaysTournaments = dailyTournaments.filter(t => {
-      // Match by day_of_week name (e.g., "Monday")
+      // Match by day_of_week name (e.g., "Monday") or "Daily"
       const day = t.day_of_week || t.day;
       if (day && day.toLowerCase() === todayDay.toLowerCase()) return true;
-      // Match by actual event date (YYYY-MM-DD)
-      const eventDate = t.event_date || t.start_time || t.date;
+      if (day && day.toLowerCase() === 'daily') return true;
+      // Tour/charity events store date strings in day_of_week (e.g., "2026-04-03")
+      if (day && day.startsWith(todayDateStr)) return true;
+      // Fallback: check dedicated event_date or date field (NOT start_time — that's a time string)
+      const eventDate = t.event_date || t.date;
       if (eventDate && String(eventDate).startsWith(todayDateStr)) return true;
       return false;
     });
