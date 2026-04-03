@@ -271,23 +271,42 @@ export class DeterministicGTOEngine {
      * Generate a batch of N questions from solver data
      * IMP-6 FIX: Strengthened dedup — rejects same heroHand+scenarioHash combos
      */
-    async generateBatch({ gameId, level, count = 25, gameConfig }) {
+    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet }) {
         if (!gameConfig) return [];
 
         const questions = [];
         const usedQuestionIds = new Set();
         const usedHandScenarios = new Set(); // IMP-6: track heroHand+scenario combos
 
-        // Fetch a larger pool of scenarios
+        // ═══ PHASE 15: Targeted practice — fetch pool with optional position/street filters ═══
         const poolSize = Math.min(count * 3, 75);
-        const scenarios = await this.fetchSolverPool(gameConfig, level, poolSize);
+        const scenarios = await this.fetchSolverPool(gameConfig, level, poolSize, targetStreet);
 
         if (!scenarios || scenarios.length === 0) return [];
 
+        // ═══ PHASE 15: If target positions provided, prioritize those scenarios ═══
+        let sortedScenarios = scenarios;
+        if (targetPositions && targetPositions.length > 0) {
+            const posSet = new Set(targetPositions.map(p => p.toUpperCase()));
+            // Move target-position scenarios to the front
+            const targeted = scenarios.filter(s => {
+                const pos = extractPositionFromHash(s.scenario_hash);
+                return posSet.has(pos);
+            });
+            const others = scenarios.filter(s => {
+                const pos = extractPositionFromHash(s.scenario_hash);
+                return !posSet.has(pos);
+            });
+            sortedScenarios = [...targeted, ...others];
+            if (targeted.length > 0) {
+                console.log(`[DeterministicEngine] 🎯 Targeted ${targeted.length}/${scenarios.length} scenarios for positions: ${targetPositions.join(',')}`);
+            }
+        }
+
         // IMP-6: Iterate through MORE combinations to reach target count
-        const maxAttempts = Math.min(count * 4, scenarios.length * 3);
+        const maxAttempts = Math.min(count * 4, sortedScenarios.length * 3);
         for (let i = 0; i < maxAttempts && questions.length < count; i++) {
-            const scenario = scenarios[i % scenarios.length];
+            const scenario = sortedScenarios[i % sortedScenarios.length];
 
             // Pick a different hand for each question from same scenario
             const question = this.buildQuestionFromScenario(scenario, gameConfig, level, i);
@@ -413,9 +432,10 @@ export class DeterministicGTOEngine {
         return this.buildQuestionFromScenario(scenario, gameConfig, level, 0);
     }
 
-    async fetchSolverPool(gameConfig, level, limit = 25) {
+    async fetchSolverPool(gameConfig, level, limit = 25, targetStreet = null) {
         try {
-            const street = this.getStreetForLevel(level);
+            // ═══ PHASE 15: Allow street override for targeted practice ═══
+            const street = targetStreet || this.getStreetForLevel(level);
 
             const { data, error } = await supabase
                 .from('solved_spots_gold')

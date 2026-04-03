@@ -49,7 +49,12 @@ export default async function handler(req, res) {
           return res.status(405).json({ success: false, error: 'Method not allowed' });
       }
 
-      const { gameId: rawGameId, level = '1', count = '25' } = req.query;
+      const {
+          gameId: rawGameId, level = '1', count = '25',
+          // ═══ PHASE 15: Weak-spot targeting params ═══
+          targetPositions: rawTargetPositions,  // Comma-separated: "BB,SB"
+          targetStreet: rawTargetStreet,         // "flop", "turn", "river"
+      } = req.query;
       const gameId = sanitizeParam(rawGameId, 100);
 
       if (!gameId) {
@@ -59,6 +64,15 @@ export default async function handler(req, res) {
       try {
           const questionCount = Math.min(50, Math.max(1, parseInt(count, 10) || 25));
           const gameLevel = Math.min(10, Math.max(1, parseInt(level, 10) || 1));
+
+          // ═══ PHASE 15: Parse targeting params ═══
+          const targetPositions = rawTargetPositions
+              ? rawTargetPositions.split(',').map(p => p.trim().toUpperCase()).filter(p => ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB', 'HJ', 'UTG+1', 'MP+1'].includes(p))
+              : null;
+          const validStreets = ['flop', 'turn', 'river', 'preflop'];
+          const targetStreet = rawTargetStreet && validStreets.includes(rawTargetStreet.toLowerCase())
+              ? rawTargetStreet.toLowerCase()
+              : null;
 
 
           // Fetch questions from cache
@@ -94,6 +108,9 @@ export default async function handler(req, res) {
                           level: gameLevel,
                           count: needed,
                           gameConfig: pioConfig,
+                          // ═══ PHASE 15: Pass targeting hints ═══
+                          targetPositions: targetPositions || undefined,
+                          targetStreet: targetStreet || undefined,
                       });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch.map(q => ({ question_data: q }));
