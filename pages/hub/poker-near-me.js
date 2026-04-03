@@ -1758,8 +1758,9 @@ export default function PokerNearMePage() {
     };
 
     const renderMap = () => {
-        // Use searched venues if a search/GPS is active, otherwise fallback to all venues
-        let baseVenues = (hasSearched && venues.length > 0) ? venues : allVenuesForMap;
+        // Always show ALL venues on the map — full overview by default
+        let baseVenues = allVenuesForMap;
+        let filteredVenues = baseVenues;
         let filteredVenues = baseVenues;
         if (mapFilters.cashGames) {
             filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
@@ -1854,26 +1855,6 @@ export default function PokerNearMePage() {
                         </button>
                     )}
 
-                    {/* Room List Below Map */}
-                    <div className="map-room-list">
-                        <h3 className="room-list-title">Closest Poker Rooms</h3>
-                        <div className="card-grid">
-                            {filteredVenues.slice(0, 6).map((venue, i) => {
-                                const maxGtd = venueMaxGtd[String(venue.id)] || 0;
-                                return (
-                                    <VenueCard
-                                        key={venue.id || i}
-                                        venue={{ ...venue, max_gtd: maxGtd }}
-                                        index={i}
-                                        isFavorited={isFavorited('venue', venue.id)}
-        
-                                        hasPromo={promotionVenueIds.has(String(venue.id))}
-                                        onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                                        onNavigate={(path) => router.push(path)}
-                                    />
-                                );
-                            })}
-                        </div>
                     </div>
                 </div>
 

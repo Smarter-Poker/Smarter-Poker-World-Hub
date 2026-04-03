@@ -3,7 +3,7 @@
  *  Same layout as Poker Near Me but filtered to home games only.
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
@@ -18,6 +18,37 @@ const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueM
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
 
 const PAGE_SIZE = 12;
+
+// ═══════════════════════════════════════════════════════════════════
+// SEEDED HOME GAMES — 25 Horse-Hosted Games Across The US
+// ═══════════════════════════════════════════════════════════════════
+const SEEDED_HOME_GAMES = [
+  { id: 'hg-001', name: "Ace's Basement Grind", host_horse: 'Horse #1', city: 'Chicago', state: 'IL', latitude: 41.8781, longitude: -87.6298, venue_type: 'home_game', games_offered: ['NLH 1/2', 'NLH 2/5'], trust_score: 4.5, max_players: 9, is_recurring: true, schedule: 'Every Friday 7PM', description: 'Weekly deep-stack NLH in Wicker Park. BYOB. Serious players only.' },
+  { id: 'hg-002', name: "Big Slick Saturdays", host_horse: 'Horse #2', city: 'Las Vegas', state: 'NV', latitude: 36.1699, longitude: -115.1398, venue_type: 'home_game', games_offered: ['NLH 2/5', 'PLO4 2/5'], trust_score: 4.8, max_players: 8, is_recurring: true, schedule: 'Every Saturday 6PM', description: 'High-action mixed game night off the Strip. Dealers provided.' },
+  { id: 'hg-003', name: "River Rat's Den", host_horse: 'Horse #3', city: 'Austin', state: 'TX', latitude: 30.2672, longitude: -97.7431, venue_type: 'home_game', games_offered: ['NLH 1/2'], trust_score: 4.2, max_players: 10, is_recurring: true, schedule: 'Every Wednesday 8PM', description: 'Casual home game in South Austin. Great food, cold beer.' },
+  { id: 'hg-004', name: "The Shark Tank", host_horse: 'Horse #4', city: 'Miami', state: 'FL', latitude: 25.7617, longitude: -80.1918, venue_type: 'home_game', games_offered: ['NLH 2/5', 'NLH 5/10'], trust_score: 4.7, max_players: 9, is_recurring: true, schedule: 'Every Thursday 9PM', description: 'Brickell penthouse game. Must be vouched in. Deep stacks.' },
+  { id: 'hg-005', name: "Dead Man's Hand Club", host_horse: 'Horse #5', city: 'Denver', state: 'CO', latitude: 39.7392, longitude: -104.9903, venue_type: 'home_game', games_offered: ['NLH 1/2', 'PLO4 1/2'], trust_score: 4.0, max_players: 8, is_recurring: true, schedule: 'Every Friday 7PM', description: 'LoHi garage game. Mixed NLH/PLO rotation every orbit.' },
+  { id: 'hg-006', name: "Pocket Rockets Lounge", host_horse: 'Horse #6', city: 'New York', state: 'NY', latitude: 40.7128, longitude: -74.0060, venue_type: 'home_game', games_offered: ['NLH 2/5', 'NLH 5/10'], trust_score: 4.6, max_players: 9, is_recurring: true, schedule: 'Every Saturday 8PM', description: 'Midtown loft game. Professional setup with chip runner.' },
+  { id: 'hg-007', name: "The Gutshot Garage", host_horse: 'Horse #7', city: 'Detroit', state: 'MI', latitude: 42.3314, longitude: -83.0458, venue_type: 'home_game', games_offered: ['NLH 1/2'], trust_score: 3.8, max_players: 10, is_recurring: true, schedule: 'Every Sunday 4PM', description: 'Sunday funday game in Corktown. Bomb pots every half hour.' },
+  { id: 'hg-008', name: "Full Tilt Fridays", host_horse: 'Horse #8', city: 'Los Angeles', state: 'CA', latitude: 34.0522, longitude: -118.2437, venue_type: 'home_game', games_offered: ['NLH 1/2', 'NLH 2/5', 'PLO4 1/2'], trust_score: 4.4, max_players: 9, is_recurring: true, schedule: 'Every Friday 8PM', description: 'Hollywood Hills home game. Multiple table action. Great views.' },
+  { id: 'hg-009', name: "The Felt Room", host_horse: 'Horse #9', city: 'Seattle', state: 'WA', latitude: 47.6062, longitude: -122.3321, venue_type: 'home_game', games_offered: ['NLH 1/2', 'Short Deck 1/2'], trust_score: 4.3, max_players: 8, is_recurring: true, schedule: 'Every Wednesday 7PM', description: 'Capitol Hill game with craft beer on tap. Short deck available.' },
+  { id: 'hg-010', name: "Bayou Bluffers", host_horse: 'Horse #10', city: 'New Orleans', state: 'LA', latitude: 29.9511, longitude: -90.0715, venue_type: 'home_game', games_offered: ['NLH 1/2', 'PLO4 1/2'], trust_score: 4.1, max_players: 9, is_recurring: true, schedule: 'Every Saturday 7PM', description: 'Garden District game with Cajun food spread. Live music backdrop.' },
+  { id: 'hg-011', name: "Philly Grinders", host_horse: 'Horse #11', city: 'Philadelphia', state: 'PA', latitude: 39.9526, longitude: -75.1652, venue_type: 'home_game', games_offered: ['NLH 1/2', 'NLH 2/5'], trust_score: 4.2, max_players: 10, is_recurring: true, schedule: 'Every Thursday 7PM', description: 'Fishtown row house game. Deep stacks, fast action.' },
+  { id: 'hg-012', name: "Bourbon & Bluffs", host_horse: 'Horse #12', city: 'Nashville', state: 'TN', latitude: 36.1627, longitude: -86.7816, venue_type: 'home_game', games_offered: ['NLH 2/5'], trust_score: 4.5, max_players: 8, is_recurring: true, schedule: 'Every Friday 8PM', description: 'East Nashville bourbon bar meets poker night. Premium whiskey selection.' },
+  { id: 'hg-013', name: "Desert Dogs Poker", host_horse: 'Horse #13', city: 'Phoenix', state: 'AZ', latitude: 33.4484, longitude: -112.0740, venue_type: 'home_game', games_offered: ['NLH 1/2', 'PLO5 1/2'], trust_score: 3.9, max_players: 9, is_recurring: true, schedule: 'Every Saturday 6PM', description: 'Scottsdale patio game. Pool table and poker. PLO5 added on request.' },
+  { id: 'hg-014', name: "The Nuts House", host_horse: 'Horse #14', city: 'Portland', state: 'OR', latitude: 45.5152, longitude: -122.6784, venue_type: 'home_game', games_offered: ['NLH 1/2'], trust_score: 4.0, max_players: 8, is_recurring: true, schedule: 'Every Sunday 3PM', description: 'Alberta Arts District. Vegan snacks, craft beer, and poker.' },
+  { id: 'hg-015', name: "Motor City Mavericks", host_horse: 'Horse #15', city: 'Indianapolis', state: 'IN', latitude: 39.7684, longitude: -86.1581, venue_type: 'home_game', games_offered: ['NLH 1/2', 'NLH 2/5'], trust_score: 4.3, max_players: 10, is_recurring: true, schedule: 'Every Wednesday 7PM', description: 'Broad Ripple area. Race weekend specials with bigger buy-ins.' },
+  { id: 'hg-016', name: "Aloha Hold'em", host_horse: 'Horse #16', city: 'Honolulu', state: 'HI', latitude: 21.3069, longitude: -157.8583, venue_type: 'home_game', games_offered: ['NLH 1/2', 'PLO4 1/2'], trust_score: 4.6, max_players: 8, is_recurring: true, schedule: 'Every Friday 7PM', description: 'Lanai poker with ocean views. Aloha spirit required.' },
+  { id: 'hg-017', name: "Steel City Stacks", host_horse: 'Horse #17', city: 'Pittsburgh', state: 'PA', latitude: 40.4406, longitude: -79.9959, venue_type: 'home_game', games_offered: ['NLH 1/2'], trust_score: 4.1, max_players: 9, is_recurring: true, schedule: 'Every Saturday 7PM', description: 'Strip District warehouse loft. Steelers game on the big screen.' },
+  { id: 'hg-018', name: "Lone Star Showdown", host_horse: 'Horse #18', city: 'Houston', state: 'TX', latitude: 29.7604, longitude: -95.3698, venue_type: 'home_game', games_offered: ['NLH 2/5', 'PLO4 2/5'], trust_score: 4.4, max_players: 9, is_recurring: true, schedule: 'Every Thursday 8PM', description: 'Heights bungalow game. Texas-sized pots and Texas BBQ.' },
+  { id: 'hg-019', name: "Bay Area Ballers", host_horse: 'Horse #19', city: 'San Francisco', state: 'CA', latitude: 37.7749, longitude: -122.4194, venue_type: 'home_game', games_offered: ['NLH 2/5', 'NLH 5/10'], trust_score: 4.7, max_players: 8, is_recurring: true, schedule: 'Every Saturday 7PM', description: 'SOMA tech bro game. High stakes, high EV. Catered dinner.' },
+  { id: 'hg-020', name: "Peach State Poker", host_horse: 'Horse #20', city: 'Atlanta', state: 'GA', latitude: 33.7490, longitude: -84.3880, venue_type: 'home_game', games_offered: ['NLH 1/2', 'NLH 2/5'], trust_score: 4.2, max_players: 10, is_recurring: true, schedule: 'Every Friday 8PM', description: 'Buckhead basement game. Southern hospitality and big action.' },
+  { id: 'hg-021', name: "Midwest Maniacs", host_horse: 'Horse #21', city: 'Minneapolis', state: 'MN', latitude: 44.9778, longitude: -93.2650, venue_type: 'home_game', games_offered: ['NLH 1/2', 'PLO4 1/2'], trust_score: 4.0, max_players: 9, is_recurring: true, schedule: 'Every Saturday 6PM', description: 'Uptown duplex game. Heated garage in winter. Mixed games.' },
+  { id: 'hg-022', name: "Capital Grinders", host_horse: 'Horse #22', city: 'Washington', state: 'DC', latitude: 38.9072, longitude: -77.0369, venue_type: 'home_game', games_offered: ['NLH 2/5'], trust_score: 4.5, max_players: 8, is_recurring: true, schedule: 'Every Wednesday 8PM', description: 'Georgetown townhouse game. Hill staffers and lobbyists welcome.' },
+  { id: 'hg-023', name: "Rocky Mountain High Rollers", host_horse: 'Horse #23', city: 'Salt Lake City', state: 'UT', latitude: 40.7608, longitude: -111.8910, venue_type: 'home_game', games_offered: ['NLH 1/2'], trust_score: 3.8, max_players: 9, is_recurring: true, schedule: 'Every Friday 7PM', description: 'Sugarhouse area game. No alcohol but great snacks and action.' },
+  { id: 'hg-024', name: "Bluegrass Bluffers", host_horse: 'Horse #24', city: 'Louisville', state: 'KY', latitude: 38.2527, longitude: -85.7585, venue_type: 'home_game', games_offered: ['NLH 1/2', 'NLH 2/5'], trust_score: 4.3, max_players: 10, is_recurring: true, schedule: 'Every Saturday 7PM', description: 'NuLu loft game. Derby week special with 5/10 tables.' },
+  { id: 'hg-025', name: "Deep South Degens", host_horse: 'Horse #25', city: 'Charlotte', state: 'NC', latitude: 35.2271, longitude: -80.8431, venue_type: 'home_game', games_offered: ['NLH 1/2', 'PLO4 1/2'], trust_score: 4.1, max_players: 9, is_recurring: true, schedule: 'Every Thursday 7PM', description: 'South End warehouse game. PLO4 bomb pots at midnight.' },
+];
 
 export default function HomeGamesPage() {
     const router = useRouter();
@@ -40,12 +71,12 @@ export default function HomeGamesPage() {
 
     // Filters
     const [filters, setFilters] = useState({
-        radius: 100,
+        radius: 'Any',
         gameType: 'all',
         selectedState: 'all',
     });
 
-    // Load all venues for map (static JSON), filtered to home_game
+    // Load home games: seed 25 horse-hosted games + any from venue JSON
     useEffect(() => {
         if (typeof window === 'undefined') return;
         fetch('/data/all-venues.json')
@@ -53,48 +84,30 @@ export default function HomeGamesPage() {
             .then(json => {
                 const v = json.venues || json.data || json || [];
                 const arr = Array.isArray(v) ? v : [];
-                const homeGames = arr.filter(venue => venue.venue_type === 'home_game');
-                setAllHomeGames(homeGames);
-                setVenues(homeGames);
+                const fromJson = arr.filter(venue => venue.venue_type === 'home_game');
+                // Merge seeded + any from DB, dedup by id
+                const seenIds = new Set(SEEDED_HOME_GAMES.map(g => g.id));
+                const merged = [...SEEDED_HOME_GAMES];
+                fromJson.forEach(v => {
+                    if (!seenIds.has(v.id)) {
+                        merged.push(v);
+                        seenIds.add(v.id);
+                    }
+                });
+                setAllHomeGames(merged);
+                setVenues(merged);
                 setLoading(false);
             })
             .catch(() => {
+                // Fallback to seeded data only
+                setAllHomeGames(SEEDED_HOME_GAMES);
+                setVenues(SEEDED_HOME_GAMES);
                 setLoading(false);
             });
     }, []);
 
-    // Also try to fetch from API
-    useEffect(() => {
-        fetchHomeGames();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const fetchHomeGames = useCallback(async () => {
-        try {
-            let url = `/api/poker/venues?venue_type=home_game&limit=200`;
-            if (userLocation) {
-                url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${filters.radius}`;
-            }
-            if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-            if (filters.selectedState && filters.selectedState !== 'all') {
-                url += `&state=${filters.selectedState}`;
-            }
-            const res = await fetch(url);
-            const data = await res.json();
-            const vList = data?.data || data?.venues || (Array.isArray(data) ? data : []);
-            // Only keep home_game type
-            const homeOnly = vList.filter(v => v.venue_type === 'home_game');
-            if (homeOnly.length > 0) {
-                setVenues(homeOnly);
-            }
-        } catch (e) {
-            console.error('Home games fetch failed:', e);
-        }
-    }, [userLocation, searchQuery, filters.radius, filters.selectedState]);
-
-    // Re-fetch on filter change
-    useEffect(() => {
-        fetchHomeGames();
-    }, [fetchHomeGames]);
+    // NOTE: Seeded data is loaded above from the static JSON + hardcoded SEEDED_HOME_GAMES.
+    // When home games have a dedicated API, this can be wired up here.
 
     // GPS auto-request
     const gpsAutoRef = useRef(false);
@@ -407,6 +420,7 @@ export default function HomeGamesPage() {
                                                 venues={sortedVenues}
                                                 userLocation={userLocation}
                                                 fullHeight={mapFullscreen}
+                                                hideLegend={true}
                                                 onVenueClick={(venue) => {
                                                     if (venue?.id) router.push('/hub/venues/' + venue.id);
                                                 }}

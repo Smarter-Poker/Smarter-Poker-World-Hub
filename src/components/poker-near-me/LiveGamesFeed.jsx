@@ -114,6 +114,53 @@ export default function LiveGamesFeed({
     // Global stats from API metadata
     const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null });
     const [isDataStale, setIsDataStale] = useState(false);
+
+    // ─── SIDEBAR STATE ───
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // ─── GPS LOCATION CARRYOVER — restore from localStorage when prop is null ───
+    const [restoredLocation, setRestoredLocation] = useState(null);
+    const [locationCity, setLocationCity] = useState('');
+    const [locationState, setLocationState] = useState('');
+    useEffect(() => {
+        if (userLocation) {
+            // Prop is available — use it and read city/state from localStorage
+            try {
+                setLocationCity(localStorage.getItem('pnm_last_city') || '');
+                setLocationState(localStorage.getItem('pnm_last_state') || '');
+            } catch { /* */ }
+            return;
+        }
+        // No prop — try restoring from localStorage
+        if (typeof window === 'undefined') return;
+        try {
+            // Check sp-user-gps first (main PNM page key)
+            const spGps = localStorage.getItem('sp-user-gps');
+            if (spGps) {
+                const parsed = JSON.parse(spGps);
+                if (parsed.lat && parsed.lng && parsed.time && (Date.now() - parsed.time) < 86400000) {
+                    setRestoredLocation({ lat: parsed.lat, lng: parsed.lng });
+                    setLocationCity(parsed.label?.split(',')[0]?.trim() || '');
+                    setLocationState(parsed.label?.split(',')[1]?.trim() || '');
+                    return;
+                }
+            }
+            // Fallback: lobby page's GPS key
+            const lobbyLoc = localStorage.getItem('pnm_last_location');
+            const lobbyEnabled = localStorage.getItem('pnm_location_enabled');
+            if (lobbyLoc && lobbyEnabled === '1') {
+                const parsed = JSON.parse(lobbyLoc);
+                if (parsed.lat && parsed.lng) {
+                    setRestoredLocation({ lat: parsed.lat, lng: parsed.lng });
+                    setLocationCity(localStorage.getItem('pnm_last_city') || '');
+                    setLocationState(localStorage.getItem('pnm_last_state') || '');
+                }
+            }
+        } catch { /* ignore corrupt data */ }
+    }, [userLocation]);
+
+    // Effective location = prop OR restored from localStorage
+    const effectiveLocation = userLocation || restoredLocation;
     
     // Filters — restore from session if available
     const savedFilters = typeof window !== 'undefined' ? loadFilters('lgf', {}) : {};
@@ -141,11 +188,11 @@ export default function LiveGamesFeed({
     const debounceTimerRef = useRef(null);
     const countdownRef = useRef(null);
 
-    // ─── CONSOLIDATED DISTANCE CALC ───
+    // ─── CONSOLIDATED DISTANCE CALC (uses effectiveLocation) ───
     const calcDist = useCallback((v) => {
-        if (!userLocation || !v.latitude || !v.longitude) return 99999;
-        return haversineMiles(userLocation.lat, userLocation.lng, v.latitude, v.longitude);
-    }, [userLocation]);
+        if (!effectiveLocation || !v.latitude || !v.longitude) return 99999;
+        return haversineMiles(effectiveLocation.lat, effectiveLocation.lng, v.latitude, v.longitude);
+    }, [effectiveLocation]);
 
     // ─── FETCH LIVE DATA ───
     const fetchGlobalLiveData = useCallback(async (isRealtimeEvent = false) => {
@@ -321,7 +368,7 @@ export default function LiveGamesFeed({
         }
 
         // 2. Filter by Distance
-        if (userLocation && filterRadius !== 'any') {
+        if (effectiveLocation && filterRadius !== 'any') {
             list = list.filter(v => {
                 if (!v.latitude || !v.longitude) return true;
                 return calcDist(v) <= Number(filterRadius);
@@ -350,7 +397,7 @@ export default function LiveGamesFeed({
         });
 
         return list;
-    }, [venues, liveData, filterState, filterRadius, filterSort, filterGameType, filterStakes, userLocation, selectedVenue, calcDist]);
+    }, [venues, liveData, filterState, filterRadius, filterSort, filterGameType, filterStakes, effectiveLocation, selectedVenue, calcDist]);
 
     // ─── SEARCH LOGIC ───
     const handleSearchInput = (value) => {
@@ -456,53 +503,78 @@ export default function LiveGamesFeed({
         );
     };
 
-    // ─── RENDER: LIVE VENUE CARD ───
+    // ─── GAME TYPE COLOR MAPPING ───
+    const getGameChipStyle = (gameName) => {
+        if (!gameName) return {};
+        const upper = gameName.toUpperCase();
+        if (upper.includes('PLO') || upper.includes('OMAHA')) return { bg: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.22)' };
+        if (upper.includes('NLH') || upper.includes('NO LIMIT') || upper.includes('HOLDEM') || upper.includes("HOLD'EM")) return { bg: 'rgba(212,168,83,0.12)', color: '#d4a853', border: 'rgba(212,168,83,0.22)' };
+        if (upper.includes('LIMIT') && !upper.includes('NO LIMIT')) return { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' };
+        if (upper.includes('MIXED') || upper.includes('HORSE') || upper.includes('8-GAME')) return { bg: 'rgba(6,182,212,0.12)', color: '#22d3ee', border: 'rgba(6,182,212,0.22)' };
+        if (upper.includes('STUD')) return { bg: 'rgba(236,72,153,0.12)', color: '#f472b6', border: 'rgba(236,72,153,0.22)' };
+        if (upper.includes('BIG O')) return { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'rgba(245,158,11,0.22)' };
+        return {};
+    };
+
+    // ─── RENDER: LIVE VENUE CARD (PREMIUM UPGRADE) ───
     const renderLiveVenueCard = (v, index) => {
         const dist = calcDist(v);
         const heat = getHeatLevel(v.totalTables);
         const isFav = favorites && favorites[v.id];
+        const initColor = getInitialsColor(v.id || 0);
+        const venueInitials = (v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+        const trustScore = v.trust_score || 0;
+        const trustPct = Math.round((trustScore / 5) * 100);
+        const trustColor = trustScore >= 4.5 ? '#22c55e' : trustScore >= 4.0 ? '#3b82f6' : trustScore >= 3.0 ? '#f59e0b' : '#ef4444';
+        const trustLabel = trustScore >= 4.5 ? 'Excellent' : trustScore >= 4.0 ? 'Good' : trustScore >= 3.0 ? 'Moderate' : 'Low';
+        // Collect unique game type chips from breakdown
+        const gameTypeChips = (() => {
+            if (!v.games || v.games.length === 0) return [];
+            const seen = new Set();
+            return v.games.map(g => {
+                const norm = normalizeGameName(g.game);
+                const label = norm.canonical !== 'Unknown' ? norm.canonical : g.game;
+                if (seen.has(label)) return null;
+                seen.add(label);
+                return label;
+            }).filter(Boolean).slice(0, 5);
+        })();
         
         return (
             <div 
                 key={v.bravo_slug} 
                 style={{ 
                     position: 'relative',
-                    animation: `lgf-fadeInUp 0.3s ease-out ${index * 0.03}s both`,
+                    animation: `lgf-fadeInUp 0.3s ease-out ${Math.min(index * 0.04, 0.4)}s both`,
                 }}
             >
-                {/* Distance Badge */}
-                {userLocation && v.latitude && dist < 99999 && (
-                    <div style={{ position: 'absolute', top: -8, left: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: '1px solid #3fb950', fontSize: 10, fontWeight: 800, color: '#3fb950', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                        {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`} away
-                    </div>
-                )}
-                
-                {/* Live Games Summary Badge */}
-                <div style={{ position: 'absolute', top: -8, right: 16, zIndex: 10, padding: '2px 8px', borderRadius: 8, background: '#1f2937', border: `1px solid ${heat.color}`, fontSize: 10, fontWeight: 800, color: heat.color, boxShadow: '0 2px 4px rgba(0,0,0,0.5)', display: 'flex', gap: 6 }}>
-                    <span>{v.totalTables} RUNNING</span>
-                    {v.totalWait > 0 && <span style={{ color: '#d4a853' }}>| {v.totalWait} WAIT</span>}
-                </div>
+                {/* Top accent gradient line */}
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderRadius: '14px 14px 0 0', zIndex: 2,
+                    background: `linear-gradient(90deg, ${heat.color}, ${heat.color}55, transparent)`,
+                }} />
 
                 {/* Venue Card */}
                 <div style={{ 
-                    background: heat.bg, 
+                    background: 'rgba(13,17,23,0.95)', 
                     border: `1px solid ${heat.border}`, 
-                    borderLeft: `3px solid ${heat.color}`,
                     borderRadius: 14, 
                     overflow: 'hidden', 
-                    padding: '14px 16px',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                    padding: '16px 18px 14px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
                     transition: 'all 0.2s ease',
                     cursor: v._hasParentVenue && router ? 'pointer' : 'default',
-                }}>
-                    {/* Header — with venue logo */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                        <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 0, alignItems: 'center' }}>
-                            {/* Venue Logo */}
+                }}
+                onClick={() => { if (v._hasParentVenue && router) router.push(`/hub/venues/${v.id}`); }}
+                >
+                    {/* === HEADER ZONE === */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', gap: 12, flex: 1, minWidth: 0, alignItems: 'center' }}>
+                            {/* Venue Logo — 54px premium */}
                             {v.logoUrl ? (
                                 <img 
                                     src={v.logoUrl} alt="" loading="lazy"
-                                    style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)' }}
+                                    style={{ width: 54, height: 54, borderRadius: 10, objectFit: 'contain', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.9)', padding: 4 }}
                                     onError={(e) => {
                                         const fallback = getVenueLogoFallback(v);
                                         if (fallback && e.target.src !== fallback) {
@@ -513,122 +585,122 @@ export default function LiveGamesFeed({
                                     }}
                                 />
                             ) : (
-                                <div style={{ width: 36, height: 36, borderRadius: 8, background: getInitialsColor(v.id || 0).bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: getInitialsColor(v.id || 0).text, flexShrink: 0, border: `1px solid ${getInitialsColor(v.id || 0).border}` }}>
-                                    {(v.name || '?').split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                                <div style={{ width: 54, height: 54, borderRadius: 10, background: initColor.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: initColor.text, flexShrink: 0, border: `1px solid ${initColor.border}` }}>
+                                    {venueInitials}
                                 </div>
                             )}
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <h3 
-                                        style={{ 
-                                            fontSize: 15, fontWeight: 700, color: '#e0e8f0', margin: 0,
-                                            cursor: v._hasParentVenue && router ? 'pointer' : 'default',
-                                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                            flex: 1,
-                                        }}
-                                        onClick={() => {
-                                            if (v._hasParentVenue && router) router.push(`/hub/venues/${v.id}`);
-                                        }}
-                                    >
-                                        {v.name}
-                                    </h3>
-                                    {/* Favorite Button */}
-                                    {handleToggleFavorite && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleToggleFavorite(v.id, v); }}
-                                            style={{ 
-                                                background: 'none', border: 'none', cursor: 'pointer', padding: 2, 
-                                                color: isFav ? '#ef4444' : 'rgba(200,214,229,0.25)', fontSize: 16,
-                                                transition: 'color 0.2s', flexShrink: 0, lineHeight: 1,
-                                            }}
-                                            title={isFav ? 'Remove from saved' : 'Save venue'}
-                                        >
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke="currentColor" strokeWidth="2">
-                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                            </svg>
-                                        </button>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                                    {v.name}
+                                </h3>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                                     {(v.city || v.state) && (
-                                        <span style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
+                                        <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.5)' }}>
                                             {[v.city, v.state].filter(Boolean).join(', ')}
                                         </span>
                                     )}
                                     <SourceBadge source={v.primarySource} />
-                                    {!v._isLive && (
-                                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>LAST KNOWN</span>
-                                    )}
                                 </div>
                             </div>
                         </div>
+                        {/* Right: Fav + Distance */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                            {handleToggleFavorite && (
+                                <button onClick={(e) => { e.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, transition: 'transform 0.2s' }}
+                                    title={isFav ? 'Remove From Saved' : 'Save Venue'}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke={isFav ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
+                                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                                    </svg>
+                                </button>
+                            )}
+                            {effectiveLocation && v.latitude && dist < 99999 && (
+                                <span style={{ fontSize: 11, color: '#3fb950', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
+                                    {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Live Games Stats */}
-                    <div style={{ display: 'flex', gap: 20, marginBottom: 6, marginTop: 8 }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: heat.color }}>{v.totalTables}</div>
-                            <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tables</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: v.totalWait > 0 ? '#d4a853' : 'rgba(200,214,229,0.2)' }}>{v.totalWait}</div>
-                            <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                Waiting{v.waitEstimate ? ` (~${v.waitEstimate.label})` : ''}
-                            </div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: '#d4a853' }}>{v.games?.length || 0}</div>
-                            <div style={{ fontSize: 9, color: 'rgba(200,214,229,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Games</div>
-                        </div>
-                        {/* View Venue + Report Buttons */}
-                        {v._hasParentVenue && (
-                            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                {user && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); setReportVenue({ id: v.id, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
-                                        style={{ 
-                                            background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.2)', 
-                                            borderRadius: 8, padding: '6px 12px', color: '#d4a853', 
-                                            fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                            display: 'flex', alignItems: 'center', gap: 4,
-                                        }}
-                                    >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                        Report
-                                    </button>
-                                )}
-                                {router && (
-                                    <button 
-                                        onClick={() => router.push(`/hub/venues/${v.id}`)}
-                                        style={{ 
-                                            background: 'rgba(110,231,239,0.08)', border: '1px solid rgba(110,231,239,0.2)', 
-                                            borderRadius: 8, padding: '6px 12px', color: '#6ee7ef', 
-                                            fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                                            display: 'flex', alignItems: 'center', gap: 4,
-                                        }}
-                                    >
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-                                        View
-                                    </button>
-                                )}
-                            </div>
+                    {/* === LIVE BADGES === */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                        <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.35)', boxShadow: '0 0 12px rgba(34,197,94,0.2)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
+                            {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
+                        </span>
+                        {v.totalWait > 0 && (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(212,168,83,0.12)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.3)' }}>
+                                {v.totalWait} Waiting{v.waitEstimate ? ` (~${v.waitEstimate.label})` : ''}
+                            </span>
+                        )}
+                        {!v._isLive && (
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>Last Known</span>
                         )}
                     </div>
 
+                    {/* === GAME TYPE CHIPS (color-coded) === */}
+                    {gameTypeChips.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                            {gameTypeChips.map((g, idx) => {
+                                const chipStyle = getGameChipStyle(g);
+                                return (
+                                    <span key={g || idx} style={{
+                                        padding: '4px 10px', borderRadius: 5, fontSize: 11.5, fontWeight: 600,
+                                        background: chipStyle.bg || 'rgba(255,255,255,0.06)',
+                                        color: chipStyle.color || 'rgba(255,255,255,0.65)',
+                                        border: `1px solid ${chipStyle.border || 'rgba(255,255,255,0.1)'}`,
+                                    }}>{g}</span>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     {/* Game Breakdown — COLLAPSIBLE */}
                     {renderTableBreakdown(v.bravo_slug, v.games)}
+
+                    {/* === ACTION BAR === */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            {user && (
+                                <button onClick={(e) => { e.stopPropagation(); setReportVenue({ id: v.id, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(212,168,83,0.12)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                    Report
+                                </button>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                            {v._hasParentVenue && router && (
+                                <button onClick={(e) => { e.stopPropagation(); router.push(`/hub/venues/${v.id}`); }}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                                    Details
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* === TRUST SCORE BAR === */}
+                    {trustScore > 0 && (
+                        <div style={{ paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 11.5, fontWeight: 700, color: trustColor }}>Trust: {trustLabel}</span>
+                                <span style={{ fontSize: 11.5, fontWeight: 800, color: trustColor }}>{trustScore}/5</span>
+                            </div>
+                            <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${trustPct}%`, borderRadius: 3, background: `linear-gradient(90deg, ${trustColor}, ${trustColor}77)`, boxShadow: `0 0 8px ${trustColor}33`, transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Last Updated — RELATIVE TIME with Stale Indicator */}
                     {v.last_updated && (() => {
                         const staleInfo = isStaleData(v.last_updated);
                         return (
-                            <div 
-                                style={{ marginTop: 6, fontSize: 10, color: staleInfo.stale ? 'rgba(245,158,11,0.6)' : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
-                                title={new Date(v.last_updated).toLocaleString()}
-                            >
-                                {staleInfo.stale && (
-                                    <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>
-                                )}
+                            <div style={{ marginTop: 6, fontSize: 10, color: staleInfo.stale ? 'rgba(245,158,11,0.6)' : 'rgba(200,214,229,0.25)', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}
+                                title={new Date(v.last_updated).toLocaleString()}>
+                                {staleInfo.stale && (<span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 3, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', fontWeight: 700, textTransform: 'uppercase' }}>STALE</span>)}
                                 Updated {staleInfo.age}
                             </div>
                         );
@@ -650,54 +722,85 @@ export default function LiveGamesFeed({
     }, [liveData, venues]);
 
     return (
-        <div style={{ padding: '0 16px 40px' }}>
+        <div style={{ padding: '0 0 40px' }}>
             {/* ─── HEADER ─── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 16px' }}>
                 <div>
                     <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>Live Games</h2>
                     <p style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', margin: 0 }}>
-                        Powered by Smarter.Poker Intelligence
+                        Powered By Smarter.Poker Intelligence
                     </p>
                 </div>
-                <button 
-                    onClick={handleResetFilters}
-                    style={{ 
-                        background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)', 
-                        color: '#fff', border: '1px solid rgba(255,255,255,0.1)', 
-                        borderRadius: 10, padding: '8px 14px', fontSize: 12, 
-                        fontWeight: 700, cursor: 'pointer', display: 'flex', 
-                        alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(46,160,67,0.4)',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.3)', fontFamily: 'inherit',
-                    }}
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    RESET
-                </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {/* Mobile filter toggle */}
+                    <button onClick={() => setSidebarOpen(!sidebarOpen)}
+                        className="lgf-filter-toggle"
+                        style={{
+                            display: 'none', /* shown via CSS media query */
+                            alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10,
+                            background: sidebarOpen ? 'rgba(212,168,83,0.15)' : 'rgba(255,255,255,0.05)',
+                            border: sidebarOpen ? '1px solid rgba(212,168,83,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                            color: sidebarOpen ? '#d4a853' : '#8b949e', fontSize: 12, fontWeight: 700,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                        }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
+                        Filters
+                    </button>
+                    <button 
+                        onClick={handleResetFilters}
+                        style={{ 
+                            background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)', 
+                            color: '#fff', border: '1px solid rgba(255,255,255,0.1)', 
+                            borderRadius: 10, padding: '8px 14px', fontSize: 12, 
+                            fontWeight: 700, cursor: 'pointer', display: 'flex', 
+                            alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(46,160,67,0.4)',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.3)', fontFamily: 'inherit',
+                        }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        RESET
+                    </button>
+                </div>
             </div>
+
+            {/* ─── GPS LOCATION BANNER ─── */}
+            {effectiveLocation && (locationCity || locationState) && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', marginBottom: 10,
+                    background: 'linear-gradient(90deg, rgba(63,185,80,0.06), rgba(63,185,80,0.02), rgba(63,185,80,0.06))',
+                    borderBottom: '1px solid rgba(63,185,80,0.1)', fontSize: 12, color: 'rgba(200,214,229,0.6)', fontWeight: 600,
+                }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span style={{ color: '#3fb950' }}>Location Active</span>
+                    <span style={{ color: 'rgba(200,214,229,0.35)' }}>{locationCity}{locationState ? `, ${locationState}` : ''}</span>
+                </div>
+            )}
 
             {/* ─── STALE DATA BANNER ─── */}
             {isDataStale && !selectedVenue && (
                 <div style={{
-                    marginBottom: 16, padding: '12px 16px', borderRadius: 10,
+                    margin: '0 16px 16px', padding: '12px 16px', borderRadius: 10,
                     background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
                     display: 'flex', alignItems: 'center', gap: 12,
                     boxShadow: '0 4px 12px rgba(245,158,11,0.1)'
                 }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5">
                         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                        <line x1="12" y1="9" x2="12" y2="13"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
                     <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>Live Data may be outdated</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b' }}>Live Data May Be Outdated</div>
                         <div style={{ fontSize: 11, color: 'rgba(245,158,11,0.8)', marginTop: 2 }}>
-                            Last network sync: {globalStats.lastScrape ? timeAgo(globalStats.lastScrape) : 'Unknown'}. Intelligence engines may be experiencing delays.
+                            Last Network Sync: {globalStats.lastScrape ? timeAgo(globalStats.lastScrape) : 'Unknown'}. Intelligence Engines May Be Experiencing Delays.
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* ─── SIDEBAR + CONTENT LAYOUT ─── */}
+            <div className="lgf-layout" style={{ display: 'flex', gap: 16, padding: '0 16px' }}>
 
             {/* ─── GLOBAL STATS DASHBOARD ─── */}
             {!selectedVenue && globalStats.venues > 0 && (
@@ -839,7 +942,7 @@ export default function LiveGamesFeed({
                                     background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '5px 8px', color: '#c9d1d9', fontSize: 11, fontFamily: 'inherit', cursor: 'pointer', marginLeft: 'auto'
                                 }}>
                                     <option value="tables">Most Active</option>
-                                    {userLocation && <option value="distance">Nearest</option>}
+                                    {effectiveLocation && <option value="distance">Nearest</option>}
                                     <option value="trust">Trust Score</option>
                                 </select>
                             )}
@@ -935,7 +1038,7 @@ export default function LiveGamesFeed({
                         viewMode === 'map' && !selectedVenue ? (
                             <VenueMapPanel 
                                 venues={mergedVenues.filter(v => v.latitude && v.longitude)} 
-                                userLocation={userLocation} 
+                                userLocation={effectiveLocation} 
                                 onVenueSelect={(v) => { if(setSelectedVenueForReview) setSelectedVenueForReview(null); if (router) router.push(`/hub/venues/${v.id}`); }} 
                             />
                         ) : (

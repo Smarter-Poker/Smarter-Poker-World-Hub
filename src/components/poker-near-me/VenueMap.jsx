@@ -344,7 +344,7 @@ function buildPopupHtml(venue) {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick }) {
+export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick, hideLegend = false }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -606,7 +606,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
         .addTo(map)
         .bindPopup('<div style="padding:10px 14px;"><b style="color:#fff;font-size:14px;">You Are Here</b><br/><span style="font-size:11px;color:rgba(148,163,184,0.7);">Your Current Location</span></div>');
 
-      map.setView([userLocation.lat, userLocation.lng], 8);
+      // Do NOT auto-zoom to user location — keep full US overview so users can explore all venues
     }
 
     return () => {
@@ -643,7 +643,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
         .addTo(map)
         .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
 
-      map.setView([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 12));
+      // Do NOT auto-zoom — user explores the full map freely
     }
   }, [userLocation, mapReady]);
 
@@ -706,7 +706,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
         }}
       />
       {/* ═══ VENUE TYPE LEGEND ═══ */}
-      {mapReady && (
+      {mapReady && !hideLegend && (
         <div className="venue-map-legend" style={{ opacity: legendCollapsed ? 0.5 : 1, cursor: 'pointer' }}
           onClick={(e) => { e.stopPropagation(); setLegendCollapsed(!legendCollapsed); }}>
           <div className="venue-map-legend-title">{legendCollapsed ? '◆ Legend' : 'Venue Types'}</div>
