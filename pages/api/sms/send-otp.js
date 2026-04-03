@@ -59,12 +59,8 @@ export default async function handler(req, res) {
           console.error('[send-otp] Twilio credentials not configured');
           return res.status(500).json({ success: false, error: 'SMS service not configured' });
       }
-      if (!supabaseUrl || !supabaseServiceKey) {
-          console.error('[send-otp] Supabase credentials not configured');
-          return res.status(500).json({ success: false, error: 'Server configuration error' });
-      }
 
-      
+      const supabase = getSupabase();
 
       try {
           const { phone } = req.body;
