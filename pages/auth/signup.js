@@ -553,7 +553,6 @@ export default function SignUpPage() {
                             state: formData.state,
                             username: formData.pokerAlias,
                             player_number: nextPlayerNumber,
-                            xp_total: 100, // Starting XP bonus
                             diamonds: 500, // Welcome diamond bonus
                             diamond_multiplier: 1.0,
                             streak_count: 0,
@@ -585,7 +584,6 @@ export default function SignUpPage() {
                                 state: formData.state,
                                 username: formData.pokerAlias,
                                 player_number: nextPlayerNumber,
-                                xp_total: 100,
                                 diamonds: 500,
                                 diamond_multiplier: 1.0,
                                 streak_count: 0,
