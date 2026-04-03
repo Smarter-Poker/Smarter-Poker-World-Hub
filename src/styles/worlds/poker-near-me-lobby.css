@@ -309,6 +309,10 @@
     animation: none !important;
     opacity: 1;
   }
+  .lobby-stat-shimmer {
+    animation: none !important;
+    background: rgba(110,231,239,0.12);
+  }
 }
 
 /* ─── SUGGESTION & HISTORY HOVER ─── */
