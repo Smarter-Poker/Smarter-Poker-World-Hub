@@ -1622,13 +1622,23 @@ function UniversalDynamicTable({
         }
     }, [showFeedback, moveClassification]);
 
-    // Phase 22: Smart auto-advance — GTOW-style adaptive timing
+    // Phase 22+: Smart auto-advance with countdown visual
     // Best/Correct: 2s. Inaccuracy: 4s. Wrong/Blunder: stays until user clicks.
-    // Only active when trainerConfig.autoAdvance is enabled.
+    const [autoAdvanceCountdown, setAutoAdvanceCountdown] = React.useState(null); // null = no countdown, number = ms remaining
+    const [autoAdvanceTotal, setAutoAdvanceTotal] = React.useState(null);
+
     useEffect(() => {
-        if (!showFeedback || !onNextHand || !computedClassification) return;
+        if (!showFeedback || !onNextHand || !computedClassification) {
+            setAutoAdvanceCountdown(null);
+            setAutoAdvanceTotal(null);
+            return;
+        }
         const autoAdvEnabled = trainerConfig?.autoAdvance !== false; // Default ON
-        if (!autoAdvEnabled) return;
+        if (!autoAdvEnabled) {
+            setAutoAdvanceCountdown(null);
+            setAutoAdvanceTotal(null);
+            return;
+        }
 
         let delay = null;
         if (computedClassification === 'best' || computedClassification === 'correct') {
@@ -1639,10 +1649,32 @@ function UniversalDynamicTable({
         // Wrong/Blunder: no auto-advance — user should study the feedback
 
         if (delay) {
+            setAutoAdvanceTotal(delay);
+            setAutoAdvanceCountdown(delay);
+
+            // Tick the countdown every 50ms for smooth visual
+            const tickInterval = setInterval(() => {
+                setAutoAdvanceCountdown(prev => {
+                    if (prev === null || prev <= 0) return 0;
+                    return prev - 50;
+                });
+            }, 50);
+
             const timerId = setTimeout(() => {
+                setAutoAdvanceCountdown(null);
+                setAutoAdvanceTotal(null);
                 onNextHand();
             }, delay);
-            return () => clearTimeout(timerId);
+
+            return () => {
+                clearTimeout(timerId);
+                clearInterval(tickInterval);
+                setAutoAdvanceCountdown(null);
+                setAutoAdvanceTotal(null);
+            };
+        } else {
+            setAutoAdvanceCountdown(null);
+            setAutoAdvanceTotal(null);
         }
     }, [showFeedback, computedClassification, onNextHand, trainerConfig?.autoAdvance]);
 
@@ -3400,6 +3432,7 @@ function UniversalDynamicTable({
                                     whileHover={{ scale: 1.04, boxShadow: isMultiStreetActive ? '0 0 16px rgba(251,146,60,0.3)' : '0 0 16px rgba(34,197,94,0.3)' }}
                                     whileTap={{ scale: 0.96 }}
                                     style={{
+                                        position: 'relative', overflow: 'hidden',
                                         padding: '12px 32px', borderRadius: 10,
                                         border: isMultiStreetActive
                                             ? '1.5px solid rgba(251, 146, 60, 0.6)'
@@ -3416,7 +3449,30 @@ function UniversalDynamicTable({
                                     }}
                                 >
                                     {isMultiStreetActive ? 'Continue Hand →' : 'Next Hand →'}
-                                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontWeight: 600 }}>SPACE</span>
+                                    {autoAdvanceCountdown !== null && autoAdvanceTotal && (
+                                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginLeft: 8, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                                            {Math.max(0, Math.ceil(autoAdvanceCountdown / 1000))}s
+                                        </span>
+                                    )}
+                                    {!autoAdvanceCountdown && (
+                                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontWeight: 600 }}>SPACE</span>
+                                    )}
+                                    {/* Auto-advance progress bar */}
+                                    {autoAdvanceCountdown !== null && autoAdvanceTotal && (
+                                        <div style={{
+                                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                                            height: 3, borderRadius: '0 0 10px 10px', overflow: 'hidden',
+                                            background: 'rgba(0,0,0,0.3)',
+                                        }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${Math.max(0, (autoAdvanceCountdown / autoAdvanceTotal) * 100)}%`,
+                                                background: isMultiStreetActive ? '#fb923c' : '#22c55e',
+                                                transition: 'width 50ms linear',
+                                                borderRadius: '0 0 10px 10px',
+                                            }} />
+                                        </div>
+                                    )}
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
