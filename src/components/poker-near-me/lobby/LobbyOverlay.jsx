@@ -450,7 +450,7 @@ export default function LobbyOverlay({
               //    0 = no badge
               //   >0 = show count
               const showBadge = badgeVal > 0;
-              const badgeText = badgeVal > 99 ? '99+' : String(badgeVal);
+              const badgeText = badgeVal > 50 ? '50+' : String(badgeVal);
               // Color coding per category
               const badgeColor = hotspot.id === 'livegames' ? '#3fb950'
                 : hotspot.id === 'favorites' ? '#f59e0b'
@@ -530,7 +530,7 @@ export default function LobbyOverlay({
           pointerEvents: 'none',
         }}>
           {[
-            { value: liveData?.venueCount || liveData?.liveGameCount || '—', label: 'Venues', color: '#6ee7ef', show: true },
+            { value: liveData?.totalVenueCount || liveData?.venueCount || '—', label: 'Venues', color: '#6ee7ef', show: true },
             { value: liveData?.liveGameCount || '—', label: 'Live Tables', color: '#3fb950', show: (liveData?.liveGameCount || 0) > 0 },
             { value: liveData?.dailyCount || '—', label: 'Today\'s Events', color: '#d4a853', show: true },
             { value: liveData?.savedCount || 0, label: 'Saved', color: '#f59e0b', show: (liveData?.savedCount || 0) > 0 },

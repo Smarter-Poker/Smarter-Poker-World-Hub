@@ -36,17 +36,10 @@ export default async function handler(req, res) {
 
     try {
       // Fetch all active venues from Supabase
+      // Use * to avoid crashing on missing columns — the JSON export doesn't need a strict schema
       const { data: venues, error } = await getSupabase()
         .from('poker_venues')
-        .select(`
-          id, name, slug, address, city, state, zip, country,
-          latitude, longitude, phone, website, email,
-          hours, amenities, games_offered, tournament_schedule,
-          rating, review_count, photo_url, photos,
-          is_verified, is_active, source, source_id,
-          commander_enabled, commander_tier,
-          created_at, updated_at
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('name', { ascending: true })
             .limit(1000);

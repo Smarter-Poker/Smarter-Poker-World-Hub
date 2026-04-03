@@ -41,7 +41,17 @@ async function ingestLatestVideos() {
     const results = { found: 0, imported: 0, skipped: 0, errors: [] };
 
     try {
-        const feed = await parser.parseURL(RSS_URL);
+        let feed;
+        try {
+            feed = await Promise.race([
+                parser.parseURL(RSS_URL),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('RSS fetch timeout (15s)')), 15000)),
+            ]);
+        } catch (fetchErr) {
+            console.warn('[PokerNews] RSS fetch failed (non-fatal):', fetchErr.message);
+            results.errors.push(`RSS fetch failed: ${fetchErr.message}`);
+            return results; // Return partial results instead of crashing
+        }
         results.found = feed.items.length;
 
         // 1. Find Author (PokerNews Bot)

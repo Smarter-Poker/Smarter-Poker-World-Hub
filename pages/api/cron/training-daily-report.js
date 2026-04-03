@@ -48,6 +48,7 @@ export default async function handler(req, res) {
           const dayStart = new Date(now);
           dayStart.setHours(dayStart.getHours() - 24); // Past 24 hours
           const reportDate = now.toISOString().split('T')[0];
+          const reportWeek = reportDate; // Daily report keyed by date (despite legacy "week" column name)
 
           // Get all users who trained today
           const { data: sessions, error: sessionsError } = await supabase

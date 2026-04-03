@@ -1494,7 +1494,7 @@ export default function PokerNearMeLobby() {
                   Set Your Filters Above and Tap Search. Enable GPS for Distance-Based Results.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20 }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '700+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{new Set(venues.map(v => v.state).filter(Boolean)).size || '41'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
               </div>
@@ -1845,7 +1845,7 @@ export default function PokerNearMeLobby() {
                   Enable GPS to Find Games Near You, or Set Your Search Parameters Above and Tap Search. Filter by Venue Type, Game Type, Distance, and Buy-In Range.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '500+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '700+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d2a8ff' }}>{dailyTournaments.length > 0 ? dailyTournaments.length.toLocaleString() : '3,270'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Tournaments</div></div>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{new Set(venues.map(v => v.state).filter(Boolean)).size || '41'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
@@ -2192,9 +2192,11 @@ export default function PokerNearMeLobby() {
       : [];
 
     return {
-      // Venue count: only show badge when GPS is active (nearby venues within range)
-      // Without GPS, "Poker Near Me" badge is suppressed — no location = no "near me" context
+      // Venue count badge: only show on "Poker Near Me" pod when GPS is active
+      // Without GPS, badge is suppressed — no location = no "near me" context
       venueCount: userLocation ? nearbyVenues.length : 0,
+      // Total loaded venues (for stats bar — always available regardless of GPS)
+      totalVenueCount: venues.length,
       liveGameCount: liveGameCount,
       tourCount: upcomingTours.length,
       seriesCount: activeSeries.length,
@@ -2222,8 +2224,11 @@ export default function PokerNearMeLobby() {
       />
 
       <div className="pnm-lobby-page">
-        {/* Universal header removed as per user optimizing the 12-icon square page */}
-        
+        {/* Universal header */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}>
+          <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onSettingsClick={() => setMenuOpen(true)} />
+        </div>
+
         {/* Hamburger menu */}
         <HamburgerMenu
           isOpen={menuOpen}
