@@ -1168,9 +1168,12 @@ export class DeterministicGTOEngine {
      */
     describeBoardTexture(board, street) {
         if (!board || board.length < 3) return '';
+        // Defensive: filter out null/undefined/empty cards
+        const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
+        if (validBoard.length < 3) return '';
 
-        const ranks = board.map(c => c[0].toUpperCase());
-        const suits = board.map(c => c[1]?.toLowerCase());
+        const ranks = validBoard.map(c => c[0].toUpperCase());
+        const suits = validBoard.map(c => c[1]?.toLowerCase());
         const rankVals = ranks.map(r => '23456789TJQKA'.indexOf(r));
 
         // Suit texture
@@ -1179,9 +1182,9 @@ export class DeterministicGTOEngine {
         const maxSuitCount = Math.max(...Object.values(suitCounts));
 
         let suitDesc = '';
-        if (maxSuitCount >= 4) suitDesc = 'Four-flush';
-        else if (maxSuitCount === 3 && board.length <= 4) suitDesc = 'Monotone';
-        else if (maxSuitCount === 3 && board.length === 5) suitDesc = 'Flush possible';
+        if (maxSuitCount === validBoard.length) suitDesc = 'Monotone';       // ALL cards same suit
+        else if (maxSuitCount >= 3 && validBoard.length === 5) suitDesc = 'Flush possible';
+        else if (maxSuitCount >= 3) suitDesc = 'Flush draw';            // 3 of same suit on flop/turn
         else if (maxSuitCount === 2) suitDesc = 'Two-tone';
         else suitDesc = 'Rainbow';
 
@@ -1364,14 +1367,17 @@ export class DeterministicGTOEngine {
     categorizeHand(heroHand, board) {
         if (!heroHand || heroHand.length < 2) return 'a hand';
         if (!board || board.length === 0) return 'a preflop hand';
+        // Defensive: filter out null/undefined/empty cards
+        const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
+        if (validBoard.length === 0) return 'a preflop hand';
 
         const r1 = heroHand[0].toUpperCase();
         const r2 = heroHand[1].toUpperCase();
         const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
         const isPair = r1 === r2;
         const isHighCard = ['A', 'K', 'Q', 'J'].includes(r1);
-        const boardRanks = board.map(c => c[0].toUpperCase());
-        const boardSuits = board.map(c => c[1]?.toLowerCase());
+        const boardRanks = validBoard.map(c => c[0].toUpperCase());
+        const boardSuits = validBoard.map(c => c[1]?.toLowerCase());
 
         const rankVal = r => '23456789TJQKA'.indexOf(r);
         const v1 = rankVal(r1);
@@ -1398,52 +1404,95 @@ export class DeterministicGTOEngine {
 
         // ═══ STRAIGHT DRAW DETECTION ═══
         // Check if hero cards + board cards create straight potential
-        const allVals = [...new Set([v1, v2, ...boardVals])].sort((a, b) => a - b);
-        // Add ace-low straight potential (A=0 as well as A=12)
-        if (allVals.includes(12)) allVals.unshift(0); // Ace plays low too
+        const allValsSet = new Set([v1, v2, ...boardVals]);
+        const allVals = [...allValsSet].sort((a, b) => a - b);
 
         let straightOuts = 0;
+        let hasMadeStraight = false;
         let hasOESD = false;
         let hasGutshot = false;
-        // Check windows of 5 consecutive for straight potential
-        for (let start = 0; start <= 12; start++) {
+
+        // Check standard windows (2-3-4-5-6 through T-J-Q-K-A)
+        for (let start = 0; start <= 8; start++) {
             const window = [start, start + 1, start + 2, start + 3, start + 4];
-            const have = window.filter(v => allVals.includes(v)).length;
-            const heroContributes = window.includes(v1) || window.includes(v2) ||
-                (v1 === 12 && window.includes(0)) || (v2 === 12 && window.includes(0));
-            if (have === 4 && heroContributes) {
+            const have = window.filter(v => allValsSet.has(v)).length;
+            const heroContributes = window.includes(v1) || window.includes(v2);
+            if (have === 5 && heroContributes) {
+                hasMadeStraight = true;
+            } else if (have === 4 && heroContributes) {
                 straightOuts++;
             }
         }
-        if (straightOuts >= 2) hasOESD = true;
-        else if (straightOuts === 1) hasGutshot = true;
+
+        // Special case: wheel straight (A-2-3-4-5) — Ace plays low
+        // Ranks: A=12, 2=0, 3=1, 4=2, 5=3
+        const wheelRanks = [12, 0, 1, 2, 3];
+        const wheelHave = wheelRanks.filter(v => allValsSet.has(v)).length;
+        const wheelHeroContributes = wheelRanks.includes(v1) || wheelRanks.includes(v2);
+        if (wheelHave === 5 && wheelHeroContributes) {
+            hasMadeStraight = true;
+        } else if (wheelHave === 4 && wheelHeroContributes && !hasMadeStraight) {
+            straightOuts++;
+        }
+
+        if (!hasMadeStraight) {
+            if (straightOuts >= 2) hasOESD = true;
+            else if (straightOuts === 1) hasGutshot = true;
+        }
 
         // ═══ MADE HAND CLASSIFICATION ═══
         let madeHand = '';
+        const r1BoardCount = boardRanks.filter(r => r === r1).length;
+        const r2BoardCount = boardRanks.filter(r => r === r2).length;
 
-        if (isPair) {
+        // Check for straights first (highest non-paired hand)
+        if (hasMadeStraight) {
+            madeHand = 'a straight';
+        } else if (isPair) {
+            // Board rank frequency for full house detection
+            const boardRankCounts = {};
+            boardRanks.forEach(r => { boardRankCounts[r] = (boardRankCounts[r] || 0) + 1; });
+
             if (boardRanks.includes(r1)) {
-                // Count how many board cards match — trips vs quads
-                const matchCount = boardRanks.filter(r => r === r1).length;
-                if (matchCount >= 2) madeHand = 'quads';
-                else madeHand = 'a set';
+                // Hero pair + board match: set, quads, or full house
+                if (r1BoardCount >= 2) madeHand = 'quads';
+                else {
+                    // Set — but check if board has another pair (→ full house)
+                    const boardHasOtherPair = Object.entries(boardRankCounts)
+                        .some(([r, c]) => r !== r1 && c >= 2);
+                    madeHand = boardHasOtherPair ? 'a full house' : 'a set';
+                }
             } else {
-                if (v1 > highestBoardVal) madeHand = 'an overpair';
-                else if (v1 === highestBoardVal - 1) madeHand = 'second pair (pocket)';
-                else madeHand = 'an underpair';
+                // Hero pair NOT on board — check if board has trips (→ full house)
+                const boardHasTrips = Object.values(boardRankCounts).some(c => c >= 3);
+                if (boardHasTrips) {
+                    madeHand = 'a full house';
+                } else {
+                    if (v1 > highestBoardVal) madeHand = 'an overpair';
+                    else if (v1 === highestBoardVal - 1) madeHand = 'second pair (pocket)';
+                    else madeHand = 'an underpair';
+                }
             }
         } else {
-            // Count how many of hero's ranks appear on board
-            const r1OnBoard = boardRanks.includes(r1);
-            const r2OnBoard = boardRanks.includes(r2);
+            // Non-pair hands: check for trips, full house, two pair, one pair
+            const r1OnBoard = r1BoardCount > 0;
+            const r2OnBoard = r2BoardCount > 0;
 
-            if (r1OnBoard && r2OnBoard) {
+            // Full house: hero matches one paired rank + another paired rank on board
+            if (r1OnBoard && r2OnBoard && (r1BoardCount >= 2 || r2BoardCount >= 2)) {
+                madeHand = 'a full house';
+            } else if (r1OnBoard && r1BoardCount >= 2) {
+                // Hero has one card matching 2+ board cards = trips
+                madeHand = 'trips';
+            } else if (r2OnBoard && r2BoardCount >= 2) {
+                madeHand = 'trips';
+            } else if (r1OnBoard && r2OnBoard) {
                 madeHand = 'two pair';
             } else if (r1OnBoard) {
                 // Which pair is it?
                 if (v1 === highestBoardVal) {
                     madeHand = isHighCard ? 'top pair, strong kicker' : 'top pair';
-                } else if (v1 === sortedBoardVals[sortedBoardVals.length - 2]) {
+                } else if (sortedBoardVals.length >= 2 && v1 === sortedBoardVals[sortedBoardVals.length - 2]) {
                     madeHand = 'second pair';
                 } else {
                     madeHand = 'bottom pair';
@@ -1451,7 +1500,7 @@ export class DeterministicGTOEngine {
             } else if (r2OnBoard) {
                 if (v2 === highestBoardVal) {
                     madeHand = 'top pair, weak kicker';
-                } else if (v2 === sortedBoardVals[sortedBoardVals.length - 2]) {
+                } else if (sortedBoardVals.length >= 2 && v2 === sortedBoardVals[sortedBoardVals.length - 2]) {
                     madeHand = 'second pair';
                 } else {
                     madeHand = 'bottom pair';

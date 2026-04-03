@@ -46,7 +46,8 @@ const BET_SIZE_COLORS = {
  * Bet sizes get unique colors by percentage bucket.
  */
 function getActionColor(action) {
-    const a = action?.toLowerCase();
+    if (typeof action !== 'string') return '#64748b';
+    const a = action.toLowerCase();
     if (!a) return '#64748b';
 
     // Direct match for sized bets/raises
@@ -99,7 +100,8 @@ const ACTION_COLORS = new Proxy({}, {
 
 // Get action display info with GTOW-style colors
 function getActionDisplay(action) {
-    const a = action?.toLowerCase();
+    if (typeof action !== 'string') return { label: '?', short: '?', color: '#64748b' };
+    const a = action.toLowerCase();
     const color = getActionColor(action);
 
     if (!a) return { label: action || '?', short: '?', color: '#64748b' };
