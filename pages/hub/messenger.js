@@ -78,7 +78,11 @@ const C = {
 // 🔧 UTILITY FUNCTIONS & HOOKS
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Phase 3: Sound preference gate — only play if messageSounds is enabled
+let _soundPrefsRef = { messageSounds: true };
+function setSoundPrefsRef(prefs) { _soundPrefsRef = prefs; }
 function playMessageSound() {
+    if (!_soundPrefsRef.messageSounds) return; // Respect preference
     try {
         const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK');
         audio.volume = 0.3;
@@ -998,6 +1002,31 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         zIndex: 20,
                         minWidth: 180,
                     }}>
+                        {/* Copy to clipboard */}
+                        {!message.is_deleted && (
+                            <button
+                                onClick={() => {
+                                    const text = message.content || message.text || '';
+                                    navigator.clipboard?.writeText(text).then(() => {
+                                        if (navigator.vibrate) navigator.vibrate(10);
+                                    }).catch(() => {});
+                                    setShowMenu(false);
+                                }}
+                                style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    padding: '10px 16px',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    color: C.text,
+                                    fontSize: 14,
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >Copy Text</button>
+                        )}
                         <button
                             onClick={() => {
                                 onDelete(message.id, 'for_me');
@@ -1208,7 +1237,10 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                                     wordBreak: 'break-all',
                                                 }}
                                             >
-                                                {part.includes('meet.jit.si') ? '🔗 Join Call' : part}
+                                                {(() => {
+                                                    if (part.includes('meet.jit.si')) return '🔗 Join Call';
+                                                    try { return new URL(part).hostname.replace('www.', ''); } catch { return part; }
+                                                })()}
                                             </a>
                                         );
                                     }
@@ -1272,12 +1304,16 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 // 📋 CONVERSATION LIST ITEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ConversationItem({ conversation, isActive, onClick, currentUserId, onlineUsers, isPinned }) {
+function ConversationItem({ conversation, isActive, onClick, currentUserId, onlineUsers, isPinned, onPin, onDelete }) {
     const otherUser = conversation.otherUser || conversation.participants?.find(p => p.id !== currentUserId);
     const lastMsg = conversation.last_message_preview || conversation.lastMessage;
     const isUnread = conversation.unreadCount > 0;
     // Real-time online status from Supabase Presence channel
     const isOtherOnline = onlineUsers?.has?.(otherUser?.id) || false;
+    // Conversation context menu (long-press on mobile)
+    const [showConvoMenu, setShowConvoMenu] = useState(false);
+    const convoLongPress = useRef(null);
+    const convoTouchMoved = useRef(false);
 
     return (
         <div
@@ -1292,10 +1328,54 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                 borderRadius: 8,
                 margin: '2px 8px',
                 transition: 'background 0.15s',
+                position: 'relative',
             }}
             onMouseEnter={e => !isActive && (e.currentTarget.style.background = C.hoverBg)}
-            onMouseLeave={e => !isActive && (e.currentTarget.style.background = 'transparent')}
+            onMouseLeave={e => { !isActive && (e.currentTarget.style.background = 'transparent'); setShowConvoMenu(false); }}
+            onContextMenu={(e) => { e.preventDefault(); setShowConvoMenu(true); }}
+            onTouchStart={() => {
+                convoTouchMoved.current = false;
+                convoLongPress.current = setTimeout(() => {
+                    if (!convoTouchMoved.current) {
+                        setShowConvoMenu(true);
+                        if (navigator.vibrate) navigator.vibrate(25);
+                    }
+                }, 500);
+            }}
+            onTouchMove={() => { convoTouchMoved.current = true; clearTimeout(convoLongPress.current); }}
+            onTouchEnd={() => clearTimeout(convoLongPress.current)}
         >
+            {/* Conversation context menu */}
+            {showConvoMenu && (
+                <div
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 8,
+                        background: C.card,
+                        borderRadius: 10,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                        zIndex: 50,
+                        minWidth: 160,
+                        overflow: 'hidden',
+                    }}
+                >
+                    <button
+                        onClick={() => { onPin?.(conversation.id); setShowConvoMenu(false); }}
+                        style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: C.text, fontSize: 14 }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >{isPinned ? 'Unpin' : 'Pin To Top'}</button>
+                    <button
+                        onClick={() => { onDelete?.(conversation.id); setShowConvoMenu(false); }}
+                        style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: C.red, fontSize: 14 }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >Delete Conversation</button>
+                </div>
+            )}
+
             <Avatar
                 src={otherUser?.avatar_url}
                 name={otherUser?.username || otherUser?.name}
@@ -1581,7 +1661,11 @@ function MessengerPage() {
     });
     // Ref mirror of preferences to avoid stale closures in long-lived WebSocket callbacks
     const preferencesRef = useRef(preferences);
-    useEffect(() => { preferencesRef.current = preferences; }, [preferences]);
+    useEffect(() => { preferencesRef.current = preferences; setSoundPrefsRef(preferences); }, [preferences]);
+    // Phase 3: Connection status state
+    const [connectionStatus, setConnectionStatus] = useState('connected'); // 'connected' | 'reconnecting' | 'disconnected'
+    // Phase 3: Scroll-to-bottom FAB state
+    const [showScrollDown, setShowScrollDown] = useState(false);
 
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
@@ -1645,6 +1729,36 @@ function MessengerPage() {
         check();
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
+    }, []);
+
+    // Phase 3: Keyboard shortcuts (Escape closes panels)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                if (showUserInfo) { setShowUserInfo(false); return; }
+                if (showMessageSearch) { setShowMessageSearch(false); return; }
+                if (forwardingMessage) { setForwardingMessage(null); return; }
+                if (editingMessage) { setEditingMessage(null); setEditText(''); return; }
+                if (menuOpen) { setMenuOpen(false); return; }
+                // On mobile, Escape navigates back to sidebar
+                if (isMobile && activeConversation) { setActiveConversation(null); setShowSidebar(true); return; }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showUserInfo, showMessageSearch, forwardingMessage, editingMessage, menuOpen, isMobile, activeConversation]);
+
+    // Phase 3: Connection status monitor (navigator.onLine + Supabase health)
+    useEffect(() => {
+        const goOnline = () => setConnectionStatus('connected');
+        const goOffline = () => setConnectionStatus('disconnected');
+        window.addEventListener('online', goOnline);
+        window.addEventListener('offline', goOffline);
+        if (!navigator.onLine) setConnectionStatus('disconnected');
+        return () => {
+            window.removeEventListener('online', goOnline);
+            window.removeEventListener('offline', goOffline);
+        };
     }, []);
 
 
@@ -4238,6 +4352,20 @@ function MessengerPage() {
                                         currentUserId={user.id}
                                         onlineUsers={onlineUsers}
                                         isPinned={pinnedConvoIds.includes(conv.id)}
+                                        onPin={(id) => {
+                                            setPinnedConvoIds(prev => {
+                                                const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+                                                try { localStorage.setItem('sp-pinned-conversations', JSON.stringify(next)); } catch {}
+                                                return next;
+                                            });
+                                        }}
+                                        onDelete={(id) => {
+                                            setConversations(prev => prev.filter(c => c.id !== id));
+                                            if (activeConversation?.id === id) {
+                                                setActiveConversation(null);
+                                                setShowSidebar(true);
+                                            }
+                                        }}
                                     />
                                 ))}
                             </>
@@ -4461,6 +4589,27 @@ function MessengerPage() {
                                 }
 
                                 {/* Messages */}
+                                {/* Phase 3: Connection status banner */}
+                                {connectionStatus !== 'connected' && (
+                                    <div style={{
+                                        padding: '6px 16px',
+                                        background: connectionStatus === 'reconnecting' ? '#FFA500' : C.red,
+                                        color: 'white',
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        textAlign: 'center',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                    }}>
+                                        <span style={{ animation: connectionStatus === 'reconnecting' ? 'pulse 1.5s infinite' : 'none' }}>
+                                            {connectionStatus === 'reconnecting' ? '⟳' : '!'}
+                                        </span>
+                                        {connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Connection Lost'}
+                                    </div>
+                                )}
+
                                 <div
                                     ref={messagesContainerRef}
                                     onScroll={(e) => {
@@ -4468,11 +4617,16 @@ function MessengerPage() {
                                         if (e.target.scrollTop < 100 && hasMoreMessages && !loadingOlderMessages) {
                                             loadOlderMessages();
                                         }
+                                        // Phase 3: Show scroll-to-bottom FAB when scrolled up
+                                        const el = e.target;
+                                        const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+                                        setShowScrollDown(distFromBottom > 200);
                                     }}
                                     style={{
                                     flex: 1,
                                     overflowY: 'auto',
                                     padding: '16px 0',
+                                    position: 'relative',
                                 }}>
                                     {/* Loading older messages indicator */}
                                     {loadingOlderMessages && (
@@ -4570,6 +4724,37 @@ function MessengerPage() {
                                     {otherTyping && <TypingIndicator name={otherUser?.username} />}
                                     <div ref={messagesEndRef} />
                                 </div>
+
+                                {/* Phase 3: Scroll-to-bottom FAB */}
+                                {showScrollDown && (
+                                    <button
+                                        onClick={() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 80,
+                                            right: 20,
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: '50%',
+                                            background: C.card,
+                                            border: `1px solid ${C.border}`,
+                                            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            zIndex: 20,
+                                            transition: 'transform 0.2s, box-shadow 0.2s',
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)'; }}
+                                        aria-label="Scroll to bottom"
+                                    >
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="6 9 12 15 18 9" />
+                                        </svg>
+                                    </button>
+                                )}
 
                                 {/* Identity Banner - shows when messaging as Club Page */}
                                 {isClubMode && clubPage && hasClubPage && (
