@@ -798,47 +798,64 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
     const config = CLASSIFICATION_CONFIG[classification];
     if (!config) return null;
 
+    // GTO Wizard uses large, bold, centered classification banners
+    const isBestOrCorrect = classification === 'best' || classification === 'correct';
+
     return (
         <AnimatePresence>
             <motion.div
                 key={classification}
-                initial={{ opacity: 0, y: -30, scale: 0.95 }}
+                initial={{ opacity: 0, y: -30, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                transition={{ type: 'spring', stiffness: 350, damping: 22 }}
                 style={{
                     width: '100%',
-                    padding: '8px 16px',
+                    padding: '10px 16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 10,
-                    background: config.bgColor || 'rgba(0,0,0,0.3)',
+                    background: `linear-gradient(180deg, ${config.bgColor || 'rgba(0,0,0,0.3)'} 0%, rgba(0,0,0,0.02) 100%)`,
                     borderBottom: `2px solid ${config.borderColor || 'transparent'}`,
                     zIndex: 100,
                 }}
             >
-                <ClassificationSVGIcon icon={config.icon} size={18} color={config.color} />
+                <ClassificationSVGIcon icon={config.icon} size={20} color={config.color} />
                 <span style={{
-                    fontSize: 14,
-                    fontWeight: 800,
+                    fontSize: 16,
+                    fontWeight: 900,
                     color: config.color,
-                    letterSpacing: 1,
+                    letterSpacing: 1.5,
                     textTransform: 'uppercase',
                     fontFamily: "'Inter', monospace",
+                    textShadow: `0 0 12px ${config.color}44`,
                 }}>
                     {config.label}
                 </span>
                 {evLoss > 0 && (
                     <span style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: '#ef4444',
                         background: 'rgba(0,0,0,0.4)',
+                        padding: '3px 10px',
+                        borderRadius: 6,
+                        fontFamily: "'Inter', monospace",
+                    }}>
+                        -{evLoss.toFixed(2)} EV
+                    </span>
+                )}
+                {isBestOrCorrect && evLoss === 0 && (
+                    <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#22c55e',
+                        background: 'rgba(34,197,94,0.08)',
                         padding: '2px 8px',
                         borderRadius: 6,
                     }}>
-                        -{evLoss.toFixed(2)} EV
+                        0.00 EV
                     </span>
                 )}
             </motion.div>
@@ -1605,6 +1622,30 @@ function UniversalDynamicTable({
         }
     }, [showFeedback, moveClassification]);
 
+    // Phase 22: Smart auto-advance — GTOW-style adaptive timing
+    // Best/Correct: 2s. Inaccuracy: 4s. Wrong/Blunder: stays until user clicks.
+    // Only active when trainerConfig.autoAdvance is enabled.
+    useEffect(() => {
+        if (!showFeedback || !onNextHand || !computedClassification) return;
+        const autoAdvEnabled = trainerConfig?.autoAdvance !== false; // Default ON
+        if (!autoAdvEnabled) return;
+
+        let delay = null;
+        if (computedClassification === 'best' || computedClassification === 'correct') {
+            delay = 2000;
+        } else if (computedClassification === 'inaccuracy') {
+            delay = 4000;
+        }
+        // Wrong/Blunder: no auto-advance — user should study the feedback
+
+        if (delay) {
+            const timerId = setTimeout(() => {
+                onNextHand();
+            }, delay);
+            return () => clearTimeout(timerId);
+        }
+    }, [showFeedback, computedClassification, onNextHand, trainerConfig?.autoAdvance]);
+
     // F9: Keyboard shortcuts — REMOVED (consolidated into Phase 25 unified handler above)
     // Do NOT re-add a second keydown listener here.
 
@@ -1834,6 +1875,21 @@ function UniversalDynamicTable({
                         <div style={{ ...styles.scoreValue, color: scoreColor }}>{gtowScore}%</div>
                         <div style={styles.scoreLabel}>SCORE</div>
                     </div>
+                    {/* Phase 22: Accuracy % — GTO Wizard style */}
+                    {questionNumber > 1 && (() => {
+                        const acc = questionNumber > 0 ? Math.round(((questionNumber - sessionMistakes) / questionNumber) * 100) : 100;
+                        const accColor = acc >= 80 ? '#22c55e' : acc >= 60 ? '#fbbf24' : '#ef4444';
+                        return (
+                            <div style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                padding: '2px 6px', borderRadius: 6,
+                                background: `${accColor}11`, border: `1px solid ${accColor}33`,
+                            }}>
+                                <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace", lineHeight: 1 }}>{acc}%</div>
+                                <div style={{ fontSize: 7, fontWeight: 700, color: '#64748b', letterSpacing: 0.8, textTransform: 'uppercase' }}>ACC</div>
+                            </div>
+                        );
+                    })()}
                     {/* Question Counter */}
                     <div style={styles.questionCounter}>
                         {questionNumber}/{totalQuestions}
