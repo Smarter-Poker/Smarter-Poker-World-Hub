@@ -56,6 +56,12 @@ export default async function handler(req, res) {
           streak,
           timeSpentSeconds,
           mistakes,  // Array of { question, userAnswer, correctAnswer }
+          // ═══ PHASE 14: Enhanced coaching data ═══
+          gtowScore,           // 0-100 GTOW score
+          totalEVLoss,         // Total EV loss in BB
+          classificationCounts, // { best: N, correct: N, inaccuracy: N, wrong: N, blunder: N }
+          positionStats,       // { BTN: { correct: N, total: N }, ... }
+          weakSpots,           // [{ position, street, spotType, mistakeRate }]
       } = req.body;
 
       if (!gameId || !level || questionsAnswered === undefined) {
@@ -65,22 +71,49 @@ export default async function handler(req, res) {
       try {
           const grok = getGrokClient();
           const mistakesStr = mistakes?.length > 0
-              ? mistakes.map((m, i) => `
+              ? mistakes.slice(0, 8).map((m, i) => `
   Mistake ${i + 1}:
   - Question: ${m.question?.question || 'Unknown'}
   - User answered: ${m.userAnswer}
   - Correct was: ${m.correctAnswer}
-  - Scenario: ${JSON.stringify(m.question?.scenario || {})}`).join('\n')
+  - Position: ${m.question?.scenario?.heroPosition || '?'} vs ${m.question?.scenario?.villainPosition || '?'}
+  - Street: ${m.question?.scenario?.street || '?'}
+  - Board: ${m.question?.scenario?.board || '?'}`).join('\n')
               : 'No mistakes - perfect round!';
 
-          const prompt = `You are an elite GTO poker coach providing a post-session debrief.
+          // ═══ PHASE 14: Build rich performance context ═══
+          let performanceContext = '';
+          if (gtowScore !== undefined) {
+              performanceContext += `\n  GTOW SCORE: ${gtowScore}/100`;
+          }
+          if (totalEVLoss !== undefined) {
+              performanceContext += `\n  TOTAL EV LOSS: ${typeof totalEVLoss === 'number' ? totalEVLoss.toFixed(2) : totalEVLoss} BB`;
+          }
+          if (classificationCounts && Object.keys(classificationCounts).length > 0) {
+              const cc = classificationCounts;
+              performanceContext += `\n  MOVE CLASSIFICATION BREAKDOWN: Best: ${cc.best || 0}, Correct: ${cc.correct || 0}, Inaccuracy: ${cc.inaccuracy || 0}, Wrong: ${cc.wrong || 0}, Blunder: ${cc.blunder || 0}`;
+          }
+          if (positionStats && Object.keys(positionStats).length > 0) {
+              const posLines = Object.entries(positionStats)
+                  .map(([pos, stats]) => `    ${pos}: ${stats.correct || 0}/${stats.total || 0}`)
+                  .join('\n');
+              performanceContext += `\n  BY POSITION:\n${posLines}`;
+          }
+          if (weakSpots && weakSpots.length > 0) {
+              const weakLines = weakSpots.slice(0, 3)
+                  .map(s => `    ${s.position}/${s.street}/${s.spotType}: ${Math.round((s.mistakeRate || 0) * 100)}% mistake rate`)
+                  .join('\n');
+              performanceContext += `\n  IDENTIFIED WEAK SPOTS:\n${weakLines}`;
+          }
+
+          const prompt = `You are an elite GTO poker coach (think GTO Wizard's post-session analysis). Provide a personalized debrief.
 
   TRAINING SESSION RESULTS:
   - Game: ${gameName || gameId}
   - Level: ${level}/10
   - Score: ${questionsCorrect}/${questionsAnswered} (${accuracy}%)
   - Best Streak: ${streak || 0}
-  - Time: ${Math.round((timeSpentSeconds || 0) / 60)} minutes
+  - Time: ${Math.round((timeSpentSeconds || 0) / 60)} minutes${performanceContext}
 
   MISTAKES MADE:
   ${mistakesStr}
@@ -88,19 +121,20 @@ export default async function handler(req, res) {
   Provide coaching feedback in this JSON format:
   {
       "overallGrade": "${accuracy >= 90 ? 'A' : accuracy >= 80 ? 'B' : accuracy >= 70 ? 'C' : 'D'}",
-      "headline": "Brief encouraging headline about their performance",
-      "strengths": ["List 1-2 things they did well"],
-      "areasToImprove": ["List 1-2 specific concepts to work on based on their mistakes"],
-      "detailedFeedback": "2-3 sentences of personalized coaching. Reference their specific mistakes if any.",
+      "headline": "A specific, encouraging headline about THEIR performance pattern (not generic)",
+      "strengths": ["1-2 specific things they did well, referencing positions or spot types where they excelled"],
+      "areasToImprove": ["1-2 specific concepts to work on, directly referencing their weak spots and mistake patterns"],
+      "detailedFeedback": "3-4 sentences of personalized coaching. Reference their specific mistakes, weak spots, and GTOW score. Give concrete advice like 'When facing c-bets from the BB on dry boards, remember to...'",
       "recommendedDrill": {
-          "name": "Specific drill or game to try next",
-          "reason": "Why this will help"
+          "name": "Specific drill targeting their weakest area",
+          "reason": "Why this will directly address their weakest spot"
       },
-      "motivationalQuote": "A short poker wisdom quote to inspire them",
+      "weakSpotDrill": "If weak spots exist, suggest a specific practice focus like 'BB defense vs BTN c-bets on low boards'",
+      "motivationalQuote": "A short poker wisdom quote relevant to their performance level",
       "readyForNextLevel": ${accuracy >= 70 ? 'true' : 'false'}
   }
 
-  Be encouraging but honest. Reference specific mistakes they made. Keep it conversational like a real coach.`;
+  Be specific. Reference their actual mistakes, positions, and board textures. Avoid generic advice. Coach like you can see their solver data.`;
 
           const response = await grok.chat.completions.create({
               model: 'grok-3',

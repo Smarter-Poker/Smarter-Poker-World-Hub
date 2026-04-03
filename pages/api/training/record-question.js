@@ -45,7 +45,12 @@ export default async function handler(req, res) {
           return res.status(413).json({ success: false, error: 'Request body too large' });
       }
 
-      const { userId, gameId, questionId, answerId, isCorrect, level } = req.body;
+      const {
+          userId, gameId, questionId, answerId, isCorrect, level,
+          // ═══ PHASE 14: Spot metadata for weak-spot targeting ═══
+          heroPosition, villainPosition, street, classification, evLoss,
+          spotType, // e.g. 'facing_cbet', 'open_raise', '3bet_defense'
+      } = req.body;
 
       if (!userId || !gameId || !questionId) {
           return res.status(400).json({ success: false, error: 'userId, gameId, and questionId required' });
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
               { label: 'RecordQuestion:upsert' }
           );
 
-          // Record the answer for stats
+          // Record the answer for stats (enriched with spot metadata)
           await withRetry(
               () => getSupabase()
                   .from('training_answers')
@@ -77,6 +82,13 @@ export default async function handler(req, res) {
                       is_correct: isCorrect,
                       level: level,
                       answered_at: new Date().toISOString(),
+                      // ═══ PHASE 14: Spot metadata columns (gracefully ignored if cols don't exist) ═══
+                      hero_position: heroPosition || null,
+                      villain_position: villainPosition || null,
+                      street: street || null,
+                      classification: classification || null,
+                      ev_loss: typeof evLoss === 'number' ? evLoss : null,
+                      spot_type: spotType || null,
                   }),
               { label: 'RecordQuestion:insert' }
           );

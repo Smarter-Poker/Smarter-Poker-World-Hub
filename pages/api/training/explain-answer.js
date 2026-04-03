@@ -72,6 +72,10 @@ export default async function handler(req, res) {
           wasCorrect,    // Boolean
           gameId,        // Game context
           level,         // Difficulty level
+          // ═══ PHASE 14: Enhanced coaching data ═══
+          gtoFrequencies,   // Real solver frequencies { action: pct }
+          classification,   // 'BEST', 'CORRECT', 'INACCURACY', 'WRONG', 'BLUNDER'
+          evLoss,           // Numeric EV loss in BB
       } = req.body;
 
       if (!question || !userAnswer || !correctAnswer) {
@@ -103,42 +107,88 @@ export default async function handler(req, res) {
           const grok = getGrokClient();
           const scenario = question.scenario || {};
 
-          const prompt = `You are a world-class GTO poker coach. A student just ${wasCorrect ? 'CORRECTLY' : 'INCORRECTLY'} answered a training question.
+          // ═══ PHASE 14: Build frequency context string for solver-aware coaching ═══
+          let frequencyContext = '';
+          const freqs = gtoFrequencies || question.gtoFrequencies;
+          if (freqs && Object.keys(freqs).length > 0) {
+              const freqLines = Object.entries(freqs)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([action, pct]) => `  ${action}: ${pct}%`)
+                  .join('\n');
+              frequencyContext = `\n  SOLVER FREQUENCIES (GTO mixed strategy):\n${freqLines}`;
+
+              // Detect if this is a mixed strategy spot
+              const sortedFreqs = Object.values(freqs).sort((a, b) => b - a);
+              if (sortedFreqs.length >= 2 && sortedFreqs[1] >= 20) {
+                  frequencyContext += '\n  NOTE: This is a MIXED STRATEGY spot — multiple actions are solver-approved at significant frequencies.';
+              }
+          }
+
+          // ═══ PHASE 14: Level-appropriate coaching language ═══
+          const levelNum = parseInt(level, 10) || 1;
+          let coachingTone;
+          if (levelNum <= 3) {
+              coachingTone = 'Use simple language. Avoid heavy jargon. Focus on the one key concept. Think of the student as a beginner learning fundamentals.';
+          } else if (levelNum <= 6) {
+              coachingTone = 'Use intermediate poker terminology. Reference ranges, equity, and board texture. The student understands basic GTO concepts.';
+          } else {
+              coachingTone = 'Use advanced solver terminology freely. Reference node locking, range advantage, geometric sizing, polarization, and mixed strategies. The student is advanced.';
+          }
+
+          // ═══ PHASE 14: Classification-aware feedback ═══
+          let classificationContext = '';
+          if (classification) {
+              const evLossStr = typeof evLoss === 'number' ? ` (EV loss: ${evLoss.toFixed(2)} BB)` : '';
+              classificationContext = `\n  MOVE CLASSIFICATION: ${classification}${evLossStr}`;
+              if (classification === 'BEST' || classification === 'CORRECT') {
+                  classificationContext += '\n  The student chose a solver-approved action.';
+              } else if (classification === 'INACCURACY') {
+                  classificationContext += '\n  The student chose a minor inaccuracy — their action has some solver frequency but is not the primary play.';
+              } else if (classification === 'BLUNDER') {
+                  classificationContext += '\n  This was a significant mistake — the chosen action has 0% solver frequency at this node.';
+              }
+          }
+
+          const prompt = `You are a world-class GTO poker coach (like GTO Wizard's analysis engine). A student just ${wasCorrect ? 'CORRECTLY' : 'INCORRECTLY'} answered a training question.
 
   QUESTION: ${question.question}
   SCENARIO:
   - Hero Position: ${scenario.heroPosition || 'Unknown'}
-  - Hero Hand: ${scenario.heroHand || 'Unknown'}
-  - Board: ${scenario.board || 'Preflop'}
-  - Pot Size: ${scenario.pot || 'N/A'}
+  - Hero Hand: ${scenario.heroHand || question.heroCards?.join('') || 'Unknown'}
+  - Board: ${scenario.board || question.boardCards?.join(' ') || 'Preflop'}
+  - Pot Size: ${scenario.pot || 'N/A'} BB
   - Villain Position: ${scenario.villainPosition || 'Unknown'}
-  - Action: ${scenario.action || 'N/A'}
+  - Action Facing: ${scenario.action || scenario.context || 'N/A'}
   - Stack Depth: ${scenario.heroStack || 100}bb
+  - Street: ${scenario.street || 'flop'}${frequencyContext}${classificationContext}
 
   USER'S ANSWER: ${userAnswer}
   CORRECT ANSWER: ${correctAnswer}
   RESULT: ${wasCorrect ? '✅ CORRECT' : '❌ INCORRECT'}
 
+  COACHING TONE: ${coachingTone}
+
   ${wasCorrect
-                  ? 'Reinforce WHY this is correct with solver-level analysis. Make the student feel confident in their decision.'
-                  : 'Explain WHY their answer was wrong and WHY the correct answer is optimal. Be encouraging but educational.'}
+                  ? 'Reinforce WHY this is correct with solver-level analysis. If this is a mixed strategy spot, explain that the student chose a valid line and mention the mixing frequencies. Make the student feel confident.'
+                  : 'Explain WHY their answer was suboptimal and WHY the correct answer is preferred by the solver. If their action has SOME frequency, acknowledge it but explain why the solver prefers the alternative. Be encouraging but precise.'}
 
   Provide your analysis in this JSON format:
   {
-      "headline": "${wasCorrect ? 'Excellent decision!' : 'Good learning opportunity'}",
-      "shortExplanation": "One sentence summary of the key concept",
+      "headline": "A specific, insightful 3-6 word headline about THIS spot",
+      "shortExplanation": "One sentence capturing the core concept (range advantage, board texture, sizing tells, etc.)",
       "deepDive": {
-          "equityAnalysis": "How does hero's equity compare vs villain's range?",
-          "rangeConsiderations": "What ranges are we representing and what does villain have?",
-          "evCalculation": "Brief EV breakdown if relevant",
-          "boardTexture": "How does the board favor hero or villain's range?"
+          "equityAnalysis": "Hero's equity vs villain's range on this board texture",
+          "rangeConsiderations": "What ranges are we representing? What does villain's range look like here?",
+          "evCalculation": "Brief EV breakdown showing why the correct action maximizes value",
+          "boardTexture": "How does this specific board favor hero or villain? Mention specific card interactions."
       },
-      "keyTakeaway": "The #1 thing to remember from this spot",
-      "similarSpots": "When else should you apply this concept?",
+      "keyTakeaway": "The #1 actionable principle to remember (e.g., 'On dry paired boards, BB should check-raise at high frequency')",
+      "similarSpots": "1-2 similar spots where this same concept applies",
+      "mixedStrategyNote": "If applicable: explain the mixing frequencies and why both actions can be correct",
       "confidence": ${wasCorrect ? '0.95' : '0.7'}
   }
 
-  Keep explanations concise but insightful. Use poker terminology appropriately for the skill level.`;
+  Be specific to THIS hand — reference the actual cards, positions, and board texture. Avoid generic advice.`;
 
           const response = await grok.chat.completions.create({
               model: 'grok-3',

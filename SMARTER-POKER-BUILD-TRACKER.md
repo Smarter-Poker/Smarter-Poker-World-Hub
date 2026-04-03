@@ -358,8 +358,27 @@
 
 ---
 
+## PHASE 14 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Smart Training Engine
+| Deliverable | Status | Detail |
+|---|---|---|
+| Weak-spot targeting system | DONE | `deriveSpotType()` classifies spots (3bet_defense, facing_cbet, check_raise, etc.), `updateWeakSpotMap()` tracks per-position/street/spotType accuracy, `getWeakSpots()` returns top 5 weakest areas sorted by mistake rate. Emits `weakSpotAnalysis` events at adaptive checkpoints. |
+| Enhanced record-question API | DONE | Now saves hero_position, villain_position, street, classification, ev_loss, spot_type with each answer for historical weak-spot analysis |
+| Spaced repetition API | DONE | New `/api/training/spaced-repetition` endpoint: POST saves mistake signatures, GET retrieves due-for-review spots, PATCH updates SM-2 intervals (correct = double interval, wrong = reset). Priority by EV loss. |
+| Spaced repetition wiring | DONE | `saveMistakesToSpacedRepetition()` auto-fires on session complete, sends all mistake hand signatures to SR API |
+| Next-level prefetch | DONE | Background prefetch triggers at 60% through current level. `startNextLevel()` uses cached questions for INSTANT level transitions (zero loading). |
+| Enhanced coaching explanations | DONE | `explain-answer.js` now receives GTO frequencies, classification, EV loss. Prompt includes solver frequency context, mixed strategy detection, level-appropriate coaching tone (beginner/intermediate/advanced). |
+| Enhanced coaching summary | DONE | `coaching-summary.js` now receives GTOW score, classification breakdown, position stats, weak-spot analysis. Coaching references specific positions, spot types, and board textures. |
+
+**Files Changed:** useGTOTrainer.js, record-question.js, explain-answer.js, coaching-summary.js
+**Files Created:** spaced-repetition.js
+**Impact:** Training system now tracks WHERE players struggle (not just IF they struggle), serves targeted practice, saves mistakes for cross-session spaced repetition review, prefetches next level for zero-latency transitions, and provides GTO Wizard-caliber coaching with real solver data in explanations.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 14: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 15: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 16: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 17: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 15: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 16: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 17: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 18: Database Migration Safety** — Supabase migration tooling and rollback procedures

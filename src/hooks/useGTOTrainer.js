@@ -68,8 +68,50 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     const [adaptiveLevelChange, setAdaptiveLevelChange] = useState(null); // { from, to, direction }
     const adaptiveCheckpointRef = useRef(5); // Check every 5 questions
 
+    // ═══ PHASE 14: NEXT-LEVEL PREFETCH STATE ═══
+    const nextLevelCacheRef = useRef(null); // { level, questions } — prefetched next level
+    const prefetchTriggeredRef = useRef(false);
+
     // Get user ID for no-repeat tracking
     const userId = getAuthUser()?.id;
+
+    /**
+     * ═══ PHASE 14: Background prefetch for next level ═══
+     * Fires when player is ~60% through current level
+     * Ensures zero loading time when advancing to next level
+     */
+    const prefetchNextLevel = useCallback(async () => {
+        if (prefetchTriggeredRef.current) return;
+        if (level >= 10) return; // Max level, nothing to prefetch
+        if (trainerConfig) return; // Custom trainers don't auto-advance
+
+        prefetchTriggeredRef.current = true;
+        const nextLevel = level + 1;
+
+        try {
+            const token = getSessionToken();
+            const params = new URLSearchParams({
+                gameId,
+                level: nextLevel.toString(),
+                count: effectiveQuestionsPerLevel.toString(),
+            });
+
+            const response = await fetch(`/api/training/batch-preload?${params}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            });
+
+            const textResponse = await response.text();
+            const data = JSON.parse(textResponse);
+
+            if (response.ok && data.questions && data.questions.length > 0) {
+                nextLevelCacheRef.current = { level: nextLevel, questions: data.questions };
+                console.log(`[GTOTrainer] 🚀 Prefetched ${data.questions.length} questions for level ${nextLevel}`);
+            }
+        } catch (err) {
+            // Non-critical — player will just wait for normal fetch
+            console.warn('[GTOTrainer] Prefetch non-critical error:', err.message);
+        }
+    }, [gameId, level, effectiveQuestionsPerLevel, trainerConfig]);
 
     /**
      * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
@@ -213,10 +255,67 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     }, [gameId, level, trainerConfig, effectiveQuestionsPerLevel, fetchSingleQuestion]);
 
 
+    // ═══ PHASE 14: WEAK-SPOT ANALYSIS STATE ═══
+    // Tracks per-position, per-street, per-spotType accuracy for smart targeting
+    const weakSpotMapRef = useRef({});
+
     /**
-     * Record answer to API (for no-repeat tracking)
+     * Derive the spot type from scenario context
+     * e.g., 'facing_cbet', 'open_raise', '3bet_defense', 'check_raise', etc.
      */
-    const recordAnswer = useCallback(async (questionId, selectedAnswer, isCorrect) => {
+    const deriveSpotType = useCallback((scenario) => {
+        if (!scenario) return 'unknown';
+        const ctx = (scenario.context || '').toLowerCase();
+        const title = (scenario.title || '').toLowerCase();
+        const combined = ctx + ' ' + title;
+
+        if (combined.includes('3-bet') || combined.includes('3bet')) return '3bet_defense';
+        if (combined.includes('4-bet') || combined.includes('4bet')) return '4bet_pot';
+        if (combined.includes('c-bet') || combined.includes('cbet') || combined.includes('continuation')) return 'facing_cbet';
+        if (combined.includes('check-raise') || combined.includes('checkraise') || combined.includes('check raise')) return 'check_raise';
+        if (combined.includes('donk')) return 'donk_bet';
+        if (combined.includes('squeeze')) return 'squeeze';
+        if (combined.includes('open') || combined.includes('raise first')) return 'open_raise';
+        if (combined.includes('blind') && combined.includes('defend')) return 'blind_defense';
+        // Infer from position
+        const hero = scenario.heroPosition || '';
+        if (hero === 'BB') return 'bb_defense';
+        if (hero === 'SB') return 'sb_play';
+        if (hero === 'BTN') return 'btn_play';
+        return 'general';
+    }, []);
+
+    /**
+     * Update weak-spot map with a new data point
+     */
+    const updateWeakSpotMap = useCallback((position, street, spotType, classification) => {
+        const map = weakSpotMapRef.current;
+        const key = `${position}_${street}_${spotType}`;
+        if (!map[key]) {
+            map[key] = { total: 0, mistakes: 0, position, street, spotType };
+        }
+        map[key].total++;
+        if (['INACCURACY', 'WRONG', 'BLUNDER'].includes(classification)) {
+            map[key].mistakes++;
+        }
+    }, []);
+
+    /**
+     * Get the player's weakest spots (sorted by mistake rate, min 3 samples)
+     */
+    const getWeakSpots = useCallback(() => {
+        const map = weakSpotMapRef.current;
+        return Object.values(map)
+            .filter(s => s.total >= 3) // Need min sample
+            .map(s => ({ ...s, mistakeRate: s.mistakes / s.total }))
+            .sort((a, b) => b.mistakeRate - a.mistakeRate)
+            .slice(0, 5); // Top 5 weak spots
+    }, []);
+
+    /**
+     * Record answer to API (for no-repeat tracking + weak-spot metadata)
+     */
+    const recordAnswer = useCallback(async (questionId, selectedAnswer, isCorrect, spotMeta = {}) => {
         if (!userId || !gameId) return;
 
         try {
@@ -234,6 +333,13 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     selectedAnswer,
                     isCorrect,
                     level,
+                    // ═══ PHASE 14: Spot metadata for weak-spot targeting ═══
+                    heroPosition: spotMeta.heroPosition || null,
+                    villainPosition: spotMeta.villainPosition || null,
+                    street: spotMeta.street || null,
+                    classification: spotMeta.classification || null,
+                    evLoss: spotMeta.evLoss || 0,
+                    spotType: spotMeta.spotType || null,
                 }),
             });
         } catch (err) {
@@ -336,6 +442,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         setLastSelectedAction(selectedOptionId);
 
         // ═══ ADAPTIVE DIFFICULTY: Auto-adjust level every 5 questions ═══
+        // Also identifies weak spots and emits them for targeted practice
         const answeredSoFar = questionNumber; // 1-based, this is the Nth answer
         if (answeredSoFar >= adaptiveCheckpointRef.current && answeredSoFar < effectiveQuestionsPerLevel) {
             const windowSize = 5;
@@ -362,6 +469,20 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 } catch (_) { /* SSR guard */ }
                 console.log(`[GTOTrainer] 📉 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
             }
+
+            // ═══ PHASE 14: Emit weak-spot analysis for UI consumption ═══
+            const weakSpots = getWeakSpots();
+            if (weakSpots.length > 0) {
+                try {
+                    eventBus.emit('weakSpotAnalysis', {
+                        weakSpots,
+                        topWeakSpot: weakSpots[0],
+                        checkpoint: answeredSoFar,
+                    });
+                } catch (_) { /* SSR guard */ }
+                console.log(`[GTOTrainer] 🎯 Weak spots detected:`, weakSpots.map(s => `${s.position}/${s.street}/${s.spotType} (${Math.round(s.mistakeRate * 100)}%)`).join(', '));
+            }
+
             adaptiveCheckpointRef.current = answeredSoFar + 5; // Next checkpoint
         }
 
@@ -374,9 +495,28 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             );
         }
 
-        // Record to backend (async, non-blocking)
-        recordAnswer(currentQuestion.id, selectedOptionId, isCorrect);
-    }, [currentQuestion, showFeedback, bestStreak, recordAnswer, level, gtowScoring, questionNumber, effectiveQuestionsPerLevel]);
+        // ═══ PHASE 14: Trigger background prefetch at 60% through level ═══
+        const progress = questionNumber / effectiveQuestionsPerLevel;
+        if (progress >= 0.6 && !prefetchTriggeredRef.current) {
+            prefetchNextLevel();
+        }
+
+        // ═══ PHASE 14: Track weak spots + record with spot metadata ═══
+        const spotType = deriveSpotType(scenario);
+        const heroPos = scenario.heroPosition || 'BTN';
+        const streetName = scenario.street || 'flop';
+        updateWeakSpotMap(heroPos, streetName, spotType, moveResult.classification);
+
+        // Record to backend (async, non-blocking) — now with spot metadata
+        recordAnswer(currentQuestion.id, selectedOptionId, isCorrect, {
+            heroPosition: heroPos,
+            villainPosition: scenario.villainPosition || 'BB',
+            street: streetName,
+            classification: moveResult.classification,
+            evLoss: moveResult.evLoss,
+            spotType,
+        });
+    }, [currentQuestion, showFeedback, bestStreak, recordAnswer, level, gtowScoring, questionNumber, effectiveQuestionsPerLevel, deriveSpotType, updateWeakSpotMap]);
 
     /**
      * ═══ MULTI-STREET: Advance to next street within same hand ═══
@@ -469,6 +609,50 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     }, [gameId]);
 
     /**
+     * ═══ PHASE 14: Save mistakes to spaced repetition system ═══
+     * Called on session complete. Sends mistake hand signatures to the SR API.
+     */
+    const saveMistakesToSpacedRepetition = useCallback(async () => {
+        const mistakes = mistakeQuestionsRef.current;
+        if (!mistakes || mistakes.length === 0) return;
+
+        try {
+            const token = getSessionToken();
+            if (!token) return;
+
+            const mistakePayloads = mistakes.map(q => {
+                const scenario = q.scenario || {};
+                return {
+                    gameId,
+                    heroPosition: scenario.heroPosition || 'BTN',
+                    villainPosition: scenario.villainPosition || 'BB',
+                    street: scenario.street || 'flop',
+                    spotType: deriveSpotType(scenario),
+                    classification: 'WRONG', // All items in mistakeQuestionsRef are mistakes
+                    evLoss: 0,
+                    heroHand: q.heroCards ? q.heroCards.join('') : (scenario.heroHand || ''),
+                    board: q.boardCards ? q.boardCards.join(' ') : (scenario.board || ''),
+                    correctAction: q.correctAnswerText || q.correctAnswer || '',
+                    chosenAction: '',
+                };
+            });
+
+            await fetch('/api/training/spaced-repetition', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ mistakes: mistakePayloads }),
+            });
+
+            console.log(`[GTOTrainer] 🔄 Saved ${mistakePayloads.length} mistakes to spaced repetition`);
+        } catch (err) {
+            console.warn('[GTOTrainer] Spaced repetition save error (non-critical):', err.message);
+        }
+    }, [gameId, deriveSpotType]);
+
+    /**
      * Save progress to database
      */
     const saveProgress = useCallback(async (passed, accuracy) => {
@@ -502,6 +686,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 }),
             });
 
+            // ═══ PHASE 14: Save mistakes to spaced repetition ═══
+            saveMistakesToSpacedRepetition();
+
             // NOTE: save-session is handled by GodModeArena's auto-save useEffect
             // to avoid duplicate training_sessions rows.
 
@@ -519,7 +706,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         } catch (err) {
             console.warn('[GTOTrainer] Save progress error:', err);
         }
-    }, [userId, gameId, level, correctCount, bestStreak, totalXP, gtowScoring, effectiveQuestionsPerLevel]);
+    }, [userId, gameId, level, correctCount, bestStreak, totalXP, gtowScoring, effectiveQuestionsPerLevel, saveMistakesToSpacedRepetition]);
 
     /**
      * Advance to next question or complete level
@@ -599,20 +786,37 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
     /**
      * Start next level (if passed)
-     * 🚀 Pre-loads all questions for new level
+     * 🚀 Uses prefetched cache if available, otherwise fetches fresh
      */
     const startNextLevel = useCallback(() => {
         if (!levelPassed || level >= TRAINING_CONFIG.totalLevels) return;
 
-        setLevel(prev => prev + 1);
+        const nextLevel = level + 1;
+        setLevel(nextLevel);
         setQuestionNumber(1);
         setCorrectCount(0);
         setStreak(0);
         setGameComplete(false);
         setLevelPassed(false);
-        setPreloadComplete(false);
-        preloadAllQuestions();
-    }, [levelPassed, level, preloadAllQuestions]);
+        prefetchTriggeredRef.current = false; // Reset for next level
+
+        // ═══ PHASE 14: Use prefetched cache if available for INSTANT level transition ═══
+        const cache = nextLevelCacheRef.current;
+        if (cache && cache.level === nextLevel && cache.questions.length > 0) {
+            console.log(`[GTOTrainer] ⚡ Using prefetched cache for level ${nextLevel} (${cache.questions.length} questions)`);
+            setPreloadedQuestions(cache.questions);
+            setPreloadComplete(true);
+            setCurrentQuestion(cache.questions[0]);
+            if (cache.questions.length < effectiveQuestionsPerLevel) {
+                setEffectiveQuestionsPerLevel(cache.questions.length);
+            }
+            setLoading(false);
+            nextLevelCacheRef.current = null; // Clear used cache
+        } else {
+            setPreloadComplete(false);
+            preloadAllQuestions();
+        }
+    }, [levelPassed, level, preloadAllQuestions, effectiveQuestionsPerLevel]);
 
     /**
      * Retry current level
@@ -733,6 +937,10 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
         // Adaptive difficulty
         adaptiveLevelChange,
+
+        // ═══ PHASE 14: Weak-spot targeting ═══
+        getWeakSpots,
+        weakSpotMap: weakSpotMapRef.current,
 
         // Actions
         submitAnswer,
