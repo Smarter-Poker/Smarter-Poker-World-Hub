@@ -830,18 +830,20 @@ export default function HomeGamesPage() {
                         border-color: rgba(239,68,68,0.6);
                     }
 
-                    /* ═══ RESULTS BAR ═══ */
+                    /* ═══ RESULTS BAR — Matches Poker Near Me ═══ */
                     .hg-results-bar {
                         display: flex;
+                        justify-content: center;
                         align-items: center;
-                        gap: 16px;
-                        padding: 10px 4px;
+                        padding: 8px 4px;
+                        margin-bottom: 2px;
                         flex-wrap: wrap;
+                        gap: 16px;
                     }
                     .hg-results-count {
-                        font-size: 14px;
-                        font-weight: 800;
-                        color: rgba(255,255,255,0.85);
+                        font-size: 15px;
+                        color: rgba(255,255,255,0.6);
+                        font-weight: 600;
                     }
                     .hg-sort-wrapper {
                         display: flex;
@@ -850,36 +852,54 @@ export default function HomeGamesPage() {
                     }
                     .hg-sort-label {
                         font-size: 12px;
-                        color: rgba(148,163,184,0.5);
+                        color: rgba(148,163,184,0.6);
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        white-space: nowrap;
                     }
                     .hg-sort-select {
-                        padding: 6px 10px;
-                        background: rgba(0,0,0,0.4);
-                        border: 1.5px solid rgba(148,163,184,0.15);
-                        border-radius: 6px;
-                        color: #e2e8f0;
+                        padding: 5px 28px 5px 10px;
+                        border-radius: 8px;
+                        border: 1px solid rgba(212,168,83,0.25);
+                        background: rgba(10,16,28,0.8);
+                        color: #d4a853;
                         font-size: 12px;
+                        font-weight: 600;
                         font-family: inherit;
                         cursor: pointer;
+                        appearance: none;
+                        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d4a853' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+                        background-repeat: no-repeat;
+                        background-position: right 8px center;
+                        transition: all 0.2s;
+                    }
+                    .hg-sort-select:hover,
+                    .hg-sort-select:focus {
+                        border-color: rgba(212,168,83,0.5);
+                        outline: none;
+                        box-shadow: 0 0 8px rgba(212,168,83,0.15);
                     }
                     .hg-expand-map-btn {
-                        margin-left: auto;
-                        display: flex;
+                        display: inline-flex;
                         align-items: center;
-                        gap: 6px;
-                        padding: 8px 14px;
-                        background: rgba(0,0,0,0.3);
-                        border: 1.5px solid rgba(148,163,184,0.15);
+                        gap: 5px;
+                        padding: 5px 12px;
+                        background: rgba(212,168,83,0.08);
+                        border: 1px solid rgba(212,168,83,0.25);
                         border-radius: 8px;
-                        color: rgba(200,214,229,0.7);
+                        color: #d4a853;
                         font-size: 12px;
                         font-weight: 600;
                         cursor: pointer;
                         transition: all 0.2s;
+                        font-family: inherit;
+                        white-space: nowrap;
                     }
                     .hg-expand-map-btn:hover {
-                        border-color: rgba(239,68,68,0.3);
-                        color: #ef4444;
+                        background: rgba(212,168,83,0.16);
+                        border-color: rgba(212,168,83,0.4);
+                        box-shadow: 0 0 10px rgba(212,168,83,0.15);
                     }
 
                     /* ═══ CARD GRID ═══ */
@@ -892,6 +912,186 @@ export default function HomeGamesPage() {
                         gap: 16px;
                         align-items: stretch;
                     }
+
+                    /* ═══ VENUE CARD — Vault-V3 Metal Frame (from PNM) ═══ */
+                    .vc3-card {
+                        position: relative;
+                        overflow: hidden;
+                        background: linear-gradient(160deg, rgba(16,24,36,0.95) 0%, rgba(10,16,26,0.98) 100%);
+                        border: 2px solid rgba(148,163,184,0.16);
+                        border-radius: 14px;
+                        padding: 16px 18px 14px;
+                        transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
+                        box-shadow:
+                            inset 0 1px 0 rgba(255,255,255,0.06),
+                            inset 0 -1px 0 rgba(0,0,0,0.3),
+                            inset 0 0 20px rgba(148,163,184,0.04),
+                            0 4px 20px rgba(0,0,0,0.45),
+                            0 1px 3px rgba(0,0,0,0.2);
+                    }
+                    .vc3-card::after {
+                        content: '';
+                        position: absolute;
+                        top: 0; left: 0; right: 0;
+                        height: 1px;
+                        background: linear-gradient(90deg, transparent 5%, rgba(148,163,184,0.25) 30%, rgba(148,163,184,0.15) 70%, transparent 95%);
+                        pointer-events: none;
+                    }
+                    .vc3-card:hover {
+                        border-color: rgba(212,168,83,0.35);
+                        background: linear-gradient(160deg, rgba(18,28,42,0.97) 0%, rgba(12,20,32,0.99) 100%);
+                        box-shadow:
+                            inset 0 1px 0 rgba(212,168,83,0.1),
+                            inset 0 0 20px rgba(212,168,83,0.03),
+                            0 8px 32px rgba(0,0,0,0.55),
+                            0 0 0 1px rgba(212,168,83,0.08);
+                    }
+                    .vc3-accent {
+                        position: absolute;
+                        top: 0; left: 0; right: 0;
+                        height: 3px;
+                        border-radius: 14px 14px 0 0;
+                        opacity: 0.75;
+                        transition: opacity 0.3s;
+                    }
+                    .vc3-card:hover .vc3-accent { opacity: 1; }
+                    .vc3-header {
+                        display: flex;
+                        align-items: flex-start;
+                        justify-content: space-between;
+                        gap: 8px;
+                        margin-bottom: 6px;
+                    }
+                    .vc3-type-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        padding: 3px 8px;
+                        border-radius: 6px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.8px;
+                        border: 1px solid;
+                    }
+                    .vc3-name {
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: #fff;
+                        margin: 0 0 3px;
+                        line-height: 1.2;
+                    }
+                    .vc3-location {
+                        font-size: 12px;
+                        color: rgba(148,163,184,0.7);
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                    }
+                    .vc3-desc {
+                        font-size: 12px;
+                        color: rgba(148,163,184,0.55);
+                        line-height: 1.4;
+                        margin: 6px 0;
+                        display: -webkit-box;
+                        -webkit-line-clamp: 2;
+                        -webkit-box-orient: vertical;
+                        overflow: hidden;
+                    }
+                    .vc3-games {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 4px;
+                        margin: 6px 0 8px;
+                    }
+                    .vc3-game-tag {
+                        padding: 2px 7px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        background: rgba(148,163,184,0.08);
+                        border: 1px solid rgba(148,163,184,0.12);
+                        color: rgba(200,214,229,0.7);
+                    }
+                    .vc3-footer {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-top: auto;
+                        padding-top: 8px;
+                        border-top: 1px solid rgba(148,163,184,0.08);
+                    }
+                    .vc3-actions {
+                        display: flex;
+                        gap: 4px;
+                    }
+                    .vc3-action-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
+                        padding: 5px 10px;
+                        border-radius: 6px;
+                        font-size: 11px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        border: 1px solid rgba(148,163,184,0.15);
+                        background: rgba(148,163,184,0.06);
+                        color: rgba(200,214,229,0.6);
+                    }
+                    .vc3-action-btn:hover {
+                        background: rgba(148,163,184,0.12);
+                        border-color: rgba(148,163,184,0.25);
+                        color: #fff;
+                    }
+                    .vc3-trust {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 3px;
+                        width: 100%;
+                        margin-top: 6px;
+                    }
+                    .vc3-trust-label {
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+                    .vc3-trust-track {
+                        height: 4px;
+                        border-radius: 2px;
+                        background: rgba(148,163,184,0.1);
+                        overflow: hidden;
+                    }
+                    .vc3-trust-fill {
+                        height: 100%;
+                        border-radius: 2px;
+                        transition: width 0.6s ease;
+                    }
+                    .vc3-fav-btn {
+                        position: absolute;
+                        top: 12px;
+                        right: 12px;
+                        background: rgba(0,0,0,0.4);
+                        border: 1px solid rgba(148,163,184,0.15);
+                        border-radius: 50%;
+                        width: 32px;
+                        height: 32px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        z-index: 2;
+                    }
+                    .vc3-fav-btn:hover {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.3);
+                    }
+
                     .hg-load-more {
                         text-align: center;
                         padding: 20px 0;

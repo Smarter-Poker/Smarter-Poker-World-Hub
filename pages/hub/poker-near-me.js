@@ -1761,7 +1761,6 @@ export default function PokerNearMePage() {
         // Always show ALL venues on the map — full overview by default
         let baseVenues = allVenuesForMap;
         let filteredVenues = baseVenues;
-        let filteredVenues = baseVenues;
         if (mapFilters.cashGames) {
             filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
         }
@@ -1808,7 +1807,7 @@ export default function PokerNearMePage() {
                 <div className="map-main-section">
                     {/* Header Row */}
                     <div className="map-header-row">
-                        <h2 className="map-title">Poker Rooms Near You</h2>
+                        <h2 className="map-title">Explore All Poker Rooms</h2>
                         <span className="map-stats">{filteredVenues.length} rooms • {liveTableCount.toLocaleString()} active tables • {dailyTournaments.length} tournaments today</span>
                     </div>
 
@@ -1854,8 +1853,6 @@ export default function PokerNearMePage() {
                             My Location
                         </button>
                     )}
-
-                    </div>
                 </div>
 
                 {/* RIGHT COLUMN: Sidebar Filters + Room Detail */}
@@ -5677,9 +5674,8 @@ export default function PokerNearMePage() {
                             transform: translateY(0);
                         }
                         .map-tab-container {
-                            height: calc(100vh - 260px);
-                            min-height: 300px;
-                            max-height: 500px;
+                            height: calc(100vh - 240px);
+                            min-height: 400px;
                             border-radius: 8px;
                         }
                     }
@@ -5752,12 +5748,11 @@ export default function PokerNearMePage() {
                         color: rgba(255,255,255,0.4) !important;
                     }
 
-                    /* Map Tab — full-height map container */
+                    /* Map Tab — full-height map container — FULL VIEWPORT EXPERIENCE */
                     .map-tab-container {
                         width: 100%;
-                        height: calc(100vh - 340px);
-                        min-height: 400px;
-                        max-height: 700px;
+                        height: calc(100vh - 280px);
+                        min-height: 500px;
                         border-radius: 12px;
                         overflow: hidden;
                         border: 1.5px solid rgba(148,163,184,0.12);
