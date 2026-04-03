@@ -131,6 +131,13 @@ export default function GeevesFloatingOrb() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [showBugForm, setShowBugForm] = useState(false);
+    const [bugSubject, setBugSubject] = useState('');
+    const [bugDescription, setBugDescription] = useState('');
+    const [bugPriority, setBugPriority] = useState('medium');
+    const [bugSubmitting, setBugSubmitting] = useState(false);
+    const [bugSuccess, setBugSuccess] = useState(false);
+    const [bugError, setBugError] = useState('');
     const [showTip, setShowTip] = useState(false);
     const [tipText, setTipText] = useState('');
     const [isListening, setIsListening] = useState(false); // Voice input state
@@ -658,12 +665,201 @@ export default function GeevesFloatingOrb() {
                         <div ref={messagesEndRef} />
                     </div>
 
+                    {/* ── Report a Bug Form (slides in above input) ── */}
+                    {showBugForm && (
+                        <div style={{
+                            padding: '16px 14px',
+                            borderTop: '1px solid rgba(255, 80, 80, 0.3)',
+                            background: 'linear-gradient(180deg, rgba(255, 60, 60, 0.06) 0%, rgba(255, 60, 60, 0.02) 100%)',
+                            flexShrink: 0,
+                            animation: 'geevesSlideUp 0.2s ease-out',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: '#ff6b6b', letterSpacing: '0.5px' }}>Report a Bug</span>
+                                </div>
+                                <button
+                                    onClick={() => { setShowBugForm(false); setBugSuccess(false); setBugError(''); }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 18 }}
+                                >×</button>
+                            </div>
+
+                            {bugSuccess ? (
+                                <div style={{
+                                    textAlign: 'center', padding: '20px 10px',
+                                    color: '#00ff88', fontSize: 14, fontWeight: 600,
+                                }}>
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00ff88" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                        <polyline points="22 4 12 14.01 9 11.01" />
+                                    </svg>
+                                    <div>Bug Report Submitted</div>
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>Our team has been notified. Thank you!</div>
+                                    <button
+                                        onClick={() => { setShowBugForm(false); setBugSuccess(false); setBugSubject(''); setBugDescription(''); setBugPriority('medium'); }}
+                                        style={{
+                                            marginTop: 12, padding: '8px 20px', borderRadius: 20,
+                                            background: 'rgba(0, 255, 136, 0.15)', border: '1px solid rgba(0, 255, 136, 0.3)',
+                                            color: '#00ff88', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                        }}
+                                    >Done</button>
+                                </div>
+                            ) : (
+                                <>
+                                    <input
+                                        type="text"
+                                        value={bugSubject}
+                                        onChange={e => setBugSubject(e.target.value)}
+                                        placeholder="What went wrong? (brief summary)"
+                                        maxLength={120}
+                                        style={{
+                                            width: '100%', padding: '10px 14px', borderRadius: 10,
+                                            border: '1px solid rgba(255, 107, 107, 0.25)',
+                                            background: 'rgba(255,255,255,0.05)', color: '#fff',
+                                            fontSize: 14, outline: 'none', marginBottom: 8,
+                                            boxSizing: 'border-box',
+                                        }}
+                                    />
+                                    <textarea
+                                        value={bugDescription}
+                                        onChange={e => setBugDescription(e.target.value)}
+                                        placeholder="Describe the bug in detail...\nWhat were you doing? What did you expect to happen?"
+                                        rows={3}
+                                        maxLength={2000}
+                                        style={{
+                                            width: '100%', padding: '10px 14px', borderRadius: 10,
+                                            border: '1px solid rgba(255, 107, 107, 0.25)',
+                                            background: 'rgba(255,255,255,0.05)', color: '#fff',
+                                            fontSize: 13, outline: 'none', resize: 'vertical',
+                                            lineHeight: 1.5, marginBottom: 8,
+                                            boxSizing: 'border-box',
+                                        }}
+                                    />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Priority:</span>
+                                        {['low', 'medium', 'high'].map(p => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setBugPriority(p)}
+                                                style={{
+                                                    padding: '4px 12px', borderRadius: 12,
+                                                    fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                                                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                                                    transition: 'all 0.2s',
+                                                    background: bugPriority === p
+                                                        ? p === 'high' ? 'rgba(255,68,68,0.25)' : p === 'medium' ? 'rgba(255,165,0,0.25)' : 'rgba(0,255,136,0.25)'
+                                                        : 'rgba(255,255,255,0.05)',
+                                                    border: `1px solid ${bugPriority === p
+                                                        ? p === 'high' ? 'rgba(255,68,68,0.5)' : p === 'medium' ? 'rgba(255,165,0,0.5)' : 'rgba(0,255,136,0.5)'
+                                                        : 'rgba(255,255,255,0.1)'}`,
+                                                    color: bugPriority === p
+                                                        ? p === 'high' ? '#ff6b6b' : p === 'medium' ? '#ffa500' : '#00ff88'
+                                                        : 'rgba(255,255,255,0.4)',
+                                                }}
+                                            >{p}</button>
+                                        ))}
+                                    </div>
+                                    {bugError && (
+                                        <div style={{ fontSize: 12, color: '#ff6b6b', marginBottom: 8 }}>{bugError}</div>
+                                    )}
+                                    <button
+                                        onClick={async () => {
+                                            if (!bugSubject.trim() || !bugDescription.trim()) {
+                                                setBugError('Please fill in both subject and description.');
+                                                return;
+                                            }
+                                            setBugSubmitting(true);
+                                            setBugError('');
+                                            try {
+                                                const token = getAuthToken();
+                                                const headers = { 'Content-Type': 'application/json' };
+                                                if (token) headers['Authorization'] = `Bearer ${token}`;
+                                                const res = await fetch('/api/live-help/report-bug', {
+                                                    method: 'POST',
+                                                    headers,
+                                                    body: JSON.stringify({
+                                                        subject: bugSubject.trim(),
+                                                        description: bugDescription.trim(),
+                                                        priority: bugPriority,
+                                                        currentPage: path,
+                                                        userAgent: navigator.userAgent,
+                                                    }),
+                                                });
+                                                if (!res.ok) throw new Error('Failed to submit');
+                                                setBugSuccess(true);
+                                                setBugSubject('');
+                                                setBugDescription('');
+                                                setBugPriority('medium');
+                                            } catch (err) {
+                                                setBugError('Failed to submit bug report. Please try again.');
+                                            } finally {
+                                                setBugSubmitting(false);
+                                            }
+                                        }}
+                                        disabled={bugSubmitting || !bugSubject.trim() || !bugDescription.trim()}
+                                        style={{
+                                            width: '100%', padding: '10px 16px', borderRadius: 10,
+                                            background: (bugSubject.trim() && bugDescription.trim())
+                                                ? 'linear-gradient(135deg, #cc3333 0%, #ff4444 100%)'
+                                                : 'rgba(255,255,255,0.08)',
+                                            border: 'none', color: '#fff', fontSize: 14, fontWeight: 600,
+                                            cursor: (bugSubject.trim() && bugDescription.trim()) ? 'pointer' : 'not-allowed',
+                                            opacity: bugSubmitting ? 0.6 : 1,
+                                            transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        {bugSubmitting ? 'Submitting...' : 'Submit Bug Report'}
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+
                     {/* Input Bar */}
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         padding: '12px 14px', borderTop: '1px solid rgba(0,212,255,0.15)',
                         flexShrink: 0, paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
                     }}>
+                        {/* Report a Bug button */}
+                        <button
+                            onClick={() => { setShowBugForm(prev => !prev); setBugSuccess(false); setBugError(''); }}
+                            title="Report a Bug"
+                            aria-label="Report a bug"
+                            style={{
+                                width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                                background: showBugForm
+                                    ? 'linear-gradient(135deg, #cc3333 0%, #ff4444 100%)'
+                                    : 'rgba(255,255,255,0.07)',
+                                border: showBugForm
+                                    ? '2px solid rgba(255,80,80,0.6)'
+                                    : '1px solid rgba(255,107,107,0.25)',
+                                cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            {/* Bug SVG icon */}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke={showBugForm ? '#fff' : '#ff6b6b'}
+                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="8" y="6" width="8" height="14" rx="4" />
+                                <path d="M6 10H2" />
+                                <path d="M22 10h-4" />
+                                <path d="M6 18H2" />
+                                <path d="M22 18h-4" />
+                                <path d="M6 14H2" />
+                                <path d="M22 14h-4" />
+                                <path d="M10 6V3" />
+                                <path d="M14 6V3" />
+                            </svg>
+                        </button>
+
                         <input
                             ref={inputRef}
                             type="text"

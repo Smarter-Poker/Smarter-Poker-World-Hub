@@ -134,10 +134,30 @@ export default function CreateHomeGamePage() {
       }
       const token = getAccessToken();
 
+      // Map form fields to API/DB column names
+      const resolvedStakes = formData.stakes === 'Custom' ? formData.custom_stakes : formData.stakes;
       const payload = {
-        ...formData,
-        stakes: formData.stakes === 'Custom' ? formData.custom_stakes : formData.stakes,
-        schedule_summary: getScheduleSummary(),
+        name: formData.name.trim(),
+        description: formData.description,
+        is_private: formData.visibility !== 'public',
+        requires_approval: formData.requires_approval,
+        city: formData.city,
+        state: formData.state,
+        zip_code: formData.zip_code || undefined,
+        latitude: formData.approximate_lat || undefined,
+        longitude: formData.approximate_lng || undefined,
+        default_game_type: formData.game_type,
+        default_stakes: resolvedStakes,
+        typical_buyin_min: formData.min_buyin,
+        typical_buyin_max: formData.max_buyin,
+        max_players: formData.max_players,
+        typical_day: formData.recurring && formData.schedule_days.length > 0 ? formData.schedule_days.join(',') : undefined,
+        typical_time: formData.start_time || undefined,
+        frequency: formData.recurring ? 'weekly' : undefined,
+        settings: {
+          schedule_summary: getScheduleSummary(),
+          end_time: formData.end_time || undefined,
+        },
       };
 
       const res = await fetch('/api/commander/home-games/groups', {
