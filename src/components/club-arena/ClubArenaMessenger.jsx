@@ -1217,7 +1217,7 @@ export const ChatWindow = ({
                 setSharingLocation(false);
                 busEmit.messageSent(conversationId, otherUser?.id);
             },
-            (err) => { console.error('[Location] Failed:', err); if (typeof window !== 'undefined') alert('Location access denied.'); setSharingLocation(false); },
+            (err) => { console.error('[Location] Failed:', err); if (typeof window !== 'undefined') { const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent); const msg = err.code === 1 ? (isIos ? 'Location access denied. Go to Settings → Privacy & Security → Location Services → Safari, then select "While Using".' : 'Location access denied. Go to Settings → Location → enable for this browser.') : 'Unable to get location. Please try again.'; alert(msg); } setSharingLocation(false); },
             { enableHighAccuracy: true, timeout: 10000 }
         );
     };
