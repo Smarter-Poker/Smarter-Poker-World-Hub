@@ -108,6 +108,8 @@ export default async function handler(req, res) {
 
               if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
                   // PIO/CHART ENGINE: Generate from real solver data
+                  // Inject service-role client so engine bypasses RLS
+                  deterministicEngine.setSupabaseClient(getSupabase());
                   try {
                       const needed = questionCount - cachedQuestions.length;
                       const batch = await deterministicEngine.generateBatch({

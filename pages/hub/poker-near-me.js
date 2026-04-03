@@ -309,10 +309,16 @@ export default function PokerNearMePage() {
         showNewcomerFriendly: true
     });
 
-    // Intro video state - only show once per session
+    // Intro video state - only show when navigated from World Hub (via sessionStorage flag)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
-            return !sessionStorage.getItem('poker-near-me-intro-seen');
+            // Only play intro when user came from World Hub page (flag set by WorldHub.tsx)
+            const fromHub = sessionStorage.getItem('poker-near-me-from-hub');
+            if (fromHub === '1' && !sessionStorage.getItem('poker-near-me-intro-seen')) {
+                // Consume the flag immediately so it doesn't replay on refresh
+                sessionStorage.removeItem('poker-near-me-from-hub');
+                return true;
+            }
         }
         return false;
     });
@@ -2645,7 +2651,7 @@ export default function PokerNearMePage() {
             )}
 
             <SEOHead
-                title="Poker Near Me — Find Live Poker Rooms & Casinos"
+                title="Live Cash Games — Find Live Poker Rooms & Casinos"
                 description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-time Game Info, Tournament Schedules, And Interactive Maps Across The United States."
                 canonical="/hub/poker-near-me"
             />
@@ -2670,7 +2676,7 @@ export default function PokerNearMePage() {
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
-                    <h1 className="pnm-title">POKER NEAR ME</h1>
+                    <h1 className="pnm-title">LIVE CASH GAMES</h1>
                     <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 

@@ -120,27 +120,55 @@ function parseBoardFromHash(scenarioHash) {
  * "hu_cash_BTN_100bb_3h7c7s" → "BTN"
  */
 /**
- * ═══ PHASE 19: Get max frequency from strategy matrix ═══
- * Used for difficulty filtering — higher max freq = easier spot (clear best action)
+ * ═══ PHASE 19: Get average max frequency across hands in a strategy matrix ═══
+ * Used for difficulty filtering — higher avg max freq = easier spot (clear best action).
+ *
+ * The strategy_matrix.frequencies structure is: { action → { hand → freq(0-1) } }
+ * For each hand, find its highest-frequency action, then average those across all hands.
+ * This gives a true measure of how "clear" the scenario's decisions are overall.
+ *
+ * BUG-B FIX: Old implementation found the single highest freq across ALL hands×actions,
+ * which was always ~100% (some hand is always a pure action), making difficulty filtering a no-op.
  */
 function getMaxFrequency(strategyMatrix) {
     if (!strategyMatrix) return 50;
     const frequencies = strategyMatrix.frequencies || {};
-    let maxFreq = 0;
-    for (const hand of Object.values(frequencies)) {
-        if (typeof hand === 'object') {
-            for (const freq of Object.values(hand)) {
-                if (typeof freq === 'number' && freq > maxFreq) maxFreq = freq;
+    const actions = strategyMatrix.actions || Object.keys(frequencies);
+
+    if (actions.length === 0) return 50;
+
+    // Build per-hand max frequency map
+    const handMaxFreqs = {};
+
+    for (const action of actions) {
+        const handFreqs = frequencies[action];
+        if (!handFreqs || typeof handFreqs !== 'object') continue;
+
+        for (const [hand, freq] of Object.entries(handFreqs)) {
+            if (typeof freq !== 'number') continue;
+            // freq is 0.0-1.0, convert to percentage for comparison
+            const pct = freq * 100;
+            if (!handMaxFreqs[hand] || pct > handMaxFreqs[hand]) {
+                handMaxFreqs[hand] = pct;
             }
         }
     }
-    // If frequencies is flat (action → freq), check that too
-    if (maxFreq === 0) {
+
+    const maxFreqs = Object.values(handMaxFreqs);
+    if (maxFreqs.length === 0) {
+        // Flat frequencies fallback (action → freq, no per-hand data)
+        let maxFreq = 0;
         for (const val of Object.values(frequencies)) {
-            if (typeof val === 'number' && val > maxFreq) maxFreq = val;
+            if (typeof val === 'number' && val * 100 > maxFreq) maxFreq = val * 100;
         }
+        return maxFreq || 50;
     }
-    return maxFreq || 50;
+
+    // Return the AVERAGE max-frequency-per-hand
+    // Scenarios where most hands have clear best actions → high avg (easy)
+    // Scenarios where most hands have mixed strategies → low avg (hard)
+    const avg = maxFreqs.reduce((sum, v) => sum + v, 0) / maxFreqs.length;
+    return Math.round(avg);
 }
 
 function extractPositionFromHash(scenarioHash) {
@@ -265,6 +293,26 @@ function matchesHandClass(hand, handClass) {
 // MAIN ENGINE CLASS
 // ═══════════════════════════════════════════════════════════════════════════
 export class DeterministicGTOEngine {
+
+    constructor() {
+        // Default: use the imported client-side supabase (works for SSR with anon key)
+        // API routes should call setSupabaseClient() with a service-role client
+        this._supabaseClient = null;
+    }
+
+    /**
+     * Override the Supabase client used for queries.
+     * Call this from API routes to inject the service-role client,
+     * which bypasses RLS and ensures full access to solved_spots_gold.
+     */
+    setSupabaseClient(client) {
+        this._supabaseClient = client;
+    }
+
+    /** Get the active Supabase client (injected server client or default) */
+    get db() {
+        return this._supabaseClient || supabase;
+    }
 
     /**
      * Generate a single training question from REAL solver data.
@@ -401,7 +449,7 @@ export class DeterministicGTOEngine {
             const boardStr = boardCards.map(c => c.toLowerCase()).join('');
 
             // Try exact match first — scenario_hash contains the board
-            const { data: exactMatches, error: exactErr } = await supabase
+            const { data: exactMatches, error: exactErr } = await this.db
                 .from('solved_spots_gold')
                 .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
                 .eq('game_type', gameConfig.pioGameType)
@@ -427,7 +475,7 @@ export class DeterministicGTOEngine {
 
             // No exact match — try partial board match (flop portion only)
             const flopStr = boardCards.slice(0, 3).map(c => c.toLowerCase()).join('');
-            const { data: partialMatches } = await supabase
+            const { data: partialMatches } = await this.db
                 .from('solved_spots_gold')
                 .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
                 .eq('game_type', gameConfig.pioGameType)
@@ -487,7 +535,7 @@ export class DeterministicGTOEngine {
             // ═══ PHASE 15: Allow street override for targeted practice ═══
             const street = targetStreet || this.getStreetForLevel(level);
 
-            const { data, error } = await supabase
+            const { data, error } = await this.db
                 .from('solved_spots_gold')
                 .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
                 .eq('game_type', gameConfig.pioGameType)
@@ -683,7 +731,7 @@ export class DeterministicGTOEngine {
 
     async generateFromCharts(gameConfig, level, seenIds) {
         try {
-            const { data: charts, error } = await supabase
+            const { data: charts, error } = await this.db
                 .from('memory_charts_gold')
                 .select('*')
                 .lte('stack_depth', (gameConfig.pioStackDepth || 15) + 5)
