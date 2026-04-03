@@ -34,7 +34,7 @@ const GRID_HOTSPOTS = [
   // Row 3
   { id: 'daily', label: 'Daily Grind', badgeKey: 'dailyCount' },
   { id: 'favorites', label: 'Saved Venues', badgeKey: 'savedCount' },
-  { id: 'social', label: 'Friends', badgeKey: 'friendsNearby' },
+  { id: 'social', label: 'Friends', comingSoon: true },
   { id: 'alerts', label: 'Tournament Alerts', badgeKey: 'alertCount' },
 ];
 
@@ -414,19 +414,22 @@ export default function LobbyOverlay({
         msOverflowStyle: 'none',
       }}>
         <div style={{ position: 'relative', maxWidth: 900, width: '100%' }}>
-          {/* Grid image — PNG to preserve "Home Games" update */}
-          <img
-            src="/images/lobby-pods/poker-near-me-grid.png"
-            alt="Poker Near Me Feature Grid"
-            loading="eager"
-            fetchpriority="high"
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-              borderRadius: 12,
-            }}
-          />
+          {/* Grid image — WebP with PNG fallback for broad compatibility */}
+          <picture>
+            <source srcSet="/images/lobby-pods/poker-near-me-grid.webp" type="image/webp" />
+            <img
+              src="/images/lobby-pods/poker-near-me-grid.png"
+              alt="Poker Near Me Feature Grid"
+              loading="eager"
+              fetchPriority="high"
+              style={{
+                width: '100%',
+                height: 'auto',
+                display: 'block',
+                borderRadius: 12,
+              }}
+            />
+          </picture>
 
           {/* Transparent clickable hotspot grid overlaid on top of the image */}
           <div style={{
@@ -446,13 +449,15 @@ export default function LobbyOverlay({
               // Resolve live badge count from liveData
               const badgeVal = hotspot.badgeKey ? (liveData?.[hotspot.badgeKey] ?? 0) : 0;
               // Badge display logic:
-              //   -1 = "Coming Soon" sentinel (friends)
+              //   comingSoon = dimmed "Soon" label
               //    0 = no badge
               //   >0 = show count
-              const showBadge = badgeVal > 0;
-              const badgeText = badgeVal > 50 ? '50+' : String(badgeVal);
+              const isComingSoon = hotspot.comingSoon === true;
+              const showBadge = isComingSoon || badgeVal > 0;
+              const badgeText = isComingSoon ? 'Soon' : (badgeVal > 50 ? '50+' : String(badgeVal));
               // Color coding per category
-              const badgeColor = hotspot.id === 'livegames' ? '#3fb950'
+              const badgeColor = isComingSoon ? 'rgba(148,163,184,0.5)'
+                : hotspot.id === 'livegames' ? '#3fb950'
                 : hotspot.id === 'favorites' ? '#f59e0b'
                 : hotspot.id === 'alerts' ? '#ef4444'
                 : '#6ee7ef';
@@ -532,7 +537,7 @@ export default function LobbyOverlay({
           {[
             { value: liveData?.totalVenueCount || liveData?.venueCount || '—', label: 'Venues', color: '#6ee7ef', show: true },
             { value: liveData?.liveGameCount || '—', label: 'Live Tables', color: '#3fb950', show: (liveData?.liveGameCount || 0) > 0 },
-            { value: liveData?.dailyCount || '—', label: 'Today\'s Events', color: '#d4a853', show: true },
+            { value: liveData?.tourCount || '—', label: 'Upcoming Tours', color: '#d4a853', show: true },
             { value: liveData?.savedCount || 0, label: 'Saved', color: '#f59e0b', show: (liveData?.savedCount || 0) > 0 },
           ].filter(s => s.show).map((stat, i) => (
             <div key={i} style={{ textAlign: 'center', minWidth: 50 }}>
@@ -542,7 +547,13 @@ export default function LobbyOverlay({
                 color: stat.color,
                 lineHeight: 1.1,
                 letterSpacing: '-0.02em',
-              }}>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</div>
+              }}>
+                {stat.value === '\u2014' ? (
+                  <span className="lobby-stat-shimmer" />
+                ) : (
+                  <span>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</span>
+                )}
+              </div>
               <div style={{
                 fontSize: 'clamp(9px, 1.2vw, 11px)',
                 color: 'rgba(200,214,229,0.4)',

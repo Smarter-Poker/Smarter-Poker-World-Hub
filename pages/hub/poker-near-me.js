@@ -2691,7 +2691,7 @@ export default function PokerNearMePage() {
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
-                    <p className="pnm-subtitle">525+ Venues &bull; 40 States &bull; Real-Time Data</p>
+                    <p className="pnm-subtitle">700+ Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}

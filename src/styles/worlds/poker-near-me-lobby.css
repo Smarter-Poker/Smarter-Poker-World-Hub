@@ -276,7 +276,8 @@
 /* ─── RESPONSIVE ─── */
 @media (max-width: 600px) {
   .lobby-topbar {
-    padding: 52px 12px 0;
+    padding: 56px 12px 0;
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
     padding-bottom: 10px;
   }
   .lobby-title {
@@ -316,4 +317,20 @@
 }
 .lobby-history-btn:hover {
   background: rgba(110, 231, 239, 0.06) !important;
+}
+
+/* ─── STAT SHIMMER (loading skeleton) ─── */
+@keyframes lobby-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.lobby-stat-shimmer {
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(110,231,239,0.08) 25%, rgba(110,231,239,0.18) 50%, rgba(110,231,239,0.08) 75%);
+  background-size: 200% 100%;
+  animation: lobby-shimmer 1.5s ease-in-out infinite;
+  vertical-align: middle;
 }

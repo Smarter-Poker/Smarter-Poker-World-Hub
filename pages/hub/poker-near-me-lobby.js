@@ -1846,7 +1846,7 @@ export default function PokerNearMeLobby() {
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 20, flexWrap: 'wrap' }}>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d4a853' }}>{venues.length || '700+'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Venues</div></div>
-                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d2a8ff' }}>{dailyTournaments.length > 0 ? dailyTournaments.length.toLocaleString() : '3,270'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Tournaments</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#d2a8ff' }}>{dailyTournaments.length > 0 ? dailyTournaments.length.toLocaleString() : '—'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>Tournaments</div></div>
                   <div style={{ textAlign: 'center' }}><div style={{ fontSize: 24, fontWeight: 800, color: '#3fb950' }}>{new Set(venues.map(v => v.state).filter(Boolean)).size || '41'}</div><div style={{ fontSize: 11, color: '#8b949e' }}>States</div></div>
                 </div>
               </div>
@@ -2180,10 +2180,16 @@ export default function PokerNearMeLobby() {
       return end >= today;
     });
 
-    // Today's tournaments
+    // Today's tournaments — match by day_of_week OR by actual event date
+    const todayDateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
     const todaysTournaments = dailyTournaments.filter(t => {
+      // Match by day_of_week name (e.g., "Monday")
       const day = t.day_of_week || t.day;
-      return day && day.toLowerCase() === todayDay.toLowerCase();
+      if (day && day.toLowerCase() === todayDay.toLowerCase()) return true;
+      // Match by actual event date (YYYY-MM-DD)
+      const eventDate = t.event_date || t.start_time || t.date;
+      if (eventDate && String(eventDate).startsWith(todayDateStr)) return true;
+      return false;
     });
 
     // Nearby venues (with GPS) vs total venues (without GPS)
@@ -2203,10 +2209,9 @@ export default function PokerNearMeLobby() {
       // Daily Grind: today's tournaments only
       dailyCount: todaysTournaments.length,
       // Calendar: total upcoming events across all days (distinct from dailyCount)
-      calendarCount: dailyTournaments.length > 0 ? Math.min(dailyTournaments.length, 50) : 0,
+      calendarCount: dailyTournaments.length,
       alertCount: upcomingTours.length, // alerts = upcoming tour events only
       savedCount: Object.keys(favorites).filter(k => favorites[k]).length,
-      friendsNearby: -1, // sentinel: -1 = "Coming Soon" in LobbyOverlay
       homeGameCount: venues.filter(v => v.venue_type === 'home_game').length,
       // Map badge: only show when GPS is active (contextual: "X venues on your map")
       // Without GPS, map is still usable but badge count is misleading
@@ -2506,7 +2511,12 @@ export default function PokerNearMeLobby() {
               border: '1px solid rgba(148,163,184,0.12)',
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
             }}>
-              <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.6 }}>🔒</div>
+              <div style={{ marginBottom: 12, opacity: 0.6 }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0110 0v4" />
+                </svg>
+              </div>
               <h3 style={{ color: '#e2e8f0', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Sign In Required</h3>
               <p style={{ color: 'rgba(200,214,229,0.5)', fontSize: 13, lineHeight: 1.5, marginBottom: 24 }}>
                 You need to be signed in to check in at venues and leave reviews. Create a free account to unlock all features.
