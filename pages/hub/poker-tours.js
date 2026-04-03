@@ -10,8 +10,8 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 
 // ─── Lazy-load components ───
-const UniversalHeader = dynamic(() => import('../../src/components/shared/UniversalHeader'), { ssr: false });
-const HamburgerMenu = dynamic(() => import('../../src/components/shared/HamburgerMenu'), { ssr: false });
+const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
 const MapErrorBoundary = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.MapErrorBoundary })), { ssr: false });
 
