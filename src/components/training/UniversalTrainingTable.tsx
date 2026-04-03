@@ -25,6 +25,7 @@ import { loadGameData, GameLoopStartingState } from '../../engine/gameDataLoader
 import {
     useActionReplay
 } from '../../engine/actionReplayEngine';
+import { trainingSounds } from '../../utils/trainingSounds';
 
 // TypeScript interfaces
 interface Question {
@@ -183,7 +184,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             setHeroCards(question.heroCards || clinic?.startingState?.heroCards || ['Ah', 'Kh']);
             setPot(question.stackDepth || clinic?.startingState?.pot || 12);
             setBoardCards(clinic?.startingState?.board || []);
-            // playSound('deal'); // TODO: Add audio
+            trainingSounds.play('deal');
         }, 500);
 
         // T+800ms: Start Action Replay OR Legacy Villain Action
@@ -198,7 +199,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                 // LEGACY: Just show simple villain action text
                 setVillainAction(question.villainAction || 'Bets 2.5BB');
             }
-            // playSound('chip-click'); // TODO: Add audio
+            trainingSounds.play('chipClick');
         }, 800);
 
         // T+1000ms: Player Turn - Unlock buttons (only if NOT replaying)

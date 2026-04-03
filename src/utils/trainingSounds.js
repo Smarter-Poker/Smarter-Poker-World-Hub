@@ -99,6 +99,20 @@ class TrainingSounds {
                 frequencies: [1318.51, 1567.98, 2093], // E6, G6, C7
                 duration: 0.15,
                 type: 'sine'
+            },
+
+            // Card deal - quick snap
+            deal: {
+                frequencies: [2400, 1800], // Two short high taps
+                duration: 0.03,
+                type: 'square'
+            },
+
+            // Chip click - poker chip toss
+            chipClick: {
+                frequencies: [1200, 900, 700], // Descending taps
+                duration: 0.04,
+                type: 'square'
             }
         };
 

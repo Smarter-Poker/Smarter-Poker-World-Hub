@@ -1282,7 +1282,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                     <ActionButtons
                         onAction={submitAction}
                         disabled={isControlsLocked}
-                        canCheck={!!(currentHand?.solverNode?.actions && Object.keys(currentHand.solverNode.actions).some(k => /^(x|check)$/i.test(k)))}
+                        canCheck={!!(currentHand?.solverNode?.actions && typeof currentHand.solverNode.actions === 'object' && Object.keys(currentHand.solverNode.actions).some(k => /^(x|check)$/i.test(k)))}
                         betSizing={betSizing}
                     />
                 </footer>

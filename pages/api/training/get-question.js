@@ -527,12 +527,15 @@ EXAMPLES OF GOOD PSYCHOLOGY QUESTIONS:
 
 Make the scenario realistic and the options psychologically distinct.`;
 
-            const response = await grok.chat.completions.create({
-                model: 'grok-3',
-                messages: [{ role: 'user', content: psychologyPrompt }],
-                temperature: 0.9, // Higher creativity for varied scenarios
-                max_tokens: 800,
-            });
+            const response = await Promise.race([
+                grok.chat.completions.create({
+                    model: 'grok-3',
+                    messages: [{ role: 'user', content: psychologyPrompt }],
+                    temperature: 0.9, // Higher creativity for varied scenarios
+                    max_tokens: 800,
+                }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Grok timeout (25s)')), 25000)),
+            ]);
 
             const content = response.choices[0]?.message?.content || '';
             const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -623,12 +626,15 @@ IMPORTANT RULES:
 4. Use REAL card notation: rank (2-9,T,J,Q,K,A) + suit (h,d,c,s)
 5. Make it realistic for ${gameFormat}. ${playerCount === 2 ? 'HEADS-UP only BTN/SB and BB.' : ''}`;
 
-        const response = await grok.chat.completions.create({
-            model: 'grok-3',
-            messages: [{ role: 'user', content: gtoPrompt }],
-            temperature: 0.8,
-            max_tokens: 800,
-        });
+        const response = await Promise.race([
+            grok.chat.completions.create({
+                model: 'grok-3',
+                messages: [{ role: 'user', content: gtoPrompt }],
+                temperature: 0.8,
+                max_tokens: 800,
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Grok timeout (25s)')), 25000)),
+        ]);
 
         const content = response.choices[0]?.message?.content || '';
         const jsonMatch = content.match(/\{[\s\S]*\}/);
