@@ -8,7 +8,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
-import BackToLobbyBar from '../../src/components/ui/BackToLobbyBar';
 
 // ─── Lazy-load components ───
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
@@ -209,8 +208,7 @@ export default function PokerToursPage() {
                 <div className="space-overlay" />
 
                 {/* Header */}
-                <UniversalHeader />
-                <BackToLobbyBar />
+                <UniversalHeader pageDepth={2} />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

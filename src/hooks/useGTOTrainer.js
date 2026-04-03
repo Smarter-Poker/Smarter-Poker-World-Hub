@@ -427,6 +427,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 heroHand: currentQuestion.heroHand || scenario.heroHand || null,
                 street: scenario.street || null,
                 scenarioHash: scenario.scenarioHash || null,
+                // ═══ PHASE 21: EV data for RangeGrid EV overlay ═══
+                evData: currentQuestion.evData || null,
             },
         });
 

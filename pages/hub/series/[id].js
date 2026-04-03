@@ -12,7 +12,6 @@ import { useState, useEffect, Fragment } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
 
 // Tour badge color mapping
@@ -768,7 +767,6 @@ export default function SeriesDetailPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
 
       <style jsx>{styles}</style>

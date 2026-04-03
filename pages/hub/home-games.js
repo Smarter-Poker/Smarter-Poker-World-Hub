@@ -9,8 +9,6 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import BackToLobbyBar from '../../src/components/ui/BackToLobbyBar';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
@@ -301,8 +299,7 @@ export default function HomeGamesPage() {
             <div className="space-bg"><div className="space-overlay" /></div>
 
             <div className="hg-page">
-                <UniversalHeader />
-                <BackToLobbyBar />
+                <UniversalHeader pageDepth={2} />
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="hg-title-bar">
@@ -531,8 +528,6 @@ export default function HomeGamesPage() {
                         <div className="hg-location-city">{gpsLocationLabel}</div>
                     )}
                 </div>
-
-                <BottomNavBar />
 
                 {/* ═══ SMART LOCATION ENABLE MODAL ═══ */}
                 <LocationEnableModal

@@ -117,6 +117,7 @@ export default function LiveGamesFeed({
 
     // ─── SIDEBAR STATE ───
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [mapExpanded, setMapExpanded] = useState(true);
 
     // ─── GPS LOCATION CARRYOVER — restore from localStorage when prop is null ───
     const [restoredLocation, setRestoredLocation] = useState(null);
@@ -563,9 +564,9 @@ export default function LiveGamesFeed({
                     padding: '16px 18px 14px',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
                     transition: 'all 0.2s ease',
-                    cursor: v._hasParentVenue && router ? 'pointer' : 'default',
+                    cursor: router ? 'pointer' : 'default',
                 }}
-                onClick={() => { if (v._hasParentVenue && router) router.push(`/hub/venues/${v.id}`); }}
+                onClick={() => { if (router) router.push(`/hub/venues/${v.id}`); }}
                 >
                     {/* === HEADER ZONE === */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -671,7 +672,7 @@ export default function LiveGamesFeed({
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {v._hasParentVenue && router && (
+                            {router && (
                                 <button onClick={(e) => { e.stopPropagation(); router.push(`/hub/venues/${v.id}`); }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
@@ -800,157 +801,75 @@ export default function LiveGamesFeed({
             )}
 
             {/* ─── SIDEBAR + CONTENT LAYOUT ─── */}
-            <div className="lgf-layout" style={{ display: 'flex', gap: 16, padding: '0 16px' }}>
+            
+            {/* ─── NEW VERTICAL LAYOUT ─── */}
+            <div className="lgf-layout" style={{ display: 'flex', flexDirection: 'column', padding: '0 16px' }}>
 
-            {/* ─── LEFT SIDEBAR (filters) ─── */}
-            <div className={`lgf-sidebar ${sidebarOpen ? 'lgf-sidebar-open' : ''}`} style={{
-                width: 240, flexShrink: 0,
-                background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)',
-                borderRadius: 14, padding: 14, alignSelf: 'flex-start', position: 'sticky', top: 80,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            }}>
-                {/* Global Stats (compact vertical) */}
-                {!selectedVenue && globalStats.venues > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14, padding: 10, borderRadius: 10, background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(48,54,61,0.5)' }}>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#ef4444' }}>{globalStats.venues}</div>
-                            <div style={{ fontSize: 8, color: 'rgba(200,214,229,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Venues</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#3fb950' }}>{globalStats.tables.toLocaleString()}</div>
-                            <div style={{ fontSize: 8, color: 'rgba(200,214,229,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Tables</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#d4a853' }}>{globalStats.waiting.toLocaleString()}</div>
-                            <div style={{ fontSize: 8, color: 'rgba(200,214,229,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Waiting</div>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: '#d4a853' }}>
-                                {refreshCountdown > 0 ? `${Math.floor(refreshCountdown / 60)}:${String(refreshCountdown % 60).padStart(2, '0')}` : '...'}
-                            </div>
-                            <div style={{ fontSize: 8, color: 'rgba(200,214,229,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Refresh</div>
-                        </div>
+            {/* ─── 1. COLLAPSIBLE MAP ─── */}
+            {!selectedVenue && (
+                <div style={{ background: 'rgba(13,17,23,0.95)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(48,54,61,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', marginBottom: 16 }}>
+                    <div onClick={() => setMapExpanded(!mapExpanded)} style={{ padding: '10px 16px', background: 'rgba(212,168,83,0.08)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#d4a853', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Live Games Map</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
                     </div>
-                )}
-
-                {/* Search Bar */}
-                <div style={{ position: 'relative', marginBottom: 12, zIndex: 10 }}>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)',
-                        borderRadius: 10, padding: '8px 10px'
-                    }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => handleSearchInput(e.target.value)}
-                            onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true); }}
-                            placeholder="Find A Casino..."
-                            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', width: '100%', minWidth: 0 }}
-                        />
-                        {selectedVenue && (
-                            <button onClick={handleClearSearch} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 6, padding: '3px 7px', color: '#e0e8f0', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-                                Clear
-                            </button>
-                        )}
-                    </div>
-                    {/* Autocomplete */}
-                    {showSuggestions && searchSuggestions.length > 0 && (
-                        <div style={{
-                            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-                            background: 'rgba(22,27,34,0.98)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 10,
-                            overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', zIndex: 50
-                        }}>
-                            {searchSuggestions.map((v, i) => (
-                                <div key={v.bravo_slug || v.id} onClick={() => handleSelectSuggestion(v)} style={{
-                                    padding: '8px 12px', borderBottom: i < searchSuggestions.length - 1 ? '1px solid rgba(48,54,61,0.5)' : 'none',
-                                    cursor: 'pointer', color: '#fff', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'space-between',
-                                    transition: 'background 0.15s',
-                                }}>
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</span>
-                                    <span style={{ fontSize: 10, color: '#d4a853', whiteSpace: 'nowrap', marginLeft: 6 }}>{v.totalTables || 0}</span>
-                                </div>
-                            ))}
+                    {mapExpanded && (
+                        <div style={{ height: 400 }}>
+                            <VenueMapPanel venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} onVenueSelect={(v) => { if(setSelectedVenueForReview) setSelectedVenueForReview(null); if (router) router.push(`/hub/venues/${v.id}`); }} />
                         </div>
                     )}
                 </div>
+            )}
 
-                {/* Filters (only show when no single venue is selected) */}
-                {!selectedVenue && (
-                    <>
-                        {/* Section Label */}
-                        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(200,214,229,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>Game Type</div>
-
-                        {/* Game Type Filter Chips — vertical */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 14 }}>
-                            {GAME_TYPE_FILTERS.map(f => (
-                                <button key={f.key} onClick={() => setFilterGameType(f.key)} style={{
-                                    padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                                    border: filterGameType === f.key ? '1px solid #3fb950' : '1px solid rgba(48,54,61,0.6)',
-                                    background: filterGameType === f.key ? 'rgba(63,185,80,0.15)' : 'rgba(22,27,34,0.6)',
-                                    color: filterGameType === f.key ? '#3fb950' : '#8b949e',
-                                    transition: 'all 0.15s', textAlign: 'left',
-                                }}>{f.label}</button>
-                            ))}
+            {/* ─── 2. HORIZONTAL CONTROL BAR ─── */}
+            {!selectedVenue && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16, alignItems: 'center', background: 'rgba(13,17,23,0.95)', padding: '12px 14px', borderRadius: 14, border: '1px solid rgba(48,54,61,0.8)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+                    
+                    {/* Search */}
+                    <div style={{ flex: '1 1 200px', position: 'relative' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                            <input type="text" value={searchQuery} onChange={(e) => handleSearchInput(e.target.value)} onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true); }} placeholder="Find A Casino..." style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', minWidth: 0 }} />
                         </div>
+                        {showSuggestions && searchSuggestions.length > 0 && (
+                            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'rgba(22,27,34,0.98)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 10, overflow: 'hidden', zIndex: 50 }}>
+                                {searchSuggestions.map((v, i) => (
+                                    <div key={v.bravo_slug || v.id} onClick={() => handleSelectSuggestion(v)} style={{ padding: '8px 12px', borderBottom: '1px solid rgba(48,54,61,0.5)', cursor: 'pointer', color: '#fff', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</span>
+                                        <span style={{ fontSize: 10, color: '#d4a853' }}>{v.totalTables || 0}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                        <div style={{ height: 1, background: 'rgba(48,54,61,0.5)', margin: '0 0 12px' }} />
+                    {/* Dropdowns */}
+                    <select value={filterState} onChange={(e) => setFilterState(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
+                        <option value="all">All States</option>
+                        {availableStates.map(st => (<option key={st} value={st}>{st}</option>))}
+                    </select>
 
-                        {/* View Mode Toggle */}
-                        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(200,214,229,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>View</div>
-                        <div style={{ display: 'flex', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-                            <button onClick={() => setViewMode('list')} style={{
-                                flex: 1, padding: '7px 0', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-                                background: viewMode === 'list' ? 'rgba(212,168,83,0.15)' : 'transparent', color: viewMode === 'list' ? '#d4a853' : '#8b949e'
-                            }}>List</button>
-                            <button onClick={() => setViewMode('map')} style={{
-                                flex: 1, padding: '7px 0', border: 'none', borderLeft: '1px solid rgba(48,54,61,0.6)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
-                                background: viewMode === 'map' ? 'rgba(212,168,83,0.15)' : 'transparent', color: viewMode === 'map' ? '#d4a853' : '#8b949e'
-                            }}>Map</button>
-                        </div>
+                    <select value={filterRadius} onChange={(e) => setFilterRadius(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
+                        <option value="any">Any Distance</option><option value="10">10 mi</option><option value="25">25 mi</option><option value="50">50 mi</option><option value="100">100 mi</option><option value="250">250 mi</option>
+                    </select>
 
-                        {/* Dropdowns — full-width vertical stack */}
-                        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(200,214,229,0.3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8 }}>Filters</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <select value={filterState} onChange={(e) => setFilterState(e.target.value)} style={{
-                                width: '100%', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer'
-                            }}>
-                                <option value="all">All States</option>
-                                {availableStates.map(st => (<option key={st} value={st}>{st}</option>))}
-                            </select>
+                    <select value={filterGameType} onChange={(e) => setFilterGameType(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
+                        {[{ key: 'all', label: 'All Games' }, { key: 'nlh', label: 'NLH' }, { key: 'plo', label: 'PLO' }, { key: 'mixed', label: 'Mixed' }, { key: 'stud', label: 'Stud' }].map(f => (
+                            <option key={f.key} value={f.key}>{f.label}</option>
+                        ))}
+                    </select>
 
-                            <select value={filterRadius} onChange={(e) => setFilterRadius(e.target.value)} style={{
-                                width: '100%', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer'
-                            }}>
-                                <option value="any">Any Distance</option>
-                                <option value="10">10 mi</option><option value="25">25 mi</option><option value="50">50 mi</option><option value="100">100 mi</option><option value="250">250 mi</option>
-                            </select>
+                    <select value={filterStakes} onChange={(e) => setFilterStakes(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
+                        {[{ key: 'any', label: 'Any Stakes' }, { key: '1', label: '1/2+' }, { key: '2', label: '2/5+' }, { key: '5', label: '5/10+' }, { key: '10', label: '10/20+' }, { key: '25', label: '25/50+' }].map(s => (<option key={s.key} value={s.key}>{s.label}</option>))}
+                    </select>
 
-                            <select value={filterStakes} onChange={(e) => setFilterStakes(e.target.value)} style={{
-                                width: '100%', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer'
-                            }}>
-                                {STAKES_FILTERS.map(s => (<option key={s.key} value={s.key}>{s.label}</option>))}
-                            </select>
-
-                            {viewMode === 'list' && (
-                                <select value={filterSort} onChange={(e) => setFilterSort(e.target.value)} style={{
-                                    width: '100%', background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer'
-                                }}>
-                                    <option value="tables">Most Active</option>
-                                    {effectiveLocation && <option value="distance">Nearest</option>}
-                                    <option value="trust">Trust Score</option>
-                                </select>
-                            )}
-                        </div>
-                    </>
-                )}
-            </div>
-
-            {/* ─── MAIN CONTENT ─── */}
-            <div className="lgf-main" style={{ flex: 1, minWidth: 0 }}>
+                    <select value={filterSort} onChange={(e) => setFilterSort(e.target.value)} style={{ background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '7px 10px', color: '#c9d1d9', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', height: 34 }}>
+                        <option value="tables">Most Active</option>
+                        {effectiveLocation && <option value="distance">Nearest</option>}
+                        <option value="trust">Trust Score</option>
+                    </select>
+                </div>
+            )}
+<div className="lgf-main" style={{ flex: 1, minWidth: 0 }}>
                 {liveLoading && Object.keys(liveData).length === 0 ? (
                     renderSkeletons(4)
                 ) : (
@@ -1002,14 +921,8 @@ export default function LiveGamesFeed({
                                 </div>
                             </div>
                         ) : (
-                            viewMode === 'map' && !selectedVenue ? (
-                                <VenueMapPanel 
-                                    venues={mergedVenues.filter(v => v.latitude && v.longitude)} 
-                                    userLocation={effectiveLocation} 
-                                    onVenueSelect={(v) => { if(setSelectedVenueForReview) setSelectedVenueForReview(null); if (router) router.push(`/hub/venues/${v.id}`); }} 
-                                />
-                            ) : (
-                                <div style={{ display: 'grid', gap: 14, paddingBottom: 24 }}>
+                            (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14, paddingBottom: 24 }}>
                                     {mergedVenues.slice(0, 50).map((v, i) => renderLiveVenueCard(v, i))}
                                 </div>
                             )

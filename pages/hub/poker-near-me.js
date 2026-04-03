@@ -57,6 +57,7 @@ const RADIUS_TIERS = [50, 100, 200, 500]; // Progressive radius expansion for "L
 // Tab order for swipe navigation
 const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
 const EVENTS_SUB_TABS = ['tours', 'series', 'daily', 'calendar'];
+const MORE_SUB_TABS = ['roadtrip', 'social', 'alerts', 'nearmenow', 'tripcost'];
 
 // Search analytics tracker
 function trackSearchEvent(eventName, data) {
@@ -222,6 +223,7 @@ export default function PokerNearMePage() {
     const { filters: uiFilters, setFilter: setUiFilter } = usePersistedFilters('poker-near-me', {
         activeTab: 'venues',
         activeEventTab: 'daily',
+        activeMoreTab: 'roadtrip',
         sortBy: 'default',
         seriesViewMode: 'grid',
         venueViewMode: 'list'
@@ -229,6 +231,7 @@ export default function PokerNearMePage() {
 
     const activeTab = uiFilters.activeTab;
     const activeEventTab = uiFilters.activeEventTab || 'daily';
+    const activeMoreTab = uiFilters.activeMoreTab || 'roadtrip';
     const sortBy = uiFilters.sortBy;
     const seriesViewMode = uiFilters.seriesViewMode;
     const venueViewMode = uiFilters.venueViewMode || 'list';
@@ -239,6 +242,7 @@ export default function PokerNearMePage() {
         setUiFilter('activeTab', val);
     };
     const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
+    const setActiveMoreTab = (val) => setUiFilter('activeMoreTab', val);
     const setSortBy = (val) => setUiFilter('sortBy', val);
     const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
     const setVenueViewMode = (val) => setUiFilter('venueViewMode', val);
@@ -1474,6 +1478,9 @@ export default function PokerNearMePage() {
         if (router.query.sub && EVENTS_SUB_TABS.includes(router.query.sub)) {
             setActiveEventTab(String(router.query.sub));
         }
+        if (router.query.sub && MORE_SUB_TABS.includes(router.query.sub)) {
+            setActiveMoreTab(String(router.query.sub));
+        }
         if (router.query.filter) {
             setFilters(prev => ({ ...prev, venueType: String(router.query.filter) }));
         }
@@ -1508,6 +1515,17 @@ export default function PokerNearMePage() {
                         setActiveTab('venues'); // Exit left to venues
                     } else if (dx < 0 && evtIdx === EVENTS_SUB_TABS.length - 1) {
                         setActiveTab('live'); // Exit right to live
+                    }
+                }
+            } else if (activeTab === 'more') {
+                const moreIdx = MORE_SUB_TABS.indexOf(activeMoreTab);
+                if (moreIdx !== -1) {
+                    if (dx < 0 && moreIdx < MORE_SUB_TABS.length - 1) {
+                        setActiveMoreTab(MORE_SUB_TABS[moreIdx + 1]);
+                    } else if (dx > 0 && moreIdx > 0) {
+                        setActiveMoreTab(MORE_SUB_TABS[moreIdx - 1]);
+                    } else if (dx > 0 && moreIdx === 0) {
+                        setActiveTab('saved'); // Exit left to saved
                     }
                 }
             } else {
@@ -1721,44 +1739,56 @@ export default function PokerNearMePage() {
                 }
             case 'more':
                 return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '20px 0' }}>
-                        <div onClickCapture={(e) => {
-                            if (!guardAction(() => {})) {
-                                e.stopPropagation();
-                                e.preventDefault();
-                            }
-                        }}>
-                            <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />
-                        </div>
-                        <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '20px 0', width: '100%' }}>
+                        {activeMoreTab === 'roadtrip' && (
+                            <div onClickCapture={(e) => {
+                                if (!guardAction(() => {})) {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                }
+                            }}>
+                                <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />
+                            </div>
+                        )}
+                        {activeMoreTab === 'social' && (
+                            <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />
+                        )}
                         
-                        {/* ── ALERTS & NOTIFICATIONS (Moved from landing page) ── */}
-                        {geofenceStatus === 'denied' && (
-                            <div className="geofence-notice denied" style={{ marginBottom: -10 }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-                                </svg>
-                                <span>Notifications Blocked - Venue Alerts Will Show In-App Only</span>
-                            </div>
+                        {/* ── ALERTS & NOTIFICATIONS ── */}
+                        {activeMoreTab === 'alerts' && (
+                            <>
+                                {geofenceStatus === 'denied' && (
+                                    <div className="geofence-notice denied" style={{ marginBottom: -10 }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
+                                        </svg>
+                                        <span>Notifications Blocked - Venue Alerts Will Show In-App Only</span>
+                                    </div>
+                                )}
+                                {pushPermission === 'default' && userLocation && (
+                                    <div className="push-optin-banner" style={{ marginBottom: -10 }}>
+                                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: -2, marginRight: 4 }}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg> Enable push notifications for venue proximity alerts?</span>
+                                        <button onClick={requestPushPermission}>Enable</button>
+                                        <button onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}>Dismiss</button>
+                                    </div>
+                                )}
+                                <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />
+                            </>
                         )}
-                        {pushPermission === 'default' && userLocation && (
-                            <div className="push-optin-banner" style={{ marginBottom: -10 }}>
-                                <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: -2, marginRight: 4 }}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg> Enable push notifications for venue proximity alerts?</span>
-                                <button onClick={requestPushPermission}>Enable</button>
-                                <button onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}>Dismiss</button>
-                            </div>
-                        )}
-                        <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />
 
-                        <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />
-                        <div onClickCapture={(e) => {
-                            if (!guardAction(() => {})) {
-                                e.stopPropagation();
-                                e.preventDefault();
-                            }
-                        }}>
-                            <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />
-                        </div>
+                        {activeMoreTab === 'nearmenow' && (
+                            <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />
+                        )}
+                        {activeMoreTab === 'tripcost' && (
+                            <div onClickCapture={(e) => {
+                                if (!guardAction(() => {})) {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                }
+                            }}>
+                                <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />
+                            </div>
+                        )}
                     </div>
                 );
             default:
@@ -2723,6 +2753,27 @@ export default function PokerNearMePage() {
                                         onClick={() => setActiveEventTab(sub)}
                                     >
                                         {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* More tools sub-tabs inside sidebar */}
+                        {activeTab === 'more' && (
+                            <div className="sidebar-sub-nav">
+                                {[
+                                    { id: 'roadtrip', label: 'Trip Planner' },
+                                    { id: 'social', label: 'Social Feed' },
+                                    { id: 'alerts', label: 'Alerts' },
+                                    { id: 'nearmenow', label: 'Near Me Now' },
+                                    { id: 'tripcost', label: 'Trip Cost' },
+                                ].map(sub => (
+                                    <button
+                                        key={sub.id}
+                                        className={'sidebar-sub-tab' + (activeMoreTab === sub.id ? ' active' : '')}
+                                        onClick={() => setActiveMoreTab(sub.id)}
+                                    >
+                                        {sub.label}
                                     </button>
                                 ))}
                             </div>

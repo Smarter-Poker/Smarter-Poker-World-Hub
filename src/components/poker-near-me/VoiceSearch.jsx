@@ -283,13 +283,13 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
             )}
 
             <style jsx>{`
-        .voice-fab { position: fixed; bottom: 24px; right: 84px; z-index: 9999; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #d4a853, #b8860b); border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 24px rgba(212,168,83,0.5); transition: all 0.3s; }
+        .voice-fab { position: fixed; bottom: 24px; left: 24px; z-index: 9999; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #d4a853, #b8860b); border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 24px rgba(212,168,83,0.5); transition: all 0.3s; }
         .voice-fab:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(212,168,83,0.5); }
         .voice-fab.listening { background: linear-gradient(135deg, #ef4444, #dc2626); animation: fabPulse 1.5s ease-in-out infinite; }
         .voice-fab-ring { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(239,68,68,0.5); animation: ringExpand 1.5s ease-out infinite; }
         @keyframes fabPulse { 0%, 100% { box-shadow: 0 4px 20px rgba(239,68,68,0.4); } 50% { box-shadow: 0 4px 30px rgba(239,68,68,0.6); } }
         @keyframes ringExpand { from { transform: scale(1); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
-        .voice-panel { position: fixed; bottom: 86px; right: 20px; z-index: 9998; width: 340px; max-width: calc(100vw - 40px); background: rgba(15,23,42,0.97); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 20px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); animation: panelSlideUp 0.3s ease-out; }
+        .voice-panel { position: fixed; bottom: 86px; left: 24px; z-index: 9998; width: 340px; max-width: calc(100vw - 40px); background: rgba(15,23,42,0.97); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 20px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); animation: panelSlideUp 0.3s ease-out; }
         @keyframes panelSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .voice-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .voice-panel-header h3 { font-size: 16px; font-weight: 600; color: #fff; margin: 0; }

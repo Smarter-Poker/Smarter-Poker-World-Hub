@@ -16,7 +16,6 @@ import { listenBroadcast } from '../../src/lib/broadcastSync';
 import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import { Building2, Calendar, Layers, Clock, ChevronLeft, ChevronRight, Shield, Link2, AlertCircle } from 'lucide-react';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // ── Design tokens ──
 const C = {
@@ -673,7 +672,6 @@ export default function MyVenuesPage() {
                         </>
                     )}
                 </div>
-              <BottomNavBar />
             </div>
         </>
     );

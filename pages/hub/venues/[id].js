@@ -16,7 +16,6 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 import { formatGameType } from '../../../src/utils/pokerFormatters';
 import dynamic from 'next/dynamic';
 
@@ -2337,7 +2336,6 @@ export default function VenueDetailPage() {
             </section>
           </>
         )}
-        <BottomNavBar />
       </div>
 
       <style jsx>{`

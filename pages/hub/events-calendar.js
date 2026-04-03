@@ -9,11 +9,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import BackToLobbyBar from '../../src/components/ui/BackToLobbyBar';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { formatGameType, decodeHtml } from '../../src/utils/pokerFormatters';
 
 const C = { bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1', blue: '#1877F2', green: '#42B72A' };
@@ -470,7 +468,6 @@ export default function EventsCalendarPage() {
         canonical="/hub/events-calendar"
       />
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
-      <BackToLobbyBar />
       <HamburgerMenu
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -697,7 +694,6 @@ export default function EventsCalendarPage() {
             </div>
           )}
         </div>
-        <BottomNavBar />
       </div>
 
       <style jsx>{`

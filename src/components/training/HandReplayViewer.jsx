@@ -232,6 +232,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                             board={handData.board}
                             heroPosition={handData.heroPosition}
                             heroCards={handData.heroCards}
+                            handEVs={handData.evData?.handEVs || null}
                         />
                     )}
 
@@ -304,7 +305,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
  * Shows the full 13×13 solver range colored by action frequency.
  * Collapsed by default to avoid overwhelming the hand review.
  */
-function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPosition, heroCards }) {
+function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPosition, heroCards, handEVs }) {
     const [expanded, setExpanded] = useState(false);
 
     // Convert rawFrequencies to RangeGrid's gridData format
@@ -460,6 +461,8 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                             heroHand={heroHand}
                             cellSize={22}
                             compact={true}
+                            handEVs={handEVs || undefined}
+                            showEVOverlay={!!handEVs}
                         />
 
                         {/* ═══ PHASE 21: Blocker Score Analysis ═══ */}

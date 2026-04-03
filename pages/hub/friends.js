@@ -14,7 +14,6 @@ import { broadcastSyncDebounced, listenBroadcast, BROADCAST_TAB_ID } from '../..
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import BackToLobbyBar from '../../src/components/ui/BackToLobbyBar';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import { getAuthUser } from '../../src/lib/authUtils';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -1042,7 +1041,6 @@ function FriendsPage() {
                     pageDepth={2}
                     onMenuClick={() => setMenuOpen(true)}
                 />
-                <BackToLobbyBar />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

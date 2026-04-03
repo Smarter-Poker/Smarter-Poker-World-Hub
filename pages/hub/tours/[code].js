@@ -10,8 +10,6 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import BottomNavBar from '../../../src/components/ui/BottomNavBar';
-
 const TOUR_COLORS = {
   'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
   'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
@@ -651,7 +649,6 @@ export default function TourDetailPage() {
             </section>
           </>
         )}
-        <BottomNavBar />
       </div>
 
       <style jsx>{styles}</style>

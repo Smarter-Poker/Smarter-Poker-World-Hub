@@ -9,7 +9,6 @@ import { supabase } from '../../src/lib/supabase';
 
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser, authedFetch } from '../../src/lib/authUtils';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
 
 // Colors
 const C = {
@@ -639,7 +638,6 @@ export default function LivesPage() {
           50% { opacity: 0.7; }
         }
       `}</style>
-                  <BottomNavBar />
 
             {UpgradePopup}
         </>

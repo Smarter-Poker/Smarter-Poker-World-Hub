@@ -75,35 +75,49 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Database query failed' });
     }
 
-    // Group by venue
+    // Group by venue and deduplicate games by name
     const grouped = {};
     for (const row of (data || [])) {
       const slug = row.bravo_slug;
+      const gameName = row.game_name || 'Unknown Game';
+      
       if (!grouped[slug]) {
         grouped[slug] = {
           venue_name: row.venue_name,
           bravo_slug: slug,
           last_updated: row.scrape_timestamp,
           games: [],
+          _latestOriginStamp: new Date(row.scrape_timestamp).getTime(),
+          _seenGames: new Set(),
         };
       }
-      grouped[slug].games.push({
-        game: row.game_name,
-        tables_running: row.tables_running,
-        players_waiting: row.players_waiting,
-        source: row.source || 'bravo',
-        buyin: row.buyin_range || null,
-        runs: row.runs_schedule || null,
-        data_quality: row.data_quality || null,
-      });
+      
+      const venueData = grouped[slug];
+      
+      // If the row's timestamp is older than 5 minutes from the newest seen snapshot for this venue, IGNORE it.
+      const stampDiff = venueData._latestOriginStamp - new Date(row.scrape_timestamp).getTime();
+      if (stampDiff > 5 * 60 * 1000) {
+        continue;
+      }
+      
+      // Since data is ordered by scrape_timestamp desc, the first time we see a game is its latest snapshot
+      if (!venueData._seenGames.has(gameName)) {
+        venueData._seenGames.add(gameName);
+        venueData.games.push({
+          game: row.game_name,
+          tables_running: row.tables_running,
+          players_waiting: row.players_waiting,
+          source: row.source || 'bravo',
+          buyin: row.buyin_range || null,
+          runs: row.runs_schedule || null,
+          data_quality: row.data_quality || null,
+        });
+      }
     }
 
-    const venues = Object.values(grouped);
+    const venues = Object.values(grouped).map(({ _seenGames, ...v }) => v);
     const totalTables = venues.reduce(
       (sum, v) => sum + v.games.reduce((s, g) => s + (g.tables_running || 0), 0), 0
-    );
-    const totalWaiting = venues.reduce(
-      (sum, v) => sum + v.games.reduce((s, g) => s + (g.players_waiting || 0), 0), 0
     );
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
@@ -112,7 +126,6 @@ export default async function handler(req, res) {
       metadata: {
         venues_with_live_data: venues.length,
         total_tables_running: totalTables,
-        total_players_waiting: totalWaiting,
         data_source: 'Smarter.Poker Intelligence',
         refresh_interval: '15 minutes',
         last_scrape: data?.[0]?.scrape_timestamp || null,
