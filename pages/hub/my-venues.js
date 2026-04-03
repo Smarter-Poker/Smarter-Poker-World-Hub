@@ -7,7 +7,7 @@
  * SmarterPoker Dark Theme
  */
 import SEOHead from '../../src/components/seo/SEOHead';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -129,32 +129,38 @@ function ScheduleTab({ staffId, venueId, token }) {
     const [weekOffset, setWeekOffset] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const fetchSchedule = useCallback(async () => {
+    useEffect(() => {
         const controller = new AbortController();
-        const { signal } = controller;
+        let cancelled = false;
 
-        setLoading(true);
-        try {
-            const d = new Date();
-            d.setDate(d.getDate() + weekOffset * 7);
-            const weekParam = d.toISOString().split('T')[0];
-            const res = await fetch(`/api/employee/schedule?staff_id=${staffId}&venue_id=${venueId}&week=${weekParam}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            const json = await res.json();
-            if (json.success) {
-                setShifts(json.data.shifts || []);
-                setWeekStart(json.data.week_start);
-                setWeekEnd(json.data.week_end);
-                setTotalShifts(json.data.total_shifts);
-                setTotalHours(json.data.total_hours);
+        const fetchSchedule = async () => {
+            setLoading(true);
+            try {
+                const d = new Date();
+                d.setDate(d.getDate() + weekOffset * 7);
+                const weekParam = d.toISOString().split('T')[0];
+                const res = await fetch(`/api/employee/schedule?staff_id=${staffId}&venue_id=${venueId}&week=${weekParam}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    signal: controller.signal,
+                });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                const json = await res.json();
+                if (!cancelled && json.success) {
+                    setShifts(json.data.shifts || []);
+                    setWeekStart(json.data.week_start);
+                    setWeekEnd(json.data.week_end);
+                    setTotalShifts(json.data.total_shifts);
+                    setTotalHours(json.data.total_hours);
+                }
+            } catch (e) {
+                if (e.name !== 'AbortError') console.error("[my-venues.js]", e);
             }
-        } catch (e) { console.error("[my-venues.js]", e); }
-        setLoading(false);
-    }, [staffId, venueId, token, weekOffset]);
+            if (!cancelled) setLoading(false);
+        };
 
-    useEffect(() => { fetchSchedule(); }, [fetchSchedule]);
+        fetchSchedule();
+        return () => { cancelled = true; controller.abort(); };
+    }, [staffId, venueId, token, weekOffset]);
 
     // Group shifts by day
     const shiftsByDay = {};
@@ -570,11 +576,13 @@ export default function MyVenuesPage() {
         return () => clearInterval(interval);
     }, [user, reloadVenues]);
   // Realtime subscription — live updates
+  // Note: staff_id in commander_staff_shifts is the staff record ID (not auth UUID),
+  // so we listen without a filter and let SWR revalidation handle correct data display.
   useEffect(() => {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`my-venues:${user.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_staff_shifts', filter: `staff_id=eq.${user.id}` }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_staff_shifts' }, () => {
         reloadVenues();
       })
       .subscribe();
