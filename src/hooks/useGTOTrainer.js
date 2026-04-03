@@ -222,6 +222,12 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     console.log(`[GTOTrainer] 🎯 Targeting weak spots: positions=${weakPositions.join(',')} street=${weakSpots[0].street || 'any'}`);
                 }
 
+                // ═══ PHASE 19: Pass difficulty hint if set in localStorage ═══
+                if (typeof window !== 'undefined') {
+                    const diff = localStorage.getItem('gma_difficulty');
+                    if (diff && diff !== 'standard') params.set('difficulty', diff);
+                }
+
                 apiUrl = `/api/training/batch-preload?${params}`;
                 console.log(`[GTOTrainer] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`);
             }

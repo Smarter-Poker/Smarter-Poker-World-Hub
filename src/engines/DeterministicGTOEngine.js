@@ -119,6 +119,30 @@ function parseBoardFromHash(scenarioHash) {
  * Extract hero position from scenario_hash
  * "hu_cash_BTN_100bb_3h7c7s" → "BTN"
  */
+/**
+ * ═══ PHASE 19: Get max frequency from strategy matrix ═══
+ * Used for difficulty filtering — higher max freq = easier spot (clear best action)
+ */
+function getMaxFrequency(strategyMatrix) {
+    if (!strategyMatrix) return 50;
+    const frequencies = strategyMatrix.frequencies || {};
+    let maxFreq = 0;
+    for (const hand of Object.values(frequencies)) {
+        if (typeof hand === 'object') {
+            for (const freq of Object.values(hand)) {
+                if (typeof freq === 'number' && freq > maxFreq) maxFreq = freq;
+            }
+        }
+    }
+    // If frequencies is flat (action → freq), check that too
+    if (maxFreq === 0) {
+        for (const val of Object.values(frequencies)) {
+            if (typeof val === 'number' && val > maxFreq) maxFreq = val;
+        }
+    }
+    return maxFreq || 50;
+}
+
 function extractPositionFromHash(scenarioHash) {
     if (!scenarioHash) return 'BTN';
     const positionNames = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO', 'HJ'];
