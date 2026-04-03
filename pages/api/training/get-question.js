@@ -396,10 +396,25 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         };
 
         // Build normalized GTO frequencies (0-100% scale) for UI frequency bars
+        // Strict clamp: exclude actions that round to 0% to prevent ghost buttons
         const gtoFrequencies = {};
         validActions.forEach(action => {
-            gtoFrequencies[action] = Math.round((handActions[action] || 0) * 100);
+            const rounded = Math.round((handActions[action] || 0) * 100);
+            if (rounded > 0) {
+                gtoFrequencies[action] = rounded;
+            }
         });
+        // If strict clamping removed everything, keep the optimal action at 100%
+        if (Object.keys(gtoFrequencies).length === 0 && optimalAction) {
+            gtoFrequencies[optimalAction] = 100;
+        }
+        // Sync validActions to match surviving frequencies
+        validActions = Object.keys(gtoFrequencies);
+        // Fix rounding drift: ensure sum === 100
+        const gtoFreqSum = Object.values(gtoFrequencies).reduce((s, v) => s + v, 0);
+        if (gtoFreqSum > 0 && gtoFreqSum !== 100 && optimalAction && gtoFrequencies[optimalAction] !== undefined) {
+            gtoFrequencies[optimalAction] += (100 - gtoFreqSum);
+        }
 
         // Extract hand EVs from strategy matrix for real EV loss computation
         const handEVs = strategyMatrix.hand_evs || scenario.handEVs || {};
