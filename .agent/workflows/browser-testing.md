@@ -4,44 +4,27 @@ description: How to log in and test features in the browser using the test accou
 
 # Browser Testing Workflow
 
-> **MANDATORY LAW — ZERO EXCEPTIONS**
->
-> ALL browser testing and UI verification MUST be performed on the **live production site**:
->
-> **`https://smarter.poker`**
->
-> **NEVER** test on:
-> - `localhost`, `localhost:3000`, `localhost:5173`, `127.0.0.1`, or any local dev server URL
-> - `*.vercel.app` URLs (e.g., `club-arena.vercel.app`, `smarter-poker-*.vercel.app`)
-> - Any Vercel preview deployment URL
->
-> The dev server and Vercel preview apps exist for build verification ONLY — not for browser testing.
->
-> Any agent that opens a browser to localhost or a Vercel app URL for testing is in VIOLATION of this standard.
+> **⚠️ MANDATORY: ALL testing and verification MUST be performed against `https://smarter.poker` (production). NEVER use localhost for live testing or verification. Do NOT spin up a local dev server for verification purposes.**
 
 ## Test Account Credentials
+
+When you need to test any feature in the browser, use the following test account:
 
 - **Email:** `daniel@bekavactrading.com`
 - **Password:** `Bek454545!!`
 
 ## Login Steps
 
-1. Navigate to `https://smarter.poker` (or the specific page, e.g., `https://smarter.poker/hub/bankroll-manager`)
+1. Navigate to the target page on **production** (e.g., `https://smarter.poker/hub/bankroll-manager`)
 2. If prompted with "Sign In Required", click the sign-in / login button
 3. Enter the email and password above
 4. Wait for the session to initialize (usually 2-5 seconds)
 5. Proceed with testing
 
-## Why Production Only?
+## Rules
 
-- The local dev server does NOT have the same environment, data, or auth state as production
-- Features that "work on localhost" often break in production due to missing env vars, RLS policies, edge caching, etc.
-- Testing on production catches REAL bugs — testing on localhost gives false confidence
-- The user deploys continuously; by the time you test localhost, the code is already live
-
-## Notes
-
+- **ALWAYS use `https://smarter.poker`** as the base URL for all browser testing and verification
+- **NEVER start a localhost dev server** (`npm run dev`, `next dev`, etc.) for verification or testing purposes
 - This account has access to all features and should bypass all gates (FeatureGate, BankrollProGate, etc.)
 - Do **NOT** use temporary code bypasses for gates — always log in with this account instead
-- If you need to verify a build compiles, use the dev server health check (`/dev-server` workflow) — but do NOT open a browser to localhost
-- For API endpoint testing (curl/fetch), you may use `https://smarter.poker/api/...` directly
+- localhost/dev servers should ONLY be used for active development iteration, NEVER for final verification

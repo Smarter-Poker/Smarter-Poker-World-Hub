@@ -290,7 +290,7 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         let optimalAction = null;
         let maxFreq = -1;
         const handActions = {};
-        const validActions = [];
+        let validActions = [];
 
         actions.forEach(action => {
             const freq = frequencies[action]?.[heroHand] || 0;
@@ -306,6 +306,21 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
                 // Skip invalid frequency values (likely data import errors)
             }
         });
+
+        // ═══ FREQUENCY CLAMPING PROTOCOL (Ghost Hand Bug Fix) ═══
+        const clampedActions = validActions.filter(action => handActions[action] >= 0.01);
+        if (clampedActions.length > 0) {
+            validActions = clampedActions;
+            // Re-evaluate optimal action among clamped
+            maxFreq = -1;
+            validActions.forEach(action => {
+                const freq = handActions[action];
+                if (freq > maxFreq) {
+                    maxFreq = freq;
+                    optimalAction = action;
+                }
+            });
+        }
 
         // Fallback if no valid actions found
         if (!optimalAction || validActions.length === 0) {

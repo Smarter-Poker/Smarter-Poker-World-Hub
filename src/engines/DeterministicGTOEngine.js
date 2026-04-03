@@ -482,17 +482,62 @@ export class DeterministicGTOEngine {
                 .eq('stack_depth', gameConfig.pioStackDepth)
                 .eq('street', street)
                 .ilike('scenario_hash', `%${flopStr}%`)
-                .limit(5);
+                .limit(50); // Increased limit for semantic distance pool
 
             if (partialMatches && partialMatches.length > 0) {
-                const scenario = partialMatches[Math.floor(Math.random() * partialMatches.length)];
+                // ═══ SEMANTIC DISTANCE CALCULATOR ═══
+                // Find the closest board runout in terms of rank, suit, and texture
+                const rankToVal = r => "23456789TJQKA".indexOf(r.toUpperCase()) + 2;
+                
+                let bestScenario = partialMatches[0];
+                let minDistance = 999999;
+                
+                // Track requested texture features
+                const getTexture = (cards) => {
+                    const ranks = cards.map(c => c[0].toUpperCase());
+                    const suits = cards.map(c => c[1].toLowerCase());
+                    const hasPair = new Set(ranks).size < cards.length;
+                    const maxSuitFreq = Math.max(...Object.values(suits.reduce((acc, s) => { acc[s] = (acc[s] || 0) + 1; return acc; }, {})));
+                    const hasFlushDraw = maxSuitFreq >= 3;
+                    const hasFlush = maxSuitFreq >= 5; // flush is possible
+                    return { hasPair, hasFlushDraw, hasFlush };
+                };
+                
+                const reqTexture = getTexture(boardCards);
+
+                partialMatches.forEach(scenario => {
+                    const scenarioBoard = parseBoardFromHash(scenario.scenario_hash);
+                    let dist = 0;
+                    
+                    for (let i = 3; i < boardCards.length; i++) {
+                        if (!scenarioBoard[i]) continue;
+                        const reqCard = boardCards[i];
+                        const dbCard = scenarioBoard[i];
+                        
+                        const rankDiff = Math.abs(rankToVal(reqCard[0]) - rankToVal(dbCard[0]));
+                        const suitDiff = reqCard[1].toLowerCase() === dbCard[1].toLowerCase() ? 0 : 6;
+                        dist += (rankDiff * 2) + suitDiff;
+                    }
+                    
+                    // Texture penalty: massive penalty if board pairing/flush drawing changes
+                    const dbTexture = getTexture(scenarioBoard);
+                    if (reqTexture.hasPair !== dbTexture.hasPair) dist += 25;
+                    if (reqTexture.hasFlushDraw !== dbTexture.hasFlushDraw) dist += 15;
+                    
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        bestScenario = scenario;
+                    }
+                });
+
+                const scenario = bestScenario;
                 const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
 
                 if (question) {
                     // Override board with our actual board (partial match may have different turn/river)
                     question.scenario.board = boardCards.join(' ');
                     question.boardCards = boardCards;
-                    console.log(`[DeterministicEngine] ✅ Multi-street: partial match for ${street} (flop: ${flopStr})`);
+                    console.log(`[DeterministicEngine] ✅ Multi-street: partial semantic match for ${street} (dist: ${minDistance})`);
                     return question;
                 }
             }
@@ -601,7 +646,7 @@ export class DeterministicGTOEngine {
 
         // ═══ COMPUTE PER-ACTION FREQUENCIES FOR THIS HAND ═══
         const handActions = {};
-        const validActions = [];
+        let validActions = [];
         let optimalAction = null;
         let maxFreq = -1;
 
@@ -616,6 +661,22 @@ export class DeterministicGTOEngine {
                 }
             }
         });
+
+        // ═══ FREQUENCY CLAMPING PROTOCOL (Ghost Hand Bug Fix) ═══
+        // Filter out actions with < 1% frequency, unless doing so removes all options.
+        const clampedActions = validActions.filter(action => handActions[action] >= 0.01);
+        if (clampedActions.length > 0) {
+            validActions = clampedActions;
+            // Re-evaluate optimal action among clamped
+            maxFreq = -1;
+            validActions.forEach(action => {
+                const freq = handActions[action];
+                if (freq > maxFreq) {
+                    maxFreq = freq;
+                    optimalAction = action;
+                }
+            });
+        }
 
         if (!optimalAction || validActions.length === 0) return null;
 
