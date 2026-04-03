@@ -2910,8 +2910,29 @@ function UniversalDynamicTable({
                     {/* Collapsible feedback body - uses display:none for clean collapse */}
                     <div style={{ display: feedbackCollapsed ? 'none' : 'contents', width: '100%', maxWidth: 600 }}>
                     <div style={{ width: '100%', marginBottom: 6 }}>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
-                            GTO Action Frequencies
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                                GTO Strategy
+                            </div>
+                            {/* Phase 22: Mixed strategy indicator — shown when multiple actions ≥20% freq */}
+                            {(() => {
+                                const significantActions = (Array.isArray(options) ? options : []).filter(opt => {
+                                    const f = computedFrequencies?.[opt?.id] || 0;
+                                    return f >= 20;
+                                }).length;
+                                if (significantActions >= 2) {
+                                    return (
+                                        <span style={{
+                                            fontSize: 8, fontWeight: 700, color: '#a855f7',
+                                            background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)',
+                                            padding: '1px 6px', borderRadius: 4, letterSpacing: 0.5,
+                                        }}>
+                                            MIXED STRATEGY
+                                        </span>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                         {(Array.isArray(options) ? options : []).slice(0, 9).map(opt => {
                             if (!opt) return null;
@@ -2925,20 +2946,21 @@ function UniversalDynamicTable({
                             return (
                                 <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                                     <div style={{
-                                        width: 50, fontSize: 9, fontWeight: 700, textAlign: 'right',
+                                        width: 72, fontSize: 9, fontWeight: 700, textAlign: 'right',
                                         color: isCorrect ? '#22c55e' : isSelected ? (classConfig?.color || '#ef4444') : '#94a3b8',
+                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                     }}>
                                         {isCorrect && '✓ '}{isSelected && !isCorrect && '✗ '}{text}
                                     </div>
-                                    <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                                    <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
                                         <motion.div
                                             initial={{ width: 0 }}
                                             animate={{ width: `${freq}%` }}
                                             transition={{ duration: 0.5, delay: 0.15 }}
-                                            style={{ height: '100%', background: barColor, borderRadius: 3 }}
+                                            style={{ height: '100%', background: barColor, borderRadius: 4, minWidth: freq > 0 ? 2 : 0 }}
                                         />
                                     </div>
-                                    <div style={{ width: 32, fontSize: 10, fontWeight: 800, textAlign: 'right', fontFamily: "'Inter', monospace", color: '#e2e8f0' }}>
+                                    <div style={{ width: 34, fontSize: 10, fontWeight: 800, textAlign: 'right', fontFamily: "'Inter', monospace", color: '#e2e8f0' }}>
                                         {freq}%
                                     </div>
                                 </div>
@@ -3310,8 +3332,8 @@ function UniversalDynamicTable({
                         </motion.div>
                     )}
 
-                    {/* Next Hand / Continue Hand buttons */}
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                    {/* Next Hand / Continue Hand buttons — GTOW-style prominent green */}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, justifyContent: 'center' }}>
                         {onNextHand ? (
                             <>
                                 <motion.button
@@ -3319,22 +3341,26 @@ function UniversalDynamicTable({
                                     initial={{ opacity: 0, y: 5 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.3 }}
-                                    whileHover={{ scale: 1.04 }}
+                                    whileHover={{ scale: 1.04, boxShadow: isMultiStreetActive ? '0 0 16px rgba(251,146,60,0.3)' : '0 0 16px rgba(34,197,94,0.3)' }}
                                     whileTap={{ scale: 0.96 }}
                                     style={{
-                                        padding: '10px 24px', borderRadius: 10,
+                                        padding: '12px 32px', borderRadius: 10,
                                         border: isMultiStreetActive
-                                            ? '1px solid rgba(251, 146, 60, 0.5)'
-                                            : '1px solid rgba(0, 212, 255, 0.4)',
+                                            ? '1.5px solid rgba(251, 146, 60, 0.6)'
+                                            : '1.5px solid rgba(34, 197, 94, 0.5)',
                                         background: isMultiStreetActive
-                                            ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.2) 0%, rgba(251, 146, 60, 0.05) 100%)'
-                                            : 'linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
-                                        color: isMultiStreetActive ? '#fb923c' : '#00d4ff',
-                                        fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                                        letterSpacing: 0.5, fontFamily: "'Inter', -apple-system, sans-serif",
+                                            ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.25) 0%, rgba(251, 146, 60, 0.08) 100%)'
+                                            : 'linear-gradient(180deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.06) 100%)',
+                                        color: isMultiStreetActive ? '#fb923c' : '#22c55e',
+                                        fontSize: 15, fontWeight: 800, cursor: 'pointer',
+                                        letterSpacing: 0.8, fontFamily: "'Inter', -apple-system, sans-serif",
+                                        boxShadow: isMultiStreetActive
+                                            ? '0 0 10px rgba(251,146,60,0.15)'
+                                            : '0 0 10px rgba(34,197,94,0.12)',
                                     }}
                                 >
                                     {isMultiStreetActive ? 'Continue Hand →' : 'Next Hand →'}
+                                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginLeft: 8, fontWeight: 600 }}>SPACE</span>
                                 </motion.button>
                                 {!isMultiStreetActive && lastQuestionRef.current && (
                                     <motion.button
