@@ -1132,18 +1132,75 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                     {(() => {
                         const content = message.content || message.text || '';
 
-                        // Check for call receipt: [CALL_RECEIPT]📹 Video call • 2m 15s
+                        // Check for call receipt: [CALL_RECEIPT]{"type":"video","duration":135,"status":"completed"}
                         if (content.startsWith('[CALL_RECEIPT]')) {
-                            const callInfo = content.replace('[CALL_RECEIPT]', '');
+                            const raw = content.replace('[CALL_RECEIPT]', '');
+                            // Parse structured JSON or fall back to legacy plain text
+                            let receiptData = null;
+                            try {
+                                receiptData = JSON.parse(raw);
+                            } catch (_) {
+                                // Legacy format: "Voice call - 2m 15s"
+                                receiptData = { type: raw.toLowerCase().includes('video') ? 'video' : 'voice', status: 'completed', duration: 0, legacyText: raw };
+                            }
+                            const st = receiptData.status || 'completed';
+                            const tp = receiptData.type || 'voice';
+                            const dur = receiptData.duration || 0;
+                            const isVideo = tp === 'video';
+                            const icon = isVideo ? '📹' : '📞';
+
+                            // Duration string
+                            let durationStr = '';
+                            if (dur > 0) {
+                                durationStr = dur >= 60 ? `${Math.floor(dur / 60)}m ${dur % 60}s` : `${dur}s`;
+                            }
+
+                            // Status-based styling
+                            const statusConfig = {
+                                completed: { color: '#4caf50', bg: 'rgba(76,175,80,0.1)', label: `${isVideo ? 'Video' : 'Voice'} Call`, sublabel: durationStr },
+                                missed: { color: '#f44336', bg: 'rgba(244,67,54,0.1)', label: `Missed ${isVideo ? 'Video' : 'Voice'} Call`, sublabel: '' },
+                                declined: { color: '#9e9e9e', bg: 'rgba(158,158,158,0.08)', label: `${isVideo ? 'Video' : 'Voice'} Call Declined`, sublabel: '' },
+                                cancelled: { color: '#9e9e9e', bg: 'rgba(158,158,158,0.08)', label: `${isVideo ? 'Video' : 'Voice'} Call Cancelled`, sublabel: '' },
+                            };
+                            const cfg = statusConfig[st] || statusConfig.completed;
+
                             return (
                                 <div style={{
-                                    textAlign: 'center',
-                                    padding: '4px 8px',
-                                    color: C.muted,
-                                    fontSize: 13,
-                                    opacity: 0.9,
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    padding: '10px 14px', borderRadius: 14,
+                                    background: cfg.bg, margin: '-4px -8px',
+                                    border: `1px solid ${cfg.color}22`,
                                 }}>
-                                    {callInfo}
+                                    <div style={{
+                                        width: 36, height: 36, borderRadius: '50%',
+                                        background: `${cfg.color}22`, display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                                        flexShrink: 0,
+                                    }}>
+                                        {st === 'missed' ? <span style={{ color: cfg.color, fontSize: 20 }}>↩</span> : icon}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 13, color: cfg.color }}>
+                                            {receiptData.legacyText || cfg.label}
+                                        </div>
+                                        {(cfg.sublabel || receiptData.legacyText) && (
+                                            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                                                {receiptData.legacyText ? '' : cfg.sublabel}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {st === 'missed' && !isOwn && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); initiateCall(tp === 'video' ? 'video' : 'audio'); }}
+                                            style={{
+                                                background: '#4caf50', color: 'white', border: 'none',
+                                                borderRadius: 20, padding: '6px 14px', fontSize: 12,
+                                                fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            Call Back
+                                        </button>
+                                    )}
                                 </div>
                             );
                         }
@@ -1209,7 +1266,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 
                         // Regular text content - make URLs clickable
                         // Check if it's a call invite
-                        const isCallInvite = content.includes('[CALL_RECEIPT]') || (content.includes('Call Started!') && content.includes('smarter-poker'));
+                        const isCallInvite = (content.includes('Call Started!') && content.includes('smarter-poker'));
 
                         // Convert URLs to clickable links
                         const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -1419,10 +1476,21 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                     textOverflow: 'ellipsis',
                 }}>
                     {(() => {
-                        // Clean up message preview - strip [CALL_RECEIPT] prefix
+                        // Clean up message preview - strip [CALL_RECEIPT] prefix and parse JSON
                         let preview = lastMsg || '';
                         if (preview.startsWith('[CALL_RECEIPT]')) {
-                            preview = preview.replace('[CALL_RECEIPT]', '');
+                            const rawReceipt = preview.replace('[CALL_RECEIPT]', '');
+                            try {
+                                const rd = JSON.parse(rawReceipt);
+                                const tp = rd.type === 'video' ? '📹' : '📞';
+                                const st = rd.status || 'completed';
+                                const dur = rd.duration || 0;
+                                const durStr = dur > 0 ? (dur >= 60 ? ` • ${Math.floor(dur / 60)}m ${dur % 60}s` : ` • ${dur}s`) : '';
+                                const statusLabel = st === 'completed' ? '' : st === 'missed' ? 'Missed ' : st === 'declined' ? 'Declined ' : 'Cancelled ';
+                                preview = `${tp} ${statusLabel}${rd.type === 'video' ? 'Video' : 'Voice'} call${durStr}`;
+                            } catch (_) {
+                                preview = rawReceipt; // Legacy plain text
+                            }
                         }
                         const displayText = preview.slice(0, 35) + (preview.length > 35 ? '...' : '');
                         return displayText;
@@ -2197,6 +2265,39 @@ function MessengerPage() {
                 if (callingUserRef.current) {
                     const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
                     setToast({ type: 'info', message: reason });
+
+                    // ── CALL RECEIPT: Save missed/declined receipt as message in chat ──
+                    const receiptStatus = payload.payload.reason === 'timeout' ? 'missed' : 'declined';
+                    if (activeConversation?.id && user?.id) {
+                        const receiptPayload = JSON.stringify({
+                            type: callType,
+                            duration: 0,
+                            status: receiptStatus,
+                        });
+                        supabase.rpc('fn_send_message', {
+                            p_conversation_id: activeConversation.id,
+                            p_sender_id: user.id,
+                            p_content: `[CALL_RECEIPT]${receiptPayload}`,
+                        }).catch(() => {});
+                    }
+
+                    // ── MISSED CALL NOTIFICATION: Insert into notifications table for header bell ──
+                    if (activeConversation?.otherUser?.id && user?.id) {
+                        const token = getAccessToken();
+                        fetch('/api/messenger/insert-missed-call-notification', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                            },
+                            body: JSON.stringify({
+                                calleeId: activeConversation.otherUser.id,
+                                callType: callType,
+                                reason: receiptStatus,
+                            }),
+                        }).catch(() => {});
+                    }
+
                     setCallingUser(null);
                     // BUG-8 FIX: Also close the call modal — caller shouldn't stay in empty room
                     setShowCall(false);
@@ -3554,20 +3655,31 @@ function MessengerPage() {
             }
         }
 
-        // Save call receipt if call was actually connected (not just ringing)
-        if (callStartTimeRef.current && activeConversation?.id && user?.id) {
-            const callDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
-            const durationStr = callDuration >= 60
-                ? `${Math.floor(callDuration / 60)}m ${callDuration % 60}s`
-                : `${callDuration}s`;
-            const callMessage = `${callType === 'video' ? 'Video' : 'Voice'} call - ${durationStr}`;
+        // Save call receipt as structured JSON message
+        if (activeConversation?.id && user?.id) {
+            let receiptStatus = 'completed';
+            let callDuration = 0;
 
-            // Save call receipt as a message
+            if (callStartTimeRef.current) {
+                // Call was connected — save completed receipt with duration
+                callDuration = Math.floor((Date.now() - callStartTimeRef.current) / 1000);
+                receiptStatus = 'completed';
+            } else {
+                // Call was never connected — caller hung up before answer = cancelled
+                receiptStatus = 'cancelled';
+            }
+
+            const receiptPayload = JSON.stringify({
+                type: callType,
+                duration: callDuration,
+                status: receiptStatus,
+            });
+
             try {
                 await supabase.rpc('fn_send_message', {
                     p_conversation_id: activeConversation.id,
                     p_sender_id: user.id,
-                    p_content: `[CALL_RECEIPT]${callMessage}`,
+                    p_content: `[CALL_RECEIPT]${receiptPayload}`,
                 });
             } catch (e) {
             }
