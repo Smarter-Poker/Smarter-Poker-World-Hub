@@ -105,7 +105,7 @@ export default function PokerToursPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    // ─── Fetch all venues for map (only venues that host tours) ───
+    // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {
         fetch('/data/all-venues.json')
             .then(r => r.json())
@@ -116,12 +116,154 @@ export default function PokerToursPage() {
             .catch(() => setAllVenues([]));
     }, []);
 
-    // ─── Build map venues from tour stops ───
-    const tourVenuesForMap = useMemo(() => {
-        if (allVenues.length === 0) return allVenues; // Show all venues as context
-        // If we have tour data with stops, we could filter — for now show all
-        return allVenues.filter(v => v.latitude && v.longitude);
+    // ─── Parse informal date strings from registry (e.g. "Apr 2-13", "Feb 22 - Mar 9") ───
+    const parseStopDates = useCallback((dateStr) => {
+        if (!dateStr) return null;
+        const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+        const defaultYear = 2026;
+        // Handle "Dec 24, 2025 - Jan 19, 2026" or "Feb 22 - Mar 9" or "Jan 1-12"
+        const parts = dateStr.split(/\s*[-–]\s*/);
+        
+        const parseOne = (s, fallbackMonth) => {
+            if (!s) return null;
+            s = s.trim().replace(',', '');
+            // Try "Mon DD YYYY" or "Mon DD"
+            const m = s.match(/^([A-Z][a-z]{2})\s+(\d{1,2})(?:\s+(\d{4}))?/);
+            if (m) {
+                const month = MONTHS[m[1]];
+                if (month === undefined) return null;
+                return new Date(m[3] ? parseInt(m[3]) : defaultYear, month, parseInt(m[2]));
+            }
+            // Try just a number (day only, use fallback month)
+            const dayOnly = s.match(/^(\d{1,2})$/);
+            if (dayOnly && fallbackMonth !== undefined) {
+                return new Date(defaultYear, fallbackMonth, parseInt(dayOnly[1]));
+            }
+            return null;
+        };
+
+        const startDate = parseOne(parts[0]);
+        if (!startDate) return null;
+        let endDate = null;
+        if (parts.length >= 2) {
+            endDate = parseOne(parts[parts.length - 1], startDate.getMonth());
+            // If end month < start month and same year, it rolled into next year
+            if (endDate && endDate < startDate && !dateStr.includes('2025')) {
+                endDate.setFullYear(endDate.getFullYear() + 1);
+            }
+        } else {
+            endDate = startDate;
+        }
+        return { start: startDate, end: endDate };
+    }, []);
+
+    // ─── Find venue coordinates by fuzzy name matching ───
+    const findVenueCoords = useCallback((stop) => {
+        if (allVenues.length === 0) return null;
+        const venueName = (stop.venue || stop.name || '').toLowerCase();
+        const city = (stop.city || '').toLowerCase();
+        const state = (stop.state || '').toLowerCase();
+
+        // 1. Exact venue name match
+        let match = allVenues.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
+        if (match) return match;
+
+        // 2. Venue name contains or is contained in
+        if (venueName.length > 3) {
+            match = allVenues.find(v => {
+                if (!v.name || !v.latitude) return false;
+                const n = v.name.toLowerCase();
+                return n.includes(venueName) || venueName.includes(n);
+            });
+            if (match) return match;
+        }
+
+        // 3. City + state match (first venue in that city)
+        if (city && state) {
+            match = allVenues.find(v =>
+                v.latitude &&
+                (v.city || '').toLowerCase() === city &&
+                (v.state || '').toLowerCase() === state
+            );
+            if (match) return match;
+        }
+
+        // 4. City-only match
+        if (city) {
+            match = allVenues.find(v =>
+                v.latitude && (v.city || '').toLowerCase() === city
+            );
+            if (match) return match;
+        }
+
+        return null;
     }, [allVenues]);
+
+    // ─── Build map markers: currently-running + next-upcoming stop per tour ───
+    const tourVenuesForMap = useMemo(() => {
+        if (allVenues.length === 0 || tours.length === 0) return [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const markers = [];
+        const seen = new Set(); // Avoid duplicate markers at same venue
+
+        tours.forEach(tour => {
+            const stops = [
+                ...(tour.stops_2026 || []),
+                ...(tour.series_2026 || [])
+            ];
+            if (stops.length === 0) return;
+
+            let currentRunning = null;
+            let nextUpcoming = null;
+
+            for (const stop of stops) {
+                const dates = parseStopDates(stop.dates);
+                if (!dates) continue;
+
+                // Currently running: today is between start and end
+                if (dates.start <= today && dates.end >= today) {
+                    currentRunning = stop;
+                }
+                // Next upcoming: start is in the future, pick earliest
+                if (dates.start > today) {
+                    if (!nextUpcoming) {
+                        nextUpcoming = stop;
+                    } else {
+                        const existingDates = parseStopDates(nextUpcoming.dates);
+                        if (existingDates && dates.start < existingDates.start) {
+                            nextUpcoming = stop;
+                        }
+                    }
+                }
+            }
+
+            // Build markers for found stops
+            [currentRunning, nextUpcoming].forEach(stop => {
+                if (!stop) return;
+                const venueMatch = findVenueCoords(stop);
+                if (!venueMatch) return;
+                const key = `${venueMatch.latitude},${venueMatch.longitude}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+
+                markers.push({
+                    id: `tour-${tour.tour_code}-${stop.name || stop.venue || 'stop'}`,
+                    name: `${tour.tour_code}: ${stop.name || stop.venue || 'Tour Stop'}`,
+                    city: stop.city || venueMatch.city || '',
+                    state: stop.state || venueMatch.state || '',
+                    latitude: venueMatch.latitude,
+                    longitude: venueMatch.longitude,
+                    venue_type: 'tour_stop',
+                    trust_score: 5,
+                    tour_code: tour.tour_code,
+                    dates: stop.dates || '',
+                });
+            });
+        });
+
+        return markers;
+    }, [tours, allVenues, parseStopDates, findVenueCoords]);
 
     // ─── Get unique regions and types ───
     const availableTypes = useMemo(() => {
@@ -332,10 +474,11 @@ export default function PokerToursPage() {
                         <div className="tours-map-container">
                             {typeof window !== 'undefined' && (
                                 <MapErrorBoundary>
-                                    <VenueMap
+                                <VenueMap
                                         venues={tourVenuesForMap}
                                         userLocation={null}
-                                        hideLegend={false}
+                                        hideLegend={true}
+                                        uniformColor="#ffffff"
                                     />
                                 </MapErrorBoundary>
                             )}

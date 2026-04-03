@@ -232,8 +232,10 @@ export class MapErrorBoundary extends React.Component {
 }
 
 // ─── Helper: Create venue marker icon ───
-function createVenueIcon(L, venueType) {
-  const colors = VENUE_TYPE_COLORS[venueType] || DEFAULT_VENUE_COLOR;
+function createVenueIcon(L, venueType, overrideColor) {
+  const colors = overrideColor
+    ? { fill: overrideColor, glow: overrideColor + '80' }
+    : (VENUE_TYPE_COLORS[venueType] || DEFAULT_VENUE_COLOR);
   return L.divIcon({
     className: 'venue-map-marker',
     html: `<div style="position:relative;width:26px;height:26px;">
@@ -345,7 +347,7 @@ function buildPopupHtml(venue) {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles }) {
+export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -539,20 +541,20 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
     const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
 
     validVenues.forEach(function(venue) {
-      const venueIcon = createVenueIcon(L, venue.venue_type);
+      const venueIcon = createVenueIcon(L, venue.venue_type, uniformColor || null);
       const popupHtml = buildPopupHtml(venue);
 
       const marker = L.marker([venue.latitude, venue.longitude], { icon: venueIcon })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
 
       const radius = getGeofenceRadius(venue.venue_type);
-      const venueColors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
+      const circleColor = uniformColor || (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR).fill;
       const circle = L.circle([venue.latitude, venue.longitude], {
         radius: radius,
-        color: venueColors.fill,
+        color: circleColor,
         weight: 1,
         opacity: 0.35,
-        fillColor: venueColors.fill,
+        fillColor: circleColor,
         fillOpacity: 0.08,
       });
 

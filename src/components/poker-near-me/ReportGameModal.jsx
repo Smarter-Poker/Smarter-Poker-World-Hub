@@ -52,6 +52,9 @@ export default function ReportGameModal({ venue, isOpen, onClose, onSubmit, user
 
     if (!isOpen) return null;
 
+    // Guard: No venue selected — show a message instead of a broken form
+    const noVenue = !venue || !venue.id;
+
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setError('');
@@ -59,6 +62,10 @@ export default function ReportGameModal({ venue, isOpen, onClose, onSubmit, user
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (noVenue) {
+            setError('Please select a venue from the Live Games feed before reporting.');
+            return;
+        }
         setLoading(true);
         setError('');
 
@@ -156,10 +163,17 @@ export default function ReportGameModal({ venue, isOpen, onClose, onSubmit, user
                     padding: '12px',
                     marginBottom: '20px'
                 }}>
-                    <div style={{ fontSize: '16px', fontWeight: 600, color: '#00D4FF' }}>{venue?.name}</div>
-                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
-                        {venue?.city}, {venue?.state}
-                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: 600, color: noVenue ? '#f59e0b' : '#00D4FF' }}>{noVenue ? 'No Venue Selected' : venue.name}</div>
+                    {!noVenue && (
+                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
+                            {venue.city}, {venue.state}
+                        </div>
+                    )}
+                    {noVenue && (
+                        <div style={{ fontSize: '12px', color: 'rgba(245,158,11,0.8)', marginTop: 4 }}>
+                            Tap "Report" on a specific venue card to report a live game.
+                        </div>
+                    )}
                 </div>
 
                 {/* Form */}

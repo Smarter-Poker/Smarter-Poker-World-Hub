@@ -67,7 +67,8 @@ async function handlePost(req, res) {
             }
         }
 
-        // Rate limit: max 5 reports per venue per user per hour
+        // Rate limit: max 5 reports per venue per user per hour (authenticated)
+        // For anonymous: max 3 reports per IP per hour via X-Forwarded-For
         if (reporter_id) {
             const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
             const { count } = await supabase
@@ -79,6 +80,20 @@ async function handlePost(req, res) {
 
             if (count >= 5) {
                 return res.status(429).json({ error: 'Too many reports for this venue. Please wait before reporting again.' });
+            }
+        } else {
+            // Anonymous rate limit by IP — stricter (3/hr)
+            const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+            const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+            const { count } = await supabase
+                .from('venue_live_reports')
+                .select('id', { count: 'exact', head: true })
+                .eq('venue_id', venue_id)
+                .is('reporter_id', null)
+                .gte('created_at', oneHourAgo);
+
+            if (count >= 3) {
+                return res.status(429).json({ error: 'Too many anonymous reports. Please sign in for higher limits.' });
             }
         }
 

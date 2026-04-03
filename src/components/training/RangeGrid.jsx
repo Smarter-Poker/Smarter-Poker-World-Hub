@@ -21,52 +21,135 @@ import { countBlockedCombos } from './BlockerScorePanel';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-// Map action codes to colors
-const ACTION_COLORS = {
-    // Raises / Bets (single-letter solver codes)
-    'r': '#ef4444', 'R': '#ef4444',        // Raise = Red
-    'b': '#ef4444', 'B': '#ef4444',        // Bet = Red
-    'raise': '#ef4444',
-    'bet': '#ef4444',
-    'allin': '#dc2626',                    // All-in = Darker Red
-    // Calls / Checks
-    'c': '#22c55e', 'C': '#22c55e',        // Call = Green
-    'call': '#22c55e',
-    'check': '#3b82f6',                    // Check = Blue
-    'x': '#3b82f6', 'X': '#3b82f6',       // Check = Blue
-    // Folds
-    'f': '#64748b', 'F': '#64748b',        // Fold = Gray
-    'fold': '#64748b',
-    // Readable action names (Preflop Charts)
-    'Raise': '#22c55e',                    // RFI Raise = Green
-    'Fold': '#64748b',                     // Fold = Gray
-    'Call': '#3b82f6',                     // Call = Blue
-    '3-Bet': '#ef4444',                    // 3-Bet = Red
-    '4-Bet': '#f97316',                    // 4-Bet = Orange
-    'Push': '#ef4444',                     // Push = Red
+// ═══════════════════════════════════════════════════════════════════════════
+// GTO WIZARD-STYLE COLOR SYSTEM
+// Each bet size gets a DISTINCT color — not all red. This matches GTOW exactly.
+// ═══════════════════════════════════════════════════════════════════════════
+const BET_SIZE_COLORS = {
+    // Small bets (16-33%) — Green spectrum
+    'b16': '#22c55e', 'b20': '#22c55e', 'b25': '#16a34a', 'b33': '#16a34a',
+    // Medium bets (40-55%) — Teal/Cyan
+    'b40': '#06b6d4', 'b45': '#06b6d4', 'b50': '#0891b2', 'b55': '#0891b2',
+    // Large bets (60-80%) — Blue
+    'b60': '#3b82f6', 'b66': '#3b82f6', 'b75': '#2563eb', 'b80': '#2563eb',
+    // Pot bets (100%) — Red
+    'b100': '#ef4444',
+    // Overbets (125%+) — Orange/Amber
+    'b125': '#f97316', 'b150': '#f59e0b', 'b200': '#f59e0b', 'b300': '#eab308',
+    // Raises — sized similarly
+    'r50': '#8b5cf6', 'r75': '#7c3aed', 'r100': '#6d28d9',
+    'r125': '#a855f7', 'r150': '#a855f7', 'r200': '#c084fc', 'r300': '#c084fc',
 };
 
-// Get high-frequency action color variants
-const ACTION_DISPLAY = {
-    'r': { label: 'Raise', short: 'R', color: '#ef4444' },
-    'b': { label: 'Bet', short: 'B', color: '#ef4444' },
-    'c': { label: 'Call', short: 'C', color: '#22c55e' },
-    'x': { label: 'Check', short: 'X', color: '#3b82f6' },
-    'f': { label: 'Fold', short: 'F', color: '#64748b' },
-    'allin': { label: 'All-In', short: 'AI', color: '#dc2626' },
-    'R': { label: 'Raise', short: 'R', color: '#ef4444' },
-    'B': { label: 'Bet', short: 'B', color: '#ef4444' },
-    'C': { label: 'Call', short: 'C', color: '#22c55e' },
-    'X': { label: 'Check', short: 'X', color: '#3b82f6' },
-    'F': { label: 'Fold', short: 'F', color: '#64748b' },
-    // Readable action names (Preflop Charts)
-    'Raise': { label: 'Raise', short: 'R', color: '#22c55e' },
-    'Fold': { label: 'Fold', short: 'F', color: '#64748b' },
-    'Call': { label: 'Call', short: 'C', color: '#3b82f6' },
-    '3-Bet': { label: '3-Bet', short: '3B', color: '#ef4444' },
-    '4-Bet': { label: '4-Bet', short: '4B', color: '#f97316' },
-    'Push': { label: 'Push', short: 'P', color: '#ef4444' },
-};
+/**
+ * Get GTOW-style color for any action code.
+ * Bet sizes get unique colors by percentage bucket.
+ */
+function getActionColor(action) {
+    const a = action?.toLowerCase();
+    if (!a) return '#64748b';
+
+    // Direct match for sized bets/raises
+    if (BET_SIZE_COLORS[a]) return BET_SIZE_COLORS[a];
+
+    // Check / Call / Fold / All-in
+    if (a === 'c' || a === 'x' || a === 'check') return '#3b82f6';  // Check = Blue
+    if (a === 'call') return '#22c55e';                               // Call = Green
+    if (a === 'f' || a === 'fold') return '#64748b';                  // Fold = Slate gray
+    if (a === 'allin') return '#dc2626';                              // All-in = Dark Red
+
+    // Generic bet — parse percentage if present
+    const betMatch = a.match(/^b(\d+)$/);
+    if (betMatch) {
+        const pct = parseInt(betMatch[1]);
+        if (pct <= 33) return '#16a34a';       // Small = Green
+        if (pct <= 55) return '#0891b2';       // Medium = Teal
+        if (pct <= 80) return '#2563eb';       // Large = Blue
+        if (pct <= 100) return '#ef4444';      // Pot = Red
+        return '#f59e0b';                       // Overbet = Amber
+    }
+
+    // Generic raise
+    const raiseMatch = a.match(/^r(\d+)$/);
+    if (raiseMatch) {
+        const pct = parseInt(raiseMatch[1]);
+        if (pct <= 75) return '#7c3aed';       // Small raise = Purple
+        if (pct <= 100) return '#6d28d9';      // Pot raise = Dark Purple
+        return '#a855f7';                       // Big raise = Light Purple
+    }
+
+    if (a === 'r' || a === 'raise') return '#7c3aed';
+    if (a === 'b' || a === 'bet') return '#3b82f6';
+
+    // Preflop chart actions
+    if (action === 'Raise') return '#22c55e';
+    if (action === 'Fold') return '#64748b';
+    if (action === 'Call') return '#3b82f6';
+    if (action === '3-Bet') return '#ef4444';
+    if (action === '4-Bet') return '#f97316';
+    if (action === 'Push') return '#dc2626';
+
+    return '#64748b';
+}
+
+// Backwards-compatible lookup (used by getDominantAction)
+const ACTION_COLORS = new Proxy({}, {
+    get: (_, prop) => getActionColor(prop)
+});
+
+// Get action display info with GTOW-style colors
+function getActionDisplay(action) {
+    const a = action?.toLowerCase();
+    const color = getActionColor(action);
+
+    if (!a) return { label: action || '?', short: '?', color: '#64748b' };
+
+    // Check
+    if (a === 'c' || a === 'x' || a === 'check') return { label: 'Check', short: 'X', color };
+    // Call
+    if (a === 'call') return { label: 'Call', short: 'C', color };
+    // Fold
+    if (a === 'f' || a === 'fold') return { label: 'Fold', short: 'F', color };
+    // All-in
+    if (a === 'allin') return { label: 'All-In', short: 'AI', color };
+
+    // Bet sizes
+    const betMatch = a.match(/^b(\d+)$/);
+    if (betMatch) {
+        const pct = parseInt(betMatch[1]);
+        if (pct === 100) return { label: 'Bet Pot', short: 'BP', color };
+        if (pct > 100) return { label: `OB ${pct}%`, short: `O${pct}`, color };
+        return { label: `Bet ${pct}%`, short: `B${pct}`, color };
+    }
+
+    // Raise sizes
+    const raiseMatch = a.match(/^r(\d+)$/);
+    if (raiseMatch) {
+        const pct = parseInt(raiseMatch[1]);
+        return { label: `Raise ${pct}%`, short: `R${pct}`, color };
+    }
+
+    if (a === 'b' || a === 'bet') return { label: 'Bet', short: 'B', color };
+    if (a === 'r' || a === 'raise') return { label: 'Raise', short: 'R', color };
+
+    // Preflop chart names
+    const preflopMap = {
+        'Raise': { label: 'Raise', short: 'R' },
+        'Fold': { label: 'Fold', short: 'F' },
+        'Call': { label: 'Call', short: 'C' },
+        '3-Bet': { label: '3-Bet', short: '3B' },
+        '4-Bet': { label: '4-Bet', short: '4B' },
+        'Push': { label: 'Push', short: 'P' },
+    };
+    if (preflopMap[action]) return { ...preflopMap[action], color };
+
+    return { label: action, short: action?.slice(0, 3) || '?', color };
+}
+
+// Backwards-compatible ACTION_DISPLAY (used by tooltip and frequency bars)
+const ACTION_DISPLAY = new Proxy({}, {
+    get: (_, prop) => getActionDisplay(prop)
+});
 
 function getHandNotation(row, col) {
     if (row === col) return `${RANKS[row]}${RANKS[col]}`;           // Pairs (diagonal)

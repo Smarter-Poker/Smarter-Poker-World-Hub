@@ -187,11 +187,11 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   }, [radiusMiles, userLocation, mapReady]);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', height: '100%' }}>
       <div
         ref={mapRef}
         style={{
-          width: '100%', height: 500, borderRadius: 12, overflow: 'hidden',
+          width: '100%', height: '100%', minHeight: 300, borderRadius: 12, overflow: 'hidden',
           border: '1px solid rgba(110,231,239,0.15)',
           background: '#0a1628',
         }}
