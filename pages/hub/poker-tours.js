@@ -173,10 +173,12 @@ export default function PokerToursPage() {
                 result.sort((a, b) => {
                     const today = new Date().toISOString().split('T')[0];
                     const getNextDate = (t) => {
-                        if (!t.upcoming_series || t.upcoming_series.length === 0) return '9999-12-31';
-                        const upcoming = t.upcoming_series.filter(s => s.end_date >= today || s.start_date >= today);
+                        const series = t.upcoming_series || [];
+                        if (series.length === 0) return '9999-12-31';
+                        // Keep things simple since data payload is mixed sometimes
+                        const upcoming = series.filter(s => (s.end_date || s.start_date || s.dates || '') >= today || !s.start_date);
                         if (upcoming.length === 0) return '9999-12-31';
-                        return upcoming[0].start_date;
+                        return upcoming[0].start_date || '9999-12-31';
                     };
                     return getNextDate(a).localeCompare(getNextDate(b));
                 }); 
