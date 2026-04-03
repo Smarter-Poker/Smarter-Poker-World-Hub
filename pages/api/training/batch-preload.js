@@ -54,6 +54,8 @@ export default async function handler(req, res) {
           // ═══ PHASE 15: Weak-spot targeting params ═══
           targetPositions: rawTargetPositions,  // Comma-separated: "BB,SB"
           targetStreet: rawTargetStreet,         // "flop", "turn", "river"
+          // ═══ PHASE 19: Difficulty selector ═══
+          difficulty: rawDifficulty,             // "beginner", "standard", "expert"
       } = req.query;
       const gameId = sanitizeParam(rawGameId, 100);
 
@@ -73,6 +75,11 @@ export default async function handler(req, res) {
           const targetStreet = rawTargetStreet && validStreets.includes(rawTargetStreet.toLowerCase())
               ? rawTargetStreet.toLowerCase()
               : null;
+          // ═══ PHASE 19: Difficulty mapping ═══
+          const validDifficulties = ['beginner', 'standard', 'expert'];
+          const difficulty = rawDifficulty && validDifficulties.includes(rawDifficulty.toLowerCase())
+              ? rawDifficulty.toLowerCase()
+              : 'standard';
 
 
           // Fetch questions from cache
@@ -111,6 +118,8 @@ export default async function handler(req, res) {
                           // ═══ PHASE 15: Pass targeting hints ═══
                           targetPositions: targetPositions || undefined,
                           targetStreet: targetStreet || undefined,
+                          // ═══ PHASE 19: Difficulty filter ═══
+                          difficulty: difficulty || 'standard',
                       });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch.map(q => ({ question_data: q }));

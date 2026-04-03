@@ -1311,6 +1311,12 @@ function GodModeArenaInner({
                         style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }}
                     />
                 )}
+                {/* ═══ PHASE 19: Achievement Toasts ═══ */}
+                <AchievementToast
+                    achievements={sessionAchievements}
+                    onDismiss={() => setSessionAchievements([])}
+                    userId={userId}
+                />
                 {/* REVIEW HEADER */}
                 <div style={styles.reviewHeader}>
                     <button onClick={onExit} style={styles.reviewBackBtn}>← Back</button>

@@ -271,7 +271,7 @@ export class DeterministicGTOEngine {
      * Generate a batch of N questions from solver data
      * IMP-6 FIX: Strengthened dedup — rejects same heroHand+scenarioHash combos
      */
-    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet }) {
+    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard' }) {
         if (!gameConfig) return [];
 
         const questions = [];
@@ -279,7 +279,9 @@ export class DeterministicGTOEngine {
         const usedHandScenarios = new Set(); // IMP-6: track heroHand+scenario combos
 
         // ═══ PHASE 15: Targeted practice — fetch pool with optional position/street filters ═══
-        const poolSize = Math.min(count * 3, 75);
+        // ═══ PHASE 19: Fetch larger pool for difficulty filtering ═══
+        const poolMultiplier = difficulty === 'standard' ? 3 : 5;
+        const poolSize = Math.min(count * poolMultiplier, 125);
         const scenarios = await this.fetchSolverPool(gameConfig, level, poolSize, targetStreet);
 
         if (!scenarios || scenarios.length === 0) return [];
@@ -303,10 +305,34 @@ export class DeterministicGTOEngine {
             }
         }
 
+        // ═══ PHASE 19: Difficulty filtering ═══
+        // Beginner: prefer scenarios where best action is ≥60% (clear decisions)
+        // Expert: prefer scenarios where best action is ≤50% (mixed strategy / close spots)
+        // Standard: no filter
+        if (difficulty === 'beginner' || difficulty === 'expert') {
+            sortedScenarios.sort((a, b) => {
+                const maxFreqA = getMaxFrequency(a.strategy_matrix);
+                const maxFreqB = getMaxFrequency(b.strategy_matrix);
+                if (difficulty === 'beginner') {
+                    // Higher max frequency = easier (clear best action)
+                    return maxFreqB - maxFreqA;
+                }
+                // Expert: lower max frequency = harder (mixed strategy)
+                return maxFreqA - maxFreqB;
+            });
+        }
+
         // IMP-6: Iterate through MORE combinations to reach target count
         const maxAttempts = Math.min(count * 4, sortedScenarios.length * 3);
         for (let i = 0; i < maxAttempts && questions.length < count; i++) {
             const scenario = sortedScenarios[i % sortedScenarios.length];
+
+            // ═══ PHASE 19: Difficulty gate — reject scenarios that don't match difficulty ═══
+            if (difficulty !== 'standard') {
+                const maxFreq = getMaxFrequency(scenario.strategy_matrix);
+                if (difficulty === 'beginner' && maxFreq < 40) continue; // Skip very mixed spots
+                if (difficulty === 'expert' && maxFreq > 70) continue;  // Skip trivial spots
+            }
 
             // Pick a different hand for each question from same scenario
             const question = this.buildQuestionFromScenario(scenario, gameConfig, level, i);

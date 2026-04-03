@@ -1207,32 +1207,33 @@ export default function PokerNearMeLobby() {
   // ─── Pods that require GPS to show meaningful results ───
   const GPS_REQUIRED_PODS = new Set(['nearme', 'mapview', 'livegames']);
 
-  // ─── Pod click → open panel with feature ───
+  // ─── Pod click → navigate directly to standalone pages ───
+  // All 12 lobby grid icons route to their full standalone pages.
+  // No more inline panel overlays — every feature gets its own page.
+  const POD_ROUTES = {
+    nearme:    '/hub/poker-near-me',
+    homegames: '/hub/home-games',
+    livegames: '/hub/poker-near-me?tab=live',
+    tours:     '/hub/poker-tours',
+    mapview:   '/hub/poker-near-me?tab=map',
+    calendar:  '/hub/events-calendar',
+    series:    '/hub/poker-near-me?tab=events&sub=series',
+    roadtrip:  '/hub/poker-near-me?tab=more',
+    daily:     '/hub/daily-tournaments',
+    favorites: '/hub/poker-near-me?tab=saved',
+    social:    '/hub/friends',
+    alerts:    '/hub/poker-near-me?tab=more',
+  };
+
   const handlePodClick = useCallback((podId) => {
     playClickSound();
-
-    // "Near Me" pod navigates to the full Poker Near Me page (sidebar + map + filters)
-    if (podId === 'nearme') {
-      router.push('/hub/poker-near-me');
-      return;
+    const route = POD_ROUTES[podId];
+    if (route) {
+      router.push(route);
     }
-
-    if (activePod === podId) {
-      setActivePod(null);
-      setShowPanel(false);
-      playPanelCloseSound();
-      return;
-    }
-    // GPS-dependent pods: always let the user through to the panel.
-    // If GPS is not active, the panel will show a gentle inline location CTA
-    // instead of blocking the entire UI with a modal.
-    // ONE-TIME-AND-DONE: never block navigation with popups.
-    setActivePod(podId);
-    setShowPanel(true);
-    playPanelOpenSound();
     // Emit TrainingBus event for pod interaction tracking
     try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch { }
-  }, [activePod, bus, router]);
+  }, [bus, router]);
 
   // ─── Auto-open panel for GPS-gated pods after GPS is enabled ───
   // When a user clicks a GPS-required pod without GPS, we set activePod but
