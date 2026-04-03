@@ -1315,6 +1315,15 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
     const convoLongPress = useRef(null);
     const convoTouchMoved = useRef(false);
 
+    // Close context menu on any click outside
+    useEffect(() => {
+        if (!showConvoMenu) return;
+        const handleClickAway = () => setShowConvoMenu(false);
+        // Delay to avoid the initial right-click from immediately closing the menu
+        const t = setTimeout(() => document.addEventListener('click', handleClickAway), 50);
+        return () => { clearTimeout(t); document.removeEventListener('click', handleClickAway); };
+    }, [showConvoMenu]);
+
     return (
         <div
             onClick={onClick}
@@ -1331,8 +1340,8 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                 position: 'relative',
             }}
             onMouseEnter={e => !isActive && (e.currentTarget.style.background = C.hoverBg)}
-            onMouseLeave={e => { !isActive && (e.currentTarget.style.background = 'transparent'); setShowConvoMenu(false); }}
-            onContextMenu={(e) => { e.preventDefault(); setShowConvoMenu(true); }}
+            onMouseLeave={e => { !isActive && (e.currentTarget.style.background = 'transparent'); }}
+            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowConvoMenu(true); }}
             onTouchStart={() => {
                 convoTouchMoved.current = false;
                 convoLongPress.current = setTimeout(() => {
@@ -1351,7 +1360,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                     onClick={e => e.stopPropagation()}
                     style={{
                         position: 'absolute',
-                        top: '100%',
+                        top: 0,
                         right: 8,
                         background: C.card,
                         borderRadius: 10,
@@ -2612,6 +2621,7 @@ function MessengerPage() {
 
     const handleSelectConversation = async (conversation) => {
         setActiveConversation(conversation);
+        setShowScrollDown(false); // Phase 3 BUGFIX: Reset FAB when switching conversations
         if (isMobile) setShowSidebar(false);
 
         // Special handling for Jarvis AI
@@ -3732,6 +3742,10 @@ function MessengerPage() {
                         0%, 60%, 100% { transform: translateY(0); }
                         30% { transform: translateY(-4px); }
                     }
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); opacity: 1; }
+                        50% { transform: scale(1.1); opacity: 0.8; }
+                    }
                     /* shimmer defined in loading fallback */
                 `}</style>
             </Head>
@@ -4369,11 +4383,29 @@ function MessengerPage() {
                                                 return next;
                                             });
                                         }}
-                                        onDelete={(id) => {
+                                        onDelete={async (id) => {
+                                            // Optimistic UI: remove immediately
                                             setConversations(prev => prev.filter(c => c.id !== id));
                                             if (activeConversation?.id === id) {
                                                 setActiveConversation(null);
                                                 setShowSidebar(true);
+                                            }
+                                            // Persist: delete from Supabase so it doesn't reappear on refresh
+                                            try {
+                                                const token = getAccessToken();
+                                                await fetch('/api/messenger/delete-conversation', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                                                    },
+                                                    body: JSON.stringify({ conversationId: id, userId: user.id }),
+                                                });
+                                                busEmit.dataMutated('messenger');
+                                            } catch (e) {
+                                                console.error('[Messenger] Delete conversation failed:', e);
+                                                // Re-fetch to restore if delete failed
+                                                loadConversations(user.id);
                                             }
                                         }}
                                     />
@@ -4629,9 +4661,11 @@ function MessengerPage() {
                                             loadOlderMessages();
                                         }
                                         // Phase 3: Show scroll-to-bottom FAB when scrolled up
+                                        // BUGFIX: Only call setState when value actually changes to avoid re-renders on every scroll frame
                                         const el = e.target;
                                         const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-                                        setShowScrollDown(distFromBottom > 200);
+                                        const shouldShow = distFromBottom > 200;
+                                        setShowScrollDown(prev => prev === shouldShow ? prev : shouldShow);
                                     }}
                                     style={{
                                     flex: 1,
