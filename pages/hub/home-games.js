@@ -12,6 +12,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
 
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap'), { ssr: false });
@@ -68,6 +69,7 @@ export default function HomeGamesPage() {
     const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
     const [sortBy, setSortBy] = useState('default');
     const [favorites, setFavorites] = useState({});
+    const [showLocationModal, setShowLocationModal] = useState(false);
 
     // Filters
     const [filters, setFilters] = useState({
@@ -157,8 +159,11 @@ export default function HomeGamesPage() {
                         setGpsLocationLabel(`${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)}`);
                     });
             },
-            () => {
+            (err) => {
                 setGpsLoading(false);
+                if (err && err.code === 1) {
+                    setShowLocationModal(true);
+                }
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
         );
@@ -526,6 +531,13 @@ export default function HomeGamesPage() {
 
                 <BottomNavBar />
 
+                {/* ═══ SMART LOCATION ENABLE MODAL ═══ */}
+                <LocationEnableModal
+                    isOpen={showLocationModal}
+                    onClose={() => setShowLocationModal(false)}
+                    onRetry={() => { setShowLocationModal(false); requestGpsLocation(); }}
+                />
+
                 <style jsx global>{`
                     .hg-page {
                         min-height: 100vh;
@@ -780,7 +792,7 @@ export default function HomeGamesPage() {
                         border: 2px solid rgba(148,163,184,0.16);
                         box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.4);
                         margin-bottom: 2px;
-                        height: clamp(200px, 32dvh, 480px);
+                        height: clamp(280px, 42dvh, 580px);
                         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
                     }
                     .hg-map-card.hg-map-fullscreen {

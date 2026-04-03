@@ -41,6 +41,7 @@ const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/L
 
 import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/lobby/PnmApiCache';
 import { MapErrorBoundary } from '../../src/components/poker-near-me/VenueMap';
+import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
 
 // Page configuration constants
 const PAGE_SIZE = 12;
@@ -260,6 +261,7 @@ export default function PokerNearMePage() {
     const [userLocation, setUserLocation] = useState(null);
     const [gpsLoading, setGpsLoading] = useState(false);
     const [gpsLocationLabel, setGpsLocationLabel] = useState(null);
+    const [showLocationModal, setShowLocationModal] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCity, setSelectedCity] = useState(null);
     const [nearestDistance, setNearestDistance] = useState(null);
@@ -1042,7 +1044,7 @@ export default function PokerNearMePage() {
             (highAccErr) => {
                 if (highAccErr.code === 1) {
                     clearTimeout(gpsTimeoutId);
-                    alert('Location access denied. Please enable location services in your browser settings.');
+                    setShowLocationModal(true);
                     setGpsLoading(false);
                     setGpsLocationLabel(null);
                     return;
@@ -6266,6 +6268,13 @@ export default function PokerNearMePage() {
                 `}</style>
                       <BottomNavBar />
                       {UpgradePopup}
+
+            {/* ═══ SMART LOCATION ENABLE MODAL ═══ */}
+            <LocationEnableModal
+                isOpen={showLocationModal}
+                onClose={() => setShowLocationModal(false)}
+                onRetry={() => { setShowLocationModal(false); requestGpsLocation(); }}
+            />
 
             {/* ═══ Tab-Specific Interactive Tutorial ═══ */}
             <InteractiveTutorial
