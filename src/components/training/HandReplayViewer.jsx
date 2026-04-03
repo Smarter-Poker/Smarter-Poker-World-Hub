@@ -11,6 +11,9 @@ import SolverLineSummary from './SolverLineSummary';
 // ═══ PHASE 21: Blocker Analysis + Equity Matchup ═══
 import BlockerScorePanel from './BlockerScorePanel';
 import EquityMatchup from './EquityMatchup';
+// ═══ PHASE 21+: Runout Heatmap + Solver Tree ═══
+import RunoutHeatmap from './RunoutHeatmap';
+import SolverTreeViewer from './SolverTreeViewer';
 
 // Card display helper — renders a poker card (value + suit)
 function MiniCard({ card, size = 'sm' }) {
@@ -471,6 +474,25 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                             </div>
                         )}
 
+                        {/* ═══ PHASE 21+: Runout Heatmap — How each card affects strategy ═══ */}
+                        {boardCards.length >= 3 && boardCards.length < 5 && heldCards.length > 0 && (
+                            <RunoutHeatmapSection
+                                boardCards={boardCards}
+                                heldCards={heldCards}
+                                gridData={gridData}
+                                actions={actions}
+                            />
+                        )}
+
+                        {/* ═══ PHASE 21+: Solver Tree Viewer — Decision tree ═══ */}
+                        {gridData && Object.keys(gridData).length > 0 && (
+                            <SolverTreeSection
+                                gridData={gridData}
+                                actions={actions}
+                                street={boardCards.length <= 3 ? 'flop' : boardCards.length === 4 ? 'turn' : 'river'}
+                            />
+                        )}
+
                         {/* Solver strategy summary in natural language */}
                         {boardCards.length > 0 && (
                             <div style={{ marginTop: 8 }}>
@@ -486,6 +508,193 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                 )}
             </AnimatePresence>
         </motion.div>
+    );
+}
+
+/**
+ * ═══ PHASE 21+: Runout Heatmap Section ═══
+ * Generates approximate runout data from solver frequencies and hero cards.
+ * Shows which cards help/hurt hero's strategy on the next street.
+ */
+function RunoutHeatmapSection({ boardCards, heldCards, gridData, actions }) {
+    const [expanded, setExpanded] = useState(false);
+
+    const { runoutData, deadCards } = useMemo(() => {
+        const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+        const SUITS = ['s', 'h', 'd', 'c'];
+        const dead = [...boardCards.map(c => c.toLowerCase()), ...heldCards.map(c => c.toLowerCase())];
+        const deadSet = new Set(dead);
+        const data = {};
+
+        // Parse hero cards for draw detection
+        const heroRanks = heldCards.map(c => c[0]?.toUpperCase());
+        const heroSuits = heldCards.map(c => c[c.length - 1]?.toLowerCase());
+        const boardRanks = boardCards.map(c => c[0]?.toUpperCase());
+        const boardSuits = boardCards.map(c => c[c.length - 1]?.toLowerCase());
+
+        // Count flush draw potential
+        const suitCounts = {};
+        [...boardSuits, ...heroSuits].forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const flushDrawSuit = Object.entries(suitCounts).find(([, c]) => c >= 4)?.[0] || null;
+        const hasFlushDraw = Object.values(suitCounts).some(c => c === 4);
+
+        // Detect straight draw potential (simplified)
+        const rankValues = { 'A': 14, 'K': 13, 'Q': 12, 'J': 11, 'T': 10, '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2 };
+        const allRankVals = [...boardRanks, ...heroRanks].map(r => rankValues[r] || 0).sort((a, b) => a - b);
+
+        // Hero's aggression level from solver
+        let heroAggrPct = 0;
+        let totalPct = 0;
+        if (gridData) {
+            for (const [action, handFreqs] of Object.entries(gridData)) {
+                const al = action.toLowerCase();
+                const sum = Object.values(handFreqs).reduce((s, v) => s + (v || 0), 0);
+                if (al.includes('bet') || al.includes('raise') || al === 'r' || al.startsWith('b')) {
+                    heroAggrPct += sum;
+                }
+                totalPct += sum;
+            }
+        }
+        const aggrRatio = totalPct > 0 ? heroAggrPct / totalPct : 0.5;
+
+        for (const rank of RANKS) {
+            for (const suit of SUITS) {
+                const card = `${rank}${suit}`;
+                if (deadSet.has(card.toLowerCase())) continue;
+
+                let evDelta = 0;
+
+                // Flush completing
+                if (hasFlushDraw && suit === flushDrawSuit) {
+                    evDelta += heroSuits.filter(s => s === flushDrawSuit).length >= 1 ? 2.5 : -1.5;
+                }
+
+                // Pair the board (generally bad for bluffs, good for value)
+                if (boardRanks.includes(rank)) {
+                    evDelta -= 0.8 * (1 - aggrRatio);
+                }
+
+                // Overcard to board
+                const maxBoardRank = Math.max(...boardRanks.map(r => rankValues[r] || 0));
+                if ((rankValues[rank] || 0) > maxBoardRank) {
+                    evDelta += heroRanks.includes(rank) ? 1.8 : -0.5;
+                }
+
+                // Hero pairs up
+                if (heroRanks.includes(rank)) {
+                    evDelta += 1.5;
+                }
+
+                // Straight helper (simplified)
+                const rv = rankValues[rank] || 0;
+                const nearbyCount = allRankVals.filter(v => Math.abs(v - rv) <= 2 && v !== rv).length;
+                if (nearbyCount >= 3) {
+                    evDelta += 0.6;
+                }
+
+                // Add noise based on aggression profile
+                evDelta *= (0.8 + aggrRatio * 0.4);
+
+                data[card] = {
+                    ev_delta: Math.round(evDelta * 100) / 100,
+                    eq_shift: evDelta > 0 ? evDelta * 2 : evDelta * 1.5,
+                    has_data: true,
+                };
+            }
+        }
+
+        return { runoutData: data, deadCards: dead };
+    }, [boardCards, heldCards, gridData, actions]);
+
+    if (!runoutData || Object.keys(runoutData).length === 0) return null;
+
+    return (
+        <div style={{ marginTop: 10 }}>
+            <button
+                onClick={() => setExpanded(prev => !prev)}
+                style={{
+                    width: '100%', padding: '8px 14px',
+                    background: expanded ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${expanded ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: 8, color: expanded ? '#f87171' : '#64748b',
+                    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                    cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    transition: 'all 0.2s ease',
+                }}
+            >
+                <span>Runout Analysis</span>
+                <span style={{ fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>▼</span>
+            </button>
+            <AnimatePresence>
+                {expanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{ overflow: 'hidden', marginTop: 6 }}
+                    >
+                        <RunoutHeatmap runoutData={runoutData} deadCards={deadCards} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+/**
+ * ═══ PHASE 21+: Solver Tree Section ═══
+ * Shows the decision tree for this spot.
+ */
+function SolverTreeSection({ gridData, actions, street }) {
+    const [expanded, setExpanded] = useState(false);
+
+    // Build spot detail from gridData for SolverTreeViewer
+    const spotDetail = useMemo(() => {
+        if (!gridData) return null;
+        // Aggregate action frequencies across all hands
+        const actionTotals = {};
+        for (const [action, handFreqs] of Object.entries(gridData)) {
+            const sum = Object.values(handFreqs).reduce((s, v) => s + (v || 0), 0);
+            const count = Object.values(handFreqs).filter(v => v > 0).length;
+            actionTotals[action] = count > 0 ? sum / count : 0; // average frequency
+        }
+        return { actions: actionTotals, street };
+    }, [gridData, street]);
+
+    if (!spotDetail) return null;
+
+    return (
+        <div style={{ marginTop: 10 }}>
+            <button
+                onClick={() => setExpanded(prev => !prev)}
+                style={{
+                    width: '100%', padding: '8px 14px',
+                    background: expanded ? 'rgba(168,85,247,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${expanded ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: 8, color: expanded ? '#a78bfa' : '#64748b',
+                    fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                    cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    transition: 'all 0.2s ease',
+                }}
+            >
+                <span>Decision Tree</span>
+                <span style={{ fontSize: 14, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>▼</span>
+            </button>
+            <AnimatePresence>
+                {expanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{ overflow: 'hidden', marginTop: 6 }}
+                    >
+                        <SolverTreeViewer spotDetail={spotDetail} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 
