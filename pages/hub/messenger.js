@@ -226,7 +226,11 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
         onSend(text.trim());
         setText('');
         setShowEmoji(false);
+        // P6: Haptic feedback on message send
+        if (navigator.vibrate) navigator.vibrate(15);
         inputRef.current?.focus();
+        // P7: Reset textarea height after send
+        if (inputRef.current) inputRef.current.style.height = 'auto';
     };
 
     const handleKeyDown = (e) => {
@@ -238,6 +242,11 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
 
     const handleChange = (e) => {
         setText(e.target.value);
+        // P7: Auto-grow textarea
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + 'px';
+        }
         // Broadcast typing indicator
         if (onTyping && e.target.value.length > 0) {
             onTyping();
@@ -302,8 +311,9 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
             background: C.card,
             borderTop: `1px solid ${C.border}`,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-end',
             gap: 8,
+            position: 'relative',
         }}>
             {/* Photo/Video Upload Button */}
             <input
@@ -432,14 +442,14 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                 padding: '0 12px',
                 position: 'relative',
             }}>
-                <input
+                <textarea
                     ref={inputRef}
-                    type="text"
                     value={text}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Aa"
                     disabled={disabled}
+                    rows={1}
                     style={{
                         flex: 1,
                         border: 'none',
@@ -448,6 +458,11 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                         fontSize: 15,
                         outline: 'none',
                         color: '#050505',
+                        resize: 'none',
+                        overflow: 'hidden',
+                        lineHeight: 1.4,
+                        maxHeight: 120,
+                        fontFamily: 'inherit',
                     }}
                 />
 
@@ -472,7 +487,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                     </svg>
                 </button>
 
-                {/* Emoji picker */}
+                {/* C4 FIX: Emoji picker with larger mobile touch targets */}
                 {showEmoji && (
                     <div style={{
                         position: 'absolute',
@@ -482,20 +497,25 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                         background: C.card,
                         borderRadius: 12,
                         boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                        padding: 8,
+                        padding: 10,
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(8, 1fr)',
-                        gap: 4,
+                        gridTemplateColumns: 'repeat(4, 1fr)',
+                        gap: 6,
                         zIndex: 100,
+                        minWidth: 200,
                     }}>
                         {emojis.map(emoji => (
                             <button
                                 key={emoji}
-                                onClick={() => { setText(prev => prev + emoji); setShowEmoji(false); }}
+                                onClick={() => { setText(prev => prev + emoji); setShowEmoji(false); if (navigator.vibrate) navigator.vibrate(10); }}
                                 style={{
-                                    width: 32, height: 32, border: 'none', borderRadius: 8,
-                                    background: 'transparent', cursor: 'pointer', fontSize: 18,
+                                    width: 44, height: 44, border: 'none', borderRadius: 10,
+                                    background: 'transparent', cursor: 'pointer', fontSize: 24,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    transition: 'background 0.15s',
                                 }}
+                                onTouchStart={e => e.currentTarget.style.background = C.hoverBg}
+                                onTouchEnd={e => e.currentTarget.style.background = 'transparent'}
                             >{emoji}</button>
                         ))}
                     </div>
@@ -548,18 +568,19 @@ function Toast({ toast, onDismiss }) {
     return (
         <div style={{
             position: 'fixed',
-            bottom: 100,
+            bottom: 130,
             left: '50%',
             transform: 'translateX(-50%)',
-            background: toast.type === 'error' ? C.red : C.green,
+            background: toast.type === 'error' ? C.red : toast.type === 'success' ? C.green : C.blue,
             color: 'white',
             padding: '12px 24px',
             borderRadius: 12,
             boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-            zIndex: 1000,
+            zIndex: 1100,
             display: 'flex',
             alignItems: 'center',
             gap: 8,
+            maxWidth: '90vw',
         }}>
             <span>{toast.type === 'error' ? '!' : toast.type === 'success' ? '>' : 'i'}</span>
             <span>{toast.message}</span>
@@ -692,6 +713,8 @@ function EmptyConversationState() {
 // 🔴 FAVICON BADGE UTILITY
 // ═══════════════════════════════════════════════════════════════════════════
 
+// P4 FIX: Reuse cached favicon image to prevent DOM/memory leak
+let _faviconImg = null;
 function updateFaviconBadge(count) {
     if (typeof document === 'undefined') return;
     const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
@@ -699,7 +722,6 @@ function updateFaviconBadge(count) {
     link.rel = 'shortcut icon';
     
     if (count <= 0) {
-        // Restore original favicon
         link.href = '/favicon.ico';
         document.head.appendChild(link);
         return;
@@ -709,10 +731,14 @@ function updateFaviconBadge(count) {
     canvas.width = 32; canvas.height = 32;
     const ctx = canvas.getContext('2d');
     
-    const img = new window.Image();
-    img.onload = () => {
-        ctx.drawImage(img, 0, 0, 32, 32);
-        // Draw red badge circle
+    // Reuse cached image to avoid repeated Image() allocations
+    if (!_faviconImg) {
+        _faviconImg = new window.Image();
+        _faviconImg.src = '/favicon.ico';
+    }
+    
+    const draw = () => {
+        ctx.drawImage(_faviconImg, 0, 0, 32, 32);
         ctx.beginPath();
         ctx.arc(24, 8, 9, 0, 2 * Math.PI);
         ctx.fillStyle = '#E41E3F';
@@ -720,7 +746,6 @@ function updateFaviconBadge(count) {
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-        // Draw count text
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 11px Arial';
         ctx.textAlign = 'center';
@@ -729,7 +754,9 @@ function updateFaviconBadge(count) {
         link.href = canvas.toDataURL('image/png');
         document.head.appendChild(link);
     };
-    img.src = '/favicon.ico';
+    
+    if (_faviconImg.complete) draw();
+    else _faviconImg.onload = draw;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -798,6 +825,35 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
     const [showMenu, setShowMenu] = useState(false);
     const [reactions, setReactions] = useState(message.reactions || []);
     const status = message.status || 'sent';
+    // C3 FIX: Long-press support for mobile touch devices
+    const longPressTimer = useRef(null);
+    const touchMoved = useRef(false);
+
+    const handleTouchStart = (e) => {
+        touchMoved.current = false;
+        longPressTimer.current = setTimeout(() => {
+            if (!touchMoved.current) {
+                setShowReactions(true);
+                // P6: Haptic feedback on long press
+                if (navigator.vibrate) navigator.vibrate(30);
+            }
+        }, 400); // 400ms long press threshold
+    };
+
+    const handleTouchMove = () => {
+        touchMoved.current = true;
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
+    };
 
     const StatusIcon = () => {
         if (!isOwn) return null;
@@ -825,6 +881,8 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             setReactions(prev => [...prev, { reaction: emoji, user_id: currentUserId }]);
         }
         setShowReactions(false);
+        // P6: Haptic feedback on reaction
+        if (navigator.vibrate) navigator.vibrate(15);
 
         // Call parent handler for DB persistence
         if (onReact) {
@@ -857,6 +915,9 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             }}
             onMouseEnter={() => setShowReactions(true)}
             onMouseLeave={() => { setShowReactions(false); setShowMenu(false); }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
         >
             {/* Avatar */}
             {!isOwn && (
@@ -1211,7 +1272,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 // 📋 CONVERSATION LIST ITEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ConversationItem({ conversation, isActive, onClick, currentUserId, onlineUsers }) {
+function ConversationItem({ conversation, isActive, onClick, currentUserId, onlineUsers, isPinned }) {
     const otherUser = conversation.otherUser || conversation.participants?.find(p => p.id !== currentUserId);
     const lastMsg = conversation.last_message_preview || conversation.lastMessage;
     const isUnread = conversation.unreadCount > 0;
@@ -1248,7 +1309,16 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                     fontSize: 15,
                     color: C.text,
                     marginBottom: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
                 }}>
+                    {/* P9: Pin indicator */}
+                    {isPinned && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill={C.blue} style={{ flexShrink: 0, opacity: 0.7 }}>
+                            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
+                        </svg>
+                    )}
                     {otherUser?.username || otherUser?.name || 'Unknown'}
                 </div>
                 <div style={{
@@ -1274,11 +1344,18 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
 
             {isUnread && (
                 <div style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: '50%',
+                    minWidth: 20,
+                    height: 20,
+                    borderRadius: 10,
                     background: C.blue,
-                }} />
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '0 5px',
+                }}>{conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}</div>
             )}
         </div>
     );
@@ -1521,6 +1598,22 @@ function MessengerPage() {
         const updated = { ...preferences, [key]: value };
         setPreferences(updated);
         await messengerPreferences.update(user?.id, { [key]: value });
+
+        // 📲 PUSH NOTIFICATIONS: Hook toggle into OneSignal subscribe/unsubscribe
+        if (key === 'notifications') {
+            if (value && pushReady && subscribePush) {
+                try {
+                    await subscribePush();
+                    setToast({ type: 'success', message: 'Push Notifications Enabled' });
+                } catch (e) {
+                    console.error('[Messenger] Push subscribe error:', e);
+                }
+            } else if (!value && pushReady) {
+                // Note: OneSignal doesn't have a direct unsubscribe in the hook,
+                // but disabling the preference stops sound + visual notifications
+                setToast({ type: 'info', message: 'Notifications Disabled' });
+            }
+        }
     };
 
     // Global unread count for header badge - refresh after reading messages
@@ -2323,16 +2416,18 @@ function MessengerPage() {
                 console.error('Mark read failed:', e);
             }
 
-            // Broadcast read receipt so the sender sees ✓✓
-            // Re-uses the already-subscribed typing channel (Supabase JS shares instances by topic name)
-            try {
-                const typingCh = supabase.channel(`typing:${conversationId}`);
-                typingCh.send({
-                    type: 'broadcast',
-                    event: 'read_receipt',
-                    payload: { readerId: user.id, conversationId },
-                }).catch(() => {});
-            } catch { /* non-critical */ }
+            // M2 FIX: Only broadcast read receipt if readReceipts preference is enabled
+            // Read from ref to avoid stale closure in long-lived callback
+            if (preferencesRef.current.readReceipts !== false) {
+                try {
+                    const typingCh = supabase.channel(`typing:${conversationId}`);
+                    typingCh.send({
+                        type: 'broadcast',
+                        event: 'read_receipt',
+                        payload: { readerId: user.id, conversationId },
+                    }).catch(() => {});
+                } catch { /* non-critical */ }
+            }
 
             //  Immediately refresh global unread count to clear header badge
             if (refreshUnread) refreshUnread();
@@ -2397,6 +2492,10 @@ function MessengerPage() {
 
         // Special handling for Jarvis AI
         if (conversation.isJarvis) {
+            // 🟢 Jarvis is ALWAYS online — force status immediately
+            setOtherUserStatus('online');
+            setOtherUserLastSeen(null);
+
             // Load Jarvis conversation from localStorage
             const saved = localStorage.getItem('jarvis_messenger_history');
             if (saved) {
@@ -3007,11 +3106,14 @@ function MessengerPage() {
         if (!user?.id) return;
 
         // 1. Update DB presence (for cross-page last_seen_at persistence)
+        // M3 FIX: Only broadcast presence if activeStatus preference is enabled
         const updateDbPresence = async (isOnlineNow) => {
             try {
+                // If active status is disabled, always report offline
+                const effectiveOnline = preferencesRef.current.activeStatus !== false ? isOnlineNow : false;
                 await supabase.rpc('fn_update_presence', {
                     p_user_id: user.id,
-                    p_is_online: isOnlineNow,
+                    p_is_online: effectiveOnline,
                 });
             } catch (e) {
                 console.error('[Presence] DB update error:', e);
@@ -3059,11 +3161,13 @@ function MessengerPage() {
             })
             .subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
-                    await presenceChannel.track({
-                        online_at: new Date().toISOString(),
-                        user_id: user.id,
-                    });
-                    console.log('[Presence] Tracking — user is now visible as online');
+                    // M3 FIX: Only track presence if activeStatus preference is enabled
+                    if (preferencesRef.current.activeStatus !== false) {
+                        await presenceChannel.track({
+                            online_at: new Date().toISOString(),
+                            user_id: user.id,
+                        });
+                    }
                 }
             });
 
@@ -3475,8 +3579,9 @@ function MessengerPage() {
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
-                            height: calc(100vh - 54px);
-                            height: calc(100dvh - 54px);
+                            /* Account for BOTH UniversalHeader (54px) AND BottomNavBar (56px + safe-area) */
+                            height: calc(100vh - 54px - 56px - env(safe-area-inset-bottom, 0px));
+                            height: calc(100dvh - 54px - 56px - env(safe-area-inset-bottom, 0px));
                         }
                         
                         /* Smaller avatars on mobile */
@@ -3960,6 +4065,15 @@ function MessengerPage() {
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.blue }}>Messenger</h1>
+                            {/* M6: Unread badge on sidebar header */}
+                            {totalUnreadCount > 0 && (
+                                <div style={{
+                                    minWidth: 22, height: 22, borderRadius: 11,
+                                    background: C.red, color: 'white',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 12, fontWeight: 700, padding: '0 6px',
+                                }}>{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</div>
+                            )}
                         </div>
                         <button
                             onClick={() => {
@@ -4172,12 +4286,24 @@ function MessengerPage() {
                                 }}>
                                     {isMobile && (
                                         <button
-                                            onClick={() => setShowSidebar(true)}
-                                            style={{
-                                                background: 'none', border: 'none', cursor: 'pointer',
-                                                fontSize: 20, padding: 4,
+                                            onClick={() => {
+                                                setShowSidebar(true);
+                                                setActiveConversation(null);
                                             }}
-                                        >←</button>
+                                            style={{
+                                                background: C.bg, border: 'none', cursor: 'pointer',
+                                                fontSize: 16, padding: '6px 10px',
+                                                borderRadius: 8, color: C.blue, fontWeight: 600,
+                                                display: 'flex', alignItems: 'center', gap: 4,
+                                                marginRight: 4,
+                                            }}
+                                            aria-label="Back to conversations"
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="15 18 9 12 15 6" />
+                                            </svg>
+                                            Back
+                                        </button>
                                     )}
 
                                     <Link href={`/hub/user/${otherUser?.username}`}>

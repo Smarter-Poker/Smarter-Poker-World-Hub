@@ -30,6 +30,14 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 
+let _twilioClient = null;
+function getTwilioClient() {
+    if (!_twilioClient) {
+        _twilioClient = twilio(accountSid, authToken);
+    }
+    return _twilioClient;
+}
+
 
 
 
@@ -142,7 +150,7 @@ export default async function handler(req, res) {
           }
 
           // ── Send SMS via Twilio ──────────────────────────────────────────
-          const client = twilio(accountSid, authToken);
+          const client = getTwilioClient();
 
           const message = await client.messages.create({
               body: `Your Smarter.Poker code is: ${otpCode}. Expires in 10 min.`,

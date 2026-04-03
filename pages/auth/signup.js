@@ -213,7 +213,6 @@ export default function SignUpPage() {
                 body: JSON.stringify({ phone: cleanPhone }),
             });
 
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
 
             if (!res.ok) {
@@ -257,7 +256,6 @@ export default function SignUpPage() {
                 body: JSON.stringify({ phone: cleanPhone, code: phoneOtp }),
             });
 
-            if (!res.ok) throw new Error(`Request failed (${res.status})`);
             const data = await res.json();
 
             if (!res.ok) {
@@ -911,14 +909,6 @@ export default function SignUpPage() {
                                         )}
                                     </button>
                                 </div>
-                                {/* Forgot Password Link */}
-                                <button
-                                    type="button"
-                                    onClick={() => router.push('/auth/forgot-password')}
-                                    style={styles.forgotPasswordLink}
-                                >
-                                    Forgot Your Password?
-                                </button>
                             </div>
 
                             {/* Birthdate - 18+ Verification - Dropdown Selectors */}
@@ -1318,11 +1308,7 @@ export default function SignUpPage() {
                                 </div>
                                 <div style={styles.profileRow}>
                                     <span style={styles.profileLabel}>Starting Diamonds</span>
-                                    <span style={styles.profileValue}>💎 300</span>
-                                </div>
-                                <div style={styles.profileRow}>
-                                    <span style={styles.profileLabel}>Starting XP</span>
-                                    <span style={styles.profileValue}>⬆️ 50 XP • LV 1</span>
+                                    <span style={styles.profileValue}>💎 500</span>
                                 </div>
                                 <div style={styles.profileRow}>
                                     <span style={styles.profileLabel}>Skill Tier</span>
