@@ -61,6 +61,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     const [lastSelectedAction, setLastSelectedAction] = useState(null);
     const multiStreetHandRef = useRef(null);
 
+    // ═══ MISTAKE REPLAY STATE ═══
+    const mistakeQuestionsRef = useRef([]);
+
     // ═══ ADAPTIVE DIFFICULTY STATE ═══
     const [adaptiveLevelChange, setAdaptiveLevelChange] = useState(null); // { from, to, direction }
     const adaptiveCheckpointRef = useRef(5); // Check every 5 questions
@@ -293,6 +296,14 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 gtoFrequencies: frequencies || {},
             },
         });
+
+        // Save full question for mistake replay
+        const isMistakeMove = [
+            'INACCURACY', 'WRONG', 'BLUNDER',
+        ].includes(moveResult.classification);
+        if (isMistakeMove) {
+            mistakeQuestionsRef.current.push({ ...currentQuestion });
+        }
 
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback
@@ -619,6 +630,37 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     }, [preloadAllQuestions, baseQuestionsPerLevel]);
 
     /**
+     * Retrain only the hands the player got wrong.
+     * Injects saved mistake questions directly into the queue.
+     */
+    const retrainMistakes = useCallback(() => {
+        const mistakes = mistakeQuestionsRef.current;
+        if (!mistakes || mistakes.length === 0) return;
+
+        // Shuffle mistake questions for varied practice
+        const shuffled = [...mistakes].sort(() => Math.random() - 0.5);
+
+        setQuestionNumber(1);
+        setCorrectCount(0);
+        setStreak(0);
+        setGameComplete(false);
+        setLevelPassed(false);
+        setShowFeedback(false);
+        setPreloadedQuestions(shuffled);
+        setPreloadComplete(true);
+        setEffectiveQuestionsPerLevel(shuffled.length);
+        setCurrentQuestion(shuffled[0]);
+        setLoading(false);
+
+        // Reset scoring for the retrain session
+        gtowScoring.resetScore();
+        // Clear the mistakes ref so this retrain session tracks fresh mistakes
+        mistakeQuestionsRef.current = [];
+
+        console.log(`[GTOTrainer] Retraining ${shuffled.length} mistake hands`);
+    }, [gtowScoring]);
+
+    /**
      * Reset entire game
      * 🚀 Pre-loads questions for level 1
      */
@@ -697,6 +739,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         nextQuestion,
         startNextLevel,
         retryLevel,
+        retrainMistakes,
         resetGame,
     };
 }

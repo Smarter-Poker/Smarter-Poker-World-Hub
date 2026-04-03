@@ -775,12 +775,14 @@ function GodModeArenaInner({
         nextQuestion,
         startNextLevel,
         retryLevel,
+        retrainMistakes,
         resetGame,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
     const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
+    const [shareStatus, setShareStatus] = useState(null); // 'success' | 'error' | null
 
     // ═══ QW-1: DIFFICULTY SELECTOR (beginner/standard/expert) ═══
     const [difficulty, setDifficulty] = useState(() => {
@@ -799,8 +801,12 @@ function GodModeArenaInner({
     const timerIntervalRef = useRef(null);
 
     // Reset timer when new question loads
+    // NOTE: UDT's CountdownTimer now handles the visual countdown + auto-submit.
+    // This interval is only kept as a fallback for non-UDT game modes.
     useEffect(() => {
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        // Skip if UDT CountdownTimer is handling the timer (GTO trainer modes)
+        if (trainerConfig?.timerEnabled || timerMode !== 'relaxed') return;
         const duration = TIMER_DURATIONS[timerMode];
         if (!duration || !currentQuestion || showFeedback || gameComplete) return;
         setTimerRemaining(duration);
@@ -822,7 +828,7 @@ function GodModeArenaInner({
             });
         }, 1000);
         return () => clearInterval(timerIntervalRef.current);
-    }, [timerMode, currentQuestion, showFeedback, gameComplete, submitAnswer]);
+    }, [timerMode, trainerConfig, currentQuestion, showFeedback, gameComplete, submitAnswer]);
 
     // ═══ AUTO-ADVANCE FOR MULTI-TABLE BLITZ ═══
     useEffect(() => {
@@ -1307,7 +1313,7 @@ function GodModeArenaInner({
                                     whileTap={{ scale: 0.97 }}
                                     onClick={() => {
                                         // Restart with just the mistake hands
-                                        retryLevel();
+                                        retrainMistakes();
                                     }}
                                     style={{
                                         padding: '8px 16px',
@@ -1451,10 +1457,13 @@ function GodModeArenaInner({
                                         }),
                                     });
                                     if (res.ok) {
-                                        toast.success('Shared to your feed!');
+                                        setShareStatus('success');
+                                        setTimeout(() => setShareStatus(null), 3000);
                                     }
                                 } catch (e) {
                                     console.error('[Share] Error:', e);
+                                    setShareStatus('error');
+                                    setTimeout(() => setShareStatus(null), 3000);
                                 }
                             }}
                             style={{
@@ -1465,7 +1474,7 @@ function GodModeArenaInner({
                                 cursor: 'pointer', letterSpacing: 0.5,
                             }}
                         >
-                            Share to Feed
+                            {shareStatus === 'success' ? '✓ Shared!' : shareStatus === 'error' ? 'Share failed' : 'Share to Feed'}
                         </motion.button>
 
                     </>)}
@@ -1660,7 +1669,12 @@ function GodModeArenaInner({
                                     difficultyLevel={computedDifficultyLevel}
                                     // Settings gear — relocated to scenario description area
                                     onConfigClick={() => setShowConfigModal(true)}
-                                    trainerConfig={trainerConfig}
+                                    trainerConfig={{
+                                        ...trainerConfig,
+                                        // Merge GodModeArena timer settings if no custom config timer
+                                        timerEnabled: trainerConfig?.timerEnabled || (timerMode !== 'relaxed'),
+                                        timerSeconds: trainerConfig?.timerSeconds || (TIMER_DURATIONS[timerMode] || 60),
+                                    }}
                                 />
                             ) : null}
                         </motion.div>
@@ -1716,6 +1730,11 @@ function GodModeArenaInner({
                         handSummary={handSummary}
                         onExit={onExit}
                         difficultyLevel={computedDifficultyLevel}
+                        trainerConfig={{
+                            ...trainerConfig,
+                            timerEnabled: trainerConfig?.timerEnabled || (timerMode !== 'relaxed'),
+                            timerSeconds: trainerConfig?.timerSeconds || (TIMER_DURATIONS[timerMode] || 60),
+                        }}
                     />
                 ) : null}
             </div>
