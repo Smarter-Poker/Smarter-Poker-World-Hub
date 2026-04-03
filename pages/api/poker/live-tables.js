@@ -119,6 +119,9 @@ export default async function handler(req, res) {
     const totalTables = venues.reduce(
       (sum, v) => sum + v.games.reduce((s, g) => s + (g.tables_running || 0), 0), 0
     );
+    const totalPlayersWaiting = venues.reduce(
+      (sum, v) => sum + v.games.reduce((s, g) => s + (g.players_waiting || 0), 0), 0
+    );
 
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
 
@@ -126,6 +129,7 @@ export default async function handler(req, res) {
       metadata: {
         venues_with_live_data: venues.length,
         total_tables_running: totalTables,
+        total_players_waiting: totalPlayersWaiting,
         data_source: 'Smarter.Poker Intelligence',
         refresh_interval: '15 minutes',
         last_scrape: data?.[0]?.scrape_timestamp || null,

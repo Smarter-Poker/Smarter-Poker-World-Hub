@@ -826,6 +826,11 @@ export default function LiveGamesFeed({
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#0d1117', border: '1px solid rgba(48,54,61,0.6)', borderRadius: 8, padding: '8px 10px' }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                             <input type="text" value={searchQuery} onChange={(e) => handleSearchInput(e.target.value)} onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true); }} placeholder="Find A Casino..." style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit', minWidth: 0 }} />
+                            {(searchQuery || selectedVenue) && (
+                                <button onClick={handleClearSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center', flexShrink: 0 }} title="Clear Search">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(239,68,68,0.7)" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                </button>
+                            )}
                         </div>
                         {showSuggestions && searchSuggestions.length > 0 && (
                             <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'rgba(22,27,34,0.98)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 10, overflow: 'hidden', zIndex: 50 }}>

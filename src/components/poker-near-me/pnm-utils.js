@@ -258,19 +258,20 @@ export function estimateWaitTime(playersWaiting, tablesRunning = 1) {
 }
 
 /**
- * Save PNM filter state to sessionStorage.
+ * Save PNM filter state to localStorage (cross-session persistence).
  * @param {string} key - Filter group key
  * @param {object} filters - Filter values to persist
  */
 export function saveFilters(key, filters) {
     if (typeof window === 'undefined') return;
     try {
-        sessionStorage.setItem(`pnm_filters_${key}`, JSON.stringify(filters));
+        localStorage.setItem(`pnm_filters_${key}`, JSON.stringify(filters));
     } catch { /* quota exceeded or private mode */ }
 }
 
 /**
- * Load PNM filter state from sessionStorage.
+ * Load PNM filter state from localStorage (cross-session persistence).
+ * Falls back to sessionStorage for migration from older versions.
  * @param {string} key - Filter group key
  * @param {object} defaults - Default filter values
  * @returns {object} Merged filter values
@@ -278,8 +279,18 @@ export function saveFilters(key, filters) {
 export function loadFilters(key, defaults) {
     if (typeof window === 'undefined') return defaults;
     try {
-        const saved = sessionStorage.getItem(`pnm_filters_${key}`);
+        // Primary: localStorage (new persistent storage)
+        const saved = localStorage.getItem(`pnm_filters_${key}`);
         if (saved) return { ...defaults, ...JSON.parse(saved) };
+        // Migration: check sessionStorage for existing data from old version
+        const legacy = sessionStorage.getItem(`pnm_filters_${key}`);
+        if (legacy) {
+            const parsed = { ...defaults, ...JSON.parse(legacy) };
+            // Migrate to localStorage and clean up sessionStorage
+            localStorage.setItem(`pnm_filters_${key}`, legacy);
+            sessionStorage.removeItem(`pnm_filters_${key}`);
+            return parsed;
+        }
     } catch { /* parse error */ }
     return defaults;
 }
