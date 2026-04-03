@@ -482,7 +482,7 @@ export default function HomeGamesPage() {
                                         </div>
                                     ) : (
                                         <div className="hg-cards-section">
-                                            <div className="hg-card-grid">
+                                            <div className="hg-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', alignItems: 'stretch' }}>
                                                 {displayed.map((venue, i) => (
                                                     <VenueCard
                                                         key={venue.id || i}
@@ -1281,7 +1281,7 @@ export default function HomeGamesPage() {
                         .hg-host-btn { margin-top: 4px; min-width: 0; }
                         .hg-main { padding: 0 10px 40px; }
                         .hg-card-grid {
-                            grid-template-columns: 1fr;
+                            grid-template-columns: 1fr !important;
                         }
                         .hg-map-card:not(.hg-map-fullscreen) {
                             height: clamp(140px, 25dvh, 260px);
