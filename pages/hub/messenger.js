@@ -225,6 +225,10 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
 
     const emojis = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😎', '🤔', '👏', '💯', '♠️', '♥️', '♦️', '♣️', '🃏', '🎰'];
 
+    // Long-press state for thumbs-up button (emoji picker on hold)
+    const thumbsLongPress = useRef(null);
+    const thumbsTouchMoved = useRef(false);
+
     const handleSend = () => {
         if (!text.trim()) return;
         onSend(text.trim());
@@ -235,6 +239,31 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
         inputRef.current?.focus();
         // P7: Reset textarea height after send
         if (inputRef.current) inputRef.current.style.height = 'auto';
+    };
+
+    // Send thumbs up as a quick message
+    const handleThumbsUp = () => {
+        onSend('👍');
+        if (navigator.vibrate) navigator.vibrate(15);
+    };
+
+    // Long-press on thumbs-up opens emoji picker
+    const handleThumbsTouchStart = () => {
+        thumbsTouchMoved.current = false;
+        thumbsLongPress.current = setTimeout(() => {
+            if (!thumbsTouchMoved.current) {
+                setShowEmoji(true);
+                setShowGifPicker(false);
+                if (navigator.vibrate) navigator.vibrate(30);
+            }
+        }, 400);
+    };
+    const handleThumbsTouchMove = () => {
+        thumbsTouchMoved.current = true;
+        if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; }
+    };
+    const handleThumbsTouchEnd = () => {
+        if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; }
     };
 
     const handleKeyDown = (e) => {
@@ -526,31 +555,58 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                 )}
             </div>
 
-            {/* Send button - SmarterPoker Messenger style */}
-            <button
-                onClick={handleSend}
-                disabled={!text.trim()}
-                style={{
-                    width: 32, height: 32, borderRadius: '50%', border: 'none',
-                    background: text.trim() ? C.blue : 'transparent',
-                    cursor: text.trim() ? 'pointer' : 'default',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 0,
-                }}
-                title={text.trim() ? "Send message" : "Send like"}
-            >
-                {text.trim() ? (
+            {/* Send button OR thumbs-up button */}
+            {text.trim() ? (
+                <button
+                    onClick={handleSend}
+                    style={{
+                        width: 36, height: 36, borderRadius: '50%', border: 'none',
+                        background: C.blue,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        flexShrink: 0,
+                    }}
+                    title="Send Message"
+                >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
                         <path d="M2 21l21-9L2 3v7l15 2-15 2z" fill="white" />
                     </svg>
-                ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}>
-                        <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" stroke={C.blue} strokeWidth="1.5" fill="none" />
-                    </svg>
-                )}
-            </button>
+                </button>
+            ) : (
+                <button
+                    onClick={handleThumbsUp}
+                    onTouchStart={handleThumbsTouchStart}
+                    onTouchMove={handleThumbsTouchMove}
+                    onTouchEnd={handleThumbsTouchEnd}
+                    onMouseDown={() => {
+                        thumbsLongPress.current = setTimeout(() => {
+                            setShowEmoji(true);
+                            setShowGifPicker(false);
+                        }, 400);
+                    }}
+                    onMouseUp={() => { if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}
+                    onMouseLeave={() => { if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}
+                    style={{
+                        width: 36, height: 36, borderRadius: '50%', border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        flexShrink: 0,
+                        fontSize: 22,
+                        transition: 'transform 0.15s',
+                    }}
+                    title="Tap to send 👍 — Hold for emoji picker"
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
+                >
+                    👍
+                </button>
+            )}
         </div>
     );
 }
@@ -917,8 +973,6 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                 opacity: status === 'sending' ? 0.7 : 1,
                 position: 'relative',
             }}
-            onMouseEnter={() => setShowReactions(true)}
-            onMouseLeave={() => { setShowReactions(false); setShowMenu(false); }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -934,54 +988,55 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
 
             {/* Bubble with reactions */}
             <div style={{ position: 'relative', maxWidth: '70%' }}>
-                {/* Reaction picker */}
+                {/* Reaction picker — long-press activated, appears ABOVE the bubble */}
                 {showReactions && status !== 'sending' && (
                     <div style={{
                         position: 'absolute',
-                        [isOwn ? 'left' : 'right']: '100%',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        marginLeft: isOwn ? 0 : 4,
-                        marginRight: isOwn ? 4 : 0,
+                        bottom: '100%',
+                        left: isOwn ? 'auto' : 0,
+                        right: isOwn ? 0 : 'auto',
+                        marginBottom: 6,
                         display: 'flex',
+                        alignItems: 'center',
                         gap: 2,
                         background: C.card,
-                        borderRadius: 16,
-                        padding: '4px 6px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        zIndex: 10,
-                        flexWrap: 'wrap',
-                        maxWidth: 200,
+                        borderRadius: 24,
+                        padding: '6px 8px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+                        zIndex: 50,
+                        animation: 'reactionPopIn 0.18s ease-out',
                     }}>
                         {REACTION_EMOJIS.map(emoji => (
                             <button
                                 key={emoji}
-                                onClick={() => handleReaction(emoji)}
+                                onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }}
                                 style={{
                                     border: 'none',
                                     background: 'transparent',
                                     cursor: 'pointer',
-                                    fontSize: 18,
-                                    padding: '3px 4px',
-                                    borderRadius: 6,
+                                    fontSize: 22,
+                                    padding: '4px 5px',
+                                    borderRadius: 8,
                                     transition: 'transform 0.15s, background 0.15s',
+                                    lineHeight: 1,
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.25)'; e.currentTarget.style.background = C.hoverBg; }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.35)'; e.currentTarget.style.background = C.hoverBg; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'transparent'; }}
                             >{emoji}</button>
                         ))}
-                        {/* Context menu trigger — shows on all messages */}
+                        {/* Context menu trigger */}
                         <>
-                            <div style={{ width: 1, background: C.border, margin: '4px 2px' }} />
+                            <div style={{ width: 1, height: 24, background: C.border, margin: '0 2px' }} />
                             <button
-                                onClick={() => setShowMenu(!showMenu)}
+                                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
                                 style={{
                                     border: 'none',
                                     background: 'transparent',
                                     cursor: 'pointer',
-                                    fontSize: 14,
-                                    padding: 4,
+                                    fontSize: 16,
+                                    padding: '4px 6px',
                                     color: C.textSec,
+                                    borderRadius: 8,
                                 }}
                             >⋯</button>
                         </>
@@ -3752,7 +3807,7 @@ function MessengerPage() {
     if (loading) {
         return (
             <div style={{
-                minHeight: '100vh', paddingBottom: 70, width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
+                minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', boxSizing: 'border-box',
                 background: C.bg,
                 display: 'flex',
             }}>
@@ -3854,9 +3909,9 @@ function MessengerPage() {
                     /* Mobile-specific messenger styles */
                     @media (max-width: 768px) {
                         .messenger-page {
-                            /* Account for BOTH UniversalHeader (54px) AND BottomNavBar (56px + safe-area) */
-                            height: calc(100vh - 54px - 56px - env(safe-area-inset-bottom, 0px));
-                            height: calc(100dvh - 54px - 56px - env(safe-area-inset-bottom, 0px));
+                            /* Account for UniversalHeader only (54px) — BottomNavBar removed from messenger */
+                            height: calc(100vh - 54px);
+                            height: calc(100dvh - 54px);
                         }
                         
                         /* Smaller avatars on mobile */
@@ -3886,6 +3941,10 @@ function MessengerPage() {
                     @keyframes pulse {
                         0%, 100% { transform: scale(1); opacity: 1; }
                         50% { transform: scale(1.1); opacity: 0.8; }
+                    }
+                    @keyframes reactionPopIn {
+                        0% { transform: scale(0.7); opacity: 0; }
+                        100% { transform: scale(1); opacity: 1; }
                     }
                     /* shimmer defined in loading fallback */
                 `}</style>
@@ -5037,7 +5096,7 @@ export default function MessengerPageWithBoundary() {
     return (
         <HubErrorBoundary name="Messenger">
             <MessengerPage />
-              <BottomNavBar />
-    </HubErrorBoundary>
+            {/* BottomNavBar intentionally removed — messenger is full-screen chat; the nav bar was overlaying the message input area and blocking user interaction */}
+        </HubErrorBoundary>
     );
 }
