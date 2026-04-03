@@ -1018,15 +1018,19 @@ function GodModeArenaInner({
         return submitAnswer(answerId);
     }, [submitAnswer]);
 
-    // Auto-transition from splash → playing once questions are loaded
+    // ═══ PHASE 18: Splash stays until user clicks Start (no auto-transition) ═══
+    const [splashReady, setSplashReady] = useState(false);
     useEffect(() => {
         if (gamePhase === 'splash' && currentQuestion && !loading) {
-            const timer = setTimeout(() => {
-                setGamePhase('playing');
-            }, 1800); // Show splash for 1.8s
-            return () => clearTimeout(timer);
+            setSplashReady(true);
         }
     }, [gamePhase, currentQuestion, loading]);
+
+    const handleStartTraining = useCallback(() => {
+        if (splashReady) {
+            setGamePhase('playing');
+        }
+    }, [splashReady]);
 
     // Phase 8: Listen for adaptive difficulty changes
     useEffect(() => {
@@ -1876,7 +1880,7 @@ function GodModeArenaInner({
                 />
 
                 <AnimatePresence mode="wait">
-                    {/* ═══ SPLASH SCREEN ═══ */}
+                    {/* ═══ PHASE 18: ENHANCED PRE-SESSION LOBBY ═══ */}
                     {gamePhase === 'splash' && (
                         <motion.div
                             key="splash"
@@ -1886,23 +1890,229 @@ function GodModeArenaInner({
                             transition={{ duration: 0.4 }}
                             style={styles.splashScreen}
                         >
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                                style={styles.splashContent}
-                            >
-                                <div style={styles.splashIcon}>◎</div>
-                                <div style={styles.splashTitle}>{gameName || 'GTO Training'}</div>
-                                <div style={styles.splashSubtitle}>Level {currentLevel}</div>
+                            <div style={{ width: '100%', maxWidth: 420, padding: '0 16px', overflowY: 'auto', maxHeight: '100vh', paddingBottom: 40 }}>
+                                {/* Game Title */}
                                 <motion.div
-                                    animate={{ opacity: [0.4, 1, 0.4] }}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                    style={styles.splashLoader}
+                                    initial={{ y: -20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.1 }}
+                                    style={{ textAlign: 'center', marginBottom: 20, marginTop: 20 }}
                                 >
-                                    Loading Solver Data...
+                                    <div style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9', letterSpacing: -0.5, fontFamily: "'Inter', -apple-system, sans-serif" }}>
+                                        {gameName || 'GTO Training'}
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginTop: 4 }}>
+                                        Level {currentLevel} of {TRAINING_CONFIG.totalLevels} • {totalQuestions || 25} Questions
+                                    </div>
                                 </motion.div>
-                            </motion.div>
+
+                                {/* Session Goal Card */}
+                                <motion.div
+                                    initial={{ y: 10, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.2 }}
+                                    style={{
+                                        padding: '12px 16px', borderRadius: 12, marginBottom: 12,
+                                        background: 'linear-gradient(135deg, rgba(0,212,255,0.08) 0%, rgba(139,92,246,0.06) 100%)',
+                                        border: '1px solid rgba(0,212,255,0.15)',
+                                    }}
+                                >
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                                        Session Goal
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>
+                                        Score ≥70% to advance to Level {Math.min(currentLevel + 1, TRAINING_CONFIG.totalLevels)}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                                        Answer {Math.ceil((totalQuestions || 25) * 0.7)} of {totalQuestions || 25} questions correctly
+                                    </div>
+                                </motion.div>
+
+                                {/* Previous Performance (from cross-session analytics) */}
+                                {crossSessionAnalytics?.milestones && (
+                                    <motion.div
+                                        initial={{ y: 10, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.3 }}
+                                        style={{
+                                            padding: '12px 16px', borderRadius: 12, marginBottom: 12,
+                                            background: 'rgba(0,0,0,0.2)',
+                                            border: '1px solid rgba(255,255,255,0.06)',
+                                        }}
+                                    >
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                                            Your Performance (30 Days)
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00d4ff', fontFamily: "'Orbitron', monospace" }}>
+                                                    {crossSessionAnalytics.milestones.last5Avg || crossSessionAnalytics.milestones.overallAccuracy || '—'}%
+                                                </div>
+                                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>Avg Score</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 18, fontWeight: 800, color: '#a78bfa', fontFamily: "'Orbitron', monospace" }}>
+                                                    {crossSessionAnalytics.milestones.totalSessions || 0}
+                                                </div>
+                                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>Sessions</div>
+                                            </div>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 18, fontWeight: 800, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>
+                                                    {crossSessionAnalytics.milestones.totalHands || 0}
+                                                </div>
+                                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>Hands</div>
+                                            </div>
+                                        </div>
+                                        {crossSessionAnalytics.milestones.trending && (
+                                            <div style={{ fontSize: 10, color: crossSessionAnalytics.milestones.trending === 'up' ? '#22c55e' : crossSessionAnalytics.milestones.trending === 'down' ? '#ef4444' : '#64748b', textAlign: 'center', marginTop: 6, fontWeight: 600 }}>
+                                                {crossSessionAnalytics.milestones.trending === 'up' ? '↑ Trending Up' : crossSessionAnalytics.milestones.trending === 'down' ? '↓ Trending Down' : '→ Steady'}
+                                                {crossSessionAnalytics.milestones.trendDelta ? ` (${crossSessionAnalytics.milestones.trendDelta > 0 ? '+' : ''}${crossSessionAnalytics.milestones.trendDelta}pts)` : ''}
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+
+                                {/* Difficulty + Timer Selectors */}
+                                <motion.div
+                                    initial={{ y: 10, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.35 }}
+                                    style={{
+                                        padding: '12px 16px', borderRadius: 12, marginBottom: 12,
+                                        background: 'rgba(0,0,0,0.2)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    {/* Difficulty */}
+                                    <div style={{ marginBottom: 10 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                                            Difficulty
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            {[
+                                                { key: 'beginner', label: 'Beginner', color: '#22c55e' },
+                                                { key: 'standard', label: 'Standard', color: '#3b82f6' },
+                                                { key: 'expert', label: 'Expert', color: '#ef4444' },
+                                            ].map(d => (
+                                                <button
+                                                    key={d.key}
+                                                    onClick={() => setDifficulty(d.key)}
+                                                    style={{
+                                                        flex: 1, padding: '8px 0', borderRadius: 8,
+                                                        border: `1px solid ${difficulty === d.key ? d.color + '60' : 'rgba(255,255,255,0.08)'}`,
+                                                        background: difficulty === d.key ? d.color + '15' : 'transparent',
+                                                        color: difficulty === d.key ? d.color : '#64748b',
+                                                        fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                        transition: 'all 0.15s',
+                                                    }}
+                                                >
+                                                    {d.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Timer */}
+                                    <div>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                                            Timer
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            {[
+                                                { key: 'relaxed', label: 'Relaxed', desc: 'No timer', color: '#22c55e' },
+                                                { key: 'standard', label: 'Standard', desc: '60s', color: '#fbbf24' },
+                                                { key: 'blitz', label: 'Blitz', desc: '15s', color: '#ef4444' },
+                                            ].map(t => (
+                                                <button
+                                                    key={t.key}
+                                                    onClick={() => setTimerMode(t.key)}
+                                                    style={{
+                                                        flex: 1, padding: '8px 0', borderRadius: 8,
+                                                        border: `1px solid ${timerMode === t.key ? t.color + '60' : 'rgba(255,255,255,0.08)'}`,
+                                                        background: timerMode === t.key ? t.color + '15' : 'transparent',
+                                                        color: timerMode === t.key ? t.color : '#64748b',
+                                                        fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                        transition: 'all 0.15s',
+                                                    }}
+                                                >
+                                                    {t.label}
+                                                    <div style={{ fontSize: 8, fontWeight: 600, opacity: 0.7, marginTop: 1 }}>{t.desc}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Spaced Repetition Due */}
+                                {reviewDueCount > 0 && (
+                                    <motion.div
+                                        initial={{ y: 10, opacity: 0 }}
+                                        animate={{ y: 0, opacity: 1 }}
+                                        transition={{ delay: 0.4 }}
+                                        style={{
+                                            padding: '10px 16px', borderRadius: 12, marginBottom: 12,
+                                            background: 'rgba(139,92,246,0.08)',
+                                            border: '1px solid rgba(139,92,246,0.2)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        }}
+                                    >
+                                        <div>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa' }}>
+                                                {reviewDueCount} Weak Spot{reviewDueCount > 1 ? 's' : ''} Due for Review
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>
+                                                Reviewing now maximizes long-term retention
+                                            </div>
+                                        </div>
+                                        <span style={{ fontSize: 20 }}>↻</span>
+                                    </motion.div>
+                                )}
+
+                                {/* START BUTTON */}
+                                <motion.div
+                                    initial={{ y: 20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.45 }}
+                                >
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={handleStartTraining}
+                                        disabled={!splashReady}
+                                        style={{
+                                            width: '100%', padding: '16px 0', borderRadius: 12,
+                                            border: 'none',
+                                            background: splashReady
+                                                ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
+                                                : 'rgba(100,116,139,0.2)',
+                                            color: splashReady ? '#fff' : '#64748b',
+                                            fontSize: 16, fontWeight: 800,
+                                            cursor: splashReady ? 'pointer' : 'default',
+                                            letterSpacing: 0.5,
+                                            transition: 'all 0.2s',
+                                            fontFamily: "'Inter', -apple-system, sans-serif",
+                                        }}
+                                    >
+                                        {splashReady ? 'Start Training →' : 'Loading Solver Data...'}
+                                    </motion.button>
+                                </motion.div>
+
+                                {/* Back button */}
+                                <motion.button
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.5 }}
+                                    onClick={onExit}
+                                    style={{
+                                        display: 'block', margin: '12px auto 0', padding: '8px 20px',
+                                        background: 'none', border: 'none',
+                                        color: '#475569', fontSize: 12, fontWeight: 600,
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    ← Back to Training
+                                </motion.button>
+                            </div>
                         </motion.div>
                     )}
 

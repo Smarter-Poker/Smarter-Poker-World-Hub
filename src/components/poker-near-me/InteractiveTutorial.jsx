@@ -307,10 +307,15 @@ function ArrowSVG({ arrowData }) {
 }
 
 /**
- * TooltipCard — The 2.5x Sized Tutorial Tooltip
+ * TooltipCard — Mobile-Optimized Tutorial Tooltip
+ * Features prominent close button, scrollable content, compact mobile layout
  */
 function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip, onDontShow }) {
   if (!step) return null;
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 480;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
 
   const icons = {
     'pod-nearme': '📍', 'pod-homegames': '🏠', 'pod-livegames': '🔴', 'pod-tours': '🎯',
@@ -322,21 +327,33 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
     'subtab-tours': '🎯', 'subtab-series': '🏆', 'subtab-daily': '📊', 'subtab-calendar': '📅',
   };
 
+  // Mobile: center the card in the viewport with safe insets
+  const mobileStyles = isMobile ? {
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: Math.min(vw - 24, 420),
+    maxHeight: vh - 40,
+    zIndex: 10003,
+    pointerEvents: 'auto',
+  } : {
+    position: 'fixed',
+    top: position.top,
+    left: position.left,
+    width: Math.min(TOOLTIP_MAX_WIDTH, vw - 32),
+    minWidth: Math.min(TOOLTIP_MIN_WIDTH, vw - 32),
+    zIndex: 10003,
+    pointerEvents: 'auto',
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-      style={{
-        position: 'fixed',
-        top: position.top,
-        left: position.left,
-        width: Math.min(TOOLTIP_MAX_WIDTH, window.innerWidth - 32),
-        minWidth: Math.min(TOOLTIP_MIN_WIDTH, window.innerWidth - 32),
-        zIndex: 10003,
-        pointerEvents: 'auto',
-      }}
+      style={mobileStyles}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
@@ -346,32 +363,64 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
         background: 'linear-gradient(145deg, rgba(12,24,40,0.97), rgba(6,15,28,0.98))',
         backdropFilter: 'blur(24px)',
         border: '1.5px solid rgba(110,231,239,0.25)',
-        borderRadius: 20,
-        padding: 'clamp(20px, 4vw, 32px)',
+        borderRadius: isMobile ? 16 : 20,
+        padding: isMobile ? '16px' : 'clamp(20px, 4vw, 32px)',
         boxShadow: `
           0 0 40px rgba(110,231,239,0.15),
           0 20px 60px rgba(0,0,0,0.6),
           inset 0 1px 0 rgba(255,255,255,0.05)
         `,
         fontFamily: 'Inter, system-ui, sans-serif',
+        maxHeight: isMobile ? (vh - 60) : 'none',
+        overflowY: isMobile ? 'auto' : 'visible',
+        WebkitOverflowScrolling: 'touch',
+        position: 'relative',
       }}>
+        {/* ═══ Close (X) Button — Always Visible ═══ */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onSkip?.(); }}
+          onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onSkip?.(); }}
+          aria-label="Close tutorial"
+          style={{
+            position: 'absolute',
+            top: isMobile ? 8 : 12,
+            right: isMobile ? 8 : 12,
+            width: 36, height: 36,
+            borderRadius: '50%',
+            border: '1px solid rgba(200,214,229,0.15)',
+            background: 'rgba(200,214,229,0.06)',
+            color: 'rgba(200,214,229,0.6)',
+            fontSize: 20, fontWeight: 400,
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1,
+            transition: 'all 0.2s',
+            fontFamily: 'system-ui',
+            lineHeight: 1,
+            padding: 0,
+          }}
+        >
+          ✕
+        </button>
+
         {/* Step Counter */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 16,
+          marginBottom: isMobile ? 10 : 16,
+          paddingRight: 40, // space for X button
         }}>
           <span style={{
-            fontSize: 13, color: ARROW_COLOR, fontWeight: 700,
+            fontSize: isMobile ? 11 : 13, color: ARROW_COLOR, fontWeight: 700,
             textTransform: 'uppercase', letterSpacing: '0.12em',
             opacity: 0.8,
           }}>
             Step {currentIndex + 1} Of {totalSteps}
           </span>
           <div style={{
-            padding: '4px 10px', borderRadius: 8,
+            padding: isMobile ? '3px 8px' : '4px 10px', borderRadius: 8,
             background: 'rgba(110,231,239,0.08)',
             border: '1px solid rgba(110,231,239,0.15)',
-            fontSize: 11, color: 'rgba(200,214,229,0.5)',
+            fontSize: isMobile ? 10 : 11, color: 'rgba(200,214,229,0.5)',
             fontWeight: 600, letterSpacing: '0.05em',
           }}>
             TUTORIAL
@@ -379,9 +428,9 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
         </div>
 
         {/* Icon + Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 16, marginBottom: isMobile ? 10 : 16 }}>
           <div style={{
-            width: 72, height: 72, borderRadius: 18,
+            width: isMobile ? 48 : 72, height: isMobile ? 48 : 72, borderRadius: isMobile ? 12 : 18,
             background: 'linear-gradient(135deg, rgba(110,231,239,0.12), rgba(110,231,239,0.04))',
             border: '2px solid rgba(110,231,239,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -389,13 +438,13 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
             animation: 'tutorial-badge-pulse 2.5s ease-in-out infinite',
             boxShadow: '0 0 20px rgba(110,231,239,0.1)',
           }}>
-            <span style={{ fontSize: 36 }}>
+            <span style={{ fontSize: isMobile ? 24 : 36 }}>
               {icons[step.targetId] || '✦'}
             </span>
           </div>
           <div>
             <h3 style={{
-              fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 800, color: '#fff',
+              fontSize: isMobile ? '18px' : 'clamp(22px, 4vw, 28px)', fontWeight: 800, color: '#fff',
               margin: 0, letterSpacing: '-0.5px',
               lineHeight: 1.2,
             }}>
@@ -406,9 +455,9 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
 
         {/* Description */}
         <p style={{
-          fontSize: 'clamp(14px, 2.5vw, 17px)',
+          fontSize: isMobile ? '13px' : 'clamp(14px, 2.5vw, 17px)',
           color: 'rgba(200,214,229,0.75)',
-          lineHeight: 1.65, margin: '0 0 24px',
+          lineHeight: 1.55, margin: isMobile ? '0 0 14px' : '0 0 24px',
           letterSpacing: '0.01em',
         }}>
           {step.desc}
@@ -417,16 +466,16 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
         {/* Pro Tip */}
         {step.tip && (
           <div style={{
-            padding: '10px 14px', borderRadius: 12,
+            padding: isMobile ? '8px 10px' : '10px 14px', borderRadius: 10,
             background: 'rgba(212,168,83,0.06)',
             border: '1px solid rgba(212,168,83,0.18)',
-            marginBottom: 24,
-            display: 'flex', alignItems: 'flex-start', gap: 10,
+            marginBottom: isMobile ? 14 : 24,
+            display: 'flex', alignItems: 'flex-start', gap: 8,
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
-            <span style={{ fontSize: 13, color: '#d4a853', lineHeight: 1.5, fontWeight: 500 }}>
+            <span style={{ fontSize: isMobile ? 12 : 13, color: '#d4a853', lineHeight: 1.45, fontWeight: 500 }}>
               {step.tip}
             </span>
           </div>
@@ -434,9 +483,9 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
 
         {/* Progress Bar */}
         <div style={{
-          width: '100%', height: 4, borderRadius: 2,
+          width: '100%', height: isMobile ? 3 : 4, borderRadius: 2,
           background: 'rgba(200,214,229,0.08)',
-          marginBottom: 20, overflow: 'hidden',
+          marginBottom: isMobile ? 12 : 20, overflow: 'hidden',
         }}>
           <motion.div
             initial={{ width: 0 }}
@@ -450,31 +499,36 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
           />
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Action Buttons — Compact On Mobile */}
+        <div style={{
+          display: 'flex', gap: isMobile ? 6 : 10,
+          justifyContent: 'space-between', alignItems: 'center',
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+        }}>
           <button
             onClick={(e) => { e.stopPropagation(); onDontShow?.(); }}
             onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onDontShow?.(); }}
             style={{
-              padding: '8px 12px', borderRadius: 10,
+              padding: isMobile ? '6px 8px' : '8px 12px', borderRadius: 10,
               border: 'none', background: 'transparent',
               color: 'rgba(200,214,229,0.3)',
-              fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              fontSize: isMobile ? 11 : 12, fontWeight: 500, cursor: 'pointer',
               fontFamily: 'inherit', transition: 'color 0.2s',
+              whiteSpace: 'nowrap',
             }}
           >
             Don't Show Again
           </button>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: isMobile ? 6 : 10 }}>
             <button
               onClick={(e) => { e.stopPropagation(); onSkip?.(); }}
               onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onSkip?.(); }}
               style={{
-                padding: '12px 24px', borderRadius: 12,
+                padding: isMobile ? '10px 16px' : '12px 24px', borderRadius: 12,
                 border: '1px solid rgba(200,214,229,0.12)',
                 background: 'rgba(200,214,229,0.04)',
                 color: 'rgba(200,214,229,0.55)',
-                fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                fontSize: isMobile ? 13 : 15, fontWeight: 600, cursor: 'pointer',
                 fontFamily: 'inherit', transition: 'all 0.2s',
               }}
             >
@@ -484,10 +538,10 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
               onClick={(e) => { e.stopPropagation(); onNext?.(); }}
               onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onNext?.(); }}
               style={{
-                padding: '12px 32px', borderRadius: 12,
+                padding: isMobile ? '10px 20px' : '12px 32px', borderRadius: 12,
                 border: 'none',
                 background: `linear-gradient(135deg, ${ARROW_COLOR}, #3fb950)`,
-                color: '#0c1828', fontSize: 15, fontWeight: 700,
+                color: '#0c1828', fontSize: isMobile ? 13 : 15, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
                 boxShadow: '0 4px 20px rgba(110,231,239,0.3)',
                 transition: 'all 0.2s',
@@ -646,11 +700,11 @@ export default function InteractiveTutorial({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); handleSkip(); }}
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
-          onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); }}
+          onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); handleSkip(); }}
           style={{
             position: 'fixed',
             inset: 0,
