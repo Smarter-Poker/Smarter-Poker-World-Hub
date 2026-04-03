@@ -176,11 +176,30 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
         setTotalQuestions(prev => prev + 1);
 
         // 3. RECORD IN PROGRESSION SYSTEM (optimistic update)
+        // Derive hand type from scenario context
+        const isPreflop = !currentScenario.boardCards || currentScenario.boardCards.length === 0;
+        const raiseCount = currentScenario.actionLog.filter(a => a.type === 'RAISE').length;
+        let handType: string = 'PREFLOP_OPEN';
+        if (isPreflop) {
+            if (raiseCount >= 2) handType = 'PREFLOP_3BET';
+            else if (raiseCount === 1) handType = 'PREFLOP_OPEN';
+            else handType = 'PREFLOP_BLIND_DEFENSE';
+        } else {
+            const heroActions = currentScenario.actionLog.filter(a => a.playerSeat === currentScenario.heroSeat);
+            const heroRaised = heroActions.some(a => a.type === 'RAISE');
+            if (heroRaised) handType = 'POSTFLOP_CHECK_RAISE';
+            else if (currentScenario.correctAction === 'RAISE') handType = 'POSTFLOP_VALUE_BET';
+            else handType = 'POSTFLOP_CBET';
+        }
+        // Derive difficulty from config stack depth
+        const stackBB = currentScenario.config?.bigBlind || 100;
+        const derivedDifficulty = stackBB <= 25 ? 'easy' : stackBB <= 100 ? 'medium' : 'hard';
+
         const reward = progression.recordHandResult({
-            type: 'PREFLOP_OPEN', // TODO: Determine from scenario
+            type: handType as any,
             userAction: action,
             correctAction: currentScenario.correctAction,
-            difficulty: 'medium' // TODO: Determine from scenario
+            difficulty: derivedDifficulty,
         });
 
         // 4. TRIGGER SEQUENCE
