@@ -711,7 +711,7 @@ export class DeterministicGTOEngine {
                 validActions = validActions.filter(a => {
                     const al = a.toLowerCase();
                     if (al === 'c' || al === 'x') return false;      // Check — invalid
-                    if (al.startsWith('b') && al !== 'b') return false; // Bet sizes — invalid (but keep generic 'b' as potential raise notation)
+                    if (al.startsWith('b')) return false;              // Bet sizes — invalid when facing a bet
                     return true; // Keep: fold (f), call, raise sizes (r50, r100, etc.), allin
                 });
             }
