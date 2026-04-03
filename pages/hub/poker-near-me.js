@@ -342,7 +342,9 @@ export default function PokerNearMePage() {
     const [currentTutorialTab, setCurrentTutorialTab] = useState(null);
 
     // Trigger tab tutorial on first visit to each tab
+    // DISABLED on mobile — tutorials block the entire mobile view
     useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 600) return; // skip on mobile
         if (activeTab && !tabTutorialsSeen[activeTab] && PNM_TAB_TUTORIALS[activeTab]) {
             // Small delay to let the tab content render first
             const timer = setTimeout(() => {

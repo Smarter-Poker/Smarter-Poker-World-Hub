@@ -48,34 +48,33 @@ function detectBrowser() {
 
 const IOS_STEPS = [
   { step: '1', text: 'Open Settings on your iPhone' },
-  { step: '2', text: 'Tap Privacy & Security, then Location Services' },
+  { step: '2', text: 'Tap Privacy & Security \u2192 Location Services' },
   { step: '3', text: 'Make sure Location Services is ON' },
-  { step: '4', text: 'Scroll down and tap Safari (or your browser)' },
-  { step: '5', text: 'Select "While Using The App" or "Ask Next Time"' },
-  { step: '6', text: 'Return here and tap "Try Again" below' },
+  { step: '4', text: 'Scroll down, tap Safari (or your browser)' },
+  { step: '5', text: 'Select "While Using The App" or "Ask"' },
+  { step: '6', text: 'Return here and tap the button above' },
 ];
 
 const IOS_PWA_STEPS = [
   { step: '1', text: 'Open Settings on your iPhone' },
-  { step: '2', text: 'Tap Privacy & Security, then Location Services' },
+  { step: '2', text: 'Tap Privacy & Security \u2192 Location Services' },
   { step: '3', text: 'Make sure Location Services is ON' },
   { step: '4', text: 'Scroll down and find Smarter.Poker' },
   { step: '5', text: 'Select "While Using The App"' },
-  { step: '6', text: 'Return here and tap "Try Again" below' },
+  { step: '6', text: 'Return here and tap the button above' },
 ];
 
 const ANDROID_STEPS = [
   { step: '1', text: 'Open Settings on your phone' },
   { step: '2', text: 'Tap Location and make sure it\'s ON' },
-  { step: '3', text: 'Tap App Permissions or App Location Permissions' },
-  { step: '4', text: 'Find your browser and select "Allow"' },
-  { step: '5', text: 'Return here and tap "Try Again" below' },
+  { step: '3', text: 'Tap App Permissions \u2192 your browser' },
+  { step: '4', text: 'Select "Allow" and return here' },
 ];
 
 const DESKTOP_STEPS = [
-  { step: '1', text: 'Click the lock/info icon in your browser address bar' },
-  { step: '2', text: 'Find "Location" and change it to "Allow"' },
-  { step: '3', text: 'Close the popup — the page will auto-detect your location' },
+  { step: '1', text: 'Click the lock icon in your address bar' },
+  { step: '2', text: 'Find "Location" \u2192 change to "Allow"' },
+  { step: '3', text: 'Reload the page' },
 ];
 
 export default function LocationEnableModal({ 
@@ -113,28 +112,24 @@ export default function LocationEnableModal({
 
   const handleRetry = useCallback(() => {
     setRetrying(true);
-    if (permissionState !== 'denied') {
-      // Permission is 'prompt' — trigger native dialog
-      if (onRetry) onRetry();
+    // Always try GPS — on iOS Safari, permissionState may report 'prompt' even when denied
+    // so we always attempt and let the browser handle it
+    if (onRetry) {
+      onRetry();
+      setRetrying(false);
       return;
     }
-    // Permission is denied — try anyway (some browsers may re-prompt)
+    // Fallback: try directly if no onRetry handler
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setRetrying(false);
-          if (onRetry) onRetry();
-        },
-        () => {
-          setRetrying(false);
-          // Still denied — instructions remain visible
-        },
+        () => { setRetrying(false); },
+        () => { setRetrying(false); },
         { timeout: 5000 }
       );
     } else {
       setRetrying(false);
     }
-  }, [permissionState, onRetry]);
+  }, [onRetry]);
 
   if (!isOpen) return null;
 
@@ -150,22 +145,25 @@ export default function LocationEnableModal({
       ? `Android / ${browserName}`
       : browserName;
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 99998,
       background: 'rgba(3,4,8,0.88)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center',
       animation: 'locModalFadeIn 0.25s ease-out',
-      padding: '20px',
+      padding: isMobile ? '16px 8px env(safe-area-inset-bottom, 8px)' : '20px',
     }}>
       <div style={{
-        width: 'min(460px, 94vw)',
-        maxHeight: '90vh',
+        width: isMobile ? 'min(420px, 96vw)' : 'min(460px, 94vw)',
+        maxHeight: isMobile ? '70vh' : '90vh',
         overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
         background: 'linear-gradient(160deg, rgba(18,24,40,0.98), rgba(10,16,28,0.98))',
-        borderRadius: 22,
+        borderRadius: isMobile ? 18 : 22,
         border: '1.5px solid rgba(148,163,184,0.18)',
-        boxShadow: '0 24px 72px rgba(0,0,0,0.65), 0 0 40px rgba(212,168,83,0.08)',
+        boxShadow: isMobile ? '0 -8px 40px rgba(0,0,0,0.65), 0 0 30px rgba(212,168,83,0.08)' : '0 24px 72px rgba(0,0,0,0.65), 0 0 40px rgba(212,168,83,0.08)',
         overflow: 'hidden',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
@@ -173,10 +171,11 @@ export default function LocationEnableModal({
         {/* Header */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '20px 24px', borderBottom: '1px solid rgba(148,163,184,0.1)',
+          padding: isMobile ? '14px 16px' : '20px 24px', borderBottom: '1px solid rgba(148,163,184,0.1)',
           background: 'linear-gradient(180deg, rgba(212,168,83,0.06), transparent)',
+          position: 'sticky', top: 0, zIndex: 1,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 42, height: 42, borderRadius: '50%',
               background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.08))',
@@ -201,58 +200,58 @@ export default function LocationEnableModal({
         </div>
 
         {/* Body */}
-        <div style={{ padding: '24px' }}>
+        <div style={{ padding: isMobile ? '14px 16px' : '24px' }}>
           {/* Primary CTA */}
           <button
             onClick={handleRetry}
             disabled={retrying}
             style={{
-              width: '100%', padding: '14px 0', borderRadius: 14,
+              width: '100%', padding: '12px 0', borderRadius: 12,
               border: '1px solid rgba(34,197,94,0.45)',
               background: retrying
                 ? 'linear-gradient(135deg, #1a5c28, #144a22)'
                 : 'linear-gradient(135deg, #238636, #196c2e)',
-              color: '#ffffff', fontSize: 15, fontWeight: 800,
+              color: '#ffffff', fontSize: 14, fontWeight: 800,
               cursor: retrying ? 'wait' : 'pointer', fontFamily: 'inherit',
-              boxShadow: '0 6px 20px rgba(34,197,94,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              boxShadow: '0 4px 16px rgba(34,197,94,0.25), inset 0 1px 0 rgba(255,255,255,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               transition: 'all 0.2s',
-              marginBottom: 20,
+              marginBottom: 14,
               opacity: retrying ? 0.7 : 1,
             }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
             </svg>
-            {retrying ? 'Checking...' : permissionState === 'denied' ? 'Try Again' : 'Enable Location Now'}
+            {retrying ? 'Checking...' : 'Try Enabling Location'}
           </button>
 
-          {/* Device-specific instructions panel */}
+          {/* Device-specific instructions — ALWAYS show (Safari doesn't support Permissions API for geolocation) */}
           <div style={{
             background: 'rgba(212,168,83,0.05)',
             border: '1.5px solid rgba(148,163,184,0.12)',
-            borderRadius: 14, padding: '16px 18px',
-            marginBottom: 20,
+            borderRadius: 12, padding: '12px 14px',
+            marginBottom: 14,
           }}>
             <div style={{
-              fontSize: 12, fontWeight: 700, color: '#d4a853', textTransform: 'uppercase',
-              letterSpacing: '0.8px', marginBottom: 12,
+              fontSize: 11, fontWeight: 700, color: '#d4a853', textTransform: 'uppercase',
+              letterSpacing: '0.8px', marginBottom: 10,
             }}>
-              {platformLabel} — How To Enable
+              {platformLabel} \u2014 How To Enable
             </div>
 
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
               {steps.map(s => (
-                <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div key={s.step} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                   <div style={{
-                    minWidth: 26, height: 26, borderRadius: '50%',
+                    minWidth: 22, height: 22, borderRadius: '50%',
                     background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
                     border: '1.5px solid rgba(212,168,83,0.3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 800, color: '#d4a853',
+                    fontSize: 11, fontWeight: 800, color: '#d4a853',
                     flexShrink: 0,
                   }}>{s.step}</div>
-                  <div style={{ fontSize: 13, color: 'rgba(200,214,229,0.75)', lineHeight: 1.5, paddingTop: 3 }}>
+                  <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.75)', lineHeight: 1.45, paddingTop: 2 }}>
                     {s.text}
                   </div>
                 </div>

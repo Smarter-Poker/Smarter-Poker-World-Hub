@@ -327,14 +327,14 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
     'subtab-tours': '🎯', 'subtab-series': '🏆', 'subtab-daily': '📊', 'subtab-calendar': '📅',
   };
 
-  // Mobile: center the card in the viewport with safe insets
+  // Mobile: bottom-sheet style so users can still see the page above
   const mobileStyles = isMobile ? {
     position: 'fixed',
-    top: '50%',
+    bottom: 'env(safe-area-inset-bottom, 8px)',
     left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: Math.min(vw - 24, 420),
-    maxHeight: vh - 40,
+    transform: 'translateX(-50%)',
+    width: Math.min(vw - 16, 420),
+    maxHeight: Math.min(vh * 0.55, 380),
     zIndex: 10003,
     pointerEvents: 'auto',
   } : {
