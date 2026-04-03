@@ -2674,7 +2674,7 @@ export default function PokerNearMePage() {
                 <div className="space-bg"></div>
                 <div className="space-overlay"></div>
 
-                <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} onSettingsClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onSettingsClick={() => setMenuOpen(true)} />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
