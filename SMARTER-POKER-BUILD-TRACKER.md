@@ -1,6 +1,6 @@
 # Smarter.Poker — Master Build Tracker
 
-**Last Updated:** 2026-04-02
+**Last Updated:** 2026-04-03
 **Owner:** Dan / Antigravity Agents
 
 ---
@@ -342,8 +342,24 @@
 
 ---
 
+## PHASE 13 — Completed (2026-04-03)
+
+### Training Arena Deep Improvements
+| Deliverable | Status | Detail |
+|---|---|---|
+| Wire useProgression to real API | DONE | Replaced mock saveHandResult with real `/api/training/save-progress` calls, auth token via `getSessionToken()` pattern |
+| Add training table audio | DONE | Deal and chip-click Web Audio API sounds in UniversalTrainingTable, new sound configs in trainingSounds.js |
+| Harden get-question API | DONE | 25s Promise.race timeout on both Grok AI call sites to prevent serverless function hangs |
+| GameSession null guards | DONE | `typeof === 'object'` guard on solver node actions before `Object.keys()` |
+
+**Files Changed:** useProgression.ts, trainingSounds.js, UniversalTrainingTable.tsx, get-question.js, GameSession.tsx
+**Commit:** 67e29e7b6
+**Impact:** Progression data now persists to Supabase instead of being lost on page refresh. Training table has audio feedback. Question engine won't hang on slow AI responses.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 13: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 14: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 15: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 16: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 14: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 15: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 16: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 17: Database Migration Safety** — Supabase migration tooling and rollback procedures
