@@ -7,6 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import RangeGrid from './RangeGrid';
+import SolverLineSummary from './SolverLineSummary';
 
 // Card display helper — renders a poker card (value + suit)
 function MiniCard({ card, size = 'sm' }) {
@@ -222,6 +223,8 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                             rawFrequencies={handData.rawFrequencies}
                             heroHand={handData.heroHand || (Array.isArray(handData.heroCards) ? handData.heroCards.map(c => c[0]).join('') : null)}
                             actions={Object.keys(handData.rawFrequencies)}
+                            board={handData.board}
+                            heroPosition={handData.heroPosition}
                         />
                     )}
 
@@ -294,7 +297,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
  * Shows the full 13×13 solver range colored by action frequency.
  * Collapsed by default to avoid overwhelming the hand review.
  */
-function RangeGridSection({ rawFrequencies, heroHand, actions }) {
+function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPosition }) {
     const [expanded, setExpanded] = useState(false);
 
     // Convert rawFrequencies to RangeGrid's gridData format
@@ -313,6 +316,18 @@ function RangeGridSection({ rawFrequencies, heroHand, actions }) {
         }
         return data;
     }, [rawFrequencies]);
+
+    // Parse board cards for SolverLineSummary
+    const boardCards = useMemo(() => {
+        if (!board) return [];
+        if (Array.isArray(board)) return board;
+        const cleaned = board.replace(/\s+/g, '');
+        const cards = [];
+        for (let i = 0; i < cleaned.length; i += 2) {
+            if (i + 1 < cleaned.length) cards.push(cleaned.substring(i, i + 2));
+        }
+        return cards;
+    }, [board]);
 
     if (!gridData || Object.keys(gridData).length === 0) return null;
 
@@ -363,6 +378,17 @@ function RangeGridSection({ rawFrequencies, heroHand, actions }) {
                             cellSize={22}
                             compact={true}
                         />
+                        {/* Solver strategy summary in natural language */}
+                        {boardCards.length > 0 && (
+                            <div style={{ marginTop: 8 }}>
+                                <SolverLineSummary
+                                    gridData={gridData}
+                                    board={boardCards}
+                                    actions={actions}
+                                    heroPosition={heroPosition || 'Hero'}
+                                />
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

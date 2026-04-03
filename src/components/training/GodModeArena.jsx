@@ -34,8 +34,9 @@ import LeaderboardPanel from './LeaderboardPanel';
 import SessionShareCard from './SessionShareCard';
 import AchievementToast from './AchievementToast';
 import { checkAllAchievements } from './utils/achievementChecker';
-// ═══ PHASE 20: EV Graph — Street-by-Street EV Visualization ═══
+// ═══ PHASE 20: EV Graph + GTO Deviation Heatmap ═══
 import EVGraph from './EVGraph';
+import GTODeviationHeatmap from './GTODeviationHeatmap';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -1827,6 +1828,55 @@ function GodModeArenaInner({
 
                         {/* ═══ PHASE 20: EV by Street visualization ═══ */}
                         <EVGraph handHistory={handHistory} title="EV Loss by Street" />
+
+                        {/* ═══ PHASE 20: GTO Deviation Analysis ═══ */}
+                        {(() => {
+                            // Compute user's actual action frequencies vs solver's GTO frequencies
+                            if (!handHistory || handHistory.length < 3) return null;
+                            const actionCounts = {};
+                            const gtoCounts = {};
+                            let totalHands = 0;
+                            handHistory.forEach(h => {
+                                const hd = h.handData || h;
+                                const userAction = (hd.action || '').toLowerCase();
+                                const correct = (hd.correctAction || '').toLowerCase();
+                                if (!userAction) return;
+                                totalHands++;
+                                // Normalize action names
+                                const normalizeAction = (a) => {
+                                    if (a.includes('fold')) return 'Fold';
+                                    if (a.includes('check')) return 'Check';
+                                    if (a.includes('call')) return 'Call';
+                                    if (a.includes('raise') || a.includes('3-bet') || a.includes('4-bet')) return 'Raise';
+                                    if (a.includes('bet') || a.includes('pot') || a.includes('overbet')) return 'Bet';
+                                    if (a.includes('all-in') || a.includes('push')) return 'All-In';
+                                    return 'Other';
+                                };
+                                const norm = normalizeAction(userAction);
+                                const normCorrect = normalizeAction(correct);
+                                actionCounts[norm] = (actionCounts[norm] || 0) + 1;
+                                gtoCounts[normCorrect] = (gtoCounts[normCorrect] || 0) + 1;
+                            });
+                            if (totalHands < 3) return null;
+                            // Get top actions
+                            const actions = [...new Set([...Object.keys(actionCounts), ...Object.keys(gtoCounts)])].filter(a => a !== 'Other');
+                            return actions.length > 0 ? (
+                                <div style={{ marginBottom: 12 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                                        GTO Deviation Analysis
+                                    </div>
+                                    {actions.map(action => (
+                                        <GTODeviationHeatmap
+                                            key={action}
+                                            label={`${action} Frequency`}
+                                            actualPct={(actionCounts[action] || 0) / totalHands * 100}
+                                            gtoPct={(gtoCounts[action] || 0) / totalHands * 100}
+                                            description={`You ${action.toLowerCase()} ${actionCounts[action] || 0}/${totalHands} vs GTO ${gtoCounts[action] || 0}/${totalHands}`}
+                                        />
+                                    ))}
+                                </div>
+                            ) : null;
+                        })()}
 
                         {/* POSITION STATS -- Per-position breakdown */}
                         <PositionStatsPanel handHistory={handHistory} />
