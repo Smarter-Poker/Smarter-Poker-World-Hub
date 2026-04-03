@@ -707,13 +707,26 @@ export class DeterministicGTOEngine {
                 });
             } else if (nodeType === 'hero_faces_bet') {
                 // Hero faces a bet: only Fold, Call, Raise are valid
-                // Remove: Check, Bet sizes (can't bet when facing a bet)
-                validActions = validActions.filter(a => {
+                // IMPORTANT: In PioSolver, 'c' = "call" when facing a bet (not check!)
+                // We remap 'c' → 'call' and remove actual check/bet actions.
+                validActions = validActions.map(a => {
                     const al = a.toLowerCase();
-                    if (al === 'c' || al === 'x') return false;      // Check — invalid
+                    // Remap 'c' to 'call' in facing-bet context (PIO uses 'c' for both)
+                    if (al === 'c') return 'call';
+                    return a;
+                }).filter(a => {
+                    const al = a.toLowerCase();
+                    if (al === 'x') return false;                     // Check — invalid when facing bet
                     if (al.startsWith('b')) return false;              // Bet sizes — invalid when facing a bet
                     return true; // Keep: fold (f), call, raise sizes (r50, r100, etc.), allin
                 });
+
+                // Also remap handActions keys so frequencies carry over
+                if (handActions['c'] !== undefined && handActions['call'] === undefined) {
+                    handActions['call'] = handActions['c'];
+                }
+                // Remap optimal action if needed
+                if (optimalAction === 'c') optimalAction = 'call';
             }
 
             // If filtering removed ALL actions, restore original (defensive fallback)
@@ -831,9 +844,17 @@ export class DeterministicGTOEngine {
             correctAnswer: optimalAction,
             correctAnswerText: this.getActionLabel(optimalAction, estimatedPot),
             // ═══ REAL SOLVER DATA ═══
-            frequencies: handActions,         // Raw 0.0-1.0 per action
+            // Phase 22: Ensure rawFrequencies keys match remapped action IDs
+            // (e.g., if 'c' was remapped to 'call' in facing-bet context)
+            frequencies: handActions,         // Raw 0.0-1.0 per action (remapped)
             gtoFrequencies,                   // Percentage 0-100 per action for UI
-            rawFrequencies: frequencies,       // Full per-hand matrix
+            rawFrequencies: (() => {
+                // If 'c' was remapped to 'call', add 'call' key to raw frequencies too
+                if (nodeType === 'hero_faces_bet' && frequencies['c'] && !frequencies['call']) {
+                    return { ...frequencies, call: frequencies['c'] };
+                }
+                return frequencies;
+            })(),       // Full per-hand matrix
             evData: {
                 heroHandEV,
                 optimalEV: maxHandEV,
