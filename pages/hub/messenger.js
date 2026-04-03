@@ -40,7 +40,7 @@ import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
 import { createMultiDeviceAuthListener, withRetry, getCircuit, isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
-import BottomNavBar from '../../src/components/ui/BottomNavBar';
+// BottomNavBar intentionally removed from messenger — input area was blocked
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 COLOR PALETTE - Premium Poker Theme
@@ -228,6 +228,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
     // Long-press state for thumbs-up button (emoji picker on hold)
     const thumbsLongPress = useRef(null);
     const thumbsTouchMoved = useRef(false);
+    const didLongPress = useRef(false); // Prevents onClick from firing after long-press opens emoji picker
 
     const handleSend = () => {
         if (!text.trim()) return;
@@ -241,8 +242,9 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
         if (inputRef.current) inputRef.current.style.height = 'auto';
     };
 
-    // Send thumbs up as a quick message
+    // Send thumbs up as a quick message (only if long-press didn't fire)
     const handleThumbsUp = () => {
+        if (didLongPress.current) { didLongPress.current = false; return; }
         onSend('👍');
         if (navigator.vibrate) navigator.vibrate(15);
     };
@@ -250,8 +252,10 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
     // Long-press on thumbs-up opens emoji picker
     const handleThumbsTouchStart = () => {
         thumbsTouchMoved.current = false;
+        didLongPress.current = false;
         thumbsLongPress.current = setTimeout(() => {
             if (!thumbsTouchMoved.current) {
+                didLongPress.current = true;
                 setShowEmoji(true);
                 setShowGifPicker(false);
                 if (navigator.vibrate) navigator.vibrate(30);
@@ -582,13 +586,14 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                     onTouchMove={handleThumbsTouchMove}
                     onTouchEnd={handleThumbsTouchEnd}
                     onMouseDown={() => {
+                        didLongPress.current = false;
                         thumbsLongPress.current = setTimeout(() => {
+                            didLongPress.current = true;
                             setShowEmoji(true);
                             setShowGifPicker(false);
                         }, 400);
                     }}
                     onMouseUp={() => { if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}
-                    onMouseLeave={() => { if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}
                     style={{
                         width: 36, height: 36, borderRadius: '50%', border: 'none',
                         background: 'transparent',
@@ -603,7 +608,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                     }}
                     title="Tap to send 👍 — Hold for emoji picker"
                     onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
-                >
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}>
                     👍
                 </button>
             )}
@@ -879,7 +884,7 @@ function MessageContent({ content }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, onEdit, onForward, currentUserId }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, onEdit, onForward, onCallBack, currentUserId }) {
     const senderIsVip = sender?.is_vip || false;
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -914,6 +919,15 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             longPressTimer.current = null;
         }
     };
+
+    // Dismiss reaction picker and context menu when clicking/tapping outside
+    useEffect(() => {
+        if (!showReactions && !showMenu) return;
+        const dismiss = () => { setShowReactions(false); setShowMenu(false); };
+        // Delay to avoid the triggering touch/click from immediately dismissing
+        const t = setTimeout(() => document.addEventListener('click', dismiss), 50);
+        return () => { clearTimeout(t); document.removeEventListener('click', dismiss); };
+    }, [showReactions, showMenu]);
 
     const StatusIcon = () => {
         if (!isOwn) return null;
@@ -1246,7 +1260,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                     </div>
                                     {st === 'missed' && !isOwn && (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); startCall(tp === 'video' ? 'video' : 'audio'); }}
+                                            onClick={(e) => { e.stopPropagation(); onCallBack?.(tp === 'video' ? 'video' : 'audio'); }}
                                             style={{
                                                 background: '#4caf50', color: 'white', border: 'none',
                                                 borderRadius: 20, padding: '6px 14px', fontSize: 12,
@@ -4979,6 +4993,7 @@ function MessengerPage() {
                                                         onDelete={handleDeleteMessage}
                                                         onEdit={handleEditMessage}
                                                         onForward={handleForwardMessage}
+                                                        onCallBack={startCall}
                                                         currentUserId={user.id}
                                                     />
                                                 </Fragment>
