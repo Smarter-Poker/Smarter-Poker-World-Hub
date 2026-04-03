@@ -537,7 +537,7 @@ export default function LobbyOverlay({
           {[
             { value: liveData?.totalVenueCount || liveData?.venueCount || '—', label: 'Venues', color: '#6ee7ef', show: true },
             { value: liveData?.liveGameCount || '—', label: 'Live Tables', color: '#3fb950', show: (liveData?.liveGameCount || 0) > 0 },
-            { value: liveData?.tourCount || '—', label: 'Upcoming Tours', color: '#d4a853', show: true },
+            { value: liveData?.tourCount === null ? '\u2014' : (liveData?.tourCount || 0), label: 'Upcoming Tours', color: '#d4a853', show: true },
             { value: liveData?.savedCount || 0, label: 'Saved', color: '#f59e0b', show: (liveData?.savedCount || 0) > 0 },
           ].filter(s => s.show).map((stat, i) => (
             <div key={i} style={{ textAlign: 'center', minWidth: 50 }}>

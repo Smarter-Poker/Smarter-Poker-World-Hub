@@ -2204,7 +2204,7 @@ export default function PokerNearMeLobby() {
       // Total loaded venues (for stats bar — always available regardless of GPS)
       totalVenueCount: venues.length,
       liveGameCount: liveGameCount,
-      tourCount: upcomingTours.length,
+      tourCount: upcomingTours.length > 0 ? upcomingTours.length : (toursLoaded ? 0 : null),
       seriesCount: activeSeries.length,
       // Daily Grind: today's tournaments only
       dailyCount: todaysTournaments.length,
@@ -2218,7 +2218,7 @@ export default function PokerNearMeLobby() {
       mappableCount: userLocation ? nearbyVenues.filter(v => v.latitude && v.longitude).length : 0,
       lastFetchTime: lastFetchTime,
     };
-  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime]);
+  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime, toursLoaded]);
 
   return (
     <>
