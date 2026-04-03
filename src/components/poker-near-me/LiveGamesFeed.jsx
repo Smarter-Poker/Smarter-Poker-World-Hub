@@ -115,9 +115,10 @@ export default function LiveGamesFeed({
     const [globalStats, setGlobalStats] = useState({ venues: 0, tables: 0, waiting: 0, lastScrape: null });
     const [isDataStale, setIsDataStale] = useState(false);
 
-    // ─── SIDEBAR STATE ───
+    // ─── Filters & Persistence ───
+    const savedFilters = typeof window !== 'undefined' ? loadFilters('lgf', {}) : {};
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [mapExpanded, setMapExpanded] = useState(true);
+    const [mapExpanded, setMapExpanded] = useState(savedFilters.mapExpanded ?? true);
 
     // ─── GPS LOCATION CARRYOVER — restore from localStorage when prop is null ───
     const [restoredLocation, setRestoredLocation] = useState(null);
@@ -163,9 +164,6 @@ export default function LiveGamesFeed({
     // Effective location = prop OR restored from localStorage
     const effectiveLocation = userLocation || restoredLocation;
     
-    // Filters — restore from session if available
-    const savedFilters = typeof window !== 'undefined' ? loadFilters('lgf', {}) : {};
-    const [viewMode, setViewMode] = useState(savedFilters.viewMode || 'list');
     const [filterState, setFilterState] = useState(savedFilters.filterState || 'all');
     const [filterRadius, setFilterRadius] = useState(savedFilters.filterRadius || 'any');
     const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'tables');
@@ -174,8 +172,8 @@ export default function LiveGamesFeed({
 
     // Persist filters on change
     useEffect(() => {
-        saveFilters('lgf', { viewMode, filterState, filterRadius, filterSort, filterGameType, filterStakes });
-    }, [viewMode, filterState, filterRadius, filterSort, filterGameType, filterStakes]);
+        saveFilters('lgf', { mapExpanded, filterState, filterRadius, filterSort, filterGameType, filterStakes });
+    }, [mapExpanded, filterState, filterRadius, filterSort, filterGameType, filterStakes]);
     
     // Single Venue drill-down (from autocomplete or clicking a card)
     const [searchQuery, setSearchQuery] = useState('');

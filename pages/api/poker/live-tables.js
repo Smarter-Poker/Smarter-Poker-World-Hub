@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const venues = Object.values(grouped).map(({ _seenGames, ...v }) => v);
+    const venues = Object.values(grouped).map(({ _seenGames, _latestOriginStamp, ...v }) => v);
     const totalTables = venues.reduce(
       (sum, v) => sum + v.games.reduce((s, g) => s + (g.tables_running || 0), 0), 0
     );

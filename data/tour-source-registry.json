@@ -708,6 +708,52 @@
       "established": 2004,
       "notes": "PokerStars owned. Premier European tour. Monte Carlo, Barcelona, Prague."
     },
+    "NAPT": {
+      "tour_code": "NAPT",
+      "tour_name": "North American Poker Tour",
+      "tour_type": "major",
+      "priority": 2,
+      "official_website": "https://www.pokerstarslive.com/napt/",
+      "source_urls": {
+        "primary": "https://www.pokerstarslive.com/napt/"
+      },
+      "scrape_config": {
+        "method": "manual"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 250,
+        "max": 5300,
+        "main_event": 1650
+      },
+      "regions": ["US"],
+      "headquarters": "Isle of Man",
+      "established": 2010,
+      "notes": "PokerStars owned North American tour."
+    },
+    "CPPT": {
+      "tour_code": "CPPT",
+      "tour_name": "Card Player Poker Tour",
+      "tour_type": "circuit",
+      "priority": 3,
+      "official_website": "https://www.cardplayerpokertour.com",
+      "source_urls": {
+        "primary": "https://www.cardplayerpokertour.com"
+      },
+      "scrape_config": {
+        "method": "manual"
+      },
+      "refresh_interval_days": 7,
+      "typical_buyins": {
+        "min": 150,
+        "max": 3500,
+        "main_event": 1100
+      },
+      "regions": ["US"],
+      "headquarters": "Las Vegas, NV",
+      "established": 2013,
+      "notes": "Card Player Magazine sponsored tour."
+    },
     "APT": {
       "tour_code": "APT",
       "tour_name": "Asian Poker Tour",
@@ -792,12 +838,12 @@
     },
     "priority_2_tours": {
       "interval_days": 3,
-      "tours": ["WSOPC", "MSPT", "RGPS", "VENETIAN", "WYNN", "BORGATA", "SEMINOLE", "LODGE", "COMMERCE"],
+      "tours": ["WSOPC", "MSPT", "RGPS", "VENETIAN", "WYNN", "BORGATA", "SEMINOLE", "LODGE", "COMMERCE", "NAPT"],
       "notes": "Circuit and regional - check every 3 days"
     },
     "priority_3_tours": {
       "interval_days": 7,
-      "tours": ["ROUGHRIDER", "BPO", "FPN", "LIPS", "BESTBET", "BAY_101", "EPT", "APT"],
+      "tours": ["ROUGHRIDER", "BPO", "FPN", "LIPS", "BESTBET", "BAY_101", "EPT", "APT", "CPPT"],
       "notes": "Lower priority - check weekly"
     },
     "manual_only": {

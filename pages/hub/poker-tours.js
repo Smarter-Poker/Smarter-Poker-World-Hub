@@ -98,7 +98,8 @@ export default function PokerToursPage() {
             .then(r => r.json())
             .then(json => {
                 const tourData = json.data || json.tours || [];
-                setTours(tourData);
+                // ONLY traveling tours - exclude stationary casino series
+                setTours(tourData.filter(t => t.tour_type !== 'regional'));
             })
             .catch(() => setTours([]))
             .finally(() => setLoading(false));
@@ -168,6 +169,18 @@ export default function PokerToursPage() {
         // Sort
         switch (sortBy) {
             case 'priority': result.sort((a, b) => (a.priority || 99) - (b.priority || 99)); break;
+            case 'date': 
+                result.sort((a, b) => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const getNextDate = (t) => {
+                        if (!t.upcoming_series || t.upcoming_series.length === 0) return '9999-12-31';
+                        const upcoming = t.upcoming_series.filter(s => s.end_date >= today || s.start_date >= today);
+                        if (upcoming.length === 0) return '9999-12-31';
+                        return upcoming[0].start_date;
+                    };
+                    return getNextDate(a).localeCompare(getNextDate(b));
+                }); 
+                break;
             case 'name': result.sort((a, b) => (a.tour_name || '').localeCompare(b.tour_name || '')); break;
             case 'type': result.sort((a, b) => (a.tour_type || '').localeCompare(b.tour_type || '')); break;
             case 'series': result.sort((a, b) => (b.upcoming_series?.length || 0) - (a.upcoming_series?.length || 0)); break;
@@ -239,7 +252,7 @@ export default function PokerToursPage() {
                                 { key: 'major', label: 'Major', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 9H4.5a2.5 2.5 0 010-5H6M18 9h1.5a2.5 2.5 0 000-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 19.24 7 20v2M17 20c0-.76-.85-1.25-2.03-1.79C14.47 17.98 14 17.55 14 17v-2.34M12 2l3 7H9l3-7z" /></svg> },
                                 { key: 'circuit', label: 'Circuit', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg> },
                                 { key: 'high_roller', label: 'High Roller', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg> },
-                                { key: 'regional', label: 'Regional', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg> },
+                                { key: 'grassroots', label: 'Grassroots', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg> },
                             ].map(tab => (
                                 <button
                                     key={tab.key}
@@ -301,6 +314,7 @@ export default function PokerToursPage() {
                                     onChange={e => setSortBy(e.target.value)}
                                 >
                                     <option value="priority">Priority</option>
+                                    <option value="date">Next Upcoming Date</option>
                                     <option value="name">Name A-Z</option>
                                     <option value="type">Tour Type</option>
                                     <option value="series">Upcoming Series</option>
@@ -334,6 +348,7 @@ export default function PokerToursPage() {
                                 <span>Sort:</span>
                                 <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
                                     <option value="priority">Priority</option>
+                                    <option value="date">Next Upcoming Date</option>
                                     <option value="name">Name A-Z</option>
                                     <option value="type">Tour Type</option>
                                     <option value="series">Upcoming Series</option>

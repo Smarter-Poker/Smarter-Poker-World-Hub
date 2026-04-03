@@ -51,7 +51,7 @@ export default async function handler(req, res) {
                 await sendPushNotification(checkin.user_id, 'venue_review', {
                     title: '⭐ How was your session?',
                     body: `Rate your experience at ${venueName} and earn 50 Diamonds!`,
-                    url: `/hub/venues/${checkin.venue_id}?tab=reviews`,
+                    url: `/hub/venues/${checkin.venue_id}?action=review`,
                 });
 
                 // Mark as sent
