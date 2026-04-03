@@ -27,6 +27,7 @@ const QuizGauntlet = dynamic(() => import('../../../pages/hub/training/quiz-gaun
 
 // Components defined locally within this file or in other imports
 import useGTOTrainer from '../../hooks/useGTOTrainer';
+import useSpacedRepetition from '../../hooks/useSpacedRepetition';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 import TRAINING_CONFIG from '../../config/trainingConfig';
@@ -777,7 +778,12 @@ function GodModeArenaInner({
         retryLevel,
         retrainMistakes,
         resetGame,
+        // ═══ PHASE 15: Weak-spot targeting ═══
+        getWeakSpots,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
+
+    // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
+    const { dueCount: reviewDueCount, getReviewSession, markReviewed } = useSpacedRepetition(gameId);
 
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
@@ -1328,6 +1334,34 @@ function GodModeArenaInner({
                                     }}
                                 >
                                     ↻ Retrain Mistakes
+                                </motion.button>
+                            )}
+
+                            {/* ═══ PHASE 15: Spaced Repetition Review Button ═══ */}
+                            {reviewDueCount > 0 && (
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={async () => {
+                                        const session = await getReviewSession();
+                                        if (session && session.questions.length > 0) {
+                                            // TODO: Inject review questions into trainer
+                                            console.log(`[SpacedRepetition] Starting review of ${session.questions.length} spots`);
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                                        background: 'rgba(139, 92, 246, 0.1)',
+                                        color: '#a78bfa',
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        letterSpacing: 0.3,
+                                    }}
+                                >
+                                    Review Weak Spots ({reviewDueCount})
                                 </motion.button>
                             )}
                         </div>

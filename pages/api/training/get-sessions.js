@@ -38,11 +38,33 @@ export default async function handler(req, res) {
 
       res.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=30');
 
-      const { gameId: rawGameId, limit: rawLimit = '50' } = req.query;
+      const { gameId: rawGameId, limit: rawLimit = '50', sessionId: rawSessionId } = req.query;
       const gameId = rawGameId ? sanitizeParam(rawGameId, 100) : null;
+      const sessionId = rawSessionId ? sanitizeParam(rawSessionId, 100) : null;
       const { limit: boundedLimit } = clampPagination(rawLimit, 1);
 
       try {
+          // ═══ PHASE 15: Session detail mode — return full hand_history for replay ═══
+          if (sessionId) {
+              const { data: session, error: detailErr } = await getSupabase()
+                  .from('training_sessions')
+                  .select('id, game_id, game_name, gtow_score, hands_played, total_ev_loss, mistake_count, accuracy, correct_count, best_streak, level_passed, level, hand_history, position_stats, classification_counts, avg_ev_loss_per_hand, avg_frequency_diff, trainer_config, created_at')
+                  .eq('user_id', user.id)
+                  .eq('id', sessionId)
+                  .maybeSingle();
+
+              if (detailErr) {
+                  console.warn('[GetSessions] Detail query failed:', detailErr.message);
+                  return res.status(404).json({ success: false, error: 'Session not found' });
+              }
+
+              if (!session) {
+                  return res.status(404).json({ success: false, error: 'Session not found' });
+              }
+
+              return res.status(200).json({ success: true, session });
+          }
+
           // Try training_sessions first (rich data — select only frontend-consumed columns)
           let query = getSupabase()
               .from('training_sessions')

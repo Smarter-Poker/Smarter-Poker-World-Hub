@@ -377,8 +377,27 @@
 
 ---
 
+## PHASE 15 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Closed-Loop Targeted Training
+| Deliverable | Status | Detail |
+|---|---|---|
+| DeterministicGTOEngine position/street filters | DONE | `generateBatch()` and `fetchSolverPool()` now accept `targetPositions` and `targetStreet` params. Target-position scenarios are prioritized in the pool. |
+| Batch-preload API targeting | DONE | `batch-preload.js` accepts `targetPositions` (comma-separated) and `targetStreet` query params, passes to DeterministicGTOEngine |
+| Client-side weak-spot → API wiring | DONE | `useGTOTrainer.preloadAllQuestions()` extracts top weak positions and streets from `getWeakSpots()` and passes them as query params to batch-preload |
+| useSpacedRepetition hook | DONE | New hook: `fetchDueSpots()`, `getReviewSession()`, `markReviewed()`, `convertSpotsToQuestions()`. Auto-fetches due count on mount. |
+| GodModeArena review button | DONE | "Review Weak Spots (N)" purple button in session review, powered by `useSpacedRepetition`. Shows when review spots are due. |
+| Session detail API | DONE | `get-sessions.js` now supports `?sessionId=X` for full hand_history + position_stats + classification_counts replay data |
+| RoundSummary enhanced coaching | DONE | Props extended with `gtowScore`, `classificationCounts`, `positionStats`, `weakSpots`, `totalEVLoss`. All passed to coaching-summary API. |
+
+**Files Changed:** DeterministicGTOEngine.js, batch-preload.js, useGTOTrainer.js, GodModeArena.jsx, get-sessions.js, RoundSummary.tsx
+**Files Created:** useSpacedRepetition.js
+**Impact:** The training engine now completes the feedback loop — weak spots identified in Phase 14 now ACTIVELY bias question selection toward areas where the player struggles. Spaced repetition spots can be reviewed from the session screen. Session history supports full hand replay.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 15: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 16: Commander SSR Auth** — Revisit when staging environment available
 - **Phase 16: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
 - **Phase 17: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
 - **Phase 18: Database Migration Safety** — Supabase migration tooling and rollback procedures

@@ -206,6 +206,22 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     level: level.toString(),
                     count: effectiveQuestionsPerLevel.toString(),
                 });
+
+                // ═══ PHASE 15: Pass weak-spot targeting hints if available ═══
+                const weakSpots = getWeakSpots();
+                if (weakSpots.length > 0) {
+                    // Extract the weakest positions and streets
+                    const weakPositions = [...new Set(weakSpots.map(s => s.position))].slice(0, 3);
+                    if (weakPositions.length > 0) {
+                        params.set('targetPositions', weakPositions.join(','));
+                    }
+                    // If the top weak spot has a clear street pattern, target that
+                    if (weakSpots[0].street && weakSpots[0].mistakeRate >= 0.5) {
+                        params.set('targetStreet', weakSpots[0].street);
+                    }
+                    console.log(`[GTOTrainer] 🎯 Targeting weak spots: positions=${weakPositions.join(',')} street=${weakSpots[0].street || 'any'}`);
+                }
+
                 apiUrl = `/api/training/batch-preload?${params}`;
                 console.log(`[GTOTrainer] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`);
             }

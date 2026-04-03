@@ -69,6 +69,12 @@ interface RoundSummaryProps {
     gameName: string;
     gameId?: string;  // For AI coaching API
     mistakes?: Array<{ question: any; userAnswer: string; correctAnswer: string }>;
+    // ═══ PHASE 15: Enhanced coaching data ═══
+    gtowScore?: number;
+    classificationCounts?: Record<string, number>;
+    positionStats?: Record<string, { correct: number; total: number }>;
+    weakSpots?: Array<{ position: string; street: string; spotType: string; mistakeRate: number }>;
+    totalEVLoss?: number;
     onNextLevel: () => void;
     onRetry: () => void;
     onExit: () => void;
@@ -172,6 +178,12 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
     gameName,
     gameId,
     mistakes,
+    // ═══ PHASE 15: Enhanced coaching data ═══
+    gtowScore,
+    classificationCounts,
+    positionStats,
+    weakSpots,
+    totalEVLoss,
     onNextLevel,
     onRetry,
     onExit,
@@ -201,7 +213,13 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                         accuracy: stats.accuracy,
                         streak: stats.bestStreak,
                         timeSpentSeconds: stats.timeElapsed,
-                        mistakes: mistakes || []
+                        mistakes: mistakes || [],
+                        // ═══ PHASE 15: Enhanced coaching data ═══
+                        gtowScore,
+                        totalEVLoss,
+                        classificationCounts,
+                        positionStats,
+                        weakSpots,
                     })
                 });
 
