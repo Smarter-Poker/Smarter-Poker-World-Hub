@@ -155,7 +155,7 @@ export class MultiStreetHand {
         this.pot = computePotAfterAction(this.pot, actionCode);
 
         // If hero folds, hand is over
-        if (actionCode === 'f') {
+        if (actionCode === 'f' || actionCode === 'simple_fold') {
             this.currentStreet = 'done';
         }
     }

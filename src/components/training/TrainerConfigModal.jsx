@@ -57,6 +57,13 @@ const STREETS = [
     { id: 'river', label: 'River', icon: '🔴', desc: '5 community cards' },
 ];
 
+// GTO Wizard Difficulty Modes
+const DIFFICULTY_MODES = [
+    { id: 'simple', label: 'Simple', icon: '1', desc: 'Bet/Check/Fold', detail: '3 buttons max — learn basic decisions' },
+    { id: 'grouped', label: 'Grouped', icon: '2', desc: 'Small/Medium/Large', detail: '4-5 buttons — sizing categories' },
+    { id: 'standard', label: 'Standard', icon: '3', desc: 'Exact Sizings', detail: 'Up to 9 buttons — real solver sizings' },
+];
+
 export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGameId }) {
     const [gameType, setGameType] = useState('cash');
     const [position, setPosition] = useState('BTN');
@@ -66,6 +73,9 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     const [street, setStreet] = useState('all');
     const [handClass, setHandClass] = useState('all');
     const [questionsCount, setQuestionsCount] = useState(25);
+    const [difficultyMode, setDifficultyMode] = useState('standard');
+    const [timerEnabled, setTimerEnabled] = useState(false);
+    const [timerSeconds, setTimerSeconds] = useState(30);
 
     // Available positions for selected game type
     const availablePositions = useMemo(() => POSITIONS[gameType] || POSITIONS.cash, [gameType]);
@@ -114,11 +124,14 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
             street: street === 'all' ? null : street,
             handClass: handClass === 'all' ? null : handClass,
             questionsCount,
+            difficultyMode, // GTO Wizard-style: simple | grouped | standard
+            timerEnabled,
+            timerSeconds: timerEnabled ? timerSeconds : 0,
             pioGameTypes: gameTypeConfig?.pioTypes || ['hu_cash'],
             pioStackDepth: stackDepth,
             label: filters,
         });
-    }, [gameType, position, villainPosition, actionScenario, stackDepth, street, handClass, questionsCount, onStart]);
+    }, [gameType, position, villainPosition, actionScenario, stackDepth, street, handClass, questionsCount, difficultyMode, timerEnabled, timerSeconds, onStart]);
 
     if (!isOpen) return null;
 
@@ -286,6 +299,29 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             </div>
                         </div>
 
+                        {/* SECTION: Difficulty Mode (GTO Wizard-style) */}
+                        <div style={styles.section}>
+                            <div style={styles.sectionLabel}>DIFFICULTY MODE</div>
+                            <div style={styles.optionRow}>
+                                {DIFFICULTY_MODES.map(dm => (
+                                    <motion.button
+                                        key={dm.id}
+                                        whileHover={{ scale: 1.03 }}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => setDifficultyMode(dm.id)}
+                                        style={{
+                                            ...styles.optionCard,
+                                            ...(difficultyMode === dm.id ? styles.optionCardActive : {}),
+                                        }}
+                                    >
+                                        <span style={styles.optionIcon}>{dm.icon}</span>
+                                        <span style={styles.optionLabel}>{dm.label}</span>
+                                        <span style={styles.optionDesc}>{dm.desc}</span>
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* SECTION 4.5: Hand Class Filter */}
                         <div style={styles.section}>
                             <div style={styles.sectionLabel}>HAND CLASS</div>
@@ -332,6 +368,45 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                     </motion.button>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* SECTION 6: Timer */}
+                        <div style={styles.section}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={styles.sectionLabel}>DECISION TIMER</div>
+                                <motion.button
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => setTimerEnabled(!timerEnabled)}
+                                    style={{
+                                        padding: '2px 10px', borderRadius: 12,
+                                        fontSize: 10, fontWeight: 700,
+                                        border: timerEnabled ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(255,255,255,0.15)',
+                                        background: timerEnabled ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.05)',
+                                        color: timerEnabled ? '#00d4ff' : '#64748b',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    {timerEnabled ? 'ON' : 'OFF'}
+                                </motion.button>
+                            </div>
+                            {timerEnabled && (
+                                <div style={styles.chipRow}>
+                                    {[15, 30, 45, 60].map(s => (
+                                        <motion.button
+                                            key={s}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setTimerSeconds(s)}
+                                            style={{
+                                                ...styles.chip,
+                                                ...(timerSeconds === s ? styles.chipActive : {}),
+                                            }}
+                                        >
+                                            {s}s
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 

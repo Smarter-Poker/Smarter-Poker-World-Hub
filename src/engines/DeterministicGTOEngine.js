@@ -132,6 +132,71 @@ function extractPositionFromHash(scenarioHash) {
 }
 
 /**
+ * Extract rich scenario context from scenario_hash.
+ * Parses game format, positions, stack depth, action sequence from the hash.
+ *
+ * Hash examples:
+ *   "hu_cash_BTN_100bb_3h7c7s"
+ *   "6max_mtt_CO_40bb_flop_xr_Jh7s2d"  (CO facing check-raise)
+ *   "3max_spin_SB_15bb_Kd9c4h"
+ *
+ * Returns enriched context with preflopAction and actionLine.
+ */
+function extractScenarioContext(scenarioHash, street, heroPosition, villainPosition) {
+    if (!scenarioHash) return { preflopAction: '', actionLine: '', gameFormat: '' };
+
+    const parts = scenarioHash.toLowerCase().split('_');
+    let gameFormat = '';
+    let actionLine = '';
+    let preflopAction = '';
+
+    // Detect game format
+    if (parts.includes('hu') || parts.includes('heads') || parts.includes('2max')) gameFormat = 'Heads Up';
+    else if (parts.includes('6max') || parts.includes('6-max')) gameFormat = '6-Max';
+    else if (parts.includes('9max') || parts.includes('9-max')) gameFormat = '9-Max';
+    else if (parts.includes('3max') || parts.includes('spin') || parts.includes('spins')) gameFormat = 'Spins 3-Max';
+
+    // Detect action sequence tokens in hash
+    // 'xr' = check-raise, 'cb' = continuation bet, 'x' = check, 'b' = bet, 'r' = raise
+    const actionTokens = parts.filter(p => /^(xr|cb|x|b|r|3b|4b|limp|open|squeeze)$/.test(p));
+
+    if (actionTokens.length > 0) {
+        const actionLabels = {
+            'xr': 'check-raise',
+            'cb': 'c-bet',
+            'x': 'check',
+            'b': 'bet',
+            'r': 'raise',
+            '3b': '3-bet',
+            '4b': '4-bet',
+            'limp': 'limp',
+            'open': 'open',
+            'squeeze': 'squeeze',
+        };
+        actionLine = actionTokens.map(t => actionLabels[t] || t).join(' → ');
+    }
+
+    // Build preflop action description based on positions
+    if (street !== 'preflop') {
+        // Infer likely preflop action from positions
+        const ipPositions = ['BTN', 'CO', 'HJ', 'MP'];
+        const blinds = ['SB', 'BB'];
+
+        if (ipPositions.includes(heroPosition) && blinds.includes(villainPosition)) {
+            preflopAction = `${heroPosition} opens, ${villainPosition} calls`;
+        } else if (blinds.includes(heroPosition) && ipPositions.includes(villainPosition)) {
+            preflopAction = `${villainPosition} opens, ${heroPosition} calls`;
+        } else if (heroPosition === 'SB' && villainPosition === 'BB') {
+            preflopAction = 'SB completes, BB checks';
+        } else {
+            preflopAction = `${heroPosition} vs ${villainPosition}`;
+        }
+    }
+
+    return { preflopAction, actionLine, gameFormat };
+}
+
+/**
  * Get a deterministic seed from string for reproducible randomness
  */
 function hashSeed(str) {
@@ -454,38 +519,29 @@ export class DeterministicGTOEngine {
         const villainPosition = VILLAIN_MAP[heroPosition] || 'BB';
         const estimatedPot = strategyMatrix.pot || POT_BY_STREET[scenario.street] || 6;
 
-        // ═══ BUILD OPTIONS (4-OPTION MANDATE) ═══
-        // Start with real solver actions
-        const options = validActions.slice(0, 4).map(action => ({
+        // ═══ BUILD OPTIONS — GTO WIZARD STYLE ═══
+        // Show ALL real solver actions (up to 9). Only add context-appropriate
+        // fillers when solver provides fewer than 2 actions.
+        // GTO Wizard shows exactly the actions the solver has for this spot.
+        const options = validActions.slice(0, 9).map(action => ({
             id: action,
             text: this.getActionLabel(action, estimatedPot),
             frequency: gtoFrequencies[action],
         }));
 
-        // PAD to exactly 4 options using standard poker actions
-        // Priority: Fold, Check/Call, Raise, All-In (contextually appropriate)
-        if (options.length < 4) {
+        // ═══ CONTEXT-AWARE FILLER LOGIC ═══
+        // Determine the decision node type from solver actions to know what's valid.
+        // If solver provides ≥2 actions, trust the solver completely — no fillers needed.
+        // If solver provides only 1 action, add ONE contextually valid alternative.
+        if (options.length < 2) {
             const existingIds = new Set(options.map(o => o.id));
-            // Choose fillers based on street context
-            const hasCheck = existingIds.has('c') || existingIds.has('x');
-            const hasFold = existingIds.has('f');
-            const hasBet = [...existingIds].some(id => id.startsWith('b'));
-            const hasRaise = [...existingIds].some(id => id.startsWith('r'));
-            const hasAllIn = existingIds.has('allin');
+            const nodeType = this.detectNodeType(validActions, scenario.street);
 
-            // Build contextual filler list
-            const fillers = [];
-            if (!hasFold) fillers.push({ id: 'f', text: 'Fold' });
-            if (!hasCheck) fillers.push({ id: 'c', text: 'Check' });
-            if (!hasBet && !hasRaise) fillers.push({ id: 'r', text: 'Raise' });
-            if (!hasAllIn) fillers.push({ id: 'allin', text: 'All-In' });
-            // Extra fillers if still not enough
-            if (!existingIds.has('b33')) fillers.push({ id: 'b33', text: 'Bet 33%' });
-            if (!existingIds.has('b66')) fillers.push({ id: 'b66', text: 'Bet 67%' });
-            if (!existingIds.has('b100')) fillers.push({ id: 'b100', text: 'Bet Pot' });
+            // Only add fillers that are contextually valid for this node type
+            const contextFillers = this.getContextualFillers(nodeType, existingIds, estimatedPot);
 
-            for (const filler of fillers) {
-                if (options.length >= 4) break;
+            for (const filler of contextFillers) {
+                if (options.length >= 3) break; // Cap at 3 for single-action solver spots
                 if (!existingIds.has(filler.id)) {
                     options.push({
                         id: filler.id,
@@ -523,13 +579,15 @@ export class DeterministicGTOEngine {
                 pot: estimatedPot,
                 villainPosition,
                 villainStack: scenario.stack_depth || 100,
-                action: scenario.street !== 'preflop' ? 'Villain checks' : '',
+                action: this.buildActionDescription(validActions, scenario.street, heroPosition, villainPosition),
+                nodeType: this.detectNodeType(validActions, scenario.street),
+                context: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition),
                 isMixedStrategy,
             },
             heroCards: parseHandToCards(heroHand, board),
             // SYS-002 FIX: Populate boardCards array for PNG card rendering
             boardCards: board.length > 0 ? board : [],
-            question: `You hold ${heroHand} on the ${scenario.street}. Board: ${board.join(' ')}. What is the GTO play?`,
+            question: this.buildQuestionText(heroHand, board, scenario.street, heroPosition, villainPosition, validActions, estimatedPot, scenario.scenario_hash),
             options,
             correctAnswer: optimalAction,
             correctAnswerText: this.getActionLabel(optimalAction, estimatedPot),
@@ -624,6 +682,167 @@ export class DeterministicGTOEngine {
             difficulty: level,
             heroHand,
         };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONTEXT-AWARE ACTION INTELLIGENCE — GTO Wizard Style
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Detect the decision node type from solver actions.
+     * This determines what actions are valid in context.
+     *
+     * Node types:
+     * - 'hero_bets_or_checks': Hero acts first (OOP) or IP after check.
+     *    Valid: Check, Bet sizes. NOT valid: Call, Fold (no bet to face).
+     * - 'hero_faces_bet': Hero is facing a bet/raise.
+     *    Valid: Fold, Call, Raise sizes. NOT valid: Check, Bet.
+     * - 'preflop_open': Hero has option to open-raise or fold.
+     *    Valid: Fold, Raise sizes, Limp/Call.
+     * - 'preflop_facing_raise': Hero faces a raise preflop.
+     *    Valid: Fold, Call, 3-bet/raise sizes.
+     */
+    detectNodeType(solverActions, street) {
+        const actionSet = new Set(solverActions.map(a => a.toLowerCase()));
+
+        // If solver has both Check and Bet actions → hero acts first
+        const hasCheck = actionSet.has('c') || actionSet.has('x');
+        const hasBet = [...actionSet].some(a => a.startsWith('b'));
+        const hasFold = actionSet.has('f');
+        const hasCall = actionSet.has('call') || [...actionSet].some(a => a === 'c' && hasBet); // 'c' can mean call in some contexts
+        const hasRaise = [...actionSet].some(a => a.startsWith('r'));
+
+        if (street === 'preflop') {
+            if (hasRaise && hasFold && !hasBet) return 'preflop_facing_raise';
+            if (hasRaise && hasFold) return 'preflop_open';
+            return 'preflop_open';
+        }
+
+        // Postflop: if solver has Check + Bet options → hero can bet or check (acting first or IP after check)
+        if (hasCheck && hasBet) return 'hero_bets_or_checks';
+        if (hasCheck && !hasBet && !hasFold) return 'hero_bets_or_checks'; // Pure check node
+
+        // If solver has Fold + Call/Raise → hero is facing a bet
+        if (hasFold && (hasCall || hasRaise)) return 'hero_faces_bet';
+        if (hasFold && hasBet) return 'hero_faces_bet'; // Some solvers use 'b' for raise facing bet
+
+        // Fallback: infer from presence of check vs fold
+        if (hasCheck) return 'hero_bets_or_checks';
+        if (hasFold) return 'hero_faces_bet';
+
+        return 'hero_bets_or_checks'; // Default assumption
+    }
+
+    /**
+     * Get contextually valid filler actions based on the decision node type.
+     * Only called when solver provides < 2 actions (very rare).
+     *
+     * GTO Wizard NEVER shows Call/Fold when hero acts first after a check.
+     * GTO Wizard NEVER shows Check/Bet when hero faces a bet.
+     */
+    getContextualFillers(nodeType, existingIds, potSize) {
+        const fillers = [];
+
+        switch (nodeType) {
+            case 'hero_bets_or_checks':
+                // Hero acts first: valid actions are Check and Bet sizes
+                if (!existingIds.has('c') && !existingIds.has('x')) {
+                    fillers.push({ id: 'c', text: 'Check' });
+                }
+                if (![...existingIds].some(id => id.startsWith('b'))) {
+                    fillers.push({ id: 'b33', text: 'Bet 33%' });
+                    fillers.push({ id: 'b66', text: 'Bet 67%' });
+                    fillers.push({ id: 'b100', text: 'Bet Pot' });
+                }
+                break;
+
+            case 'hero_faces_bet':
+                // Hero faces a bet: valid actions are Fold, Call, Raise sizes
+                if (!existingIds.has('f')) {
+                    fillers.push({ id: 'f', text: 'Fold' });
+                }
+                if (!existingIds.has('call')) {
+                    fillers.push({ id: 'call', text: 'Call' });
+                }
+                if (![...existingIds].some(id => id.startsWith('r'))) {
+                    fillers.push({ id: 'r', text: 'Raise' });
+                }
+                break;
+
+            case 'preflop_open':
+                if (!existingIds.has('f')) fillers.push({ id: 'f', text: 'Fold' });
+                if (![...existingIds].some(id => id.startsWith('r'))) {
+                    fillers.push({ id: 'r', text: 'Raise 2.5x' });
+                }
+                break;
+
+            case 'preflop_facing_raise':
+                if (!existingIds.has('f')) fillers.push({ id: 'f', text: 'Fold' });
+                if (!existingIds.has('call')) fillers.push({ id: 'call', text: 'Call' });
+                if (![...existingIds].some(id => id.startsWith('r'))) {
+                    fillers.push({ id: 'r', text: '3-Bet' });
+                }
+                break;
+
+            default:
+                // Minimal safe fillers
+                if (!existingIds.has('c') && !existingIds.has('x')) {
+                    fillers.push({ id: 'c', text: 'Check' });
+                }
+                if (!existingIds.has('f')) {
+                    fillers.push({ id: 'f', text: 'Fold' });
+                }
+                break;
+        }
+
+        return fillers;
+    }
+
+    /**
+     * Build a contextual action description based on solver data.
+     * Replaces the hardcoded "Villain checks" with accurate descriptions.
+     */
+    buildActionDescription(solverActions, street, heroPosition, villainPosition) {
+        if (street === 'preflop') {
+            return ''; // Preflop action context comes from scenario description
+        }
+
+        const nodeType = this.detectNodeType(solverActions, street);
+
+        switch (nodeType) {
+            case 'hero_bets_or_checks':
+                return `${villainPosition} checks`;
+            case 'hero_faces_bet':
+                return `${villainPosition} bets`;
+            default:
+                return `${villainPosition} checks`;
+        }
+    }
+
+    /**
+     * Build a rich, contextual question text — GTO Wizard style.
+     * Instead of generic "What is the GTO play?", describe the full spot.
+     */
+    buildQuestionText(heroHand, board, street, heroPosition, villainPosition, solverActions, pot, scenarioHash) {
+        const nodeType = this.detectNodeType(solverActions, street);
+        const boardStr = board.length > 0 ? board.join(' ') : '';
+        const context = extractScenarioContext(scenarioHash, street, heroPosition, villainPosition);
+
+        if (street === 'preflop') {
+            return `${heroPosition} — You hold ${heroHand}. What is your action?`;
+        }
+
+        const handStrength = this.categorizeHand(heroHand, board);
+        const preflopLine = context.preflopAction ? `${context.preflopAction}. ` : '';
+
+        switch (nodeType) {
+            case 'hero_bets_or_checks':
+                return `${preflopLine}${street.charAt(0).toUpperCase() + street.slice(1)}: [${boardStr}]. ${villainPosition} checks. You hold ${heroHand} (${handStrength}). Your action?`;
+            case 'hero_faces_bet':
+                return `${preflopLine}${street.charAt(0).toUpperCase() + street.slice(1)}: [${boardStr}]. ${villainPosition} bets. You hold ${heroHand} (${handStrength}). Your action?`;
+            default:
+                return `${preflopLine}${street.charAt(0).toUpperCase() + street.slice(1)}: [${boardStr}]. You hold ${heroHand} (${handStrength}). Your action?`;
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════

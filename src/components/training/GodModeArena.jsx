@@ -1655,6 +1655,7 @@ function GodModeArenaInner({
                                     onNextHand={handleNextQuestion}
                                     isMultiStreetActive={isMultiStreetActive}
                                     currentStreet={currentStreet}
+                                    handSummary={handSummary}
                                     onExit={onExit}
                                     difficultyLevel={computedDifficultyLevel}
                                     // Settings gear — relocated to scenario description area
@@ -1712,6 +1713,7 @@ function GodModeArenaInner({
                         onNextHand={nextQuestion}
                         isMultiStreetActive={isMultiStreetActive}
                         currentStreet={currentStreet}
+                        handSummary={handSummary}
                         onExit={onExit}
                         difficultyLevel={computedDifficultyLevel}
                     />

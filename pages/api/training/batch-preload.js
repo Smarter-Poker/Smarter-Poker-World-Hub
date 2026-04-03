@@ -235,38 +235,50 @@ export default async function handler(req, res) {
                   }
               }
 
-              // 2.5 ═══ 4-OPTION MANDATE ═══
-              // Pad options to exactly 4 if under-populated
+              // 2.5 ═══ OPTIONS NORMALIZATION (GTO WIZARD STYLE) ═══
+              // Normalize options to object format but do NOT blindly pad.
+              // Trust solver data — DeterministicGTOEngine already provides
+              // context-appropriate actions. Only normalize format here.
               if (!qData.options) qData.options = [];
-              // Normalize options to object format: { id, text, frequency }
               qData.options = qData.options.map((opt, idx) => {
                   if (typeof opt === 'string') return { id: `opt_${idx}`, text: opt, frequency: 0 };
                   return { id: opt.id || `opt_${idx}`, text: opt.text || String(opt), frequency: opt.frequency || 0 };
               });
 
-              if (qData.options.length < 4 && !scenario.isPsychology) {
-                  const existingTexts = new Set(qData.options.map(o => (o.text || '').toLowerCase()));
+              // Only add minimal context-aware fillers for Grok/legacy questions with < 2 options
+              // DeterministicGTOEngine-sourced questions already have proper options
+              if (qData.options.length < 2 && !scenario.isPsychology && qData.source !== 'DETERMINISTIC_SOLVER') {
                   const existingIds = new Set(qData.options.map(o => o.id));
-                  // Use semantic IDs matching solver convention to avoid collisions
-                  const fillers = [
-                      { id: 'f', text: 'Fold' },
-                      { id: 'x', text: 'Check' },
-                      { id: 'call', text: 'Call' },
-                      { id: 'r', text: 'Raise' },
-                      { id: 'allin', text: 'All-In' },
-                      { id: 'b33', text: 'Bet 33%' },
-                      { id: 'b100', text: 'Bet Pot' },
-                  ];
+                  const existingTexts = new Set(qData.options.map(o => (o.text || '').toLowerCase()));
+
+                  // Detect node type from existing options
+                  const hasCheck = qData.options.some(o => /check/i.test(o.text || ''));
+                  const hasBet = qData.options.some(o => /bet|raise/i.test(o.text || ''));
+                  const hasFold = qData.options.some(o => /fold/i.test(o.text || ''));
+
+                  // Context-aware fillers: only add what makes sense
+                  const fillers = [];
+                  if (hasCheck || hasBet) {
+                      // Hero acts first node: Check + Bet sizes are valid
+                      if (!hasCheck) fillers.push({ id: 'x', text: 'Check' });
+                      if (!hasBet) fillers.push({ id: 'b33', text: 'Bet 33%' });
+                  } else if (hasFold) {
+                      // Facing bet node: Fold + Call + Raise are valid
+                      fillers.push({ id: 'call', text: 'Call' });
+                      fillers.push({ id: 'r', text: 'Raise' });
+                  } else {
+                      // Unknown: add check and a bet size
+                      fillers.push({ id: 'x', text: 'Check' });
+                      fillers.push({ id: 'b33', text: 'Bet 33%' });
+                  }
+
                   for (const filler of fillers) {
                       if (qData.options.length >= 4) break;
-                      // Skip if text OR id already exists
-                      if (existingTexts.has(filler.text.toLowerCase())) continue;
-                      // Generate a unique ID that doesn't collide
-                      let newId = filler.id;
-                      if (existingIds.has(newId)) newId = `pad_${filler.id}`;
-                      qData.options.push({ id: newId, text: filler.text, frequency: 0 });
-                      existingTexts.add(filler.text.toLowerCase());
-                      existingIds.add(newId);
+                      if (!existingIds.has(filler.id) && !existingTexts.has(filler.text.toLowerCase())) {
+                          qData.options.push({ id: filler.id, text: filler.text, frequency: 0 });
+                          existingIds.add(filler.id);
+                          existingTexts.add(filler.text.toLowerCase());
+                      }
                   }
               }
 

@@ -397,20 +397,44 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             if (response.ok) {
                 const data = await response.json();
                 if (data.question) {
-                    // Enrich with multi-street context
+                    // Update MultiStreetHand state with the new card from API
+                    const advancingToStreet = hand.nextStreetName; // 'turn' or 'river'
+                    const newCard = data.newCard;
+                    if (newCard) {
+                        hand.boardCards.push(newCard);
+                        hand.deadCards.add(newCard.toLowerCase());
+                    }
+                    hand.streetIndex++;
+                    hand.currentStreet = advancingToStreet || data.street || 'done';
+
+                    // Track street data in MultiStreetHand
+                    hand.streetData.push({
+                        street: data.street || hand.currentStreet,
+                        boardCards: [...hand.boardCards],
+                        pot: hand.pot,
+                        newCard: newCard,
+                    });
+
+                    // Enrich question with multi-street context
                     const nextQ = data.question;
                     nextQ.scenario = {
                         ...nextQ.scenario,
                         isMultiStreet: true,
-                        streetNumber: hand.streetIndex + 2,
+                        streetNumber: hand.streetData.length,
                         previousActions: hand.streetActions,
                         pot: Math.round(hand.pot),
-                        board: hand.boardCards.join(' ') + ' ' + (data.newCard || ''),
+                        board: hand.boardCards.join(' '),
+                        street: data.street || hand.currentStreet,
+                        heroPosition: hand.heroPosition,
+                        villainPosition: hand.villainPosition,
+                        heroHand: hand.heroHand,
                     };
                     nextQ.heroCards = hand.heroCards;
+                    nextQ.heroHand = hand.heroHand;
+                    hand.currentQuestion = nextQ;
 
                     setCurrentQuestion(nextQ);
-                    setCurrentStreet(hand.nextStreetName);
+                    setCurrentStreet(data.street || hand.currentStreet);
                     setShowFeedback(false);
                     setLoading(false);
                     return true;
@@ -497,20 +521,23 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ MULTI-STREET: Try advancing street first ═══
         if (isMultiStreetActive && multiStreetHandRef.current && !multiStreetHandRef.current.isComplete) {
             // Hero didn't fold — try to advance to next street
-            if (lastSelectedAction !== 'f') {
+            const isFold = lastSelectedAction === 'f' || lastSelectedAction === 'simple_fold';
+            if (!isFold) {
                 const advanced = await advanceToNextStreet();
                 if (advanced) return; // Successfully moved to next street
             }
 
-            // Multi-street hand is done — save summary
+            // Multi-street hand is done — save summary (persists until next hand feedback dismisses it)
             setHandSummary(multiStreetHandRef.current.getHandSummary());
             setIsMultiStreetActive(false);
             multiStreetHandRef.current = null;
+        } else {
+            // Only clear hand summary when starting a fresh hand (not when finishing multi-street)
+            setHandSummary(null);
         }
 
         // Reset street state for new hand
         setCurrentStreet('flop');
-        setHandSummary(null);
 
         if (questionNumber >= effectiveQuestionsPerLevel) {
             // Level complete

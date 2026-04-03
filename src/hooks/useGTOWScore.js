@@ -257,6 +257,9 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
     }
 
     // Calculate EV loss — prefer real PIO data, fall back to simulation
+    // GTO Wizard uses FREQUENCY as the primary classification signal,
+    // with EV loss as a secondary display metric. We keep classification
+    // frequency-based and only use EV for the loss number shown in UI.
     const effectivePot = pot || 10 * (1 + level * 0.5);
     let evLoss;
     let isRealData = false;
@@ -266,19 +269,10 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
         if (realLoss !== null) {
             evLoss = realLoss;
             isRealData = true;
-
-            // Phase 38 Upgrade: If we have real EV loss, override classification based on strict BB thresholds
-            if (selectedNorm === correctNorm || evLoss <= 0) {
-                classification = MOVE_CLASSIFICATIONS.BEST;
-            } else if (evLoss < 0.1) {
-                classification = MOVE_CLASSIFICATIONS.CORRECT; // "Excellent"
-            } else if (evLoss < 0.5) {
-                classification = MOVE_CLASSIFICATIONS.INACCURACY;
-            } else if (evLoss < 1.5) {
-                classification = MOVE_CLASSIFICATIONS.WRONG; // "Mistake"
-            } else {
-                classification = MOVE_CLASSIFICATIONS.BLUNDER;
-            }
+            // NOTE: We intentionally do NOT override the frequency-based classification
+            // with EV thresholds. GTO Wizard's primary signal is the solver frequency
+            // of the chosen action, not the raw EV difference. An action with 30% solver
+            // frequency is "Best Move" even if EV loss is technically nonzero.
         }
     }
 

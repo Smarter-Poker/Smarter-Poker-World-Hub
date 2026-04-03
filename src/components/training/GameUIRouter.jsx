@@ -91,6 +91,7 @@ export default function GameUIRouter({
     // Multi-street props
     isMultiStreetActive = false,
     currentStreet = 'flop',
+    handSummary = null,
     // Quit/Back
     onExit = null,
     // Phase 2: Adaptive difficulty
@@ -146,6 +147,7 @@ export default function GameUIRouter({
             // Multi-street props
             isMultiStreetActive={isMultiStreetActive}
             currentStreet={currentStreet}
+            handSummary={handSummary}
             // Quit/Back
             onExit={onExit}
             // Phase 2: Adaptive difficulty

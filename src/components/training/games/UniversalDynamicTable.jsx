@@ -21,6 +21,7 @@ import {
     classifyMove,
 } from '../../../hooks/useGTOWScore';
 import { busEmit } from '../../../engine/EventBus';
+import { groupActions, resolveGroupedAction, getGroupedFrequency, DIFFICULTY_MODES } from '../../../utils/actionGrouper';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -908,6 +909,7 @@ function UniversalDynamicTable({
     // Multi-street props
     isMultiStreetActive = false,    // Whether we're mid-hand across streets
     currentStreet = 'flop',         // Current street: 'flop', 'turn', 'river'
+    handSummary = null,             // End-of-hand summary from MultiStreetHandManager
     // Quit/Back
     onExit = null,                  // Called when user clicks Quit
     // Enhancement: Adaptive difficulty
@@ -927,6 +929,14 @@ function UniversalDynamicTable({
     const answerStartTime = useRef(Date.now());
     const prevStreakRef = useRef(streak);
     const swipeTouchRef = useRef(null);
+
+    // ═══ MULTI-STREET TRACKING STATE ═══
+    // Track previous board cards to detect new cards dealt on street transitions
+    const prevBoardCardsRef = useRef([]);
+    const [newStreetCardIndex, setNewStreetCardIndex] = React.useState(-1);
+    const [streetHistory, setStreetHistory] = React.useState([]);
+    const prevStreetRef = useRef(currentStreet);
+    const [showHandSummary, setShowHandSummary] = React.useState(false);
 
     // Auto-read player's poker alias from Supabase session
     const playerName = React.useMemo(() => {
@@ -1207,14 +1217,17 @@ function UniversalDynamicTable({
         }
     }, [question, showFeedback]);
 
-    // Phase 3: RNG roll on feedback
+    // RNG MODE: Roll BEFORE each decision (GTO Wizard style)
+    // The player sees the number and must pick the action whose cumulative
+    // frequency range includes that number. e.g., Check 62% = 1-62, Bet 38% = 63-100
     useEffect(() => {
-        if (showFeedback && rngMode && gtoFrequencies) {
+        if (rngMode && !showFeedback && questionNumber) {
+            // Generate a new roll for each question
             setRngRoll(Math.floor(Math.random() * 100) + 1);
-        } else if (!showFeedback) {
+        } else if (!rngMode) {
             setRngRoll(null);
         }
-    }, [showFeedback, rngMode, gtoFrequencies]);
+    }, [rngMode, questionNumber, showFeedback]);
 
     // Phase 3: EV popup on answer
     useEffect(() => {
@@ -1333,10 +1346,10 @@ function UniversalDynamicTable({
                 return;
             }
 
-            // During question: 1-4 = select answer by index
+            // During question: 1-9 = select answer by index (supports variable action count)
             if (!showFeedback && !selectedAnswer) {
                 const keyNum = parseInt(key);
-                if (keyNum >= 1 && keyNum <= 4) {
+                if (keyNum >= 1 && keyNum <= 9) {
                     e.preventDefault();
                     const opts = options || []; // Use SHUFFLED options
                     if (opts[keyNum - 1]) {
@@ -1377,6 +1390,11 @@ function UniversalDynamicTable({
         if (questionNumber !== prevQuestionNum.current) {
             prevQuestionNum.current = questionNumber;
             SoundEngine.play('new_hand');
+            // Reset multi-street tracking for new hand
+            prevBoardCardsRef.current = [];
+            setNewStreetCardIndex(-1);
+            setStreetHistory([]);
+            setShowHandSummary(false);
             // Stagger card deal sounds for board cards
             if (boardCards && boardCards.length > 0) {
                 boardCards.forEach((_, i) => {
@@ -1385,6 +1403,47 @@ function UniversalDynamicTable({
             }
         }
     }, [questionNumber, boardCards]);
+
+    // ═══ MULTI-STREET: Detect street transitions and track new cards ═══
+    useEffect(() => {
+        if (!isMultiStreetActive) {
+            prevBoardCardsRef.current = boardCards;
+            return;
+        }
+
+        const prevCards = prevBoardCardsRef.current;
+        const currCards = boardCards;
+
+        // Detect if a new card was dealt (board grew by 1 card)
+        if (currCards.length > prevCards.length && prevCards.length > 0) {
+            const newCardIdx = prevCards.length; // The new card is at this index
+            setNewStreetCardIndex(newCardIdx);
+
+            // Play deal sound for the new card with a dramatic delay
+            setTimeout(() => SoundEngine.play('card_flip'), 400);
+
+            // Track street history for the progress indicator
+            setStreetHistory(prev => {
+                const streetName = currCards.length === 4 ? 'turn' : currCards.length === 5 ? 'river' : 'flop';
+                // Don't add duplicate entries
+                if (prev.some(s => s.street === streetName)) return prev;
+                return [...prev, {
+                    street: streetName,
+                    newCard: currCards[newCardIdx],
+                    boardSnapshot: [...currCards],
+                }];
+            });
+        }
+
+        prevBoardCardsRef.current = currCards;
+    }, [boardCards, isMultiStreetActive]);
+
+    // Track street changes for history
+    useEffect(() => {
+        if (currentStreet !== prevStreetRef.current && isMultiStreetActive) {
+            prevStreetRef.current = currentStreet;
+        }
+    }, [currentStreet, isMultiStreetActive]);
 
     // H3: Keyboard shortcut 'M' to cycle through modes
     useEffect(() => {
@@ -1476,6 +1535,26 @@ function UniversalDynamicTable({
         if (gtoFrequencies) return gtoFrequencies;
         return simulateGTOFrequencies(options, correctAnswer, questionNumber);
     }, [gtoFrequencies, options, correctAnswer, questionNumber]);
+
+    // ═══ DIFFICULTY MODE GROUPING (GTO Wizard Simple/Grouped/Standard) ═══
+    const activeDifficultyMode = trainerConfig?.difficultyMode || 'standard';
+    const { groupedOptions: displayOptions, frequencyMap: displayFrequencies, actionMapping: difficultyActionMapping } = useMemo(() => {
+        return groupActions(options, computedFrequencies, activeDifficultyMode);
+    }, [options, computedFrequencies, activeDifficultyMode]);
+
+    // Wrap handleAnswer to resolve grouped actions back to solver actions for scoring
+    const handleAnswerWithGrouping = useCallback((answerId) => {
+        if (showFeedback) return;
+        // If using grouped/simple mode, resolve back to the best solver action
+        let resolvedId = answerId;
+        if (activeDifficultyMode !== 'standard' && difficultyActionMapping[answerId]) {
+            resolvedId = resolveGroupedAction(answerId, difficultyActionMapping, computedFrequencies);
+        }
+        setSelectedAnswer(resolvedId);
+        const elapsed = (Date.now() - answerStartTime.current) / 1000;
+        if (onAnswer) onAnswer(resolvedId, { answerTimeSeconds: elapsed });
+        try { busEmit('ARENA_HAND_ANSWERED', { answerId: resolvedId, timeSeconds: elapsed, questionNumber, isCorrect: resolvedId === correctAnswer }); } catch { }
+    }, [showFeedback, activeDifficultyMode, difficultyActionMapping, computedFrequencies, onAnswer, questionNumber, correctAnswer]);
 
     // Compute move classification for feedback display
     const computedClassification = useMemo(() => {
@@ -1600,13 +1679,19 @@ function UniversalDynamicTable({
 
     // Build context string (e.g., "BTN vs BB • 3-Bet Pot • Flop")
     const contextString = useMemo(() => {
+        // If scenario has a rich context (from DeterministicGTOEngine), use it
+        const ctx = scenario.context;
+        if (ctx && ctx.actionLine) {
+            // Show action line like: "EP opens → CO 3bets → EP calls → Flop"
+            return ctx.actionLine;
+        }
         const parts = [];
         if (heroPosition) parts.push(heroPosition);
         if (villainPosition && villainPosition !== heroPosition) parts.push(`vs ${villainPosition}`);
         if (villainAction) parts.push(villainAction);
         if (streetLabel) parts.push(streetLabel);
         return parts.join(' • ');
-    }, [heroPosition, villainPosition, villainAction, streetLabel]);
+    }, [heroPosition, villainPosition, villainAction, streetLabel, scenario.context]);
 
     // GTOW Score color
     const scoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
@@ -1693,35 +1778,55 @@ function UniversalDynamicTable({
                             {(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'SOLVER' : 'AI'}
                         </div>
                     )}
-                    {/* Multi-Street Indicator Badge */}
+                    {/* Multi-Street Progress Indicator — GTO Wizard style */}
                     {isMultiStreetActive && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             style={{
+                                display: 'flex', alignItems: 'center', gap: 3,
                                 padding: '2px 8px',
                                 borderRadius: 6,
-                                fontSize: 9,
-                                fontWeight: 'bold',
-                                letterSpacing: 1,
-                                background: currentStreet === 'river'
-                                    ? 'rgba(239, 68, 68, 0.15)'
-                                    : currentStreet === 'turn'
-                                        ? 'rgba(251, 146, 60, 0.15)'
-                                        : 'rgba(34, 197, 94, 0.15)',
-                                color: currentStreet === 'river'
-                                    ? '#f87171'
-                                    : currentStreet === 'turn'
-                                        ? '#fb923c'
-                                        : '#4ade80',
-                                border: `1px solid ${currentStreet === 'river'
-                                    ? 'rgba(239,68,68,0.3)'
-                                    : currentStreet === 'turn'
-                                        ? 'rgba(251,146,60,0.3)'
-                                        : 'rgba(34,197,94,0.3)'}`,
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid rgba(255,255,255,0.08)',
                             }}
                         >
-                            {currentStreet.toUpperCase()}
+                            {['flop', 'turn', 'river'].map((st, idx) => {
+                                const isActive = currentStreet === st;
+                                const isPast = ['flop', 'turn', 'river'].indexOf(currentStreet) > idx;
+                                const streetColors = {
+                                    flop: '#4ade80', turn: '#fb923c', river: '#f87171',
+                                };
+                                const color = streetColors[st];
+                                return (
+                                    <React.Fragment key={st}>
+                                        {idx > 0 && (
+                                            <div style={{
+                                                width: 8, height: 1,
+                                                background: isPast ? color : 'rgba(255,255,255,0.1)',
+                                            }} />
+                                        )}
+                                        <div style={{
+                                            width: isActive ? 'auto' : 6,
+                                            height: 6,
+                                            borderRadius: isActive ? 4 : '50%',
+                                            padding: isActive ? '0 5px' : 0,
+                                            fontSize: 8,
+                                            fontWeight: 'bold',
+                                            letterSpacing: 0.8,
+                                            lineHeight: '6px',
+                                            textTransform: 'uppercase',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: isActive ? `${color}22` : isPast ? color : 'rgba(255,255,255,0.1)',
+                                            color: isActive ? color : 'transparent',
+                                            border: isActive ? `1px solid ${color}66` : 'none',
+                                            transition: 'all 0.3s ease',
+                                        }}>
+                                            {isActive ? st.charAt(0).toUpperCase() + st.slice(1) : ''}
+                                        </div>
+                                    </React.Fragment>
+                                );
+                            })}
                         </motion.div>
                     )}
                     {/* GTOW Score */}
@@ -2130,38 +2235,73 @@ function UniversalDynamicTable({
                     })}
                 </div>
 
-                {/* BOARD CARDS — Sequential dealing with per-card sounds */}
+                {/* BOARD CARDS — Multi-street-aware dealing animation */}
                 {boardCards.length > 0 && (
                     <div style={{...styles.boardCards, ...m.boardCards}}>
-                        {boardCards.map((card, i) => (
-                            <motion.div
-                                key={`${card}-${i}-${questionNumber}`}
-                                initial={{ y: -60, rotateY: 180, scale: 0.6, opacity: 0 }}
-                                animate={{ y: 0, rotateY: 0, scale: 1, opacity: 1 }}
-                                transition={{
-                                    delay: i * 0.25,
-                                    duration: 0.5,
-                                    type: 'spring',
-                                    stiffness: 160,
-                                    damping: 18,
-                                }}
-                                onAnimationComplete={() => {
-                                    SoundEngine.play('card_flip');
-                                }}
-                                style={{ perspective: 600, transformStyle: 'preserve-3d' }}
-                            >
-                                <img
-                                    src={getCardPath(card)}
-                                    alt={card}
-                                    style={{
-                                        ...styles.boardCard,
-                                        ...m.boardCard,
-                                        backfaceVisibility: 'hidden',
+                        {boardCards.map((card, i) => {
+                            const isNewStreetCard = isMultiStreetActive && i === newStreetCardIndex && i >= 3;
+                            const isExistingCard = isMultiStreetActive && newStreetCardIndex >= 0 && i < newStreetCardIndex;
+
+                            return (
+                                <motion.div
+                                    key={`${card}-${i}-${questionNumber}`}
+                                    initial={isExistingCard
+                                        ? { y: 0, rotateY: 0, scale: 1, opacity: 1 } // Existing cards: no re-animation
+                                        : isNewStreetCard
+                                            ? { y: -80, rotateY: 180, scale: 0.4, opacity: 0 } // New street card: dramatic entrance
+                                            : { y: -60, rotateY: 180, scale: 0.6, opacity: 0 } // Initial deal
+                                    }
+                                    animate={{ y: 0, rotateY: 0, scale: 1, opacity: 1 }}
+                                    transition={isExistingCard
+                                        ? { duration: 0 } // Instant — no animation for existing cards
+                                        : isNewStreetCard
+                                            ? { delay: 0.3, duration: 0.7, type: 'spring', stiffness: 120, damping: 14 }
+                                            : { delay: i * 0.25, duration: 0.5, type: 'spring', stiffness: 160, damping: 18 }
+                                    }
+                                    onAnimationComplete={() => {
+                                        if (!isExistingCard) SoundEngine.play('card_flip');
                                     }}
-                                />
-                            </motion.div>
-                        ))}
-                        {/* Board texture badges removed — internal info, not user-facing */}
+                                    style={{ perspective: 600, transformStyle: 'preserve-3d', position: 'relative' }}
+                                >
+                                    <img
+                                        src={getCardPath(card)}
+                                        alt={card}
+                                        style={{
+                                            ...styles.boardCard,
+                                            ...m.boardCard,
+                                            backfaceVisibility: 'hidden',
+                                            // Highlight new street card with a glow
+                                            ...(isNewStreetCard ? {
+                                                boxShadow: '0 0 12px 3px rgba(251, 146, 60, 0.5), 0 0 24px 6px rgba(251, 146, 60, 0.2)',
+                                            } : {}),
+                                        }}
+                                    />
+                                    {/* New card indicator dot */}
+                                    {isNewStreetCard && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0 }}
+                                            animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+                                            transition={{ delay: 1, duration: 2, repeat: 1 }}
+                                            style={{
+                                                position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)',
+                                                width: 6, height: 6, borderRadius: '50%',
+                                                background: '#fb923c', boxShadow: '0 0 6px #fb923c',
+                                            }}
+                                        />
+                                    )}
+                                </motion.div>
+                            );
+                        })}
+
+                        {/* Street separator line between flop and turn/river */}
+                        {isMultiStreetActive && boardCards.length > 3 && (
+                            <div style={{
+                                position: 'absolute', left: `${(3 / boardCards.length) * 100}%`,
+                                top: '10%', height: '80%', width: 1,
+                                background: 'rgba(251, 146, 60, 0.3)',
+                                pointerEvents: 'none',
+                            }} />
+                        )}
                     </div>
                 )}
 
@@ -2371,12 +2511,82 @@ function UniversalDynamicTable({
                         YOUR ACTION
                     </motion.div>
                 )}
-                {/* Countdown Timer — DISABLED during layout hardening */}
+                {/* RNG MODE: Prominent dice roll display (GTO Wizard style) */}
+                {rngMode && rngRoll !== null && !showFeedback && (
+                    <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        style={{
+                            position: 'absolute', top: -50, right: 8,
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            background: 'rgba(168,85,247,0.2)',
+                            border: '1px solid rgba(168,85,247,0.5)',
+                            borderRadius: 12, padding: '4px 12px',
+                            zIndex: 10,
+                        }}
+                    >
+                        <span style={{ fontSize: 16 }}>🎲</span>
+                        <span style={{
+                            fontSize: 20, fontWeight: 900,
+                            color: '#a855f7', fontFamily: "'Orbitron', monospace",
+                            textShadow: '0 0 10px rgba(168,85,247,0.4)',
+                        }}>
+                            {rngRoll}
+                        </span>
+                    </motion.div>
+                )}
+                {/* RNG MODE: Show frequency ranges on action buttons during feedback */}
+                {rngMode && showFeedback && rngRoll !== null && computedFrequencies && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            position: 'absolute', top: -55, left: 0, right: 0,
+                            display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap',
+                            zIndex: 10, padding: '0 8px',
+                        }}
+                    >
+                        <span style={{
+                            fontSize: 12, fontWeight: 800, color: '#a855f7',
+                            background: 'rgba(168,85,247,0.15)',
+                            border: '1px solid rgba(168,85,247,0.3)',
+                            padding: '2px 10px', borderRadius: 8,
+                        }}>
+                            🎲 {rngRoll}
+                        </span>
+                        {(() => {
+                            // Build cumulative ranges
+                            let cumulative = 0;
+                            return displayOptions.slice(0, 9).map(opt => {
+                                const id = opt.id || opt;
+                                const freq = displayFrequencies[id] || computedFrequencies[id] || 0;
+                                if (freq <= 0) return null;
+                                const rangeStart = cumulative + 1;
+                                cumulative += freq;
+                                const rangeEnd = cumulative;
+                                const isTarget = rngRoll >= rangeStart && rngRoll <= rangeEnd;
+                                const text = typeof opt === 'string' ? opt : (opt.text || '');
+                                return (
+                                    <span key={id} style={{
+                                        fontSize: 9, fontWeight: 700,
+                                        color: isTarget ? '#22c55e' : '#94a3b8',
+                                        background: isTarget ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                                        border: `1px solid ${isTarget ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                        padding: '2px 6px', borderRadius: 6,
+                                    }}>
+                                        {text.toUpperCase()} ({rangeStart}-{rangeEnd})
+                                    </span>
+                                );
+                            }).filter(Boolean);
+                        })()}
+                    </motion.div>
+                )}
+                {/* Countdown Timer — Enable via trainer config or settings */}
                 <CountdownTimer
-                    seconds={60}
+                    seconds={trainerConfig?.timerSeconds || 30}
                     questionNumber={questionNumber}
                     showFeedback={showFeedback}
-                    active={false}
+                    active={trainerConfig?.timerEnabled || false}
                     onTimeExpired={() => {
                         // BUG-04 FIX: Auto-submit worst option when timer expires
                         if (!showFeedback && !selectedAnswer && onAnswer) {
@@ -2408,40 +2618,70 @@ function UniversalDynamicTable({
                         Quit
                     </button>
                 )}
-                {options.slice(0, 4).map((option, index) => {
+                {/* GTO WIZARD-STYLE: Render grouped/standard actions (up to 9) */}
+                {displayOptions.slice(0, 9).map((option, index) => {
                     const optionId = option.id || String.fromCharCode(97 + index);
                     const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
-                    const freq = computedFrequencies[optionId] || computedFrequencies[optionId?.toLowerCase()] || 0;
+                    const freq = displayFrequencies[optionId] || computedFrequencies[optionId] || computedFrequencies[optionId?.toLowerCase()] || 0;
                     const actionType = detectActionType(text);
                     const shortcutKey = index + 1;
+                    // Responsive sizing: shrink buttons when > 4 options
+                    const optionCount = Math.min(displayOptions.length, 9);
+                    const isCompact = optionCount > 4;
+                    const isVeryCompact = optionCount > 6;
 
                     return (
-                        <div key={optionId} style={styles.actionButtonWrapper}>
+                        <div key={optionId} style={{
+                            ...styles.actionButtonWrapper,
+                            // Flex basis adapts to option count
+                            flex: isVeryCompact ? '0 0 auto' : 1,
+                            minWidth: isVeryCompact ? `${Math.floor(100 / optionCount) - 1}%` : undefined,
+                        }}>
                             <motion.button
-                                onClick={() => handleAnswer(optionId)}
+                                onClick={() => handleAnswerWithGrouping(optionId)}
                                 disabled={showFeedback}
-                                style={getActionButtonStyle(option, index)}
+                                style={{
+                                    ...getActionButtonStyle(option, index),
+                                    // Scale down padding/font for many buttons
+                                    ...(isCompact ? { padding: '8px 4px', minHeight: 52 } : {}),
+                                    ...(isVeryCompact ? { padding: '6px 2px', minHeight: 44, borderRadius: 6 } : {}),
+                                }}
                                 whileHover={!showFeedback ? { scale: 1.04, y: -3 } : {}}
                                 whileTap={!showFeedback ? { scale: 0.96 } : {}}
                             >
-                                {/* F9: Keyboard shortcut hint */}
-                                {!showFeedback && (
+                                {/* Keyboard shortcut hint (1-9) — GTO Wizard-style badge */}
+                                {!showFeedback && shortcutKey <= 9 && (
                                     <span style={{
                                         position: 'absolute',
                                         top: 3,
-                                        left: 6,
-                                        fontSize: 8,
-                                        color: 'rgba(255,255,255,0.25)',
+                                        left: 4,
+                                        fontSize: isCompact ? 7 : 8,
+                                        color: 'rgba(255,255,255,0.55)',
                                         fontWeight: 'bold',
+                                        background: 'rgba(255,255,255,0.06)',
+                                        borderRadius: 3,
+                                        padding: '0 3px',
+                                        lineHeight: '14px',
+                                        minWidth: 12,
+                                        textAlign: 'center',
+                                        border: '1px solid rgba(255,255,255,0.08)',
                                     }}>
                                         {shortcutKey}
                                     </span>
                                 )}
                                 <span style={styles.actionText}>
-                                    <div style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>
-                                        {actionType === 'raise' ? 'BET / RAISE' : text.replace(/(\d+\.?\d*)\s*(bb|BB)/i, '').trim().toUpperCase()}
+                                    {/* GTO WIZARD STYLE: Show the ACTUAL action text from solver.
+                                        "Bet 33%", "Bet 67%", "Check", "Fold" — exactly as solver provides.
+                                        No more generic "BET / RAISE" override. */}
+                                    <div style={{
+                                        fontSize: isVeryCompact ? 10 : isCompact ? 11 : 13,
+                                        fontWeight: '800',
+                                        letterSpacing: 0.5,
+                                        lineHeight: 1.1,
+                                    }}>
+                                        {text.toUpperCase()}
                                     </div>
-                                    {/* Pot-relative bet sizing label */}
+                                    {/* BB sizing beneath action label (if present in text) */}
                                     {(() => {
                                         const betMatch = text.match(/(\d+\.?\d*)\s*(bb|BB)/i);
                                         if (!betMatch) return null;
@@ -2449,17 +2689,17 @@ function UniversalDynamicTable({
                                         return (
                                             <div style={{
                                                 display: 'block',
-                                                fontSize: 16,
+                                                fontSize: isCompact ? 12 : 16,
                                                 fontWeight: '900',
                                                 color: '#ffffff',
-                                                marginTop: 4,
+                                                marginTop: 2,
                                             }}>
                                                 {betSize} BB
                                             </div>
                                         );
                                     })()}
                                 </span>
-                                {/* Show frequency label on feedback OR study mode */}
+                                {/* Frequency label on feedback OR study mode */}
                                 {(showFeedback || (studyMode && computedFrequencies)) && (
                                     <motion.span
                                         initial={{ opacity: 0 }}
@@ -2467,13 +2707,14 @@ function UniversalDynamicTable({
                                         transition={{ delay: showFeedback ? 0.3 : 0 }}
                                         style={{
                                             ...styles.freqLabel,
+                                            fontSize: isCompact ? 9 : 11,
                                             ...(studyMode && !showFeedback ? { opacity: 0.5, fontSize: 9 } : {}),
                                         }}
                                     >
                                         {freq}%
                                     </motion.span>
                                 )}
-                                {/* PHASE 7: Per-Action EV Value */}
+                                {/* Per-Action EV Value */}
                                 {showFeedback && question?.evData?.actionEVs && (() => {
                                     const ev = question.evData.actionEVs[optionId] ?? question.evData.actionEVs[optionId?.toLowerCase()];
                                     if (typeof ev !== 'number') return null;
@@ -2486,7 +2727,7 @@ function UniversalDynamicTable({
                                                 position: 'absolute',
                                                 top: 3,
                                                 right: 6,
-                                                fontSize: 8,
+                                                fontSize: isCompact ? 7 : 8,
                                                 fontWeight: 800,
                                                 fontFamily: "'Inter', monospace",
                                                 color: ev >= 0 ? '#22c55e' : '#ef4444',
@@ -2578,7 +2819,7 @@ function UniversalDynamicTable({
                             <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 6, textAlign: 'center' }}>
                                 GTO Strategy Distribution
                             </div>
-                            {options.slice(0, 4).map(opt => {
+                            {options.slice(0, 9).map(opt => {
                                 if (!opt) return null;
                                 const optId = opt?.id || opt;
                                 const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
@@ -2672,7 +2913,7 @@ function UniversalDynamicTable({
                         <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
                             GTO Action Frequencies
                         </div>
-                        {(Array.isArray(options) ? options : []).slice(0, 4).map(opt => {
+                        {(Array.isArray(options) ? options : []).slice(0, 9).map(opt => {
                             if (!opt) return null;
                             const optId = opt?.id || opt;
                             const text = typeof opt === 'string' ? opt : (opt?.text || opt?.label || 'Option');
@@ -2798,7 +3039,7 @@ function UniversalDynamicTable({
                             <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
                                 EV by Action
                             </div>
-                            {options.slice(0, 4).map(opt => {
+                            {options.slice(0, 9).map(opt => {
                                 const optId = opt.id || opt;
                                 const ev = question.evData.actionEVs[optId];
                                 if (ev === undefined) return null;
@@ -2929,7 +3170,7 @@ function UniversalDynamicTable({
                                 textAlign: 'center',
                             }}>
                                 <span style={{ fontWeight: 'bold', color: '#64748b' }}>GTO: </span>
-                                {options.slice(0, 4).map(o => {
+                                {options.slice(0, 9).map(o => {
                                     const f = computedFrequencies[o.id] || 0;
                                     if (f <= 0) return null;
                                     return (
@@ -3007,6 +3248,67 @@ function UniversalDynamicTable({
                     )}
 
                     </div>{/* end collapsible feedback body */}
+
+                    {/* ═══ HAND SUMMARY — Shown when multi-street hand completes ═══ */}
+                    {handSummary && !isMultiStreetActive && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4 }}
+                            style={{
+                                marginTop: 6, marginBottom: 6,
+                                padding: '8px 12px', borderRadius: 10,
+                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%)',
+                                border: '1px solid rgba(139, 92, 246, 0.2)',
+                            }}
+                        >
+                            <div style={{
+                                fontSize: 9, fontWeight: 700, letterSpacing: 1.2,
+                                textTransform: 'uppercase', color: '#a78bfa', marginBottom: 6,
+                            }}>
+                                Hand Complete — {handSummary.streetsPlayed} Street{handSummary.streetsPlayed > 1 ? 's' : ''} Played
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {(handSummary.evHistory || []).map((ev, idx) => {
+                                    const cls = ev.classification;
+                                    const clsColors = {
+                                        best: '#4ade80', correct: '#22d3ee', inaccuracy: '#fbbf24',
+                                        wrong: '#f87171', blunder: '#ef4444',
+                                    };
+                                    const color = clsColors[cls] || '#94a3b8';
+                                    return (
+                                        <div key={idx} style={{
+                                            display: 'flex', alignItems: 'center', gap: 4,
+                                            padding: '3px 8px', borderRadius: 6,
+                                            background: `${color}11`, border: `1px solid ${color}33`,
+                                        }}>
+                                            <span style={{ fontSize: 9, fontWeight: 700, color, textTransform: 'uppercase' }}>
+                                                {ev.street}
+                                            </span>
+                                            <span style={{ fontSize: 9, color: '#94a3b8' }}>•</span>
+                                            <span style={{ fontSize: 9, fontWeight: 600, color }}>
+                                                {cls?.charAt(0).toUpperCase() + cls?.slice(1)}
+                                            </span>
+                                            {ev.evLoss > 0 && (
+                                                <span style={{ fontSize: 8, color: '#ef4444' }}>
+                                                    -{ev.evLoss.toFixed(1)}bb
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {handSummary.totalEVLoss > 0 && (
+                                <div style={{
+                                    marginTop: 4, fontSize: 10, color: '#94a3b8', textAlign: 'right',
+                                }}>
+                                    Total EV loss: <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                                        -{handSummary.totalEVLoss.toFixed(1)}bb
+                                    </span>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
 
                     {/* Next Hand / Continue Hand buttons */}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
@@ -3680,11 +3982,12 @@ const styles = {
         fontFamily: "'Inter', sans-serif",
     },
 
-    // ── ACTION BAR (GTO Wizard-style flat full-width buttons)
+    // ── ACTION BAR (GTO Wizard-style — adapts to 2-9 buttons)
     actionBar: {
         display: 'flex',
-        gap: 12,
-        padding: '12px 16px',
+        flexWrap: 'wrap',
+        gap: 8,
+        padding: '10px 12px',
         flexShrink: 0,
     },
 
