@@ -30,6 +30,10 @@ import SmartPracticeBanner from './SmartPracticeBanner';
 import { getSessionToken } from '../../lib/authUtils';
 // ═══ PHASE 18: Leaderboard ═══
 import LeaderboardPanel from './LeaderboardPanel';
+// ═══ PHASE 19: Share Card + Achievement Toasts ═══
+import SessionShareCard from './SessionShareCard';
+import AchievementToast from './AchievementToast';
+import { checkAllAchievements } from './utils/achievementChecker';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -924,6 +928,36 @@ function GodModeArenaInner({
     const [drillFilters, setDrillFilters] = useState(null);
     const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
     const [shareStatus, setShareStatus] = useState(null); // 'success' | 'error' | null
+    // ═══ PHASE 19: Share Card + Achievements ═══
+    const [showShareCard, setShowShareCard] = useState(false);
+    const [sessionAchievements, setSessionAchievements] = useState([]);
+    const achievementsCheckedRef = useRef(false);
+
+    // Check achievements when game completes
+    useEffect(() => {
+        if (!gameComplete || achievementsCheckedRef.current) return;
+        achievementsCheckedRef.current = true;
+
+        const achievements = checkAllAchievements({
+            currentStreak: bestStreak,
+            bestStreak,
+            accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
+            questionsAnswered: totalQuestions,
+            level: currentLevel,
+            levelPassed,
+            gtowScore,
+        });
+
+        if (achievements.length > 0) {
+            setSessionAchievements(achievements);
+        }
+    }, [gameComplete, bestStreak, correctCount, totalQuestions, currentLevel, levelPassed, gtowScore]);
+
+    // Reset on level change
+    useEffect(() => {
+        achievementsCheckedRef.current = false;
+        setSessionAchievements([]);
+    }, [currentLevel]);
 
     // ═══ QW-1: DIFFICULTY SELECTOR (beginner/standard/expert) ═══
     const [difficulty, setDifficulty] = useState(() => {
@@ -1709,46 +1743,63 @@ function GodModeArenaInner({
                             </motion.div>
                         )}
 
-                        {/* Phase 2: Share to Feed */}
-                        <motion.button
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={async () => {
-                                try {
-                                    const res = await fetch('/api/training/share', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                            userId,
-                                            shareType: 'session_complete',
-                                            data: {
-                                                gameId, gameName, gtowScore,
-                                                totalEVLoss, totalQuestions,
-                                                sessionMistakes, correctCount,
-                                                bestStreak, speedBonusDiamonds,
-                                            },
-                                        }),
-                                    });
-                                    if (res.ok) {
-                                        setShareStatus('success');
+                        {/* ═══ PHASE 19: Share Results (image card + feed) ═══ */}
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => setShowShareCard(true)}
+                                style={{
+                                    flex: 2, padding: '10px 0',
+                                    borderRadius: 10,
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                                    color: '#fff', fontSize: 13, fontWeight: 700,
+                                    cursor: 'pointer', letterSpacing: 0.5,
+                                }}
+                            >
+                                Share Results Card
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={async () => {
+                                    try {
+                                        const res = await fetch('/api/training/share', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                userId,
+                                                shareType: 'session_complete',
+                                                data: {
+                                                    gameId, gameName, gtowScore,
+                                                    totalEVLoss, totalQuestions,
+                                                    sessionMistakes, correctCount,
+                                                    bestStreak, speedBonusDiamonds,
+                                                },
+                                            }),
+                                        });
+                                        if (res.ok) {
+                                            setShareStatus('success');
+                                            setTimeout(() => setShareStatus(null), 3000);
+                                        }
+                                    } catch (e) {
+                                        console.error('[Share] Error:', e);
+                                        setShareStatus('error');
                                         setTimeout(() => setShareStatus(null), 3000);
                                     }
-                                } catch (e) {
-                                    console.error('[Share] Error:', e);
-                                    setShareStatus('error');
-                                    setTimeout(() => setShareStatus(null), 3000);
-                                }
-                            }}
-                            style={{
-                                width: '100%', padding: '10px 0', marginBottom: 12,
-                                borderRadius: 10, border: '1px solid rgba(0,212,255,0.25)',
-                                background: 'rgba(0,212,255,0.06)',
-                                color: '#00d4ff', fontSize: 13, fontWeight: 700,
-                                cursor: 'pointer', letterSpacing: 0.5,
-                            }}
-                        >
-                            {shareStatus === 'success' ? '✓ Shared!' : shareStatus === 'error' ? 'Share failed' : 'Share to Feed'}
-                        </motion.button>
+                                }}
+                                style={{
+                                    flex: 1, padding: '10px 0',
+                                    borderRadius: 10, border: '1px solid rgba(0,212,255,0.25)',
+                                    background: 'rgba(0,212,255,0.06)',
+                                    color: '#00d4ff', fontSize: 12, fontWeight: 700,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {shareStatus === 'success' ? '✓ Posted' : shareStatus === 'error' ? 'Failed' : 'Post to Feed'}
+                            </motion.button>
+                        </div>
 
                     </>)}
 
@@ -1862,6 +1913,22 @@ function GodModeArenaInner({
                             setTimerMode={setTimerMode}
                         />
                     </AnimatePresence>
+
+                    {/* ═══ PHASE 19: Share Card Modal ═══ */}
+                    {showShareCard && (
+                        <SessionShareCard
+                            gameName={gameName}
+                            level={currentLevel}
+                            gtowScore={gtowScore}
+                            totalQuestions={totalQuestions}
+                            correctCount={correctCount}
+                            totalEVLoss={totalEVLoss}
+                            bestStreak={bestStreak}
+                            classificationCounts={classificationCounts}
+                            sessionMistakes={sessionMistakes}
+                            onClose={() => setShowShareCard(false)}
+                        />
+                    )}
                 </div>
             </div >
         );
