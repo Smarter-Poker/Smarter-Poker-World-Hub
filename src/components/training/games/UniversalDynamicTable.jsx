@@ -341,7 +341,7 @@ function StreakToast({ message, show }) {
                 position: 'fixed',
                 top: 60,
                 left: '50%',
-                transform: 'translateX(-50%)',
+                x: '-50%',
                 background: 'linear-gradient(135deg, #b45309 0%, #f59e0b 50%, #b45309 100%)',
                 color: '#fff',
                 padding: '8px 20px',
@@ -2026,7 +2026,7 @@ function UniversalDynamicTable({
                             style={{
                                 position: 'absolute',
                                 top: '45%', left: '50%',
-                                transform: 'translateX(-50%)',
+                                x: '-50%',
                                 zIndex: 100,
                                 fontSize: 28, fontWeight: 900,
                                 color: evPopup.color,
@@ -2166,6 +2166,8 @@ function UniversalDynamicTable({
                                     ...m.seat,
                                     left: `${seatX}%`,
                                     top: `${seatY}%`,
+                                    x: '-50%',
+                                    y: '-50%',
                                 }}
                             >
                                 {/* Illustrated Avatar — stacked vertically */}
@@ -2371,7 +2373,7 @@ function UniversalDynamicTable({
                                             animate={{ opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
                                             transition={{ delay: 1, duration: 2, repeat: 1 }}
                                             style={{
-                                                position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%)',
+                                                position: 'absolute', bottom: -6, left: '50%', x: '-50%',
                                                 width: 6, height: 6, borderRadius: '50%',
                                                 background: '#fb923c', boxShadow: '0 0 6px #fb923c',
                                             }}
@@ -2418,7 +2420,7 @@ function UniversalDynamicTable({
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        style={{...styles.pot, ...m.pot}}
+                        style={{...styles.pot, ...m.pot, x: '-50%', y: '-50%'}}
                     >
                         {/* Chip icon */}
                         <div style={{
@@ -2565,7 +2567,7 @@ function UniversalDynamicTable({
                         exit={{ y: -20, opacity: 0 }}
                         style={{
                             position: 'absolute', top: 80, left: '50%',
-                            transform: 'translateX(-50%)', zIndex: 150,
+                            x: '-50%', zIndex: 150,
                             padding: '8px 20px', borderRadius: 10,
                             background: `linear-gradient(135deg, ${speedBonusToast.color}22 0%, ${speedBonusToast.color}11 100%)`,
                             border: `1px solid ${speedBonusToast.color}66`,
@@ -2589,7 +2591,7 @@ function UniversalDynamicTable({
                         transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
                         style={{
                             position: 'absolute', top: -20, left: '50%',
-                            transform: 'translateX(-50%)',
+                            x: '-50%',
                             fontSize: 10, fontWeight: 800, letterSpacing: 2,
                             color: '#00d4ff', textTransform: 'uppercase',
                             textShadow: '0 0 8px rgba(0,212,255,0.3)',
@@ -3742,7 +3744,8 @@ const styles = {
 
     seat: {
         position: 'absolute',
-        transform: 'translate(-50%, -50%)',
+        // NOTE: Do NOT use CSS transform here — framer-motion's scale animation overrides it.
+        // Instead, use framer-motion's x/y style props on the <motion.div> to compose with scale.
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -3894,7 +3897,8 @@ const styles = {
         position: 'absolute',
         top: '20%',
         left: '50%',
-        transform: 'translate(-50%, -50%)',
+        // NOTE: Do NOT use CSS transform here — framer-motion's scale animation overrides it.
+        // x/y are set inline on the <motion.div> to compose with scale.
         color: '#e2e8f0',
         fontSize: 16,
         fontWeight: 800,
