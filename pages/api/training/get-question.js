@@ -109,6 +109,8 @@ export default async function handler(req, res) {
 
           // TRY DETERMINISTIC ENGINE FIRST for PIO/CHART games
           if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
+              // Inject service-role client so engine bypasses RLS
+              deterministicEngine.setSupabaseClient(getSupabase());
               try {
                   question = await deterministicEngine.generateQuestion({
                       gameId,

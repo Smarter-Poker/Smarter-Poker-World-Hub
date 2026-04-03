@@ -64,7 +64,7 @@ export default function ReportGameModal({ venue, isOpen, onClose, onSubmit, user
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token || ''}`
+                    'Authorization': `Bearer ${user?.access_token || ''}`
                 },
                 body: JSON.stringify({
                     venue_id: venue.id,

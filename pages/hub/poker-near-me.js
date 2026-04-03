@@ -2955,7 +2955,7 @@ export default function PokerNearMePage() {
                     <style jsx global>{`
                     .pnm-page {
                         min-height: 100vh;
-                        padding-bottom: 70px;
+                        padding-bottom: 20px;
                         display: flex;
                         flex-direction: column;
                         position: relative;
@@ -6272,7 +6272,6 @@ export default function PokerNearMePage() {
                         50% { transform: scale(1.8); opacity: 0; }
                     }
                 `}</style>
-                      <BottomNavBar />
                       {UpgradePopup}
 
             {/* ═══ SMART LOCATION ENABLE MODAL ═══ */}

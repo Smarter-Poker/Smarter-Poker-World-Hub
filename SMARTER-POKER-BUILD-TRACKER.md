@@ -448,8 +448,29 @@
 
 ---
 
+## PHASE 19 — Completed (2026-04-03)
+
+### GTO Wizard Parity: Difficulty Engine + Share Cards + Achievement System + Engine Hardening
+
+| Deliverable | Status | Detail |
+|---|---|---|
+| Difficulty Filtering (Full Stack) | DONE | Wired difficulty selector through entire stack: localStorage → `useGTOTrainer.js` → `batch-preload.js` API → `DeterministicGTOEngine.generateBatch()`. Beginner filters for clear decisions (avg max freq ≥40%), Expert filters for mixed strategy spots (avg max freq ≤70%), Standard has no filter. Engine fetches larger pool (5x instead of 3x) for difficulty modes to ensure enough filtered scenarios. |
+| `getMaxFrequency()` BUG-B Fix | DONE | Original implementation found the single highest frequency across ALL hands × ALL actions, which was always ~100% (making difficulty filtering a no-op). Rewrote to compute the average max-frequency-per-hand — a true measure of how "clear" the scenario's decisions are overall. |
+| Session Share Card | DONE | New `SessionShareCard.jsx` — SVG→Canvas→PNG pipeline for shareable session results. Background gradient, score circle with grade badge, stats row (correct/total/EV loss/streak), classification bar (Best/Correct/Inaccuracy/Wrong/Blunder), branding footer. Supports: download PNG, copy image to clipboard, native Web Share API. |
+| Achievement System Wiring | DONE | Imported existing `AchievementToast.jsx` and `checkAllAchievements()` into GodModeArena. Achievement check runs on `gameComplete`. Toast renders with AnimatePresence and auto-dismisses after 6s. Previously existed as dead code — now fully wired. |
+| Share Results UI | DONE | "Share Results" button (gradient blue/purple) + "Post to Feed" button rendered side-by-side in session review. SessionShareCard opens as a modal overlay. |
+| DeterministicGTOEngine Deep Audit | DONE | Full audit of all 1050+ lines. Verified: solver data flow from `solved_spots_gold` (187k+ records), frequency extraction and normalization, level→street mapping (1-3=flop, 4-7=turn, 8-10=river), mixed strategy handling, context-aware filler logic, node type detection, hand categorization, explanation generation, chart engine for push/fold. |
+| Supabase Client Hardening | DONE | Engine was using client-side anon-key Supabase import for server-side queries. Added `setSupabaseClient()` method and `get db()` getter. All 3 API routes (batch-preload, get-question, next-street) now inject the service-role client, ensuring RLS bypass and full data access. |
+
+**Files Created:** SessionShareCard.jsx
+**Files Changed:** DeterministicGTOEngine.js, GodModeArena.jsx, batch-preload.js, get-question.js, next-street.js, useGTOTrainer.js, SMARTER-POKER-BUILD-TRACKER.md
+**Impact:** Difficulty filtering now actually works (BUG-B was silently making it a no-op). Server-side Supabase access is now correct with service-role key. Session results are shareable as PNG images. Achievements trigger visual feedback during gameplay.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 19: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 19: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 20: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 21: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 20: Advanced Training Features** — Hand history replay, custom spot drills, range viewer
+- **Phase 21: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 22: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 23: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 24: Database Migration Safety** — Supabase migration tooling and rollback procedures

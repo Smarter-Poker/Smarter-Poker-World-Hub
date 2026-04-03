@@ -92,7 +92,8 @@ export default async function handler(req, res) {
           const newCard = allCards[cardIdx];
           const newBoardCards = [...parsedBoardCards, newCard];
 
-          // Query solver for this street
+          // Query solver for this street — inject service-role client
+          deterministicEngine.setSupabaseClient(getSupabase());
           const question = await deterministicEngine.queryNextStreet({
               gameConfig,
               heroHand: heroHand || 'AKs',
