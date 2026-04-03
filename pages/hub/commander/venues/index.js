@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import LocationEnableModal from '../../../../src/components/ui/LocationEnableModal';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import {
   MapPin,
@@ -96,6 +97,7 @@ export default function VenueDiscoveryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = usePersistedState('sp-filters-commander-venues', 'all');
   const [userLocation, setUserLocation] = useState(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
 
   useEffect(() => {    const _c = new AbortController();
 
@@ -103,9 +105,11 @@ export default function VenueDiscoveryPage() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          () => fetchVenues(null)
+          (err) => { if (err.code === 1) setShowLocationModal(true); fetchVenues(null); }
         );
         return;
+      } else {
+        setShowLocationModal(true);
       }
     }
     fetchVenues(userLocation);
@@ -233,6 +237,14 @@ export default function VenueDiscoveryPage() {
             <p>Tap A Venue To Check In And Join Waitlists</p>
           </div>
         </main>
+
+        {showLocationModal && (
+          <LocationEnableModal
+            onClose={() => setShowLocationModal(false)}
+            onRetry={() => { setShowLocationModal(false); setFilter('nearby'); }}
+            onManualEntry={() => { setShowLocationModal(false); setFilter('all'); }}
+          />
+        )}
       </div>
     </>
   );

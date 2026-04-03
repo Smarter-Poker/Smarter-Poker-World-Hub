@@ -25,6 +25,8 @@ import StreetAccuracyPanel from './StreetAccuracyPanel';
 import ActionAccuracyPanel from './ActionAccuracyPanel';
 import MistakePatternPanel from './MistakePatternPanel';
 import { useTrainingAnalytics } from './PerformanceTrends';
+// ═══ PHASE 17: Smart Practice ═══
+import SmartPracticeBanner from './SmartPracticeBanner';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -1225,6 +1227,22 @@ function GodModeArenaInner({
 
                     {/* ═══ TAB: OVERVIEW ═══ */}
                     {reviewTab === 'overview' && (<>
+                        {/* ═══ PHASE 17: Smart Practice Recommendation ═══ */}
+                        <SmartPracticeBanner
+                            gameId={gameId}
+                            onStartSmartPractice={(config) => {
+                                // Reset to playing phase with smart practice targeting
+                                sessionSavedRef.current = false;
+                                if (config.suggestedLevel) {
+                                    // Level-up recommendation
+                                    startNextLevel();
+                                } else {
+                                    // Targeted practice — retrain with filters
+                                    retryLevel();
+                                }
+                            }}
+                        />
+
                         <div style={styles.classBreakdown}>
                             <div style={styles.sectionTitle}>Move Breakdown</div>
                             <div style={styles.classGrid}>

@@ -62,6 +62,8 @@ export default async function handler(req, res) {
           classificationCounts, // { best: N, correct: N, inaccuracy: N, wrong: N, blunder: N }
           positionStats,       // { BTN: { correct: N, total: N }, ... }
           weakSpots,           // [{ position, street, spotType, mistakeRate }]
+          // ═══ PHASE 17: Cross-session analytics context ═══
+          crossSessionContext, // { scoreTrend, milestones, mistakePatterns, ... }
       } = req.body;
 
       if (!gameId || !level || questionsAnswered === undefined) {
@@ -106,6 +108,33 @@ export default async function handler(req, res) {
               performanceContext += `\n  IDENTIFIED WEAK SPOTS:\n${weakLines}`;
           }
 
+          // ═══ PHASE 17: Build cross-session context ═══
+          let crossSessionStr = '';
+          if (crossSessionContext) {
+              const ctx = crossSessionContext;
+              if (ctx.milestones) {
+                  const m = ctx.milestones;
+                  crossSessionStr += `\n\n  CROSS-SESSION ANALYTICS (last 30 days):`;
+                  crossSessionStr += `\n  - Total sessions: ${m.totalSessions}, Total hands: ${m.totalHands}`;
+                  crossSessionStr += `\n  - Rolling avg score (last 5): ${m.last5Avg}%${m.prev5Avg !== null ? ` (was ${m.prev5Avg}%)` : ''}`;
+                  crossSessionStr += `\n  - Overall accuracy: ${m.overallAccuracy}%, Avg EV/hand: ${m.avgEvPerHand}`;
+                  crossSessionStr += `\n  - Trend: ${m.trending || 'unknown'}${m.trendDelta ? ` (${m.trendDelta > 0 ? '+' : ''}${m.trendDelta}pts)` : ''}`;
+                  crossSessionStr += `\n  - Current streak: ${m.currentStreak} sessions passed`;
+              }
+              if (ctx.mistakePatterns && ctx.mistakePatterns.length > 0) {
+                  crossSessionStr += `\n  TOP RECURRING MISTAKES (cross-session):`;
+                  ctx.mistakePatterns.slice(0, 3).forEach((p, i) => {
+                      crossSessionStr += `\n    ${i + 1}. ${p.spotType} from ${p.position} on ${p.street}: ${p.count}× mistakes, -${p.avgEvLoss.toFixed(2)} avg EV`;
+                  });
+              }
+              if (ctx.weakPosition) {
+                  crossSessionStr += `\n  WEAKEST POSITION (cross-session): ${ctx.weakPosition.position} at ${ctx.weakPosition.accuracy}%`;
+              }
+              if (ctx.weakStreet) {
+                  crossSessionStr += `\n  WEAKEST STREET (cross-session): ${ctx.weakStreet.street} at ${ctx.weakStreet.accuracy}%`;
+              }
+          }
+
           const prompt = `You are an elite GTO poker coach (think GTO Wizard's post-session analysis). Provide a personalized debrief.
 
   TRAINING SESSION RESULTS:
@@ -116,7 +145,7 @@ export default async function handler(req, res) {
   - Time: ${Math.round((timeSpentSeconds || 0) / 60)} minutes${performanceContext}
 
   MISTAKES MADE:
-  ${mistakesStr}
+  ${mistakesStr}${crossSessionStr}
 
   Provide coaching feedback in this JSON format:
   {

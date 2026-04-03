@@ -3,6 +3,7 @@
  * UI: Dark industrial sci-fi gaming UI with metallic chrome frames
  */
 import { useState, useEffect } from 'react';
+import LocationEnableModal from '../../../src/components/ui/LocationEnableModal';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function CommanderHub() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [liveGames, setLiveGames] = useState([]);
   const [hasClubPage, setHasClubPage] = useState(null); // null=loading, false=no page, string=page id
@@ -71,14 +73,14 @@ export default function CommanderHub() {
   }
 
   function getUserLocation() {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) { setShowLocationModal(true); return; }
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
         setLocationLoading(false);
       },
-      () => setLocationLoading(false)
+      (err) => { setLocationLoading(false); if (err.code === 1) setShowLocationModal(true); }
     );
   }
 
@@ -399,6 +401,14 @@ export default function CommanderHub() {
             <p className="text-xl font-extrabold cmd-text-chrome tracking-wider">CLUB COMMANDER</p>
           </div>
         </main>
+
+        {showLocationModal && (
+          <LocationEnableModal
+            onClose={() => setShowLocationModal(false)}
+            onRetry={() => { setShowLocationModal(false); getUserLocation(); }}
+            onManualEntry={() => setShowLocationModal(false)}
+          />
+        )}
       </div>
     </>
   );

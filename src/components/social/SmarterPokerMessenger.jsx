@@ -12,6 +12,7 @@ import { busEmit, eventBus, EventType } from '../../engine/EventBus';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 import { useMessengerService } from '../../hooks/useMessengerService';
 import GiphyPicker from '../shared/GiphyPicker';
+import LocationEnableModal from '../ui/LocationEnableModal';
 
 // ─── Lazy Supabase Getter ──────────────────────────────────────────────
 let _supabase = null;
@@ -595,6 +596,7 @@ export const ChatWindow = ({
     const [translatedMsgs, setTranslatedMsgs] = useState({});
     // P9-5: Location Sharing State
     const [sharingLocation, setSharingLocation] = useState(false);
+    const [showLocationModal, setShowLocationModal] = useState(false);
 
     // P10-1: E2E Key Exchange Storage
     const e2eKeysRef = useRef({});
@@ -1202,7 +1204,7 @@ export const ChatWindow = ({
 
     // P9-5: Location Sharing
     const handleShareLocation = () => {
-        if (typeof window === 'undefined' || !navigator.geolocation) { if (typeof window !== 'undefined') alert('Geolocation not supported'); return; }
+        if (typeof window === 'undefined' || !navigator.geolocation) { setShowLocationModal(true); return; }
         setSharingLocation(true);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -1212,7 +1214,7 @@ export const ChatWindow = ({
                 setSharingLocation(false);
                 busEmit.messageSent(conversationId, otherUser?.id);
             },
-            (err) => { console.error('[Location] Failed:', err); if (typeof window !== 'undefined') { const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent); const msg = err.code === 1 ? (isIos ? 'Location access denied. Go to Settings → Privacy & Security → Location Services → Safari, then select "While Using".' : 'Location access denied. Go to Settings → Location → enable for this browser.') : 'Unable to get location. Please try again.'; alert(msg); } setSharingLocation(false); },
+            (err) => { console.error('[Location] Failed:', err); if (err.code === 1) { setShowLocationModal(true); } setSharingLocation(false); },
             { enableHighAccuracy: true, timeout: 10000 }
         );
     };
@@ -2626,6 +2628,15 @@ export const ChatWindow = ({
                     <img src={lightboxImage.url} alt="Fullscreen Attachment" className="lightbox-image" />
                     {lightboxImage.caption && <div className="lightbox-caption">{lightboxImage.caption}</div>}
                 </div>
+            )}
+
+            {/* Location Enable Modal */}
+            {showLocationModal && (
+                <LocationEnableModal
+                    onClose={() => setShowLocationModal(false)}
+                    onRetry={() => { setShowLocationModal(false); handleShareLocation(); }}
+                    onManualEntry={() => setShowLocationModal(false)}
+                />
             )}
 
             <style>{`
