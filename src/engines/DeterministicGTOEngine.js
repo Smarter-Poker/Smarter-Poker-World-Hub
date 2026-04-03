@@ -535,20 +535,33 @@ export class DeterministicGTOEngine {
             // ═══ PHASE 15: Allow street override for targeted practice ═══
             const street = targetStreet || this.getStreetForLevel(level);
 
+            // ═══ PHASE 21: Randomized pool fetch for varied training spots ═══
+            // Fetch a larger pool then shuffle client-side to avoid repetitive scenarios.
+            // Supabase doesn't support ORDER BY random(), so we over-fetch and shuffle.
+            const fetchLimit = Math.min(limit * 4, 500);
+
             const { data, error } = await this.db
                 .from('solved_spots_gold')
                 .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
                 .eq('game_type', gameConfig.pioGameType)
                 .eq('stack_depth', gameConfig.pioStackDepth)
                 .eq('street', street)
-                .limit(limit);
+                .limit(fetchLimit);
 
             if (error || !data || data.length === 0) {
                 console.log(`[DeterministicEngine] No solved spots for ${gameConfig.pioGameType} ${street} ${gameConfig.pioStackDepth}bb`);
                 return null;
             }
 
-            return data;
+            // Fisher-Yates shuffle for true randomization of training spots
+            const shuffled = [...data];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            // Return only the requested number of scenarios
+            return shuffled.slice(0, limit);
         } catch (err) {
             console.error('[DeterministicEngine] fetchSolverPool error:', err.message);
             return null;

@@ -2,9 +2,12 @@
  * Study Streak Map — GitHub-style Contribution Graph
  * ===================================================
  * Visualizes daily training sessions over the past year.
+ * Includes a self-fetching wrapper (StudyStreakMapAuto) for use
+ * in contexts where session data isn't pre-loaded.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { getSessionToken } from '../../lib/authUtils';
 
 // Generates a map of dates to intensities based on session count
 function buildDateMap(sessionHistory) {
@@ -222,3 +225,44 @@ const styles = {
         margin: '0 4px',
     }
 };
+
+/**
+ * ═══ PHASE 21: Self-fetching wrapper ═══
+ * Fetches all sessions for a user and renders the streak map.
+ * Use this in contexts where session data isn't available as a prop.
+ */
+export function StudyStreakMapAuto({ userId, gameId }) {
+    const [sessions, setSessions] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchAllSessions = useCallback(async () => {
+        if (!userId) { setLoading(false); return; }
+        try {
+            const token = getSessionToken();
+            const params = new URLSearchParams({ limit: '500' });
+            if (gameId) params.set('gameId', gameId);
+            const res = await fetch(`/api/training/get-sessions?${params}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            });
+            const data = await res.json();
+            if (data.success && data.sessions) {
+                setSessions(data.sessions);
+            }
+        } catch (err) {
+            console.warn('[StudyStreakMap] Fetch error:', err.message);
+        }
+        setLoading(false);
+    }, [userId, gameId]);
+
+    useEffect(() => { fetchAllSessions(); }, [fetchAllSessions]);
+
+    if (loading) {
+        return (
+            <div style={{ ...styles.container, textAlign: 'center', padding: 20 }}>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Loading study routine...</div>
+            </div>
+        );
+    }
+
+    return <StudyStreakMap sessionHistory={sessions} />;
+}

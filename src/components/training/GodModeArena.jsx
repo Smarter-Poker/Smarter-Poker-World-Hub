@@ -37,6 +37,9 @@ import { checkAllAchievements } from './utils/achievementChecker';
 // ═══ PHASE 20: EV Graph + GTO Deviation Heatmap ═══
 import EVGraph from './EVGraph';
 import GTODeviationHeatmap from './GTODeviationHeatmap';
+// ═══ PHASE 21: Study Streak Map + Ghost Replay ═══
+import { StudyStreakMapAuto } from './StudyStreakMap';
+import GhostReplayEngine from './GhostReplayEngine';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -933,6 +936,7 @@ function GodModeArenaInner({
     const [shareStatus, setShareStatus] = useState(null); // 'success' | 'error' | null
     // ═══ PHASE 19: Share Card + Achievements ═══
     const [showShareCard, setShowShareCard] = useState(false);
+    const [showGhostReplay, setShowGhostReplay] = useState(false);
     const [sessionAchievements, setSessionAchievements] = useState([]);
     const achievementsCheckedRef = useRef(false);
 
@@ -1810,6 +1814,26 @@ function GodModeArenaInner({
                             </motion.button>
                         </div>
 
+                        {/* ═══ PHASE 21: Ghost Replay — Review hands with GTO overlay ═══ */}
+                        {handHistory.length > 0 && (
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => setShowGhostReplay(true)}
+                                style={{
+                                    width: '100%', padding: '10px 0', marginBottom: 12,
+                                    borderRadius: 10,
+                                    border: '1px solid rgba(168, 85, 247, 0.25)',
+                                    background: 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(139,92,246,0.04))',
+                                    color: '#a78bfa', fontSize: 12, fontWeight: 700,
+                                    cursor: 'pointer', letterSpacing: 0.5,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                }}
+                            >
+                                <span style={{ fontSize: 14 }}>👻</span> Ghost Replay — Review with GTO Line
+                            </motion.button>
+                        )}
+
                     </>)}
 
                     {/* ═══ TAB: HANDS ═══ */}
@@ -1894,6 +1918,11 @@ function GodModeArenaInner({
                             gamesCompleted={1}
                         />
 
+                        {/* ═══ PHASE 21: Study Streak Map — Training consistency ═══ */}
+                        {userId && (
+                            <StudyStreakMapAuto userId={userId} gameId={gameId} />
+                        )}
+
                         {/* ═══ PHASE 16: Cross-Session Analytics ═══ */}
                         <PerformanceTrends gameId={gameId} userId={userId} days={30} compact={false} />
 
@@ -1974,6 +2003,15 @@ function GodModeArenaInner({
                             setTimerMode={setTimerMode}
                         />
                     </AnimatePresence>
+
+                    {/* ═══ PHASE 21: Ghost Replay Modal ═══ */}
+                    {showGhostReplay && (
+                        <GhostReplayEngine
+                            sessionName={gameName}
+                            handHistory={handHistory}
+                            onClose={() => setShowGhostReplay(false)}
+                        />
+                    )}
 
                     {/* ═══ PHASE 19: Share Card Modal ═══ */}
                     {showShareCard && (

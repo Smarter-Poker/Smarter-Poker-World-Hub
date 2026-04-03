@@ -8,6 +8,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import RangeGrid from './RangeGrid';
 import SolverLineSummary from './SolverLineSummary';
+// ═══ PHASE 21: Blocker Analysis + Equity Matchup ═══
+import BlockerScorePanel from './BlockerScorePanel';
+import EquityMatchup from './EquityMatchup';
 
 // Card display helper — renders a poker card (value + suit)
 function MiniCard({ card, size = 'sm' }) {
@@ -225,6 +228,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                             actions={Object.keys(handData.rawFrequencies)}
                             board={handData.board}
                             heroPosition={handData.heroPosition}
+                            heroCards={handData.heroCards}
                         />
                     )}
 
@@ -297,7 +301,7 @@ export default function HandReplayViewer({ handHistory, onClose }) {
  * Shows the full 13×13 solver range colored by action frequency.
  * Collapsed by default to avoid overwhelming the hand review.
  */
-function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPosition }) {
+function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPosition, heroCards }) {
     const [expanded, setExpanded] = useState(false);
 
     // Convert rawFrequencies to RangeGrid's gridData format
@@ -329,7 +333,71 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
         return cards;
     }, [board]);
 
+    // ═══ PHASE 21: Parse hero's held cards for blocker analysis ═══
+    const heldCards = useMemo(() => {
+        if (heroCards && Array.isArray(heroCards)) return heroCards;
+        if (heroCards && typeof heroCards === 'string') {
+            // Parse "AhKd" style string into ['Ah', 'Kd']
+            const cleaned = heroCards.replace(/\s+/g, '');
+            const cards = [];
+            for (let i = 0; i < cleaned.length; i += 2) {
+                if (i + 1 < cleaned.length) cards.push(cleaned.substring(i, i + 2));
+            }
+            return cards;
+        }
+        return [];
+    }, [heroCards]);
+
+    // ═══ PHASE 21: Compute approximate equity from solver frequencies ═══
+    const equityData = useMemo(() => {
+        if (!gridData || Object.keys(gridData).length === 0) return null;
+        // Hero equity approximation: higher betting/raising frequency = more equity
+        // Fold-heavy range = less equity for hero
+        let totalFreq = 0;
+        let aggressiveFreq = 0;
+        let passiveFreq = 0;
+        let foldFreq = 0;
+        for (const [action, handFreqs] of Object.entries(gridData)) {
+            const sum = Object.values(handFreqs).reduce((s, v) => s + (v || 0), 0);
+            const actionLower = action.toLowerCase();
+            if (actionLower.includes('fold') || actionLower === 'f') {
+                foldFreq += sum;
+            } else if (actionLower.includes('bet') || actionLower.includes('raise') || actionLower === 'r' || actionLower.startsWith('b')) {
+                aggressiveFreq += sum;
+            } else {
+                passiveFreq += sum;
+            }
+            totalFreq += sum;
+        }
+        if (totalFreq === 0) return null;
+        // Approximate: high aggression = ~55-65% equity, balanced = ~48-52%, fold-heavy = ~35-45%
+        const aggressiveRatio = aggressiveFreq / totalFreq;
+        const foldRatio = foldFreq / totalFreq;
+        const heroEq = Math.round(40 + aggressiveRatio * 25 - foldRatio * 15);
+        return { heroEquity: Math.max(15, Math.min(85, heroEq)), villainEquity: Math.max(15, Math.min(85, 100 - heroEq)) };
+    }, [gridData]);
+
     if (!gridData || Object.keys(gridData).length === 0) return null;
+
+    // ═══ PHASE 21: Build gridData for BlockerScorePanel (13x13 with cell.actions) ═══
+    const blockerGridData = useMemo(() => {
+        if (!gridData) return null;
+        const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+        const grid = Array.from({ length: 13 }, () => Array.from({ length: 13 }, () => null));
+        for (let i = 0; i < 13; i++) {
+            for (let j = 0; j < 13; j++) {
+                const handKey = i === j ? `${RANKS[i]}${RANKS[j]}`
+                    : i < j ? `${RANKS[i]}${RANKS[j]}s`
+                    : `${RANKS[j]}${RANKS[i]}o`;
+                const cellActions = {};
+                for (const [action, handFreqs] of Object.entries(gridData)) {
+                    cellActions[action] = handFreqs[handKey] || 0;
+                }
+                grid[i][j] = { actions: cellActions };
+            }
+        }
+        return grid;
+    }, [gridData]);
 
     return (
         <motion.div
@@ -371,6 +439,18 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                         transition={{ duration: 0.3 }}
                         style={{ overflow: 'hidden', marginTop: 8 }}
                     >
+                        {/* ═══ PHASE 21: Equity Matchup bar ═══ */}
+                        {equityData && (
+                            <div style={{ marginBottom: 10 }}>
+                                <EquityMatchup
+                                    heroEquity={equityData.heroEquity}
+                                    villainEquity={equityData.villainEquity}
+                                    heroPosition={heroPosition || 'Hero'}
+                                    villainPosition="Villain"
+                                />
+                            </div>
+                        )}
+
                         <RangeGrid
                             gridData={gridData}
                             actions={actions}
@@ -378,6 +458,19 @@ function RangeGridSection({ rawFrequencies, heroHand, actions, board, heroPositi
                             cellSize={22}
                             compact={true}
                         />
+
+                        {/* ═══ PHASE 21: Blocker Score Analysis ═══ */}
+                        {heldCards.length > 0 && blockerGridData && boardCards.length >= 3 && (
+                            <div style={{ marginTop: 10 }}>
+                                <BlockerScorePanel
+                                    board={boardCards}
+                                    gridData={blockerGridData}
+                                    actions={actions}
+                                    heldCards={heldCards}
+                                />
+                            </div>
+                        )}
+
                         {/* Solver strategy summary in natural language */}
                         {boardCards.length > 0 && (
                             <div style={{ marginTop: 8 }}>
