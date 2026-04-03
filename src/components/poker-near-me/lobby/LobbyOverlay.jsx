@@ -16,26 +16,24 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InteractiveTutorial, { LOBBY_TUTORIAL_STEPS } from '../InteractiveTutorial';
 
-// ─── GRID HOTSPOT MAPPING ───
 // 12 clickable areas laid over the single dynamic image, in a 4×3 grid.
 // Each entry defines the pod ID that gets opened when the hotspot is tapped.
-// badgeKey maps to a key in liveData for live count badges.
 const GRID_HOTSPOTS = [
   // Row 1
-  { id: 'nearme', label: 'Poker Near Me', badgeKey: 'venueCount' },
-  { id: 'homegames', label: 'Home Games', badgeKey: 'homeGameCount' },
-  { id: 'livegames', label: 'Live Games', badgeKey: 'liveGameCount' },
-  { id: 'tours', label: 'Poker Tours', badgeKey: 'tourCount' },
+  { id: 'nearme', label: 'Poker Near Me' },
+  { id: 'homegames', label: 'Home Games' },
+  { id: 'livegames', label: 'Live Games' },
+  { id: 'tours', label: 'Poker Tours' },
   // Row 2
-  { id: 'mapview', label: 'Map View', badgeKey: 'mappableCount' },
-  { id: 'calendar', label: 'Calendar', badgeKey: 'calendarCount' },
-  { id: 'series', label: 'Poker Series', badgeKey: 'seriesCount' },
+  { id: 'mapview', label: 'Map View' },
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'series', label: 'Poker Series' },
   { id: 'roadtrip', label: 'Trip Planner' },
   // Row 3
-  { id: 'daily', label: 'Daily Grind', badgeKey: 'dailyCount' },
-  { id: 'favorites', label: 'Saved Venues', badgeKey: 'savedCount' },
-  { id: 'social', label: 'Friends', comingSoon: true },
-  { id: 'alerts', label: 'Tournament Alerts', badgeKey: 'alertCount' },
+  { id: 'daily', label: 'Daily Grind' },
+  { id: 'favorites', label: 'Saved Venues' },
+  { id: 'social', label: 'Friends' },
+  { id: 'alerts', label: 'Tournament Alerts' },
 ];
 
 

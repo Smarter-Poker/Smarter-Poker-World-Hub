@@ -3473,12 +3473,20 @@ function MessengerPage() {
             // Link user's Supabase ID to OneSignal for targeted notifications
             setExternalUserId(user.id);
 
-            // Show prompt if not subscribed AND user hasn't already handled it
-            if (!pushSubscribed && !pushPromptHandled) {
-                const timer = setTimeout(() => {
-                    setShowPushPrompt(true);
-                }, 3000);
-                return () => clearTimeout(timer);
+            // Check Supabase for cross-device persistence (if localStorage missed it)
+            if (!pushPromptHandled) {
+                supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle().then(({ data }) => {
+                    if (data?.messenger_preferences?.pushPromptHandled) {
+                        setPushPromptHandled(true);
+                        try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
+                        return; // Don't show prompt
+                    }
+                    // Show prompt if not subscribed AND user hasn't handled it
+                    if (!pushSubscribed) {
+                        const timer = setTimeout(() => setShowPushPrompt(true), 3000);
+                        return () => clearTimeout(timer);
+                    }
+                });
             }
         }
     }, [user?.id, pushReady, pushSubscribed, pushPromptHandled, setExternalUserId]);
@@ -3964,7 +3972,10 @@ function MessengerPage() {
                             setPushPromptHandled(true);
                             try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
                             if (user?.id) {
-                                supabase.from('profiles').update({ push_notifications_handled: true }).eq('id', user.id).then(() => {});
+                                // Safe JSONB merge — preserves existing messenger_preferences
+                                const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
+                                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
+                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {});
                             }
                             setShowPushPrompt(false);
                             if (success) {
@@ -3982,12 +3993,15 @@ function MessengerPage() {
                         }}
                     >Enable</button>
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                             // Persist dismissal permanently — never ask again
                             setPushPromptHandled(true);
                             try { localStorage.setItem('messenger_push_prompt_handled', '1'); } catch {}
                             if (user?.id) {
-                                supabase.from('profiles').update({ push_notifications_handled: true }).eq('id', user.id).then(() => {});
+                                // Safe JSONB merge — preserves existing messenger_preferences
+                                const { data: cur } = await supabase.from('profiles').select('messenger_preferences').eq('id', user.id).maybeSingle();
+                                const merged = { ...(cur?.messenger_preferences || {}), pushPromptHandled: true };
+                                supabase.from('profiles').update({ messenger_preferences: merged }).eq('id', user.id).then(() => {});
                             }
                             setShowPushPrompt(false);
                         }}
