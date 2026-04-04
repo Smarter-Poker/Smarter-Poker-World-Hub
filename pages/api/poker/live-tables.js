@@ -9,6 +9,7 @@
  *   ?list=true        — Return venue name list only (for search dropdown)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
 function getSupabase() {
@@ -24,6 +25,8 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
 
   try {
     const supabase = getSupabase();

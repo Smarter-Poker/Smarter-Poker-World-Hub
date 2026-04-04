@@ -83,15 +83,11 @@ export default function LobbyOverlay({
   // ═══ RATCHET COUNTER — venue count only goes UP, never down ═══
   // Uses localStorage to persist the high-water mark across sessions.
   // Starts with the real total and only increments if new data is higher.
-  const highWaterRef = useRef(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = parseInt(localStorage.getItem('pnm_venue_hwm'), 10);
-        return isNaN(saved) ? 0 : saved;
-      } catch { return 0; }
-    }
-    return 0;
-  });
+  const highWaterRef = useRef(
+    typeof window !== 'undefined'
+      ? (() => { try { const s = parseInt(localStorage.getItem('pnm_venue_hwm'), 10); return isNaN(s) ? 0 : s; } catch { return 0; } })()
+      : 0
+  );
   const [displayVenueCount, setDisplayVenueCount] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -104,9 +100,7 @@ export default function LobbyOverlay({
 
   useEffect(() => {
     if (venueCount > 0) {
-      const currentHWM = typeof highWaterRef.current === 'function'
-        ? highWaterRef.current()
-        : highWaterRef.current;
+      const currentHWM = highWaterRef.current;
       const newHWM = Math.max(currentHWM, venueCount);
       highWaterRef.current = newHWM;
       setDisplayVenueCount(newHWM);

@@ -157,6 +157,11 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           </div>`,
         { className: 'pnm-popup' }
       );
+
+      // Fire onVenueSelect callback on marker click (enables SPA navigation)
+      if (onVenueSelect) {
+        marker.on('click', () => onVenueSelect(v));
+      }
     });
 
     // Add user location marker
