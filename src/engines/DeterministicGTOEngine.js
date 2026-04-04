@@ -1697,6 +1697,9 @@ export class DeterministicGTOEngine {
         // ═══ Phase 77: BOARD RUNOUT IMPACT ═══
         const runoutNote = this._getRunoutImpact(board, heroHand, handStrength, street, texture);
 
+        // ═══ Phase 78: EQUITY REALIZATION CONTEXT ═══
+        const eqRealizationNote = this._getEquityRealizationNote(optimalAction, handStrength, street, ctx.heroPosition, ctx.villainPosition, ctx.stackDepth, texture);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1718,7 +1721,7 @@ export class DeterministicGTOEngine {
         if (explanationDepth === 'concise') {
             extras = [sizingReason].filter(Boolean).map(s => ' ' + s).join('');
         } else {
-            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote].filter(Boolean).map(s => ' ' + s).join('');
+            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote].filter(Boolean).map(s => ' ' + s).join('');
         }
 
         // Phase 76: Coaching preamble for verbose mode
@@ -4299,6 +4302,117 @@ export class DeterministicGTOEngine {
         }
 
         return parts.join(' ');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 78: EQUITY REALIZATION CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 78: Explain equity realization — why position, hand type, and stack depth
+     * affect how much of your raw equity you can actually capture.
+     *
+     * Key concepts:
+     *   - IP (in position) realizes more equity than OOP (out of position)
+     *   - Nutted hands realize close to 100% regardless of position
+     *   - Draws with poor position realize less (can't control pot, face tough decisions)
+     *   - Short stacks reduce the equity realization gap (less postflop play)
+     *   - Dominated hands (e.g., KJo vs AK) realize poorly even with decent raw equity
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {string} heroPosition - Hero's position
+     * @param {string} villainPosition - Villain's position
+     * @param {number} stackDepth - Stack depth in BB
+     * @param {Object} texture - Board texture
+     * @returns {string} Equity realization context note
+     */
+    _getEquityRealizationNote(optimalAction, handStrength, street, heroPosition, villainPosition, stackDepth, texture) {
+        if (!handStrength || street === 'preflop') return '';
+
+        const hc = handStrength.toLowerCase();
+        const a = (optimalAction || '').toLowerCase();
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        const spr = stackDepth && stackDepth > 0 ? stackDepth / (POT_BY_STREET[street] || 6) : 10;
+
+        // Short stack SPR — equity realization matters less
+        if (spr < 2) return '';
+
+        const notes = [];
+
+        // ─── POSITION-BASED EQUITY REALIZATION ───
+        if (isIP) {
+            // IP advantages
+            if (hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd')) {
+                notes.push('Being IP lets you control pot size with draws — you can take free cards when checked to or bet when equity is high.');
+            } else if (hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('weak pair')) {
+                notes.push('IP with medium-strength hands lets you pot-control effectively — check back to realize equity cheaply.');
+            }
+        } else {
+            // OOP disadvantages
+            if (hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd')) {
+                if (a === 'c' || a === 'x') {
+                    notes.push('OOP draws realize less equity — you can\'t take free cards, and villain\'s IP bet will force tough fold-or-call decisions.');
+                } else if (a.startsWith('b') || a.startsWith('r')) {
+                    notes.push('Semi-bluffing OOP with draws is important because you can\'t rely on free cards — building the pot with equity gives you fold equity now.');
+                }
+            } else if (hc.includes('top pair') && !hc.includes('top kicker')) {
+                if (a === 'c' || a === 'x') {
+                    notes.push('OOP top pair without a great kicker struggles to realize full equity — villain can put you in tough spots with raises and barrels.');
+                }
+            } else if (hc.includes('middle pair') || hc.includes('bottom pair')) {
+                notes.push('Medium-strength hands OOP realize equity poorly — you face difficult decisions on every street without position.');
+            }
+        }
+
+        // ─── HAND TYPE EQUITY REALIZATION ───
+        if (hc.includes('nut') || hc.includes('full house') || hc.includes('quads') || hc.includes('set')) {
+            // Nutted hands realize well regardless
+            if (notes.length === 0 && spr > 4) {
+                notes.push('Strong made hands realize close to 100% of their equity — focus on maximizing value across streets.');
+            }
+        }
+
+        // ─── DOMINATION EFFECTS ───
+        if (hc.includes('air') || hc.includes('no pair')) {
+            if (!isIP && (a === 'c' || a === 'x')) {
+                notes.push('With no made hand or draw, your equity realization is near zero — without fold equity or draw equity, checking and giving up is often correct.');
+            }
+        }
+
+        // ─── STACK DEPTH EFFECTS ───
+        if (spr > 8 && !isIP && (hc.includes('pair') || hc.includes('draw'))) {
+            if (notes.length > 0) {
+                notes.push(`Deep stacks (SPR ${spr.toFixed(0)}) amplify the positional disadvantage — more streets of play means more decisions OOP.`);
+            }
+        } else if (spr >= 2 && spr <= 4 && notes.length > 0) {
+            notes.push(`Shorter effective stacks (SPR ${spr.toFixed(0)}) reduce the equity realization gap — fewer remaining decisions.`);
+        }
+
+        // ─── WET BOARD EQUITY REALIZATION ───
+        if (texture && texture.wet && !isIP && hc.includes('pair') && !hc.includes('two pair') && !hc.includes('overpair')) {
+            if (notes.length === 0) {
+                notes.push('On wet boards OOP, one-pair hands struggle to realize equity — many turn and river cards can complete villain\'s draws.');
+            }
+        }
+
+        if (notes.length === 0) return '';
+        return 'Equity realization: ' + notes.slice(0, 2).join(' ');
+    }
+
+    /**
+     * Phase 78: Determine if hero is in position relative to villain.
+     */
+    _isInPosition(heroPos, villainPos) {
+        if (!heroPos || !villainPos) return false;
+        const posOrder = { 'UTG': 0, 'UTG+1': 1, 'MP': 2, 'MP+1': 3, 'HJ': 4, 'CO': 5, 'BTN': 6, 'SB': 7, 'BB': 8 };
+        // In postflop, BTN is last to act, then CO, etc. SB and BB act first.
+        // Postflop order: SB(first) → BB → UTG → ... → BTN(last)
+        const postflopOrder = { 'SB': 0, 'BB': 1, 'UTG': 2, 'UTG+1': 3, 'MP': 4, 'MP+1': 5, 'HJ': 6, 'CO': 7, 'BTN': 8 };
+        const heroOrder = postflopOrder[heroPos] ?? posOrder[heroPos] ?? 0;
+        const villainOrder = postflopOrder[villainPos] ?? posOrder[villainPos] ?? 0;
+        return heroOrder > villainOrder; // Higher = later to act = in position
     }
 }
 
