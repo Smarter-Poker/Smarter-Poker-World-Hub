@@ -6102,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '3.2.0-phase250',
-            phasesImplemented: 250,
+            version: '3.3.0-phase260',
+            phasesImplemented: 260,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6145,6 +6145,8 @@ export class DeterministicGTOEngine {
                 phase233_239: ['rangeAdvantageScore', 'villainRangeNarrowing', 'handEquityEstimate', 'drawEquityCalc', 'foldEquityCalc', 'evCalculator', 'bluffValueRatio'],
                 phase240_245: ['sessionLeaderboard', 'trainingCalendar', 'conceptFlashcards', 'quickFireDrills', 'textureClassification12', 'actionTreeViz'],
                 phase246_250: ['rangeVsRange', 'tournamentAdjustments', 'multiTableTips', 'tiltDetection', 'trainingDashboard'],
+                phase251_255: ['structuredExplanations', 'leakReport', 'keyTakeaways', 'conceptSurface', 'patternRecognition'],
+                phase256_260: ['sessionGrading', 'improvementVelocity', 'spotDifficulty', 'mistakeClassification', 'drillPrescription'],
             },
             totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },

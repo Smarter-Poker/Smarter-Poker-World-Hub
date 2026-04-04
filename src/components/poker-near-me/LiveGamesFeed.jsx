@@ -33,10 +33,18 @@ function normalizeVenueName(name) {
 }
 
 // ─── Significant words for word-overlap matching ───
-const STOP_WORDS = new Set(['casino', 'resort', 'hotel', 'poker', 'room', 'the', 'and', 'at', 'of', 'in']);
+// Stop words: common venue, location, and tournament-series terms that cause false positives
+const STOP_WORDS = new Set([
+    'casino', 'resort', 'hotel', 'poker', 'room', 'the', 'and', 'at', 'of', 'in',
+    'bar', 'lounge', 'club', 'card', 'house', 'center', 'spa',
+    'las', 'vegas', 'city', 'park', 'lake', 'valley', 'north', 'south', 'east', 'west',
+    'series', 'classic', 'championship', 'tournament',
+]);
 function getSignificantWords(normalized) {
     return normalized.split(' ').filter(w => w.length >= 3 && !STOP_WORDS.has(w));
 }
+// Tour/series entries should never be matched as physical venues
+const SERIES_PATTERN = /\b(series|classic|championship|circuit)\b/i;
 
 // Dynamically import map to avoid SSR issues
 const VenueMapPanel = dynamic(() => import('./VenueMapPanel'), { ssr: false });
@@ -343,16 +351,20 @@ export default function LiveGamesFeed({
             // Layer 3b: Normalized name match (strips &→and, punctuation, etc.)
             const normName = normalizeVenueName(venueName);
             if (normName && venueByNormName[normName]) return venueByNormName[normName];
-            // Layer 4: Significant word overlap (≥50% shared words)
+            // Layer 4: Significant word overlap (≥0.6 score, skip series/tour entries)
             if (normName) {
                 const queryWords = getSignificantWords(normName);
                 if (queryWords.length >= 1) {
                     let bestMatch = null;
                     let bestScore = 0;
                     for (const entry of venueWordIndex) {
+                        // Skip tour/series entries — they're not physical venues
+                        if (SERIES_PATTERN.test(entry.venue.name || '')) continue;
+                        if (entry.venue.venue_type === 'series' || entry.venue.venue_type === 'tour') continue;
                         const shared = queryWords.filter(w => entry.words.includes(w)).length;
                         const score = shared / Math.max(queryWords.length, entry.words.length);
-                        if (shared >= Math.max(1, Math.ceil(queryWords.length * 0.5)) && score > bestScore) {
+                        const minShared = queryWords.length >= 2 ? 2 : 1;
+                        if (shared >= minShared && score >= 0.6 && score > bestScore) {
                             bestScore = score;
                             bestMatch = entry.venue;
                         }
@@ -822,9 +834,12 @@ export default function LiveGamesFeed({
                 if (qw.length >= 1) {
                     let best = null, bestS = 0;
                     for (const e of wordIdx) {
+                        if (SERIES_PATTERN.test(e.venue.name || '')) continue;
+                        if (e.venue.venue_type === 'series' || e.venue.venue_type === 'tour') continue;
                         const shared = qw.filter(w => e.words.includes(w)).length;
                         const sc = shared / Math.max(qw.length, e.words.length);
-                        if (shared >= Math.max(1, Math.ceil(qw.length * 0.5)) && sc > bestS) { bestS = sc; best = e.venue; }
+                        const minSh = qw.length >= 2 ? 2 : 1;
+                        if (shared >= minSh && sc >= 0.6 && sc > bestS) { bestS = sc; best = e.venue; }
                     }
                     if (best) return best;
                 }

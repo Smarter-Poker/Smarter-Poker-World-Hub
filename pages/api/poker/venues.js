@@ -305,19 +305,29 @@ export default async function handler(req, res) {
                           return vNorm === searchNorm;
                       });
                       
-                      // Pass 3: Significant word overlap
+                      // Pass 3: Significant word overlap (with false-positive guards)
                       if (!slugMatch) {
-                          const stopWords = new Set(['casino', 'resort', 'hotel', 'poker', 'room', 'the', 'and', 'at', 'of', 'in']);
+                          const stopWords = new Set([
+                              'casino', 'resort', 'hotel', 'poker', 'room', 'the', 'and', 'at', 'of', 'in',
+                              'bar', 'lounge', 'club', 'card', 'house', 'center', 'spa',
+                              'las', 'vegas', 'city', 'park', 'lake', 'valley', 'north', 'south', 'east', 'west',
+                              'series', 'classic', 'championship', 'tournament',
+                          ]);
+                          const seriesPattern = /\b(series|classic|championship|circuit)\b/i;
                           const queryWords = searchNorm.split(' ').filter(w => w.length >= 3 && !stopWords.has(w));
                           if (queryWords.length >= 1) {
                               let bestScore = 0;
                               for (const v of jsonVenues) {
                                   if (!v.name) continue;
+                                  // Skip tour/series entries
+                                  if (seriesPattern.test(v.name)) continue;
+                                  if (v.venue_type === 'series' || v.venue_type === 'tour') continue;
                                   const vNorm = v.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
                                   const vWords = vNorm.split(' ').filter(w => w.length >= 3 && !stopWords.has(w));
                                   const shared = queryWords.filter(w => vWords.includes(w)).length;
                                   const score = shared / Math.max(queryWords.length, vWords.length);
-                                  if (shared >= Math.max(1, Math.ceil(queryWords.length * 0.5)) && score > bestScore) {
+                                  const minShared = queryWords.length >= 2 ? 2 : 1;
+                                  if (shared >= minShared && score >= 0.6 && score > bestScore) {
                                       bestScore = score;
                                       slugMatch = v;
                                   }
