@@ -949,6 +949,21 @@ function ClassificationFlashBanner({ classification, evLoss, show }) {
                         -{evLoss.toFixed(2)} EV
                     </span>
                 )}
+                {evLoss > 0 && (
+                    <span style={{
+                        fontSize: 9,
+                        fontWeight: 600,
+                        color: evLoss >= 0.5 ? '#fca5a5' : evLoss >= 0.2 ? '#fde68a' : '#94a3b8',
+                        fontFamily: "'Inter', sans-serif",
+                        opacity: 0.85,
+                    }}>
+                        {evLoss >= 1.0 ? 'Critical mistake — costs 1+ BB/hand' :
+                         evLoss >= 0.5 ? 'Significant — adds up over many hands' :
+                         evLoss >= 0.2 ? 'Moderate — small leak to fix' :
+                         evLoss >= 0.05 ? 'Minor — close decision' :
+                         'Tiny — negligible difference'}
+                    </span>
+                )}
                 {isBestOrCorrect && evLoss === 0 && (
                     <span style={{
                         fontSize: 11,
@@ -3779,6 +3794,29 @@ function UniversalDynamicTable({
                                                         color: '#fbbf24', fontSize: 10,
                                                     }}>
                                                         {mistakeFeedback}
+                                                    </div>
+                                                )}
+
+                                                {/* Phase 65: EV loss severity context */}
+                                                {evLoss > 0 && selectedAnswer !== correctAnswer && (
+                                                    <div style={{
+                                                        marginBottom: 4, padding: '5px 8px',
+                                                        background: evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(251, 191, 36, 0.06)',
+                                                        borderRadius: 6,
+                                                        border: `1px solid ${evLoss >= 0.5 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(251, 191, 36, 0.12)'}`,
+                                                        fontSize: 9, color: evLoss >= 0.5 ? '#fca5a5' : '#fde68a', lineHeight: 1.5,
+                                                    }}>
+                                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EV IMPACT: </span>
+                                                        {evLoss >= 1.0
+                                                            ? `Losing ${evLoss.toFixed(2)} BB/hand is a critical leak. Over 1000 hands, this costs ~${Math.round(evLoss * 10)} BB in profit. Fix this spot immediately.`
+                                                            : evLoss >= 0.5
+                                                            ? `Losing ${evLoss.toFixed(2)} BB/hand is significant. Over 1000 hands in similar spots (~5% frequency), this costs ~${Math.round(evLoss * 50)} BB.`
+                                                            : evLoss >= 0.2
+                                                            ? `Losing ${evLoss.toFixed(2)} BB/hand is a moderate leak. Fixing these marginal spots separates good players from great ones.`
+                                                            : evLoss >= 0.05
+                                                            ? `Losing ${evLoss.toFixed(2)} BB/hand is a small inaccuracy. This was a close decision — both actions have similar EV.`
+                                                            : `A ${evLoss.toFixed(2)} BB loss is negligible — the two actions are nearly identical in EV. Don't stress this one.`
+                                                        }
                                                     </div>
                                                 )}
 
