@@ -53,7 +53,8 @@ export default function UniversalHeader({
     showSearch = false,
     onSearchClick = null,
     onMenuClick = null,  // Callback for hamburger menu click
-    onSettingsClick = null  // Override for settings gear — opens page-specific settings instead of global
+    onSettingsClick = null,  // Override for settings gear — opens page-specific settings instead of global
+    onBackClick = null // Override for back navigation
 }) {
     const router = useRouter();
 
@@ -907,7 +908,6 @@ export default function UniversalHeader({
             <header className="universal-header">
                 {/* LEFT: Hamburger Menu + Back/Hub Button + "Smarter.Poker" */}
                 <div className="header-left">
-                    {/* Hamburger Menu - only shows when onMenuClick is provided */}
                     {onMenuClick && (
                         <button
                             onClick={onMenuClick}
@@ -918,7 +918,7 @@ export default function UniversalHeader({
                         </button>
                     )}
                     <button
-                        onClick={pageDepth >= 2 ? handleBack : () => router.push('/hub')}
+                        onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => router.push('/hub'))}
                         className="header-img-btn header-nav-btn"
                     >
                         <img

@@ -261,7 +261,10 @@ export default function SeriesDetailPage() {
           description="Smarter.Poker — The Future Of The Game."
           noindex={true}
         />
-        <UniversalHeader pageDepth={2} />
+        <UniversalHeader 
+          pageDepth={2} 
+          onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
+        />
         <div className="series-page">
           <div className="loading-container">
             <div className="loading-spinner" />
@@ -278,7 +281,10 @@ export default function SeriesDetailPage() {
     return (
       <>
         <Head><title>Series Not Found | Smarter.Poker</title></Head>
-        <UniversalHeader pageDepth={2} />
+        <UniversalHeader 
+          pageDepth={2} 
+          onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
+        />
         <div className="series-page">
           <div className="error-container">
             <h2 className="error-title">Series Not Found</h2>
@@ -307,7 +313,10 @@ export default function SeriesDetailPage() {
         
                 
       </Head>
-      <UniversalHeader pageDepth={2} />
+      <UniversalHeader 
+        pageDepth={2} 
+        onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
+      />
 
       <div className="series-page">
         {/* Back Button */}

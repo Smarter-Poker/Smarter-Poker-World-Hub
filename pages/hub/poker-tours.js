@@ -86,6 +86,7 @@ export default function PokerToursPage() {
     const [tours, setTours] = useState([]);
     const [loading, setLoading] = useState(true);
     const [allVenues, setAllVenues] = useState([]);
+    const [userLocation, setUserLocation] = useState(null);
 
     // ─── Filter State ───
     const [searchQuery, setSearchQuery] = useState('');
@@ -102,6 +103,15 @@ export default function PokerToursPage() {
     // ─── Fetch tours data ───
     useEffect(() => {
         setLoading(true);
+        
+        // Try to get user location for the map
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => {} // silent fail
+            );
+        }
+
         fetch('/api/poker/tours?include_series=true&traveling_only=true&limit=100')
             .then(r => r.json())
             .then(json => {
@@ -330,10 +340,45 @@ export default function PokerToursPage() {
 
         tours.forEach(tour => {
             const stopInfo = tourCurrentStops[tour.tour_code];
-            const stop = stopInfo?.activeStop;
-            if (!stop) return;
+            let stop = stopInfo?.activeStop;
+            
+            // If the tour has NO active/upcoming stop, mock one for its headquarters to ensure the pin is dropped
+            if (!stop) {
+                stop = { name: `${tour.tour_code} Headquarters`, city: (tour.headquarters || '').split(',')[0]?.trim() || '', location: tour.headquarters, isMock: true };
+            }
 
-            const venueMatch = findVenueCoords(stop);
+            let venueMatch = findVenueCoords(stop);
+
+            // Ultimate fallback if findVenueCoords still failed: manually check CITY_COORDS using headquarters
+            if (!venueMatch && tour.headquarters) {
+                const hqKey = tour.headquarters.toLowerCase().trim();
+                const hqCity = tour.headquarters.split(',')[0]?.trim() || '';
+                const hqState = tour.headquarters.split(',')[1]?.trim() || '';
+                
+                // Fallback coordinates directly extracted from CITY_COORDS or safe default
+                const hardCoords = {
+                    'las vegas, nv': { lat: 36.1699, lng: -115.1398 },
+                    'hollywood, fl': { lat: 26.0112, lng: -80.1495 },
+                    'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
+                    'lincoln, ca': { lat: 38.8916, lng: -121.2930 },
+                    'durant, ok': { lat: 33.9943, lng: -96.3709 },
+                    'elgin, il': { lat: 42.0354, lng: -88.2826 },
+                    'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
+                    'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
+                    'houston, tx': { lat: 29.7604, lng: -95.3698 }, // common fallback
+                    'fargo, nd': { lat: 46.8772, lng: -96.7898 },
+                    'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
+                    'los angeles, ca': { lat: 34.0522, lng: -118.2437 }
+                }[hqKey] || { lat: 39.8283, lng: -98.5795 };
+                
+                venueMatch = {
+                    latitude: hardCoords.lat,
+                    longitude: hardCoords.lng,
+                    city: hqCity,
+                    state: hqState
+                };
+            }
+
             if (!venueMatch) return;
 
             // Use tour_code as key instead of lat/lng to guarantee one per tour
@@ -583,7 +628,7 @@ export default function PokerToursPage() {
                             <MapErrorBoundary>
                             <VenueMap
                                 venues={tourVenuesForMap}
-                                userLocation={null}
+                                userLocation={userLocation}
                                 hideLegend={true}
                                 uniformColor="#ffffff"
                             />

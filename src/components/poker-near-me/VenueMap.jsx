@@ -268,23 +268,33 @@ function truncateName(name, maxLen) {
 }
 
 // ─── Helper: Create venue marker icon (Google Maps-style pin with label) ───
-function createVenueIcon(L, venueType, overrideColor, venueName) {
+function createVenueIcon(L, venue, overrideColor) {
   const colors = overrideColor
     ? { fill: overrideColor, glow: overrideColor + '80' }
-    : (VENUE_TYPE_COLORS[venueType] || DEFAULT_VENUE_COLOR);
-  const label = truncateName(venueName, 20);
+    : (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR);
+  const label = truncateName(venue.name, 20);
   const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  
+  const logoUrl = venue.logo_url || venue.profile_photo_url || venue.image_url;
+  
+  const innerContent = logoUrl 
+    ? `<div style="position:absolute; top:3px; left:4px; width:20px; height:20px; border-radius:50%; overflow:hidden; background:#000; display:flex; align-items:center; justify-content:center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);">
+         <img src="${logoUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />
+       </div>`
+    : `<circle cx="14" cy="13" r="6" fill="#fff" opacity="0.95"/>
+       <circle cx="14" cy="13" r="4" fill="${colors.fill}" opacity="0.9"/>`;
+
   return L.divIcon({
     className: 'venue-map-marker',
     html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center;">
-      <div style="filter:drop-shadow(0 3px 4px rgba(0,0,0,0.7));">
+      <div style="filter:drop-shadow(0 3px 4px rgba(0,0,0,0.7)); position:relative;">
         <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="${colors.fill}"/>
           <path d="M14 1C6.82 1 1 6.82 1 14c0 4.5 2.5 9.8 6.3 14.5C10.3 32.3 13 34.8 14 35.7c1-0.9 3.7-3.4 6.7-7.2C24.5 23.8 27 18.5 27 14 27 6.82 21.18 1 14 1z" fill="url(#pinGrad_${colors.fill.replace('#','')})"/>
-          <circle cx="14" cy="13" r="6" fill="#fff" opacity="0.95"/>
-          <circle cx="14" cy="13" r="4" fill="${colors.fill}" opacity="0.9"/>
+          ${!logoUrl ? innerContent : ''}
           <defs><linearGradient id="pinGrad_${colors.fill.replace('#','')}" x1="14" y1="0" x2="14" y2="36"><stop offset="0%" stop-color="#fff" stop-opacity="0.25"/><stop offset="100%" stop-color="#000" stop-opacity="0.15"/></linearGradient></defs>
         </svg>
+        ${logoUrl ? innerContent : ''}
       </div>
       ${escapedLabel ? `<div class="venue-pin-label">${escapedLabel}</div>` : ''}
     </div>`,
@@ -371,7 +381,7 @@ function createTourLogoIcon(L, venue) {
       className: 'tour-logo-marker',
       html: `<div style="position:relative;width:42px;height:42px;">
         ${pulseRing}
-        <div style="position:absolute;inset:0;border-radius:50%;background:#0a0a15;border:2.5px solid ${tourColor};box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
           <img src="${logoUrl}" alt="" style="width:32px;height:32px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
           <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${(venue.tour_code || '').slice(0, 4)}</div>
         </div>
@@ -423,7 +433,7 @@ function buildTourPopupHtml(venue) {
     <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${venue.stop_name || venue.name || 'Tour Stop'}</div>
     ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${venue.dates}</div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <a href="/hub/tours/${venue.tour_code}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;">View Tour</a>
+      <button class="fsp-trigger" data-url="/hub/tours/${venue.tour_code}" data-title="${venue.tour_name || venue.tour_code}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;border:none;cursor:pointer;">View Tour</button>
       <a href="https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}" target="_blank" rel="noopener" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;">Directions</a>
     </div>
   </div>`;
@@ -466,14 +476,14 @@ function buildPopupHtml(venue) {
       <div style="font-size:11px;color:rgba(148,163,184,0.5);">${venue.trust_score || '—'}/5</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <a href="${detailPath}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;">View Details</a>
+      <button class="fsp-trigger" data-url="${detailPath}" data-title="${venue.name || 'Venue Details'}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;border:none;cursor:pointer;">View Details</button>
       <a href="https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}" target="_blank" rel="noopener" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;transition:all 0.15s;">Directions</a>
     </div>
   </div>`;
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor }) {
+export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -569,7 +579,29 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   // Initialize map once Leaflet is ready
   useEffect(() => {
     if (!mapReady || !mapContainerRef.current) return;
-    if (mapInstanceRef.current) return;
+    
+    // Delegate clicks for popup buttons
+    const handlePopupClicks = (e) => {
+      const trigger = e.target.closest('.fsp-trigger');
+      if (trigger) {
+        e.preventDefault();
+        const url = trigger.getAttribute('data-url');
+        const title = trigger.getAttribute('data-title');
+        if (onOpenIframeModal) {
+          onOpenIframeModal(url, title);
+        } else {
+          window.location.href = url;
+        }
+      }
+    };
+    
+    // Attach to the container so it catches all popup clicks
+    const container = mapContainerRef.current;
+    container.addEventListener('click', handlePopupClicks);
+    
+    if (mapInstanceRef.current) {
+        return () => container.removeEventListener('click', handlePopupClicks);
+    }
 
     const L = window.L;
     // Continental US bounds — tight fit
@@ -729,12 +761,15 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     }
 
     return () => {
-      map.remove();
-      mapInstanceRef.current = null;
+      container.removeEventListener('click', handlePopupClicks);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
       clusterGroupRef.current = null;
       circlesGroupRef.current = null;
     };
-  }, [mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapReady, onOpenIframeModal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ═══ UPDATE MARKERS when venues prop changes ═══
   useEffect(() => {
@@ -754,7 +789,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const isTourStop = venue.venue_type === 'tour_stop' && venue.tour_code;
       const venueIcon = isTourStop
         ? createTourLogoIcon(L, venue)
-        : createVenueIcon(L, venue.venue_type, uniformColor || null, venue.name);
+        : createVenueIcon(L, venue, uniformColor || null);
       const popupHtml = isTourStop
         ? buildTourPopupHtml(venue)
         : buildPopupHtml(venue);
@@ -775,10 +810,10 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
       marker._venueCircle = circle;
       marker._venueData = venue;
-      marker.on('popupopen', function() {
-        if (onVenueClick && venue.id) {
-          onVenueClick(venue);
-        }
+      
+      // Hover preview integration
+      marker.on('mouseover', function() {
+        marker.openPopup();
       });
 
       clusterGroup.addLayer(marker);
@@ -848,16 +883,16 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     map.setView([center.lat, center.lng], zoom, { animate: true, duration: 0.8 });
     
     // ═══ VISUAL RADIUS CIRCLE OVERLAY ═══
-    // Draw a translucent gold circle showing the search boundary
+    // Draw a prominent gold circle showing the search boundary
     const radiusMeters = Number(radiusMiles) * 1609.34; // miles → meters
     radiusCircleRef.current = L.circle([center.lat, center.lng], {
       radius: radiusMeters,
       color: '#d4a853',
-      weight: 1.5,
-      opacity: 0.5,
+      weight: 2.5,
+      opacity: 0.85,
       fillColor: '#d4a853',
-      fillOpacity: 0.04,
-      dashArray: '8, 6',
+      fillOpacity: 0.08,
+      dashArray: '10, 10',
       interactive: false,
     }).addTo(map);
   }, [radiusMiles, centerLocation, userLocation, mapReady]);

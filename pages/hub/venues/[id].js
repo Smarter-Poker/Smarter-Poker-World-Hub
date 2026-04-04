@@ -1033,7 +1033,10 @@ export default function VenueDetailPage() {
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </SEOHead>
 
-      <UniversalHeader pageDepth={2} />
+      <UniversalHeader 
+        pageDepth={2} 
+        onBackClick={() => router.push('/hub/poker-near-me')}
+      />
 
       <div className="venue-page">
         {loading && (

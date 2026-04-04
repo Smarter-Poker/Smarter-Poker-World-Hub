@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -190,37 +191,79 @@ const TOURNAMENT_CHALLENGES = [
     },
 ];
 
-// Ghost player pool — simulated opponents that feel like real players
-const GHOST_PLAYERS = [
-    { name: 'GTO_Shark', avatar: '🦈' },
-    { name: 'RangeGuru', avatar: '🧙' },
-    { name: 'PokerWiz', avatar: '🎩' },
-    { name: 'SolverPro', avatar: '🤖' },
-    { name: 'ACE_Hunter', avatar: '🎯' },
-    { name: 'NitQueen', avatar: '👑' },
-    { name: 'BluffMaster', avatar: '🃏' },
-    { name: 'EV_Wizard', avatar: '🧮' },
-    { name: 'RangeSniper', avatar: '🎯' },
-    { name: 'MixedFreqPro', avatar: '🔀' },
-    { name: 'EquityKing', avatar: '📊' },
-    { name: 'OmahaKid', avatar: '🎲' },
-    { name: 'ICM_Lord', avatar: '♟️' },
-    { name: 'StackAttack', avatar: '💰' },
-    { name: 'FinalTablePro', avatar: '🏆' },
-    { name: 'xPolarizedx', avatar: '⚡' },
-    { name: 'NodeLockr', avatar: '🔒' },
-    { name: 'BarrelKing99', avatar: '🛢️' },
-    { name: 'FlopTexturePro', avatar: '🧩' },
-    { name: 'VillainReader', avatar: '👁️' },
-];
+// Avatar assignment by specialty
+const SPECIALTY_AVATARS = {
+    cash_games: '💰', tournaments: '🏆', high_stakes: '🎩', mixed_games: '🔀',
+    online: '💻', live: '🎯', plo: '🃏', stud: '♠️',
+};
+const FALLBACK_AVATARS = ['🦈', '🧙', '🎩', '🤖', '🎯', '👑', '🃏', '⚡', '🔒', '🧩', '💎', '🛡️', '📊', '🎲', '🏅'];
 
-const getSimulatedOpponent = (playerElo) => {
+// Horse pool — loaded from Supabase content_authors (300+ real personas)
+let _horsesCache = null;
+let _horsesFetchPromise = null;
+
+async function loadHorses() {
+    if (_horsesCache) return _horsesCache;
+    if (_horsesFetchPromise) return _horsesFetchPromise;
+
+    _horsesFetchPromise = (async () => {
+        try {
+            const { data, error } = await supabase
+                .from('content_authors')
+                .select('alias, name, location, specialty, stakes')
+                .order('name');
+
+            if (error || !data || data.length === 0) {
+                console.warn('[Tournament] Failed to load horses, using fallback');
+                return null;
+            }
+
+            _horsesCache = data.map(h => ({
+                name: h.alias || h.name,
+                displayName: h.name,
+                location: h.location,
+                specialty: h.specialty,
+                stakes: h.stakes,
+                avatar: SPECIALTY_AVATARS[h.specialty] || FALLBACK_AVATARS[Math.floor(Math.random() * FALLBACK_AVATARS.length)],
+            }));
+            console.log(`[Tournament] Loaded ${_horsesCache.length} horses from Supabase`);
+            return _horsesCache;
+        } catch (err) {
+            console.warn('[Tournament] Horse fetch error:', err);
+            return null;
+        } finally {
+            _horsesFetchPromise = null;
+        }
+    })();
+    return _horsesFetchPromise;
+}
+
+// Eagerly start loading horses when this module loads
+if (typeof window !== 'undefined') loadHorses();
+
+const getSimulatedOpponent = (playerElo, horses) => {
     const eloVariance = Math.random() * 300 - 150; // ±150 ELO
-    const ghost = GHOST_PLAYERS[Math.floor(Math.random() * GHOST_PLAYERS.length)];
+
+    if (horses && horses.length > 0) {
+        const horse = horses[Math.floor(Math.random() * horses.length)];
+        return {
+            name: horse.name,
+            displayName: horse.displayName,
+            location: horse.location,
+            elo: Math.round(playerElo + eloVariance),
+            avatar: horse.avatar,
+        };
+    }
+
+    // Fallback if Supabase unavailable
+    const names = ['GTO_Shark', 'RangeGuru', 'PokerWiz', 'SolverPro', 'ACE_Hunter', 'NitQueen', 'BluffMaster', 'EV_Wizard'];
+    const idx = Math.floor(Math.random() * names.length);
     return {
-        name: ghost.name,
+        name: names[idx],
+        displayName: names[idx],
+        location: '',
         elo: Math.round(playerElo + eloVariance),
-        avatar: ghost.avatar,
+        avatar: FALLBACK_AVATARS[idx % FALLBACK_AVATARS.length],
     };
 };
 
@@ -297,8 +340,14 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     const [matchmakingPhase, setMatchmakingPhase] = useState('searching'); // 'searching' | 'found' | 'loading'
     const [searchTimer, setSearchTimer] = useState(0);
     const [playersOnline, setPlayersOnline] = useState(0);
+    const [horses, setHorses] = useState(null);
     const matchRef = useRef([]);
     const searchTimerRef = useRef(null);
+
+    // Load horses from Supabase on mount
+    useEffect(() => {
+        loadHorses().then(data => { if (data) setHorses(data); });
+    }, []);
 
     const ROUNDS_PER_MATCH = 5;
 
@@ -323,7 +372,9 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
         setMatchState('matching');
         setMatchmakingPhase('searching');
         setSearchTimer(0);
-        setPlayersOnline(Math.floor(Math.random() * 80) + 120); // 120-200 "online"
+        // Use horse count as base for "players online" — feels authentic
+        const horseCount = horses?.length || 100;
+        setPlayersOnline(Math.floor(Math.random() * Math.min(horseCount, 80)) + Math.floor(horseCount * 0.6));
 
         // Animate the search timer
         let elapsed = 0;
@@ -342,7 +393,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             clearInterval(searchTimerRef.current);
             setMatchmakingPhase('found');
 
-            const opp = getSimulatedOpponent(playerElo);
+            const opp = getSimulatedOpponent(playerElo, horses);
             setOpponent(opp);
 
             // BUG-12 FIX: Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
@@ -673,7 +724,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                         VS
                                     </motion.div>
 
-                                    {/* Ghost Opponent */}
+                                    {/* Horse Opponent */}
                                     <motion.div
                                         initial={{ x: 50, opacity: 0 }}
                                         animate={{ x: 0, opacity: 1 }}
@@ -683,6 +734,9 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                                         <div style={{ fontSize: 48 }}>{opponent.avatar}</div>
                                         <div style={{ color: '#fff', fontWeight: 700, marginTop: 8 }}>{opponent.name}</div>
                                         <div style={{ color: opponentRankPreview?.color || '#fff', fontSize: 14, fontWeight: 600 }}>{opponent.elo} ELO</div>
+                                        {opponent.location && (
+                                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 4 }}>{opponent.location}</div>
+                                        )}
                                     </motion.div>
                                 </div>
 

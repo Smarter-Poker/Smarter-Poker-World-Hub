@@ -267,7 +267,10 @@ export default function TourDetailPage() {
 
       </SEOHead>
 
-      <UniversalHeader pageDepth={2} />
+      <UniversalHeader 
+        pageDepth={2} 
+        onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=tours')}
+      />
 
       <div className="tour-page">
         {loading && (

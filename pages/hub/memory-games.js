@@ -2030,297 +2030,279 @@ export default function MemoryGamesPage() {
                                 </div>
                             )}
 
-                            {/* Game Mode Tabs */}
-                            <div style={styles.gameModeTabs}>
-                                <button
-                                    onClick={() => setGameType('range')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        ...(gameType === 'range' ? styles.gameModeTabActive : {}),
-                                    }}
-                                >
-                                    Range
-                                </button>
-                                <button
-                                    onClick={() => setGameType('speed')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        ...(gameType === 'speed' ? styles.gameModeTabActive : {}),
-                                    }}
-                                >
-                                    ++ Speed
-                                </button>
-                                <button
-                                    onClick={() => setGameType('pressure')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        ...(gameType === 'pressure' ? styles.gameModeTabActive : {}),
-                                    }}
-                                >
-                                    Pressure
-                                </button>
-                                <button
-                                    onClick={() => setGameType('pattern')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        ...(gameType === 'pattern' ? styles.gameModeTabActive : {}),
-                                    }}
-                                >
-                                    Pattern Pattern
-                                </button>
-                                <button
-                                    onClick={() => setGameType('mixed')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        ...(gameType === 'mixed' ? styles.gameModeTabActive : {}),
-                                    }}
-                                >
-                                    Mix Mixed
-                                </button>
-                                <button
-                                    onClick={() => router.push('/hub/preflop-charts')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2))',
-                                        border: '2px solid rgba(255, 215, 0, 0.5)',
-                                        color: '#FFD700',
-                                    }}
-                                >
-                                    Trophy Campaign
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setGameType('leaderboard');
-                                        loadLeaderboard();
-                                    }}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        ...(gameType === 'leaderboard' ? styles.gameModeTabActive : {}),
-                                    }}
-                                >
-                                    Rankings
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setGameType('daily');
-                                        loadDailyChallenge();
-                                    }}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        background: gameType === 'daily' ? 'linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2))' : 'rgba(255, 255, 255, 0.05)',
-                                        border: gameType === 'daily' ? '2px solid #00ff88' : '2px solid rgba(255, 255, 255, 0.1)',
-                                        color: gameType === 'daily' ? '#00ff88' : 'rgba(255, 255, 255, 0.5)',
-                                    }}
-                                >
-                                    Daily
-                                </button>
-                                <button
-                                    onClick={() => setGameType('spot')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        background: gameType === 'spot' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: gameType === 'spot' ? '2px solid #F97316' : '2px solid rgba(255, 255, 255, 0.1)',
-                                        color: gameType === 'spot' ? '#F97316' : 'rgba(255, 255, 255, 0.5)',
-                                    }}
-                                >
-                                    Spot
-                                </button>
-                                <button
-                                    onClick={() => setGameType('tournament')}
-                                    style={{
-                                        ...styles.gameModeTab,
-                                        background: gameType === 'tournament' ? 'rgba(236, 72, 153, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: gameType === 'tournament' ? '2px solid #EC4899' : '2px solid rgba(255, 255, 255, 0.1)',
-                                        color: gameType === 'tournament' ? '#EC4899' : 'rgba(255, 255, 255, 0.5)',
-                                    }}
-                                >
-                                    VS Ranked
-                                </button>
-                            </div>
+                            {/* Game Mode Selector */}
+                            {(() => {
+                                const MODES = [
+                                    { key: 'range', label: 'Range', icon: '\uD83C\uDFAF', color: '#00D4FF', desc: 'Core GTO training' },
+                                    { key: 'speed', label: 'Speed Drill', icon: '\u26A1', color: '#FFD700', desc: 'Beat the clock' },
+                                    { key: 'pressure', label: 'Pressure', icon: '\uD83D\uDCA3', color: '#FF4444', desc: 'Defuse the bomb' },
+                                    { key: 'pattern', label: 'Pattern', icon: '\uD83E\uDDE9', color: '#3B82F6', desc: 'Read the range' },
+                                    { key: 'mixed', label: 'Mixed', icon: '\uD83C\uDFB0', color: '#A855F7', desc: 'Dial frequencies' },
+                                    { key: 'spot', label: 'Spot Trainer', icon: '\u25CE', color: '#F97316', desc: 'Full hand trees' },
+                                    { key: 'tournament', label: 'VS Ranked', icon: '\u2694\uFE0F', color: '#EC4899', desc: 'Climb the ladder' },
+                                ];
+                                const EXTRA = [
+                                    { key: 'daily', label: 'Daily', icon: '\uD83D\uDCC5', color: '#00FF88', special: true },
+                                    { key: 'leaderboard', label: 'Rankings', icon: '\uD83C\uDFC6', color: '#FFD700', special: true },
+                                ];
+                                return (
+                                    <>
+                                        {/* Primary Training Modes */}
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                                            gap: 10,
+                                            marginBottom: 12,
+                                        }}>
+                                            {MODES.map(m => {
+                                                const active = gameType === m.key;
+                                                return (
+                                                    <button
+                                                        key={m.key}
+                                                        onClick={() => setGameType(m.key)}
+                                                        style={{
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            gap: 4,
+                                                            padding: '14px 8px 12px',
+                                                            background: active
+                                                                ? `linear-gradient(135deg, ${m.color}22, ${m.color}11)`
+                                                                : 'rgba(255,255,255,0.03)',
+                                                            border: active
+                                                                ? `2px solid ${m.color}`
+                                                                : '2px solid rgba(255,255,255,0.08)',
+                                                            borderRadius: 14,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            position: 'relative',
+                                                            overflow: 'hidden',
+                                                        }}
+                                                    >
+                                                        <span style={{ fontSize: 22, lineHeight: 1 }}>{m.icon}</span>
+                                                        <span style={{
+                                                            fontSize: 12,
+                                                            fontWeight: 700,
+                                                            color: active ? m.color : 'rgba(255,255,255,0.7)',
+                                                            letterSpacing: 0.3,
+                                                        }}>{m.label}</span>
+                                                        <span style={{
+                                                            fontSize: 10,
+                                                            color: active ? `${m.color}99` : 'rgba(255,255,255,0.3)',
+                                                            lineHeight: 1.2,
+                                                        }}>{m.desc}</span>
+                                                        {active && <div style={{
+                                                            position: 'absolute',
+                                                            bottom: 0,
+                                                            left: '20%',
+                                                            right: '20%',
+                                                            height: 2,
+                                                            background: m.color,
+                                                            borderRadius: 2,
+                                                        }} />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
 
-                            {/* Speed Drill Mode */}
-                            {gameType === 'speed' && (
-                                <div style={styles.speedDrillCard}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>++</div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
-                                        SPEED DRILL
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        Flash a hand → Pick the action → Build streaks!<br />
-                                        Time gets shorter the better you do. 3 lives, don't lose them!
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('speed-drill');
-                                        }}
-                                        style={styles.speedDrillButton}
-                                    >
-                                        START SPEED DRILL
-                                    </button>
-                                </div>
-                            )}
+                                        {/* Quick Access Row */}
+                                        <div style={{
+                                            display: 'flex',
+                                            gap: 10,
+                                            justifyContent: 'center',
+                                            marginBottom: 32,
+                                        }}>
+                                            {EXTRA.map(m => {
+                                                const active = gameType === m.key;
+                                                return (
+                                                    <button
+                                                        key={m.key}
+                                                        onClick={() => {
+                                                            setGameType(m.key);
+                                                            if (m.key === 'leaderboard') loadLeaderboard();
+                                                            if (m.key === 'daily') loadDailyChallenge();
+                                                        }}
+                                                        style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: 6,
+                                                            padding: '10px 20px',
+                                                            background: active
+                                                                ? `${m.color}22`
+                                                                : 'rgba(255,255,255,0.05)',
+                                                            border: active
+                                                                ? `2px solid ${m.color}`
+                                                                : '2px solid rgba(255,255,255,0.1)',
+                                                            borderRadius: 30,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            color: active ? m.color : 'rgba(255,255,255,0.5)',
+                                                            fontSize: 13,
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        <span>{m.icon}</span>
+                                                        <span>{m.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                );
+                            })()}
 
-                            {/* Pressure Cooker Mode */}
-                            {gameType === 'pressure' && (
-                                <div style={{
-                                    ...styles.speedDrillCard,
-                                    background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1), rgba(255, 0, 102, 0.1))',
-                                    border: '2px solid rgba(255, 68, 68, 0.3)',
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#ff4444', marginBottom: 8 }}>
-                                        PRESSURE COOKER
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        Answer 10 hands before the clock runs out!<br />
-                                        Correct = +3 seconds | ✗ Wrong = -5 seconds<br />
-                                        <span style={{ color: '#ff4444' }}>Can You Defuse The Bomb? 💣</span>
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('pressure-cooker');
-                                        }}
-                                        style={{
-                                            ...styles.speedDrillButton,
-                                            background: 'linear-gradient(135deg, #ff4444, #ff0066)',
-                                        }}
-                                    >
-                                        START PRESSURE COOKER
-                                    </button>
-                                </div>
-                            )}
+                            {/* ── Mode Launch Cards ── */}
+                            {(() => {
+                                const MODE_CARDS = {
+                                    speed: {
+                                        icon: '\u26A1', title: 'SPEED DRILL', color: '#FFD700', gradient: ['#FFD700', '#F59E0B'],
+                                        difficulty: 'INTERMEDIATE', diffColor: '#FFD700',
+                                        desc: 'Flash a hand \u2192 Pick the action \u2192 Build streaks! Time gets shorter the better you do. 3 lives \u2014 don\'t lose them!',
+                                        stats: [{ label: 'FORMAT', value: '3 Lives' }, { label: 'SPEED', value: 'Accelerating' }, { label: 'REWARD', value: '\uD83D\uDC8E 15-50' }],
+                                        mode: 'speed-drill', btn: 'START SPEED DRILL',
+                                    },
+                                    pressure: {
+                                        icon: '\uD83D\uDCA3', title: 'PRESSURE COOKER', color: '#FF4444', gradient: ['#FF4444', '#FF0066'],
+                                        difficulty: 'HARD', diffColor: '#FF4444',
+                                        desc: 'Answer 10 hands before the clock runs out! Correct answers add time, wrong answers cost you. Can you defuse the bomb?',
+                                        stats: [{ label: 'FORMAT', value: '10 Hands' }, { label: 'CLOCK', value: '\u00B13-5 sec' }, { label: 'REWARD', value: '\uD83D\uDC8E 20-60' }],
+                                        mode: 'pressure-cooker', btn: 'START PRESSURE COOKER',
+                                    },
+                                    pattern: {
+                                        icon: '\uD83E\uDDE9', title: 'PATTERN RECOGNITION', color: '#3B82F6', gradient: ['#3B82F6', '#0088ff'],
+                                        difficulty: 'ADVANCED', diffColor: '#3B82F6',
+                                        desc: 'See a partial range \u2192 Identify the dominant action. Is it a RAISING, CALLING, or FOLDING range? Train your GTO intuition.',
+                                        stats: [{ label: 'FORMAT', value: '8 Patterns' }, { label: 'SKILL', value: 'Range Reading' }, { label: 'REWARD', value: '\uD83D\uDC8E 20-50' }],
+                                        mode: 'pattern-recognition', btn: 'START PATTERN RECOGNITION',
+                                    },
+                                    mixed: {
+                                        icon: '\uD83C\uDFB0', title: 'MIXED STRATEGY', color: '#A855F7', gradient: ['#A855F7', '#D946EF'],
+                                        difficulty: 'EXPERT', diffColor: '#A855F7',
+                                        desc: 'Dial in the exact frequency for complex GTO spots. Should you Raise 30% or 70%? 10 rounds of high-precision frequency training.',
+                                        stats: [{ label: 'FORMAT', value: '10 Rounds' }, { label: 'SKILL', value: 'Frequencies' }, { label: 'REWARD', value: '\uD83D\uDC8E 25-75' }],
+                                        mode: 'mixed-strategy', btn: 'START MIXED TRAINER',
+                                    },
+                                    spot: {
+                                        icon: '\u25CE', title: 'SPOT TRAINER', color: '#F97316', gradient: ['#F97316', '#EA580C'],
+                                        difficulty: 'ADVANCED', diffColor: '#F97316',
+                                        desc: 'Play through entire hand trees from preflop to river. Learn how ranges evolve on each street and compare your EV to optimal GTO play.',
+                                        stats: [{ label: 'FORMAT', value: 'Full Trees' }, { label: 'SKILL', value: 'EV Analysis' }, { label: 'REWARD', value: '\uD83D\uDC8E 30-80' }],
+                                        mode: 'spot-trainer', btn: 'START SPOT TRAINER',
+                                    },
+                                    tournament: {
+                                        icon: '\u2694\uFE0F', title: 'VS RANKED', color: '#EC4899', gradient: ['#EC4899', '#DB2777'],
+                                        difficulty: 'COMPETITIVE', diffColor: '#EC4899',
+                                        desc: 'Head-to-head GTO challenges against 300+ AI opponents for ELO ranking. Climb the ladder and prove you\'re the best.',
+                                        stats: [{ label: 'FORMAT', value: 'Best of 10' }, { label: 'RANKING', value: 'ELO System' }, { label: 'REWARD', value: '\uD83D\uDC8E 40-100' }],
+                                        mode: 'tournament', btn: 'ENTER RANKED BATTLE',
+                                    },
+                                };
 
-                            {/* Pattern Recognition Mode */}
-                            {gameType === 'pattern' && (
-                                <div style={{
-                                    ...styles.speedDrillCard,
-                                    background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 136, 255, 0.1))',
-                                    border: '2px solid rgba(0, 212, 255, 0.3)',
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>Pattern</div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#00D4FF', marginBottom: 8 }}>
-                                        PATTERN RECOGNITION
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        See a partial range → Identify the dominant action!<br />
-                                        Is it a RAISING, CALLING, or FOLDING range?<br />
-                                        Train your GTO intuition across 8 patterns.
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('pattern-recognition');
-                                        }}
-                                        style={{
-                                            ...styles.speedDrillButton,
-                                            background: 'linear-gradient(135deg, #00D4FF, #0088ff)',
-                                        }}
-                                    >
-                                        START PATTERN RECOGNITION
-                                    </button>
-                                </div>
-                            )}
+                                const card = MODE_CARDS[gameType];
+                                if (!card) return null;
 
-                            {/* Mixed Strategy Mode */}
-                            {gameType === 'mixed' && (
-                                <div style={{
-                                    ...styles.speedDrillCard,
-                                    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(217, 70, 239, 0.1))',
-                                    border: '2px solid rgba(168, 85, 247, 0.3)',
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>Mix</div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#A855F7', marginBottom: 8 }}>
-                                        MIXED STRATEGY
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        Dial in the exact frequency for complex GTO spots.<br />
-                                        Should you Raise 30% or 70%? Improve your feel.<br />
-                                        10 Rounds of high-precision training.
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('mixed-strategy');
-                                        }}
-                                        style={{
-                                            ...styles.speedDrillButton,
-                                            background: 'linear-gradient(135deg, #A855F7, #D946EF)',
-                                        }}
-                                    >
-                                        START MIXED TRAINER
-                                    </button>
-                                </div>
-                            )}
+                                return (
+                                    <div style={{
+                                        background: `linear-gradient(135deg, ${card.color}11, ${card.color}08)`,
+                                        border: `2px solid ${card.color}4D`,
+                                        borderRadius: 20,
+                                        padding: '32px 28px',
+                                        textAlign: 'center',
+                                        maxWidth: 520,
+                                        margin: '0 auto',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                    }}>
+                                        {/* Difficulty Badge */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 14,
+                                            right: 14,
+                                            padding: '4px 12px',
+                                            background: `${card.diffColor}22`,
+                                            border: `1px solid ${card.diffColor}66`,
+                                            borderRadius: 20,
+                                            fontSize: 10,
+                                            fontWeight: 800,
+                                            color: card.diffColor,
+                                            letterSpacing: 1.5,
+                                        }}>
+                                            {card.difficulty}
+                                        </div>
 
-                            {/* Spot Trainer Mode */}
-                            {gameType === 'spot' && (
-                                <div style={{
-                                    ...styles.speedDrillCard,
-                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1))',
-                                    border: '2px solid rgba(249, 115, 22, 0.3)',
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>◎</div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#F97316', marginBottom: 8 }}>
-                                        SPOT TRAINER
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        Play through entire hand trees from preflop to river!<br />
-                                        Learn how ranges evolve on each street.<br />
-                                        Compare your EV to optimal GTO play.
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('spot-trainer');
-                                        }}
-                                        style={{
-                                            ...styles.speedDrillButton,
-                                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
-                                        }}
-                                    >
-                                        START SPOT TRAINER
-                                    </button>
-                                </div>
-                            )}
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>{card.icon}</div>
+                                        <h2 style={{
+                                            fontSize: 24,
+                                            fontWeight: 800,
+                                            color: card.color,
+                                            marginBottom: 10,
+                                            letterSpacing: 1,
+                                        }}>
+                                            {card.title}
+                                        </h2>
 
-                            {/* Tournament Mode */}
-                            {gameType === 'tournament' && (
-                                <div style={{
-                                    ...styles.speedDrillCard,
-                                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
-                                    border: '2px solid rgba(236, 72, 153, 0.3)',
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>⬡</div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
-                                        VS RANKED
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        Head-to-head GTO challenges for ELO ranking!<br />
-                                        Beat simulated opponents to climb the ladder.<br />
-                                        <span style={{ color: '#EC4899' }}>Win Diamonds & Bragging Rights!</span>
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('tournament');
-                                        }}
-                                        style={{
-                                            ...styles.speedDrillButton,
-                                            background: 'linear-gradient(135deg, #EC4899, #DB2777)',
-                                        }}
-                                    >
-                                        ENTER RANKED BATTLE
-                                    </button>
-                                </div>
-                            )}
+                                        <p style={{
+                                            fontSize: 14,
+                                            color: 'rgba(255,255,255,0.65)',
+                                            marginBottom: 20,
+                                            lineHeight: 1.6,
+                                            maxWidth: 380,
+                                            margin: '0 auto 20px',
+                                        }}>
+                                            {card.desc}
+                                        </p>
+
+                                        {/* Stat Pills */}
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            gap: 12,
+                                            marginBottom: 24,
+                                            flexWrap: 'wrap',
+                                        }}>
+                                            {card.stats.map((s, i) => (
+                                                <div key={i} style={{
+                                                    background: 'rgba(0,0,0,0.3)',
+                                                    borderRadius: 10,
+                                                    padding: '8px 14px',
+                                                    textAlign: 'center',
+                                                    minWidth: 90,
+                                                }}>
+                                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>
+                                                        {s.label}
+                                                    </div>
+                                                    <div style={{ fontSize: 13, color: '#fff', fontWeight: 700 }}>
+                                                        {s.value}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <button
+                                            onClick={async () => {
+                                                const canPlay = await checkAndDeductDiamonds();
+                                                if (!canPlay) return;
+                                                setMode(card.mode);
+                                            }}
+                                            style={{
+                                                padding: '16px 48px',
+                                                fontSize: 16,
+                                                fontWeight: 800,
+                                                background: `linear-gradient(135deg, ${card.gradient[0]}, ${card.gradient[1]})`,
+                                                border: 'none',
+                                                borderRadius: 14,
+                                                color: '#fff',
+                                                cursor: 'pointer',
+                                                letterSpacing: 1,
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: `0 4px 20px ${card.color}33`,
+                                            }}
+                                        >
+                                            {card.btn}
+                                        </button>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Leaderboard Section */}
                             {gameType === 'leaderboard' && (
@@ -2333,7 +2315,7 @@ export default function MemoryGamesPage() {
                                     margin: '0 auto',
                                 }}>
                                     <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                                        <div style={{ fontSize: 48, marginBottom: 12 }}>Trophy</div>
+                                        <div style={{ fontSize: 48, marginBottom: 12 }}>{'\uD83C\uDFC6'}</div>
                                         <h2 style={{ fontSize: 28, fontWeight: 700, color: '#FFD700', marginBottom: 8 }}>
                                             GLOBAL LEADERBOARD
                                         </h2>
@@ -2345,11 +2327,13 @@ export default function MemoryGamesPage() {
                                     {/* Mode Toggle */}
                                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
                                         {[
-                                            { id: 'range-memory', label: ' Range', color: '#00D4FF' },
-                                            { id: 'speed-drill', label: '++ Speed', color: '#FFD700' },
-                                            { id: 'pressure-cooker', label: ' Pressure', color: '#ff4444' },
-                                            { id: 'pattern-recognition', label: 'Pattern Pattern', color: '#00D4FF' },
-                                            { id: 'mixed-strategy', label: 'Mix Mixed', color: '#A855F7' },
+                                            { id: 'range-memory', label: '\uD83C\uDFAF Range', color: '#00D4FF' },
+                                            { id: 'speed-drill', label: '\u26A1 Speed', color: '#FFD700' },
+                                            { id: 'pressure-cooker', label: '\uD83D\uDCA3 Pressure', color: '#ff4444' },
+                                            { id: 'pattern-recognition', label: '\uD83E\uDDE9 Pattern', color: '#3B82F6' },
+                                            { id: 'mixed-strategy', label: '\uD83C\uDFB0 Mixed', color: '#A855F7' },
+                                            { id: 'spot-trainer', label: '\u25CE Spot', color: '#F97316' },
+                                            { id: 'tournament', label: '\u2694\uFE0F Ranked', color: '#EC4899' },
                                         ].map(mode => (
                                             <button
                                                 key={mode.id}
@@ -2556,10 +2540,13 @@ export default function MemoryGamesPage() {
                                                 borderRadius: 12,
                                             }}>
                                                 <div style={{ fontSize: 32 }}>
-                                                    {dailyChallenge.game_mode === 'range-memory' ? '' :
-                                                        dailyChallenge.game_mode === 'speed-drill' ? '++' :
-                                                            dailyChallenge.game_mode === 'pressure-cooker' ? '' :
-                                                                dailyChallenge.game_mode === 'pattern-recognition' ? 'Pattern' : 'Mix'}
+                                                    {dailyChallenge.game_mode === 'range-memory' ? '\uD83C\uDFAF' :
+                                                        dailyChallenge.game_mode === 'speed-drill' ? '\u26A1' :
+                                                            dailyChallenge.game_mode === 'pressure-cooker' ? '\uD83D\uDCA3' :
+                                                                dailyChallenge.game_mode === 'pattern-recognition' ? '\uD83E\uDDE9' :
+                                                                    dailyChallenge.game_mode === 'mixed-strategy' ? '\uD83C\uDFB0' :
+                                                                        dailyChallenge.game_mode === 'spot-trainer' ? '\u25CE' :
+                                                                            dailyChallenge.game_mode === 'tournament' ? '\u2694\uFE0F' : '\uD83C\uDFAF'}
                                                 </div>
                                                 <div>
                                                     <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>
@@ -2658,70 +2645,6 @@ export default function MemoryGamesPage() {
                                             7 days: +100Diamonds bonus • 30 days: +500Diamonds bonus • 100 days: +2000Diamonds bonus
                                         </div>
                                     </div>
-                                </div>
-                            )}
-
-                            {/* Spot Trainer Mode */}
-                            {gameType === 'spot' && (
-                                <div style={{
-                                    ...styles.speedDrillCard,
-                                    background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(234, 88, 12, 0.1))',
-                                    border: '2px solid rgba(249, 115, 22, 0.3)',
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#F97316', marginBottom: 8 }}>
-                                        SPOT TRAINER
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        Full hand trees from preflop to river.<br />
-                                        Multi-street decision training with EV comparison.<br />
-                                        Learn to navigate complex spots optimally.
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('spot-trainer');
-                                        }}
-                                        style={{
-                                            ...styles.speedDrillButton,
-                                            background: 'linear-gradient(135deg, #F97316, #EA580C)',
-                                        }}
-                                    >
-                                        START SPOT TRAINING
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Tournament Mode */}
-                            {gameType === 'tournament' && (
-                                <div style={{
-                                    ...styles.speedDrillCard,
-                                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(219, 39, 119, 0.1))',
-                                    border: '2px solid rgba(236, 72, 153, 0.3)',
-                                }}>
-                                    <div style={{ fontSize: 48, marginBottom: 16 }}>VS</div>
-                                    <h2 style={{ fontSize: 24, fontWeight: 700, color: '#EC4899', marginBottom: 8 }}>
-                                        RANKED BATTLES
-                                    </h2>
-                                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
-                                        Competitive ELO-ranked range battles.<br />
-                                        Climb the ladder from Beginner to Grandmaster.<br />
-                                        Earn diamonds and prove your skills!
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            const canPlay = await checkAndDeductDiamonds();
-                                            if (!canPlay) return;
-                                            setMode('tournament-mode');
-                                        }}
-                                        style={{
-                                            ...styles.speedDrillButton,
-                                            background: 'linear-gradient(135deg, #EC4899, #DB2777)',
-                                        }}
-                                    >
-                                        Trophy ENTER RANKED MODE
-                                    </button>
                                 </div>
                             )}
 

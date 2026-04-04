@@ -590,8 +590,8 @@ export default function PokerNearMePage() {
         prevRadiusRef.current = filters.radius;
         // Only re-fetch if user has already searched (has location or city)
         if (userLocation || selectedCity || hasSearched) {
-            setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
-            fetchVenues();
+            setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY }));
+            fetchAllData({ includeVenues: true });
         }
     }, [filters.radius]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -856,27 +856,43 @@ export default function PokerNearMePage() {
         }
     }, [favorites]);
 
-    // Listen for favorites changes from other tabs
+    // Listen for favorites changes from other tabs via native 'storage' event
     const favoritesRef = useRef(favorites);
     favoritesRef.current = favorites;
     useEffect(() => {
-        const handleFavSync = (e) => {
-            if (e.detail && typeof window !== 'undefined') {
-                const currentStr = JSON.stringify(favoritesRef.current);
-                const newStr = JSON.stringify(e.detail);
-                if (currentStr !== newStr) {
-                    setFavorites(e.detail);
-                }
+        const handleStorageSync = (e) => {
+            if (e.key === 'sp-favorites' && e.newValue) {
+                try {
+                    const newFavs = JSON.parse(e.newValue);
+                    const currentStr = JSON.stringify(favoritesRef.current);
+                    if (currentStr !== e.newValue) {
+                        setFavorites(newFavs);
+                    }
+                } catch { }
             }
         };
-        window.addEventListener('poker-favorites-sync', handleFavSync);
+        window.addEventListener('storage', handleStorageSync);
 
-        // Map global EventBus events to our local state
+        // Map global EventBus events to our local state (Intra-tab SPA sync)
         const handleBusFavSync = (data) => {
             if (data && data.venueId) {
                 setFavorites(prev => {
                     const next = { ...prev };
                     next['venue-' + data.venueId] = Date.now();
+                    return next;
+                });
+            }
+            if (data && data.tourId) {
+                setFavorites(prev => {
+                    const next = { ...prev };
+                    next['tour-' + data.tourId] = Date.now();
+                    return next;
+                });
+            }
+             if (data && data.seriesId) {
+                setFavorites(prev => {
+                    const next = { ...prev };
+                    next['series-' + data.seriesId] = Date.now();
                     return next;
                 });
             }
@@ -889,6 +905,20 @@ export default function PokerNearMePage() {
                     return next;
                 });
             }
+            if (data && data.tourId) {
+                setFavorites(prev => {
+                    const next = { ...prev };
+                    delete next['tour-' + data.tourId];
+                    return next;
+                });
+            }
+             if (data && data.seriesId) {
+                setFavorites(prev => {
+                    const next = { ...prev };
+                    delete next['series-' + data.seriesId];
+                    return next;
+                });
+            }
         };
 
         let unsubFav, unsubUnfav;
@@ -898,7 +928,7 @@ export default function PokerNearMePage() {
         }
 
         return () => {
-            window.removeEventListener('poker-favorites-sync', handleFavSync);
+            window.removeEventListener('storage', handleStorageSync);
             if (unsubFav) unsubFav();
             if (unsubUnfav) unsubUnfav();
         };
@@ -937,6 +967,7 @@ export default function PokerNearMePage() {
         const isCurrentlyFavorited = favorites[key];
 
         // Update local state immediately
+        // Synchronous optimistic update
         setFavorites(prev => {
             const next = { ...prev };
             if (next[key]) { delete next[key]; } else { next[key] = Date.now(); }
@@ -960,6 +991,12 @@ export default function PokerNearMePage() {
                 }
             } catch (err) {
                 console.error('Error syncing favorite:', err);
+                // Rollback on failure
+                setFavorites(prev => {
+                    const next = { ...prev };
+                    if (isCurrentlyFavorited) { next[key] = Date.now(); } else { delete next[key]; }
+                    return next;
+                });
             }
         }
     }, [favorites, userId, bus]);
@@ -2017,7 +2054,52 @@ export default function PokerNearMePage() {
                     </div>
 
                     {/* Map Container - wrapped in Error Boundary */}
-                    <div className="map-tab-container">
+                    <div className="map-tab-container" style={{ position: 'relative' }}>
+                        {/* ═══ FLOATING RADIUS CONTROL (Top Right) ═══ */}
+                        <div style={{
+                            position: 'absolute',
+                            top: '16px',
+                            right: '16px',
+                            zIndex: 1000,
+                            background: 'rgba(10, 10, 21, 0.9)',
+                            backdropFilter: 'blur(8px)',
+                            border: '1px solid rgba(212, 168, 83, 0.4)',
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            pointerEvents: 'auto'
+                        }}>
+                            <span style={{ color: '#d4a853', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Radius:</span>
+                            <select
+                                value={filters.radius}
+                                onChange={e => setFilters(p => ({ ...p, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
+                                style={{
+                                    background: 'transparent',
+                                    color: '#fff',
+                                    border: 'none',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    outline: 'none',
+                                    cursor: 'pointer',
+                                    WebkitAppearance: 'none',
+                                    paddingRight: '14px'
+                                }}
+                            >
+                                <option value={25} style={{ background: '#0a0a15' }}>25 Mi</option>
+                                <option value={50} style={{ background: '#0a0a15' }}>50 Mi</option>
+                                <option value={100} style={{ background: '#0a0a15' }}>100 Mi</option>
+                                <option value={200} style={{ background: '#0a0a15' }}>200 Mi</option>
+                                <option value={250} style={{ background: '#0a0a15' }}>250 Mi</option>
+                                <option value={500} style={{ background: '#0a0a15' }}>500 Mi</option>
+                                <option value="Any" style={{ background: '#0a0a15' }}>Any</option>
+                            </select>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ position: 'absolute', right: '12px', pointerEvents: 'none' }}>
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
                     <MapErrorBoundary>
                         <VenueMap
                             key="map-tab-main"
@@ -2861,7 +2943,12 @@ export default function PokerNearMePage() {
                 <div className="space-bg"></div>
                 <div className="space-overlay"></div>
 
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onSettingsClick={() => setMenuOpen(true)} />
+                <UniversalHeader 
+                    pageDepth={2} 
+                    onMenuClick={() => setMenuOpen(true)} 
+                    onSettingsClick={() => setMenuOpen(true)} 
+                    onBackClick={() => router.push('/hub')}
+                />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
