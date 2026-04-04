@@ -842,7 +842,8 @@ export class DeterministicGTOEngine {
 
         // ═══ BUILD EXPLANATION (deterministic, no AI) ═══
         const explanation = this.buildExplanation(heroHand, board, scenario.street,
-            optimalAction, handActions, heroHandEV, validActions);
+            optimalAction, handActions, heroHandEV, validActions,
+            { nodeType, heroPosition, villainPosition, estimatedPot, stackDepth: scenario.stack_depth });
 
         // ═══ DETERMINE MIXED STRATEGY CORRECTNESS ═══
         // In GTO, if a hand checks 62% and bets 38%, BOTH are correct
@@ -1320,11 +1321,17 @@ export class DeterministicGTOEngine {
      * Phase 25: Rich strategic reasoning with sizing logic, position context,
      * board texture impact, and conceptual poker theory.
      */
-    buildExplanation(heroHand, board, street, optimalAction, handActions, ev, validActions) {
+    buildExplanation(heroHand, board, street, optimalAction, handActions, ev, validActions, ctx = {}) {
         const label = this.getActionLabelGTOW(optimalAction);
         const freq = handActions[optimalAction] || 0;
         const freqPct = (freq * 100).toFixed(0);
         const handStrength = this.categorizeHand(heroHand, board);
+        const { nodeType, heroPosition, villainPosition, estimatedPot, stackDepth } = ctx;
+
+        // ═══ PREFLOP-SPECIFIC EXPLANATIONS ═══
+        if (street === 'preflop') {
+            return this._buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth);
+        }
 
         // ═══ STRATEGIC REASONING ENGINE ═══
         const a = optimalAction.toLowerCase();
@@ -1613,6 +1620,144 @@ export class DeterministicGTOEngine {
         }
 
         return 'Multiple actions have similar EV — the solver randomizes to stay unexploitable.';
+    }
+
+    /**
+     * Phase 26: Preflop-specific explanation with position awareness,
+     * hand category reasoning, and open/3bet/call context.
+     */
+    _buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth) {
+        const r1 = heroHand[0], r2 = heroHand[1];
+        const suffix = heroHand.length >= 3 ? heroHand[2] : '';
+        const isPair = r1 === r2;
+        const isSuited = suffix === 's';
+        const rankVal = r => '23456789TJQKA'.indexOf(r);
+        const v1 = rankVal(r1), v2 = rankVal(r2);
+        const isConnected = Math.abs(v1 - v2) <= 2 && !isPair;
+        const isBroadway = v1 >= 9 && v2 >= 9; // T+
+        const isPremium = isPair && v1 >= 10; // JJ+
+        const isSuperPremium = isPair && v1 >= 11; // QQ+
+        const isAx = r1 === 'A' || r2 === 'A';
+        const isKx = (r1 === 'K' || r2 === 'K') && !isAx;
+
+        const a = optimalAction.toLowerCase();
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r') || a === 'allin';
+
+        // Position context
+        const posName = heroPosition || 'Hero';
+        const isEarlyPos = ['UTG', 'UTG+1'].includes(heroPosition);
+        const isMiddlePos = ['MP', 'MP+1', 'HJ'].includes(heroPosition);
+        const isLatePos = ['CO', 'BTN'].includes(heroPosition);
+        const isBlind = ['SB', 'BB'].includes(heroPosition);
+
+        // Hand description
+        let handDesc = '';
+        if (isSuperPremium) handDesc = 'a premium pair';
+        else if (isPremium) handDesc = 'a strong pair';
+        else if (isPair && v1 >= 6) handDesc = 'a medium pocket pair';
+        else if (isPair) handDesc = 'a small pocket pair';
+        else if (isAx && isSuited && v2 >= 9) handDesc = 'a strong suited ace';
+        else if (isAx && isSuited) handDesc = 'a suited ace';
+        else if (isAx && isBroadway) handDesc = 'a strong offsuit broadway';
+        else if (isBroadway && isSuited) handDesc = 'suited broadway';
+        else if (isBroadway) handDesc = 'offsuit broadway';
+        else if (isKx && isSuited) handDesc = 'a suited king';
+        else if (isConnected && isSuited) handDesc = 'a suited connector';
+        else if (isConnected) handDesc = 'an offsuit connector';
+        else if (isSuited) handDesc = 'a suited hand';
+        else handDesc = 'an offsuit hand';
+
+        // ═══ OPEN RAISE (RFI) ═══
+        if (nodeType === 'preflop_open') {
+            if (isRaise) {
+                if (freq >= 0.95) {
+                    // Pure open
+                    if (isPremium) return `${heroHand}: Always open ${handDesc} from ${posName}. ${this._positionOpenContext(heroPosition)}`;
+                    if (isLatePos) return `${heroHand}: Pure open from ${posName}. ${handDesc} — wide opening range in late position to steal blinds.`;
+                    if (isEarlyPos) return `${heroHand}: Pure open from ${posName}. ${handDesc} strong enough to open even in early position against many opponents.`;
+                    return `${heroHand}: Pure open from ${posName}. ${handDesc} is always in the opening range here.`;
+                }
+                // Mixed open/fold
+                const altActions = validActions.filter(a2 => a2 !== optimalAction && handActions[a2] > 0.01);
+                const foldFreq = handActions['f'] ? (handActions['f'] * 100).toFixed(0) : null;
+                if (foldFreq) {
+                    return `${heroHand}: Open ${freqPct}%, fold ${foldFreq}% from ${posName}. ${handDesc} is at the boundary of the opening range — the solver mixes to stay balanced.`;
+                }
+                return `${heroHand}: Open ${freqPct}% from ${posName}. ${handDesc} — marginal open that the solver mixes.`;
+            }
+            if (isFold) {
+                if (freq >= 0.95) {
+                    if (isEarlyPos) return `${heroHand}: Pure fold from ${posName}. ${handDesc} — too weak to open with so many players behind.`;
+                    if (isLatePos) return `${heroHand}: Fold from ${posName}. Despite being in position, ${handDesc} doesn't have enough equity to open profitably.`;
+                    return `${heroHand}: Fold from ${posName}. ${handDesc} is outside the opening range.`;
+                }
+                return `${heroHand}: Fold ${freqPct}% from ${posName}. Marginal hand at the edge of the opening range.`;
+            }
+        }
+
+        // ═══ FACING A RAISE (3-bet, call, or fold) ═══
+        if (nodeType === 'preflop_facing_raise') {
+            const vs = villainPosition || 'opponent';
+            if (isRaise) {
+                // 3-betting
+                if (freq >= 0.95) {
+                    if (isPremium) return `${heroHand}: Always 3-bet ${handDesc} vs ${vs}'s open. Too strong to just call — build the pot preflop.`;
+                    if (isAx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} has great playability as a 3-bet bluff — blockers, suitedness, and nut potential.`;
+                    return `${heroHand}: Pure 3-bet vs ${vs}'s open. Strong enough to re-raise for value and build the pot.`;
+                }
+                // Mixed 3-bet
+                const callFreq = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
+                if (callFreq && parseInt(callFreq) > 5) {
+                    return `${heroHand}: 3-bet ${freqPct}%, call ${callFreq}% vs ${vs}. ${handDesc} — the solver mixes between building the pot and keeping the range wide.`;
+                }
+                return `${heroHand}: 3-bet ${freqPct}% vs ${vs}. ${handDesc} at the boundary of the 3-bet range.`;
+            }
+            if (isCall) {
+                if (freq >= 0.95) {
+                    if (isPair && v1 >= 8) return `${heroHand}: Call vs ${vs}. ${handDesc} has great set-mining equity and implied odds — 3-betting risks losing action.`;
+                    if (isBroadway && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} plays well postflop — good equity and playability without bloating the pot.`;
+                    if (isConnected && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} has strong implied odds — when it connects, it makes big hands.`;
+                    return `${heroHand}: Call vs ${vs}. Good equity against the opening range — calling maintains position and pot control.`;
+                }
+                // Mixed call
+                const threeBetFreq = validActions.filter(a2 => a2.startsWith('r')).map(a2 => handActions[a2] || 0).reduce((s, v) => s + v, 0);
+                if (threeBetFreq > 0.05) {
+                    return `${heroHand}: Call ${freqPct}%, 3-bet ${(threeBetFreq * 100).toFixed(0)}% vs ${vs}. The solver polarizes — sometimes flatting, sometimes 3-betting for balance.`;
+                }
+                return `${heroHand}: Call ${freqPct}% vs ${vs}. Marginal call at the bottom of the defending range.`;
+            }
+            if (isFold) {
+                if (freq >= 0.95) {
+                    return `${heroHand}: Fold vs ${vs}'s open. ${handDesc} lacks sufficient equity and playability to continue profitably.`;
+                }
+                const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
+                if (callFreq2 && parseInt(callFreq2) > 5) {
+                    return `${heroHand}: Fold ${freqPct}%, call ${callFreq2}% vs ${vs}. Borderline hand — sometimes the solver defends, but it's mostly a fold.`;
+                }
+                return `${heroHand}: Fold ${freqPct}% vs ${vs}. At the edge of the defending range.`;
+            }
+        }
+
+        // Fallback
+        return `${heroHand} (${handDesc}): ${label} ${freqPct}% from ${posName}.`;
+    }
+
+    /**
+     * Phase 26: Position-specific opening context.
+     */
+    _positionOpenContext(position) {
+        switch (position) {
+            case 'UTG': case 'UTG+1': return 'Early position requires a tight opening range — many players left to act behind.';
+            case 'MP': case 'MP+1': return 'Middle position allows a slightly wider range, but still conservative.';
+            case 'HJ': return 'The hijack starts to open wider, leveraging fold equity with fewer players behind.';
+            case 'CO': return 'The cutoff opens wide — great steal position with only the button and blinds behind.';
+            case 'BTN': return 'The button has the widest opening range — guaranteed positional advantage postflop.';
+            case 'SB': return 'SB opens into only the BB — wide range but out of position postflop.';
+            case 'BB': return 'BB checking option — you already have money invested.';
+            default: return '';
+        }
     }
 
     buildChartExplanation(heroHand, chart, pushFreq, correctAction) {
