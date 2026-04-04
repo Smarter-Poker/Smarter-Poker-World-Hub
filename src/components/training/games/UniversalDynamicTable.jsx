@@ -1056,6 +1056,16 @@ function UniversalDynamicTable({
     const [streakToast, setStreakToast] = React.useState(null);
     const [showWhyDrawer, setShowWhyDrawer] = React.useState(false);
     const [showRangeGrid, setShowRangeGrid] = React.useState(false);
+
+    // Phase 53: Auto-open Why? drawer for blunders (most educational)
+    React.useEffect(() => {
+        if (showFeedback && moveClassification === 'blunder') {
+            setShowWhyDrawer(true);
+        } else if (!showFeedback) {
+            setShowWhyDrawer(false);
+            setShowRangeGrid(false);
+        }
+    }, [showFeedback, moveClassification]);
     const [streakCelebration, setStreakCelebration] = React.useState(null);
     const [speedBonusToast, setSpeedBonusToast] = React.useState(null);
     const answerStartTime = useRef(Date.now());
@@ -3727,6 +3737,13 @@ function UniversalDynamicTable({
                                                     SOLVER ANALYSIS
                                                 </div>
 
+                                                {/* Phase 53: Hand category for context */}
+                                                {question?.handCategory && (
+                                                    <div style={{ marginBottom: 4, fontSize: 10, fontStyle: 'italic', color: '#a78bfa' }}>
+                                                        Your hand: {question.handCategory}
+                                                    </div>
+                                                )}
+
                                                 {/* Optimal action with frequency */}
                                                 <div style={{ marginBottom: 4 }}>
                                                     <strong style={{ color: '#22c55e' }}>Optimal:</strong>{' '}
@@ -3792,6 +3809,42 @@ function UniversalDynamicTable({
                                                         color: '#86efac', fontSize: 10,
                                                     }}>
                                                         {explanation}
+                                                    </div>
+                                                )}
+
+                                                {/* Phase 53: Full EV comparison table when available */}
+                                                {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs).length > 1 && (
+                                                    <div style={{ marginTop: 6, marginBottom: 4 }}>
+                                                        <div style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5, marginBottom: 3 }}>EV BY ACTION</div>
+                                                        {Object.entries(question.evData.actionEVs)
+                                                            .sort(([, a], [, b]) => b - a)
+                                                            .map(([action, ev]) => {
+                                                                const isOptimal = action === correctAnswer;
+                                                                const isSelected = action === selectedAnswer;
+                                                                const optText = question?.options?.find(o => o.id === action)?.text || action;
+                                                                const evNum = typeof ev === 'number' ? ev : 0;
+                                                                return (
+                                                                    <div key={action} style={{
+                                                                        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 1,
+                                                                        padding: '1px 4px', borderRadius: 3,
+                                                                        background: isSelected && !isOptimal ? 'rgba(239,68,68,0.06)' : isOptimal ? 'rgba(34,197,94,0.06)' : 'transparent',
+                                                                    }}>
+                                                                        <span style={{ width: 10, fontSize: 8, color: isOptimal ? '#22c55e' : isSelected ? '#ef4444' : '#64748b' }}>
+                                                                            {isOptimal ? '✓' : isSelected ? '✗' : '·'}
+                                                                        </span>
+                                                                        <span style={{ flex: 1, fontSize: 9, color: isOptimal ? '#4ade80' : isSelected ? '#fca5a5' : '#94a3b8' }}>
+                                                                            {optText}
+                                                                        </span>
+                                                                        <span style={{
+                                                                            fontSize: 9, fontWeight: 700, fontFamily: "'Inter', monospace",
+                                                                            color: evNum >= 0 ? '#22c55e' : '#ef4444',
+                                                                        }}>
+                                                                            {evNum >= 0 ? '+' : ''}{evNum.toFixed(2)}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        }
                                                     </div>
                                                 )}
 
