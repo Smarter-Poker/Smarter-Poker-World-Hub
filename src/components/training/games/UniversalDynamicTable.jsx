@@ -2759,6 +2759,10 @@ function UniversalDynamicTable({
                             }}>
                                 {difficultyLevel}
                             </span>
+                            {/* Phase 50: Difficulty labels */}
+                            <span style={{ fontSize: 7, color: '#64748b', marginLeft: 1 }}>
+                                {difficultyLevel <= 2 ? 'Easy' : difficultyLevel <= 4 ? 'Med' : difficultyLevel <= 6 ? 'Hard' : difficultyLevel <= 8 ? 'Expert' : 'GTO'}
+                            </span>
                         </div>
                     </div>
                 )}

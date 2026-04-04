@@ -1051,17 +1051,45 @@ function GodModeArenaInner({
     const [speedBonusDiamonds, setSpeedBonusDiamonds] = useState(0);
 
     // ═══ Phase 2: Adaptive Difficulty Level (1-10) ═══
+    // Phase 50: Enhanced adaptive difficulty using GTOW metrics
     const computedDifficultyLevel = useMemo(() => {
         if (!handHistory || handHistory.length < 3) return currentLevel || 1;
-        const correct = handHistory.filter(h => h.classification === 'best' || h.classification === 'correct').length;
-        const accuracy = correct / handHistory.length;
-        // Scale: high accuracy on high level = high difficulty
         const base = Math.min(10, Math.max(1, currentLevel || 1));
-        if (accuracy >= 0.8) return Math.min(10, base + 2);
-        if (accuracy >= 0.6) return Math.min(10, base + 1);
-        if (accuracy < 0.4) return Math.max(1, base - 1);
-        return base;
-    }, [handHistory, currentLevel]);
+
+        // Factor 1: Overall accuracy (weighted by classification quality)
+        const classWeights = { best: 1.0, correct: 0.75, inaccuracy: 0.3, wrong: 0, blunder: -0.2 };
+        let weightedScore = 0;
+        handHistory.forEach(h => {
+            weightedScore += classWeights[h.classification] ?? 0;
+        });
+        const qualityRatio = weightedScore / handHistory.length; // 0-1 scale
+
+        // Factor 2: Recent trend (last 5 hands weighted more heavily)
+        const recent = handHistory.slice(-5);
+        let recentScore = 0;
+        recent.forEach(h => {
+            recentScore += classWeights[h.classification] ?? 0;
+        });
+        const recentRatio = recent.length > 0 ? recentScore / recent.length : qualityRatio;
+
+        // Factor 3: Streak momentum
+        const streakBonus = (gtowCurrentStreak >= 5) ? 0.15 : (gtowCurrentStreak >= 3) ? 0.05 : (gtowCurrentStreak <= -3) ? -0.1 : 0;
+
+        // Factor 4: Leak severity penalty — major leaks suggest difficulty is too high
+        const leakPenalty = (mistakePatterns || [])
+            .filter(p => p.severity === 'high')
+            .length * 0.08;
+
+        // Combined score: 60% quality, 25% recent trend, 15% momentum
+        const combined = (qualityRatio * 0.6) + (recentRatio * 0.25) + (0.5 + streakBonus) * 0.15 - leakPenalty;
+
+        // Map to difficulty adjustment
+        if (combined >= 0.85) return Math.min(10, base + 2);    // Crushing it → jump up
+        if (combined >= 0.7) return Math.min(10, base + 1);     // Doing well → step up
+        if (combined >= 0.5) return base;                        // Steady → maintain
+        if (combined >= 0.35) return Math.max(1, base - 1);     // Struggling → step down
+        return Math.max(1, base - 2);                            // Drowning → drop fast
+    }, [handHistory, currentLevel, gtowCurrentStreak, mistakePatterns]);
 
     // ═══ Phase 2: Wrap submitAnswer to capture speed data ═══
     const handleSubmitAnswer = useCallback((answerId, meta) => {
