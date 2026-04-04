@@ -946,9 +946,6 @@ function GodModeArenaInner({
         getHandStrengthDistribution,
         getWinRateByHandCategory,
         getActionTimeline,
-        getOverbetAnalysis,
-        getConceptQuiz,
-        getComprehensiveSessionReport,
         getPreDecisionPreview,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 

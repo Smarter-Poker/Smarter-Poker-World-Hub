@@ -1082,15 +1082,6 @@ function UniversalDynamicTable({
     getSolverLineComparison = null,
     generateHints = null,
     getRunoutImpactPreview = null,
-    // Phase 291-300 coaching callbacks
-    getRangeConstructionDrill = null,
-    getHandReadingDrill = null,
-    getExploitativeAdjustments = null,
-    getVarianceSimulator = null,
-    getOptimalLineNarration = null,
-    // Phase 351+: Pre-decision hints
-    getPreDecisionPreview = null,
-    getKeyConceptReminders = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -2898,43 +2889,6 @@ function UniversalDynamicTable({
                 )}
             </AnimatePresence>
 
-            {/* ═══ PRE-DECISION HINTS — Show contextual tips BEFORE user answers ═══ */}
-            {!showFeedback && !selectedAnswer && question && (() => {
-                try {
-                    const sc = question?.scenario || question || {};
-                    const hints = [];
-                    // Key concept reminders
-                    if (getKeyConceptReminders) {
-                        const kcr = getKeyConceptReminders(sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '');
-                        if (kcr && kcr.reminders && kcr.reminders.length > 0) {
-                            hints.push(kcr.reminders[0]);
-                        }
-                    }
-                    // Pre-decision preview
-                    if (getPreDecisionPreview && hints.length === 0) {
-                        const pdp = getPreDecisionPreview(
-                            question?.handCategory || '',
-                            sc.street || 'flop',
-                            sc.nodeType || '',
-                            sc.heroPosition || '',
-                            gtoFrequencies || {}
-                        );
-                        if (pdp && pdp.hint) hints.push(pdp.hint);
-                    }
-                    if (hints.length === 0) return null;
-                    return (
-                        <div style={{
-                            margin: '0 16px 6px', padding: '6px 12px',
-                            background: 'linear-gradient(90deg, rgba(34,211,238,0.08), rgba(14,165,233,0.04))',
-                            borderRadius: 8, border: '1px solid rgba(34,211,238,0.15)',
-                        }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>💡 Hint</div>
-                            <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>{hints[0]}</div>
-                        </div>
-                    );
-                } catch (_) { return null; }
-            })()}
-
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
             <div style={{ ...styles.actionBar, position: 'relative' }}>
                 {/* YOUR ACTION turn indicator */}
@@ -4200,45 +4154,6 @@ function UniversalDynamicTable({
                                     const eqColor = eq.equity >= 60 ? '#4ade80' : eq.equity >= 40 ? '#fbbf24' : '#ef4444';
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${eqColor}06`, borderRadius: 8, border: `1px solid ${eqColor}15`, fontSize: 9, lineHeight: 1.5, color: eqColor }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "'Orbitron', monospace" }}>{eq.equity}%</span> — {eq.rangeDescription}
-                                    </div>);
-                                } catch (_) { return null; }
-                            })()}
-
-                            {/* Phase 293: Range Construction Tip */}
-                            {(() => {
-                                try {
-                                    if (!getRangeConstructionDrill) return null;
-                                    const sc = question?.scenario || {};
-                                    const drill = getRangeConstructionDrill(sc.heroPosition || 'CO', sc.nodeType?.includes('3bet') ? '3bet' : 'open');
-                                    if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 9, lineHeight: 1.5, color: '#c084fc' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>RANGE TIP: </span>{drill.tip}
-                                    </div>);
-                                } catch (_) { return null; }
-                            })()}
-
-                            {/* Phase 298: Hand Reading Insight */}
-                            {(() => {
-                                try {
-                                    if (!getHandReadingDrill) return null;
-                                    const sc = question?.scenario || {};
-                                    const drill = getHandReadingDrill(sc.street || 'flop');
-                                    if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 9, lineHeight: 1.5, color: '#fbbf24' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>HAND READING: </span>{drill.keyPrinciple}
-                                    </div>);
-                                } catch (_) { return null; }
-                            })()}
-
-                            {/* Phase 301: Optimal Line Narration */}
-                            {(() => {
-                                try {
-                                    if (!getOptimalLineNarration || !structuredExplanation?.isCorrect === undefined) return null;
-                                    const sc = question?.scenario || {};
-                                    const narr = getOptimalLineNarration(structuredExplanation?.primary || '', gtoFrequencies || {}, sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', question?.handCategory || '');
-                                    if (!narr) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.06)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.15)', fontSize: 9, lineHeight: 1.5, color: '#86efac' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#4ade80' }}>SOLVER LINE: </span>{narr.narration}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}

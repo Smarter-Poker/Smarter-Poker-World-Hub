@@ -146,7 +146,7 @@ export default async function handler(req, res) {
         limit = 70,
       } = req.query;
 
-      const parsedLimit = parseInt(limit, 10) || 70;
+      const parsedLimit = Math.min(parseInt(limit, 10) || 70, 200);
 
       // --- Single series by ID ---
       if (id) {
@@ -450,6 +450,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

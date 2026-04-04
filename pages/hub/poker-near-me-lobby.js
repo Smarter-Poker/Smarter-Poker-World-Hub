@@ -459,7 +459,7 @@ export default function PokerNearMeLobby() {
   // ─── Fetch daily tournaments ───
   const fetchDaily = useCallback(async (dayFilter = '') => {
     try {
-      let url = '/api/poker/daily-tournaments?limit=999';
+      let url = '/api/poker/daily-tournaments?limit=200';
       if (dayFilter) url += `&day=${encodeURIComponent(dayFilter)}`;
       if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
       const data = await cachedFetch(url);
@@ -521,12 +521,12 @@ export default function PokerNearMeLobby() {
   // ─── Real-time Supabase Data Hydration ───
   useEffect(() => {
     const venueChannel = supabase.channel('public:venues_lobby')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'venues' }, (payload) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_venues' }, (payload) => {
         setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
       }).subscribe();
       
     const tourChannel = supabase.channel('public:tours_lobby')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_tours' }, (payload) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tour_source_registry' }, (payload) => {
         setTours(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
       }).subscribe();
       
