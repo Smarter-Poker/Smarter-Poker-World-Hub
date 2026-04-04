@@ -1836,24 +1836,40 @@ export class DeterministicGTOEngine {
         const isCall = a === 'call';
         const isRaise = a.startsWith('r');
 
-        // ═══ CHECKING CONCEPTS ═══
+        // ═══ CHECKING CONCEPTS (Phase 56: Enhanced depth) ═══
         if (isCheck) {
-            if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
-                return 'Pot control with a strong-but-vulnerable hand — checking protects against raises and keeps the pot manageable.';
+            if (handStrength.includes('top pair') && handStrength.includes('top kicker')) {
+                if (texture.wet) return 'Pot control with TPTK on a wet board — checking avoids getting raised off a strong but vulnerable hand. You can call bets profitably.';
+                return 'Checking back TPTK as a trap — your hand is strong enough to check-call or check-raise on later streets.';
             }
-            if (handStrength.includes('set') || handStrength.includes('two pair') || handStrength.includes('full house')) {
-                return 'Trapping with a monster — checking to induce bets or delayed c-bet opponents.';
+            if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
+                if (texture.wet) return 'Pot control — your pair is vulnerable on this wet board. Checking avoids facing a raise with a one-pair hand.';
+                if (street === 'turn') return 'Checking the turn to control the pot — your hand has showdown value but doesn\'t want to face a raise.';
+                return 'Pot control with a strong-but-vulnerable hand — checking keeps the pot manageable and avoids bloating it with a one-pair hand.';
+            }
+            if (handStrength.includes('set') || handStrength.includes('full house') || handStrength.includes('quads')) {
+                if (street === 'flop') return 'Trapping with a monster — checking the flop to induce turn bets. Your hand is disguised.';
+                return 'Slow-playing a monster — checking to let villain catch up or bluff into you on a later street.';
+            }
+            if (handStrength.includes('two pair')) {
+                return 'Checking two pair as a trap — your hand is strong but disguised. Check-raising is an option if villain bets.';
+            }
+            if (handStrength.includes('monster draw') || handStrength.includes('combo draw')) {
+                return 'Checking a big draw to realize equity cheaply — if villain bets, you can raise as a semi-bluff with massive equity.';
             }
             if (handStrength.includes('draw')) {
-                return 'Taking a free card with draw equity — checking preserves the option to realize equity without bloating the pot.';
+                if (street === 'turn') return 'Free card play on the turn — checking preserves your stack when the draw misses the river.';
+                return 'Taking a free card with draw equity — checking preserves the option to realize equity without risk.';
             }
             if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
-                return 'Giving up with air — no equity to bet for value and insufficient fold equity to bluff.';
+                if (street === 'flop') return 'Checking back air — this hand has insufficient equity to c-bet and the board doesn\'t favor your range.';
+                if (street === 'river') return 'Giving up with air on the river — no value target and villain\'s range is too strong to bluff.';
+                return 'Giving up with air — no equity to bet for value and insufficient fold equity to profitably bluff.';
             }
             if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
-                return 'Check with marginal showdown value — too weak to bet for value, too strong to bluff.';
+                return 'Checking a marginal made hand — your hand has showdown value but can\'t bet for value or bluff effectively. Play defense.';
             }
-            return 'Checking to control the pot size and realize equity.';
+            return 'Checking to control the pot size and realize equity on future streets.';
         }
 
         // ═══ BETTING CONCEPTS ═══
@@ -1882,19 +1898,43 @@ export class DeterministicGTOEngine {
             return 'Betting for value and protection.';
         }
 
-        // ═══ CALLING CONCEPTS ═══
+        // ═══ CALLING CONCEPTS (Phase 56: Enhanced depth) ═══
         if (isCall) {
-            if (handStrength.includes('draw')) {
-                return 'Calling with draw equity — pot odds justify continuing to chase the draw.';
+            if (handStrength.includes('monster draw') || handStrength.includes('combo draw')) {
+                return 'Calling with a monster draw — massive equity (15+ outs) makes this a clear continue. Raising is also viable as a semi-bluff.';
             }
-            if (handStrength.includes('top pair') || handStrength.includes('overpair') || handStrength.includes('set')) {
-                return 'Calling a strong hand — flatting to keep bluffs in and control the pot.';
+            if (handStrength.includes('flush draw')) {
+                if (handStrength.includes('nut')) return 'Calling with the nut flush draw — 9 clean outs plus implied odds when the flush hits.';
+                return 'Calling with a flush draw — 9 outs (~19% turn equity) plus implied odds when completing.';
+            }
+            if (handStrength.includes('OESD') || handStrength.includes('double gutshot')) {
+                return 'Calling with 8 straight outs — the pot odds are sufficient and implied odds boost the call.';
+            }
+            if (handStrength.includes('gutshot')) {
+                if (handStrength.includes('overcard') || handStrength.includes('top pair')) return 'Calling with a gutshot plus extra equity — the additional outs make this profitable.';
+                return 'Calling with a gutshot — 4 outs is marginal but implied odds and backdoor equity justify the call.';
+            }
+            if (handStrength.includes('draw')) {
+                return 'Calling with draw equity — pot odds plus implied odds make continuing profitable.';
+            }
+            if (handStrength.includes('set') || handStrength.includes('two pair') || handStrength.includes('full house')) {
+                return 'Flatting with a monster — keeping villain\'s bluffs and weaker value in the pot. Raising would fold out too many hands you beat.';
+            }
+            if (handStrength.includes('top pair') && handStrength.includes('top kicker')) {
+                return 'Calling with TPTK — strong enough to continue but raising would only get action from better hands.';
+            }
+            if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
+                if (street === 'river') return 'Bluff-catching with a strong pair on the river — your hand beats all of villain\'s bluffs and some thin value.';
+                return 'Calling with a strong pair — flatting keeps the pot controlled while you\'re ahead of most of villain\'s range.';
             }
             if (street === 'river') {
-                return 'Bluff-catching on the river — calling to pick off opponent\'s bluffs.';
+                if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
+                    return 'Bluff-catching on the river with a marginal pair — you need villain to be bluffing at the right frequency.';
+                }
+                return 'Bluff-catching on the river — calling at the right frequency to prevent villain from profiting with pure bluffs.';
             }
             if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
-                return 'Calling with a marginal hand that\'s ahead of enough bluffs to be profitable.';
+                return 'Calling with a marginal made hand — your pair beats villain\'s bluffs and some of their value range.';
             }
             return 'Calling to see another card and realize equity.';
         }
@@ -1913,15 +1953,34 @@ export class DeterministicGTOEngine {
             return 'Raising to build the pot and apply pressure.';
         }
 
-        // ═══ FOLDING CONCEPTS ═══
+        // ═══ FOLDING CONCEPTS (Phase 56: Enhanced depth) ═══
         if (isFold) {
+            if (handStrength.includes('flush draw') || handStrength.includes('nut flush draw')) {
+                return 'Folding even with a flush draw — the bet size prices you out. You need ~4:1 odds for 9 outs, and the sizing is too large.';
+            }
+            if (handStrength.includes('OESD') || handStrength.includes('double gutshot')) {
+                return 'Folding a straight draw — the bet sizing doesn\'t give you correct pot odds, and implied odds aren\'t sufficient.';
+            }
+            if (handStrength.includes('gutshot')) {
+                return 'Folding a gutshot — only 4 outs (~8% equity) isn\'t enough against this bet size. You need ~11:1 odds to call.';
+            }
             if (handStrength.includes('draw')) {
-                return 'Folding a draw — bet sizing prices out the draw, making calling unprofitable.';
+                return 'Folding a draw — the bet sizing prices out your draw. Calling would be a -EV play.';
             }
-            if (handStrength.includes('pair')) {
-                return 'Folding a marginal made hand — facing too much aggression to continue profitably.';
+            if (handStrength.includes('top pair')) {
+                return 'Folding top pair against heavy aggression — villain\'s range is polarized toward strong value hands that beat you.';
             }
-            return 'Folding — the hand lacks sufficient equity against the opponent\'s range.';
+            if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
+                if (street === 'river') return 'Folding a weak pair on the river — you\'re not getting the right price to bluff-catch against this sizing.';
+                return 'Folding a marginal pair — facing too much aggression to continue. Your hand doesn\'t have enough equity vs villain\'s range.';
+            }
+            if (handStrength.includes('overpair')) {
+                return 'Folding an overpair — even strong pairs must fold facing extreme aggression. Villain\'s range is heavily weighted toward sets and better.';
+            }
+            if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
+                return 'Folding air — no made hand, insufficient draw equity. This hand is at the bottom of your range.';
+            }
+            return 'Folding — the hand lacks sufficient equity against villain\'s betting range to continue.';
         }
 
         return '';
