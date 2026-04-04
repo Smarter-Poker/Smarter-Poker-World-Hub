@@ -253,7 +253,7 @@ export const VIP_BENEFITS = [
     // ─── SMARTER.POKER PLATFORM ───
     { icon: '', title: 'Ad-Free Experience Across The Entire Platform', description: 'No Ads Or Banners Anywhere On The Platform', value: 'Platform', category: 'Smarter.Poker' },
     { icon: '', title: 'Unlimited GTO Training Games (No Diamond Cost)', description: 'Play All GTO Training Games Without Spending Diamonds', value: 'Unlimited', category: 'Smarter.Poker' },
-    { icon: '', title: 'Unlimited Memory Games (No Diamond Cost)', description: 'Play All Memory Games Without Spending Diamonds', value: 'Unlimited', category: 'Smarter.Poker' },
+    { icon: '', title: 'Unlimited Preflop Charts Training (No Diamond Cost)', description: 'Play All Preflop Chart Training Games Without Spending Diamonds', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'Unlimited Poker Trivia (No Diamond Cost)', description: 'Play All Poker Trivia Games Without Spending Diamonds', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'Full Access To GTO AI Personal Assistant', description: 'Priority AI Coaching & Hand Analysis', value: 'Unlimited', category: 'Smarter.Poker' },
     { icon: '', title: 'Advanced Leak Finder Analysis Tools', description: 'Full Leak Detection And Analysis Tools', value: '$50/Mo', category: 'Smarter.Poker' },

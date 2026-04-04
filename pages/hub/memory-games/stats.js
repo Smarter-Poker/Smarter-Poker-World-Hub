@@ -206,8 +206,8 @@ export default function MemoryGamesStats() {
     return (
         <>
             <SEOHead
-                title="Memory Games Stats"
-                description="View Your Memory Game Performance, Scores, And Improvement Trends."
+                title="Preflop Charts Stats"
+                description="View Your Preflop Range Training Performance, Scores, And Improvement Trends."
                 canonical="/hub/preflop-charts/stats"
                 noindex={true}
             />

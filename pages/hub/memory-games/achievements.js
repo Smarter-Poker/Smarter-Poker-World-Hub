@@ -97,8 +97,8 @@ export default function MemoryGamesAchievements() {
     return (
         <>
             <SEOHead
-                title="Memory Games Achievements"
-                description="Track Your Memory Game Achievements And Cognitive Training Progress."
+                title="Preflop Charts Achievements"
+                description="Track Your Preflop Range Training Achievements And Progress."
                 canonical="/hub/preflop-charts/achievements"
             />
 

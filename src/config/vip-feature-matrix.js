@@ -181,7 +181,7 @@ export const VIP_FEATURE_MATRIX = {
   },
 
   // ═══════════════════════════════════════════════════════════════
-  // Trivia & Memory Games
+  // Trivia & Preflop Charts
   // ═══════════════════════════════════════════════════════════════
   'trivia': {
     page: '/hub/trivia',

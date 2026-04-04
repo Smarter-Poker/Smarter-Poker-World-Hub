@@ -11,7 +11,7 @@ const JARVIS_KNOWLEDGE = {
             { name: 'Diamond Arena', orbNumber: 3, route: '/hub/diamond-arena', status: 'LIVE' },
             { name: 'GTO Training', orbNumber: 4, route: '/hub/training', status: 'LIVE' },
             { name: 'News & Content', orbNumber: 5, route: '/hub/news', status: 'LIVE' },
-            { name: 'Memory Games', orbNumber: 6, route: '/hub/memory-campaign', status: 'LIVE' },
+            { name: 'Preflop Charts', orbNumber: 6, route: '/hub/preflop-charts', status: 'LIVE' },
             { name: 'Trivia', orbNumber: 7, route: '/hub/trivia', status: 'LIVE' },
             { name: 'Video Library', orbNumber: 8, route: '/hub/video-library', status: 'LIVE' },
             { name: 'Poker Near Me', orbNumber: 9, route: '/hub/poker-near-me-lobby', status: 'LIVE' },

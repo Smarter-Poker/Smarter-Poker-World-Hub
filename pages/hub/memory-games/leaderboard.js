@@ -116,8 +116,8 @@ export default function MemoryGamesLeaderboard() {
     return (
         <>
             <SEOHead
-                title="Memory Games Leaderboard"
-                description="See Who Has The Sharpest Memory On The Smarter.Poker Memory Games Leaderboard."
+                title="Preflop Charts Leaderboard"
+                description="See Who Has The Sharpest GTO Ranges On The Smarter.Poker Preflop Charts Leaderboard."
                 canonical="/hub/preflop-charts/leaderboard"
             />
 
@@ -129,7 +129,7 @@ export default function MemoryGamesLeaderboard() {
 
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '20px' }}>
-                            🏆 Memory Games Leaderboard
+                            Preflop Charts Leaderboard
                         </h1>
 
                         {/* Game Mode Tabs */}

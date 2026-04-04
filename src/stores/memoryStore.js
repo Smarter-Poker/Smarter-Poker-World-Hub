@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { getStorage } from '../lib/storage';
 
 /**
- * Memory Games Global State
+ * Preflop Charts Global State (formerly Memory Games)
  * Manages game state, level selection, and user preferences
  */
 export const useMemoryStore = create(

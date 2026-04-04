@@ -187,7 +187,7 @@ const WARM_ENTRIES = [
     { question: 'how do i deal with tilt', category: 'Psychology' },
     { question: 'what is variance', category: 'Psychology' },
     { question: 'what is plo', category: 'Poker Variants' },
-    { question: 'what are memory games', category: 'Memory Games' },
+    { question: 'what are preflop charts', category: 'Preflop Charts' },
 ];
 
 // ── Use the local KB to generate cached answers for warm entries ──
