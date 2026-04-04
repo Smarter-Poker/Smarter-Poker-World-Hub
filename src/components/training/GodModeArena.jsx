@@ -814,6 +814,14 @@ function GodModeArenaInner({
         resetGame,
         // ═══ PHASE 15: Weak-spot targeting ═══
         getWeakSpots,
+        // ═══ PHASE 251-260: Enhanced training intelligence ═══
+        structuredExplanation,
+        generateLeakReport,
+        getSessionGrade,
+        getImprovementVelocity,
+        prescribeDrills,
+        getFrequencyMasteryScore,
+        generateSessionReport,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -1378,7 +1386,7 @@ function GodModeArenaInner({
                     {/* F13: Daily Challenge Banner */}
                     <DailyChallengeBanner gtowScore={gtowScore} />
 
-                    {/* GTOW SCORE — Hero display */}
+                    {/* GTOW SCORE — Hero display + Phase 255 Session Grade */}
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -1388,6 +1396,23 @@ function GodModeArenaInner({
                             {gtowScore}%
                         </div>
                         <div style={styles.scoreHeroLabel}>GTOW SCORE</div>
+                        {/* Phase 255: Session letter grade */}
+                        {(() => {
+                            try {
+                                const grade = getSessionGrade();
+                                if (grade && grade.grade !== '-') return (
+                                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                                        <span style={{
+                                            fontSize: 28, fontWeight: 900, color: grade.color,
+                                            fontFamily: "'Orbitron', monospace",
+                                            textShadow: `0 0 12px ${grade.color}44`,
+                                        }}>{grade.grade}</span>
+                                        <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{grade.label}</span>
+                                    </div>
+                                );
+                            } catch (_) { /* non-critical */ }
+                            return null;
+                        })()}
                     </motion.div>
 
                     {/* SUMMARY STATS ROW */}
@@ -2120,6 +2145,117 @@ function GodModeArenaInner({
                     {/* ═══ TAB: ANALYSIS ═══ */}
                     {reviewTab === 'analysis' && (<>
 
+                        {/* ═══ PHASE 254: Leak Report + Phase 258: Drill Prescription ═══ */}
+                        {(() => {
+                            try {
+                                const report = generateLeakReport();
+                                if (!report || !report.leaks || report.leaks.length === 0) return null;
+                                const severityColors = { critical: '#ef4444', high: '#f97316', medium: '#fbbf24', low: '#94a3b8' };
+                                return (
+                                    <div style={{
+                                        marginBottom: 16, padding: '14px 16px',
+                                        background: 'linear-gradient(180deg, rgba(239,68,68,0.06) 0%, rgba(0,0,0,0.3) 100%)',
+                                        borderRadius: 12,
+                                        border: '1px solid rgba(239,68,68,0.15)',
+                                    }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                                            Leak Report
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 12, lineHeight: 1.5 }}>
+                                            {report.summary}
+                                        </div>
+                                        {report.leaks.map((leak, i) => (
+                                            <div key={i} style={{
+                                                marginBottom: 10, padding: '10px 12px',
+                                                background: 'rgba(0,0,0,0.3)', borderRadius: 8,
+                                                borderLeft: `3px solid ${severityColors[leak.severity] || '#fbbf24'}`,
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                                    <span style={{
+                                                        fontSize: 8, fontWeight: 800, padding: '2px 6px', borderRadius: 4,
+                                                        background: `${severityColors[leak.severity]}22`,
+                                                        color: severityColors[leak.severity],
+                                                        textTransform: 'uppercase', letterSpacing: 0.5,
+                                                    }}>{leak.severity}</span>
+                                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{leak.title}</span>
+                                                </div>
+                                                <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5, marginBottom: 4 }}>{leak.detail}</div>
+                                                <div style={{
+                                                    fontSize: 10, color: '#4ade80', lineHeight: 1.5,
+                                                    padding: '4px 8px', background: 'rgba(34,197,94,0.06)', borderRadius: 6,
+                                                    border: '1px solid rgba(34,197,94,0.1)',
+                                                }}>
+                                                    Fix: {leak.fix}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 258: Recommended Drills ═══ */}
+                        {(() => {
+                            try {
+                                const drills = prescribeDrills();
+                                if (!drills || drills.length === 0) return null;
+                                return (
+                                    <div style={{
+                                        marginBottom: 16, padding: '14px 16px',
+                                        background: 'rgba(0,0,0,0.3)', borderRadius: 12,
+                                        border: '1px solid rgba(0,212,255,0.15)',
+                                    }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                                            Recommended Drills
+                                        </div>
+                                        {drills.map((drill, i) => (
+                                            <div key={i} style={{
+                                                marginBottom: 8, padding: '8px 12px',
+                                                background: 'rgba(0,212,255,0.04)', borderRadius: 8,
+                                                border: '1px solid rgba(0,212,255,0.08)',
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{drill.name}</span>
+                                                    <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>{drill.duration}</span>
+                                                </div>
+                                                <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>{drill.description}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 257: Improvement Velocity ═══ */}
+                        {(() => {
+                            try {
+                                const velocity = getImprovementVelocity();
+                                if (!velocity || velocity.trend === 'INSUFFICIENT_DATA') return null;
+                                const trendColors = {
+                                    STRONG_IMPROVEMENT: '#22c55e',
+                                    IMPROVING: '#4ade80',
+                                    STABLE: '#fbbf24',
+                                    SLIGHT_DECLINE: '#f97316',
+                                    DECLINING: '#ef4444',
+                                };
+                                const trendColor = trendColors[velocity.trend] || '#94a3b8';
+                                return (
+                                    <div style={{
+                                        marginBottom: 16, padding: '10px 14px',
+                                        background: 'rgba(0,0,0,0.2)', borderRadius: 10,
+                                        border: `1px solid ${trendColor}22`,
+                                    }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: trendColor, marginBottom: 4 }}>
+                                            Session Trend: {velocity.trend.replace(/_/g, ' ')}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>
+                                            {velocity.message}
+                                        </div>
+                                    </div>
+                                );
+                            } catch (_) { return null; }
+                        })()}
+
                         {/* ═══ PHASE 20: EV by Street visualization ═══ */}
                         <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
@@ -2587,6 +2723,7 @@ function GodModeArenaInner({
                                     showFeedback={showFeedback}
                                     feedbackResult={feedbackResult}
                                     explanation={explanation}
+                                    structuredExplanation={structuredExplanation}
                                     // GTOW scoring props
                                     moveClassification={moveClassification}
                                     evLoss={evLoss}

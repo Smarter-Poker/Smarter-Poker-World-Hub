@@ -10863,6 +10863,625 @@ export class DeterministicGTOEngine {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 251: STRUCTURED EXPLANATION OBJECTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 251: Generate a structured explanation object instead of a flat string.
+     * Returns sections that the UI can render with visual hierarchy.
+     * @param {string} selectedAction - Action the user chose
+     * @param {string} correctAction - GTO-optimal action
+     * @param {Object} frequencies - Action frequency map
+     * @param {string} handCategory - Hand classification (e.g., 'top pair')
+     * @param {string} street - Current street
+     * @param {string} nodeType - Node type context
+     * @param {Object} scenario - Full scenario data
+     * @param {string} baseExplanation - Engine-generated base explanation
+     * @returns {Object} Structured explanation with labeled sections
+     */
+    generateStructuredExplanation(selectedAction, correctAction, frequencies, handCategory, street, nodeType, scenario, baseExplanation) {
+        const isCorrect = selectedAction === correctAction;
+        const selectedFreq = frequencies?.[selectedAction] || 0;
+        const correctFreq = frequencies?.[correctAction] || 0;
+
+        // Derive concept tag
+        const concept = this.deriveConceptFromContext(nodeType || '', street || 'flop', correctAction, handCategory || '');
+
+        // Key takeaway — one sentence the player should remember
+        const takeaway = this._generateKeyTakeaway(selectedAction, correctAction, frequencies, handCategory, street, nodeType, isCorrect);
+
+        // Mistake classification for wrong answers
+        let mistakeType = null;
+        if (!isCorrect) {
+            mistakeType = this._classifyMistakeType(selectedAction, correctAction, frequencies, street, nodeType, handCategory);
+        }
+
+        // Pattern match — connect to previous mistakes
+        const patternMatch = this._findMistakePattern(street, nodeType, selectedAction, correctAction);
+
+        // Actionable fix — specific drill or focus area
+        const actionableFix = !isCorrect ? this._generateActionableFix(mistakeType, street, nodeType, handCategory) : null;
+
+        return {
+            // Primary feedback line (already computed by UI)
+            primary: baseExplanation || '',
+            // Concept being tested (e.g., 'C-Bet Frequency', 'River Bluff Catching')
+            concept: concept || 'General Strategy',
+            // One-sentence key takeaway
+            takeaway: takeaway,
+            // Mistake classification (null if correct)
+            mistakeType: mistakeType,
+            // Pattern detection result
+            pattern: patternMatch,
+            // Actionable fix instruction
+            fix: actionableFix,
+            // Whether this was correct
+            isCorrect: isCorrect,
+            // Frequencies for context
+            selectedFreq: Math.round(selectedFreq * (selectedFreq <= 1 ? 100 : 1)),
+            correctFreq: Math.round(correctFreq * (correctFreq <= 1 ? 100 : 1)),
+            // Street and spot type
+            street: street,
+            spotType: nodeType || 'general',
+        };
+    }
+
+    /**
+     * Phase 251: Generate a single-sentence key takeaway.
+     */
+    _generateKeyTakeaway(selectedAction, correctAction, frequencies, handCategory, street, nodeType, isCorrect) {
+        const correctLabel = this.getActionLabelGTOW(correctAction);
+        const correctFreq = frequencies?.[correctAction] || 0;
+        const freqPct = correctFreq <= 1 ? Math.round(correctFreq * 100) : Math.round(correctFreq);
+        const hc = (handCategory || '').toLowerCase();
+
+        if (isCorrect) {
+            if (freqPct >= 95) return `${correctLabel} is the only play here — remember this as a pure strategy spot.`;
+            if (freqPct >= 70) return `${correctLabel} is strongly preferred. In practice, always take this action with ${handCategory || 'this hand'}.`;
+            return `Good read on a mixed spot — ${correctLabel} at ${freqPct}% is the solver's top choice.`;
+        }
+
+        // Wrong answer takeaways — teach the principle
+        const selectedLabel = this.getActionLabelGTOW(selectedAction);
+        const selFreq = frequencies?.[selectedAction] || 0;
+        const selPct = selFreq <= 1 ? Math.round(selFreq * 100) : Math.round(selFreq);
+
+        if (selPct === 0) {
+            // Action not in solver strategy at all
+            if (street === 'river') {
+                if (selectedAction === 'f' || selectedAction === 'fold') return `On the river, ${handCategory || 'this hand'} has enough showdown value to continue. Folding here over-folds your range.`;
+                if ((selectedAction || '').match(/^(b|bet|allin|r|raise)/i)) return `${handCategory || 'This hand'} doesn't have the right properties to bet/raise here. Focus on which hands in your range want to put money in.`;
+            }
+            if (street === 'preflop') {
+                return `${handCategory || 'This hand'} isn't strong enough for ${selectedLabel} in this position. Review your preflop ranges for this spot.`;
+            }
+            return `${selectedLabel} is never used here by the solver. Ask yourself: what is ${selectedLabel} trying to accomplish that ${correctLabel} doesn't do better?`;
+        }
+
+        if (selPct > 0 && selPct < 15) return `${selectedLabel} is only used ${selPct}% — it's a rare mix, not a primary action. Default to ${correctLabel} (${freqPct}%).`;
+        if (selPct >= 15 && selPct < correctFreq) return `Both actions are in the mix, but ${correctLabel} at ${freqPct}% is preferred over ${selectedLabel} at ${selPct}%. The EV difference matters over volume.`;
+
+        return `${correctLabel} at ${freqPct}% is the solver's primary choice. Study what makes ${handCategory || 'this hand'} prefer ${correctLabel} over ${selectedLabel} in this spot.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 252: MISTAKE TYPE CLASSIFICATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 252: Classify the TYPE of mistake into one of several categories.
+     * This helps users understand their thinking error, not just that they were wrong.
+     */
+    _classifyMistakeType(selectedAction, correctAction, frequencies, street, nodeType, handCategory) {
+        const sel = (selectedAction || '').toLowerCase();
+        const cor = (correctAction || '').toLowerCase();
+        const selFreq = frequencies?.[selectedAction] || 0;
+        const selPct = selFreq <= 1 ? Math.round(selFreq * 100) : Math.round(selFreq);
+
+        // Category 1: Playing too passively (should bet/raise, chose check/call/fold)
+        const corIsAggressive = cor.match(/^(b|bet|r|raise|allin)/i);
+        const selIsPassive = sel === 'x' || sel === 'c' || sel === 'check' || sel === 'call' || sel === 'f' || sel === 'fold';
+        if (corIsAggressive && selIsPassive) {
+            if (sel === 'f' || sel === 'fold') return { type: 'OVER_FOLD', label: 'Over-Folding', description: 'You folded a hand that has enough equity to continue. This shrinks your range too much and makes you exploitable.', severity: 'high' };
+            return { type: 'TOO_PASSIVE', label: 'Too Passive', description: 'The solver wants to apply pressure here. Playing passively misses value or fails to deny equity.', severity: 'medium' };
+        }
+
+        // Category 2: Playing too aggressively (should check/call/fold, chose bet/raise)
+        const selIsAggressive = sel.match(/^(b|bet|r|raise|allin)/i);
+        const corIsPassive = cor === 'x' || cor === 'c' || cor === 'check' || cor === 'call' || cor === 'f' || cor === 'fold';
+        if (selIsAggressive && corIsPassive) {
+            if (cor === 'f' || cor === 'fold') return { type: 'HERO_CALL', label: 'Bad Bluff/Value', description: 'This hand should be given up. Betting or raising here turns a made hand into a bluff or overvalues your holding.', severity: 'high' };
+            return { type: 'TOO_AGGRESSIVE', label: 'Too Aggressive', description: 'The solver prefers a more controlled approach here. Over-aggression can bloat the pot with a hand that doesn\'t benefit from it.', severity: 'medium' };
+        }
+
+        // Category 3: Right aggression, wrong sizing (both bet but different sizes)
+        const selIsBet = sel.match(/^(b|bet)/i);
+        const corIsBet = cor.match(/^(b|bet)/i);
+        if (selIsBet && corIsBet && sel !== cor) {
+            return { type: 'SIZING_ERROR', label: 'Sizing Mistake', description: 'You had the right idea to bet, but the size matters. Different sizings target different parts of villain\'s range.', severity: 'low' };
+        }
+
+        // Category 4: Mixed strategy misread (both in strategy but wrong primary)
+        if (selPct > 0 && selPct < 30) {
+            return { type: 'MIX_MISREAD', label: 'Mixed Strategy Misread', description: 'Your action is in the solver\'s strategy but at low frequency. Study when the solver shifts to this action vs the primary.', severity: 'low' };
+        }
+
+        // Category 5: Fold vs call decision (defensive error)
+        if ((sel === 'f' || sel === 'fold') && (cor === 'call' || cor === 'c')) {
+            return { type: 'OVER_FOLD', label: 'Over-Folding', description: 'Your hand has enough equity vs villain\'s range to continue. Folding too much lets villain profit with any two cards.', severity: 'high' };
+        }
+        if ((sel === 'call' || sel === 'c') && (cor === 'f' || cor === 'fold')) {
+            return { type: 'OVER_CALL', label: 'Over-Calling', description: 'This hand doesn\'t have enough equity against villain\'s betting range. Calling here is burning money.', severity: 'high' };
+        }
+
+        // Default
+        return { type: 'STRATEGY_ERROR', label: 'Strategy Error', description: 'The solver sees a better play here. Review the spot\'s fundamentals.', severity: 'medium' };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 253: PATTERN DETECTION ACROSS SESSION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 253: Find if the current mistake matches a pattern from earlier in the session.
+     */
+    _findMistakePattern(street, nodeType, selectedAction, correctAction) {
+        if (!this._mistakeTracker) return null;
+        const key = `${street}:${nodeType || 'general'}`;
+        const mistakes = this._mistakeTracker[key];
+        if (!mistakes || mistakes < 2) return null;
+
+        // Check if user repeatedly makes the same type of error in the same spot
+        const totalForSpot = mistakes;
+        if (totalForSpot >= 3) {
+            return {
+                isRecurring: true,
+                count: totalForSpot,
+                message: `This is the ${totalForSpot}${totalForSpot === 3 ? 'rd' : 'th'} time you've missed a ${street} ${nodeType || ''} spot this session. This is a systematic leak — add it to your study list.`,
+                spotType: key,
+            };
+        }
+        if (totalForSpot === 2) {
+            return {
+                isRecurring: true,
+                count: 2,
+                message: `You missed a similar ${street} spot earlier. Pay extra attention to ${street} strategy in ${nodeType || 'this configuration'}.`,
+                spotType: key,
+            };
+        }
+        return null;
+    }
+
+    /**
+     * Phase 253: Generate an actionable fix instruction based on mistake type.
+     */
+    _generateActionableFix(mistakeType, street, nodeType, handCategory) {
+        if (!mistakeType) return null;
+        const mt = mistakeType.type;
+
+        if (mt === 'OVER_FOLD') {
+            if (street === 'river') return 'Practice: Estimate your bluff-catching frequency. You need to call enough to make villain indifferent to bluffing.';
+            if (street === 'flop') return 'Practice: Check if your hand has enough equity (draws, backdoors, overcards) to continue. Folding too early forfeits equity.';
+            return 'Drill: Review pot odds math. Calculate the minimum equity needed to call and compare it to your hand\'s equity.';
+        }
+        if (mt === 'TOO_PASSIVE') {
+            if (street === 'flop' && (nodeType || '').includes('ip')) return 'Practice: IP on the flop with initiative, you should be c-betting frequently. Ask: does betting deny equity or extract value?';
+            if (street === 'turn') return 'Practice: When you bet the flop, plan your turn action in advance. Checking the turn after a flop bet often signals weakness.';
+            return 'Drill: For each hand you want to check, ask: would betting accomplish more (deny equity, charge draws, build pot)?';
+        }
+        if (mt === 'TOO_AGGRESSIVE') {
+            if (street === 'river') return 'Practice: On the river, only bet for value (can you get called by worse?) or as a bluff (can you fold out better?). If neither, check.';
+            return 'Drill: Before betting, identify your hand\'s goal — value, protection, or bluff. If none apply clearly, checking is usually correct.';
+        }
+        if (mt === 'SIZING_ERROR') return 'Practice: Small bets target inelastic calls; large bets polarize. Match your sizing to your range, not just your hand.';
+        if (mt === 'MIX_MISREAD') return 'Practice: In mixed strategy spots, default to the highest-frequency action. Only deviate when you have a strong exploitative reason.';
+        if (mt === 'OVER_CALL') return 'Drill: Calculate minimum defense frequency vs the bet size. Some hands must fold even if they look decent — that\'s how ranges work.';
+        if (mt === 'HERO_CALL') return 'Practice: Before calling a big bet, ask: what value hands does villain bet that I beat? If the answer is few or none, fold.';
+
+        return 'Review this spot type in your next study session. Focus on understanding the solver\'s reasoning, not memorizing the action.';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 254: POST-SESSION LEAK REPORT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 254: Analyze session data and generate a ranked leak report.
+     * Returns top 3 specific leaks with fix instructions.
+     */
+    generateLeakReport() {
+        const total = this._sessionStats?.total || 0;
+        if (total < 5) return { leaks: [], summary: 'Play at least 5 hands to generate a leak report.' };
+
+        const leaks = [];
+        const accuracy = total > 0 ? (this._sessionStats.correct / total) * 100 : 0;
+
+        // Leak 1: Positional weaknesses
+        if (this._positionalAwareness) {
+            const posEntries = Object.entries(this._positionalAwareness);
+            for (const [pos, data] of posEntries) {
+                if (data.total >= 2) {
+                    const posAcc = (data.correct / data.total) * 100;
+                    if (posAcc < 50) {
+                        leaks.push({
+                            type: 'POSITIONAL',
+                            severity: posAcc < 30 ? 'critical' : 'high',
+                            title: `Weak from ${pos}`,
+                            detail: `${Math.round(posAcc)}% accuracy from ${pos} (${data.correct}/${data.total}). Your overall is ${Math.round(accuracy)}%.`,
+                            fix: `Focus your next session on ${pos}-specific spots. Review opening ranges and postflop strategy when playing from ${pos}.`,
+                            score: (accuracy - posAcc) * data.total, // Higher = worse leak
+                        });
+                    }
+                }
+            }
+        }
+
+        // Leak 2: Street-specific weaknesses from question type tracker
+        if (this._questionTypeTracker) {
+            const streetStats = {};
+            for (const [key, count] of Object.entries(this._questionTypeTracker)) {
+                const street = key.split(':')[0];
+                if (!streetStats[street]) streetStats[street] = { total: 0, wrong: 0 };
+                streetStats[street].total += count;
+            }
+            // Cross-reference with mistakes
+            if (this._mistakeTracker) {
+                for (const [key, count] of Object.entries(this._mistakeTracker)) {
+                    const street = key.split(':')[0];
+                    if (streetStats[street]) streetStats[street].wrong += count;
+                }
+            }
+            for (const [street, data] of Object.entries(streetStats)) {
+                if (data.total >= 3 && data.wrong > 0) {
+                    const streetAcc = ((data.total - data.wrong) / data.total) * 100;
+                    if (streetAcc < 50) {
+                        leaks.push({
+                            type: 'STREET',
+                            severity: streetAcc < 30 ? 'critical' : 'high',
+                            title: `${street.charAt(0).toUpperCase() + street.slice(1)} play needs work`,
+                            detail: `${Math.round(streetAcc)}% accuracy on the ${street} (${data.wrong} mistakes in ${data.total} hands).`,
+                            fix: street === 'river' ? 'River play requires precise ranging. Practice identifying villain\'s value and bluff combos before deciding.'
+                                : street === 'turn' ? 'The turn is where ranges narrow. Practice turn barreling theory and check-raise spots.'
+                                : street === 'flop' ? 'Flop play is about range vs range. Practice c-bet frequency decisions based on board texture.'
+                                : 'Review preflop ranges for your position and stack depth.',
+                            score: (accuracy - streetAcc) * data.total,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Leak 3: Aggression imbalance
+        if (this._aggressionTracker) {
+            let totalBets = 0;
+            let totalChecks = 0;
+            for (const [street, actions] of Object.entries(this._aggressionTracker)) {
+                for (const [action, count] of Object.entries(actions)) {
+                    const a = action.toLowerCase();
+                    if (a.match(/^(b|bet|r|raise|allin)/)) totalBets += count;
+                    else if (a === 'x' || a === 'check' || a === 'c' || a === 'call' || a === 'f' || a === 'fold') totalChecks += count;
+                }
+            }
+            const totalActions = totalBets + totalChecks;
+            if (totalActions >= 5) {
+                const aggPct = (totalBets / totalActions) * 100;
+                if (aggPct > 75) {
+                    leaks.push({
+                        type: 'AGGRESSION',
+                        severity: 'medium',
+                        title: 'Over-aggressive tendencies',
+                        detail: `You bet/raise ${Math.round(aggPct)}% of the time. The solver typically bets 40-60% depending on the spot.`,
+                        fix: 'Not every hand benefits from aggression. Practice identifying check-back and check-call spots where pot control is optimal.',
+                        score: Math.abs(aggPct - 55) * 2,
+                    });
+                } else if (aggPct < 30) {
+                    leaks.push({
+                        type: 'AGGRESSION',
+                        severity: 'medium',
+                        title: 'Too passive — not betting enough',
+                        detail: `You only bet/raise ${Math.round(aggPct)}% of the time. You\'re likely missing value bets and failing to deny equity.`,
+                        fix: 'Focus on spots where betting is clearly +EV: thin value bets, equity denial on wet boards, and balanced bluffs.',
+                        score: Math.abs(aggPct - 55) * 2,
+                    });
+                }
+            }
+        }
+
+        // Leak 4: Concept mastery gaps
+        if (this._conceptMastery) {
+            for (const [concept, data] of Object.entries(this._conceptMastery)) {
+                if (data.total >= 3) {
+                    const conceptAcc = (data.correct / data.total) * 100;
+                    if (conceptAcc < 40) {
+                        leaks.push({
+                            type: 'CONCEPT',
+                            severity: conceptAcc < 20 ? 'critical' : 'high',
+                            title: `Weak concept: ${concept}`,
+                            detail: `Only ${Math.round(conceptAcc)}% accuracy on ${concept} spots (${data.correct}/${data.total}).`,
+                            fix: `Dedicate a study session to ${concept}. Review solver outputs for 10+ examples of this spot type and note the patterns.`,
+                            score: (100 - conceptAcc) * data.total,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Sort by severity score (highest = worst leak)
+        leaks.sort((a, b) => b.score - a.score);
+
+        // Generate summary
+        const topLeaks = leaks.slice(0, 3);
+        let summary = '';
+        if (topLeaks.length === 0) {
+            if (accuracy >= 80) summary = 'Excellent session. No significant leaks detected. Keep pushing to higher difficulty levels.';
+            else if (accuracy >= 60) summary = 'Solid session. Minor areas for improvement but no glaring leaks. Focus on consistency.';
+            else summary = 'Tough session, but the data is limited. Play more hands to get meaningful leak detection.';
+        } else {
+            const criticalCount = topLeaks.filter(l => l.severity === 'critical').length;
+            if (criticalCount > 0) summary = `Found ${criticalCount} critical leak${criticalCount > 1 ? 's' : ''}. Prioritize fixing ${topLeaks[0].title.toLowerCase()} before moving to harder levels.`;
+            else summary = `Found ${topLeaks.length} area${topLeaks.length > 1 ? 's' : ''} for improvement. Your biggest opportunity is: ${topLeaks[0].title.toLowerCase()}.`;
+        }
+
+        return { leaks: topLeaks, summary, totalHands: total, accuracy: Math.round(accuracy) };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 255: SESSION GRADING SYSTEM
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 255: Grade the overall session performance (A+ through F).
+     */
+    getSessionGrade() {
+        const total = this._sessionStats?.total || 0;
+        if (total < 3) return { grade: '-', label: 'Too few hands', color: '#64748b' };
+
+        const accuracy = (this._sessionStats.correct / total) * 100;
+        const streak = this._sessionBests?.streak || 0;
+        const tilt = this.detectTilt();
+        const tiltPenalty = tilt?.level === 'CRITICAL' ? 10 : tilt?.level === 'WARNING' ? 5 : 0;
+
+        // Weighted score: accuracy (70%) + streak bonus (15%) + consistency bonus (15%) - tilt penalty
+        const streakBonus = Math.min(15, (streak / total) * 30);
+        // Consistency: std deviation of recent results (lower = more consistent = better)
+        const recent = (this._recentResults || []).slice(-10);
+        let consistencyBonus = 10;
+        if (recent.length >= 5) {
+            const recentAcc = recent.filter(Boolean).length / recent.length;
+            consistencyBonus = recentAcc >= 0.7 ? 15 : recentAcc >= 0.5 ? 10 : 5;
+        }
+
+        const rawScore = (accuracy * 0.7) + streakBonus + consistencyBonus - tiltPenalty;
+        const score = Math.max(0, Math.min(100, rawScore));
+
+        if (score >= 95) return { grade: 'A+', label: 'Exceptional', color: '#22c55e', score: Math.round(score) };
+        if (score >= 88) return { grade: 'A', label: 'Excellent', color: '#22c55e', score: Math.round(score) };
+        if (score >= 82) return { grade: 'A-', label: 'Very Good', color: '#4ade80', score: Math.round(score) };
+        if (score >= 76) return { grade: 'B+', label: 'Good', color: '#86efac', score: Math.round(score) };
+        if (score >= 70) return { grade: 'B', label: 'Above Average', color: '#fbbf24', score: Math.round(score) };
+        if (score >= 64) return { grade: 'B-', label: 'Decent', color: '#fbbf24', score: Math.round(score) };
+        if (score >= 56) return { grade: 'C+', label: 'Needs Work', color: '#f97316', score: Math.round(score) };
+        if (score >= 48) return { grade: 'C', label: 'Below Average', color: '#f97316', score: Math.round(score) };
+        if (score >= 40) return { grade: 'C-', label: 'Struggling', color: '#ef4444', score: Math.round(score) };
+        if (score >= 30) return { grade: 'D', label: 'Poor', color: '#ef4444', score: Math.round(score) };
+        return { grade: 'F', label: 'Review Fundamentals', color: '#dc2626', score: Math.round(score) };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 256: SPOT DIFFICULTY ESTIMATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 256: Estimate how hard a given spot is (1-10 difficulty).
+     * Uses frequency distribution, street, and stack depth.
+     */
+    estimateSpotDifficulty(frequencies, street, stackDepth, nodeType) {
+        let difficulty = 3; // baseline
+
+        // Mixed strategy spots are harder
+        if (frequencies) {
+            const freqs = Object.values(frequencies).filter(f => f > 0.01);
+            const entropy = freqs.reduce((sum, f) => sum - (f > 0 ? f * Math.log2(f) : 0), 0);
+            difficulty += Math.min(3, entropy * 2); // Max +3 from mixing
+        }
+
+        // Later streets are harder
+        if (street === 'turn') difficulty += 1;
+        if (street === 'river') difficulty += 2;
+
+        // Deeper stacks add complexity
+        if (stackDepth && stackDepth > 100) difficulty += 1;
+        if (stackDepth && stackDepth > 200) difficulty += 1;
+
+        // Complex node types are harder
+        if (nodeType && (nodeType.includes('3bet') || nodeType.includes('4bet'))) difficulty += 1;
+        if (nodeType && nodeType.includes('squeeze')) difficulty += 1;
+
+        return {
+            difficulty: Math.max(1, Math.min(10, Math.round(difficulty))),
+            label: difficulty >= 8 ? 'Expert' : difficulty >= 6 ? 'Advanced' : difficulty >= 4 ? 'Intermediate' : 'Beginner',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 257: IMPROVEMENT VELOCITY TRACKING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 257: Track improvement velocity — are you getting better or worse over the session?
+     */
+    getImprovementVelocity() {
+        const recent = this._recentResults || [];
+        if (recent.length < 10) return { velocity: 0, trend: 'INSUFFICIENT_DATA', message: 'Play more hands to see your improvement trend.' };
+
+        // Compare first half vs second half of the session
+        const midpoint = Math.floor(recent.length / 2);
+        const firstHalf = recent.slice(0, midpoint);
+        const secondHalf = recent.slice(midpoint);
+
+        const firstAcc = firstHalf.filter(Boolean).length / firstHalf.length;
+        const secondAcc = secondHalf.filter(Boolean).length / secondHalf.length;
+        const delta = secondAcc - firstAcc;
+
+        // Also check rolling 5-hand windows for micro-trends
+        let improving = 0;
+        let declining = 0;
+        for (let i = 5; i < recent.length; i++) {
+            const prev = recent.slice(i - 5, i - 2).filter(Boolean).length / 3;
+            const curr = recent.slice(i - 2, i + 1).filter(Boolean).length / 3;
+            if (curr > prev) improving++;
+            else if (curr < prev) declining++;
+        }
+
+        if (delta > 0.15) return { velocity: delta, trend: 'STRONG_IMPROVEMENT', message: `Strong upward trend. Your accuracy improved by ${Math.round(delta * 100)}% from the first to the second half.` };
+        if (delta > 0.05) return { velocity: delta, trend: 'IMPROVING', message: `Positive trend. You\'re getting sharper as the session progresses (+${Math.round(delta * 100)}%).` };
+        if (delta < -0.15) return { velocity: delta, trend: 'DECLINING', message: `Accuracy dropped ${Math.round(Math.abs(delta) * 100)}% in the second half. Consider taking a break or lowering difficulty.` };
+        if (delta < -0.05) return { velocity: delta, trend: 'SLIGHT_DECLINE', message: `Slight dip in the second half (-${Math.round(Math.abs(delta) * 100)}%). Could be fatigue or harder spots.` };
+        return { velocity: delta, trend: 'STABLE', message: 'Consistent performance throughout the session. Good focus and discipline.' };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 258: DRILL PRESCRIPTION ENGINE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 258: Based on session performance, prescribe specific drills.
+     */
+    prescribeDrills() {
+        const leakReport = this.generateLeakReport();
+        const drills = [];
+
+        for (const leak of (leakReport.leaks || [])) {
+            if (leak.type === 'POSITIONAL') {
+                drills.push({
+                    name: `${leak.title} Bootcamp`,
+                    description: `Play 25 hands exclusively from ${leak.title.replace('Weak from ', '')}. Focus on range construction and postflop fundamentals.`,
+                    type: 'position',
+                    duration: '15 min',
+                    priority: leak.severity === 'critical' ? 1 : 2,
+                });
+            }
+            if (leak.type === 'STREET') {
+                const street = leak.title.split(' ')[0].toLowerCase();
+                drills.push({
+                    name: `${leak.title.split(' ')[0]} Accuracy Drill`,
+                    description: `Focus session on ${street}-only decisions. Review solver frequencies before each hand.`,
+                    type: 'street',
+                    duration: '20 min',
+                    priority: leak.severity === 'critical' ? 1 : 2,
+                });
+            }
+            if (leak.type === 'AGGRESSION') {
+                drills.push({
+                    name: 'Aggression Calibration',
+                    description: leak.title.includes('passive')
+                        ? 'Practice identifying thin value bets and equity denial spots. For each check, ask: should I bet?'
+                        : 'Practice pot control and check-back spots. For each bet, ask: am I getting called by worse or folding out better?',
+                    type: 'aggression',
+                    duration: '15 min',
+                    priority: 2,
+                });
+            }
+            if (leak.type === 'CONCEPT') {
+                drills.push({
+                    name: `${leak.title.replace('Weak concept: ', '')} Deep Dive`,
+                    description: `Study 10 solver examples of ${leak.title.replace('Weak concept: ', '')} spots. Note the common patterns.`,
+                    type: 'concept',
+                    duration: '10 min',
+                    priority: leak.severity === 'critical' ? 1 : 3,
+                });
+            }
+        }
+
+        // Always suggest a warmup drill
+        if (drills.length === 0) {
+            drills.push({
+                name: 'Maintain Your Edge',
+                description: 'No specific leaks detected. Continue at current difficulty and try a challenge mode session.',
+                type: 'general',
+                duration: '10 min',
+                priority: 3,
+            });
+        }
+
+        return drills.sort((a, b) => a.priority - b.priority).slice(0, 3);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 259: FREQUENCY MASTERY SCORE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 259: Score how well the user matches solver frequencies over the session.
+     * This is the ultimate measure — not just right/wrong but frequency alignment.
+     */
+    getFrequencyMasteryScore() {
+        if (!this._freqComparison) return { score: 0, label: 'No data', details: [] };
+
+        let totalDeviation = 0;
+        let totalDataPoints = 0;
+        const details = [];
+
+        for (const [street, nodes] of Object.entries(this._freqComparison)) {
+            for (const [nodeType, actions] of Object.entries(nodes)) {
+                for (const [action, data] of Object.entries(actions)) {
+                    if (data.count >= 2) {
+                        const userFreq = data.count > 0 ? data.userCount / data.count : 0;
+                        const solverFreq = data.solverAvg || 0;
+                        const deviation = Math.abs(userFreq - solverFreq);
+                        totalDeviation += deviation;
+                        totalDataPoints++;
+
+                        if (deviation > 0.2) {
+                            details.push({
+                                spot: `${street} ${nodeType}`,
+                                action: action,
+                                userFreq: Math.round(userFreq * 100),
+                                solverFreq: Math.round(solverFreq * 100),
+                                deviation: Math.round(deviation * 100),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        if (totalDataPoints === 0) return { score: 0, label: 'Insufficient data', details: [] };
+
+        const avgDeviation = totalDeviation / totalDataPoints;
+        const score = Math.max(0, Math.round((1 - avgDeviation) * 100));
+
+        const label = score >= 90 ? 'Solver-Level Play' : score >= 75 ? 'Strong Frequency Alignment' : score >= 60 ? 'Decent Balance' : score >= 40 ? 'Frequency Imbalance' : 'Major Frequency Leaks';
+
+        return {
+            score,
+            label,
+            avgDeviation: Math.round(avgDeviation * 100),
+            dataPoints: totalDataPoints,
+            details: details.sort((a, b) => b.deviation - a.deviation).slice(0, 5),
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 260: ENHANCED SESSION SUMMARY REPORT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 260: Generate a comprehensive end-of-session report object
+     * that includes grading, leaks, drills, frequency mastery, and improvement velocity.
+     */
+    generateSessionReport() {
+        return {
+            grade: this.getSessionGrade(),
+            leakReport: this.generateLeakReport(),
+            drills: this.prescribeDrills(),
+            frequencyMastery: this.getFrequencyMasteryScore(),
+            velocity: this.getImprovementVelocity(),
+            dashboard: this.getTrainingDashboard(),
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // PHASE 250: COMPREHENSIVE TRAINING DASHBOARD DATA
     // ═══════════════════════════════════════════════════════════════════════════
 

@@ -44,6 +44,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     const [showFeedback, setShowFeedback] = useState(false);
     const [feedbackResult, setFeedbackResult] = useState(null); // 'correct' | 'wrong'
     const [explanation, setExplanation] = useState('');
+    // Phase 251: Structured explanation object
+    const [structuredExplanation, setStructuredExplanation] = useState(null);
 
     // Game completion state
     const [gameComplete, setGameComplete] = useState(false);
@@ -656,6 +658,33 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         } catch (e) { /* non-critical */ }
 
         setExplanation(fullExplanation);
+
+        // ═══ PHASE 251: Generate structured explanation for rich UI rendering ═══
+        try {
+            const structured = deterministicEngine.generateStructuredExplanation(
+                selectedOptionId,
+                correctAnswer,
+                currentQuestion.frequencies || {},
+                currentQuestion.handCategory || '',
+                scenario.street || 'flop',
+                scenario.nodeType || '',
+                scenario,
+                fullExplanation
+            );
+            // Phase 256: Attach spot difficulty estimation
+            try {
+                structured.spotDifficulty = deterministicEngine.estimateSpotDifficulty(
+                    currentQuestion.frequencies || {},
+                    scenario.street || 'flop',
+                    scenario.stackDepth,
+                    scenario.nodeType || ''
+                );
+            } catch (_e) { /* non-critical */ }
+            setStructuredExplanation(structured);
+        } catch (e) {
+            setStructuredExplanation(null);
+        }
+
         setShowFeedback(true);
 
         // Store the selected action for multi-street advance
@@ -1440,6 +1469,36 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 250: Training dashboard ═══
         getTrainingDashboard: () => {
             try { return deterministicEngine.getTrainingDashboard(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 251: Structured explanation ═══
+        structuredExplanation,
+        // ═══ PHASE 254: Leak report ═══
+        generateLeakReport: () => {
+            try { return deterministicEngine.generateLeakReport(); } catch (e) { return { leaks: [], summary: '' }; }
+        },
+        // ═══ PHASE 255: Session grade ═══
+        getSessionGrade: () => {
+            try { return deterministicEngine.getSessionGrade(); } catch (e) { return { grade: '-', label: 'N/A', color: '#64748b' }; }
+        },
+        // ═══ PHASE 256: Spot difficulty ═══
+        estimateSpotDifficulty: (frequencies, street, stackDepth, nodeType) => {
+            try { return deterministicEngine.estimateSpotDifficulty(frequencies, street, stackDepth, nodeType); } catch (e) { return { difficulty: 3, label: 'Intermediate' }; }
+        },
+        // ═══ PHASE 257: Improvement velocity ═══
+        getImprovementVelocity: () => {
+            try { return deterministicEngine.getImprovementVelocity(); } catch (e) { return { velocity: 0, trend: 'INSUFFICIENT_DATA' }; }
+        },
+        // ═══ PHASE 258: Drill prescription ═══
+        prescribeDrills: () => {
+            try { return deterministicEngine.prescribeDrills(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 259: Frequency mastery ═══
+        getFrequencyMasteryScore: () => {
+            try { return deterministicEngine.getFrequencyMasteryScore(); } catch (e) { return { score: 0, label: 'No data' }; }
+        },
+        // ═══ PHASE 260: Full session report ═══
+        generateSessionReport: () => {
+            try { return deterministicEngine.generateSessionReport(); } catch (e) { return null; }
         },
 
         // Actions

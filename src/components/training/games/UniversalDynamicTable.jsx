@@ -1029,6 +1029,7 @@ function UniversalDynamicTable({
     showFeedback,
     feedbackResult,
     explanation,
+    structuredExplanation = null,
     gameType = 'cash', // 'cash', 'mtt', 'sng', 'spins'
     gameTitle = '',    // Title of the training game
     streak = 0,        // Current streak count (only show if >= 2)
@@ -3954,6 +3955,100 @@ function UniversalDynamicTable({
                             </div>
                         );
                     })()}
+
+                    {/* ═══ Phase 251: Structured Explanation Sections ═══ */}
+                    {showFeedback && structuredExplanation && (
+                        <div style={{ width: '100%', marginTop: 6 }}>
+                            {/* Concept tag + Spot difficulty */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', marginBottom: 6 }}>
+                                {structuredExplanation.concept && (
+                                    <span style={{
+                                        fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                                        background: 'rgba(168, 85, 247, 0.12)',
+                                        border: '1px solid rgba(168, 85, 247, 0.25)',
+                                        color: '#c084fc', letterSpacing: 0.3,
+                                    }}>
+                                        {structuredExplanation.concept}
+                                    </span>
+                                )}
+                                {structuredExplanation.spotDifficulty && (
+                                    <span style={{
+                                        fontSize: 8, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
+                                        background: structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.1)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.1)' : 'rgba(34,197,94,0.1)',
+                                        color: structuredExplanation.spotDifficulty.difficulty >= 7 ? '#fca5a5' : structuredExplanation.spotDifficulty.difficulty >= 4 ? '#fde68a' : '#86efac',
+                                        border: '1px solid ' + (structuredExplanation.spotDifficulty.difficulty >= 7 ? 'rgba(239,68,68,0.2)' : structuredExplanation.spotDifficulty.difficulty >= 4 ? 'rgba(251,191,36,0.2)' : 'rgba(34,197,94,0.2)'),
+                                    }}>
+                                        {structuredExplanation.spotDifficulty.label} ({structuredExplanation.spotDifficulty.difficulty}/10)
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Key takeaway */}
+                            {structuredExplanation.takeaway && (
+                                <div style={{
+                                    padding: '6px 10px', marginBottom: 6,
+                                    background: structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.06)' : 'rgba(251, 191, 36, 0.06)',
+                                    borderRadius: 8,
+                                    border: `1px solid ${structuredExplanation.isCorrect ? 'rgba(34, 197, 94, 0.15)' : 'rgba(251, 191, 36, 0.15)'}`,
+                                    fontSize: 10, lineHeight: 1.5,
+                                    color: structuredExplanation.isCorrect ? '#86efac' : '#fde68a',
+                                }}>
+                                    <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, opacity: 0.8 }}>KEY TAKEAWAY: </span>
+                                    {structuredExplanation.takeaway}
+                                </div>
+                            )}
+
+                            {/* Mistake type classification (wrong answers only) */}
+                            {structuredExplanation.mistakeType && (
+                                <div style={{
+                                    padding: '6px 10px', marginBottom: 6,
+                                    background: 'rgba(239, 68, 68, 0.05)',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(239, 68, 68, 0.12)',
+                                    fontSize: 10, lineHeight: 1.5, color: '#fca5a5',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                        <span style={{
+                                            fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
+                                            background: structuredExplanation.mistakeType.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.15)',
+                                            color: structuredExplanation.mistakeType.severity === 'high' ? '#ef4444' : '#fbbf24',
+                                        }}>
+                                            {structuredExplanation.mistakeType.label}
+                                        </span>
+                                    </div>
+                                    <div style={{ color: '#94a3b8' }}>{structuredExplanation.mistakeType.description}</div>
+                                </div>
+                            )}
+
+                            {/* Pattern detection (recurring mistakes) */}
+                            {structuredExplanation.pattern && structuredExplanation.pattern.isRecurring && (
+                                <div style={{
+                                    padding: '5px 10px', marginBottom: 6,
+                                    background: 'rgba(249, 115, 22, 0.06)',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(249, 115, 22, 0.15)',
+                                    fontSize: 9, lineHeight: 1.5, color: '#fdba74',
+                                }}>
+                                    <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>PATTERN DETECTED: </span>
+                                    {structuredExplanation.pattern.message}
+                                </div>
+                            )}
+
+                            {/* Actionable fix (wrong answers only) */}
+                            {structuredExplanation.fix && (
+                                <div style={{
+                                    padding: '5px 10px',
+                                    background: 'rgba(0, 212, 255, 0.04)',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(0, 212, 255, 0.1)',
+                                    fontSize: 9, lineHeight: 1.5, color: '#67e8f9',
+                                }}>
+                                    <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>HOW TO FIX: </span>
+                                    {structuredExplanation.fix}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Range Grid (when raw frequencies available) */}
                     {question?.rawFrequencies && (

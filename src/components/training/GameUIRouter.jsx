@@ -79,6 +79,7 @@ export default function GameUIRouter({
     showFeedback,
     feedbackResult,
     explanation,
+    structuredExplanation = null,
     // GTOW scoring props (new)
     moveClassification = null,
     evLoss = 0,
@@ -144,6 +145,7 @@ export default function GameUIRouter({
             showFeedback={showFeedback}
             feedbackResult={feedbackResult}
             explanation={explanation}
+            structuredExplanation={structuredExplanation}
             gameType={gameType}
             gameTitle={gameName}
             streak={streak || 0}
