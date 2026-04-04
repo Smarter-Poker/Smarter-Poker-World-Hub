@@ -1040,6 +1040,14 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         getMilestoneCoaching: (qNum) => {
             try { return deterministicEngine.getMilestoneCoaching(qNum); } catch (e) { return null; }
         },
+        // ═══ PHASE 124: Performance trend tracking ═══
+        getPerformanceTrend: () => {
+            try { return deterministicEngine.getPerformanceTrend(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 125: Engine stats ═══
+        getEngineStats: () => {
+            try { return deterministicEngine.getEngineStats(); } catch (e) { return null; }
+        },
 
         // Actions
         submitAnswer,

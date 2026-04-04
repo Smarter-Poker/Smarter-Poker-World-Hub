@@ -3392,6 +3392,11 @@ export class DeterministicGTOEngine {
      * hand category reasoning, and open/3bet/call context.
      */
     _buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, potType) {
+        const baseExpl = this._buildPreflopExplanationCore(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, potType);
+        return this._appendPreflopContext(baseExpl, heroHand, heroPosition, villainPosition, optimalAction, nodeType, potType);
+    }
+
+    _buildPreflopExplanationCore(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, potType) {
         const r1 = heroHand[0], r2 = heroHand[1];
         const suffix = heroHand.length >= 3 ? heroHand[2] : '';
         const isPair = r1 === r2;
@@ -3588,6 +3593,45 @@ export class DeterministicGTOEngine {
 
         // Fallback
         return `${heroHand} (${handDesc}): ${label} ${freqPct}% from ${posName}.`;
+    }
+
+    /**
+     * Phase 101-105 integration: Append preflop context notes to any preflop explanation.
+     * Gathers relevant preflop theory notes and appends the top 1-2 to the base explanation.
+     */
+    _appendPreflopContext(baseExplanation, heroHand, heroPosition, villainPosition, optimalAction, nodeType, potType) {
+        const notes = [];
+        try {
+            // Phase 101: Open range context (for preflop_open)
+            if (nodeType === 'preflop_open') {
+                const openCtx = this._getOpenRangeContext(heroPosition, heroHand);
+                if (openCtx) notes.push(openCtx);
+            }
+            // Phase 102: 3-bet range context (for facing raise)
+            if (nodeType === 'preflop_facing_raise') {
+                const threeBetCtx = this._get3BetRangeContext(heroHand, heroPosition, villainPosition);
+                if (threeBetCtx) notes.push(threeBetCtx);
+            }
+            // Phase 103: Squeeze context
+            const squeezeCtx = this._getSqueezeContext(heroHand, heroPosition, nodeType, potType);
+            if (squeezeCtx) notes.push(squeezeCtx);
+            // Phase 104: Blind defense context
+            if (nodeType === 'preflop_facing_raise' || nodeType === 'preflop_bb_option') {
+                const blindCtx = this._getBlindDefenseContext(heroPosition, optimalAction, heroHand, villainPosition);
+                if (blindCtx) notes.push(blindCtx);
+            }
+            // Phase 105: Position EV context
+            const posEVCtx = this._getPositionEVContext(heroPosition);
+            if (posEVCtx) notes.push(posEVCtx);
+        } catch (e) { /* non-critical */ }
+
+        if (notes.length === 0) return baseExplanation;
+        // Apply depth mode — pick top 1-2 notes
+        const depth = this._getExplanationDepth ? this._getExplanationDepth('preflop', null, optimalAction, nodeType, null) : 'standard';
+        const maxNotes = depth === 'verbose' ? 3 : depth === 'concise' ? 0 : 2;
+        if (maxNotes === 0) return baseExplanation;
+        const selected = notes.slice(0, maxNotes);
+        return `${baseExplanation} ${selected.join(' ')}`;
     }
 
     /**
@@ -5977,8 +6021,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '2.0.0-phase100',
-            phasesImplemented: 100,
+            version: '2.1.0-phase125',
+            phasesImplemented: 125,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -5992,9 +6036,14 @@ export class DeterministicGTOEngine {
                 phase86_90: ['nutAdvantage', 'backdoorEquity', 'protectionUrgency', 'showdownValue', 'sessionSummary'],
                 phase91_94: ['preflopEquityTiers', 'evComparison', 'checkRaiseStrategy', 'milestoneCoaching'],
                 phase95_100: ['textureEvolution', 'overbetting', 'thinValue', 'gtoFraming', 'engineStats'],
+                phase101_105: ['openRangeContext', '3betRangeContext', 'squeezeContext', 'blindDefenseTheory', 'positionEV'],
+                phase106_110: ['cbetTheory', 'barrelTheory', 'donkBetTheory', 'mdfContext', 'probeBetTheory'],
+                phase111_115: ['rangeCapping', 'reverseImpliedOdds', 'cardRemoval', 'impliedOdds', 'foldEquity'],
+                phase116_120: ['combDraws', 'boardPairStrategy', 'aceHighBoards', 'monotoneBoards', 'lowBoards'],
+                phase121_125: ['riverBluffCriteria', 'bluffCatching', 'rangeNarrowing', 'performanceTrend', 'relevanceScoring'],
             },
-            totalExplanationNotes: 21, // Number of notes in allNotes pipeline
-            smartNoteSelection: { concise: 1, standard: 3, verbose: 5 },
+            totalExplanationNotes: 43, // Number of notes in allNotes pipeline
+            smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
             trackers: {
                 sessionStats: !!this._sessionStats,
                 mistakeTracker: !!this._mistakeTracker,
@@ -6028,6 +6077,31 @@ export class DeterministicGTOEngine {
                 'Board coverage (range bet vs polar bet)',
                 'Multi-street EV projection',
                 'Preflop hand equity tier classification',
+                'Open range context by position',
+                '3-bet range theory (value vs bluff)',
+                'Squeeze play dynamics',
+                'Blind defense theory with MDF',
+                'Position EV quantification',
+                'C-bet theory (IP/OOP × wet/dry)',
+                'Double/triple barrel strategy',
+                'Donk bet theory',
+                'MDF calculation context',
+                'Probe bet theory',
+                'Range capping detection',
+                'Reverse implied odds warnings',
+                'Card removal effects',
+                'Implied odds calculation',
+                'Fold equity analysis',
+                'Combo draw recognition',
+                'Paired board strategy',
+                'Ace-high board dynamics',
+                'Monotone board strategy',
+                'Low board dynamics',
+                'River bluff selection criteria',
+                'Bluff-catcher identification',
+                'Range narrowing across streets',
+                'Performance trend tracking',
+                'Relevance-scored note selection',
             ],
         };
     }
