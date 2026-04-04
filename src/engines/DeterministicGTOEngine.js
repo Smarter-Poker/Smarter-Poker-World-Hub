@@ -782,10 +782,30 @@ export class DeterministicGTOEngine {
             });
         }
 
-        // ═══ COMPUTE EV DATA (Real solver values only — no fabrication) ═══
+        // ═══ COMPUTE EV DATA (Real solver values + per-action approximation) ═══
         const heroHandEV = handEVs[heroHand] || 0;
         const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
         const maxHandEV = allEVs.length > 0 ? Math.max(...allEVs) : heroHandEV;
+
+        // ═══ PER-ACTION EV APPROXIMATION ═══
+        // At Nash equilibrium, any action in the mixed strategy yields the same EV.
+        // Actions with 0% frequency are strictly dominated (lower EV).
+        // Approximate: actionEV = heroHandEV for mixed actions,
+        //              actionEV = heroHandEV - penalty for 0% actions.
+        const actionEVs = {};
+        const heroFreqForHand = handActions; // { action: freq 0.0-1.0 }
+        validActions.forEach(action => {
+            const freq = heroFreqForHand[action] || 0;
+            if (freq > 0) {
+                // In the mix — all mixed actions yield approximately equal EV
+                actionEVs[action] = Math.round(heroHandEV * 100) / 100;
+            } else {
+                // Not in mix — estimate penalty proportional to pot and strategy purity
+                // The more "pure" the solver is (high correctFreq), the worse 0% actions are
+                const penalty = estimatedPot * 0.15 * (1 + (gtoFrequencies[optimalAction] || 50) / 100);
+                actionEVs[action] = Math.round((heroHandEV - penalty) * 100) / 100;
+            }
+        });
 
         // ═══ BUILD OPTIONS — GTO WIZARD PARITY ═══
         // Show ALL real solver actions (context-filtered). Exact GTOW style:
@@ -874,6 +894,7 @@ export class DeterministicGTOEngine {
                 optimalEV: maxHandEV,
                 handEVs,
                 heroHand,
+                actionEVs,  // Per-action EV for GTOW-style display on buttons
             },
             explanation,
             difficulty: level,
@@ -951,6 +972,10 @@ export class DeterministicGTOEngine {
                 optimalEV: Math.max(pushFreq, 1 - pushFreq),
                 handEVs: {},
                 heroHand,
+                actionEVs: {
+                    push: Math.round(pushFreq * 100) / 100,
+                    fold: 0,  // Fold EV is always 0 (you give up your equity)
+                },
             },
             explanation: this.buildChartExplanation(heroHand, chart, pushFreq, correctAction),
             difficulty: level,

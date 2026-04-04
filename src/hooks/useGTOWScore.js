@@ -178,22 +178,27 @@ export function simulateEVLoss(classification, pot = 10) {
 export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFrequencies, heroHand, pot = 10) {
     if (!evData || !evData.handEVs) return null; // Signal: no real data, use simulation
 
-    const heroEV = evData.heroHandEV || 0;
-    const optimalEV = evData.optimalEV || heroEV;
-
     // If player chose the optimal action, EV loss = 0
     if (selectedAction === optimalAction) return 0;
 
-    // ═══ BUG-K FIX: rawFrequencies is { action → { hand → freq } }, not { action → freq }.
-    // Must look up the HERO'S frequency for the selected action, not the action object itself.
+    // ═══ Use per-action EV if available (computed by engine) ═══
+    if (evData.actionEVs) {
+        const selectedEV = evData.actionEVs[selectedAction] ?? evData.actionEVs[selectedAction?.toLowerCase()];
+        const optimalEV = evData.actionEVs[optimalAction] ?? evData.actionEVs[optimalAction?.toLowerCase()];
+        if (typeof selectedEV === 'number' && typeof optimalEV === 'number') {
+            const loss = Math.max(0, optimalEV - selectedEV);
+            return Math.round(loss * 100) / 100;
+        }
+    }
+
+    // ═══ Fallback: frequency-based EV estimation ═══
+    // Look up hero's frequency for the selected action (0.0-1.0 scale)
     let selectedFreqNorm = 0;
     if (rawFrequencies && heroHand) {
         const actionHandFreqs = rawFrequencies[selectedAction];
         if (actionHandFreqs && typeof actionHandFreqs === 'object') {
-            // Look up hero's specific hand frequency (0.0-1.0)
-            selectedFreqNorm = actionHandFreqs[heroHand] || 0;
+            selectedFreqNorm = actionHandFreqs[heroHand] ?? 0;
         } else if (typeof actionHandFreqs === 'number') {
-            // Flat frequency format (fallback)
             selectedFreqNorm = actionHandFreqs;
         }
     }
@@ -201,6 +206,7 @@ export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFr
     const potFactor = Math.max(1, pot / 10);
 
     // Non-linear scaling: near-zero frequency actions lose much more EV
+    // At equilibrium, mixed actions have equal EV. 0% frequency actions are strictly worse.
     const lossScale = Math.pow(1 - selectedFreqNorm, 1.5);
     const evLoss = Math.min(lossScale * potFactor * 0.8, pot * 0.5); // Cap at 50% of pot
 
@@ -237,15 +243,17 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
     const correctNorm = correctAnswer?.toLowerCase();
 
     // Get frequency of the selected action (0 if not in GTO)
-    const selectedFreq = gtoFrequencies[selectedAnswer] || gtoFrequencies[selectedNorm] || 0;
+    // Use ?? (nullish coalescing) — || would treat freq=0 as falsy and skip it
+    const selectedFreq = gtoFrequencies[selectedAnswer] ?? gtoFrequencies[selectedNorm] ?? 0;
     // Get frequency of the correct (highest-frequency) action
-    const correctFreq = gtoFrequencies[correctAnswer] || gtoFrequencies[correctNorm] || 100;
+    const correctFreq = gtoFrequencies[correctAnswer] ?? gtoFrequencies[correctNorm] ?? 100;
 
     // Frequency difference from the most frequent action
     const frequencyDiff = Math.abs(correctFreq - selectedFreq);
 
     // ═══ MIXED STRATEGY CLASSIFICATION (Real Solver Logic) ═══
-    // GTO Wizard treats any action with significant frequency as valid
+    // GTO Wizard treats any action with significant frequency as valid.
+    // Classification is PURELY frequency-based — EV is only for display.
     let classification;
 
     if (selectedNorm === correctNorm) {
@@ -260,12 +268,20 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
     } else if (selectedFreq >= 1) {
         // Marginal frequency — INACCURACY (technically in solver strategy but rare)
         classification = MOVE_CLASSIFICATIONS.INACCURACY;
-    } else if (frequencyDiff < 50) {
-        // Not in strategy but close to other valid actions — WRONG
-        classification = MOVE_CLASSIFICATIONS.WRONG;
     } else {
-        // Completely off — BLUNDER
-        classification = MOVE_CLASSIFICATIONS.BLUNDER;
+        // 0% frequency — WRONG or BLUNDER
+        // Distinguish by checking how many valid actions exist and the correctFreq:
+        // - If the solver is "pure" (one action >= 90%) and player chose something else → BLUNDER
+        // - If multiple actions have decent frequency (mixed strategy) → WRONG (less egregious)
+        const nonZeroActions = Object.values(gtoFrequencies).filter(f => f > 0).length;
+        const isPureStrategy = correctFreq >= 80;
+        if (isPureStrategy || nonZeroActions <= 1) {
+            // Solver overwhelmingly prefers one action — choosing 0% is a BLUNDER
+            classification = MOVE_CLASSIFICATIONS.BLUNDER;
+        } else {
+            // Multiple valid actions exist — choosing 0% is wrong but less severe
+            classification = MOVE_CLASSIFICATIONS.WRONG;
+        }
     }
 
     // Calculate EV loss — prefer real PIO data, fall back to simulation
