@@ -496,9 +496,10 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
         // Game over
         else {
             setGameOver(true);
+            const accuracy = (correctAnswers / totalAnswers) * 100;
+            SoundEngine.play(accuracy >= 70 ? 'levelUp' : 'gameOver');
 
             // Award diamonds based on performance
-            const accuracy = (correctAnswers / totalAnswers) * 100;
             const diamondsEarned = accuracy >= 70 ? Math.round(accuracy / 10) : 0;
             if (diamondsEarned > 0 && DiamondEngine) {
                 DiamondEngine.award(diamondsEarned);
