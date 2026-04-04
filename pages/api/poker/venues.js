@@ -241,7 +241,7 @@ export default async function handler(req, res) {
               hasMixed,
           } = req.query;
 
-          const maxResults = parseInt(limit, 10) || 10000;
+          const maxResults = Math.min(parseInt(limit, 10) || 1000, 1000);
           const offset = parseInt(req.query.offset, 10) || 0;
           // Merge 'type' and 'venue_type' so both ?type=casino and ?venue_type=casino work
           const effectiveType = type || venue_type || null;
@@ -858,6 +858,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

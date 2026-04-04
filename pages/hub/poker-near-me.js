@@ -1593,7 +1593,7 @@ export default function PokerNearMePage() {
         }
         touchStartRef.current = null;
         touchEndRef.current = null;
-    }, [activeTab, activeEventTab]);
+    }, [activeTab, activeEventTab, activeMoreTab]);
 
     // ═══ PULL-TO-REFRESH ═══
     const pullDistanceRef = useRef(0);

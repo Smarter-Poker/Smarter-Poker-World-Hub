@@ -288,7 +288,7 @@ export default async function handler(req, res) {
 
           return res.status(200).json({
               success: true,
-              data: tours.slice(0, parseInt(limit, 10) || 50),
+              data: tours.slice(0, Math.min(parseInt(limit, 10) || 50, 100)),
               total: tours.length,
               summary: {
                   total_tours: tours.length,
@@ -309,13 +309,13 @@ export default async function handler(req, res) {
               success: true,
               data: tours,
               total: tours.length,
-              error: error.message,
+              error: 'Tours query error — showing cached data',
           });
       }
 
   } catch (err) {
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
