@@ -462,6 +462,65 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             });
         } catch (e) { /* non-critical */ }
 
+        // ═══ PHASE 140: GTO deviation detection ═══
+        try {
+            const deviationNote = deterministicEngine.detectGTODeviation(
+                selectedOptionId, correctAnswer, currentQuestion.frequencies?.[correctAnswer] || 0,
+                scenario.street || 'flop', currentQuestion.handCategory || ''
+            );
+            if (deviationNote && !isCorrect) {
+                // Append deviation warning to explanation
+                const prevExpl = currentQuestion.explanation || '';
+                if (deviationNote && !prevExpl.includes('Deviation:')) {
+                    currentQuestion._deviationNote = deviationNote;
+                }
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 143: Auto-difficulty adjustment ═══
+        try { deterministicEngine.recordRecentResult(isCorrect); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 144: Concept mastery tracking ═══
+        try {
+            const concept = deterministicEngine.deriveConceptFromContext(
+                scenario.nodeType || '', scenario.street || 'flop',
+                correctAnswer, currentQuestion.handCategory || ''
+            );
+            deterministicEngine.recordConceptExposure(concept, isCorrect);
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 146: Spaced repetition for missed scenarios ═══
+        try {
+            if (!isCorrect) {
+                deterministicEngine.recordMissedScenario(scenario, moveResult.classification);
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 153: EV graph data ═══
+        try {
+            const evLossData = deterministicEngine.estimateEVLoss(
+                selectedOptionId, correctAnswer,
+                currentQuestion.actionEVs || {}, currentQuestion.estimatedPot || 0
+            );
+            deterministicEngine.recordEVDataPoint(
+                deterministicEngine._getSessionQuestionCount(), isCorrect,
+                evLossData ? parseFloat(evLossData.evLossBB) : 0, scenario.street || 'flop'
+            );
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 158: Aggression tracking ═══
+        try { deterministicEngine.recordAggressionAction(selectedOptionId, scenario.street || 'flop'); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 159: VPIP/PFR tracking ═══
+        try {
+            if (scenario.street === 'preflop') {
+                deterministicEngine.recordPreflopAction(selectedOptionId, scenario.nodeType || '');
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 160: Positional awareness ═══
+        try { deterministicEngine.recordPositionalDecision(scenario.heroPosition || '', isCorrect); } catch (e) { /* non-critical */ }
+
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback
         if (isCorrect) {
@@ -504,7 +563,36 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     fullExplanation = fullExplanation ? `${fullExplanation} ${deviationNote}` : deviationNote;
                 }
             } catch (e) { /* non-critical */ }
+
+            // ═══ PHASE 140: Append GTO deviation note ═══
+            try {
+                if (currentQuestion._deviationNote) {
+                    fullExplanation = `${fullExplanation} ${currentQuestion._deviationNote}`;
+                }
+            } catch (e) { /* non-critical */ }
+
+            // ═══ PHASE 147: EV loss quantification ═══
+            try {
+                const evLoss = deterministicEngine.estimateEVLoss(
+                    selectedOptionId, correctAnswer,
+                    currentQuestion.actionEVs || {}, currentQuestion.estimatedPot || 0
+                );
+                if (evLoss && evLoss.message) {
+                    fullExplanation = `${fullExplanation} ${evLoss.message}`;
+                }
+            } catch (e) { /* non-critical */ }
         }
+
+        // ═══ PHASE 150: Coaching message ═══
+        try {
+            const coachMsg = deterministicEngine.getCoachingMessage(
+                moveResult.classification, deterministicEngine._getSessionQuestionCount()
+            );
+            if (coachMsg) {
+                fullExplanation = coachMsg + ' ' + fullExplanation;
+            }
+        } catch (e) { /* non-critical */ }
+
         setExplanation(fullExplanation);
         setShowFeedback(true);
 
@@ -1047,6 +1135,58 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 125: Engine stats ═══
         getEngineStats: () => {
             try { return deterministicEngine.getEngineStats(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 140: GTO deviation summary ═══
+        getDeviationSummary: () => {
+            try { return deterministicEngine.getDeviationSummary(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 143: Auto-adjusted difficulty ═══
+        getAutoAdjustedDifficulty: () => {
+            try { return deterministicEngine.getAutoAdjustedDifficulty(); } catch (e) { return 'standard'; }
+        },
+        // ═══ PHASE 144: Concept mastery ═══
+        getConceptMastery: () => {
+            try { return deterministicEngine.getConceptMastery(); } catch (e) { return {}; }
+        },
+        // ═══ PHASE 145: Weakness targets ═══
+        getWeaknessTargets: () => {
+            try { return deterministicEngine.getWeaknessTargets(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 146: Spaced repetition ═══
+        getSpacedRepetitionDue: () => {
+            try { return deterministicEngine.getSpacedRepetitionDue(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 148: Optimal play comparison ═══
+        getOptimalPlayComparison: () => {
+            try { return deterministicEngine.getOptimalPlayComparison(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 149: Detailed session report ═══
+        generateDetailedSessionReport: () => {
+            try { return deterministicEngine.generateDetailedSessionReport(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 151: Range grid data ═══
+        generateRangeGridData: (handActions, nodeType) => {
+            try { return deterministicEngine.generateRangeGridData(handActions, nodeType); } catch (e) { return null; }
+        },
+        // ═══ PHASE 152: Action heatmap ═══
+        generateActionHeatmap: () => {
+            try { return deterministicEngine.generateActionHeatmap(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 153: EV graph data ═══
+        getEVGraphData: () => {
+            try { return deterministicEngine.getEVGraphData(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 158: Aggression factors ═══
+        getAggressionFactors: () => {
+            try { return deterministicEngine.getAggressionFactors(); } catch (e) { return {}; }
+        },
+        // ═══ PHASE 159: Preflop stats ═══
+        getPreflopStats: () => {
+            try { return deterministicEngine.getPreflopStats(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 160: Positional awareness ═══
+        getPositionalAwarenessScore: () => {
+            try { return deterministicEngine.getPositionalAwarenessScore(); } catch (e) { return null; }
         },
 
         // Actions
