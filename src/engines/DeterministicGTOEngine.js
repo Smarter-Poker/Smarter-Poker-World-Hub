@@ -1717,9 +1717,10 @@ export class DeterministicGTOEngine {
      * Phase 25: Analyze board texture for strategic reasoning.
      */
     _analyzeTexture(board) {
-        if (!board || board.length < 3) return { wet: false, highCard: false, paired: false, flushy: false, connected: false, monotone: false };
+        const empty = { wet: false, highCard: false, paired: false, flushy: false, connected: false, monotone: false, straightPossible: false, straightDrawHeavy: false, connectedness: 'low', oesdCount: 0, gutshotCount: 0, threeToStraight: false, wheelDraw: false, broadwayDraw: false, gapSize: 'scattered' };
+        if (!board || board.length < 3) return empty;
         const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
-        if (validBoard.length < 3) return { wet: false, highCard: false, paired: false, flushy: false, connected: false, monotone: false };
+        if (validBoard.length < 3) return empty;
 
         const ranks = validBoard.map(c => c[0].toUpperCase());
         const suits = validBoard.map(c => c[1]?.toLowerCase());
@@ -1734,17 +1735,84 @@ export class DeterministicGTOEngine {
         const maxRankCount = Math.max(...Object.values(rankCounts));
 
         const sorted = [...new Set(rankVals)].sort((a, b) => a - b);
-        let connected = false;
+        // Phase 72: Enhanced connectivity — count adjacent pairs, gaps, and straight potential
+        let adjacentPairs = 0;
+        let oneGapPairs = 0;
+        let twoGapPairs = 0;
         for (let i = 0; i < sorted.length - 1; i++) {
-            if (sorted[i + 1] - sorted[i] <= 2) { connected = true; break; }
+            const gap = sorted[i + 1] - sorted[i];
+            if (gap === 1) adjacentPairs++;
+            else if (gap === 2) oneGapPairs++;
+            else if (gap === 3) twoGapPairs++;
         }
+        // Also check A-low wheel connectivity (A=12, 2=0, 3=1, 4=2, 5=3)
+        const hasAce = sorted.includes(12);
+        const wheelCards = sorted.filter(v => v <= 3).length; // 2,3,4,5
+        const wheelDraw = hasAce && wheelCards >= 1;
+
+        const connected = adjacentPairs > 0 || oneGapPairs > 0;
+
+        // Connectedness level
+        let connectedness = 'low';
+        const totalConnections = adjacentPairs * 3 + oneGapPairs * 2 + twoGapPairs;
+        if (totalConnections >= 5) connectedness = 'high';
+        else if (totalConnections >= 3) connectedness = 'medium';
+
+        // Gap characterization
+        let gapSize = 'scattered';
+        if (adjacentPairs >= 2) gapSize = 'rundown'; // e.g., 5-6-7
+        else if (adjacentPairs === 1 && oneGapPairs >= 1) gapSize = 'gapped'; // e.g., 5-6-8
+        else if (adjacentPairs === 1) gapSize = 'connected'; // e.g., 5-6-T
+        else if (oneGapPairs >= 1) gapSize = 'one-gap'; // e.g., 5-7-T
+
+        // Phase 72: Count OESD and gutshot possibilities using 5-card straight windows
+        // A straight requires 5 consecutive ranks. Count how many windows the board contributes to.
+        let oesdCount = 0;
+        let gutshotCount = 0;
+        // Check all possible 5-card straight windows (A-5 through T-A)
+        const boardSet = new Set(sorted);
+        // Include ace-low: window [-1,0,1,2,3] maps to [A,2,3,4,5]
+        const windows = [];
+        for (let low = -1; low <= 8; low++) { // -1=wheel(A2345), 0=23456, ..., 8=9TJQK, 9=TJQKA
+            const w = [];
+            for (let j = 0; j < 5; j++) {
+                let v = low + j;
+                if (v === -1) v = 12; // Ace low
+                if (v === 13) v = 12; // Ace high (already 12)
+                w.push(v);
+            }
+            if (w.every(v => v >= 0 && v <= 12)) windows.push(w);
+        }
+        for (const w of windows) {
+            const wSet = new Set(w);
+            const boardHits = sorted.filter(v => wSet.has(v)).length;
+            const uniqueHits = new Set(sorted.filter(v => wSet.has(v))).size;
+            if (uniqueHits >= 3) {
+                const needed = 5 - uniqueHits;
+                if (needed === 2) gutshotCount++; // board has 3 to a straight, 2 cards to complete
+                // If uniqueHits >= 4, someone could already have a straight or OESD
+            }
+        }
+        // OESD: 4 consecutive board+hand ranks in a window. Approximate from board connectivity.
+        if (adjacentPairs >= 2) oesdCount = Math.max(2, oesdCount); // rundown boards enable many OESDs
+        else if (adjacentPairs >= 1 && oneGapPairs >= 1) oesdCount = Math.max(1, oesdCount);
+
+        const threeToStraight = gutshotCount >= 2; // multiple straight windows with 3 board cards
+        const straightPossible = adjacentPairs >= 2 || (adjacentPairs >= 1 && sorted.length >= 4);
+        const straightDrawHeavy = (adjacentPairs >= 2) || (threeToStraight && adjacentPairs >= 1);
+
+        // Broadway draw detection (T,J,Q,K,A)
+        const broadwayCards = sorted.filter(v => v >= 8).length; // T=8, J=9, Q=10, K=11, A=12
+        const broadwayDraw = broadwayCards >= 3;
 
         const highCards = rankVals.filter(v => v >= 10).length;
         const highestRank = Math.max(...rankVals);
+        const lowestRank = Math.min(...rankVals);
+        const spread = highestRank - lowestRank;
 
         return {
-            wet: (connected && maxSuitCount >= 2) || maxSuitCount >= 3,
-            dry: !connected && maxSuitCount < 2 && maxRankCount >= 2,
+            wet: (connected && maxSuitCount >= 2) || maxSuitCount >= 3 || straightDrawHeavy,
+            dry: !connected && maxSuitCount < 2 && (maxRankCount >= 2 || spread > 6),
             highCard: highCards >= 2 || highestRank >= 12,
             lowBoard: highCards === 0,
             paired: maxRankCount >= 2,
@@ -1753,6 +1821,19 @@ export class DeterministicGTOEngine {
             monotone: maxSuitCount === validBoard.length && validBoard.length >= 3,
             aceHigh: highestRank === 12,
             broadwayHeavy: highCards >= 3,
+            // Phase 72 new properties
+            straightPossible,
+            straightDrawHeavy,
+            connectedness,
+            oesdCount,
+            gutshotCount,
+            threeToStraight,
+            wheelDraw,
+            broadwayDraw,
+            gapSize,
+            spread,
+            adjacentPairs,
+            lowestRank,
         };
     }
 
@@ -1876,6 +1957,7 @@ export class DeterministicGTOEngine {
                 return 'Checking back TPTK as a trap — your hand is strong enough to check-call or check-raise on later streets.';
             }
             if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
+                if (texture.straightDrawHeavy) return 'Checking a one-pair hand on a straight-heavy board — too many draws complete on the turn. Pot control avoids getting raised off your hand.';
                 if (isIP && texture.wet) return 'Checking back in position for pot control — your pair is vulnerable but you maintain the positional advantage for future streets.';
                 if (isOOP) return 'Checking OOP to build a strong check-call range — one-pair hands from OOP often check to control the pot and avoid being raised.';
                 if (texture.wet) return 'Pot control — your pair is vulnerable on this wet board. Checking avoids facing a raise with a one-pair hand.';
@@ -1934,14 +2016,17 @@ export class DeterministicGTOEngine {
             }
             if (hs.includes('straight') && !hs.includes('draw')) {
                 if (texture.flushy || texture.monotone) return 'Betting a straight on a flushy board — need to extract value before a flush card kills action.';
+                if (texture.straightDrawHeavy) return 'Betting a straight on a connected board — higher straights are possible. Bet for value now before the board pairs or a higher card comes.';
                 return 'Betting a straight for value — target two pair, sets, and strong one-pair hands.';
             }
             if (hs.includes('set')) {
+                if (texture.straightDrawHeavy) return 'Betting a set on a straight-heavy board — multiple straight draws are out there. Charge them heavily or the board will get away from you.';
                 if (texture.wet) return 'Betting a set on a wet board — charge draws heavily. Sets want big pots before the board gets scary.';
                 if (texture.dry) return 'Betting a set on a dry board — slow-play is an option, but betting builds the pot for later streets.';
                 return 'Value betting a set — targeting top pair and overpairs that can\'t fold.';
             }
             if (hs.includes('two pair')) {
+                if (texture.straightDrawHeavy) return 'Betting two pair on a rundown board — straight draws are everywhere. Bet big to deny equity before the turn changes everything.';
                 if (texture.connected) return 'Betting two pair on a connected board — charge straight draws and build the pot before the board changes.';
                 return 'Betting two pair for value — strong enough to target one-pair hands and draws.';
             }
@@ -1977,10 +2062,12 @@ export class DeterministicGTOEngine {
             }
             if (hs.includes('OESD') || hs.includes('double gutshot')) {
                 if (street === 'river') return 'Bluffing with a missed straight draw — converting busted equity into a river bluff.';
+                if (texture.straightDrawHeavy) return 'Semi-bluffing with 8 straight outs on a rundown board — villain has draws too, so fold equity is lower but your equity is real. Bet to deny their draws.';
                 return 'Semi-bluffing with 8 straight outs — enough equity to make betting very profitable.';
             }
             if (hs.includes('gutshot')) {
                 if (street === 'river') return 'Bluffing the river with a busted gutshot — no showdown value, only fold equity.';
+                if (texture.gapSize === 'one-gap' || texture.threeToStraight) return 'Semi-bluffing with a gutshot on a board with straight possibilities — your draw is hidden and the connected texture adds credibility to your bet.';
                 return 'Semi-bluffing with a gutshot — 4 outs plus fold equity. A balanced bluff candidate.';
             }
             if (hs.includes('backdoor')) {
