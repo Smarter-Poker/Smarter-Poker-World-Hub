@@ -1694,6 +1694,9 @@ export class DeterministicGTOEngine {
         const explanationDepth = this._getExplanationDepth(street, handStrength, optimalAction, ctx.nodeType, ctx.spotType);
         const coachingNote = this._getDepthCoachingNote(explanationDepth, street, handStrength, optimalAction);
 
+        // ═══ Phase 77: BOARD RUNOUT IMPACT ═══
+        const runoutNote = this._getRunoutImpact(board, heroHand, handStrength, street, texture);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1709,13 +1712,13 @@ export class DeterministicGTOEngine {
 
         // Phase 76: Depth-aware extras assembly
         // Concise mode: only sizing reason + concept (skip secondary notes)
-        // Verbose mode: all notes + coaching preamble
-        // Standard: all notes (original behavior)
+        // Verbose mode: all notes + coaching preamble + runout predictions
+        // Standard: all notes + runout (original behavior enhanced)
         let extras;
         if (explanationDepth === 'concise') {
             extras = [sizingReason].filter(Boolean).map(s => ' ' + s).join('');
         } else {
-            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote].filter(Boolean).map(s => ' ' + s).join('');
+            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote].filter(Boolean).map(s => ' ' + s).join('');
         }
 
         // Phase 76: Coaching preamble for verbose mode
@@ -4160,6 +4163,142 @@ export class DeterministicGTOEngine {
             }
         }
         return result;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 77: BOARD RUNOUT IMPACT PREDICTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 77: Predict which turn/river cards would significantly change the situation.
+     * Identifies key cards that:
+     *   - Complete draws (flush, straight)
+     *   - Pair the board (reducing flush/straight value, enabling full houses)
+     *   - Bring overcards that shift range advantage
+     *   - Are blanks that change nothing
+     *
+     * @param {string[]} board - Current board cards
+     * @param {string} heroHand - Hero's hand notation (e.g., "AKs")
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street (flop/turn)
+     * @param {Object} texture - _analyzeTexture() output
+     * @returns {string} Runout impact note for explanation
+     */
+    _getRunoutImpact(board, heroHand, handStrength, street, texture) {
+        // Only relevant on flop and turn (river has no runout)
+        if (!board || board.length < 3 || street === 'river' || street === 'preflop') return '';
+        if (!heroHand || heroHand.length < 2) return '';
+
+        const boardRanks = board.map(c => c[0].toUpperCase());
+        const boardSuits = board.map(c => c[1]?.toLowerCase());
+        const boardVals = boardRanks.map(r => '23456789TJQKA'.indexOf(r));
+        const heroR1 = heroHand[0].toUpperCase();
+        const heroR2 = heroHand[1].toUpperCase();
+        const heroV1 = '23456789TJQKA'.indexOf(heroR1);
+        const heroV2 = '23456789TJQKA'.indexOf(heroR2);
+        const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
+        const hc = handStrength.toLowerCase();
+
+        const scaryCards = [];
+        const goodCards = [];
+        const blanks = [];
+
+        // ─── FLUSH COMPLETING CARDS ───
+        const suitCounts = {};
+        boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const flushDrawSuit = Object.entries(suitCounts).find(([_, c]) => c === 2)?.[0];
+        const threeFlushSuit = Object.entries(suitCounts).find(([_, c]) => c >= 3)?.[0];
+
+        if (flushDrawSuit && !threeFlushSuit) {
+            // Two-flush on board — a third of that suit completes flush draws
+            const heroHasFlushDraw = isSuited && (hc.includes('flush draw'));
+            if (heroHasFlushDraw) {
+                goodCards.push(`a ${flushDrawSuit === 'h' ? '♥' : flushDrawSuit === 'd' ? '♦' : flushDrawSuit === 'c' ? '♣' : '♠'} completes your flush draw`);
+            } else if (!hc.includes('flush')) {
+                scaryCards.push('third flush card');
+            }
+        }
+        if (threeFlushSuit && street === 'turn') {
+            // Three-flush already — fourth completes backdoor or makes board 4-flush
+            if (!hc.includes('flush')) {
+                scaryCards.push('fourth flush card (4-flush board)');
+            }
+        }
+
+        // ─── STRAIGHT COMPLETING CARDS ───
+        const sortedUnique = [...new Set(boardVals)].sort((a, b) => a - b);
+        if (texture.connectedness === 'high' || texture.straightDrawHeavy) {
+            if (hc.includes('straight draw') || hc.includes('oesd') || hc.includes('gutshot')) {
+                goodCards.push('straight-completing card');
+            } else if (!hc.includes('straight') || hc.includes('bottom-end')) {
+                scaryCards.push('straight-completing card');
+            }
+        }
+
+        // ─── BOARD PAIRING CARDS ───
+        if (!texture.paired) {
+            // An unpatched board pairing helps sets/two-pair and hurts flushes/straights
+            if (hc.includes('set') || hc.includes('trips') || hc.includes('two pair')) {
+                goodCards.push('board pairs (full house potential)');
+            } else if (hc.includes('flush') || hc.includes('straight')) {
+                scaryCards.push('board pairs (full house beats you)');
+            }
+        }
+
+        // ─── OVERCARD ARRIVALS ───
+        const highestBoard = Math.max(...boardVals);
+        if (hc.includes('top pair') || hc.includes('overpair')) {
+            // Cards above the current board could create overcards that shift equity
+            if (highestBoard < 12) { // Not ace-high board
+                const overcardRanks = [];
+                if (highestBoard < 12) overcardRanks.push('A');
+                if (highestBoard < 11) overcardRanks.push('K');
+                if (overcardRanks.length > 0 && !boardRanks.includes('A') && !boardRanks.includes('K')) {
+                    // Only scary if we don't hold these overcards
+                    const heroHoldsOvercard = heroV1 >= highestBoard + 1 || heroV2 >= highestBoard + 1;
+                    if (!heroHoldsOvercard) {
+                        scaryCards.push(`overcard (${overcardRanks.join('/')}) shifts range advantage`);
+                    }
+                }
+            }
+        }
+
+        // ─── HERO'S DRAW COMPLETION ───
+        if (hc.includes('overcards') || hc.includes('overcard')) {
+            // Hero would love to hit a pair
+            const heroRanks = [heroR1, heroR2].filter(r => !boardRanks.includes(r));
+            if (heroRanks.length > 0) {
+                goodCards.push(`hitting ${heroRanks.join('/')} gives you top pair`);
+            }
+        }
+
+        // ─── BLANKS ───
+        // Low cards that don't complete any draws are blanks
+        if (sortedUnique[0] >= 4 && !texture.wheelDraw) {
+            blanks.push('low cards (2-4) are blanks');
+        }
+
+        // Build the runout note
+        if (scaryCards.length === 0 && goodCards.length === 0) return '';
+
+        const parts = [];
+        if (street === 'flop') {
+            parts.push('Turn cards to watch:');
+        } else {
+            parts.push('River cards to watch:');
+        }
+
+        if (goodCards.length > 0) {
+            parts.push(`Good for you: ${goodCards.slice(0, 2).join('; ')}.`);
+        }
+        if (scaryCards.length > 0) {
+            parts.push(`Scary: ${scaryCards.slice(0, 2).join('; ')}.`);
+        }
+        if (blanks.length > 0 && goodCards.length + scaryCards.length < 3) {
+            parts.push(blanks[0] + '.');
+        }
+
+        return parts.join(' ');
     }
 }
 
