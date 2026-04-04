@@ -3597,10 +3597,20 @@ function UniversalDynamicTable({
                             return `${correctOpt} at ${correctFreq}% is the solver's preferred action here.`;
                         })();
 
+                        // Phase 47: Enhanced feedback messages for all classifications
                         const displayExplanation = explanation || (() => {
                             if (!moveClassification) return null;
-                            if (moveClassification === 'best') return `Great — ${correctOpt} is the highest-frequency play${correctFreq > 0 ? ` at ${correctFreq}%` : ''}.`;
-                            if (moveClassification === 'correct') return `Good — your action is part of the GTO mix, though ${correctOpt} is more frequent.`;
+                            if (moveClassification === 'best') {
+                                if (correctFreq >= 95) return `Perfect — ${correctOpt} is a pure play here. The solver always takes this action in this spot.`;
+                                if (correctFreq >= 70) return `Excellent — ${correctOpt} at ${correctFreq}% is the dominant action. You identified the highest-EV play.`;
+                                return `Great read — ${correctOpt} at ${correctFreq}% is the solver's top choice in a mixed strategy spot. Strong instinct.`;
+                            }
+                            if (moveClassification === 'correct') {
+                                const selFreq = computedFrequencies?.[selectedAnswer] || 0;
+                                if (selFreq >= 30) return `Good — ${selectedOpt} at ${selFreq}% is a solid part of the GTO mix. The solver also uses ${correctOpt} at ${correctFreq}%.`;
+                                if (selFreq >= 15) return `Acceptable — ${selectedOpt} at ${selFreq}% is in the solver's strategy, though ${correctOpt} at ${correctFreq}% is higher-frequency.`;
+                                return `Part of the mix — ${selectedOpt} is used ${selFreq}% of the time. ${correctOpt} at ${correctFreq}% is the primary action.`;
+                            }
                             if (moveClassification === 'inaccuracy') return `${correctOpt} is the solver's primary action${correctFreq > 0 ? ` at ${correctFreq}%` : ''}. ${mistakeFeedback}`;
                             if (moveClassification === 'wrong') return `${mistakeFeedback || `The solver prefers ${correctOpt}${correctFreq > 0 ? ` (${correctFreq}%)` : ''}.`}`;
                             return `${mistakeFeedback || `${correctOpt} is the optimal play here.`}`;
