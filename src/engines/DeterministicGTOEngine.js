@@ -1600,10 +1600,16 @@ export class DeterministicGTOEngine {
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
+        // ═══ Phase 43: TURN-SPECIFIC ENHANCED REASONING ═══
+        const turnEnhancement = (street === 'turn') ? this._getTurnContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq, sizePct) : '';
+
         // ═══ BUILD FINAL EXPLANATION ═══
+        // Street-specific enhancement
+        const streetExtra = riverEnhancement || turnEnhancement;
+
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
-            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}${riverEnhancement ? ' ' + riverEnhancement : ''}`;
+            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}${streetExtra ? ' ' + streetExtra : ''}`;
         }
 
         // Near-pure — one clear best action but some mixing
@@ -1614,7 +1620,7 @@ export class DeterministicGTOEngine {
                 .slice(0, 2)
                 .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
             const mixNote = altActions.length > 0 ? ` Mixes with ${altActions.join(', ')}.` : '';
-            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${riverEnhancement ? ' ' + riverEnhancement : ''}${mixNote}`;
+            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${streetExtra ? ' ' + streetExtra : ''}${mixNote}`;
         }
 
         // True mixed strategy — explain WHY the solver mixes
@@ -1626,7 +1632,7 @@ export class DeterministicGTOEngine {
             .join(', ');
 
         const mixReason = this._getMixingReason(handStrength, texture, street, validActions, handActions);
-        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${riverEnhancement ? ' ' + riverEnhancement : ''}`;
+        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${streetExtra ? ' ' + streetExtra : ''}`;
     }
 
     /**
@@ -1835,6 +1841,98 @@ export class DeterministicGTOEngine {
     /**
      * Phase 25: Explain WHY the solver uses a mixed strategy here.
      */
+    /**
+     * Phase 43: Turn-specific context enhancement.
+     * Key concepts: geometric sizing (setting up river shove), turn card dynamics,
+     * protection vs slowplay decisions, draw equity denial.
+     */
+    _getTurnContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq, sizePct) {
+        const a = optimalAction.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+        const hs = handStrength.toLowerCase();
+
+        // Turn card analysis
+        const turnCard = board.length >= 4 ? board[3] : null;
+        let turnImpact = '';
+        if (turnCard && typeof turnCard === 'string' && turnCard.length >= 2) {
+            const turnRank = turnCard[0].toUpperCase();
+            const turnSuit = turnCard[1]?.toLowerCase();
+            const rankVal = r => '23456789TJQKA'.indexOf(r);
+            const tv = rankVal(turnRank);
+
+            // Check flush draw completing on turn
+            const boardSuits = board.slice(0, 4).filter(c => c && c.length >= 2).map(c => c[1]?.toLowerCase());
+            const suitCounts = {};
+            boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+            const threeFlush = Object.values(suitCounts).some(c => c >= 3);
+
+            if (threeFlush) {
+                turnImpact = 'Turn puts three to a flush on board — flush draws now have one card to hit.';
+            } else if (tv >= 12) {
+                turnImpact = 'Ace on the turn shifts hand rankings — Ax hands improve significantly.';
+            } else if (tv >= 10) {
+                turnImpact = 'Broadway turn card — may complete straights or improve broadway draws.';
+            }
+        }
+
+        let decisionContext = '';
+
+        if (isBet) {
+            const isNutted = hs.includes('straight') || hs.includes('flush') || hs.includes('full house') || hs.includes('quads') || hs.includes('set');
+            const isDraw = hs.includes('draw') || hs.includes('oesd') || hs.includes('flush draw');
+            const isVulnerable = hs.includes('top pair') || hs.includes('overpair');
+
+            // Geometric sizing awareness
+            if (sizePct >= 60 && sizePct <= 80 && isNutted) {
+                decisionContext = 'Geometric sizing on the turn — this bet size sets up a comfortable pot-sized river shove to get all-in over two streets.';
+            } else if (sizePct >= 60 && sizePct <= 80 && isDraw) {
+                decisionContext = 'Large semi-bluff on the turn — one card to come, maximum fold equity now while retaining draw equity if called.';
+            } else if (sizePct <= 40 && isVulnerable) {
+                decisionContext = 'Small turn bet for protection — charge draws to see the river while controlling pot size with a vulnerable hand.';
+            } else if (sizePct >= 100) {
+                decisionContext = 'Overbet on the turn — polarizing between the nuts and bluffs. This sizing pressures the middle of villain\'s range.';
+            } else if (isDraw) {
+                decisionContext = 'Turn semi-bluff — with one card to come, betting applies pressure while preserving the chance to improve on the river.';
+            } else if (isVulnerable && texture.wet) {
+                decisionContext = 'Betting the turn for protection on a wet board — too many draws could improve to beat your hand on the river.';
+            }
+        } else if (isCheck) {
+            const isNutted = hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush');
+            if (isNutted) {
+                decisionContext = 'Check-trapping the turn with a strong hand — inducing a bet on the river or setting up a check-raise.';
+            } else if (hs.includes('draw')) {
+                decisionContext = 'Taking a free card on the turn — preserving equity with a draw without investing more chips.';
+            } else if (hs.includes('top pair') || hs.includes('overpair')) {
+                decisionContext = 'Pot control on the turn — your hand has showdown value but the board is getting dangerous.';
+            }
+        } else if (isCall) {
+            if (hs.includes('draw')) {
+                decisionContext = 'Calling the turn with a draw — pot odds and implied odds on the river justify continuing.';
+            } else if (hs.includes('top pair') || hs.includes('overpair')) {
+                decisionContext = 'Calling the turn with a strong made hand — flatting to keep the pot controlled while villain may be semi-bluffing.';
+            }
+        } else if (isFold) {
+            if (hs.includes('draw')) {
+                decisionContext = 'Folding a draw on the turn — the bet sizing prices you out with only one card to come.';
+            } else if (hs.includes('pair')) {
+                decisionContext = 'Folding a marginal hand on the turn — facing too much aggression with the river still to come.';
+            }
+        } else if (isRaise) {
+            if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
+                decisionContext = 'Raising the turn for value — building a pot to set up a river shove with a strong hand.';
+            } else if (hs.includes('draw')) {
+                decisionContext = 'Semi-bluff raise on the turn — maximum fold equity now, plus equity to improve on the river.';
+            }
+        }
+
+        const parts = [turnImpact, decisionContext].filter(Boolean);
+        return parts.length > 0 ? parts.join(' ') : '';
+    }
+
     /**
      * Phase 42: River-specific context enhancement.
      * GTO Wizard provides detailed river reasoning about:
