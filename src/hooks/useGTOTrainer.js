@@ -462,6 +462,79 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             });
         } catch (e) { /* non-critical */ }
 
+        // ═══ PHASE 140: GTO deviation detection ═══
+        try {
+            const deviationNote = deterministicEngine.detectGTODeviation(
+                selectedOptionId, correctAnswer, currentQuestion.frequencies?.[correctAnswer] || 0,
+                scenario.street || 'flop', currentQuestion.handCategory || ''
+            );
+            if (deviationNote && !isCorrect) {
+                // Append deviation warning to explanation
+                const prevExpl = currentQuestion.explanation || '';
+                if (deviationNote && !prevExpl.includes('Deviation:')) {
+                    currentQuestion._deviationNote = deviationNote;
+                }
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 143: Auto-difficulty adjustment ═══
+        try { deterministicEngine.recordRecentResult(isCorrect); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 144: Concept mastery tracking ═══
+        try {
+            const concept = deterministicEngine.deriveConceptFromContext(
+                scenario.nodeType || '', scenario.street || 'flop',
+                correctAnswer, currentQuestion.handCategory || ''
+            );
+            deterministicEngine.recordConceptExposure(concept, isCorrect);
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 146: Spaced repetition for missed scenarios ═══
+        try {
+            if (!isCorrect) {
+                deterministicEngine.recordMissedScenario(scenario, moveResult.classification);
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 153: EV graph data ═══
+        try {
+            const evLossData = deterministicEngine.estimateEVLoss(
+                selectedOptionId, correctAnswer,
+                currentQuestion.actionEVs || {}, currentQuestion.estimatedPot || 0
+            );
+            deterministicEngine.recordEVDataPoint(
+                deterministicEngine._getSessionQuestionCount(), isCorrect,
+                evLossData ? parseFloat(evLossData.evLossBB) : 0, scenario.street || 'flop'
+            );
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 158: Aggression tracking ═══
+        try { deterministicEngine.recordAggressionAction(selectedOptionId, scenario.street || 'flop'); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 159: VPIP/PFR tracking ═══
+        try {
+            if (scenario.street === 'preflop') {
+                deterministicEngine.recordPreflopAction(selectedOptionId, scenario.nodeType || '');
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 160: Positional awareness ═══
+        try { deterministicEngine.recordPositionalDecision(scenario.heroPosition || '', isCorrect); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 180: Question type diversity ═══
+        try { deterministicEngine.recordQuestionType(`${scenario.street || 'flop'}:${scenario.nodeType || 'general'}`); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 185: User vs solver frequency ═══
+        try { deterministicEngine.recordUserAction(selectedOptionId, correctAnswer, scenario.street || 'flop', scenario.nodeType || ''); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 190: Hand history replay ═══
+        try {
+            deterministicEngine.recordHandForReplay(
+                scenario, currentQuestion.heroHand || '', currentQuestion.board || [],
+                selectedOptionId, correctAnswer, currentQuestion.explanation || ''
+            );
+        } catch (e) { /* non-critical */ }
+
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback
         if (isCorrect) {
@@ -504,7 +577,36 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     fullExplanation = fullExplanation ? `${fullExplanation} ${deviationNote}` : deviationNote;
                 }
             } catch (e) { /* non-critical */ }
+
+            // ═══ PHASE 140: Append GTO deviation note ═══
+            try {
+                if (currentQuestion._deviationNote) {
+                    fullExplanation = `${fullExplanation} ${currentQuestion._deviationNote}`;
+                }
+            } catch (e) { /* non-critical */ }
+
+            // ═══ PHASE 147: EV loss quantification ═══
+            try {
+                const evLoss = deterministicEngine.estimateEVLoss(
+                    selectedOptionId, correctAnswer,
+                    currentQuestion.actionEVs || {}, currentQuestion.estimatedPot || 0
+                );
+                if (evLoss && evLoss.message) {
+                    fullExplanation = `${fullExplanation} ${evLoss.message}`;
+                }
+            } catch (e) { /* non-critical */ }
         }
+
+        // ═══ PHASE 150: Coaching message ═══
+        try {
+            const coachMsg = deterministicEngine.getCoachingMessage(
+                moveResult.classification, deterministicEngine._getSessionQuestionCount()
+            );
+            if (coachMsg) {
+                fullExplanation = coachMsg + ' ' + fullExplanation;
+            }
+        } catch (e) { /* non-critical */ }
+
         setExplanation(fullExplanation);
         setShowFeedback(true);
 
@@ -1047,6 +1149,174 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 125: Engine stats ═══
         getEngineStats: () => {
             try { return deterministicEngine.getEngineStats(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 140: GTO deviation summary ═══
+        getDeviationSummary: () => {
+            try { return deterministicEngine.getDeviationSummary(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 143: Auto-adjusted difficulty ═══
+        getAutoAdjustedDifficulty: () => {
+            try { return deterministicEngine.getAutoAdjustedDifficulty(); } catch (e) { return 'standard'; }
+        },
+        // ═══ PHASE 144: Concept mastery ═══
+        getConceptMastery: () => {
+            try { return deterministicEngine.getConceptMastery(); } catch (e) { return {}; }
+        },
+        // ═══ PHASE 145: Weakness targets ═══
+        getWeaknessTargets: () => {
+            try { return deterministicEngine.getWeaknessTargets(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 146: Spaced repetition ═══
+        getSpacedRepetitionDue: () => {
+            try { return deterministicEngine.getSpacedRepetitionDue(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 148: Optimal play comparison ═══
+        getOptimalPlayComparison: () => {
+            try { return deterministicEngine.getOptimalPlayComparison(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 149: Detailed session report ═══
+        generateDetailedSessionReport: () => {
+            try { return deterministicEngine.generateDetailedSessionReport(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 151: Range grid data ═══
+        generateRangeGridData: (handActions, nodeType) => {
+            try { return deterministicEngine.generateRangeGridData(handActions, nodeType); } catch (e) { return null; }
+        },
+        // ═══ PHASE 152: Action heatmap ═══
+        generateActionHeatmap: () => {
+            try { return deterministicEngine.generateActionHeatmap(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 153: EV graph data ═══
+        getEVGraphData: () => {
+            try { return deterministicEngine.getEVGraphData(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 158: Aggression factors ═══
+        getAggressionFactors: () => {
+            try { return deterministicEngine.getAggressionFactors(); } catch (e) { return {}; }
+        },
+        // ═══ PHASE 159: Preflop stats ═══
+        getPreflopStats: () => {
+            try { return deterministicEngine.getPreflopStats(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 160: Positional awareness ═══
+        getPositionalAwarenessScore: () => {
+            try { return deterministicEngine.getPositionalAwarenessScore(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 178: Streak messages ═══
+        getStreakMessage: (streak) => {
+            try { return deterministicEngine.getStreakMessage(streak); } catch (e) { return null; }
+        },
+        // ═══ PHASE 181-183: Quiz generators ═══
+        generateTextureQuiz: (board) => {
+            try { return deterministicEngine.generateTextureQuiz(board); } catch (e) { return null; }
+        },
+        generateRangeQuiz: (position) => {
+            try { return deterministicEngine.generateRangeQuiz(position); } catch (e) { return null; }
+        },
+        generatePotOddsQuiz: () => {
+            try { return deterministicEngine.generatePotOddsQuiz(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 185: Frequency comparison ═══
+        getFrequencyComparison: () => {
+            try { return deterministicEngine.getFrequencyComparison(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 187: Leak finder ═══
+        generateLeakFinderReport: () => {
+            try { return deterministicEngine.generateLeakFinderReport(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 188: Timing analysis ═══
+        getTimingAnalysis: () => {
+            try { return deterministicEngine.getTimingAnalysis(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 190: Hand history ═══
+        getHandHistory: (filter) => {
+            try { return filter ? deterministicEngine.getFilteredHandHistory(filter) : deterministicEngine.getHandHistory(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 191: Custom drills ═══
+        createCustomDrill: (config) => {
+            try { return deterministicEngine.createCustomDrill(config); } catch (e) { return null; }
+        },
+        getCustomDrills: () => {
+            try { return deterministicEngine.getCustomDrills(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 192: Progressive level ═══
+        getProgressiveLevel: () => {
+            try { return deterministicEngine.getProgressiveLevelDescription(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 196: Thought prompts ═══
+        generateThoughtPrompts: (scenario, heroHand, board) => {
+            try { return deterministicEngine.generateThoughtPrompts(scenario, heroHand, board); } catch (e) { return []; }
+        },
+        // ═══ PHASE 198: Mental game ═══
+        getMentalGameNote: () => {
+            try { return deterministicEngine.getMentalGameNote(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 200: Engine health ═══
+        getEngineHealth: () => {
+            try { return deterministicEngine.getEngineHealth(); } catch (e) { return null; }
+        },
+        resetSession: () => {
+            try { deterministicEngine.resetSession(); } catch (e) { /* non-critical */ }
+        },
+        // ═══ PHASE 203: Board coverage ═══
+        generateBoardCoverageData: (board, heroPos, isPFR) => {
+            try { return deterministicEngine.generateBoardCoverageData(board, heroPos, isPFR); } catch (e) { return null; }
+        },
+        // ═══ PHASE 204: Nut combos ═══
+        countNutCombos: (board) => {
+            try { return deterministicEngine.countNutCombos(board); } catch (e) { return null; }
+        },
+        // ═══ PHASE 213: Action clusters ═══
+        getActionClusters: () => {
+            try { return deterministicEngine.getActionClusters(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 214: Tagging ═══
+        tagScenario: (handId, tag) => {
+            try { deterministicEngine.tagScenario(handId, tag); } catch (e) { /* non-critical */ }
+        },
+        getTaggedScenarios: (tag) => {
+            try { return deterministicEngine.getTaggedScenarios(tag); } catch (e) { return []; }
+        },
+        // ═══ PHASE 215: Hints ═══
+        generateHints: (scenario, heroHand, board, handActions, correctAction) => {
+            try { return deterministicEngine.generateHints(scenario, heroHand, board, handActions, correctAction); } catch (e) { return []; }
+        },
+        // ═══ PHASE 216: Explanation ratings ═══
+        rateExplanation: (handId, rating, feedback) => {
+            try { deterministicEngine.rateExplanation(handId, rating, feedback); } catch (e) { /* non-critical */ }
+        },
+        // ═══ PHASE 218: Frequency-weighted scoring ═══
+        calculateFrequencyWeightedScore: (chosen, handActions) => {
+            try { return deterministicEngine.calculateFrequencyWeightedScore(chosen, handActions); } catch (e) { return null; }
+        },
+        // ═══ PHASE 219: Challenge mode ═══
+        initChallengeMode: (config) => {
+            try { return deterministicEngine.initChallengeMode(config); } catch (e) { return null; }
+        },
+        recordChallengeAnswer: (isCorrect, timeMs) => {
+            try { return deterministicEngine.recordChallengeAnswer(isCorrect, timeMs); } catch (e) { return null; }
+        },
+        getChallengeResults: () => {
+            try { return deterministicEngine.getChallengeResults(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 220: Achievements ═══
+        checkAchievements: () => {
+            try { return deterministicEngine.checkAchievements(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 221-222: Concept tree & drill recommendations ═══
+        getConceptDependencyTree: () => {
+            try { return deterministicEngine.getConceptDependencyTree(); } catch (e) { return {}; }
+        },
+        getRecommendedDrills: () => {
+            try { return deterministicEngine.getRecommendedDrills(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 224: Frequency balance ═══
+        getExpectedFrequencyBalance: () => {
+            try { return deterministicEngine.getExpectedFrequencyBalance(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 225: Smart recap ═══
+        generateSmartRecap: (qNum) => {
+            try { return deterministicEngine.generateSmartRecap(qNum); } catch (e) { return null; }
         },
 
         // Actions
