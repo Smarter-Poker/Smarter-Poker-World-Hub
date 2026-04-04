@@ -33,7 +33,7 @@ const VENUE_TYPE_COLORS = {
   card_room: { fill: '#00d4ff', glow: 'rgba(0,212,255,0.5)', label: 'Cyan' },
   poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', label: 'Green' },
   charity: { fill: '#a855f7', glow: 'rgba(168,85,247,0.5)', label: 'Purple' },
-  home_game: { fill: '#f59e0b', glow: 'rgba(245,158,11,0.5)', label: 'Amber' },
+  home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.5)', label: 'White' },
 };
 const DEFAULT_VENUE_COLOR = VENUE_TYPE_COLORS.casino;
 
@@ -331,7 +331,7 @@ function buildPopupHtml(venue) {
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-      <span style="padding:3px 10px;border-radius:6px;background:rgba(${colors.fill === '#d4a853' ? '212,168,83' : colors.fill === '#00d4ff' ? '0,212,255' : colors.fill === '#22c55e' ? '34,197,94' : colors.fill === '#a855f7' ? '168,85,247' : '245,158,11'},0.15);color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
+      <span style="padding:3px 10px;border-radius:6px;background:rgba(${colors.fill === '#d4a853' ? '212,168,83' : colors.fill === '#00d4ff' ? '0,212,255' : colors.fill === '#22c55e' ? '34,197,94' : colors.fill === '#a855f7' ? '168,85,247' : '255,255,255'},0.15);color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
       ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${hours}</span>` : ''}
     </div>
     ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${games}</div>` : ''}
@@ -685,7 +685,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
     { type: 'card_room', label: 'Card Room', color: '#00d4ff' },
     { type: 'poker_club', label: 'Poker Club', color: '#22c55e' },
     { type: 'charity', label: 'Charity', color: '#a855f7' },
-    { type: 'home_game', label: 'Home Game', color: '#f59e0b' },
+    { type: 'home_game', label: 'Home Game', color: '#ffffff' },
   ];
 
   return (
