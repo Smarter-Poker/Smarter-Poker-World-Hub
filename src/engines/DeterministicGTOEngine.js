@@ -1652,7 +1652,7 @@ export class DeterministicGTOEngine {
         const sizingReason = this._getSizingReason(sizePct, handStrength, texture, street, isBet, isRaise);
 
         // ═══ STRATEGIC CONCEPT — What poker concept drives this? ═══
-        const concept = this._getStrategicConcept(optimalAction, handStrength, texture, street, freq, validActions, handActions);
+        const concept = this._getStrategicConcept(optimalAction, handStrength, texture, street, freq, validActions, handActions, nodeType, heroPosition);
 
         // ═══ Phase 60: BLOCKER AWARENESS ═══
         const blockerNote = this._getBlockerContext(heroHand, board, handStrength, optimalAction, street, texture);
@@ -1850,7 +1850,7 @@ export class DeterministicGTOEngine {
     /**
      * Phase 25: Identify the core strategic concept behind the solver's action.
      */
-    _getStrategicConcept(action, handStrength, texture, street, freq, validActions, handActions) {
+    _getStrategicConcept(action, handStrength, texture, street, freq, validActions, handActions, nodeType, heroPosition) {
         const a = action.toLowerCase();
         const isBet = a.startsWith('b') || a === 'allin';
         const isCheck = a === 'c' || a === 'x';
@@ -1858,13 +1858,23 @@ export class DeterministicGTOEngine {
         const isCall = a === 'call';
         const isRaise = a.startsWith('r');
 
-        // ═══ CHECKING CONCEPTS (Phase 56: Enhanced depth) ═══
+        // Phase 68: Position context
+        const isIP = heroPosition && ['BTN', 'CO', 'HJ'].includes(heroPosition);
+        const isOOP = heroPosition && ['SB', 'BB'].includes(heroPosition);
+        const posTag = isIP ? ' (IP)' : isOOP ? ' (OOP)' : '';
+
+        // ═══ CHECKING CONCEPTS (Phase 56: Enhanced depth, Phase 68: Position-aware) ═══
         if (isCheck) {
             if (handStrength.includes('top pair') && handStrength.includes('top kicker')) {
+                if (isIP && texture.wet) return 'Checking back TPTK in position on a wet board — pot control while retaining the positional advantage to call or bet later streets.';
+                if (isOOP && texture.wet) return 'Checking TPTK from OOP on a wet board — building a check-call or check-raise range. OOP checks carry more monsters for balance.';
                 if (texture.wet) return 'Pot control with TPTK on a wet board — checking avoids getting raised off a strong but vulnerable hand. You can call bets profitably.';
+                if (isIP) return 'Checking back TPTK in position — trapping with a hand that\'s strong enough to check-call or check-raise later.';
                 return 'Checking back TPTK as a trap — your hand is strong enough to check-call or check-raise on later streets.';
             }
             if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
+                if (isIP && texture.wet) return 'Checking back in position for pot control — your pair is vulnerable but you maintain the positional advantage for future streets.';
+                if (isOOP) return 'Checking OOP to build a strong check-call range — one-pair hands from OOP often check to control the pot and avoid being raised.';
                 if (texture.wet) return 'Pot control — your pair is vulnerable on this wet board. Checking avoids facing a raise with a one-pair hand.';
                 if (street === 'turn') return 'Checking the turn to control the pot — your hand has showdown value but doesn\'t want to face a raise.';
                 return 'Pot control with a strong-but-vulnerable hand — checking keeps the pot manageable and avoids bloating it with a one-pair hand.';
@@ -1884,6 +1894,8 @@ export class DeterministicGTOEngine {
                 return 'Taking a free card with draw equity — checking preserves the option to realize equity without risk.';
             }
             if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
+                if (isIP && street === 'flop') return 'Checking back air in position — preserving the option to bluff the turn if a good card comes, while taking a free card.';
+                if (isOOP && street === 'flop') return 'Checking air from OOP — you lack position and equity. If villain bets, you can fold without losing more.';
                 if (street === 'flop') return 'Checking back air — this hand has insufficient equity to c-bet and the board doesn\'t favor your range.';
                 if (street === 'river') return 'Giving up with air on the river — no value target and villain\'s range is too strong to bluff.';
                 return 'Giving up with air — no equity to bet for value and insufficient fold equity to profitably bluff.';
@@ -1894,9 +1906,16 @@ export class DeterministicGTOEngine {
             return 'Checking to control the pot size and realize equity on future streets.';
         }
 
-        // ═══ BETTING CONCEPTS (Phase 58: Enhanced board-hand interaction) ═══
+        // ═══ BETTING CONCEPTS (Phase 58: Enhanced board-hand interaction, Phase 68: Position-aware) ═══
         if (isBet) {
             const hs = handStrength.toLowerCase();
+            // Position-specific donk bet note for OOP leading
+            if (isOOP && nodeType === 'hero_bets_or_checks' && street !== 'preflop') {
+                // OOP leading (donk bet) is rare in GTO — add a note when it happens
+                if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
+                    return 'Donk-betting OOP as a bluff — rare in GTO, but the board texture heavily favors your range over the preflop aggressor. This exploits range disadvantage.';
+                }
+            }
             // Nutted hands
             if (hs.includes('quads') || hs.includes('full house')) {
                 if (street === 'river') return 'Value betting the nuts on the river — extracting maximum from second-best hands that can\'t fold.';
@@ -1984,8 +2003,15 @@ export class DeterministicGTOEngine {
             return 'Betting for value and protection — extracting from worse hands while denying equity.';
         }
 
-        // ═══ CALLING CONCEPTS (Phase 56: Enhanced depth) ═══
+        // ═══ CALLING CONCEPTS (Phase 56: Enhanced depth, Phase 68: Position-aware) ═══
         if (isCall) {
+            // Position-specific calling note
+            if (isIP && street === 'river' && (handStrength.includes('second pair') || handStrength.includes('bottom pair'))) {
+                return 'Bluff-catching in position on the river — being IP means you see villain\'s bet before deciding. Your positional advantage makes marginal calls more profitable.';
+            }
+            if (isOOP && street === 'river' && (handStrength.includes('top pair') || handStrength.includes('overpair'))) {
+                return 'Calling down from OOP — strong enough to bluff-catch, but OOP calling ranges need to be tighter since you face more aggression.';
+            }
             if (handStrength.includes('monster draw') || handStrength.includes('combo draw')) {
                 return 'Calling with a monster draw — massive equity (15+ outs) makes this a clear continue. Raising is also viable as a semi-bluff.';
             }
