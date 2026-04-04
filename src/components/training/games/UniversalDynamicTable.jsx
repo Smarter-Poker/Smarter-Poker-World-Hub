@@ -240,45 +240,97 @@ const SoundEngine = {
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-function RangeMatrixViewer({ rawFrequencies, correctAnswer, show }) {
-    // Build the 13x13 matrix (always compute — hooks can't be after early return)
-    const matrix = useMemo(() => {
-        if (!rawFrequencies) return [];
+/**
+ * Phase 33: GTO Wizard-Style Multi-Action Range Matrix.
+ * Each cell colored by DOMINANT action, with mixed strategy gradient.
+ * Shows the full solver strategy across all 169 starting hands.
+ *
+ * Colors match GTO Wizard:
+ *   Check = Blue, Call = Green, Bet sizes = Red spectrum,
+ *   Raise = Purple, Fold = Gray, All-in = Dark Red
+ */
+const RANGE_ACTION_COLORS = {
+    'c': '#3b82f6', 'x': '#3b82f6', 'check': '#3b82f6',
+    'call': '#22c55e',
+    'f': '#475569', 'fold': '#475569',
+    'allin': '#991b1b',
+    'b16': '#16a34a', 'b20': '#16a34a', 'b25': '#16a34a', 'b33': '#059669',
+    'b40': '#0891b2', 'b45': '#0891b2', 'b50': '#0891b2', 'b55': '#0891b2',
+    'b60': '#2563eb', 'b66': '#2563eb', 'b75': '#1d4ed8', 'b80': '#1d4ed8',
+    'b100': '#dc2626',
+    'b125': '#f97316', 'b150': '#f59e0b', 'b200': '#f59e0b', 'b300': '#eab308',
+    'r50': '#8b5cf6', 'r75': '#7c3aed', 'r100': '#6d28d9', 'r200': '#a855f7', 'r300': '#a855f7',
+    'r': '#8b5cf6', 'b': '#dc2626',
+};
+
+function getRangeActionColor(action) {
+    if (!action) return '#1e293b';
+    const a = action.toLowerCase();
+    if (RANGE_ACTION_COLORS[a]) return RANGE_ACTION_COLORS[a];
+    if (a.startsWith('b')) {
+        const m = a.match(/^b(\d+)$/);
+        if (m) { const p = parseInt(m[1]); return p <= 33 ? '#059669' : p <= 66 ? '#2563eb' : p <= 100 ? '#dc2626' : '#f59e0b'; }
+        return '#dc2626';
+    }
+    if (a.startsWith('r')) return '#8b5cf6';
+    return '#475569';
+}
+
+function RangeMatrixViewer({ rawFrequencies, correctAnswer, show, heroHand }) {
+    // Build multi-action 13x13 matrix
+    const { matrix, actionLegend } = useMemo(() => {
+        if (!rawFrequencies) return { matrix: [], actionLegend: [] };
         const grid = [];
-        const actionFreqs = rawFrequencies[correctAnswer] || {};
+        const actions = Object.keys(rawFrequencies);
+        const actionSet = new Set();
 
         for (let r = 0; r < 13; r++) {
             const row = [];
             for (let c = 0; c < 13; c++) {
                 let hand;
-                if (r === c) {
-                    hand = RANKS[r] + RANKS[c]; // Pairs: AA, KK, etc.
-                } else if (r < c) {
-                    hand = RANKS[r] + RANKS[c] + 's'; // Suited: AKs, AQs
-                } else {
-                    hand = RANKS[c] + RANKS[r] + 'o'; // Offsuit: AKo, AQo
+                if (r === c) hand = RANKS[r] + RANKS[c];
+                else if (r < c) hand = RANKS[r] + RANKS[c] + 's';
+                else hand = RANKS[c] + RANKS[r] + 'o';
+
+                // Find dominant action and all frequencies for this hand
+                let bestAction = null;
+                let bestFreq = 0;
+                let totalFreq = 0;
+                const handActions = {};
+
+                for (const action of actions) {
+                    const freq = rawFrequencies[action]?.[hand] || 0;
+                    if (freq > 0.005) { // Skip noise
+                        handActions[action] = freq;
+                        totalFreq += freq;
+                        actionSet.add(action);
+                        if (freq > bestFreq) {
+                            bestFreq = freq;
+                            bestAction = action;
+                        }
+                    }
                 }
 
-                const freq = actionFreqs[hand] || 0;
-                row.push({ hand, freq });
+                const isMixed = Object.keys(handActions).length > 1 && bestFreq < 0.9;
+                const isHeroHand = heroHand && (hand === heroHand || (heroHand.length === 2 && hand === heroHand));
+
+                row.push({ hand, bestAction, bestFreq, handActions, isMixed, totalFreq, isHeroHand });
             }
             grid.push(row);
         }
-        return grid;
-    }, [rawFrequencies, correctAnswer]);
 
-    // Early return AFTER hooks
+        // Build legend from actions actually present
+        const legend = [...actionSet].sort((a, b) => {
+            const order = { 'f': 0, 'c': 1, 'x': 1, 'call': 2 };
+            const aOrd = order[a.toLowerCase()] ?? (a.startsWith('b') ? 3 : a.startsWith('r') ? 4 : 5);
+            const bOrd = order[b.toLowerCase()] ?? (b.startsWith('b') ? 3 : b.startsWith('r') ? 4 : 5);
+            return aOrd - bOrd;
+        });
+
+        return { matrix: grid, actionLegend: legend };
+    }, [rawFrequencies, correctAnswer, heroHand]);
+
     if (!show || !rawFrequencies || matrix.length === 0) return null;
-
-    const getColor = (freq) => {
-        if (freq >= 0.9) return '#22c55e';
-        if (freq >= 0.7) return '#4ade80';
-        if (freq >= 0.5) return '#86efac';
-        if (freq >= 0.3) return '#fbbf24';
-        if (freq >= 0.1) return '#f97316';
-        if (freq > 0) return '#ef4444';
-        return 'rgba(255,255,255,0.05)';
-    };
 
     return (
         <motion.div
@@ -288,42 +340,82 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show }) {
             style={{ padding: '8px 4px', overflowX: 'auto' }}
         >
             <div style={{ fontSize: 9, color: '#94a3b8', marginBottom: 4, textAlign: 'center', fontWeight: 'bold', letterSpacing: 1 }}>
-                RANGE MATRIX — {correctAnswer?.toUpperCase()} FREQUENCY
+                RANGE STRATEGY — ALL HANDS
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, maxWidth: 300, margin: '0 auto' }}>
-                {matrix.flat().map((cell, i) => (
-                    <div
-                        key={i}
-                        title={`${cell.hand}: ${(cell.freq * 100).toFixed(0)}%`}
-                        style={{
-                            width: '100%',
-                            aspectRatio: '1',
-                            background: getColor(cell.freq),
-                            borderRadius: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 6,
-                            fontWeight: 'bold',
-                            color: cell.freq > 0.3 ? '#000' : '#666',
-                            cursor: 'default',
-                        }}
-                    >
-                        {cell.hand}
-                    </div>
-                ))}
+                {matrix.flat().map((cell, i) => {
+                    const bgColor = cell.bestAction ? getRangeActionColor(cell.bestAction) : 'rgba(255,255,255,0.03)';
+                    const opacity = cell.bestFreq > 0 ? Math.max(0.3, cell.bestFreq) : 0.08;
+                    // Mixed strategy: show gradient between top 2 actions
+                    let background = bgColor;
+                    if (cell.isMixed) {
+                        const sorted = Object.entries(cell.handActions).sort((a, b) => b[1] - a[1]);
+                        if (sorted.length >= 2) {
+                            const c1 = getRangeActionColor(sorted[0][0]);
+                            const c2 = getRangeActionColor(sorted[1][0]);
+                            const pct = Math.round(sorted[0][1] * 100);
+                            background = `linear-gradient(135deg, ${c1} ${pct}%, ${c2} ${pct}%)`;
+                        }
+                    }
+
+                    // Build tooltip with all actions
+                    const tip = cell.bestAction
+                        ? `${cell.hand}: ${Object.entries(cell.handActions).sort((a, b) => b[1] - a[1]).map(([a, f]) => `${a} ${(f * 100).toFixed(0)}%`).join(', ')}`
+                        : `${cell.hand}: not in range`;
+
+                    return (
+                        <div
+                            key={i}
+                            title={tip}
+                            style={{
+                                width: '100%',
+                                aspectRatio: '1',
+                                background: cell.isMixed ? background : bgColor,
+                                opacity: cell.bestAction ? opacity : 0.08,
+                                borderRadius: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 5.5,
+                                fontWeight: cell.isHeroHand ? 900 : 600,
+                                color: cell.bestFreq > 0.3 ? '#fff' : '#888',
+                                cursor: 'default',
+                                boxShadow: cell.isHeroHand ? '0 0 0 1.5px #00d4ff, 0 0 6px rgba(0,212,255,0.4)' : 'none',
+                                position: 'relative',
+                                zIndex: cell.isHeroHand ? 1 : 0,
+                            }}
+                        >
+                            {cell.hand.replace('10', 'T')}
+                        </div>
+                    );
+                })}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-                {[{ label: '90%+', color: '#22c55e' }, { label: '50%+', color: '#86efac' }, { label: '10%+', color: '#f97316' }, { label: '0%', color: 'rgba(255,255,255,0.1)' }].map(l => (
-                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#94a3b8' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
-                        {l.label}
-                    </div>
-                ))}
+            {/* Action color legend */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                {actionLegend.slice(0, 6).map(action => {
+                    const label = ACTION_LABELS_SHORT[action.toLowerCase()] || action;
+                    return (
+                        <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 7, color: '#94a3b8' }}>
+                            <div style={{ width: 7, height: 7, borderRadius: 2, background: getRangeActionColor(action) }} />
+                            {label}
+                        </div>
+                    );
+                })}
             </div>
         </motion.div>
     );
 }
+
+// Short labels for range matrix legend
+const ACTION_LABELS_SHORT = {
+    'c': 'Check', 'x': 'Check', 'call': 'Call', 'f': 'Fold', 'allin': 'All-In',
+    'b16': 'B16%', 'b20': 'B20%', 'b25': 'B25%', 'b33': 'B33%',
+    'b40': 'B40%', 'b45': 'B45%', 'b50': 'B50%', 'b55': 'B55%',
+    'b60': 'B60%', 'b66': 'B67%', 'b75': 'B75%', 'b80': 'B80%',
+    'b100': 'Pot', 'b125': 'OB125%', 'b150': 'OB150%', 'b200': 'OB200%', 'b300': 'OB300%',
+    'r50': 'R50%', 'r75': 'R75%', 'r100': 'RPot', 'r200': 'R200%', 'r300': 'R300%',
+    'r': 'Raise', 'b': 'Bet',
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // F11: STREAK TOAST COMPONENT
@@ -3331,7 +3423,7 @@ function UniversalDynamicTable({
                                 <div style={{ fontSize: 12, lineHeight: 1.5, color: '#cbd5e1', textAlign: 'center' }}>
                                     {displayExplanation}
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6, gap: 8 }}>
                                     <button
                                         onClick={() => setShowWhyDrawer(!showWhyDrawer)}
                                         style={{
@@ -3344,7 +3436,32 @@ function UniversalDynamicTable({
                                     >
                                         {showWhyDrawer ? 'Hide Details' : 'Why?'}
                                     </button>
+                                    {question?.rawFrequencies && (
+                                        <button
+                                            onClick={() => setShowRangeGrid(!showRangeGrid)}
+                                            style={{
+                                                padding: '4px 12px', borderRadius: 6,
+                                                background: showRangeGrid ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)',
+                                                border: `1px solid rgba(168, 85, 247, ${showRangeGrid ? '0.4' : '0.25'})`,
+                                                color: '#a855f7', fontSize: 10, fontWeight: 700,
+                                                cursor: 'pointer', letterSpacing: 0.5,
+                                            }}
+                                        >
+                                            {showRangeGrid ? 'Hide Range' : 'Range'}
+                                        </button>
+                                    )}
                                 </div>
+                                {/* Phase 33: Range Matrix Viewer */}
+                                <AnimatePresence>
+                                    {showRangeGrid && question?.rawFrequencies && (
+                                        <RangeMatrixViewer
+                                            rawFrequencies={question.rawFrequencies}
+                                            correctAnswer={correctAnswer}
+                                            show={showRangeGrid}
+                                            heroHand={question?.heroHand || question?.scenario?.heroHand}
+                                        />
+                                    )}
+                                </AnimatePresence>
                                 <AnimatePresence>
                                     {showWhyDrawer && (
                                         <motion.div
