@@ -15,6 +15,7 @@ import TRAINING_CONFIG, { checkLevelPassed, getRequiredCorrect } from '../config
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
 import { eventBus } from '../engine/EventBus';
 import { trainingSounds } from '../utils/trainingSounds';
+import { deterministicEngine } from '../engines/DeterministicGTOEngine';
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
 
@@ -443,6 +444,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         if (isMistakeMove) {
             mistakeQuestionsRef.current.push({ ...currentQuestion });
         }
+
+        // Phase 75: Update adaptive difficulty tracking
+        try { deterministicEngine.updateSessionDifficulty(isCorrect); } catch (e) { /* non-critical */ }
 
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback

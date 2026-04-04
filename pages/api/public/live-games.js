@@ -77,7 +77,9 @@ async function handlePost(req, res) {
         }
 
         // Rate limit: max 5 reports per venue per user per hour (authenticated)
-        // For anonymous: max 3 reports per IP per hour via X-Forwarded-For
+        // For anonymous: max 3 reports per IP per hour
+        const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+
         if (reporter_id) {
             const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
             const { count } = await supabase
@@ -92,16 +94,30 @@ async function handlePost(req, res) {
             }
         } else {
             // Anonymous rate limit by IP — stricter (3/hr)
-            const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
             const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
-            const { count } = await supabase
-                .from('venue_live_reports')
-                .select('id', { count: 'exact', head: true })
-                .eq('venue_id', venue_id)
-                .is('reporter_id', null)
-                .gte('created_at', oneHourAgo);
+            // Try IP-based filtering first; fall back to global anonymous count if column missing
+            let anonCount = 0;
+            try {
+                const { count, error: ipError } = await supabase
+                    .from('venue_live_reports')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('venue_id', venue_id)
+                    .eq('reporter_ip', clientIp)
+                    .gte('created_at', oneHourAgo);
+                if (ipError) throw ipError;
+                anonCount = count || 0;
+            } catch {
+                // Column may not exist — fall back to all-anonymous count
+                const { count } = await supabase
+                    .from('venue_live_reports')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('venue_id', venue_id)
+                    .is('reporter_id', null)
+                    .gte('created_at', oneHourAgo);
+                anonCount = count || 0;
+            }
 
-            if (count >= 3) {
+            if (anonCount >= 3) {
                 return res.status(429).json({ error: 'Too many anonymous reports. Please sign in for higher limits.' });
             }
         }
@@ -127,6 +143,7 @@ async function handlePost(req, res) {
                 game_quality: game_quality && ['soft', 'average', 'tough'].includes(game_quality) ? game_quality : null,
                 notes: sanitizedNotes,
                 reporter_id,
+                reporter_ip: reporter_id ? null : clientIp, // Only store IP for anonymous reports
                 reported_at: new Date().toISOString(),
                 expires_at: new Date(Date.now() + 4 * 3600000).toISOString() // Reports expire after 4 hours
             })

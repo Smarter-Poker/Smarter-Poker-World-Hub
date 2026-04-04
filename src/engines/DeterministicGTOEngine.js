@@ -418,15 +418,20 @@ export class DeterministicGTOEngine {
             }
         }
 
-        // ═══ PHASE 19: Difficulty filtering ═══
+        // ═══ PHASE 19 + PHASE 75: Adaptive difficulty filtering ═══
         // Beginner: prefer scenarios where best action is ≥60% (clear decisions)
         // Expert: prefer scenarios where best action is ≤50% (mixed strategy / close spots)
         // Standard: no filter
-        if (difficulty === 'beginner' || difficulty === 'expert') {
+        // Phase 75: 'adaptive' mode — starts at standard, increases difficulty based on accuracy
+        const effectiveDifficulty = difficulty === 'adaptive'
+            ? this._getAdaptiveDifficulty(questions.length)
+            : difficulty;
+
+        if (effectiveDifficulty === 'beginner' || effectiveDifficulty === 'expert') {
             sortedScenarios.sort((a, b) => {
                 const maxFreqA = getMaxFrequency(a.strategy_matrix);
                 const maxFreqB = getMaxFrequency(b.strategy_matrix);
-                if (difficulty === 'beginner') {
+                if (effectiveDifficulty === 'beginner') {
                     // Higher max frequency = easier (clear best action)
                     return maxFreqB - maxFreqA;
                 }
@@ -435,16 +440,28 @@ export class DeterministicGTOEngine {
             });
         }
 
+        // Phase 75: Interleave difficulty — every 5th question should be a stretch
+        // This prevents monotonous difficulty and keeps players engaged
+        const shouldStretch = (qIdx) => qIdx > 0 && qIdx % 5 === 0;
+
         // IMP-6: Iterate through MORE combinations to reach target count
         const maxAttempts = Math.min(count * 4, sortedScenarios.length * 3);
         for (let i = 0; i < maxAttempts && questions.length < count; i++) {
             const scenario = sortedScenarios[i % sortedScenarios.length];
 
-            // ═══ PHASE 19: Difficulty gate — reject scenarios that don't match difficulty ═══
-            if (difficulty !== 'standard') {
-                const maxFreq = getMaxFrequency(scenario.strategy_matrix);
-                if (difficulty === 'beginner' && maxFreq < 40) continue; // Skip very mixed spots
-                if (difficulty === 'expert' && maxFreq > 70) continue;  // Skip trivial spots
+            // ═══ PHASE 19 + 75: Difficulty gate ═══
+            const maxFreq = getMaxFrequency(scenario.strategy_matrix);
+            if (effectiveDifficulty !== 'standard') {
+                // Phase 75: Stretch questions override the filter
+                const stretching = shouldStretch(questions.length);
+                if (!stretching) {
+                    if (effectiveDifficulty === 'beginner' && maxFreq < 40) continue;
+                    if (effectiveDifficulty === 'expert' && maxFreq > 70) continue;
+                } else {
+                    // Stretch: beginner gets a mixed spot, expert gets a pure spot
+                    if (effectiveDifficulty === 'beginner' && maxFreq > 60) continue;
+                    if (effectiveDifficulty === 'expert' && maxFreq < 60) continue;
+                }
             }
 
             // Pick a different hand for each question from same scenario
@@ -3848,6 +3865,50 @@ export class DeterministicGTOEngine {
         if (hasTwoOvers) return 'two overcards';
         if (hasOneOver) return 'one overcard';
         return heroHigh >= 9 ? 'high cards, no pair' : 'air';
+    }
+
+    /**
+     * Phase 75: Adaptive difficulty — tracks session performance to adjust question difficulty.
+     * Called during batch generation when difficulty='adaptive'.
+     * Uses a simple sliding window of recent accuracy to decide difficulty tier.
+     */
+    _getAdaptiveDifficulty(questionsAnswered) {
+        // Use session tracking data if available
+        const stats = this._sessionStats || { correct: 0, total: 0, recentWindow: [] };
+        this._sessionStats = stats;
+
+        if (stats.total < 5) return 'standard'; // Not enough data yet
+
+        // Calculate recent accuracy (last 10 questions)
+        const recent = stats.recentWindow.slice(-10);
+        const recentAcc = recent.length > 0 ? recent.filter(Boolean).length / recent.length : 0.5;
+        const overallAcc = stats.total > 0 ? stats.correct / stats.total : 0.5;
+
+        // Adaptive thresholds
+        if (recentAcc >= 0.85) return 'expert';     // Crushing it — give harder spots
+        if (recentAcc <= 0.35) return 'beginner';   // Struggling — ease up
+        return 'standard';                            // In the zone — standard mix
+    }
+
+    /**
+     * Phase 75: Update session stats after a question is answered.
+     * Called externally by the training arena.
+     */
+    updateSessionDifficulty(isCorrect) {
+        if (!this._sessionStats) {
+            this._sessionStats = { correct: 0, total: 0, recentWindow: [] };
+        }
+        this._sessionStats.total++;
+        if (isCorrect) this._sessionStats.correct++;
+        this._sessionStats.recentWindow.push(isCorrect);
+        // Keep window at max 20 entries
+        if (this._sessionStats.recentWindow.length > 20) {
+            this._sessionStats.recentWindow.shift();
+        }
+    }
+
+    resetSessionDifficulty() {
+        this._sessionStats = { correct: 0, total: 0, recentWindow: [] };
     }
 
     getStreetForLevel(level) {

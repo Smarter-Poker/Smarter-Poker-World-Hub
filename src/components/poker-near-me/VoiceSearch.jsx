@@ -89,6 +89,20 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
     // Keep refs in sync
     useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
+    // Cleanup on unmount — abort recognition & cancel animation
+    useEffect(() => {
+        return () => {
+            if (recognitionRef.current) {
+                try { recognitionRef.current.abort(); } catch {}
+                recognitionRef.current = null;
+            }
+            if (animFrameRef.current) {
+                cancelAnimationFrame(animFrameRef.current);
+                animFrameRef.current = null;
+            }
+        };
+    }, []);
+
     // Check browser support
     useEffect(() => {
         if (typeof window === 'undefined') return;
