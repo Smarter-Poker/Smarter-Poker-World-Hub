@@ -3637,16 +3637,31 @@ export class DeterministicGTOEngine {
         const boardRankCounts = {};
         boardRanks.forEach(r => { boardRankCounts[r] = (boardRankCounts[r] || 0) + 1; });
 
+        // Phase 74: Board-paired flush vulnerability
+        const boardPaired = Object.values(boardRankCounts).some(c => c >= 2);
+
         // Flush first (beats straight in display priority for made hands)
         if (hasFlush) {
             // Check if it's the nut flush
-            if (r1 === 'A' || r2 === 'A') madeHand = 'the nut flush';
-            else if (heroHigh >= 11) madeHand = 'a strong flush';
-            else madeHand = 'a flush';
+            if (r1 === 'A' || r2 === 'A') {
+                madeHand = boardPaired ? 'the nut flush (board paired — full house possible)' : 'the nut flush';
+            } else if (heroHigh >= 11) {
+                madeHand = boardPaired ? 'a strong flush (board paired — vulnerable)' : 'a strong flush';
+            } else {
+                madeHand = boardPaired ? 'a weak flush (board paired — vulnerable)' : 'a flush';
+            }
         }
-        // Straight
+        // Straight — Phase 74: quality tiers
         else if (hasMadeStraight) {
-            madeHand = isNutStraight ? 'the nut straight' : 'a straight';
+            if (isNutStraight) {
+                madeHand = boardPaired ? 'the nut straight (board paired — full house beats you)' : 'the nut straight';
+            } else if (bestStraightTop <= 5) {
+                madeHand = 'a baby straight (vulnerable to higher straights)';
+            } else if (heroLow === Math.min(...boardVals) || heroHigh === Math.min(...boardVals)) {
+                madeHand = 'the bottom-end straight (higher straights possible)';
+            } else {
+                madeHand = boardPaired ? 'a straight (board paired — full house beats you)' : 'a straight';
+            }
         }
         // Pair-based hands
         else if (isPair) {
@@ -3746,7 +3761,10 @@ export class DeterministicGTOEngine {
         } else if (isNutFlushDraw) {
             draws.push('nut flush draw');
         } else if (hasFlushDraw) {
-            draws.push('flush draw');
+            // Phase 74: Flush draw quality tiers
+            if (heroHigh >= 11) draws.push('strong flush draw (K-high)');
+            else if (heroHigh >= 8) draws.push('flush draw');
+            else draws.push('weak flush draw');
         }
 
         if (hasMadeStraight) {
@@ -3754,9 +3772,23 @@ export class DeterministicGTOEngine {
         } else if (hasDoubleGutshot) {
             draws.push('double gutshot (8 outs)');
         } else if (hasOESD) {
-            draws.push('OESD');
+            // Phase 74: OESD quality — nut OESD vs non-nut
+            // Nut OESD: completing the straight gives the highest possible straight
+            const maxMissing = straightMissingCards.length > 0 ? Math.max(...straightMissingCards) : 0;
+            const completesNuts = maxMissing >= 10; // completing with T+ gives strong straights
+            if (completesNuts) draws.push('nut OESD');
+            else draws.push('OESD');
         } else if (hasGutshot) {
-            draws.push('gutshot');
+            // Phase 74: Gutshot quality — top-end vs bottom-end
+            if (straightMissingCards.length > 0) {
+                const missingCard = straightMissingCards[0];
+                const wouldBeTopEnd = missingCard > highestBoardVal;
+                if (wouldBeTopEnd) draws.push('gutshot (top-end)');
+                else if (missingCard <= sortedBoardVals[0]) draws.push('gutshot (bottom-end)');
+                else draws.push('gutshot');
+            } else {
+                draws.push('gutshot');
+            }
         }
 
         // Add FH draw for made hands with redraw equity
