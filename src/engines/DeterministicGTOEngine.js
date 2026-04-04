@@ -1773,6 +1773,25 @@ export class DeterministicGTOEngine {
         const bluffCatchNote = this._getBluffCatcherNote(handStrength, optimalAction, street, ctx.nodeType);
         const rangeNarrowNote = this._getRangeNarrowingNote(street, ctx.nodeType);
 
+        // ═══ Phase 126-133: Advanced postflop theory notes ═══
+        const multiWayNote = this._getMultiWayNote(ctx.nodeType, ctx.potType, handStrength, optimalAction);
+        const sizingTellNote = this._getBetSizingTellNote(ctx.nodeType, street, optimalAction);
+        const checkBackNote = this._getCheckBackNote(optimalAction, handStrength, street, texture, ctx.heroPosition, ctx.villainPosition);
+        const delayedCBetNote = this._getDelayedCBetNote(optimalAction, handStrength, street, ctx.nodeType, texture);
+        const floatNote = this._getFloatPlayNote(optimalAction, handStrength, street, ctx.heroPosition, ctx.villainPosition);
+        const raiseVsCallNote = this._getRaiseVsCallNote(optimalAction, handStrength, street, ctx.nodeType, texture);
+        const turnCatNote = this._getTurnCardCategoryNote(board, street, handStrength, texture);
+        const riverDecisionNote = this._getRiverDecisionNote(optimalAction, handStrength, street, ctx.nodeType);
+        // Phase 134-139: SPR, stack depth, pot geometry, range/nut advantage, board interaction, equity distribution
+        const sprMatrixNote = this._getSPRMatrixNote(ctx.estimatedPot, ctx.stackDepth, handStrength, street);
+        const stackStratNote = this._getStackDepthStrategyNote(ctx.stackDepth, handStrength, street);
+        const potGeoNote = this._getPotGeometryNote(ctx.estimatedPot, ctx.stackDepth, street, optimalAction);
+        const rangeVsNutNote = this._getRangeVsNutAdvantageNote(ctx.heroPosition, ctx.villainPosition, texture, street, ctx.nodeType);
+        const boardInterNote = this._getBoardInteractionNote(ctx.heroPosition, ctx.villainPosition, texture, ctx.nodeType, street);
+        const eqDistNote = this._getEquityDistributionNote(handStrength, optimalAction, street, ctx.nodeType);
+        const handReadNote = this._getHandReadingNote(street, ctx.nodeType, optimalAction);
+        const exploitNote = this._getExploitativeSuggestion(handStrength, optimalAction, street, ctx.nodeType);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1799,7 +1818,12 @@ export class DeterministicGTOEngine {
             boardPairNote, aceHighNote, monotoneNote, lowBoardNote,
             multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote,
             eqRealizationNote, positionNote, boardCoverageNote, multiStreetEVNote,
-            textureEvoNote, evCompNote, rangeNarrowNote, gtoFrameNote].filter(Boolean);
+            textureEvoNote, evCompNote, rangeNarrowNote, gtoFrameNote,
+            // Phase 126-142 notes
+            multiWayNote, sizingTellNote, checkBackNote, delayedCBetNote, floatNote,
+            raiseVsCallNote, turnCatNote, riverDecisionNote,
+            sprMatrixNote, stackStratNote, potGeoNote, rangeVsNutNote,
+            boardInterNote, eqDistNote, handReadNote, exploitNote].filter(Boolean);
 
         // Score and sort by relevance
         const scoredNotes = allNotesRaw.map(note => ({
@@ -6021,8 +6045,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '2.1.0-phase125',
-            phasesImplemented: 125,
+            version: '2.2.0-phase150',
+            phasesImplemented: 150,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6041,8 +6065,13 @@ export class DeterministicGTOEngine {
                 phase111_115: ['rangeCapping', 'reverseImpliedOdds', 'cardRemoval', 'impliedOdds', 'foldEquity'],
                 phase116_120: ['combDraws', 'boardPairStrategy', 'aceHighBoards', 'monotoneBoards', 'lowBoards'],
                 phase121_125: ['riverBluffCriteria', 'bluffCatching', 'rangeNarrowing', 'performanceTrend', 'relevanceScoring'],
+                phase126_133: ['multiWayPots', 'betSizingTells', 'checkBackStrategy', 'delayedCBet', 'floatPlay', 'raiseVsCall', 'turnCardCategory', 'riverDecisionTree'],
+                phase134_139: ['sprMatrix', 'stackDepthStrategy', 'potGeometry', 'rangeVsNutAdvantage', 'boardInteraction', 'equityDistribution'],
+                phase140_142: ['gtoDeviationDetection', 'exploitativeSuggestions', 'handReadingNarration'],
+                phase143_146: ['autoDifficulty', 'conceptMastery', 'weaknessTargeting', 'spacedRepetition'],
+                phase147_150: ['evLossQuantification', 'optimalPlayComparison', 'detailedSessionReport', 'adaptiveCoaching'],
             },
-            totalExplanationNotes: 43, // Number of notes in allNotes pipeline
+            totalExplanationNotes: 59, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
             trackers: {
                 sessionStats: !!this._sessionStats,
@@ -6946,6 +6975,897 @@ export class DeterministicGTOEngine {
         }
 
         return score;
+    }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 126: MULTI-WAY POT ADJUSTMENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 126: Explain how multi-way dynamics change strategy.
+     * In multi-way pots, bluffing frequency drops, value range tightens.
+     */
+    _getMultiWayNote(nodeType, potType, handStrength, optimalAction) {
+        if (!potType || !potType.toLowerCase().includes('multi')) return '';
+        const a = (optimalAction || '').toLowerCase();
+        const isStrong = ['nuts', 'second_nuts', 'overpair', 'top_pair_top_kicker', 'top_pair', 'two_pair', 'set', 'trips', 'straight', 'flush', 'full_house'].includes(handStrength);
+        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair'].includes(handStrength);
+
+        if (a === 'f' && isMedium) {
+            return '🎯 Multi-way pot: medium-strength hands lose significant value with multiple opponents — more players means someone likely has you beat. Folding marginal hands is correct.';
+        }
+        if (a.startsWith('r') && isStrong) {
+            return 'Multi-way pot: with a strong hand, bet for value against multiple opponents who may each have some equity. Thin value goes up when facing wide ranges.';
+        }
+        if (a === 'call' || a === 'x') {
+            return 'Multi-way pot: bluffing frequency drops dramatically — more players means more chance someone has a calling hand. Play honestly and wait for strong holdings.';
+        }
+        return 'Multi-way pot: tighten your range significantly. Bluff less, value bet more, and be cautious with medium-strength hands.';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 127: BET SIZING TELLS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 127: What different bet sizes signal about villain's range.
+     * Small bets = merged/wide range, large bets = polarized range.
+     */
+    _getBetSizingTellNote(nodeType, street, optimalAction) {
+        if (!optimalAction) return '';
+        const a = optimalAction.toLowerCase();
+        // Extract sizing from action like 'r50' or 'r125'
+        const match = a.match(/r(\d+)/);
+        if (!match) return '';
+        const sizePct = parseInt(match[1]);
+
+        if (sizePct <= 33) {
+            return `Small bet (${sizePct}% pot): signals a merged/depolarized range. Villain bets this size with both value and marginal hands — your bluff-catching threshold is lower. Defend wider.`;
+        }
+        if (sizePct <= 50) {
+            return `Medium-small bet (${sizePct}% pot): common for range bets where villain c-bets their entire range. Indicates board favors their range but they're not committing heavily.`;
+        }
+        if (sizePct <= 75) {
+            return `Standard sizing (${sizePct}% pot): balanced between value and bluffs. Villain's range is somewhat polarized — they have both strong hands and bluffs at this size.`;
+        }
+        if (sizePct <= 100) {
+            return `Large bet (${sizePct}% pot): polarized range — villain has either a strong value hand or a bluff. Middle-strength hands rarely use this sizing. Bluff-catch or fold.`;
+        }
+        return `Overbet (${sizePct}% pot): maximally polarized. Villain is either nutted or bluffing — no medium-strength hands. Call with top of range, fold everything else.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 128: CHECK-BACK STRATEGY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 128: When to check back in position — pot control, deception, thin value.
+     */
+    _getCheckBackNote(optimalAction, handStrength, street, texture, heroPosition, villainPosition) {
+        const a = (optimalAction || '').toLowerCase();
+        if (a !== 'x' && a !== 'check') return '';
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        if (!isIP) return ''; // Check-back only applies IP
+
+        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair', 'third_pair'].includes(handStrength);
+        const isStrong = ['overpair', 'top_pair_top_kicker', 'top_pair', 'two_pair', 'set'].includes(handStrength);
+        const isWeak = ['high_card', 'ace_high', 'underpair'].includes(handStrength);
+        const isDry = texture && (texture.isDry || texture.flushDraws === 0);
+
+        if (isMedium && street === 'flop') {
+            return '🎯 Check-back for pot control: medium-strength hands benefit from seeing another card cheaply. Betting risks getting raised off the best hand or building a pot you can\'t win.';
+        }
+        if (isStrong && isDry && street === 'flop') {
+            return 'Check-back to trap: on a dry board, villain has few draws. Checking back a strong hand disguises your strength and may induce bluffs on later streets.';
+        }
+        if (isWeak && street === 'turn') {
+            return 'Check-back with air: give up on the bluff when villain has shown interest. Saving your stack for better spots is a key part of GTO play.';
+        }
+        if (street === 'river') {
+            return 'Check-back on river: your hand has showdown value but isn\'t strong enough to bet for value — betting only gets called by better and folds out worse.';
+        }
+        return 'Check-back: controlling the pot and realizing equity. Not every hand needs to bet — sometimes checking maximizes EV by keeping the pot manageable.';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 129: DELAYED C-BET THEORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 129: Delayed c-bet — checking flop, betting turn.
+     * Common on boards that favor the caller's range.
+     */
+    _getDelayedCBetNote(optimalAction, handStrength, street, nodeType, texture) {
+        if (street !== 'turn') return '';
+        const a = (optimalAction || '').toLowerCase();
+        if (!a.startsWith('r') && a !== 'allin') return '';
+        // This is relevant when the PFR checked flop and now bets turn
+        if (nodeType !== 'delayed_cbet' && nodeType !== 'probe') return '';
+
+        const isDrawy = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const isMedium = ['middle_pair', 'top_pair_weak_kicker', 'second_pair'].includes(handStrength);
+
+        if (isDrawy) {
+            return 'Delayed c-bet: by checking the flop and betting the turn, you represent a hand that improved or was trapping. On draw-heavy boards, this pressures opponents who floated with draws that missed.';
+        }
+        if (isMedium) {
+            return 'Delayed c-bet with a medium hand: checking the flop kept the pot small, and now you can value bet the turn against hands that would have check-raised you on the flop.';
+        }
+        return 'Delayed c-bet: checking the flop and betting the turn is a powerful line that keeps your range strong. Villain may have given up on bluffs, making this a profitable spot.';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 130: FLOAT PLAY THEORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 130: Float play — calling in position with the plan to take the pot away later.
+     */
+    _getFloatPlayNote(optimalAction, handStrength, street, heroPosition, villainPosition) {
+        if (street !== 'flop') return '';
+        const a = (optimalAction || '').toLowerCase();
+        if (a !== 'call') return '';
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        if (!isIP) return '';
+
+        const isWeak = ['high_card', 'ace_high', 'underpair', 'gutshot', 'backdoor_flush_draw'].includes(handStrength);
+        const hasDraw = ['gutshot', 'oesd', 'flush_draw', 'backdoor_flush_draw', 'combo_draw'].includes(handStrength);
+
+        if (isWeak) {
+            return '🎯 Float play: calling the flop bet in position with a weak hand, planning to take the pot when villain checks the turn. IP advantage means you get to act last — if villain shows weakness by checking, you can bluff profitably.';
+        }
+        if (hasDraw) {
+            return 'Float with a draw: calling IP to see another card. If you hit, you can extract value. If villain checks the turn, you can semi-bluff with your draw or take a free card.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 131: RAISE VS CALL DECISION FRAMEWORK
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 131: Framework for deciding between raising and calling postflop.
+     */
+    _getRaiseVsCallNote(optimalAction, handStrength, street, nodeType, texture) {
+        const a = (optimalAction || '').toLowerCase();
+        const isRaise = a.startsWith('r') || a === 'allin';
+        const isCall = a === 'call';
+        if (!isRaise && !isCall) return '';
+
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'straight', 'flush'].includes(handStrength);
+        const isDraw = ['oesd', 'flush_draw', 'combo_draw'].includes(handStrength);
+        const isMedium = ['overpair', 'top_pair_top_kicker', 'top_pair'].includes(handStrength);
+        const isWet = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+
+        if (isRaise && isStrong && isWet) {
+            return 'Raise for value + protection: on a wet board, strong hands should raise to deny equity to draws. Calling lets villain realize their equity cheaply.';
+        }
+        if (isRaise && isDraw && isWet) {
+            return 'Raise as a semi-bluff: your draw gives you equity when called, and raising may win the pot immediately. The combination of fold equity + draw equity makes this profitable.';
+        }
+        if (isCall && isMedium) {
+            return 'Call rather than raise: medium-strength hands prefer to keep the pot controlled. Raising only gets action from better hands while folding out worse — the classic "raising turns your hand into a bluff" problem.';
+        }
+        if (isCall && isStrong && street === 'flop') {
+            return 'Flat call with a monster: slow-playing on the flop to keep villain\'s bluffs in and allow them to catch up slightly. Raising may fold out everything but the nuts.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 132: TURN CARD CATEGORIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 132: Categorize turn cards — how they change the board dynamic.
+     */
+    _getTurnCardCategoryNote(board, street, handStrength, texture) {
+        if (street !== 'turn' || !board || board.length < 4) return '';
+        const turnCard = board[3];
+        if (!turnCard || turnCard.length < 2) return '';
+        const turnRank = turnCard[0];
+        const turnSuit = turnCard[1];
+        const flopCards = board.slice(0, 3);
+        const flopSuits = flopCards.map(c => c[1]);
+        const flopRanks = flopCards.map(c => '23456789TJQKA'.indexOf(c[0]));
+        const turnRankVal = '23456789TJQKA'.indexOf(turnRank);
+
+        // Flush completing
+        const suitCounts = {};
+        flopSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const flushDrawSuit = Object.entries(suitCounts).find(([_, ct]) => ct >= 2);
+        if (flushDrawSuit && turnSuit === flushDrawSuit[0]) {
+            return `⚠️ Turn ${turnCard} completes the flush draw (three ${flushDrawSuit[0]} on the flop). This dramatically changes the board dynamic — flush draws got there, and hands without a flush need to proceed cautiously.`;
+        }
+
+        // Overcard
+        const maxFlopRank = Math.max(...flopRanks);
+        if (turnRankVal > maxFlopRank && turnRankVal >= 10) { // T+
+            const rankNames = { 10: 'Jack', 11: 'Queen', 12: 'King', 13: 'Ace' };
+            return `Turn ${turnCard} is an overcard to the flop — ${rankNames[turnRankVal] || turnRank} changes the dynamic. Top pairs from the flop may now be second pair. Ranges with big cards improve.`;
+        }
+
+        // Board pairing
+        if (flopRanks.includes(turnRankVal)) {
+            return `Turn ${turnCard} pairs the board. This is generally better for the preflop aggressor (sets/trips become possible) and reduces straight/flush draw equity.`;
+        }
+
+        // Brick/blank
+        if (turnRankVal <= 5 && !flopRanks.includes(turnRankVal)) {
+            return `Turn ${turnCard} is a relative blank — low card that doesn't complete obvious draws. The board dynamic stays similar to the flop. Continue with your flop plan.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 133: RIVER DECISION TREE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 133: River decision tree — value/bluff/check flowchart.
+     */
+    _getRiverDecisionNote(optimalAction, handStrength, street, nodeType) {
+        if (street !== 'river') return '';
+        const a = (optimalAction || '').toLowerCase();
+        const isStrong = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight', 'set', 'trips'].includes(handStrength);
+        const isMedium = ['two_pair', 'overpair', 'top_pair_top_kicker', 'top_pair'].includes(handStrength);
+        const isWeak = ['high_card', 'ace_high', 'underpair', 'bottom_pair', 'missed_draw'].includes(handStrength);
+
+        if (a.startsWith('r') || a === 'allin') {
+            if (isStrong) return 'River value bet: with a strong hand, bet for maximum value. Choose a size that gets called by enough worse hands — balance between frequency and size.';
+            if (isWeak) return '🎯 River bluff: with a weak hand, betting turns your hand into a bluff. The key question: does villain fold enough to make this profitable? Target their bluff-catching range.';
+            if (isMedium) return 'River thin value: a medium-strength bet targeting worse hands that might call. Be careful — if villain only calls with better, this is a losing bet.';
+        }
+        if (a === 'call') {
+            if (isMedium) return 'River bluff-catch: calling with a medium-strength hand to catch villain\'s bluffs. The decision: does villain bluff enough to justify calling? Compare to pot odds.';
+            if (isStrong) return 'River snap-call: your hand beats most of villain\'s value range. An easy call.';
+        }
+        if (a === 'x' || a === 'check') {
+            if (isMedium) return 'River check: your hand has showdown value but can\'t bet for value (only better hands call, only worse hands fold). Checking captures the equity you have.';
+            if (isWeak) return 'River give-up: no showdown value and bluffing isn\'t profitable enough. Sometimes giving up is the highest-EV play.';
+        }
+        if (a === 'f') {
+            return 'River fold: your hand can\'t beat villain\'s value range, and you\'re not getting the right odds to bluff-catch. Discipline to fold rivers saves significant EV long-term.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 134: SPR DECISION MATRIX
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 134: Stack-to-pot ratio matrix for strategic decisions.
+     * Low SPR (≤3): commit with top pair+, high SPR (13+): speculative hands shine.
+     */
+    _getSPRMatrixNote(estimatedPot, stackDepth, handStrength, street) {
+        if (!estimatedPot || !stackDepth || street === 'preflop') return '';
+        const spr = stackDepth / (estimatedPot || 1);
+
+        if (spr <= 2) {
+            const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'top_pair_top_kicker', 'top_pair', 'straight', 'flush', 'full_house'].includes(handStrength);
+            if (isStrong) return `SPR ≈ ${spr.toFixed(1)} (very low): with a strong hand at this SPR, you should be looking to get all-in. The pot is too large relative to stacks to slow-play.`;
+            return `SPR ≈ ${spr.toFixed(1)} (very low): shallow SPR means commitment decisions are simplified. Top pair+ is often strong enough to stack off. Draws lose implied odds.`;
+        }
+        if (spr <= 5) {
+            return `SPR ≈ ${spr.toFixed(1)} (low): one-pair hands are often strong enough to go with. Sets and two-pair are monsters. Draws need to be strong to continue.`;
+        }
+        if (spr <= 10) {
+            return `SPR ≈ ${spr.toFixed(1)} (medium): top pair is good but not stack-off worthy. Sets are ideal stacking hands. Drawing hands have reasonable implied odds.`;
+        }
+        return `SPR ≈ ${spr.toFixed(1)} (high): deep stacks favor implied-odds hands (suited connectors, small pairs). Top pair alone is rarely worth stacking off — play cautiously without a monster.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 135: EFFECTIVE STACK DEPTH ADJUSTMENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 135: How effective stack depth changes strategy.
+     */
+    _getStackDepthStrategyNote(stackDepth, handStrength, street) {
+        if (!stackDepth || street === 'preflop') return '';
+
+        if (stackDepth <= 20) {
+            return `Short-stacked (${stackDepth}BB): simplified strategy — push/fold dynamics dominate. Implied odds are minimal, so speculative hands lose value. Premium hands gain value.`;
+        }
+        if (stackDepth <= 40) {
+            return `Medium stack (${stackDepth}BB): standard play applies. Top pair is often a stacking hand. Draws need decent equity to continue.`;
+        }
+        if (stackDepth <= 100) {
+            return `Standard depth (${stackDepth}BB): full range of plays available. Balance between value, bluffs, and pot control.`;
+        }
+        return `Deep-stacked (${stackDepth}BB): implied odds are maximized — suited connectors, small pairs become more valuable. Be cautious with one-pair hands; the risk of stacking off is too high relative to hand strength.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 136: POT GEOMETRY — OPTIMAL SIZING TO GET STACKS IN
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 136: Calculate geometric bet sizing to get stacks in by the river.
+     */
+    _getPotGeometryNote(estimatedPot, stackDepth, street, optimalAction) {
+        if (!estimatedPot || !stackDepth || street === 'preflop') return '';
+        const a = (optimalAction || '').toLowerCase();
+        if (!a.startsWith('r') && a !== 'allin') return '';
+
+        const remainingBets = street === 'flop' ? 3 : street === 'turn' ? 2 : 1;
+        if (remainingBets <= 0) return '';
+
+        const effectiveStack = stackDepth;
+        const ratio = effectiveStack / estimatedPot;
+
+        if (remainingBets === 3 && ratio > 2) {
+            // Need 3 streets to get stacks in
+            const perStreetMultiplier = Math.pow(ratio + 1, 1 / 3) - 1;
+            const sizePct = (perStreetMultiplier * 100).toFixed(0);
+            return `Pot geometry: to get ${effectiveStack}BB in over 3 streets with a ${estimatedPot.toFixed(0)}BB pot, bet ~${sizePct}% pot each street (geometric sizing). This builds the pot exponentially.`;
+        }
+        if (remainingBets === 2 && ratio > 1.5) {
+            const perStreetMultiplier = Math.pow(ratio + 1, 1 / 2) - 1;
+            const sizePct = (perStreetMultiplier * 100).toFixed(0);
+            return `Pot geometry: ${effectiveStack}BB remaining over 2 streets — bet ~${sizePct}% pot per street to stack off naturally by the river.`;
+        }
+        if (remainingBets === 1) {
+            const sizePct = ((effectiveStack / estimatedPot) * 100).toFixed(0);
+            if (effectiveStack <= estimatedPot * 1.5) {
+                return `River sizing: ${effectiveStack}BB into ${estimatedPot.toFixed(0)}BB pot — a ${sizePct}% pot jam gets all the money in.`;
+            }
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 137: RANGE ADVANTAGE VS NUT ADVANTAGE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 137: Distinguish between range advantage (more equity overall)
+     * and nut advantage (more very strong hands).
+     */
+    _getRangeVsNutAdvantageNote(heroPosition, villainPosition, texture, street, nodeType) {
+        if (street === 'preflop' || !texture) return '';
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        const isPFR = nodeType && (nodeType.includes('cbet') || nodeType.includes('pfr'));
+        const boardHighRank = texture.highCard ? '23456789TJQKA'.indexOf(texture.highCard) : 0;
+
+        // High boards favor PFR (Ace/King high)
+        if (boardHighRank >= 11 && isPFR) { // K+ high
+            return 'Range advantage + nut advantage: as the preflop raiser on a high board, you have both more strong hands (AA, AK, KQ) and more overall equity. This lets you c-bet at high frequency with a small size.';
+        }
+        // Low boards favor caller
+        if (boardHighRank <= 7 && !isPFR) {
+            return 'Nut advantage shifts to you: on low boards, the caller has more sets (22-77) and two pairs (45, 67) than the PFR. You can lead or check-raise more aggressively.';
+        }
+        // Medium boards — split advantage
+        if (boardHighRank >= 8 && boardHighRank <= 10) {
+            return 'Split advantage: on medium boards (8-T high), neither player has a clear nut advantage. This leads to more checking and smaller bets from both sides.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 138: BOARD INTERACTION ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 138: How well does each player's range interact with this board?
+     */
+    _getBoardInteractionNote(heroPosition, villainPosition, texture, nodeType, street) {
+        if (street === 'preflop' || !texture) return '';
+        const isPFR = nodeType && (nodeType.includes('cbet') || nodeType.includes('pfr'));
+        const isCaller = !isPFR;
+        const isMonotone = texture.isMonotone;
+        const isPaired = texture.isPaired;
+        const isConnected = texture.connectivity && texture.connectivity === 'connected';
+
+        if (isMonotone && isCaller) {
+            return 'Board interaction: monotone boards favor the caller\'s range — callers have more suited hands in their range, giving them more flush draws and made flushes.';
+        }
+        if (isPaired && isPFR) {
+            return 'Board interaction: paired boards favor the PFR — the preflop raiser has more big pairs and overcards that use the board pair for trips. Callers rarely have trips.';
+        }
+        if (isConnected && isCaller) {
+            return 'Board interaction: connected boards (like 7-8-9) favor the caller\'s range — callers have more suited connectors and middling hands that hit these boards hard.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 139: EQUITY DISTRIBUTION NOTES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 139: Notes about how equity is distributed between ranges.
+     */
+    _getEquityDistributionNote(handStrength, optimalAction, street, nodeType) {
+        if (street === 'preflop') return '';
+        const a = (optimalAction || '').toLowerCase();
+        const isNutted = ['nuts', 'second_nuts', 'full_house', 'flush', 'straight'].includes(handStrength);
+        const isAir = ['high_card', 'ace_high', 'missed_draw'].includes(handStrength);
+        const isMedium = ['top_pair', 'overpair', 'middle_pair', 'second_pair', 'top_pair_weak_kicker'].includes(handStrength);
+
+        if (isNutted && (a.startsWith('r') || a === 'allin')) {
+            return 'Equity distribution: you\'re at the top of your range. Your hand beats nearly everything villain can have. Size for maximum value — go big against their calling range.';
+        }
+        if (isAir && (a.startsWith('r') || a === 'allin')) {
+            return 'Equity distribution: you\'re at the bottom of your range with no showdown value. This makes your hand a natural bluff candidate — you have nothing to lose by betting.';
+        }
+        if (isMedium && (a === 'x' || a === 'call')) {
+            return 'Equity distribution: your hand is in the middle of your range — beating bluffs but losing to value. These hands are natural check/calls that keep villain\'s bluffing range honest.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 140: GTO DEVIATION DETECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 140: Detect when user's play deviates from GTO patterns.
+     * Track cumulative deviations to identify tendencies.
+     */
+    detectGTODeviation(chosenAction, correctAction, freq, street, handStrength) {
+        if (!this._deviationTracker) this._deviationTracker = { overFold: 0, overCall: 0, overRaise: 0, totalSpots: 0 };
+        this._deviationTracker.totalSpots++;
+
+        const chosen = (chosenAction || '').toLowerCase();
+        const correct = (correctAction || '').toLowerCase();
+        if (chosen === correct) return null;
+
+        // Track deviation direction
+        const actionStrength = { 'f': 0, 'x': 1, 'call': 2, 'check': 1 };
+        const chosenStr = chosen.startsWith('r') ? 3 : (actionStrength[chosen] ?? 1);
+        const correctStr = correct.startsWith('r') ? 3 : (actionStrength[correct] ?? 1);
+
+        if (chosenStr < correctStr) {
+            if (chosen === 'f') {
+                this._deviationTracker.overFold++;
+                return `⚠️ Deviation: folding when GTO says ${correct === 'call' ? 'call' : 'raise'}. You may be over-folding — this leak gives villain free equity when they bet.`;
+            }
+            this._deviationTracker.overCall++;
+            return `Deviation: calling when GTO says raise. Passive play lets villain control the pot size and realize equity cheaply.`;
+        }
+        if (chosenStr > correctStr) {
+            if (correct === 'f') {
+                this._deviationTracker.overCall++;
+                return `⚠️ Deviation: calling/raising when GTO says fold. You may be defending too wide — losing money in spots where your equity is too low.`;
+            }
+            this._deviationTracker.overRaise++;
+            return `Deviation: raising when GTO says ${correct}. Over-aggression bloats pots with hands that don't have enough equity.`;
+        }
+        return null;
+    }
+
+    getDeviationSummary() {
+        if (!this._deviationTracker || this._deviationTracker.totalSpots < 5) return null;
+        const t = this._deviationTracker;
+        const total = t.totalSpots;
+        const foldRate = ((t.overFold / total) * 100).toFixed(0);
+        const callRate = ((t.overCall / total) * 100).toFixed(0);
+        const raiseRate = ((t.overRaise / total) * 100).toFixed(0);
+
+        const biggest = Math.max(t.overFold, t.overCall, t.overRaise);
+        let tendency = 'balanced';
+        if (biggest === t.overFold && t.overFold > total * 0.15) tendency = 'too tight (over-folding)';
+        else if (biggest === t.overCall && t.overCall > total * 0.15) tendency = 'too loose-passive (over-calling)';
+        else if (biggest === t.overRaise && t.overRaise > total * 0.15) tendency = 'too aggressive (over-raising)';
+
+        return { tendency, overFoldPct: foldRate, overCallPct: callRate, overRaisePct: raiseRate, totalSpots: total };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 141: EXPLOITATIVE ADJUSTMENT SUGGESTIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 141: Suggest exploitative deviations from GTO based on opponent tendencies.
+     */
+    _getExploitativeSuggestion(handStrength, optimalAction, street, nodeType) {
+        // Only show when user is performing well (indicating they understand GTO)
+        if (!this._sessionStats || !this._sessionStats.total || this._sessionStats.total < 10) return '';
+        const accuracy = this._sessionStats.correct / this._sessionStats.total;
+        if (accuracy < 0.6) return ''; // Only suggest exploits when user knows GTO
+
+        const a = (optimalAction || '').toLowerCase();
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'overpair', 'top_pair_top_kicker'].includes(handStrength);
+        const isMedium = ['top_pair', 'middle_pair', 'second_pair'].includes(handStrength);
+
+        // Only offer exploit tips occasionally (every ~5th question when applicable)
+        if (this._sessionStats.total % 5 !== 0) return '';
+
+        if (a.startsWith('r') && isStrong) {
+            return '💡 Exploit tip: vs opponents who call too much, increase your value bet sizing. GTO uses balanced sizes, but exploitatively you can size up against calling stations.';
+        }
+        if (a === 'f' && isMedium) {
+            return '💡 Exploit tip: GTO folds here, but vs opponents who bluff too much, consider calling. Adjust your defense frequency upward against overly aggressive players.';
+        }
+        if (a.startsWith('r') && !isStrong) {
+            return '💡 Exploit tip: vs opponents who over-fold, increase your bluffing frequency. GTO balances bluffs and value, but exploitatively you can bluff more against tight players.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 142: HAND READING NARRATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 142: Narrate what villain's actions tell us about their range.
+     */
+    _getHandReadingNote(street, nodeType, optimalAction) {
+        if (street === 'preflop') return '';
+        const node = (nodeType || '').toLowerCase();
+
+        if (street === 'flop') {
+            if (node.includes('cbet')) {
+                return 'Hand reading: villain\'s c-bet tells us little — most PFRs c-bet the flop at high frequency. Their range is still wide.';
+            }
+            if (node.includes('check')) {
+                return 'Hand reading: villain checked. This caps their range — they probably don\'t have the nuts or a strong overpair. Their range is weighted toward medium hands and draws.';
+            }
+            if (node.includes('raise') || node.includes('xr')) {
+                return 'Hand reading: villain\'s check-raise on the flop is polarized — they have either a very strong hand (set, two pair) or a draw/bluff. Medium-strength hands just call.';
+            }
+        }
+        if (street === 'turn') {
+            if (node.includes('barrel') || node.includes('bet')) {
+                return 'Hand reading: villain betting again on the turn narrows their range. They\'re representing real strength or a committed bluff. Floaters and medium hands often give up here.';
+            }
+            if (node.includes('check')) {
+                return 'Hand reading: villain checking the turn after betting the flop signals weakness. Their range is capped — strong hands almost always continue betting.';
+            }
+        }
+        if (street === 'river') {
+            if (node.includes('bet') || node.includes('barrel')) {
+                return 'Hand reading: triple-barreling on the river is the most polarized action. Villain has either the nuts or air — very few medium hands take this line.';
+            }
+            if (node.includes('check')) {
+                return 'Hand reading: villain checking the river means they\'re giving up on bluffs or have a medium hand looking to get to showdown. Consider a thin value bet.';
+            }
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 143: SESSION DIFFICULTY AUTO-ADJUSTMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 143: Automatically adjust difficulty based on rolling performance.
+     * Tracks last 10 answers and adjusts difficulty target.
+     */
+    getAutoAdjustedDifficulty() {
+        if (!this._recentResults) this._recentResults = [];
+        const recent = this._recentResults.slice(-10);
+        if (recent.length < 5) return 'standard'; // Not enough data
+
+        const recentAccuracy = recent.filter(r => r).length / recent.length;
+
+        if (recentAccuracy >= 0.85) return 'expert'; // Crushing it — make it harder
+        if (recentAccuracy >= 0.55) return 'standard'; // Doing well — maintain
+        return 'beginner'; // Struggling — ease up
+    }
+
+    recordRecentResult(isCorrect) {
+        if (!this._recentResults) this._recentResults = [];
+        this._recentResults.push(isCorrect);
+        if (this._recentResults.length > 20) this._recentResults.shift();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 144: CONCEPT MASTERY TRACKING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 144: Track mastery of individual GTO concepts.
+     * e.g., "c-betting", "3-betting", "river bluffing", "pot odds".
+     */
+    recordConceptExposure(concept, isCorrect) {
+        if (!this._conceptMastery) this._conceptMastery = {};
+        if (!concept) return;
+        if (!this._conceptMastery[concept]) this._conceptMastery[concept] = { total: 0, correct: 0 };
+        this._conceptMastery[concept].total++;
+        if (isCorrect) this._conceptMastery[concept].correct++;
+    }
+
+    getConceptMastery() {
+        if (!this._conceptMastery) return {};
+        const result = {};
+        for (const [concept, data] of Object.entries(this._conceptMastery)) {
+            if (data.total < 2) continue;
+            const rate = data.correct / data.total;
+            result[concept] = {
+                accuracy: (rate * 100).toFixed(0) + '%',
+                total: data.total,
+                mastery: rate >= 0.8 ? 'mastered' : rate >= 0.5 ? 'learning' : 'needs_work',
+            };
+        }
+        return result;
+    }
+
+    /**
+     * Phase 144: Derive concept from question context.
+     */
+    deriveConceptFromContext(nodeType, street, optimalAction, handStrength) {
+        const a = (optimalAction || '').toLowerCase();
+        const node = (nodeType || '').toLowerCase();
+        if (street === 'preflop') {
+            if (node.includes('open')) return 'opening_ranges';
+            if (node.includes('facing') && a.startsWith('r')) return '3betting';
+            if (node.includes('facing') && a === 'call') return 'preflop_defense';
+            if (node.includes('facing') && a === 'f') return 'preflop_folding';
+            return 'preflop_general';
+        }
+        if (node.includes('cbet')) return 'cbetting';
+        if (node.includes('xr') || node.includes('check_raise')) return 'check_raising';
+        if (a === 'f') return `${street}_folding`;
+        if (a === 'call') return `${street}_calling`;
+        if (a.startsWith('r') || a === 'allin') return `${street}_betting`;
+        return `${street}_general`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 145: WEAKNESS-TARGETED QUESTION GENERATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 145: Bias question generation toward weak spots.
+     * Returns a filter preference for question selection.
+     */
+    getWeaknessTargets() {
+        if (!this._mistakeTracker) return null;
+        const weakSpots = [];
+        for (const [dim, data] of Object.entries(this._mistakeTracker)) {
+            if (data.total < 3) continue;
+            const rate = data.mistakes / data.total;
+            if (rate >= 0.4) {
+                weakSpots.push({ dimension: dim, mistakeRate: rate, samples: data.total });
+            }
+        }
+        if (weakSpots.length === 0) return null;
+        weakSpots.sort((a, b) => b.mistakeRate - a.mistakeRate);
+        return weakSpots.slice(0, 5); // Top 5 weakest areas
+    }
+
+    /**
+     * Phase 145: Score a potential question against user's weakness targets.
+     * Higher score = more likely to be selected.
+     */
+    scoreQuestionForWeakness(scenario) {
+        const targets = this.getWeaknessTargets();
+        if (!targets || targets.length === 0) return 0;
+        let score = 0;
+        for (const target of targets) {
+            const dim = target.dimension;
+            if (dim.startsWith('street:') && scenario.street === dim.split(':')[1]) score += target.mistakeRate * 2;
+            if (dim.startsWith('action:') && scenario.correctAction && scenario.correctAction.toLowerCase().startsWith(dim.split(':')[1])) score += target.mistakeRate * 2;
+            if (dim.startsWith('spot:') && scenario.spotType === dim.split(':')[1]) score += target.mistakeRate * 3;
+        }
+        return score;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 146: SPACED REPETITION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 146: Spaced repetition — re-present missed scenarios at increasing intervals.
+     */
+    recordMissedScenario(scenario, classification) {
+        if (!this._spacedRepetition) this._spacedRepetition = [];
+        const severity = classification === 'BLUNDER' ? 3 : classification === 'WRONG' ? 2 : 1;
+        this._spacedRepetition.push({
+            scenario: { street: scenario.street, nodeType: scenario.nodeType, spotType: scenario.spotType, stack_depth: scenario.stack_depth },
+            severity,
+            nextReview: this._getSessionQuestionCount() + Math.max(3, Math.floor(5 / severity)),
+            reviewCount: 0,
+        });
+    }
+
+    _getSessionQuestionCount() {
+        return this._sessionStats?.total || 0;
+    }
+
+    getSpacedRepetitionDue() {
+        if (!this._spacedRepetition || this._spacedRepetition.length === 0) return null;
+        const currentQ = this._getSessionQuestionCount();
+        const due = this._spacedRepetition.filter(sr => sr.nextReview <= currentQ);
+        if (due.length === 0) return null;
+        // Return highest severity first
+        due.sort((a, b) => b.severity - a.severity);
+        return due[0];
+    }
+
+    markSpacedRepetitionReviewed(index) {
+        if (!this._spacedRepetition || !this._spacedRepetition[index]) return;
+        const sr = this._spacedRepetition[index];
+        sr.reviewCount++;
+        sr.nextReview = this._getSessionQuestionCount() + Math.min(20, 5 * sr.reviewCount); // Increasing intervals
+        if (sr.reviewCount >= 3) {
+            this._spacedRepetition.splice(index, 1); // Mastered after 3 successful reviews
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 147: EV LOSS QUANTIFICATION PER MISTAKE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 147: Estimate EV loss for each mistake in bb.
+     */
+    estimateEVLoss(chosenAction, correctAction, actionEVs, estimatedPot) {
+        if (!actionEVs || !chosenAction || !correctAction) return null;
+        const correctEV = actionEVs[correctAction];
+        const chosenEV = actionEVs[chosenAction];
+        if (correctEV == null || chosenEV == null) return null;
+
+        const evDiff = correctEV - chosenEV;
+        if (evDiff <= 0) return null; // No loss
+
+        const pot = estimatedPot || 1;
+        const evLossBB = evDiff * pot;
+        const evLossPct = ((evDiff / (Math.abs(correctEV) || 1)) * 100).toFixed(1);
+
+        let severity = 'minor';
+        if (evLossBB > 10) severity = 'major';
+        else if (evLossBB > 3) severity = 'significant';
+
+        return {
+            evLossBB: evLossBB.toFixed(1),
+            evLossPctPot: ((evDiff * 100)).toFixed(1) + '% of pot',
+            severity,
+            message: `EV loss: ~${evLossBB.toFixed(1)}bb (${evLossPct}% of optimal EV). ${severity === 'major' ? 'This is a costly mistake — focus on this spot.' : severity === 'significant' ? 'Moderate leak that adds up over time.' : 'Small loss, but fixing it improves your win rate.'}`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 148: COMPARISON TO OPTIMAL PLAY STATISTICS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 148: Compare user's session stats against optimal play benchmarks.
+     */
+    getOptimalPlayComparison() {
+        if (!this._sessionStats || this._sessionStats.total < 10) return null;
+        const accuracy = this._sessionStats.correct / this._sessionStats.total;
+        const total = this._sessionStats.total;
+
+        // GTO Wizard benchmarks (approximate): top 10% score ~75%, average ~55%
+        const benchmarks = [
+            { label: 'GTO Master (top 1%)', threshold: 0.85 },
+            { label: 'Advanced (top 10%)', threshold: 0.75 },
+            { label: 'Intermediate (top 25%)', threshold: 0.65 },
+            { label: 'Learning (top 50%)', threshold: 0.55 },
+            { label: 'Beginner (bottom 50%)', threshold: 0 },
+        ];
+
+        let userLevel = benchmarks[benchmarks.length - 1];
+        for (const b of benchmarks) {
+            if (accuracy >= b.threshold) { userLevel = b; break; }
+        }
+
+        // Per-street breakdown
+        const streetBreakdown = {};
+        if (this._mistakeTracker) {
+            for (const street of ['flop', 'turn', 'river', 'preflop']) {
+                const key = `street:${street}`;
+                const data = this._mistakeTracker[key];
+                if (data && data.total >= 3) {
+                    streetBreakdown[street] = {
+                        accuracy: (((data.total - data.mistakes) / data.total) * 100).toFixed(0) + '%',
+                        total: data.total,
+                    };
+                }
+            }
+        }
+
+        return {
+            overall: { accuracy: (accuracy * 100).toFixed(1) + '%', total, level: userLevel.label },
+            streetBreakdown,
+            vsOptimal: `Your accuracy: ${(accuracy * 100).toFixed(1)}%. ${userLevel.label}. ${accuracy >= 0.75 ? 'Excellent — you\'re playing at an advanced GTO level!' : accuracy >= 0.55 ? 'Solid foundation — focus on your weak spots to level up.' : 'Keep studying — every session builds your GTO intuition.'}`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 149: END-OF-SESSION DETAILED BREAKDOWN
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 149: Comprehensive session report with improvement suggestions.
+     */
+    generateDetailedSessionReport() {
+        const summary = this.generateSessionSummary();
+        const comparison = this.getOptimalPlayComparison();
+        const conceptMastery = this.getConceptMastery();
+        const deviations = this.getDeviationSummary();
+        const trend = this.getPerformanceTrend();
+        const weaknesses = this.getWeaknessTargets();
+
+        const report = {
+            summary,
+            comparison,
+            conceptMastery,
+            deviations,
+            trend,
+            weaknesses: weaknesses ? weaknesses.map(w => ({
+                area: w.dimension,
+                mistakeRate: (w.mistakeRate * 100).toFixed(0) + '%',
+                priority: w.mistakeRate >= 0.6 ? 'HIGH' : 'MEDIUM',
+            })) : [],
+            improvementPlan: [],
+        };
+
+        // Generate improvement suggestions
+        if (deviations) {
+            if (deviations.tendency.includes('over-folding')) {
+                report.improvementPlan.push('Defend more against bets — study pot odds and MDF (Minimum Defense Frequency) to find calls you\'re missing.');
+            }
+            if (deviations.tendency.includes('over-calling')) {
+                report.improvementPlan.push('Tighten your calling range — learn when to fold marginal hands, especially on the river.');
+            }
+            if (deviations.tendency.includes('over-raising')) {
+                report.improvementPlan.push('Reduce aggression with medium hands — learn when calling or checking is more profitable than raising.');
+            }
+        }
+
+        if (weaknesses) {
+            for (const w of weaknesses.slice(0, 3)) {
+                if (w.dimension.includes('river')) report.improvementPlan.push('Focus on river play — practice value betting, bluff-catching, and knowing when to give up.');
+                if (w.dimension.includes('turn')) report.improvementPlan.push('Work on turn strategy — this is where ranges narrow and decisions get complex.');
+                if (w.dimension.includes('hand:weak')) report.improvementPlan.push('Practice playing weak hands — know when to bluff and when to fold.');
+                if (w.dimension.includes('action:raise')) report.improvementPlan.push('Study raising strategy — when to raise for value vs as a bluff.');
+            }
+        }
+
+        // Deduplicate improvement suggestions
+        report.improvementPlan = [...new Set(report.improvementPlan)].slice(0, 5);
+
+        return report;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 150: ADAPTIVE COACHING PERSONALITY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 150: Adjust coaching tone based on user's performance and emotional state.
+     * Encouraging when struggling, challenging when excelling, neutral otherwise.
+     */
+    getCoachingTone() {
+        if (!this._sessionStats || this._sessionStats.total < 5) return 'encouraging';
+        const accuracy = this._sessionStats.correct / this._sessionStats.total;
+        const trend = this.getPerformanceTrend();
+
+        if (accuracy >= 0.8 && trend && trend.trend === 'improving') return 'challenging'; // Push them
+        if (accuracy < 0.4) return 'supportive'; // They're struggling
+        if (trend && trend.trend === 'declining') return 'encouraging'; // Boost morale
+        return 'neutral';
+    }
+
+    /**
+     * Phase 150: Generate a coaching message based on tone and context.
+     */
+    getCoachingMessage(classification, questionNumber) {
+        const tone = this.getCoachingTone();
+        const isCorrect = classification === 'CORRECT' || classification === 'GOOD';
+
+        if (tone === 'challenging') {
+            if (isCorrect) return questionNumber % 3 === 0 ? '✅ Solid play. Can you explain WHY this is correct without looking at the explanation?' : null;
+            return '❌ You should know this one. Study the explanation carefully and don\'t repeat this mistake.';
+        }
+        if (tone === 'supportive') {
+            if (isCorrect) return '🎯 Great job! You got this one right — you\'re building strong GTO instincts!';
+            return 'Don\'t worry about this one — every top player made these mistakes while learning. Focus on the concept.';
+        }
+        if (tone === 'encouraging') {
+            if (isCorrect) return questionNumber % 5 === 0 ? '💪 Keep it up! Your understanding is growing with every question.' : null;
+            return 'Close! Review the explanation — these spots get easier with practice.';
+        }
+        // neutral
+        return null;
     }
 }
 
