@@ -4513,6 +4513,116 @@ export class DeterministicGTOEngine {
 
         return '';
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 80: SOLVER FREQUENCY DEVIATION WARNINGS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 80: Generate a frequency deviation explanation when the player's
+     * chosen action is in the solver mix but at a significantly lower frequency
+     * than the optimal action.
+     *
+     * This helps players understand:
+     *   - Why their action isn't "wrong" but isn't the primary choice
+     *   - What distinguishes the optimal action from their chosen action
+     *   - How to think about mixed strategies and when to deviate
+     *
+     * @param {string} chosenAction - Player's chosen action
+     * @param {string} optimalAction - Solver's highest-frequency action
+     * @param {Object} handActions - Map of action → frequency (0.0-1.0)
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {Object} texture - Board texture
+     * @param {string} nodeType - Node type
+     * @returns {string} Frequency deviation explanation
+     */
+    getFrequencyDeviationNote(chosenAction, optimalAction, handActions, handStrength, street, texture, nodeType) {
+        if (!chosenAction || !optimalAction || chosenAction === optimalAction) return '';
+        if (!handActions) return '';
+
+        const chosenFreq = handActions[chosenAction] || 0;
+        const optimalFreq = handActions[optimalAction] || 0;
+
+        // Not in the mix at all — this is a mistake, not a deviation
+        if (chosenFreq <= 0.01) return '';
+
+        const chosenPct = (chosenFreq * 100).toFixed(0);
+        const optimalPct = (optimalFreq * 100).toFixed(0);
+        const gapPct = ((optimalFreq - chosenFreq) * 100).toFixed(0);
+
+        const chosenLabel = this.getActionLabelGTOW(chosenAction);
+        const optimalLabel = this.getActionLabelGTOW(optimalAction);
+
+        const hc = (handStrength || '').toLowerCase();
+        const ca = chosenAction.toLowerCase();
+        const oa = optimalAction.toLowerCase();
+
+        // ─── Determine the strategic reason for the preference ───
+        let reason = '';
+
+        // Chose check when solver prefers bet
+        if ((ca === 'c' || ca === 'x') && (oa.startsWith('b') || oa === 'allin')) {
+            if (hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd')) {
+                reason = 'The solver prefers betting as a semi-bluff — you have equity when called and fold equity to win immediately. Checking surrenders your fold equity advantage.';
+            } else if (hc.includes('top pair') || hc.includes('overpair') || hc.includes('set')) {
+                reason = 'The solver prefers betting for value + protection — strong hands need to build the pot and deny equity to draws. Checking lets villain see cheap cards.';
+            } else if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
+                reason = 'The solver prefers bluffing here — your hand has no showdown value, so betting generates fold equity. Checking gives up because you can\'t win at showdown.';
+            } else {
+                reason = `The solver prefers ${optimalLabel} at ${optimalPct}% — building the pot or exerting pressure is higher EV than checking in this spot.`;
+            }
+        }
+
+        // Chose bet when solver prefers check
+        if ((oa === 'c' || oa === 'x') && (ca.startsWith('b') || ca === 'allin')) {
+            if (hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('weak')) {
+                reason = 'The solver prefers checking — medium-strength hands do better as check-calls, protecting your checking range while avoiding bloating the pot in a marginal spot.';
+            } else if (hc.includes('draw')) {
+                reason = 'The solver prefers checking here — this specific draw does better passively, perhaps because it has decent showdown potential or the board favors free cards.';
+            } else {
+                reason = `The solver prefers ${optimalLabel} at ${optimalPct}% — your hand benefits more from pot control or deception than from betting.`;
+            }
+        }
+
+        // Chose fold when solver prefers call/check
+        if (ca === 'f' && oa !== 'f') {
+            reason = `The solver prefers ${optimalLabel} at ${optimalPct}% — your hand has enough equity or pot odds to continue. Folding is too tight and lets villain profit by over-bluffing.`;
+        }
+
+        // Chose call when solver prefers raise
+        if ((ca === 'call') && (oa.startsWith('r') || oa === 'allin')) {
+            reason = `The solver prefers raising — your hand is strong enough to raise for value or as a semi-bluff. Just calling misses out on building the pot and applying maximum pressure.`;
+        }
+
+        // Chose smaller bet when solver prefers larger
+        if (ca.startsWith('b') && oa.startsWith('b')) {
+            const chosenSize = parseInt(ca.replace('b', '')) || 0;
+            const optimalSize = parseInt(oa.replace('b', '')) || 0;
+            if (optimalSize > chosenSize) {
+                reason = `The solver prefers a larger sizing (${optimalLabel}) — your hand's value or fold equity is maximized with a bigger bet. The smaller size doesn't apply enough pressure.`;
+            } else {
+                reason = `The solver prefers a smaller sizing (${optimalLabel}) — a smaller bet is higher EV here because it gets called by more hands you beat or maintains a balanced range.`;
+            }
+        }
+
+        // Fallback
+        if (!reason) {
+            reason = `The solver prefers ${optimalLabel} at ${optimalPct}% over your ${chosenLabel} at ${chosenPct}%.`;
+        }
+
+        // Frequency context
+        let freqContext = '';
+        if (chosenFreq >= 0.30) {
+            freqContext = `Your ${chosenLabel} is a legitimate secondary action (${chosenPct}% in the solver mix) — this is a close spot where both actions have merit.`;
+        } else if (chosenFreq >= 0.10) {
+            freqContext = `Your ${chosenLabel} is in the solver mix but only at ${chosenPct}% — it's not wrong per se, but it's significantly lower EV than the primary action.`;
+        } else {
+            freqContext = `Your ${chosenLabel} appears in the mix at just ${chosenPct}% — this is an edge-case action that the solver rarely uses. The ${gapPct}% frequency gap suggests a meaningful EV difference.`;
+        }
+
+        return `${reason} ${freqContext}`;
+    }
 }
 
 // Export singleton

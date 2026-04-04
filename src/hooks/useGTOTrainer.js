@@ -486,7 +486,26 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
         // Show feedback
         setFeedbackResult(isCorrect ? 'correct' : 'wrong');
-        setExplanation(currentQuestion.explanation || '');
+
+        // Phase 80: Append frequency deviation note when player picks a secondary action
+        let fullExplanation = currentQuestion.explanation || '';
+        if (!isCorrect && selectedOptionId !== correctAnswer) {
+            try {
+                const deviationNote = deterministicEngine.getFrequencyDeviationNote(
+                    selectedOptionId,
+                    correctAnswer,
+                    currentQuestion.frequencies || {},
+                    currentQuestion.handCategory || '',
+                    scenario.street || 'flop',
+                    null, // texture not easily available here
+                    scenario.nodeType || ''
+                );
+                if (deviationNote) {
+                    fullExplanation = fullExplanation ? `${fullExplanation} ${deviationNote}` : deviationNote;
+                }
+            } catch (e) { /* non-critical */ }
+        }
+        setExplanation(fullExplanation);
         setShowFeedback(true);
 
         // Store the selected action for multi-street advance
