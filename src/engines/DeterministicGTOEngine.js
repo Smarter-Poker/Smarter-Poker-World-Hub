@@ -884,7 +884,8 @@ export class DeterministicGTOEngine {
         // ═══ BUILD EXPLANATION (deterministic, no AI) ═══
         const explanation = this.buildExplanation(heroHand, board, scenario.street,
             optimalAction, handActions, heroHandEV, validActions,
-            { nodeType, heroPosition, villainPosition, estimatedPot, stackDepth: scenario.stack_depth });
+            { nodeType, heroPosition, villainPosition, estimatedPot, stackDepth: scenario.stack_depth,
+              potType: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition).potType });
 
         // ═══ DETERMINE MIXED STRATEGY CORRECTNESS ═══
         // In GTO, if a hand checks 62% and bets 38%, BOTH are correct
@@ -1572,7 +1573,7 @@ export class DeterministicGTOEngine {
 
         // ═══ PREFLOP-SPECIFIC EXPLANATIONS ═══
         if (street === 'preflop') {
-            return this._buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth);
+            return this._buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, ctx.potType);
         }
 
         // ═══ STRATEGIC REASONING ENGINE ═══
@@ -1883,7 +1884,7 @@ export class DeterministicGTOEngine {
      * Phase 26: Preflop-specific explanation with position awareness,
      * hand category reasoning, and open/3bet/call context.
      */
-    _buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth) {
+    _buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, potType) {
         const r1 = heroHand[0], r2 = heroHand[1];
         const suffix = heroHand.length >= 3 ? heroHand[2] : '';
         const isPair = r1 === r2;
@@ -1927,73 +1928,119 @@ export class DeterministicGTOEngine {
         else handDesc = 'an offsuit hand';
 
         // ═══ OPEN RAISE (RFI) ═══
+        // Phase 41: Stack-depth-aware open raise explanations
         if (nodeType === 'preflop_open') {
+            const stackNote = stackDepth ? (stackDepth <= 20 ? ` At ${stackDepth}BB, opening ranges tighten due to high SPR risk.` : stackDepth <= 40 ? '' : ` Deep-stacked — implied odds favor suited/connected hands.`) : '';
             if (isRaise) {
                 if (freq >= 0.95) {
-                    // Pure open
-                    if (isPremium) return `${heroHand}: Always open ${handDesc} from ${posName}. ${this._positionOpenContext(heroPosition)}`;
-                    if (isLatePos) return `${heroHand}: Pure open from ${posName}. ${handDesc} — wide opening range in late position to steal blinds.`;
-                    if (isEarlyPos) return `${heroHand}: Pure open from ${posName}. ${handDesc} strong enough to open even in early position against many opponents.`;
-                    return `${heroHand}: Pure open from ${posName}. ${handDesc} is always in the opening range here.`;
+                    if (isPremium) return `${heroHand}: Always open ${handDesc} from ${posName}. ${this._positionOpenContext(heroPosition)}${stackNote}`;
+                    if (isLatePos && isSuited && isConnected) return `${heroHand}: Pure open from ${posName}. ${handDesc} — ideal steal hand with playability, suitedness, and connectivity.${stackNote}`;
+                    if (isLatePos) return `${heroHand}: Pure open from ${posName}. ${handDesc} — wide opening range in late position to steal blinds.${stackNote}`;
+                    if (isEarlyPos) return `${heroHand}: Pure open from ${posName}. ${handDesc} strong enough to open even in early position against many opponents.${stackNote}`;
+                    if (isBlind) return `${heroHand}: Pure open from ${posName}. ${handDesc} — stealing from the small blind with only BB to get through.${stackNote}`;
+                    return `${heroHand}: Pure open from ${posName}. ${handDesc} is always in the opening range here.${stackNote}`;
                 }
-                // Mixed open/fold
-                const altActions = validActions.filter(a2 => a2 !== optimalAction && handActions[a2] > 0.01);
                 const foldFreq = handActions['f'] ? (handActions['f'] * 100).toFixed(0) : null;
                 if (foldFreq) {
-                    return `${heroHand}: Open ${freqPct}%, fold ${foldFreq}% from ${posName}. ${handDesc} is at the boundary of the opening range — the solver mixes to stay balanced.`;
+                    return `${heroHand}: Open ${freqPct}%, fold ${foldFreq}% from ${posName}. ${handDesc} is at the boundary of the opening range — the solver mixes to stay balanced.${stackNote}`;
                 }
-                return `${heroHand}: Open ${freqPct}% from ${posName}. ${handDesc} — marginal open that the solver mixes.`;
+                return `${heroHand}: Open ${freqPct}% from ${posName}. ${handDesc} — marginal open that the solver mixes.${stackNote}`;
             }
             if (isFold) {
                 if (freq >= 0.95) {
-                    if (isEarlyPos) return `${heroHand}: Pure fold from ${posName}. ${handDesc} — too weak to open with so many players behind.`;
-                    if (isLatePos) return `${heroHand}: Fold from ${posName}. Despite being in position, ${handDesc} doesn't have enough equity to open profitably.`;
-                    return `${heroHand}: Fold from ${posName}. ${handDesc} is outside the opening range.`;
+                    if (isEarlyPos) return `${heroHand}: Pure fold from ${posName}. ${handDesc} — too weak to open with so many players behind.${stackNote}`;
+                    if (isLatePos) return `${heroHand}: Fold from ${posName}. Despite being in position, ${handDesc} doesn't have enough equity to open profitably.${stackNote}`;
+                    if (isBlind) return `${heroHand}: Fold from ${posName}. ${handDesc} — even with the positional discount, this hand plays too poorly postflop.${stackNote}`;
+                    return `${heroHand}: Fold from ${posName}. ${handDesc} is outside the opening range.${stackNote}`;
                 }
-                return `${heroHand}: Fold ${freqPct}% from ${posName}. Marginal hand at the edge of the opening range.`;
+                return `${heroHand}: Fold ${freqPct}% from ${posName}. Marginal hand at the edge of the opening range.${stackNote}`;
             }
         }
 
-        // ═══ FACING A RAISE (3-bet, call, or fold) ═══
+        // ═══ FACING A RAISE ═══
+        // Phase 41: Pot-type-aware — differentiates facing open (3-bet decision) from facing 3-bet (4-bet decision)
         if (nodeType === 'preflop_facing_raise') {
             const vs = villainPosition || 'opponent';
-            if (isRaise) {
-                // 3-betting
-                if (freq >= 0.95) {
-                    if (isPremium) return `${heroHand}: Always 3-bet ${handDesc} vs ${vs}'s open. Too strong to just call — build the pot preflop.`;
-                    if (isAx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} has great playability as a 3-bet bluff — blockers, suitedness, and nut potential.`;
-                    return `${heroHand}: Pure 3-bet vs ${vs}'s open. Strong enough to re-raise for value and build the pot.`;
+            const isFacing3Bet = potType === '3-Bet Pot' || potType === '4-Bet Pot';
+            const stackContext = stackDepth ? (stackDepth <= 25 ? ` At ${stackDepth}BB effective, stack-off thresholds are lower.` : stackDepth <= 50 ? ` At ${stackDepth}BB, you need to consider stack-to-pot ratio carefully.` : '') : '';
+
+            if (isFacing3Bet) {
+                // ═══ FACING A 3-BET (4-bet, call, or fold) ═══
+                if (isRaise) {
+                    if (freq >= 0.95) {
+                        if (isSuperPremium) return `${heroHand}: Always 4-bet ${handDesc} vs ${vs}'s 3-bet. This is a mandatory value 4-bet — trap with AA/KK only at exploitative frequencies.${stackContext}`;
+                        if (isPremium) return `${heroHand}: Pure 4-bet vs ${vs}'s 3-bet. ${handDesc} is too strong to flat — re-raising for value and pot control.${stackContext}`;
+                        if (isAx && isSuited) return `${heroHand}: Pure 4-bet bluff vs ${vs}'s 3-bet. ${handDesc} blocks aces in villain's value range and has nut potential if called.${stackContext}`;
+                        return `${heroHand}: Pure 4-bet vs ${vs}'s 3-bet. Strong enough to continue aggressively in a 3-bet pot.${stackContext}`;
+                    }
+                    const callFreq = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
+                    if (callFreq && parseInt(callFreq) > 5) {
+                        return `${heroHand}: 4-bet ${freqPct}%, call ${callFreq}% vs ${vs}'s 3-bet. ${handDesc} — the solver mixes to keep its 4-bet and flatting ranges balanced.${stackContext}`;
+                    }
+                    return `${heroHand}: 4-bet ${freqPct}% vs ${vs}'s 3-bet. ${handDesc} at the boundary of the 4-bet range.${stackContext}`;
                 }
-                // Mixed 3-bet
-                const callFreq = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
-                if (callFreq && parseInt(callFreq) > 5) {
-                    return `${heroHand}: 3-bet ${freqPct}%, call ${callFreq}% vs ${vs}. ${handDesc} — the solver mixes between building the pot and keeping the range wide.`;
+                if (isCall) {
+                    if (freq >= 0.95) {
+                        if (isPair && v1 >= 8) return `${heroHand}: Flat the 3-bet with ${handDesc}. Set mining is very profitable in 3-bet pots — if you hit, villain's range is strong enough to pay off.${stackContext}`;
+                        if (isBroadway && isSuited) return `${heroHand}: Call the 3-bet. ${handDesc} has enough equity and playability to continue in a 3-bet pot without bloating it further.${stackContext}`;
+                        return `${heroHand}: Call vs ${vs}'s 3-bet. ${handDesc} is too good to fold but not strong enough to 4-bet — flatting to realize equity.${stackContext}`;
+                    }
+                    const fourBetFreq = validActions.filter(a2 => a2.startsWith('r')).map(a2 => handActions[a2] || 0).reduce((s, v) => s + v, 0);
+                    if (fourBetFreq > 0.05) {
+                        return `${heroHand}: Call ${freqPct}%, 4-bet ${(fourBetFreq * 100).toFixed(0)}% vs ${vs}'s 3-bet. Solver balances between defending flat and re-raising.${stackContext}`;
+                    }
+                    return `${heroHand}: Call ${freqPct}% vs ${vs}'s 3-bet. Borderline defend at the bottom of the flatting range.${stackContext}`;
                 }
-                return `${heroHand}: 3-bet ${freqPct}% vs ${vs}. ${handDesc} at the boundary of the 3-bet range.`;
-            }
-            if (isCall) {
-                if (freq >= 0.95) {
-                    if (isPair && v1 >= 8) return `${heroHand}: Call vs ${vs}. ${handDesc} has great set-mining equity and implied odds — 3-betting risks losing action.`;
-                    if (isBroadway && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} plays well postflop — good equity and playability without bloating the pot.`;
-                    if (isConnected && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} has strong implied odds — when it connects, it makes big hands.`;
-                    return `${heroHand}: Call vs ${vs}. Good equity against the opening range — calling maintains position and pot control.`;
+                if (isFold) {
+                    if (freq >= 0.95) {
+                        return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue against a polarized 3-bet range. Pot odds don't justify calling.${stackContext}`;
+                    }
+                    const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
+                    if (callFreq2 && parseInt(callFreq2) > 5) {
+                        return `${heroHand}: Fold ${freqPct}%, call ${callFreq2}% vs ${vs}'s 3-bet. The solver sometimes defends this hand but mostly folds facing aggression.${stackContext}`;
+                    }
+                    return `${heroHand}: Fold ${freqPct}% vs ${vs}'s 3-bet. ${handDesc} doesn't have enough equity or playability to continue.${stackContext}`;
                 }
-                // Mixed call
-                const threeBetFreq = validActions.filter(a2 => a2.startsWith('r')).map(a2 => handActions[a2] || 0).reduce((s, v) => s + v, 0);
-                if (threeBetFreq > 0.05) {
-                    return `${heroHand}: Call ${freqPct}%, 3-bet ${(threeBetFreq * 100).toFixed(0)}% vs ${vs}. The solver polarizes — sometimes flatting, sometimes 3-betting for balance.`;
+            } else {
+                // ═══ FACING AN OPEN (3-bet, call, or fold) ═══
+                if (isRaise) {
+                    if (freq >= 0.95) {
+                        if (isPremium) return `${heroHand}: Always 3-bet ${handDesc} vs ${vs}'s open. Too strong to just call — build the pot preflop.${stackContext}`;
+                        if (isAx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} has great playability as a 3-bet bluff — blockers, suitedness, and nut potential.${stackContext}`;
+                        if (isBlind) return `${heroHand}: Pure 3-bet from the blinds vs ${vs}. ${handDesc} — 3-betting compensates for being out of position postflop.${stackContext}`;
+                        return `${heroHand}: Pure 3-bet vs ${vs}'s open. Strong enough to re-raise for value and build the pot.${stackContext}`;
+                    }
+                    const callFreq = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
+                    if (callFreq && parseInt(callFreq) > 5) {
+                        return `${heroHand}: 3-bet ${freqPct}%, call ${callFreq}% vs ${vs}. ${handDesc} — the solver mixes between building the pot and keeping the range wide.${stackContext}`;
+                    }
+                    return `${heroHand}: 3-bet ${freqPct}% vs ${vs}. ${handDesc} at the boundary of the 3-bet range.${stackContext}`;
                 }
-                return `${heroHand}: Call ${freqPct}% vs ${vs}. Marginal call at the bottom of the defending range.`;
-            }
-            if (isFold) {
-                if (freq >= 0.95) {
-                    return `${heroHand}: Fold vs ${vs}'s open. ${handDesc} lacks sufficient equity and playability to continue profitably.`;
+                if (isCall) {
+                    if (freq >= 0.95) {
+                        if (isPair && v1 >= 8) return `${heroHand}: Call vs ${vs}. ${handDesc} has great set-mining equity and implied odds — 3-betting risks losing action.${stackContext}`;
+                        if (isBroadway && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} plays well postflop — good equity and playability without bloating the pot.${stackContext}`;
+                        if (isConnected && isSuited) return `${heroHand}: Call vs ${vs}. ${handDesc} has strong implied odds — when it connects, it makes big hands.${stackContext}`;
+                        if (isBlind) return `${heroHand}: Defend from the blind vs ${vs}. ${handDesc} has enough equity to defend at this price — closing the action with a discount.${stackContext}`;
+                        return `${heroHand}: Call vs ${vs}. Good equity against the opening range — calling maintains position and pot control.${stackContext}`;
+                    }
+                    const threeBetFreq = validActions.filter(a2 => a2.startsWith('r')).map(a2 => handActions[a2] || 0).reduce((s, v) => s + v, 0);
+                    if (threeBetFreq > 0.05) {
+                        return `${heroHand}: Call ${freqPct}%, 3-bet ${(threeBetFreq * 100).toFixed(0)}% vs ${vs}. The solver polarizes — sometimes flatting, sometimes 3-betting for balance.${stackContext}`;
+                    }
+                    return `${heroHand}: Call ${freqPct}% vs ${vs}. Marginal call at the bottom of the defending range.${stackContext}`;
                 }
-                const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
-                if (callFreq2 && parseInt(callFreq2) > 5) {
-                    return `${heroHand}: Fold ${freqPct}%, call ${callFreq2}% vs ${vs}. Borderline hand — sometimes the solver defends, but it's mostly a fold.`;
+                if (isFold) {
+                    if (freq >= 0.95) {
+                        if (isBlind) return `${heroHand}: Fold from the blind vs ${vs}'s open. ${handDesc} — even with the discount, you don't have enough equity to defend profitably.${stackContext}`;
+                        return `${heroHand}: Fold vs ${vs}'s open. ${handDesc} lacks sufficient equity and playability to continue profitably.${stackContext}`;
+                    }
+                    const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
+                    if (callFreq2 && parseInt(callFreq2) > 5) {
+                        return `${heroHand}: Fold ${freqPct}%, call ${callFreq2}% vs ${vs}. Borderline hand — sometimes the solver defends, but it's mostly a fold.${stackContext}`;
+                    }
+                    return `${heroHand}: Fold ${freqPct}% vs ${vs}. At the edge of the defending range.${stackContext}`;
                 }
-                return `${heroHand}: Fold ${freqPct}% vs ${vs}. At the edge of the defending range.`;
             }
         }
 
