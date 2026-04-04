@@ -92,6 +92,10 @@ export default function GameUIRouter({
     bestGTOWStreak = 0,
     lastClassification = null,
     gtowAccuracy = 100,
+    // Phase 38: Position & street accuracy
+    positionAccuracy = null,
+    streetAccuracy = null,
+    weakestPosition = null,
     // UI-2: Manual advance callback
     onNextHand = null,
     // Multi-street props
@@ -154,6 +158,9 @@ export default function GameUIRouter({
             bestGTOWStreak={bestGTOWStreak}
             lastClassification={lastClassification}
             gtowAccuracy={gtowAccuracy}
+            positionAccuracy={positionAccuracy}
+            streetAccuracy={streetAccuracy}
+            weakestPosition={weakestPosition}
             // UI-2: Manual advance
             onNextHand={onNextHand}
             // Multi-street props

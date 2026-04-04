@@ -340,6 +340,10 @@ export default function useGTOWScore() {
     const [bestStreak, setBestStreak] = useState(0);
     const [lastClassification, setLastClassification] = useState(null);
 
+    // ═══ Phase 38: Position-based + street-based accuracy tracking ═══
+    const [positionStats, setPositionStats] = useState({});  // { 'BTN': { total: 0, correct: 0 }, ... }
+    const [streetStats, setStreetStats] = useState({});      // { 'flop': { total: 0, correct: 0 }, ... }
+
     // Derived metrics
     const gtowScore = useMemo(() => {
         if (movesMade === 0) return 100;
@@ -415,6 +419,38 @@ export default function useGTOWScore() {
         });
         setLastClassification(classification);
 
+        // ═══ Phase 38: Track position-based accuracy ═══
+        const position = handData?.heroPosition;
+        if (position) {
+            const normalizedPos = position.toUpperCase().replace(/[^A-Z]/g, '');
+            setPositionStats(prev => {
+                const existing = prev[normalizedPos] || { total: 0, correct: 0 };
+                return {
+                    ...prev,
+                    [normalizedPos]: {
+                        total: existing.total + 1,
+                        correct: existing.correct + (isCorrectMove ? 1 : 0),
+                    },
+                };
+            });
+        }
+
+        // ═══ Phase 38: Track street-based accuracy ═══
+        const street = handData?.street;
+        if (street) {
+            const normalizedStreet = street.toLowerCase();
+            setStreetStats(prev => {
+                const existing = prev[normalizedStreet] || { total: 0, correct: 0 };
+                return {
+                    ...prev,
+                    [normalizedStreet]: {
+                        total: existing.total + 1,
+                        correct: existing.correct + (isCorrectMove ? 1 : 0),
+                    },
+                };
+            });
+        }
+
         // Add to hand history
         setHandHistory(prev => [...prev, {
             handNumber: prev.length + 1,
@@ -442,6 +478,8 @@ export default function useGTOWScore() {
         setCurrentStreak(0);
         setBestStreak(0);
         setLastClassification(null);
+        setPositionStats({});
+        setStreetStats({});
     }, []);
 
     // ═══ Phase 36: Derived accuracy metric ═══
@@ -450,6 +488,42 @@ export default function useGTOWScore() {
         const correct = (classificationCounts.best || 0) + (classificationCounts.correct || 0);
         return Math.round((correct / movesMade) * 100);
     }, [movesMade, classificationCounts]);
+
+    // ═══ Phase 38: Derived position/street accuracy maps ═══
+    const positionAccuracy = useMemo(() => {
+        const result = {};
+        for (const [pos, stats] of Object.entries(positionStats)) {
+            result[pos] = {
+                ...stats,
+                accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+            };
+        }
+        return result;
+    }, [positionStats]);
+
+    const streetAccuracy = useMemo(() => {
+        const result = {};
+        for (const [st, stats] of Object.entries(streetStats)) {
+            result[st] = {
+                ...stats,
+                accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+            };
+        }
+        return result;
+    }, [streetStats]);
+
+    // ═══ Phase 38: Weakest position (lowest accuracy with enough samples) ═══
+    const weakestPosition = useMemo(() => {
+        let worst = null;
+        let worstAcc = 101;
+        for (const [pos, data] of Object.entries(positionAccuracy)) {
+            if (data.total >= 2 && data.accuracy < worstAcc) {
+                worstAcc = data.accuracy;
+                worst = pos;
+            }
+        }
+        return worst;
+    }, [positionAccuracy]);
 
     return {
         // Core metrics
@@ -469,6 +543,11 @@ export default function useGTOWScore() {
         bestStreak,
         lastClassification,
         accuracy,
+
+        // Phase 38: Position & street accuracy
+        positionAccuracy,
+        streetAccuracy,
+        weakestPosition,
 
         // Actions
         recordMove,

@@ -964,6 +964,11 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         lastClassification: gtowScoring.lastClassification,
         gtowAccuracy: gtowScoring.accuracy,
 
+        // Phase 38: Position & street accuracy
+        positionAccuracy: gtowScoring.positionAccuracy,
+        streetAccuracy: gtowScoring.streetAccuracy,
+        weakestPosition: gtowScoring.weakestPosition,
+
         // Multi-street state
         currentStreet,
         isMultiStreetActive,

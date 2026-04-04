@@ -1030,6 +1030,10 @@ function UniversalDynamicTable({
     bestGTOWStreak = 0,            // Best correct streak this session
     lastClassification = null,     // Last move classification
     gtowAccuracy = 100,            // Session accuracy percentage
+    // Phase 38: Position & street accuracy
+    positionAccuracy = null,       // { 'BTN': { total, correct, accuracy }, ... }
+    streetAccuracy = null,         // { 'flop': { total, correct, accuracy }, ... }
+    weakestPosition = null,        // Position string with lowest accuracy
     // UI-2: Manual advance callback
     onNextHand = null,             // Called when user clicks "Next Hand"
     // Multi-street props
@@ -2122,6 +2126,52 @@ function UniversalDynamicTable({
                     </div>
                 );
             })()}
+
+            {/* Phase 38: Position & Street accuracy row — shows after 5+ hands */}
+            {positionAccuracy && Object.keys(positionAccuracy).length > 0 && questionNumber > 5 && (
+                <div style={{ padding: '0 16px', marginBottom: 2, display: 'flex', gap: 4, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {/* Position pills */}
+                    {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].filter(p => positionAccuracy[p]).map(pos => {
+                        const data = positionAccuracy[pos];
+                        const accColor = data.accuracy >= 80 ? '#22c55e' : data.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                        const isWeakest = weakestPosition === pos;
+                        return (
+                            <div key={pos} style={{
+                                display: 'flex', alignItems: 'center', gap: 2,
+                                padding: '1px 5px', borderRadius: 4,
+                                background: isWeakest ? `${accColor}22` : 'rgba(255,255,255,0.03)',
+                                border: `1px solid ${isWeakest ? accColor + '55' : 'rgba(255,255,255,0.06)'}`,
+                            }}>
+                                <span style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5 }}>{pos}</span>
+                                <span style={{ fontSize: 8, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</span>
+                                <span style={{ fontSize: 7, color: '#475569' }}>({data.total})</span>
+                            </div>
+                        );
+                    })}
+                    {/* Street divider + pills */}
+                    {streetAccuracy && Object.keys(streetAccuracy).length > 0 && (
+                        <>
+                            <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', alignSelf: 'center' }} />
+                            {['preflop', 'flop', 'turn', 'river'].filter(s => streetAccuracy[s]).map(st => {
+                                const data = streetAccuracy[st];
+                                const streetColors = { preflop: '#a78bfa', flop: '#4ade80', turn: '#fb923c', river: '#f87171' };
+                                const accColor = data.accuracy >= 80 ? '#22c55e' : data.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                                return (
+                                    <div key={st} style={{
+                                        display: 'flex', alignItems: 'center', gap: 2,
+                                        padding: '1px 5px', borderRadius: 4,
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}>
+                                        <span style={{ fontSize: 8, fontWeight: 700, color: streetColors[st] || '#94a3b8', letterSpacing: 0.5, textTransform: 'capitalize' }}>{st.slice(0, 1).toUpperCase()}</span>
+                                        <span style={{ fontSize: 8, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</span>
+                                    </div>
+                                );
+                            })}
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Phase 3: RNG / Study Mode Toggles */}
             <div style={{ display: 'flex', gap: 6, padding: '0 16px 4px', justifyContent: 'flex-end' }}>

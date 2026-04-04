@@ -794,6 +794,10 @@ function GodModeArenaInner({
         bestGTOWStreak,
         lastClassification,
         gtowAccuracy,
+        // Phase 38: Position & street accuracy
+        positionAccuracy,
+        streetAccuracy,
+        weakestPosition,
         // Multi-street state
         currentStreet,
         isMultiStreetActive,
@@ -2336,6 +2340,9 @@ function GodModeArenaInner({
                                     bestGTOWStreak={bestGTOWStreak}
                                     lastClassification={lastClassification}
                                     gtowAccuracy={gtowAccuracy}
+                                    positionAccuracy={positionAccuracy}
+                                    streetAccuracy={streetAccuracy}
+                                    weakestPosition={weakestPosition}
                                     onNextHand={handleNextQuestion}
                                     isMultiStreetActive={isMultiStreetActive}
                                     currentStreet={currentStreet}
@@ -2405,6 +2412,9 @@ function GodModeArenaInner({
                         bestGTOWStreak={bestGTOWStreak}
                         lastClassification={lastClassification}
                         gtowAccuracy={gtowAccuracy}
+                        positionAccuracy={positionAccuracy}
+                        streetAccuracy={streetAccuracy}
+                        weakestPosition={weakestPosition}
                         onNextHand={nextQuestion}
                         isMultiStreetActive={isMultiStreetActive}
                         currentStreet={currentStreet}
