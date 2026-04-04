@@ -3020,11 +3020,18 @@ export class DeterministicGTOEngine {
             }
             if (isFold) {
                 if (freq >= 0.95) {
-                    if (isEarlyPos) return `${heroHand}: Pure fold from ${posName}. ${handDesc} — too weak to open with so many players behind.${stackNote}`;
-                    if (isLatePos) return `${heroHand}: Fold from ${posName}. Despite being in position, ${handDesc} doesn't have enough equity to open profitably.${stackNote}`;
-                    if (isBlind) return `${heroHand}: Fold from ${posName}. ${handDesc} — even with the positional discount, this hand plays too poorly postflop.${stackNote}`;
+                    if (isEarlyPos) {
+                        if (!isPair && !isSuited && !isBroadway) return `${heroHand}: Pure fold from ${posName}. ${handDesc} — offsuit non-broadway hands are never in the ~13% EP opening range. Needs suitedness, connectivity, or high cards.${stackNote}`;
+                        return `${heroHand}: Pure fold from ${posName}. ${handDesc} — too weak for the tight ~13% opening range with 5+ players behind.${stackNote}`;
+                    }
+                    if (isMiddlePos) return `${heroHand}: Pure fold from ${posName}. ${handDesc} falls outside the ~20% MP opening range — not enough playability to open profitably.${stackNote}`;
+                    if (heroPosition === 'CO') return `${heroHand}: Fold from CO. ${handDesc} — falls just outside the ~30% CO opening range. Marginal hand that doesn't play well enough postflop.${stackNote}`;
+                    if (heroPosition === 'BTN') return `${heroHand}: Fold from BTN. Even with the widest opening range (~45%), ${handDesc} doesn't have enough playability to open profitably.${stackNote}`;
+                    if (isBlind) return `${heroHand}: Fold from ${posName}. ${handDesc} — even with the positional discount, this hand plays too poorly postflop out of position.${stackNote}`;
                     return `${heroHand}: Fold from ${posName}. ${handDesc} is outside the opening range.${stackNote}`;
                 }
+                if (isEarlyPos) return `${heroHand}: Fold ${freqPct}% from ${posName}. At the very edge of the ~13% EP opening range — the solver mostly folds this hand from early position.${stackNote}`;
+                if (isLatePos) return `${heroHand}: Fold ${freqPct}% from ${posName}. Borderline hand at the bottom of the opening range — the solver sometimes folds to stay balanced.${stackNote}`;
                 return `${heroHand}: Fold ${freqPct}% from ${posName}. Marginal hand at the edge of the opening range.${stackNote}`;
             }
         }
@@ -3153,13 +3160,15 @@ export class DeterministicGTOEngine {
      */
     _positionOpenContext(position) {
         switch (position) {
-            case 'UTG': case 'UTG+1': return 'Early position requires a tight opening range — many players left to act behind.';
-            case 'MP': case 'MP+1': return 'Middle position allows a slightly wider range, but still conservative.';
-            case 'HJ': return 'The hijack starts to open wider, leveraging fold equity with fewer players behind.';
-            case 'CO': return 'The cutoff opens wide — great steal position with only the button and blinds behind.';
-            case 'BTN': return 'The button has the widest opening range — guaranteed positional advantage postflop.';
-            case 'SB': return 'SB opens into only the BB — wide range but out of position postflop.';
-            case 'BB': return 'BB checking option — you already have money invested.';
+            case 'UTG': return 'UTG opens ~12-15% of hands (pairs 22+, ATo+, ATs+, KQo, KJs+, suited connectors 78s+). Many players behind means tight range.';
+            case 'UTG+1': return 'UTG+1 opens ~15-17% — slightly wider than UTG but still conservative with 5+ players behind.';
+            case 'MP': return 'MP opens ~18-20% — adds hands like KJo, QJs, T9s, 67s to the range.';
+            case 'MP+1': return 'MP+1 opens ~20-22% — wider than MP, starts including more suited connectors and one-gappers.';
+            case 'HJ': return 'HJ opens ~22-26% — the range expands to include A8o+, K9s+, suited one-gappers, and more offsuit broadways.';
+            case 'CO': return 'CO opens ~27-32% — wide range with only BTN and blinds behind. Includes most suited hands, A2o+, and weak broadways.';
+            case 'BTN': return 'BTN opens ~40-50% — the widest RFI range. Nearly all suited hands, most offsuit broadways, all pairs. Guaranteed position postflop.';
+            case 'SB': return 'SB opens ~35-45% into only the BB — wide range for stealing but plays OOP postflop. Include more hands but size up (3x+).';
+            case 'BB': return 'BB checking option — you already have money invested and close the action.';
             default: return '';
         }
     }
