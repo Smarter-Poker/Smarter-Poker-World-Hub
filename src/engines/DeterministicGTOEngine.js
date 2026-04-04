@@ -1622,6 +1622,7 @@ export class DeterministicGTOEngine {
      * board texture impact, and conceptual poker theory.
      */
     buildExplanation(heroHand, board, street, optimalAction, handActions, ev, validActions, ctx = {}) {
+        if (!heroHand || !optimalAction) return '';
         const label = this.getActionLabelGTOW(optimalAction);
         const freq = handActions[optimalAction] || 0;
         const freqPct = (freq * 100).toFixed(0);
@@ -2309,6 +2310,7 @@ export class DeterministicGTOEngine {
      * protection vs slowplay decisions, draw equity denial.
      */
     _getTurnContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq, sizePct) {
+        if (!board || board.length < 3) return '';
         const a = optimalAction.toLowerCase();
         const isBet = a.startsWith('b') || a === 'allin';
         const isCheck = a === 'c' || a === 'x';
@@ -2404,6 +2406,7 @@ export class DeterministicGTOEngine {
      * - Blocker effects
      */
     _getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) {
+        if (!board || board.length < 3) return '';
         const a = optimalAction.toLowerCase();
         const isBet = a.startsWith('b') || a === 'allin';
         const isCheck = a === 'c' || a === 'x';
