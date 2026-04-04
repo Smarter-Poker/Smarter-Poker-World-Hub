@@ -78,7 +78,7 @@ export const MASTER_REGISTRY = {
             'training',
             'memory-games',
             'personal-assistant',
-            'diamond-arcade',
+
             'bankroll-manager',
             'poker-near-me',
             'trivia',
@@ -141,7 +141,7 @@ export const SERVICES = {
 export const CARD_ASSETS = [
     'bankroll-manager.jpg',
     'club-arena.jpg',
-    'diamond-arcade.jpg',
+
     'diamond-arena.jpg',
     'memory-games.jpg',
     'personal-assistant.jpg',

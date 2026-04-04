@@ -7,7 +7,6 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Games — Hub Routes Load', () => {
   const gameRoutes = [
-    { path: '/hub/diamond-arcade', name: 'Diamond Arcade' },
     { path: '/hub/diamond-arena', name: 'Diamond Arena' },
     { path: '/hub/diamond-store', name: 'Diamond Store' },
     { path: '/hub/memory-games', name: 'Memory Games' },

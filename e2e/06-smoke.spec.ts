@@ -40,7 +40,6 @@ test.describe('Smoke Tests — Hub Pages (may redirect to login)', () => {
     'diamond-store',
     'bankroll',
     'memory-games',
-    'diamond-arcade',
     'diamond-arena',
     'trivia',
     'leaderboards',

@@ -149,7 +149,7 @@ export default function TriviaModePage() {
                     if (mode === 'arcade') {
                         const diamonds = userDiamonds || (await getUserDiamonds(currentUserId));
                         if (diamonds < 10) {
-                            setError('Not enough diamonds. You need 10 diamonds to play Diamond Arcade.');
+                            setError('Not enough diamonds. You need 10 diamonds to play Arcade mode.');
                             setGameState('error');
                             return;
                         }

@@ -37,7 +37,6 @@ The World Hub uses a 3D carousel navigation system with 13 interactive orbs:
 | #10 | Personal Assistant | Blue | `/hub/assistant` | ⚠️ UNVERIFIED |
 | #11 | Bankroll Manager | Magenta | `/hub/bankroll` | ⚠️ UNVERIFIED |
 | #12 | Marketplace | Gold | `/hub/diamond-store` | ⚠️ UNVERIFIED |
-| #13 | Diamond Arcade | Purple | `/hub/arcade` | ⚠️ UNVERIFIED |
 
 ### Universal Header
 Every page features the UniversalHeader with:

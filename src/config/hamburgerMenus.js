@@ -580,32 +580,8 @@ export const MENU_CONFIGS = {
         ]
     }),
 
-    'diamond-arcade': (user, state, handlers) => ({
-        menuItems: [
-            createMenuItem.section('Games'),
-            createMenuItem.navigation('Hand Snap', '/hub/diamond-arcade?game=hand-snap'),
-            createMenuItem.navigation('Board Nuts', '/hub/diamond-arcade?game=board-nuts'),
-            createMenuItem.navigation('Chip Math', '/hub/diamond-arcade?game=chip-math'),
-            createMenuItem.divider(),
-            createMenuItem.section('Challenges'),
-            createMenuItem.navigation('Daily Challenge', '/hub/diamond-arcade?mode=daily'),
-            createMenuItem.navigation('Leaderboard', '/hub/diamond-arcade/leaderboard'),
-            createMenuItem.navigation('My Stats', '/hub/diamond-arcade/stats'),
-            createMenuItem.navigation('Achievements', '/hub/diamond-arcade/achievements'),
-            createMenuItem.divider(),
-            createMenuItem.section('Prizes'),
-            createMenuItem.navigation('Prize Pool', '/hub/diamond-arcade/prizes'),
-            createMenuItem.navigation('My Winnings', '/hub/diamond-arcade/winnings'),
-            createMenuItem.divider(),
-            createMenuItem.section('Settings'),
-            createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
-            createMenuItem.toggle('Animations', state.animations !== false, handlers.setAnimations),
-            createMenuItem.toggle('Difficulty Hints', state.hints || false, handlers.setHints)
-        ],
-        bottomLinks: [
-            { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help }
-        ]
-    }),
+
+
 
     'memory-games': (user, state, handlers) => ({
         menuItems: [

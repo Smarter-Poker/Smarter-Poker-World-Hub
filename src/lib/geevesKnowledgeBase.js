@@ -171,7 +171,7 @@ const PAGE_CONTEXT_MAP = {
     'training': ['Training', 'GTO', 'Strategy'],
     'gto': ['GTO', 'Training', 'Strategy', 'GTO Strategy', 'Poker Math'],
     'bankroll': ['Bankroll Manager', 'Financial', 'Toke Tracker'],
-    'trivia': ['Trivia', 'Gaming', 'Diamond Arcade'],
+    'trivia': ['Trivia', 'Gaming'],
     'social': ['Social', 'Platform'],
     'sandbox': ['Sandbox', 'Strategy', 'Training', 'GTO', 'Poker Math'],
     'diamond': ['Diamond Store', 'VIP', 'Diamond Economy'],

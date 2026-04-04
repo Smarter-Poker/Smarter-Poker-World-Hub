@@ -19,7 +19,6 @@ export type OrbId =
     | 'training'
     | 'memory-games'
     | 'assistant'
-    | 'diamond-arcade'
     | 'bankroll'
     | 'poker-near-me'
     | 'marketplace';

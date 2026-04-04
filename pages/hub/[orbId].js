@@ -52,13 +52,7 @@ const ORB_METADATA = {
         color: '#0088ff',
         features: ['AI Coach', 'Hand Review', 'Strategy Tips', 'Real-time Advice', 'Leak Analysis'],
     },
-    'diamond-arcade': {
-        title: 'Diamond Arcade',
-        description: 'Risk Diamonds. Test Skills. Beat the House in Fast-paced Poker Games!',
-        emoji: '',
-        color: '#9900ff',
-        features: ['Speed Games', 'Jackpot Games', 'Daily Rotation', 'Progressive Jackpot', 'Leaderboards'],
-    },
+
     'bankroll-manager': {
         title: 'Bankroll Manager',
         description: 'Track Your Poker Finances, Manage Your Bankroll, and Analyze Your Results',
@@ -105,7 +99,7 @@ export default function OrbPage() {
 
         // Orbs with dedicated pages - redirect to them
         const dedicatedPages = {
-            'diamond-arcade': '/hub/diamond-arcade',
+
             'trivia': '/hub/trivia',
             'poker-near-me': '/hub/poker-near-me',
         };

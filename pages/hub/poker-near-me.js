@@ -673,22 +673,38 @@ export default function PokerNearMePage() {
                     }
                 }
             }
+            // Fallback 3: check for a previously-selected city (user chose from city list)
+            let hasSavedCity = false;
+            if (!hasSavedLocation) {
+                const savedCity = localStorage.getItem('pnm_last_selected_city');
+                if (savedCity) {
+                    try {
+                        const city = JSON.parse(savedCity);
+                        if (city && city.name) {
+                            setSelectedCity(city);
+                            setSearchQuery(city.name + (city.state ? ', ' + city.state : ''));
+                            setHasSearched(true);
+                            hasSavedLocation = true; // skip GPS auto-request
+                            hasSavedCity = true; // city-based — do NOT request GPS
+                        }
+                    } catch (e) { /* corrupt data */ }
+                }
+            }
         } catch (e) { /* ignore corrupt data */ }
 
-        // Request fresh GPS — silent refresh if we already have saved location
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+        // Request fresh GPS — silent refresh if we already have saved GPS location
+        // SKIP entirely if a saved city was restored (user chose a city, not GPS)
+        if (!hasSavedCity && typeof navigator !== 'undefined' && navigator.geolocation) {
             setTimeout(() => {
-                if (!selectedCity) {
-                    if (hasSavedLocation) {
-                        // Silent refresh — don't show alerts, just update if GPS is available
-                        navigator.geolocation.getCurrentPosition(
-                            (pos) => handleGpsSuccess(pos),
-                            () => { /* silent fail — saved location is still active */ },
-                            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
-                        );
-                    } else {
-                        requestGpsLocation();
-                    }
+                if (hasSavedLocation) {
+                    // Silent refresh — don't show alerts, just update if GPS is available
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => handleGpsSuccess(pos),
+                        () => { /* silent fail — saved location is still active */ },
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+                    );
+                } else {
+                    requestGpsLocation();
                 }
             }, hasSavedLocation ? 2000 : 600);
         }
@@ -1063,6 +1079,8 @@ export default function PokerNearMePage() {
             localStorage.setItem('sp-user-gps', JSON.stringify({ lat: loc.lat, lng: loc.lng, time: Date.now() }));
             localStorage.setItem('pnm_last_location', JSON.stringify(loc));
             localStorage.setItem('pnm_location_enabled', '1');
+            // GPS takes priority — clear any saved city selection
+            localStorage.removeItem('pnm_last_selected_city');
         } catch (e) { /* storage full */ }
         // Re-fetch location-dependent data (daily tournaments); venues handled by userLocation useEffect
         setTimeout(() => { fetchAllData({ includeVenues: false }); }, 0);
@@ -1482,11 +1500,23 @@ export default function PokerNearMePage() {
         setShowCitySuggestions(false);
         setHasSearched(true);
         trackSearchEvent('city_select', { city: city.name, state: city.state });
+        // Persist selected city to localStorage for cross-session restoration
+        try {
+            localStorage.setItem('pnm_last_city', city.name);
+            localStorage.setItem('pnm_last_state', city.state || '');
+            localStorage.setItem('pnm_last_selected_city', JSON.stringify(city));
+        } catch (e) { /* storage full */ }
     };
 
     const handleCityClick = (city) => {
         setSelectedCity(city);
         setUserLocation(null);
+        // Persist selected city to localStorage for cross-session restoration
+        try {
+            localStorage.setItem('pnm_last_city', city.name);
+            localStorage.setItem('pnm_last_state', city.state || '');
+            localStorage.setItem('pnm_last_selected_city', JSON.stringify(city));
+        } catch (e) { /* storage full */ }
     };
 
     // ═══ DEEP LINK PERSISTENCE: write tab + search to URL (debounced) ═══
@@ -1725,6 +1755,8 @@ export default function PokerNearMePage() {
             gameType: 'all',
             selectedState: 'all'
         });
+        // Clear persisted city selection so it doesn't ghost-restore on next visit
+        try { localStorage.removeItem('pnm_last_selected_city'); } catch (e) { /* */ }
     };
 
     // Get counts for tabs
@@ -2737,7 +2769,7 @@ export default function PokerNearMePage() {
             )}
 
             <SEOHead
-                title="Live Cash Games — Find Live Poker Rooms & Casinos"
+                title="Poker Near Me — Find Live Poker Rooms & Casinos"
                 description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-time Game Info, Tournament Schedules, And Interactive Maps Across The United States."
                 canonical="/hub/poker-near-me"
             />
@@ -2762,7 +2794,7 @@ export default function PokerNearMePage() {
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
-                    <h1 className="pnm-title">LIVE CASH GAMES</h1>
+                    <h1 className="pnm-title">POKER NEAR ME</h1>
                     <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 

@@ -144,7 +144,6 @@ const WARM_ENTRIES = [
     { question: 'how do i buy diamonds', category: 'Diamond Store' },
     { question: 'where do i see my diamond balance', category: 'Diamond Store' },
     { question: 'what is the diamond arena', category: 'Diamond Arena' },
-    { question: 'what is the diamond arcade', category: 'Diamond Arcade' },
     { question: 'what is vip membership', category: 'Diamond Store' },
 
     // ── Social Hub ──

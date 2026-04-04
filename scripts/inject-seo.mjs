@@ -58,11 +58,7 @@ const SEO_CONFIG = {
         desc: 'Sharpen your poker cognitive skills with memory matrix games. Train pattern recognition, recall speed, and mental agility.',
         canonical: '/hub/memory-games',
     },
-    'hub/diamond-arcade.js': {
-        title: 'Diamond Arcade — Poker Arcade Games',
-        desc: 'Play arcade-style poker games, earn diamonds, climb leaderboards, and win prizes in the Smarter.Poker Diamond Arcade.',
-        canonical: '/hub/diamond-arcade',
-    },
+
     'hub/events-calendar.js': {
         title: 'Poker Events Calendar — Tournaments & Series',
         desc: 'Find upcoming poker tournaments, series, and events. Live updates, schedules, and registration info for events worldwide.',
@@ -304,34 +300,7 @@ const SEO_CONFIG = {
         noindex: true,
     },
 
-    // ═══ Hub — Diamond Arcade Sub-pages ═══
-    'hub/diamond-arcade/achievements.js': {
-        title: 'Arcade Achievements',
-        desc: 'Track your Diamond Arcade achievements and unlocked rewards.',
-        canonical: '/hub/diamond-arcade/achievements',
-    },
-    'hub/diamond-arcade/leaderboard.js': {
-        title: 'Arcade Leaderboard — Top Scorers',
-        desc: 'See who leads the Diamond Arcade with the highest scores and most wins.',
-        canonical: '/hub/diamond-arcade/leaderboard',
-    },
-    'hub/diamond-arcade/prizes.js': {
-        title: 'Arcade Prizes — Rewards Catalog',
-        desc: 'Browse available prizes and rewards in the Diamond Arcade.',
-        canonical: '/hub/diamond-arcade/prizes',
-    },
-    'hub/diamond-arcade/stats.js': {
-        title: 'Arcade Stats — Your Performance',
-        desc: 'View your Diamond Arcade game stats, win rates, and earnings.',
-        canonical: '/hub/diamond-arcade/stats',
-        noindex: true,
-    },
-    'hub/diamond-arcade/winnings.js': {
-        title: 'Arcade Winnings — Your Earnings',
-        desc: 'Track your Diamond Arcade winnings and prize history.',
-        canonical: '/hub/diamond-arcade/winnings',
-        noindex: true,
-    },
+
 
     // ═══ Hub — Memory Games Sub-pages ═══
     'hub/memory-games/achievements.js': {

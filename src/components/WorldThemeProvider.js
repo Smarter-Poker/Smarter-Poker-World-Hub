@@ -12,7 +12,6 @@ const ROUTE_TO_WORLD = {
     '/hub/trivia': 'trivia',
     '/hub/training': 'training',
     '/hub/news': 'news',
-    '/hub/diamond-arcade': 'diamond-arcade',
     '/hub/personal-assistant': 'personal-assistant',
     '/hub/memory-games': 'memory-games',
     // memory-campaign removed - use memory-games

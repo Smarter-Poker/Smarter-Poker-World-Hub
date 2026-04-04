@@ -20,7 +20,6 @@ import '../src/styles/worlds/video-library.css';
 import '../src/styles/worlds/poker-near-me.css';
 import '../src/styles/worlds/poker-near-me-lobby.css';
 import '../src/styles/worlds/memory-games.css';
-import '../src/styles/worlds/diamond-arcade.css';
 import '../src/styles/worlds/personal-assistant.css';
 import '../src/styles/worlds/bankroll.css';
 import '../src/styles/worlds/trivia.css';

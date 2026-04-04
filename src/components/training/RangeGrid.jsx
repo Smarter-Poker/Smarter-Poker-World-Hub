@@ -520,6 +520,39 @@ function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
 
 export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action', handEVs = null, lockedClassifications = null, showEVOverlay = false, heldCardsForBlockers = null }) {
     const [selectedHand, setSelectedHand] = useState(null);
+    const [actionFilter, setActionFilter] = useState(null); // null = show all, 'b33' = highlight that action
+
+    // ═══ RANGE PERCENTAGE CALCULATOR ═══
+    // Count combos per action across entire range
+    const rangeStats = useMemo(() => {
+        if (!gridData) return null;
+        const COMBO_WEIGHTS = { pair: 6, suited: 4, offsuit: 12 };
+        const actionTotals = {};
+        let totalCombos = 0;
+        let activeCombos = 0;
+
+        for (let r = 0; r < 13; r++) {
+            for (let c = 0; c < 13; c++) {
+                const hand = getHandNotation(r, c);
+                const type = getHandType(r, c);
+                const weight = COMBO_WEIGHTS[type];
+                const freqs = gridData[hand];
+                totalCombos += weight;
+                if (freqs) {
+                    Object.entries(freqs).forEach(([action, freq]) => {
+                        if (freq > 0) {
+                            const combos = (freq / 100) * weight;
+                            actionTotals[action] = (actionTotals[action] || 0) + combos;
+                            if (action !== 'f' && action !== 'fold') activeCombos += combos;
+                        }
+                    });
+                }
+            }
+        }
+
+        const rangePercent = totalCombos > 0 ? (activeCombos / totalCombos) * 100 : 0;
+        return { actionTotals, totalCombos, activeCombos, rangePercent };
+    }, [gridData]);
 
     // heroGlow keyframes injected once
     if (typeof document !== 'undefined' && !document.getElementById('heroGlowKeyframes')) {
@@ -556,6 +589,15 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                     if (total > 0) blockerScore = blocked / total;
                 }
 
+                // Action filter: dim hands that don't contain the filtered action
+                let filterLocked = isLocked;
+                if (actionFilter && freqs) {
+                    const hasAction = freqs[actionFilter] && freqs[actionFilter] > 0;
+                    filterLocked = hasAction ? null : false; // false = dimmed, null = normal
+                } else if (actionFilter && !freqs) {
+                    filterLocked = false;
+                }
+
                 cells.push(
                     <GridCell
                         key={hand}
@@ -569,7 +611,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         classificationInfo={classInfo}
                         colorMode={colorMode}
                         handEV={ev}
-                        isLocked={isLocked}
+                        isLocked={actionFilter ? filterLocked : isLocked}
                         showEVOverlay={showEVOverlay}
                         blockerScore={blockerScore}
                     />
@@ -578,7 +620,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
             rows.push(cells);
         }
         return rows;
-    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode, handEVs, lockedClassifications]);
+    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode, handEVs, lockedClassifications, actionFilter]);
 
     // Get action legend
     const activeActions = useMemo(() => {
@@ -593,26 +635,66 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Legend */}
+            {/* Range Stats Bar */}
+            {rangeStats && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+                    padding: '4px 8px', background: 'rgba(0,0,0,0.2)', borderRadius: 8,
+                }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', fontFamily: "'Orbitron', monospace" }}>
+                        Range: {rangeStats.rangePercent.toFixed(1)}%
+                    </div>
+                    <div style={{ fontSize: 9, color: '#64748b' }}>
+                        ({Math.round(rangeStats.activeCombos)}/{Math.round(rangeStats.totalCombos)} combos)
+                    </div>
+                </div>
+            )}
+
+            {/* Legend + Action Filter Buttons */}
             {activeActions.length > 0 && (
                 <div style={{
-                    display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center',
+                    display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center',
                     padding: '6px 0',
                 }}>
-                    {activeActions.map(a => (
-                        <div key={a.code} style={{
+                    {/* "All" filter */}
+                    <button
+                        onClick={() => setActionFilter(null)}
+                        style={{
                             display: 'flex', alignItems: 'center', gap: 4,
-                        }}>
-                            <div style={{
-                                width: 12, height: 12, borderRadius: 2,
-                                backgroundColor: a.color, opacity: 0.85,
-                            }} />
-                            <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>
-                                {a.label}
-                            </span>
-                        </div>
-                    ))}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                            border: `1px solid ${!actionFilter ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                            background: !actionFilter ? 'rgba(0,212,255,0.1)' : 'transparent',
+                        }}
+                    >
+                        <span style={{ fontSize: 10, color: !actionFilter ? '#00d4ff' : '#94a3b8', fontWeight: 600 }}>All</span>
+                    </button>
+                    {activeActions.map(a => {
+                        const isActive = actionFilter === a.code;
+                        const combos = rangeStats?.actionTotals?.[a.code];
+                        const pct = rangeStats && combos ? ((combos / rangeStats.totalCombos) * 100).toFixed(1) : null;
+                        return (
+                            <button
+                                key={a.code}
+                                onClick={() => setActionFilter(isActive ? null : a.code)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 4,
+                                    padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+                                    border: `1px solid ${isActive ? a.color + '60' : 'rgba(255,255,255,0.08)'}`,
+                                    background: isActive ? a.color + '15' : 'transparent',
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                <div style={{
+                                    width: 10, height: 10, borderRadius: 2,
+                                    backgroundColor: a.color, opacity: 0.85,
+                                }} />
+                                <span style={{ fontSize: 10, color: isActive ? a.color : '#94a3b8', fontWeight: 600 }}>
+                                    {a.label}{pct ? ` ${pct}%` : ''}
+                                </span>
+                            </button>
+                        );
+                    })}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 4px' }}>
                         <div style={{
                             width: 6, height: 6, borderRadius: '50%',
                             backgroundColor: '#fbbf24',

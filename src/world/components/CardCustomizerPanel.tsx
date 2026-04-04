@@ -19,7 +19,6 @@ const CARD_EMOJI: Record<string, string> = {
     'trivia': '🧠',
     'training': '🎓',
     'news': '📰',
-    'diamond-arcade': '🕹️',
     'personal-assistant': '🤖',
     'memory-games': '♟️',
     'bankroll-manager': '💰',

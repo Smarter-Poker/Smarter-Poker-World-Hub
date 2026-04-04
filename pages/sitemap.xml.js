@@ -24,7 +24,7 @@ const staticPages = [
     { path: '/hub/diamond-store', priority: '0.8', changefreq: 'weekly' },
     { path: '/hub/bankroll-manager', priority: '0.8', changefreq: 'weekly' },
     { path: '/hub/memory-games', priority: '0.7', changefreq: 'weekly' },
-    { path: '/hub/diamond-arcade', priority: '0.7', changefreq: 'weekly' },
+
     { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
     { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
     { path: '/hub/social-media', priority: '0.7', changefreq: 'daily' },
@@ -77,12 +77,6 @@ const staticPages = [
     { path: '/hub/diamond-store/orders', priority: '0.4', changefreq: 'weekly' },
     { path: '/hub/diamond-store/wishlist', priority: '0.4', changefreq: 'weekly' },
 
-    // Hub — Diamond Arcade sub-pages
-    { path: '/hub/diamond-arcade/achievements', priority: '0.5', changefreq: 'weekly' },
-    { path: '/hub/diamond-arcade/leaderboard', priority: '0.5', changefreq: 'daily' },
-    { path: '/hub/diamond-arcade/prizes', priority: '0.5', changefreq: 'weekly' },
-    { path: '/hub/diamond-arcade/stats', priority: '0.4', changefreq: 'weekly' },
-    { path: '/hub/diamond-arcade/winnings', priority: '0.4', changefreq: 'weekly' },
 
     // Hub — Memory Games sub-pages
     { path: '/hub/memory-games/achievements', priority: '0.5', changefreq: 'weekly' },

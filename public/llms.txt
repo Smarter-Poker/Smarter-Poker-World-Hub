@@ -41,8 +41,8 @@ Curated poker video content library with watch history tracking and AI tactical 
 ### Memory Games
 Poker-themed cognitive training games to improve memory and pattern recognition.
 
-### Diamond Arcade
-Arcade-style poker games with achievements, leaderboards, and prize tracking.
+
+
 
 ### Events Calendar
 Poker tournament and event calendar with live updates.
