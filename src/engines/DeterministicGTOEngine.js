@@ -1669,6 +1669,9 @@ export class DeterministicGTOEngine {
         // ═══ Phase 69: SPR AWARENESS ═══
         const sprNote = this._getSPRContext(optimalAction, handStrength, street, ctx.estimatedPot, ctx.stackDepth);
 
+        // ═══ Phase 73: VILLAIN TENDENCY CONTEXT ═══
+        const villainNote = this._getVillainTendencyNote(optimalAction, handStrength, street, texture, ctx.nodeType, ctx.heroPosition, ctx.villainPosition, freq);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1683,7 +1686,7 @@ export class DeterministicGTOEngine {
         const streetExtra = riverEnhancement || turnEnhancement || flopEnhancement;
 
         // Combine optional notes
-        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote].filter(Boolean).map(s => ' ' + s).join('');
+        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote].filter(Boolean).map(s => ' ' + s).join('');
 
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
@@ -2558,6 +2561,85 @@ export class DeterministicGTOEngine {
             if (isFold && (hs.includes('top pair'))) {
                 return `SPR ${spr.toFixed(1)} — deep SPR means one pair is vulnerable. You need to improve to stack off, and the pot-to-stack commitment isn't there yet.`;
             }
+        }
+
+        return '';
+    }
+
+    /**
+     * Phase 73: Villain tendency modeling — describe what villain's range looks like
+     * at this point in the hand, based on game tree node, position, and action history.
+     * This helps players understand WHY the solver's response is correct.
+     */
+    _getVillainTendencyNote(action, handStrength, street, texture, nodeType, heroPosition, villainPosition, freq) {
+        if (street === 'preflop') return '';
+        const a = action.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+        const hs = handStrength.toLowerCase();
+
+        // Villain position context
+        const vPos = villainPosition || '';
+        const villainIsIP = ['BTN', 'CO', 'HJ'].includes(vPos);
+        const villainIsOOP = ['SB', 'BB'].includes(vPos);
+        const villainTag = vPos ? ` (${vPos})` : '';
+
+        // ═══ FACING VILLAIN'S BET (hero_faces_bet) ═══
+        if (nodeType === 'hero_faces_bet') {
+            if (street === 'flop') {
+                // Villain c-bet or donk-bet
+                if (villainIsIP) {
+                    if (isFold && (hs.includes('air') || hs.includes('no pair'))) return `Villain${villainTag} c-bets IP with a wide range (~60-70% on most textures) — but your hand has no equity to continue against even this wide range.`;
+                    if (isCall && hs.includes('draw')) return `Villain${villainTag} c-bets IP with ~60-70% of their range. Your draw has enough equity to call since villain's wide c-bet range includes many weak hands.`;
+                    if (isRaise) return `Villain${villainTag} c-bets IP with a wide range — check-raising exploits their many weak c-bets and puts their bluffs in a tough spot.`;
+                }
+                if (villainIsOOP) {
+                    if (isBet || isRaise) return `Villain${villainTag} leads OOP (donk-bet) — this polarized line usually means strong made hands or draws. Villain's range is narrow but potent.`;
+                    if (isCall) return `Villain${villainTag} leads OOP — a polarized action. Call to keep their bluffs in and evaluate the turn.`;
+                }
+                if (isCall && (hs.includes('top pair') || hs.includes('overpair'))) return `Villain's flop c-bet range is wide — your strong pair is ahead of most of it. Calling keeps their bluffs in.`;
+            }
+
+            if (street === 'turn') {
+                // Turn barrel — villain's range has narrowed
+                if (isFold) return `Villain barrels the turn — their range has narrowed significantly from the flop. Turn bets are more value-heavy, so folding weaker hands becomes correct.`;
+                if (isCall && (hs.includes('top pair') || hs.includes('overpair'))) return `Villain's turn barrel narrows their range to strong value and committed draws. Your pair is still a bluff-catcher that must continue to prevent villain from profiting with air.`;
+                if (isCall && hs.includes('draw')) return `Facing a turn barrel with a draw — villain's range is stronger than flop, but your outs are live and implied odds help when you hit the river.`;
+                if (isRaise) return `Raising villain's turn barrel — a powerful line. Villain's range is face-up as value or draws. A raise puts maximum pressure on their medium-strength hands.`;
+            }
+
+            if (street === 'river') {
+                // River bet — villain is polarized (nuts or air)
+                if (isFold) return `Villain fires three streets — their river range is heavily polarized between the nuts and bluffs. Your hand falls below the call threshold against this polarized range.`;
+                if (isCall) return `Villain's river bet is polarized between value and bluffs. You must call at the right frequency (~1-alpha) to keep villain indifferent about bluffing.`;
+                if (isRaise) return `Raising the river against a polarized villain — only viable with the nuts or as a massive bluff. Villain's value range is capped by not raising earlier.`;
+            }
+        }
+
+        // ═══ HERO ACTS FIRST (hero_bets_or_checks) ═══
+        if (nodeType === 'hero_bets_or_checks') {
+            if (street === 'flop') {
+                if (isBet && texture.wet) return `Villain's checking range contains many draws that get a free card if you check. Betting charges these draws and denies their equity realization.`;
+                if (isCheck && texture.dry) return `Villain's range whiffs this dry board frequently. Checking lets them bluff the turn with hands that would fold to a flop bet.`;
+                if (isBet && texture.dry && (hs.includes('air') || hs.includes('no pair'))) return `Villain likely missed this dry board — c-betting as a bluff targets the large portion of their range that can't continue.`;
+            }
+            if (street === 'turn') {
+                if (isBet && (hs.includes('top pair') || hs.includes('set'))) return `After checking to hero on the turn, villain's range is capped — they would have bet strong hands. Bet to extract value from their medium-strength holdings.`;
+                if (isCheck) return `Villain's turn checking range still contains traps and slow-plays. Checking back avoids walking into a check-raise with a vulnerable hand.`;
+            }
+            if (street === 'river') {
+                if (isBet && (hs.includes('air') || hs.includes('no pair'))) return `Villain has checked to you on the river — their range is weak and capped. This is a prime spot to bluff since they can't have strong hands.`;
+                if (isBet && (hs.includes('set') || hs.includes('two pair') || hs.includes('flush') || hs.includes('straight'))) return `Villain checks the river — their capped range means they can't beat your strong hand but may call with bluff-catchers. Value bet.`;
+            }
+        }
+
+        // ═══ FACING RAISE (hero_faces_raise) ═══
+        if (nodeType === 'hero_faces_raise') {
+            if (isFold) return `Villain raises — a very strong line that narrows their range to premium hands and select bluffs. Folding is correct when your hand can't beat villain's tightened range.`;
+            if (isCall) return `Villain's raise polarizes their range between monsters and bluffs. Calling traps their bluffs while keeping the pot manageable against their value.`;
         }
 
         return '';
