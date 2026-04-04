@@ -6,6 +6,38 @@ import { normalizeGameName } from './normalize-game';
 import { busEmit } from '../../engine/EventBus';
 import ReportGameModal from './ReportGameModal';
 
+// ─── HTML entity decoder (handles &amp; &lt; &gt; &quot; &#39; etc.) ───
+function decodeHtmlEntities(str) {
+    if (!str || typeof str !== 'string') return str || '';
+    return str
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&#x27;/g, "'")
+        .replace(/&#x2F;/g, '/');
+}
+
+// ─── Normalize venue name for fuzzy matching ───
+function normalizeVenueName(name) {
+    if (!name) return '';
+    return decodeHtmlEntities(name)
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/'/g, '')
+        .replace(/-/g, ' ')
+        .replace(/[^a-z0-9 ]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// ─── Significant words for word-overlap matching ───
+const STOP_WORDS = new Set(['casino', 'resort', 'hotel', 'poker', 'room', 'the', 'and', 'at', 'of', 'in']);
+function getSignificantWords(normalized) {
+    return normalized.split(' ').filter(w => w.length >= 3 && !STOP_WORDS.has(w));
+}
+
 // Dynamically import map to avoid SSR issues
 const VenueMapPanel = dynamic(() => import('./VenueMapPanel'), { ssr: false });
 
@@ -278,24 +310,65 @@ export default function LiveGamesFeed({
     const mergedVenues = useMemo(() => {
         const liveEntries = Object.values(liveData);
 
-        // Build lookups from parent venues for enrichment
-        const venueByName = {};
-        const venueBySlug = {};
+        // Build multi-layer lookups from parent venues for enrichment
+        const venueByName = {};       // exact lowercase name → venue
+        const venueBySlug = {};       // exact slug/bravo_slug → venue
+        const venueByNormName = {};   // normalized name → venue
+        const venueWordIndex = [];    // [{words: [...], venue}] for word-overlap matching
         for (const v of venues) {
-            if (v.name) venueByName[v.name.toLowerCase()] = v;
+            if (v.name) {
+                venueByName[v.name.toLowerCase()] = v;
+                const norm = normalizeVenueName(v.name);
+                if (norm) venueByNormName[norm] = v;
+                const sigWords = getSignificantWords(norm);
+                if (sigWords.length > 0) venueWordIndex.push({ words: sigWords, venue: v });
+            }
             if (v.bravo_slug) venueBySlug[v.bravo_slug] = v;
             // Also index by 'slug' — all-venues.json uses 'slug' not 'bravo_slug'
             if (v.slug && !venueBySlug[v.slug]) venueBySlug[v.slug] = v;
         }
+
+        // 4-layer parent venue finder: slug → stripped slug → decoded name → word overlap
+        const findParentVenue = (bravoSlug, venueName) => {
+            // Layer 1: Exact slug match
+            if (bravoSlug && venueBySlug[bravoSlug]) return venueBySlug[bravoSlug];
+            // Layer 2: Strip pa- prefix from bravo slug
+            if (bravoSlug && bravoSlug.startsWith('pa-')) {
+                const stripped = bravoSlug.slice(3);
+                if (venueBySlug[stripped]) return venueBySlug[stripped];
+            }
+            // Layer 3: HTML-decoded exact name match
+            const decodedName = decodeHtmlEntities(venueName || '');
+            if (decodedName && venueByName[decodedName.toLowerCase()]) return venueByName[decodedName.toLowerCase()];
+            // Layer 3b: Normalized name match (strips &→and, punctuation, etc.)
+            const normName = normalizeVenueName(venueName);
+            if (normName && venueByNormName[normName]) return venueByNormName[normName];
+            // Layer 4: Significant word overlap (≥50% shared words)
+            if (normName) {
+                const queryWords = getSignificantWords(normName);
+                if (queryWords.length >= 1) {
+                    let bestMatch = null;
+                    let bestScore = 0;
+                    for (const entry of venueWordIndex) {
+                        const shared = queryWords.filter(w => entry.words.includes(w)).length;
+                        const score = shared / Math.max(queryWords.length, entry.words.length);
+                        if (shared >= Math.max(1, Math.ceil(queryWords.length * 0.5)) && score > bestScore) {
+                            bestScore = score;
+                            bestMatch = entry.venue;
+                        }
+                    }
+                    if (bestMatch) return bestMatch;
+                }
+            }
+            return null;
+        };
 
         let list = [];
 
         if (liveEntries.length > 0) {
             // PRIMARY: Use live data when available
             list = liveEntries.map(liveEntry => {
-                const parentVenue = venueBySlug[liveEntry.bravo_slug] 
-                    || venueByName[(liveEntry.venue_name || '').toLowerCase()]
-                    || null;
+                const parentVenue = findParentVenue(liveEntry.bravo_slug, liveEntry.venue_name);
                 const logoUrl = getVenueLogoUrl(parentVenue || { website: null });
                 const waitEst = liveEntry.totalWait > 0 
                     ? estimateWaitTime(liveEntry.totalWait, liveEntry.totalTables) 
@@ -719,18 +792,48 @@ export default function LiveGamesFeed({
     };
 
     // ─── DYNAMIC STATE OPTIONS (only show states that actually have live data) ───
+    // Uses same 4-layer matching as mergedVenues to avoid state-filter lockout
     const availableStates = useMemo(() => {
-        // Pre-build slug→venue lookup (O(n)) instead of nested find (O(n*m))
+        // Build lookups (same as merge, but reads from unfiltered liveData to prevent lockout)
         const bySlug = {};
         const byName = {};
+        const byNorm = {};
+        const wordIdx = [];
         for (const pv of venues) {
             if (pv.bravo_slug) bySlug[pv.bravo_slug] = pv;
             if (pv.slug) bySlug[pv.slug] = pv;
-            if (pv.name) byName[pv.name.toLowerCase()] = pv;
+            if (pv.name) {
+                byName[pv.name.toLowerCase()] = pv;
+                const norm = normalizeVenueName(pv.name);
+                if (norm) byNorm[norm] = pv;
+                const sw = getSignificantWords(norm);
+                if (sw.length > 0) wordIdx.push({ words: sw, venue: pv });
+            }
         }
+        const findParent = (slug, name) => {
+            if (slug && bySlug[slug]) return bySlug[slug];
+            if (slug && slug.startsWith('pa-') && bySlug[slug.slice(3)]) return bySlug[slug.slice(3)];
+            const decoded = decodeHtmlEntities(name || '');
+            if (decoded && byName[decoded.toLowerCase()]) return byName[decoded.toLowerCase()];
+            const norm = normalizeVenueName(name);
+            if (norm && byNorm[norm]) return byNorm[norm];
+            if (norm) {
+                const qw = getSignificantWords(norm);
+                if (qw.length >= 1) {
+                    let best = null, bestS = 0;
+                    for (const e of wordIdx) {
+                        const shared = qw.filter(w => e.words.includes(w)).length;
+                        const sc = shared / Math.max(qw.length, e.words.length);
+                        if (shared >= Math.max(1, Math.ceil(qw.length * 0.5)) && sc > bestS) { bestS = sc; best = e.venue; }
+                    }
+                    if (best) return best;
+                }
+            }
+            return null;
+        };
         const states = new Set();
         Object.values(liveData).forEach(v => {
-            const parent = bySlug[v.bravo_slug] || byName[(v.venue_name || '').toLowerCase()] || null;
+            const parent = findParent(v.bravo_slug, v.venue_name);
             if (parent?.state) states.add(parent.state);
         });
         return Array.from(states).sort();

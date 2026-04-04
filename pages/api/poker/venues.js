@@ -273,17 +273,69 @@ export default async function handler(req, res) {
                   // Non-numeric ID (slug): search by slug/bravo_slug in JSON data
                   const slug = String(id).toLowerCase();
                   const jsonVenues = getJsonVenues();
-                  const slugMatch = jsonVenues.find(v => 
-                      (v.slug && v.slug.toLowerCase() === slug) || 
-                      (v.bravo_slug && v.bravo_slug.toLowerCase() === slug) ||
-                      (v.name && v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === slug)
-                  );
+                  
+                  // Build slug variants: original, pa- stripped, clean
+                  const slugVariants = [slug];
+                  if (slug.startsWith('pa-')) slugVariants.push(slug.slice(3));
+                  
+                  // Pass 1: Exact slug/bravo_slug match across all variants
+                  let slugMatch = null;
+                  for (const sv of slugVariants) {
+                      slugMatch = jsonVenues.find(v => 
+                          (v.slug && v.slug.toLowerCase() === sv) || 
+                          (v.bravo_slug && v.bravo_slug.toLowerCase() === sv) ||
+                          (v.name && v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === sv)
+                      );
+                      if (slugMatch) break;
+                  }
+                  
+                  // Pass 2: Normalized name match (decode -amp- → &, strip prefixes)
+                  if (!slugMatch) {
+                      const cleanSlug = (slug.startsWith('pa-') ? slug.slice(3) : slug);
+                      const searchName = cleanSlug
+                          .replace(/-amp-/g, ' & ')
+                          .replace(/-s-/g, "'s ")
+                          .replace(/-/g, ' ')
+                          .trim();
+                      const searchNorm = searchName.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+                      
+                      slugMatch = jsonVenues.find(v => {
+                          if (!v.name) return false;
+                          const vNorm = v.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+                          return vNorm === searchNorm;
+                      });
+                      
+                      // Pass 3: Significant word overlap
+                      if (!slugMatch) {
+                          const stopWords = new Set(['casino', 'resort', 'hotel', 'poker', 'room', 'the', 'and', 'at', 'of', 'in']);
+                          const queryWords = searchNorm.split(' ').filter(w => w.length >= 3 && !stopWords.has(w));
+                          if (queryWords.length >= 1) {
+                              let bestScore = 0;
+                              for (const v of jsonVenues) {
+                                  if (!v.name) continue;
+                                  const vNorm = v.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+                                  const vWords = vNorm.split(' ').filter(w => w.length >= 3 && !stopWords.has(w));
+                                  const shared = queryWords.filter(w => vWords.includes(w)).length;
+                                  const score = shared / Math.max(queryWords.length, vWords.length);
+                                  if (shared >= Math.max(1, Math.ceil(queryWords.length * 0.5)) && score > bestScore) {
+                                      bestScore = score;
+                                      slugMatch = v;
+                                  }
+                              }
+                          }
+                      }
+                  }
+                  
                   if (slugMatch) {
                       venues = [slugMatch];
                   } else {
                       // Try Supabase text search as last resort
                       try {
-                          const searchName = slug.replace(/-/g, ' ');
+                          const cleanSlug = (slug.startsWith('pa-') ? slug.slice(3) : slug);
+                          const searchName = cleanSlug
+                              .replace(/-amp-/g, ' & ')
+                              .replace(/-s-/g, "'s ")
+                              .replace(/-/g, ' ');
                           const { data } = await getSupabase()
                               .from('poker_venues')
                               .select('*')
