@@ -1690,6 +1690,38 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.getTrainingPlan(); } catch (e) { return null; }
         },
 
+        // Phase 321-330: Polish & Competitive Edge
+        getHandStrengthDistribution: () => {
+            try { return deterministicEngine.getHandStrengthDistribution(); } catch (e) { return null; }
+        },
+        getAggressionProfile: () => {
+            try { return deterministicEngine.getAggressionProfile(); } catch (e) { return null; }
+        },
+        getWinRateByHandCategory: () => {
+            try { return deterministicEngine.getWinRateByHandCategory(); } catch (e) { return null; }
+        },
+        getTightLooseProfile: () => {
+            try { return deterministicEngine.getTightLooseProfile(); } catch (e) { return null; }
+        },
+        getBluffSpotAnalysis: () => {
+            try { return deterministicEngine.getBluffSpotAnalysis(); } catch (e) { return null; }
+        },
+        getValueBetAnalysis: () => {
+            try { return deterministicEngine.getValueBetAnalysis(); } catch (e) { return null; }
+        },
+        getSessionSummaryCard: () => {
+            try { return deterministicEngine.getSessionSummaryCard(); } catch (e) { return null; }
+        },
+        getDifficultyProgression: () => {
+            try { return deterministicEngine.getDifficultyProgression(); } catch (e) { return null; }
+        },
+        getWeaknessHeatmap: () => {
+            try { return deterministicEngine.getWeaknessHeatmap(); } catch (e) { return null; }
+        },
+        getGTOComplianceScore: () => {
+            try { return deterministicEngine.getGTOComplianceScore(); } catch (e) { return null; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,

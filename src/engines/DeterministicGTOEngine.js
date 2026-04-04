@@ -6102,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '3.9.0-phase320',
-            phasesImplemented: 320,
+            version: '4.0.0-phase330',
+            phasesImplemented: 330,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6159,6 +6159,8 @@ export class DeterministicGTOEngine {
                 phase306_310: ['conceptQuiz', 'sessionMilestones', 'adaptiveDrillRec', 'criticalHandHighlights', 'comprehensiveReport'],
                 phase311_315: ['nodeTypeBreakdown', 'actionTimeline', 'streetSpecificLeaks', 'overbetAnalysis', 'checkRaiseAnalysis'],
                 phase316_320: ['cbetAnalysis', 'positionPairAnalysis', 'freqConvergence', 'smartSessionLength', 'trainingPlan'],
+                phase321_325: ['handStrengthDist', 'aggressionProfile', 'winRateByHand', 'tightLooseProfile', 'bluffSpotAnalysis'],
+                phase326_330: ['valueBetAnalysis', 'sessionSummaryCard', 'difficultyProgression', 'weaknessHeatmap', 'gtoComplianceScore'],
             },
             totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
@@ -13663,6 +13665,394 @@ export class DeterministicGTOEngine {
         plan.estimatedImprovement = Math.min(15, weaknesses.length * 3);
 
         return plan;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 321: HAND STRENGTH DISTRIBUTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getHandStrengthDistribution() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+        const buckets = { premium: 0, strong: 0, medium: 0, weak: 0, trash: 0 };
+
+        history.forEach(h => {
+            const cat = (h.handCategory || '').toLowerCase();
+            if (cat.includes('premium') || cat.includes('aa') || cat.includes('kk') || cat.includes('qq') || cat.includes('aks')) buckets.premium++;
+            else if (cat.includes('strong') || cat.includes('top pair') || cat.includes('overpair') || cat.includes('two pair') || cat.includes('set')) buckets.strong++;
+            else if (cat.includes('medium') || cat.includes('middle pair') || cat.includes('draw') || cat.includes('second')) buckets.medium++;
+            else if (cat.includes('weak') || cat.includes('bottom') || cat.includes('gutshot') || cat.includes('backdoor')) buckets.weak++;
+            else buckets.trash++;
+        });
+
+        const total = history.length;
+        return {
+            distribution: Object.entries(buckets).map(([strength, count]) => ({
+                strength: strength.charAt(0).toUpperCase() + strength.slice(1),
+                count,
+                percentage: Math.round((count / total) * 100),
+            })).filter(d => d.count > 0),
+            totalHands: total,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 322: AGGRESSION PROFILE (VPIP/PFR/3BET-like)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getAggressionProfile() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let voluntaryActions = 0, aggressiveActions = 0, passiveActions = 0, folds = 0;
+
+        history.forEach(h => {
+            const action = (h.selectedAction || '').toLowerCase();
+            if (action.includes('fold')) { folds++; return; }
+            voluntaryActions++;
+            if (action.includes('bet') || action.includes('raise') || action.includes('all')) aggressiveActions++;
+            else passiveActions++;
+        });
+
+        const total = history.length;
+        const vpip = Math.round((voluntaryActions / total) * 100);
+        const aggPct = voluntaryActions > 0 ? Math.round((aggressiveActions / voluntaryActions) * 100) : 0;
+        const afr = passiveActions > 0 ? Math.round((aggressiveActions / passiveActions) * 10) / 10 : aggressiveActions;
+
+        let profile;
+        if (vpip >= 70 && aggPct >= 60) profile = 'LAG (Loose-Aggressive)';
+        else if (vpip >= 70) profile = 'LP (Loose-Passive)';
+        else if (aggPct >= 60) profile = 'TAG (Tight-Aggressive)';
+        else profile = 'TP (Tight-Passive)';
+
+        return {
+            vpip,
+            aggressionPct: aggPct,
+            aggressionFactor: afr,
+            foldPct: Math.round((folds / total) * 100),
+            profile,
+            totalHands: total,
+            tip: profile === 'TAG' ? 'Tight-aggressive is the foundation of winning poker. Keep it up!'
+                : profile === 'LAG' ? 'Loose-aggressive can be profitable but requires deep understanding. Make sure your bluffs have blockers.'
+                : profile === 'LP' ? 'Loose-passive is the weakest style. Add more aggression — bet and raise more with draws and strong hands.'
+                : 'Tight-passive plays too few hands and too passively. Open wider in position and bet for value more.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 323: WIN RATE BY HAND CATEGORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getWinRateByHandCategory() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+        const categories = {};
+
+        history.forEach(h => {
+            const cat = h.handCategory || 'Unknown';
+            if (!categories[cat]) categories[cat] = { correct: 0, total: 0 };
+            categories[cat].total++;
+            if (h.correct) categories[cat].correct++;
+        });
+
+        const results = Object.entries(categories).map(([cat, data]) => ({
+            category: cat,
+            total: data.total,
+            correct: data.correct,
+            winRate: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+        })).sort((a, b) => b.total - a.total);
+
+        const weakest = results.filter(r => r.total >= 2).sort((a, b) => a.winRate - b.winRate)[0] || null;
+
+        return { categories: results, weakestCategory: weakest, totalCategories: results.length };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 324: TIGHT/LOOSE PROFILE VS SOLVER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getTightLooseProfile() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let userFolds = 0, solverFolds = 0, userContinues = 0, solverContinues = 0;
+
+        history.forEach(h => {
+            const userAction = (h.selectedAction || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+
+            if (userAction.includes('fold')) userFolds++;
+            else userContinues++;
+
+            if (correctAction.includes('fold')) solverFolds++;
+            else solverContinues++;
+        });
+
+        const total = history.length;
+        const userFoldPct = Math.round((userFolds / total) * 100);
+        const solverFoldPct = Math.round((solverFolds / total) * 100);
+        const diff = userFoldPct - solverFoldPct;
+
+        let assessment;
+        if (diff > 10) assessment = 'too_tight';
+        else if (diff > 5) assessment = 'slightly_tight';
+        else if (diff < -10) assessment = 'too_loose';
+        else if (diff < -5) assessment = 'slightly_loose';
+        else assessment = 'balanced';
+
+        return {
+            userFoldPct,
+            solverFoldPct,
+            difference: diff,
+            assessment,
+            description: assessment === 'balanced' ? 'Your fold frequency matches the solver well.'
+                : assessment.includes('tight') ? `You fold ${Math.abs(diff)}% more than the solver. You might be leaving value on the table.`
+                : `You fold ${Math.abs(diff)}% less than the solver. You might be calling too wide in some spots.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 325: BLUFF SPOT ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getBluffSpotAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let bluffAttempts = 0, correctBluffs = 0, shouldBluff = 0, missedBluffs = 0;
+
+        history.forEach(h => {
+            const userAction = (h.selectedAction || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const handCat = (h.handCategory || '').toLowerCase();
+
+            // Detect bluffs: aggressive action with weak hand
+            const isWeakHand = handCat.includes('weak') || handCat.includes('air') || handCat.includes('trash') || handCat.includes('nothing') || handCat.includes('backdoor');
+            const userBets = userAction.includes('bet') || userAction.includes('raise') || userAction.includes('all');
+            const solverBets = correctAction.includes('bet') || correctAction.includes('raise') || correctAction.includes('all');
+
+            if (isWeakHand && userBets) { bluffAttempts++; if (h.correct) correctBluffs++; }
+            if (isWeakHand && solverBets) { shouldBluff++; if (!userBets) missedBluffs++; }
+        });
+
+        return {
+            bluffAttempts,
+            correctBluffs,
+            bluffAccuracy: bluffAttempts > 0 ? Math.round((correctBluffs / bluffAttempts) * 100) : null,
+            shouldBluff,
+            missedBluffs,
+            tip: missedBluffs > 2
+                ? `You missed ${missedBluffs} bluff opportunities. Look for spots with good blockers and fold equity.`
+                : bluffAttempts > shouldBluff + 2
+                    ? 'You bluff more than the solver recommends. Be selective — choose spots with good blockers.'
+                    : 'Your bluffing frequency looks reasonable.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 326: VALUE BET ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getValueBetAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let valueBets = 0, correctValue = 0, shouldValueBet = 0, missedValue = 0;
+
+        history.forEach(h => {
+            const userAction = (h.selectedAction || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const handCat = (h.handCategory || '').toLowerCase();
+
+            const isStrongHand = handCat.includes('strong') || handCat.includes('top pair') || handCat.includes('overpair') || handCat.includes('set') || handCat.includes('two pair') || handCat.includes('premium');
+            const userBets = userAction.includes('bet') || userAction.includes('raise');
+            const solverBets = correctAction.includes('bet') || correctAction.includes('raise');
+
+            if (isStrongHand && userBets) { valueBets++; if (h.correct) correctValue++; }
+            if (isStrongHand && solverBets) { shouldValueBet++; if (!userBets) missedValue++; }
+        });
+
+        return {
+            valueBets,
+            correctValue,
+            accuracy: valueBets > 0 ? Math.round((correctValue / valueBets) * 100) : null,
+            shouldValueBet,
+            missedValue,
+            tip: missedValue > 2
+                ? `You missed ${missedValue} value bet opportunities. Don't be afraid to bet for thin value with strong hands.`
+                : valueBets > 0 && (correctValue / valueBets) < 0.6
+                    ? 'Some of your value bets might be too thin. Ensure villain calls with worse.'
+                    : 'Your value betting looks solid.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 327: SESSION SUMMARY CARD (shareable)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getSessionSummaryCard() {
+        if (!this._sessionStats || this._sessionStats.total < 3) return null;
+        const stats = this._sessionStats;
+        const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+        const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 55 ? 'C' : accuracy >= 40 ? 'D' : 'F';
+
+        return {
+            grade,
+            accuracy,
+            totalHands: stats.total,
+            correct: stats.correct,
+            evLoss: Math.round((stats.evLoss || 0) * 100) / 100,
+            currentStreak: stats.currentStreak || 0,
+            bestStreak: stats.bestStreak || 0,
+            timestamp: new Date().toISOString(),
+            shareText: `GTO Trainer: ${grade} grade | ${accuracy}% accuracy | ${stats.total} hands | ${Math.round((stats.evLoss || 0) * 100) / 100} EV loss`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 328: DIFFICULTY PROGRESSION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getDifficultyProgression() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Track spot difficulty over time
+        const progression = history.map((h, i) => ({
+            hand: i + 1,
+            difficulty: h.spotDifficulty || h.difficulty || 'standard',
+            correct: h.correct,
+        }));
+
+        const diffCounts = { easy: 0, standard: 0, hard: 0, expert: 0 };
+        const diffCorrect = { easy: 0, standard: 0, hard: 0, expert: 0 };
+
+        progression.forEach(p => {
+            const d = (p.difficulty || 'standard').toLowerCase();
+            const key = d.includes('easy') ? 'easy' : d.includes('hard') || d.includes('difficult') ? 'hard' : d.includes('expert') ? 'expert' : 'standard';
+            diffCounts[key]++;
+            if (p.correct) diffCorrect[key]++;
+        });
+
+        const summary = Object.entries(diffCounts).filter(([_, c]) => c > 0).map(([diff, count]) => ({
+            difficulty: diff.charAt(0).toUpperCase() + diff.slice(1),
+            count,
+            accuracy: count > 0 ? Math.round((diffCorrect[diff] / count) * 100) : 0,
+        }));
+
+        return { progression, summary, totalHands: history.length };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 329: WEAKNESS HEATMAP (position × street)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getWeaknessHeatmap() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 8) return null;
+        const history = this._sessionStats.history;
+        const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+        const streets = ['Preflop', 'Flop', 'Turn', 'River'];
+        const cells = {};
+
+        history.forEach(h => {
+            const pos = (h.heroPosition || h.position || 'MP').toUpperCase();
+            const street = (h.street || 'flop').charAt(0).toUpperCase() + (h.street || 'flop').slice(1);
+            const key = `${pos}_${street}`;
+            if (!cells[key]) cells[key] = { correct: 0, total: 0 };
+            cells[key].total++;
+            if (h.correct) cells[key].correct++;
+        });
+
+        const heatmap = [];
+        positions.forEach(pos => {
+            streets.forEach(street => {
+                const key = `${pos}_${street}`;
+                const data = cells[key] || { correct: 0, total: 0 };
+                if (data.total > 0) {
+                    const accuracy = Math.round((data.correct / data.total) * 100);
+                    heatmap.push({
+                        position: pos,
+                        street,
+                        accuracy,
+                        total: data.total,
+                        intensity: accuracy >= 80 ? 'strong' : accuracy >= 60 ? 'medium' : accuracy >= 40 ? 'weak' : 'critical',
+                    });
+                }
+            });
+        });
+
+        const weakest = heatmap.filter(c => c.total >= 2).sort((a, b) => a.accuracy - b.accuracy)[0] || null;
+
+        return { heatmap, weakestCell: weakest, positions, streets };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 330: GTO COMPLIANCE SCORE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getGTOComplianceScore() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Multi-factor GTO compliance
+        let accuracyScore = 0, frequencyScore = 0, balanceScore = 0;
+        let freqCount = 0;
+
+        // 1. Action accuracy (40% weight)
+        const accuracy = history.filter(h => h.correct).length / history.length;
+        accuracyScore = accuracy * 100;
+
+        // 2. Frequency deviation (30% weight)
+        history.forEach(h => {
+            if (h.correctFreq !== undefined && h.selectedFreq !== undefined) {
+                const dev = Math.abs((h.selectedFreq || 0) - (h.correctFreq || 0));
+                frequencyScore += Math.max(0, 100 - dev * 2);
+                freqCount++;
+            }
+        });
+        if (freqCount > 0) frequencyScore = frequencyScore / freqCount;
+        else frequencyScore = accuracyScore; // Fallback
+
+        // 3. Balance (30% weight) — fold/call/raise distribution
+        let folds = 0, calls = 0, raises = 0;
+        let sFolds = 0, sCalls = 0, sRaises = 0;
+        history.forEach(h => {
+            const ua = (h.selectedAction || '').toLowerCase();
+            const ca = (h.correctAction || '').toLowerCase();
+            if (ua.includes('fold')) folds++; else if (ua.includes('call') || ua.includes('check')) calls++; else raises++;
+            if (ca.includes('fold')) sFolds++; else if (ca.includes('call') || ca.includes('check')) sCalls++; else sRaises++;
+        });
+        const total = history.length;
+        const fDiff = Math.abs((folds / total) - (sFolds / total));
+        const cDiff = Math.abs((calls / total) - (sCalls / total));
+        const rDiff = Math.abs((raises / total) - (sRaises / total));
+        balanceScore = Math.max(0, 100 - (fDiff + cDiff + rDiff) * 200);
+
+        const overall = Math.round(accuracyScore * 0.4 + frequencyScore * 0.3 + balanceScore * 0.3);
+
+        let tier;
+        if (overall >= 90) tier = 'Elite';
+        else if (overall >= 80) tier = 'Advanced';
+        else if (overall >= 70) tier = 'Intermediate';
+        else if (overall >= 55) tier = 'Developing';
+        else tier = 'Beginner';
+
+        return {
+            overall,
+            tier,
+            components: {
+                accuracy: Math.round(accuracyScore),
+                frequency: Math.round(frequencyScore),
+                balance: Math.round(balanceScore),
+            },
+            weights: { accuracy: '40%', frequency: '30%', balance: '30%' },
+            totalHands: history.length,
+            insight: tier === 'Elite' ? 'Your play closely mirrors GTO solutions. Exceptional!'
+                : tier === 'Advanced' ? 'Strong GTO fundamentals. Fine-tune mixed frequency spots.'
+                : tier === 'Intermediate' ? 'Good foundation. Focus on frequency accuracy and range balance.'
+                : tier === 'Developing' ? 'Growing understanding. Study solver outputs and focus on one leak at a time.'
+                : 'Building fundamentals. Start with preflop ranges and basic c-bet strategy.',
+        };
     }
 }
 

@@ -883,6 +883,13 @@ function GodModeArenaInner({
         getFrequencyConvergenceTracker,
         getSmartSessionLength,
         getTrainingPlan,
+        // ═══ PHASE 321-330: Polish & competitive edge ═══
+        getAggressionProfile,
+        getTightLooseProfile,
+        getBluffSpotAnalysis,
+        getValueBetAnalysis,
+        getWeaknessHeatmap,
+        getGTOComplianceScore,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2954,6 +2961,145 @@ function GodModeArenaInner({
                                     ))}
                                     {tp.estimatedImprovement > 0 && (
                                         <div style={{ fontSize: 10, color: '#a78bfa', fontWeight: 600, marginTop: 6 }}>Estimated improvement: +{tp.estimatedImprovement}% accuracy</div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 330: GTO Compliance Score ═══ */}
+                        {(() => {
+                            try {
+                                const gto = getGTOComplianceScore();
+                                if (!gto) return null;
+                                const tierColors = { Elite: '#22c55e', Advanced: '#4ade80', Intermediate: '#06b6d4', Developing: '#fbbf24', Beginner: '#ef4444' };
+                                const tColor = tierColors[gto.tier] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>GTO Compliance</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace" }}>{gto.overall}%</div>
+                                        <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>{gto.tier}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.accuracy}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Accuracy</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.frequency}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Frequency</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.balance}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Balance</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{gto.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 322: Aggression Profile ═══ */}
+                        {(() => {
+                            try {
+                                const ap = getAggressionProfile();
+                                if (!ap) return null;
+                                const profileColors = { 'TAG (Tight-Aggressive)': '#22c55e', 'LAG (Loose-Aggressive)': '#fbbf24', 'LP (Loose-Passive)': '#ef4444', 'TP (Tight-Passive)': '#f87171' };
+                                const pColor = profileColors[ap.profile] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${pColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Player Profile</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 800, color: pColor }}>{ap.profile}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.vpip}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>VPIP</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionPct}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Aggression</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionFactor}</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>AF</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{ap.tip}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 324: Tight/Loose vs Solver ═══ */}
+                        {(() => {
+                            try {
+                                const tl = getTightLooseProfile();
+                                if (!tl) return null;
+                                const aColor = tl.assessment === 'balanced' ? '#22c55e' : tl.assessment.includes('tight') ? '#06b6d4' : '#fbbf24';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${aColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: aColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Fold Frequency vs Solver</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tl.userFoldPct}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>You</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: aColor, fontFamily: "'Orbitron', monospace" }}>{tl.solverFoldPct}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Solver</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{tl.description}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 325+326: Bluff & Value Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const bs = getBluffSpotAnalysis();
+                                const vb = getValueBetAnalysis();
+                                if (!bs && !vb) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Bluff &amp; Value</div>
+                                    {bs && bs.bluffAttempts > 0 && (
+                                        <div style={{ marginBottom: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, color: '#94a3b8' }}>Bluff Accuracy</span>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: (bs.bluffAccuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{bs.bluffAccuracy || 0}% ({bs.bluffAttempts})</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8' }}>{bs.tip}</div>
+                                        </div>
+                                    )}
+                                    {vb && vb.valueBets > 0 && (
+                                        <div style={{ marginTop: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, color: '#94a3b8' }}>Value Bet Accuracy</span>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: (vb.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{vb.accuracy || 0}% ({vb.valueBets})</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8' }}>{vb.tip}</div>
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 329: Weakness Heatmap ═══ */}
+                        {(() => {
+                            try {
+                                const wh = getWeaknessHeatmap();
+                                if (!wh || wh.heatmap.length < 3) return null;
+                                const intensityColors = { strong: '#22c55e', medium: '#fbbf24', weak: '#f97316', critical: '#ef4444' };
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,146,60,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fb923c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Weakness Map</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {wh.heatmap.map((cell, i) => (
+                                            <div key={i} style={{ padding: '3px 8px', background: `${intensityColors[cell.intensity]}15`, borderRadius: 4, border: `1px solid ${intensityColors[cell.intensity]}30`, fontSize: 9 }}>
+                                                <span style={{ color: '#94a3b8' }}>{cell.position}/{cell.street}: </span>
+                                                <span style={{ color: intensityColors[cell.intensity], fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{cell.accuracy}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {wh.weakestCell && (
+                                        <div style={{ fontSize: 10, color: '#ef4444', fontStyle: 'italic', marginTop: 6 }}>Weakest: {wh.weakestCell.position} on {wh.weakestCell.street} — {wh.weakestCell.accuracy}%</div>
                                     )}
                                 </div>);
                             } catch (_) { return null; }
