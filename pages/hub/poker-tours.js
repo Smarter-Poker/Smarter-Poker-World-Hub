@@ -19,7 +19,7 @@ const MapErrorBoundary = dynamic(() => import('../../src/components/poker-near-m
 function getMenuConfig() {
     return {
         menuItems: [
-            { label: 'Poker Near Me', href: '/hub/poker-near-me', icon: '📍' },
+            { label: 'Poker Near Me', href: '/hub/poker-near-me-lobby', icon: '📍' },
             { label: 'Poker Tours', href: '/hub/poker-tours', icon: '🏆' },
             { label: 'Daily Tournaments', href: '/hub/daily-tournaments', icon: '📅' },
             { label: 'Events Calendar', href: '/hub/events-calendar', icon: '🗓️' },
