@@ -142,6 +142,33 @@ const LEAFLET_CUSTOM_CSS = `
   50% { transform: scale(2.2); opacity: 0; }
 }
 
+/* ═══ VENUE LABEL (Google Maps-style) ═══ */
+.venue-pin-label {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  white-space: nowrap;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.7);
+  letter-spacing: 0.2px;
+  pointer-events: none;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  line-height: 1.2;
+  transition: opacity 0.3s;
+}
+/* Hide labels at low zoom — managed via JS class toggle */
+.venue-labels-hidden .venue-pin-label {
+  display: none !important;
+}
+
 /* ═══ CLUSTER ICON OVERRIDES ═══ */
 .venue-cluster-icon {
   background: transparent !important;
@@ -231,20 +258,39 @@ export class MapErrorBoundary extends React.Component {
   }
 }
 
-// ─── Helper: Create venue marker icon ───
-function createVenueIcon(L, venueType, overrideColor) {
+// ─── Helper: Truncate venue name for map label ───
+function truncateName(name, maxLen) {
+  if (!name) return '';
+  // Strip common suffixes to save space
+  let short = name.replace(/\s*(Casino|Hotel|Resort|&\s*Casino|&\s*Resort|&\s*Hotel|Poker\s*Room|Card\s*Room|Room)\s*$/i, '');
+  if (short.length <= maxLen) return short;
+  return short.slice(0, maxLen - 1).trim() + '…';
+}
+
+// ─── Helper: Create venue marker icon (Google Maps-style pin with label) ───
+function createVenueIcon(L, venueType, overrideColor, venueName) {
   const colors = overrideColor
     ? { fill: overrideColor, glow: overrideColor + '80' }
     : (VENUE_TYPE_COLORS[venueType] || DEFAULT_VENUE_COLOR);
+  const label = truncateName(venueName, 20);
+  const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   return L.divIcon({
     className: 'venue-map-marker',
-    html: `<div style="position:relative;width:26px;height:26px;">
-      <div style="position:absolute;inset:0;border-radius:50%;background:${colors.fill};opacity:0.4;animation:markerPulse 3s ease-in-out infinite;"></div>
-      <div style="position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:${colors.fill};border:2.5px solid #ffffff;box-shadow:0 3px 6px rgba(0,0,0,0.8), 0 0 12px ${colors.fill};"></div>
+    html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+      <div style="filter:drop-shadow(0 3px 4px rgba(0,0,0,0.7));">
+        <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="${colors.fill}"/>
+          <path d="M14 1C6.82 1 1 6.82 1 14c0 4.5 2.5 9.8 6.3 14.5C10.3 32.3 13 34.8 14 35.7c1-0.9 3.7-3.4 6.7-7.2C24.5 23.8 27 18.5 27 14 27 6.82 21.18 1 14 1z" fill="url(#pinGrad_${colors.fill.replace('#','')})"/>
+          <circle cx="14" cy="13" r="6" fill="#fff" opacity="0.95"/>
+          <circle cx="14" cy="13" r="4" fill="${colors.fill}" opacity="0.9"/>
+          <defs><linearGradient id="pinGrad_${colors.fill.replace('#','')}" x1="14" y1="0" x2="14" y2="36"><stop offset="0%" stop-color="#fff" stop-opacity="0.25"/><stop offset="100%" stop-color="#000" stop-opacity="0.15"/></linearGradient></defs>
+        </svg>
+      </div>
+      ${escapedLabel ? `<div class="venue-pin-label">${escapedLabel}</div>` : ''}
     </div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-    popupAnchor: [0, -14],
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -34],
   });
 }
 
@@ -642,7 +688,23 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       }
     }
 
+    // ═══ LABEL VISIBILITY BASED ON ZOOM ═══
+    // Hide venue name labels when zoomed out to prevent clutter
+    function updateLabelVisibility() {
+      const zoom = map.getZoom();
+      const container = mapContainerRef.current;
+      if (!container) return;
+      if (zoom >= 7) {
+        container.classList.remove('venue-labels-hidden');
+      } else {
+        container.classList.add('venue-labels-hidden');
+      }
+    }
+
     map.on('zoomend', updateCircles);
+    map.on('zoomend', updateLabelVisibility);
+    // Set initial label visibility
+    updateLabelVisibility();
 
     // ═══ SHOW USER LOCATION PIN IMMEDIATELY IF AVAILABLE ═══
     if (userLocation) {
@@ -691,7 +753,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const isTourStop = venue.venue_type === 'tour_stop' && venue.tour_code;
       const venueIcon = isTourStop
         ? createTourLogoIcon(L, venue)
-        : createVenueIcon(L, venue.venue_type, uniformColor || null);
+        : createVenueIcon(L, venue.venue_type, uniformColor || null, venue.name);
       const popupHtml = isTourStop
         ? buildTourPopupHtml(venue)
         : buildPopupHtml(venue);

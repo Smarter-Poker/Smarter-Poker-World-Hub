@@ -75,7 +75,15 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
     // Cross-tab sync
     useEffect(() => {
         const handler = (e) => {
-            if (e.detail) setPrefs(e.detail);
+            if (e.detail) {
+                // Prevent infinite loop: only update if different from current prefs
+                setPrefs(prev => {
+                    try {
+                        if (JSON.stringify(prev) === JSON.stringify(e.detail)) return prev;
+                    } catch { /* fallthrough */ }
+                    return e.detail;
+                });
+            }
         };
         window.addEventListener('tournament-alerts-sync', handler);
         return () => window.removeEventListener('tournament-alerts-sync', handler);

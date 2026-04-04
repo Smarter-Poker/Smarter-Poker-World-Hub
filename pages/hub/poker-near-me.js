@@ -1894,7 +1894,7 @@ export default function PokerNearMePage() {
                                     e.preventDefault();
                                 }
                             }}>
-                                <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />
+                                <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} locationCity={gpsLocationLabel ? gpsLocationLabel.split(',')[0]?.trim() : ''} locationState={gpsLocationLabel ? gpsLocationLabel.split(',')[1]?.trim() : ''} />
                             </div>
                         )}
                         {activeMoreTab === 'social' && (
@@ -1924,7 +1924,7 @@ export default function PokerNearMePage() {
                         )}
 
                         {activeMoreTab === 'nearmenow' && (
-                            <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />
+                            <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} onRequestGPS={requestGpsLocation} onSwitchTab={setActiveTab} onNavigateVenue={(venueId) => { if (typeof window !== 'undefined') window.location.href = `/hub/venues/${venueId}`; }} />
                         )}
                         {activeMoreTab === 'tripcost' && (
                             <div onClickCapture={(e) => {
