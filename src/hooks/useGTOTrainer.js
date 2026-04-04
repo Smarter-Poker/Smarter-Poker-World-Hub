@@ -535,6 +535,28 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             );
         } catch (e) { /* non-critical */ }
 
+        // ═══ PHASE 227: Deviation cost tracking ═══
+        try {
+            const evLossForCost = deterministicEngine.estimateEVLoss(
+                selectedOptionId, correctAnswer,
+                currentQuestion.actionEVs || {}, currentQuestion.estimatedPot || 0
+            );
+            if (evLossForCost && !isCorrect) {
+                deterministicEngine.recordDeviationCost(parseFloat(evLossForCost.evLossBB) || 0);
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 241: Training calendar ═══
+        try { deterministicEngine.recordDailyTraining(); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 179: Session bests tracking ═══
+        try {
+            if (isCorrect) {
+                const currentStreak = (this._recentResults || []).reduce((acc, r) => r ? acc + 1 : 0, 0);
+                deterministicEngine.recordSessionBest('streak', currentStreak);
+            }
+        } catch (e) { /* non-critical */ }
+
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback
         if (isCorrect) {
@@ -604,6 +626,31 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             );
             if (coachMsg) {
                 fullExplanation = coachMsg + ' ' + fullExplanation;
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 249: Tilt detection ═══
+        try {
+            const tiltStatus = deterministicEngine.detectTilt();
+            if (tiltStatus && tiltStatus.message) {
+                fullExplanation = `${fullExplanation} ${tiltStatus.message}`;
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 198: Mental game note ═══
+        try {
+            const mentalNote = deterministicEngine.getMentalGameNote();
+            if (mentalNote) {
+                fullExplanation = `${fullExplanation} ${mentalNote}`;
+            }
+        } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 225: Smart recap ═══
+        try {
+            const recap = deterministicEngine.generateSmartRecap(deterministicEngine._getSessionQuestionCount());
+            if (recap) {
+                const recapText = recap.sections.map(s => `${s.title}: ${s.content}`).join(' | ');
+                fullExplanation = `${fullExplanation} 📊 Session recap — ${recapText}`;
             }
         } catch (e) { /* non-critical */ }
 
@@ -1317,6 +1364,81 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 225: Smart recap ═══
         generateSmartRecap: (qNum) => {
             try { return deterministicEngine.generateSmartRecap(qNum); } catch (e) { return null; }
+        },
+        // ═══ PHASE 226: Range equity estimation ═══
+        estimateEquityVsRange: (handStrength, street, rangeType) => {
+            try { return deterministicEngine.estimateEquityVsRange(handStrength, street, rangeType); } catch (e) { return null; }
+        },
+        // ═══ PHASE 227: Cumulative deviation cost ═══
+        getCumulativeDeviationCost: () => {
+            try { return deterministicEngine.getCumulativeDeviationCost(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 229: Runout simulation ═══
+        simulateRunouts: (board, handStrength, street) => {
+            try { return deterministicEngine.simulateRunouts(board, handStrength, street); } catch (e) { return null; }
+        },
+        // ═══ PHASE 230: 3-bet defense matrix ═══
+        get3BetDefenseMatrix: () => {
+            try { return deterministicEngine.get3BetDefenseMatrix(); } catch (e) { return {}; }
+        },
+        // ═══ PHASE 232: Sizing optimizer ═══
+        recommendBetSizing: (handStrength, street, texture, pot, stack) => {
+            try { return deterministicEngine.recommendBetSizing(handStrength, street, texture, pot, stack); } catch (e) { return null; }
+        },
+        // ═══ PHASE 236: Draw equity ═══
+        calculateDrawEquity: (handStrength, street) => {
+            try { return deterministicEngine.calculateDrawEquity(handStrength, street); } catch (e) { return null; }
+        },
+        // ═══ PHASE 237: Fold equity ═══
+        calculateFoldEquity: (betSize, potSize) => {
+            try { return deterministicEngine.calculateFoldEquity(betSize, potSize); } catch (e) { return null; }
+        },
+        // ═══ PHASE 238: EV calculator ═══
+        calculateActionEV: (action, equity, potSize, betSize, foldEquity) => {
+            try { return deterministicEngine.calculateActionEV(action, equity, potSize, betSize, foldEquity); } catch (e) { return null; }
+        },
+        // ═══ PHASE 239: Bluff ratio ═══
+        calculateOptimalBluffRatio: (betSizePct) => {
+            try { return deterministicEngine.calculateOptimalBluffRatio(betSizePct); } catch (e) { return null; }
+        },
+        // ═══ PHASE 240: Leaderboard ═══
+        getLeaderboardEntry: () => {
+            try { return deterministicEngine.getLeaderboardEntry(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 241: Training calendar ═══
+        getTrainingCalendar: () => {
+            try { return deterministicEngine.getTrainingCalendar(); } catch (e) { return {}; }
+        },
+        getTrainingStreak: () => {
+            try { return deterministicEngine.getTrainingStreak(); } catch (e) { return 0; }
+        },
+        // ═══ PHASE 242: Flashcards ═══
+        generateFlashcards: (category) => {
+            try { return deterministicEngine.generateFlashcards(category); } catch (e) { return null; }
+        },
+        // ═══ PHASE 243: Quick-fire ═══
+        generateQuickFireQuestion: (scenario, heroHand, correctAction) => {
+            try { return deterministicEngine.generateQuickFireQuestion(scenario, heroHand, correctAction); } catch (e) { return null; }
+        },
+        // ═══ PHASE 244: Board texture classification ═══
+        classifyBoardTexture: (board) => {
+            try { return deterministicEngine.classifyBoardTexture(board); } catch (e) { return null; }
+        },
+        // ═══ PHASE 245: Action tree ═══
+        generateActionTree: (handActions, heroHand) => {
+            try { return deterministicEngine.generateActionTree(handActions, heroHand); } catch (e) { return null; }
+        },
+        // ═══ PHASE 246: Range vs range ═══
+        getRangeVsRangeEquity: (heroRange, villainRange, boardType) => {
+            try { return deterministicEngine.getRangeVsRangeEquity(heroRange, villainRange, boardType); } catch (e) { return null; }
+        },
+        // ═══ PHASE 249: Tilt detection ═══
+        detectTilt: () => {
+            try { return deterministicEngine.detectTilt(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 250: Training dashboard ═══
+        getTrainingDashboard: () => {
+            try { return deterministicEngine.getTrainingDashboard(); } catch (e) { return null; }
         },
 
         // Actions

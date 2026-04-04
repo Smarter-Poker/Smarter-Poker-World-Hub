@@ -1828,6 +1828,14 @@ export class DeterministicGTOEngine {
         const multiSizeNote = this._getMultiSizingNote(optimalAction, handActions, handStrength, street, texture);
         const solverLineNote = this._getSolverLineNote(street, optimalAction, ctx.nodeType, handStrength);
 
+        // ═══ Phase 226-250 notes ═══
+        const handCatDiveNote = this._getHandCategoryDeepDive(handStrength, street, optimalAction);
+        const aggressionCoachNote = this._getAggressionCoachingNote(optimalAction, handStrength, street, ctx.nodeType, texture);
+        const rangeAdvScoreNote = this._getRangeAdvantageScore(ctx.heroPosition, ctx.villainPosition, texture, ctx.nodeType, street);
+        const villainNarrowNote = this._getVillainRangeNarrowNote(street, ctx.nodeType, optimalAction);
+        const eqEstimateNote = this._getEquityEstimateNote(handStrength, street, ctx.nodeType, optimalAction);
+        const tournamentNote = this._getTournamentAdjustmentNote(ctx.stackDepth);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1869,7 +1877,10 @@ export class DeterministicGTOEngine {
             // Phase 201-225 notes
             eqBucketNote, rangeMorphNote, blockerMatrixNote, potCommitNote, checkCallFoldNote,
             facingDonkNote, slowPlayNote, obChecklistNote, riverPolNote, evDecompNote,
-            multiSizeNote, solverLineNote].filter(Boolean);
+            multiSizeNote, solverLineNote,
+            // Phase 226-250 notes
+            handCatDiveNote, aggressionCoachNote, rangeAdvScoreNote, villainNarrowNote,
+            eqEstimateNote, tournamentNote].filter(Boolean);
 
         // Score and sort by relevance
         const scoredNotes = allNotesRaw.map(note => ({
@@ -6091,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '3.1.0-phase225',
-            phasesImplemented: 225,
+            version: '3.2.0-phase250',
+            phasesImplemented: 250,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6130,8 +6141,12 @@ export class DeterministicGTOEngine {
                 phase208_212: ['facingDonk', 'slowPlayChecklist', 'overbetChecklist', 'riverPolarizationIndex', 'evDecomposition'],
                 phase213_218: ['actionClustering', 'scenarioTagging', 'adaptiveHints', 'explanationQuality', 'multiSizing', 'frequencyWeightedScoring'],
                 phase219_225: ['challengeMode', 'achievements', 'conceptDependency', 'drillRecommendation', 'solverLineComparison', 'expectedFrequency', 'smartRecap'],
+                phase226_232: ['rangeEquityCalc', 'deviationCostTracker', 'handCategoryDeepDive', 'runoutSimulation', '3betDefenseMatrix', 'aggressionCoaching', 'sizingOptimizer'],
+                phase233_239: ['rangeAdvantageScore', 'villainRangeNarrowing', 'handEquityEstimate', 'drawEquityCalc', 'foldEquityCalc', 'evCalculator', 'bluffValueRatio'],
+                phase240_245: ['sessionLeaderboard', 'trainingCalendar', 'conceptFlashcards', 'quickFireDrills', 'textureClassification12', 'actionTreeViz'],
+                phase246_250: ['rangeVsRange', 'tournamentAdjustments', 'multiTableTips', 'tiltDetection', 'trainingDashboard'],
             },
-            totalExplanationNotes: 89, // Number of notes in allNotes pipeline
+            totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
             trackers: {
                 sessionStats: !!this._sessionStats,
@@ -9287,13 +9302,13 @@ export class DeterministicGTOEngine {
 
         return {
             status: 'healthy',
-            version: '3.1.0-phase225',
+            version: '3.2.0-phase250',
             questionsAnswered: statsCount,
             mistakeTrackerDimensions: trackerDims,
             conceptsTracked: concepts,
             handHistorySize: historySize,
             memoryEstimate: `~${Math.round((historySize * 200 + trackerDims * 50 + concepts * 30) / 1024)}KB`,
-            features: 225,
+            features: 250,
         };
     }
 
@@ -10119,6 +10134,767 @@ export class DeterministicGTOEngine {
         }
 
         return recap;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 226: RANGE EQUITY CALCULATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 226: Approximate equity vs villain's range based on hand strength.
+     * Uses pre-computed equity tables for common matchups.
+     */
+    estimateEquityVsRange(handStrength, street, villainRangeType) {
+        // Pre-computed approximate equities for common matchups
+        const equities = {
+            'nuts': { wide: 95, medium: 92, tight: 85 },
+            'second_nuts': { wide: 90, medium: 87, tight: 80 },
+            'full_house': { wide: 92, medium: 88, tight: 82 },
+            'flush': { wide: 85, medium: 80, tight: 70 },
+            'straight': { wide: 82, medium: 76, tight: 65 },
+            'set': { wide: 80, medium: 75, tight: 65 },
+            'trips': { wide: 75, medium: 70, tight: 58 },
+            'two_pair': { wide: 72, medium: 65, tight: 55 },
+            'overpair': { wide: 65, medium: 58, tight: 45 },
+            'top_pair_top_kicker': { wide: 62, medium: 55, tight: 42 },
+            'top_pair': { wide: 58, medium: 50, tight: 38 },
+            'top_pair_weak_kicker': { wide: 52, medium: 45, tight: 33 },
+            'middle_pair': { wide: 42, medium: 35, tight: 25 },
+            'second_pair': { wide: 38, medium: 30, tight: 22 },
+            'bottom_pair': { wide: 32, medium: 25, tight: 18 },
+            'underpair': { wide: 28, medium: 22, tight: 15 },
+            'ace_high': { wide: 25, medium: 18, tight: 12 },
+            'high_card': { wide: 18, medium: 12, tight: 8 },
+            'combo_draw': { wide: 48, medium: 45, tight: 42 },
+            'flush_draw': { wide: 36, medium: 34, tight: 32 },
+            'oesd': { wide: 32, medium: 30, tight: 28 },
+            'gutshot': { wide: 18, medium: 16, tight: 14 },
+            'missed_draw': { wide: 8, medium: 5, tight: 3 },
+        };
+
+        const rangeType = villainRangeType || 'medium';
+        const eq = equities[handStrength];
+        if (!eq) return null;
+
+        const equity = eq[rangeType] || eq.medium;
+        return {
+            equity: equity + '%',
+            vsRange: rangeType,
+            assessment: equity >= 70 ? 'Strong favorite — bet for value' :
+                equity >= 50 ? 'Slight favorite — thin value or pot control' :
+                equity >= 30 ? 'Underdog — need pot odds or implied odds to continue' :
+                'Significant underdog — fold unless getting excellent price',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 227: GTO DEVIATION COST TRACKER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 227: Track cumulative EV cost of all deviations from GTO.
+     */
+    recordDeviationCost(evLossBB) {
+        if (!this._cumulativeDeviationCost) this._cumulativeDeviationCost = { total: 0, count: 0, history: [] };
+        if (evLossBB > 0) {
+            this._cumulativeDeviationCost.total += evLossBB;
+            this._cumulativeDeviationCost.count++;
+            this._cumulativeDeviationCost.history.push({ loss: evLossBB, question: this._getSessionQuestionCount() });
+        }
+    }
+
+    getCumulativeDeviationCost() {
+        if (!this._cumulativeDeviationCost) return null;
+        const c = this._cumulativeDeviationCost;
+        return {
+            totalEVLost: c.total.toFixed(1) + 'bb',
+            mistakes: c.count,
+            avgLossPerMistake: c.count > 0 ? (c.total / c.count).toFixed(1) + 'bb' : '0bb',
+            costPerHundred: this._sessionStats?.total > 0 ? ((c.total / this._sessionStats.total) * 100).toFixed(1) + 'bb/100' : 'N/A',
+            message: c.total > 50 ? '⚠️ Significant EV leakage — focus on your biggest mistake categories.' :
+                c.total > 20 ? 'Moderate leaks — fixing your top 3 mistakes would save most of this.' :
+                'Small leaks — you\'re playing close to GTO. Fine-tuning will get you even closer.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 228: HAND CATEGORY DEEP-DIVE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 228: Detailed explanation notes for specific hand categories.
+     */
+    _getHandCategoryDeepDive(handStrength, street, optimalAction) {
+        if (street === 'preflop') return '';
+        const a = (optimalAction || '').toLowerCase();
+
+        const deepDives = {
+            'set': `Sets are the strongest hidden hands in hold'em. With a set, you hold 3-of-a-kind with a pocket pair, making it nearly invisible to opponents. On most boards, fast-play your set to build the pot — slow-playing risks being outdrawn.`,
+            'two_pair': `Two pair is strong but vulnerable. On wet boards, straights and flushes can overtake you. The key: bet for value on the flop/turn to deny equity, but be cautious if the board gets scarier on later streets.`,
+            'overpair': `Overpairs (pair higher than all board cards) are strong on dry boards but can be tricky on wet boards. The danger: opponents may have flopped sets, two pair, or draws. Play your overpair aggressively on favorable boards.`,
+            'flush_draw': `Flush draws have ~35% equity on the flop (2 streets) and ~19% on the turn (1 street). Rule of 4/2: multiply outs by 4 on flop, by 2 on turn. With 9 outs, that's 36% on flop, 18% on turn. Always consider whether you're drawing to the nut flush.`,
+            'combo_draw': `Combo draws (flush draw + straight draw) are monsters with 12-15 outs. That's 48-60% equity on the flop — you're often a favorite! Play these aggressively: raise and re-raise to build the pot or win it outright.`,
+            'top_pair': `Top pair is the backbone of postflop play. Its value depends heavily on your kicker. TPTK (top pair top kicker) is much stronger than TPWK (weak kicker). On wet boards, bet for protection. On dry boards, pot control may be optimal.`,
+        };
+
+        return deepDives[handStrength] || '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 229: BOARD RUNOUT SIMULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 229: Simulate possible runouts and their strategic implications.
+     */
+    simulateRunouts(board, handStrength, street) {
+        if (!board || board.length < 3 || street === 'river') return null;
+        const boardSuits = board.map(c => c[1]);
+        const boardRanks = board.map(c => '23456789TJQKA'.indexOf(c[0]));
+        const suitCounts = {};
+        boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+
+        const scenarios = [];
+
+        // Flush-completing card
+        const flushSuit = Object.entries(suitCounts).find(([, ct]) => ct >= 2);
+        if (flushSuit && flushSuit[1] < 3) {
+            scenarios.push({ type: 'flush_completing', desc: `A ${flushSuit[0]} card completes the flush draw`, impact: 'bad_for_non_flush', strategy: 'Check or slow down without a flush — villain's draw got there.' });
+        }
+
+        // Overcard (Ace or King)
+        const maxRank = Math.max(...boardRanks);
+        if (maxRank < 12) { // No Ace on board
+            scenarios.push({ type: 'ace_comes', desc: 'An Ace hits the turn/river', impact: 'changes_dynamics', strategy: 'Ace is the most impactful overcard — it helps Ax hands in both ranges but especially favors the preflop raiser.' });
+        }
+        if (maxRank < 11) { // No King on board
+            scenarios.push({ type: 'king_comes', desc: 'A King hits', impact: 'overcard', strategy: 'King improves KQ/KJ type hands. Reassess — your top pair may now be second pair.' });
+        }
+
+        // Board pairing
+        scenarios.push({ type: 'board_pairs', desc: 'The board pairs', impact: 'favors_pfr', strategy: 'Paired boards reduce straight/flush equity and favor the preflop raiser who has more big-card hands.' });
+
+        // Brick
+        scenarios.push({ type: 'brick', desc: 'A low unconnected card (2-5)', impact: 'neutral', strategy: 'Bricks maintain the status quo. Continue with your flop plan.' });
+
+        // Straight completing
+        const sorted = [...new Set(boardRanks)].sort((a, b) => a - b);
+        if (sorted.length >= 2 && sorted[sorted.length - 1] - sorted[0] <= 4) {
+            scenarios.push({ type: 'straight_completing', desc: 'A card that completes a straight', impact: 'bad_for_one_pair', strategy: 'Connected cards getting there is dangerous for one-pair hands. Consider checking or folding to aggression.' });
+        }
+
+        return scenarios;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 230: 3-BET DEFENSE MATRIX BY POSITION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 230: Pre-computed 3-bet defense frequencies by position pair.
+     */
+    get3BetDefenseMatrix() {
+        return {
+            'UTG_vs_BB': { fold: 55, call: 20, fourBet: 25, desc: 'UTG opens tight, BB 3-bets polarized. UTG folds a lot but 4-bets AA/KK/AKs.' },
+            'UTG_vs_BTN': { fold: 50, call: 25, fourBet: 25, desc: 'BTN 3-bets wider. UTG still defends tight but has more calling hands IP.' },
+            'MP_vs_BB': { fold: 50, call: 25, fourBet: 25, desc: 'MP range is wider. Defend with medium pairs and suited broadways.' },
+            'CO_vs_BB': { fold: 40, call: 30, fourBet: 30, desc: 'CO opens wide, more incentive to defend. Mix 4-bets with value and bluffs.' },
+            'CO_vs_BTN': { fold: 35, call: 35, fourBet: 30, desc: 'CO vs BTN is a key battleground. Defend wider with position.' },
+            'BTN_vs_BB': { fold: 30, call: 40, fourBet: 30, desc: 'BTN opens widest, defends wide vs BB 3-bet. IP advantage lets you flat more.' },
+            'BTN_vs_SB': { fold: 25, call: 40, fourBet: 35, desc: 'SB 3-bets tighter. BTN can defend very wide with IP postflop.' },
+            'SB_vs_BB': { fold: 40, call: 15, fourBet: 45, desc: 'SB vs BB: SB opens wide, often 4-bets or folds vs 3-bet. Flatting OOP is bad.' },
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 231: POSTFLOP AGGRESSION COACHING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 231: Optimal aggression level by spot type.
+     */
+    _getAggressionCoachingNote(optimalAction, handStrength, street, nodeType, texture) {
+        const a = (optimalAction || '').toLowerCase();
+        const node = (nodeType || '').toLowerCase();
+
+        // Only show coaching for betting/raising decisions
+        if (!a.startsWith('r') && a !== 'allin') return '';
+
+        const isIP = node.includes('ip') || node.includes('btn') || node.includes('co');
+        const isWet = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const isStrong = ['nuts', 'second_nuts', 'set', 'two_pair', 'flush', 'straight', 'full_house'].includes(handStrength);
+
+        if (isIP && isWet && isStrong) {
+            return 'Aggression coaching: IP on a wet board with a strong hand — maximum aggression. Bet/raise for value AND protection. Villain has draws that you need to charge.';
+        }
+        if (!isIP && isStrong) {
+            return 'Aggression coaching: OOP with a strong hand — lead out or check-raise. Being OOP means you need to build the pot before villain can take a free card.';
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 232: BET/RAISE SIZING OPTIMIZER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 232: Recommend optimal sizing based on hand strength and context.
+     */
+    recommendBetSizing(handStrength, street, texture, estimatedPot, stackDepth) {
+        if (!estimatedPot) return null;
+        const isWet = texture && (texture.flushDraws > 0 || texture.straightDraws > 0);
+        const isNuts = ['nuts', 'second_nuts', 'full_house'].includes(handStrength);
+        const isStrong = ['flush', 'straight', 'set', 'two_pair', 'overpair'].includes(handStrength);
+        const isMedium = ['top_pair_top_kicker', 'top_pair'].includes(handStrength);
+        const isBluff = ['high_card', 'ace_high', 'missed_draw'].includes(handStrength);
+
+        let sizePct, reasoning;
+
+        if (street === 'flop') {
+            if (isWet && isStrong) { sizePct = 66; reasoning = 'Wet board + strong hand: size up to deny draw equity.'; }
+            else if (!isWet && isStrong) { sizePct = 33; reasoning = 'Dry board + strong hand: small bet to keep villain in. No draws to charge.'; }
+            else if (isMedium) { sizePct = 33; reasoning = 'Medium hand: small sizing for thin value and pot control.'; }
+            else if (isBluff) { sizePct = 33; reasoning = 'Bluff: use the same small sizing as your value bets for balance.'; }
+            else { sizePct = 50; reasoning = 'Standard sizing — balanced between value and protection.'; }
+        } else if (street === 'turn') {
+            if (isNuts) { sizePct = 75; reasoning = 'Nutted hand on turn: size up to build the pot for a big river bet.'; }
+            else if (isStrong) { sizePct = 66; reasoning = 'Strong hand: maintain pressure and charge draws for one more card.'; }
+            else { sizePct = 50; reasoning = 'Standard turn sizing — pot is growing, keep it manageable.'; }
+        } else {
+            if (isNuts) { sizePct = stackDepth && estimatedPot && stackDepth > estimatedPot * 1.5 ? 125 : 80; reasoning = isNuts ? 'Max value: size to get called by the widest range of worse hands.' : 'Value bet'; }
+            else if (isBluff) { sizePct = 75; reasoning = 'Bluff: size to make villain fold their bluff-catchers. ~75% pot gives you good fold equity.'; }
+            else { sizePct = 50; reasoning = 'Thin value: smaller size to get called by worse hands.'; }
+        }
+
+        return { recommendedSize: sizePct + '% pot', bbAmount: ((sizePct / 100) * estimatedPot).toFixed(1) + 'bb', reasoning };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 233: RANGE ADVANTAGE QUANTIFIER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 233: Numerical range advantage score.
+     */
+    _getRangeAdvantageScore(heroPosition, villainPosition, texture, nodeType, street) {
+        if (street === 'preflop' || !texture) return '';
+        let score = 50; // Neutral baseline
+
+        const isPFR = nodeType && (nodeType.includes('cbet') || nodeType.includes('pfr'));
+        const highCard = texture.highCard ? '23456789TJQKA'.indexOf(texture.highCard) : 0;
+        const isMonotone = texture.isMonotone;
+        const isPaired = texture.isPaired;
+
+        // PFR advantages
+        if (isPFR) {
+            if (highCard >= 11) score += 15; // A/K high boards favor PFR
+            if (highCard >= 9 && highCard <= 10) score += 5; // T/J high slight PFR edge
+            if (isPaired) score += 10; // Paired boards favor PFR
+        } else {
+            if (highCard <= 7) score += 15; // Low boards favor caller
+            if (isMonotone) score += 10; // Monotone boards favor caller
+        }
+
+        // Position adjustment
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        if (isIP) score += 5;
+
+        score = Math.min(85, Math.max(15, score));
+
+        if (score >= 65) return `Range advantage: ${score}/100 — your range significantly outperforms villain's on this board. Bet at higher frequency.`;
+        if (score >= 55) return `Range advantage: ${score}/100 — slight edge. Standard betting frequency applies.`;
+        if (score <= 35) return `Range advantage: ${score}/100 — villain's range hits this board better. Check more frequently and be cautious.`;
+        if (score <= 45) return `Range advantage: ${score}/100 — slight disadvantage. Mix checks and small bets.`;
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 234: VILLAIN RANGE NARROWING TRACKER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 234: Track how villain's range narrows across the hand.
+     */
+    _getVillainRangeNarrowNote(street, nodeType, optimalAction) {
+        if (street === 'preflop') return '';
+        const node = (nodeType || '').toLowerCase();
+
+        const rangeNotes = {
+            'flop:cbet': 'Villain c-bet: range is still wide (~60-80% of preflop range). They c-bet with value, draws, and air.',
+            'flop:check': 'Villain checked flop: range is CAPPED — no strong overpairs or top pair. Weighted toward medium hands and gives up.',
+            'flop:raise': 'Villain raised flop: range is POLARIZED — strong value (sets, two pair) or semi-bluffs (draws). Medium hands just call.',
+            'turn:bet': 'Villain bet turn: range narrowed significantly. They continued with real equity — value hands and committed draws. Bluffs have mostly given up.',
+            'turn:check': 'Villain checked turn after flop bet: major weakness signal. Range is capped — strong hands almost always continue. Exploit with bets.',
+            'river:bet': 'Villain bet all three streets: MAXIMALLY POLARIZED — either the nuts or a bluff. Very few medium hands take this line.',
+            'river:check': 'Villain checked river: giving up on bluffs or has medium showdown value. Consider a thin value bet.',
+        };
+
+        for (const [key, note] of Object.entries(rangeNotes)) {
+            const [s, action] = key.split(':');
+            if (s === street && node.includes(action)) return note;
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 235: HAND EQUITY VS RANGE ESTIMATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 235: Quick equity estimate for hero's hand vs estimated villain range.
+     */
+    _getEquityEstimateNote(handStrength, street, nodeType, optimalAction) {
+        const eq = this.estimateEquityVsRange(handStrength, street, 'medium');
+        if (!eq) return '';
+        const equity = parseInt(eq.equity);
+        const a = (optimalAction || '').toLowerCase();
+
+        if (a.startsWith('r') && equity < 40) {
+            return `Equity estimate: ~${equity}% vs villain's range. You're an underdog, but betting works as a bluff — fold equity + hand equity combined make this profitable.`;
+        }
+        if (a === 'call' && equity >= 30 && equity <= 50) {
+            return `Equity estimate: ~${equity}% vs villain's range. Borderline spot — pot odds determine if calling is correct. Getting ~${equity}% is close to breakeven.`;
+        }
+        if (a.startsWith('r') && equity >= 60) {
+            return `Equity estimate: ~${equity}% vs villain's range. Solid favorite — bet for value to extract chips from weaker holdings.`;
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 236: DRAW EQUITY CALCULATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 236: Calculate draw equity with detailed outs counting.
+     */
+    calculateDrawEquity(handStrength, street) {
+        const drawData = {
+            'combo_draw': { outs: 15, name: 'Combo draw (flush + straight)', note: 'Monster draw — often a favorite vs one pair.' },
+            'flush_draw': { outs: 9, name: 'Flush draw', note: '9 clean outs to the flush.' },
+            'oesd': { outs: 8, name: 'Open-ended straight draw', note: '8 outs to the straight.' },
+            'gutshot': { outs: 4, name: 'Gutshot straight draw', note: '4 outs — need good implied odds.' },
+            'backdoor_flush_draw': { outs: 1.5, name: 'Backdoor flush draw', note: '~1.5 effective outs (need runner-runner).' },
+        };
+
+        const data = drawData[handStrength];
+        if (!data) return null;
+
+        const streetsRemaining = street === 'flop' ? 2 : 1;
+        const equity = streetsRemaining === 2 ? Math.min(data.outs * 4, 90) : Math.min(data.outs * 2, 45);
+
+        return {
+            outs: data.outs,
+            name: data.name,
+            equity: equity + '%',
+            method: streetsRemaining === 2 ? `Rule of 4: ${data.outs} × 4 = ${data.outs * 4}%` : `Rule of 2: ${data.outs} × 2 = ${data.outs * 2}%`,
+            note: data.note,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 237: FOLD EQUITY CALCULATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 237: Calculate fold equity and breakeven bluffing frequency.
+     */
+    calculateFoldEquity(betSize, potSize) {
+        if (!betSize || !potSize) return null;
+        const risk = betSize;
+        const reward = potSize;
+        const breakeven = (risk / (risk + reward) * 100).toFixed(1);
+
+        return {
+            breakeven: breakeven + '%',
+            risk: betSize.toFixed(1) + 'bb',
+            reward: potSize.toFixed(1) + 'bb',
+            message: `Your bluff needs to work ${breakeven}% of the time to break even. If villain folds more than ${breakeven}%, bluffing is profitable regardless of your hand.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 238: EXPECTED VALUE CALCULATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 238: Calculate EV for a specific action.
+     */
+    calculateActionEV(action, equity, potSize, betSize, foldEquity) {
+        if (equity == null || !potSize) return null;
+
+        const eq = equity / 100;
+        if (action === 'call') {
+            const ev = eq * (potSize + betSize) - (1 - eq) * betSize;
+            return { ev: ev.toFixed(2) + 'bb', profitable: ev > 0, breakdown: `EV = ${(eq * 100).toFixed(0)}% × ${(potSize + betSize).toFixed(0)}bb - ${((1 - eq) * 100).toFixed(0)}% × ${betSize.toFixed(0)}bb = ${ev.toFixed(2)}bb` };
+        }
+        if (action === 'bet' || action === 'raise') {
+            const fe = (foldEquity || 30) / 100;
+            const ev = fe * potSize + (1 - fe) * (eq * (potSize + 2 * betSize) - betSize);
+            return { ev: ev.toFixed(2) + 'bb', profitable: ev > 0, breakdown: `EV = ${(fe * 100).toFixed(0)}% fold × ${potSize.toFixed(0)}bb + ${((1 - fe) * 100).toFixed(0)}% called × equity calc = ${ev.toFixed(2)}bb` };
+        }
+        return null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 239: BLUFF-TO-VALUE RATIO CALCULATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 239: Calculate optimal bluff-to-value ratio for a given bet size.
+     * GTO: bluffs/(value + bluffs) = betSize/(pot + betSize).
+     */
+    calculateOptimalBluffRatio(betSizePctPot) {
+        if (!betSizePctPot) return null;
+        const ratio = betSizePctPot / (100 + betSizePctPot);
+        const bluffPct = (ratio * 100).toFixed(0);
+        const valuePct = (100 - ratio * 100).toFixed(0);
+
+        return {
+            bluffFrequency: bluffPct + '%',
+            valueFrequency: valuePct + '%',
+            ratio: `${valuePct}:${bluffPct} (value:bluff)`,
+            betSize: betSizePctPot + '% pot',
+            message: `At ${betSizePctPot}% pot, the GTO bluff frequency is ${bluffPct}%. For every ${valuePct} value combos, include ${bluffPct} bluff combos. Villain should then be indifferent to calling.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 240: SESSION LEADERBOARD DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 240: Generate leaderboard data for session tracking.
+     */
+    getLeaderboardEntry() {
+        if (!this._sessionStats || this._sessionStats.total < 10) return null;
+        const accuracy = (this._sessionStats.correct / this._sessionStats.total * 100).toFixed(1);
+        const streak = this._sessionBests?.streak || 0;
+        const challengeScore = this._challengeMode?.score || 0;
+
+        return {
+            accuracy: accuracy + '%',
+            totalQuestions: this._sessionStats.total,
+            bestStreak: streak,
+            challengeScore,
+            eloEstimate: Math.round(1200 + (parseFloat(accuracy) - 50) * 20 + streak * 5),
+            timestamp: Date.now(),
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 241: TRAINING CALENDAR/STREAK DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 241: Track daily training for calendar view.
+     */
+    recordDailyTraining() {
+        if (!this._trainingCalendar) this._trainingCalendar = {};
+        const today = new Date().toISOString().split('T')[0];
+        if (!this._trainingCalendar[today]) {
+            this._trainingCalendar[today] = { questions: 0, accuracy: 0, sessions: 0 };
+        }
+        this._trainingCalendar[today].questions = this._sessionStats?.total || 0;
+        this._trainingCalendar[today].accuracy = this._sessionStats?.total > 0
+            ? ((this._sessionStats.correct / this._sessionStats.total) * 100).toFixed(1)
+            : '0';
+        this._trainingCalendar[today].sessions++;
+    }
+
+    getTrainingCalendar() {
+        return this._trainingCalendar || {};
+    }
+
+    getTrainingStreak() {
+        const calendar = this._trainingCalendar || {};
+        const dates = Object.keys(calendar).sort().reverse();
+        if (dates.length === 0) return 0;
+
+        let streak = 0;
+        const today = new Date().toISOString().split('T')[0];
+        let checkDate = new Date(today);
+
+        while (true) {
+            const dateStr = checkDate.toISOString().split('T')[0];
+            if (calendar[dateStr]) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 242: CONCEPT FLASHCARD GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 242: Generate flashcards for GTO concepts.
+     */
+    generateFlashcards(category) {
+        const allCards = {
+            pot_odds: [
+                { front: 'What are pot odds?', back: 'The ratio of the current pot to the cost of calling. If pot is $10 and you must call $5, pot odds are 10:5 or 2:1 (33%).' },
+                { front: 'How to calculate pot odds %?', back: 'Call amount / (pot + call amount). For a $5 call into a $15 pot: 5/20 = 25%.' },
+                { front: 'When should you call with a draw?', back: 'When your draw equity exceeds the pot odds. If you need 25% and have 32% equity, call.' },
+            ],
+            position: [
+                { front: 'Why is position important?', back: 'Acting last gives you information about opponents\' actions before you decide. IP players win more money long-term.' },
+                { front: 'Which position is most profitable?', back: 'The Button (BTN) — always acts last postflop, averages +10bb/100 in 6-max.' },
+                { front: 'Why is SB the worst position?', back: 'SB is always OOP postflop (except vs BB) and must invest 0.5bb before seeing cards. Averages -7bb/100.' },
+            ],
+            betting: [
+                { front: 'What is a polarized range?', back: 'A range consisting of very strong hands (value) and very weak hands (bluffs), with no medium-strength hands.' },
+                { front: 'What is a merged/linear range?', back: 'A range that includes all hand strengths — strong, medium, and weak. Used with small bet sizes.' },
+                { front: 'What is MDF (Minimum Defense Frequency)?', back: 'MDF = 1 - bet/(pot+bet). Tells you how often to defend vs a bet to prevent villain from profiting with any two cards.' },
+            ],
+            draws: [
+                { front: 'Rule of 4 and 2?', back: 'Multiply outs by 4 on the flop (2 cards to come) or by 2 on the turn (1 card to come) to estimate equity %.' },
+                { front: 'How many outs does a flush draw have?', back: '9 outs — 13 cards of the suit minus 4 you can see (2 in hand, 2 on board).' },
+                { front: 'What is a combo draw?', back: 'A draw with both flush and straight potential — typically 12-15 outs, often a favorite vs one pair.' },
+            ],
+        };
+
+        if (category && allCards[category]) return allCards[category];
+        // Return random category
+        const categories = Object.keys(allCards);
+        const randomCat = categories[Math.floor(Math.random() * categories.length)];
+        return { category: randomCat, cards: allCards[randomCat] };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 243: QUICK-FIRE DRILL MODE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 243: Rapid yes/no decision drill data.
+     * Simplified questions for fast pattern recognition training.
+     */
+    generateQuickFireQuestion(scenario, heroHand, correctAction) {
+        const a = (correctAction || '').toLowerCase();
+        const street = scenario.street || 'flop';
+
+        // Simplified binary questions
+        const questions = [];
+
+        if (street === 'preflop') {
+            questions.push({ q: `Should you open ${heroHand} from ${scenario.heroPosition || 'this position'}?`, a: a.startsWith('r') || a === 'call' ? 'YES' : 'NO' });
+        } else {
+            if (a.startsWith('r') || a === 'allin') {
+                questions.push({ q: 'Should you bet/raise here?', a: 'YES' });
+            } else if (a === 'f') {
+                questions.push({ q: 'Should you continue in this hand?', a: 'NO' });
+            } else {
+                questions.push({ q: 'Is this a checking spot?', a: 'YES' });
+            }
+        }
+
+        return questions[0] || null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 244: BOARD TEXTURE CLASSIFICATION (12 TYPES)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 244: Classify board texture into one of 12 strategic categories.
+     */
+    classifyBoardTexture(board) {
+        if (!board || board.length < 3) return null;
+        const texture = this._analyzeTexture ? this._analyzeTexture(board) : null;
+        const boardRanks = board.map(c => '23456789TJQKA'.indexOf(c[0]));
+        const boardSuits = board.map(c => c[1]);
+        const maxRank = Math.max(...boardRanks);
+        const minRank = Math.min(...boardRanks);
+        const spread = maxRank - minRank;
+        const uniqueSuits = new Set(boardSuits).size;
+        const isPaired = new Set(boardRanks).size < boardRanks.length;
+
+        // Classify
+        if (uniqueSuits === 1) return { type: 'MONOTONE', desc: 'All one suit — flush is already possible', strategy: 'Favor the caller. PFR should check more. Only bet with a flush or strong draw.' };
+        if (isPaired && maxRank >= 11) return { type: 'PAIRED_HIGH', desc: 'Paired board with high cards', strategy: 'Favors PFR — more trips/full house combos. Bet frequently with small sizing.' };
+        if (isPaired && maxRank <= 8) return { type: 'PAIRED_LOW', desc: 'Paired board with low cards', strategy: 'Split advantage — PFR has overpairs, caller may have trips. Proceed cautiously.' };
+        if (maxRank >= 12 && spread <= 4) return { type: 'ACE_HIGH_CONNECTED', desc: 'Ace-high connected board', strategy: 'Strongly favors PFR range. C-bet at high frequency with small sizing.' };
+        if (maxRank >= 12 && spread > 6) return { type: 'ACE_HIGH_RAINBOW_DRY', desc: 'Ace-high dry rainbow', strategy: 'PFR has big range advantage. Can range bet 33% pot at very high frequency.' };
+        if (maxRank >= 9 && maxRank <= 11 && spread <= 3) return { type: 'BROADWAY_WET', desc: 'Broadway-connected wet board', strategy: 'Both ranges hit well. Mixed strategy — check and bet at moderate frequency.' };
+        if (maxRank <= 8 && spread <= 3) return { type: 'LOW_CONNECTED', desc: 'Low connected board', strategy: 'Favors caller heavily — more two-pairs, sets, straights. PFR should check frequently.' };
+        if (maxRank <= 8 && spread > 5) return { type: 'LOW_DISCONNECTED', desc: 'Low disconnected dry board', strategy: 'Slightly favors PFR (overpairs), but caller has set potential. Standard c-bet with medium sizing.' };
+        if (uniqueSuits === 2 && spread <= 4) return { type: 'TWO_TONE_CONNECTED', desc: 'Two-tone connected — many draws', strategy: 'Very wet board. Bet larger to charge draws. Both ranges have many possibilities.' };
+        if (uniqueSuits === 2 && spread > 5) return { type: 'TWO_TONE_DISCONNECTED', desc: 'Two-tone but disconnected', strategy: 'Flush draws present but fewer straight draws. Medium wetness — standard sizing.' };
+        if (uniqueSuits === 3 && spread > 6) return { type: 'RAINBOW_DRY', desc: 'Rainbow dry board', strategy: 'No flush draws, few straight draws. PFR can c-bet at high frequency with small sizing.' };
+        return { type: 'STANDARD', desc: 'Standard mixed texture', strategy: 'Balanced approach — use position and hand strength to guide decisions.' };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 245: ACTION TREE VISUALIZATION DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 245: Generate action tree data for visualization.
+     */
+    generateActionTree(handActions, heroHand) {
+        if (!handActions) return null;
+        const tree = { hand: heroHand, children: [] };
+
+        for (const [action, freq] of Object.entries(handActions)) {
+            if (freq < 0.01) continue;
+            tree.children.push({
+                action: this._actionLabel(action),
+                rawAction: action,
+                frequency: (freq * 100).toFixed(1) + '%',
+                freqValue: freq,
+                isOptimal: freq === Math.max(...Object.values(handActions)),
+                color: action.startsWith('r') || action === 'allin' ? '#ef4444' : action === 'call' ? '#22c55e' : action === 'f' ? '#6b7280' : '#3b82f6',
+            });
+        }
+
+        tree.children.sort((a, b) => b.freqValue - a.freqValue);
+        return tree;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 246: RANGE VS RANGE EQUITY MATCHUP
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 246: Pre-computed range vs range equities for common matchups.
+     */
+    getRangeVsRangeEquity(heroRangeType, villainRangeType, boardType) {
+        // Approximate range vs range equities
+        const matchups = {
+            'pfr_vs_caller:high_board': { pfr: 55, caller: 45, note: 'PFR has slight equity edge on high boards.' },
+            'pfr_vs_caller:low_board': { pfr: 45, caller: 55, note: 'Caller has equity edge on low boards.' },
+            'pfr_vs_caller:medium_board': { pfr: 50, caller: 50, note: 'Roughly even equity on medium boards.' },
+            'pfr_vs_3bettor:any': { pfr: 45, caller: 55, note: '3-bettor has tighter, stronger range.' },
+            'btn_vs_bb:dry': { pfr: 55, caller: 45, note: 'BTN range advantage on dry boards.' },
+            'btn_vs_bb:wet': { pfr: 48, caller: 52, note: 'BB closes the equity gap on wet boards.' },
+        };
+
+        const key = `${heroRangeType}_vs_${villainRangeType}:${boardType}`;
+        return matchups[key] || null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 247: TOURNAMENT VS CASH GAME ADJUSTMENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 247: Note differences between tournament and cash game strategy.
+     */
+    _getTournamentAdjustmentNote(stackDepth) {
+        if (!this._sessionStats || this._sessionStats.total % 30 !== 0) return '';
+        if (this._sessionStats.total < 30) return '';
+
+        if (stackDepth && stackDepth <= 30) {
+            return '💡 Tournament adjustment: at short stacks in tournaments, ICM makes survival more important than chip accumulation. Fold more marginal spots, especially near pay jumps. Push/fold charts become essential under 15BB.';
+        }
+        return '💡 Tournament vs cash: key differences — (1) ICM pressure means chips lost > chips won, (2) No rebuying means survival matters, (3) Antes increase steal profitability, (4) Bubble dynamics create exploitable spots against medium stacks.';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 248: MULTI-TABLE CONSIDERATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 248: Tips for multi-tabling and volume play.
+     */
+    getMultiTableTips() {
+        if (!this._sessionStats || this._sessionStats.total % 40 !== 0) return null;
+        if (this._sessionStats.total < 40) return null;
+
+        const accuracy = this._sessionStats.correct / this._sessionStats.total;
+        if (accuracy >= 0.7) {
+            return '💡 Multi-table ready: your accuracy is strong enough to consider playing multiple tables. Start with 2 tables and add more as your speed improves. Focus on making quick, correct decisions rather than perfect ones.';
+        }
+        return '💡 Multi-table advice: focus on single-tabling until your accuracy reaches 70%+. Quality decisions at one table build better habits than hasty decisions at many.';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 249: TILT DETECTION AND INTERVENTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 249: Detect tilt patterns and intervene with coaching.
+     */
+    detectTilt() {
+        if (!this._recentResults || this._recentResults.length < 8) return null;
+        const last8 = this._recentResults.slice(-8);
+        const wrongCount = last8.filter(r => !r).length;
+
+        // Pattern detection: sudden accuracy drop
+        const first4 = last8.slice(0, 4).filter(r => r).length;
+        const last4 = last8.slice(4).filter(r => r).length;
+        const suddenDrop = first4 >= 3 && last4 <= 1;
+
+        if (wrongCount >= 7) {
+            return {
+                level: 'SEVERE',
+                message: '🛑 Tilt alert: 7+ wrong in the last 8 questions. Your decision-making may be compromised. Take a 5-minute break, breathe deeply, and reset. Coming back fresh will save you EV.',
+                action: 'SUGGEST_BREAK',
+            };
+        }
+        if (wrongCount >= 5 || suddenDrop) {
+            return {
+                level: 'MODERATE',
+                message: '⚠️ Tilt warning: accuracy dropping. You may be rushing or letting frustration guide decisions. Slow down — take an extra 5 seconds per question.',
+                action: 'SUGGEST_SLOWDOWN',
+            };
+        }
+        if (wrongCount >= 4) {
+            return {
+                level: 'MILD',
+                message: '📝 Rough patch — 4+ wrong in the last 8. Stay process-oriented: focus on HOW you decide, not the results.',
+                action: 'COACH',
+            };
+        }
+        return null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 250: COMPREHENSIVE TRAINING DASHBOARD DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 250: Generate all data needed for a comprehensive training dashboard.
+     */
+    getTrainingDashboard() {
+        return {
+            // Core stats
+            session: {
+                total: this._sessionStats?.total || 0,
+                correct: this._sessionStats?.correct || 0,
+                accuracy: this._sessionStats?.total > 0 ? ((this._sessionStats.correct / this._sessionStats.total) * 100).toFixed(1) + '%' : 'N/A',
+            },
+            // Performance
+            trend: this.getPerformanceTrend(),
+            comparison: this.getOptimalPlayComparison(),
+            deviations: this.getDeviationSummary(),
+            // Analytics
+            aggression: this.getAggressionFactors(),
+            preflopStats: this.getPreflopStats(),
+            positional: this.getPositionalAwarenessScore(),
+            frequencyBalance: this.getExpectedFrequencyBalance(),
+            // Learning
+            conceptMastery: this.getConceptMastery(),
+            weaknesses: this.getWeaknessTargets(),
+            recommendedDrills: this.getRecommendedDrills(),
+            progressiveLevel: this.getProgressiveLevelDescription(),
+            // Engagement
+            achievements: this.checkAchievements(),
+            challengeResults: this.getChallengeResults(),
+            streak: this._sessionBests?.streak || 0,
+            tiltStatus: this.detectTilt(),
+            // Session
+            timing: this.getTimingAnalysis(),
+            evGraph: this.getEVGraphData(),
+            cumulativeCost: this.getCumulativeDeviationCost(),
+            // Meta
+            engineHealth: this.getEngineHealth(),
+            autodifficulty: this.getAutoAdjustedDifficulty(),
+        };
     }
 }
 
