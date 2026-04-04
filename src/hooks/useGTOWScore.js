@@ -525,6 +525,144 @@ export default function useGTOWScore() {
         return worst;
     }, [positionAccuracy]);
 
+    // ═══ Phase 40: Mistake pattern detection ═══
+    const mistakePatterns = useMemo(() => {
+        if (!handHistory || handHistory.length < 5) return [];
+
+        const mistakes = handHistory.filter(h =>
+            h.classification === 'inaccuracy' || h.classification === 'wrong' || h.classification === 'blunder'
+        );
+        if (mistakes.length < 2) return [];
+
+        const patterns = [];
+
+        // Pattern 1: Passive leaks — folding when should bet/raise, or checking when should bet
+        const passiveMistakes = mistakes.filter(h => {
+            const action = (h.action || '').toLowerCase();
+            const correct = (h.correctAction || '').toLowerCase();
+            const actionIsPassive = action === 'fold' || action === 'check' || action.startsWith('f') || action.startsWith('x');
+            const correctIsAggressive = correct.startsWith('b') || correct.startsWith('r') || correct === 'allin';
+            return actionIsPassive && correctIsAggressive;
+        });
+        if (passiveMistakes.length >= 2) {
+            const pct = Math.round((passiveMistakes.length / mistakes.length) * 100);
+            patterns.push({
+                type: 'passive',
+                severity: passiveMistakes.length >= 4 ? 'high' : 'medium',
+                count: passiveMistakes.length,
+                pct,
+                tip: `You're playing too passively — ${passiveMistakes.length} times you folded or checked when GTO says to bet or raise. Look for spots to apply more aggression, especially with draws and strong hands.`,
+                icon: '🐢',
+            });
+        }
+
+        // Pattern 2: Aggressive leaks — betting/raising when should check/fold
+        const aggressiveMistakes = mistakes.filter(h => {
+            const action = (h.action || '').toLowerCase();
+            const correct = (h.correctAction || '').toLowerCase();
+            const actionIsAggressive = action.startsWith('b') || action.startsWith('r') || action === 'allin';
+            const correctIsPassive = correct === 'fold' || correct === 'check' || correct.startsWith('f') || correct.startsWith('x') || correct === 'call';
+            return actionIsAggressive && correctIsPassive;
+        });
+        if (aggressiveMistakes.length >= 2) {
+            const pct = Math.round((aggressiveMistakes.length / mistakes.length) * 100);
+            patterns.push({
+                type: 'aggressive',
+                severity: aggressiveMistakes.length >= 4 ? 'high' : 'medium',
+                count: aggressiveMistakes.length,
+                pct,
+                tip: `You're over-aggressing — ${aggressiveMistakes.length} times you bet or raised when the solver prefers a passive line. Not every hand needs to be bet; many spots call for pot control or folding.`,
+                icon: '🔥',
+            });
+        }
+
+        // Pattern 3: Sizing leaks — right action, wrong size
+        const sizingMistakes = mistakes.filter(h => {
+            const action = (h.action || '').toLowerCase();
+            const correct = (h.correctAction || '').toLowerCase();
+            const bothBet = action.startsWith('b') && correct.startsWith('b');
+            const bothRaise = action.startsWith('r') && correct.startsWith('r');
+            return bothBet || bothRaise;
+        });
+        if (sizingMistakes.length >= 2) {
+            // Check if consistently over or under sizing
+            let overCount = 0;
+            let underCount = 0;
+            sizingMistakes.forEach(h => {
+                const selSize = parseInt((h.action || '').match(/\d+/)?.[0] || '0');
+                const corSize = parseInt((h.correctAction || '').match(/\d+/)?.[0] || '0');
+                if (selSize > corSize) overCount++;
+                else if (selSize < corSize) underCount++;
+            });
+            if (overCount >= 2) {
+                patterns.push({
+                    type: 'oversizing',
+                    severity: overCount >= 3 ? 'high' : 'medium',
+                    count: overCount,
+                    pct: Math.round((overCount / mistakes.length) * 100),
+                    tip: `You're consistently overbetting — ${overCount} times your sizing was larger than optimal. Smaller sizes often achieve the same goal while losing less when called by better hands.`,
+                    icon: '📏',
+                });
+            }
+            if (underCount >= 2) {
+                patterns.push({
+                    type: 'undersizing',
+                    severity: underCount >= 3 ? 'high' : 'medium',
+                    count: underCount,
+                    pct: Math.round((underCount / mistakes.length) * 100),
+                    tip: `You're consistently underbetting — ${underCount} times your sizing was smaller than optimal. Larger sizes build bigger pots with strong hands and generate more fold equity with bluffs.`,
+                    icon: '📏',
+                });
+            }
+        }
+
+        // Pattern 4: Position-specific leaks
+        const positionMistakeCounts = {};
+        mistakes.forEach(h => {
+            const pos = (h.heroPosition || '').toUpperCase();
+            if (pos) positionMistakeCounts[pos] = (positionMistakeCounts[pos] || 0) + 1;
+        });
+        const worstPos = Object.entries(positionMistakeCounts).sort(([, a], [, b]) => b - a)[0];
+        if (worstPos && worstPos[1] >= 3 && worstPos[1] / mistakes.length >= 0.35) {
+            const posName = { UTG: 'Under the Gun', MP: 'Middle Position', CO: 'Cutoff', BTN: 'Button', SB: 'Small Blind', BB: 'Big Blind' }[worstPos[0]] || worstPos[0];
+            patterns.push({
+                type: 'position_leak',
+                severity: worstPos[1] >= 5 ? 'high' : 'medium',
+                count: worstPos[1],
+                position: worstPos[0],
+                pct: Math.round((worstPos[1] / mistakes.length) * 100),
+                tip: `${Math.round((worstPos[1] / mistakes.length) * 100)}% of your mistakes happen from ${posName} (${worstPos[0]}). Focus on studying ${posName} ranges and adjust your strategy for this seat.`,
+                icon: '🪑',
+            });
+        }
+
+        // Pattern 5: Street-specific leaks
+        const streetMistakeCounts = {};
+        mistakes.forEach(h => {
+            const st = (h.street || '').toLowerCase();
+            if (st) streetMistakeCounts[st] = (streetMistakeCounts[st] || 0) + 1;
+        });
+        const worstStreet = Object.entries(streetMistakeCounts).sort(([, a], [, b]) => b - a)[0];
+        if (worstStreet && worstStreet[1] >= 3 && worstStreet[1] / mistakes.length >= 0.4) {
+            const streetName = worstStreet[0].charAt(0).toUpperCase() + worstStreet[0].slice(1);
+            patterns.push({
+                type: 'street_leak',
+                severity: worstStreet[1] >= 5 ? 'high' : 'medium',
+                count: worstStreet[1],
+                street: worstStreet[0],
+                pct: Math.round((worstStreet[1] / mistakes.length) * 100),
+                tip: `Most of your mistakes (${worstStreet[1]}) happen on the ${streetName}. Work on ${streetName.toLowerCase()} decision-making — consider board texture changes and range narrowing.`,
+                icon: worstStreet[0] === 'river' ? '🌊' : worstStreet[0] === 'turn' ? '🔄' : '🃏',
+            });
+        }
+
+        // Sort by severity (high first), then count
+        return patterns.sort((a, b) => {
+            if (a.severity !== b.severity) return a.severity === 'high' ? -1 : 1;
+            return b.count - a.count;
+        });
+    }, [handHistory]);
+
     return {
         // Core metrics
         gtowScore,
@@ -548,6 +686,9 @@ export default function useGTOWScore() {
         positionAccuracy,
         streetAccuracy,
         weakestPosition,
+
+        // Phase 40: Mistake patterns
+        mistakePatterns,
 
         // Actions
         recordMove,

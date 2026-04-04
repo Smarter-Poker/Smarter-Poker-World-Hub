@@ -798,6 +798,8 @@ function GodModeArenaInner({
         positionAccuracy,
         streetAccuracy,
         weakestPosition,
+        // Phase 40: Mistake patterns
+        mistakePatterns,
         // Multi-street state
         currentStreet,
         isMultiStreetActive,
@@ -1543,6 +1545,43 @@ function GodModeArenaInner({
 
                         {/* F15: CLASSIFICATION DONUT CHART */}
                         <ClassificationDonut handHistory={handHistory} gtowScore={gtowScore} />
+
+                        {/* Phase 40: MISTAKE PATTERN COACHING */}
+                        {mistakePatterns && mistakePatterns.length > 0 && (
+                            <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+                                <div style={{ fontSize: 12, fontWeight: 'bold', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                                    Leak Detection
+                                </div>
+                                {mistakePatterns.slice(0, 3).map((pattern, idx) => (
+                                    <div key={idx} style={{
+                                        marginBottom: idx < Math.min(mistakePatterns.length, 3) - 1 ? 10 : 0,
+                                        padding: '8px 10px',
+                                        background: pattern.severity === 'high' ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.06)',
+                                        borderRadius: 8,
+                                        border: `1px solid ${pattern.severity === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.15)'}`,
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                            <span style={{ fontSize: 14 }}>{pattern.icon}</span>
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+                                                textTransform: 'uppercase',
+                                                color: pattern.severity === 'high' ? '#ef4444' : '#fbbf24',
+                                            }}>
+                                                {pattern.type.replace('_', ' ')} ({pattern.count}x)
+                                            </span>
+                                            {pattern.severity === 'high' && (
+                                                <span style={{ fontSize: 8, padding: '1px 4px', borderRadius: 3, background: 'rgba(239,68,68,0.2)', color: '#f87171', fontWeight: 700 }}>
+                                                    MAJOR LEAK
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.5 }}>
+                                            {pattern.tip}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {/* F14: ACCURACY BY POSITION CHART */}
                         <AccuracyByPositionChart handHistory={handHistory} />
