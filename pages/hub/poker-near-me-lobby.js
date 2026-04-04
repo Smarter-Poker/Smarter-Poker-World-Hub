@@ -1255,7 +1255,7 @@ export default function PokerNearMeLobby() {
   // All 12 lobby grid icons route to their full standalone pages.
   // No more inline panel overlays — every feature gets its own page.
   const POD_ROUTES = {
-    nearme:    '/hub/poker-near-me',
+    nearme:    '/hub/poker-near-me?tab=venues',
     homegames: '/hub/home-games',
     livegames: '/hub/poker-near-me?tab=live',
     tours:     '/hub/poker-tours',

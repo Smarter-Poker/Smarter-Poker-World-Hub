@@ -10667,21 +10667,95 @@ export class DeterministicGTOEngine {
                 { front: 'What are pot odds?', back: 'The ratio of the current pot to the cost of calling. If pot is $10 and you must call $5, pot odds are 10:5 or 2:1 (33%).' },
                 { front: 'How to calculate pot odds %?', back: 'Call amount / (pot + call amount). For a $5 call into a $15 pot: 5/20 = 25%.' },
                 { front: 'When should you call with a draw?', back: 'When your draw equity exceeds the pot odds. If you need 25% and have 32% equity, call.' },
+                { front: 'What are implied odds?', back: 'The additional money you expect to win on future streets if you hit your draw. They justify calling even when pot odds are slightly against you.' },
+                { front: 'Pot odds vs a half-pot bet?', back: 'You need 25% equity to call a half-pot bet. The pot is 1.5x the bet, so you risk 1 to win 2.5 total (1/3.5 = ~28.6%, but accounting for the dead pot: 1/(1+1.5+1) = 25%).' },
+                { front: 'Pot odds vs a pot-sized bet?', back: 'You need 33% equity. Risk 1 to win 3 total (pot + villain bet + your call). So 1/3 = 33%.' },
+                { front: 'What is break-even %?', back: 'The minimum fold frequency needed for a bluff to be profitable: Bet size / (Bet + Pot). A pot-sized bluff needs to work 50% of the time.' },
+                { front: 'What are reverse implied odds?', back: 'When hitting your draw still loses to a better hand. Example: calling with a small flush draw when a bigger flush draw is possible.' },
+                { front: 'Pot odds vs 2x pot overbet?', back: 'You need 40% equity to call a 2x pot bet. Risk 2 to win 5 total (1 pot + 2 bet + 2 call). 2/5 = 40%.' },
+                { front: 'How do pot odds change multiway?', back: 'Pot odds improve (need less equity) because there is more dead money, but your hand needs to beat multiple opponents so actual equity decreases.' },
             ],
             position: [
                 { front: 'Why is position important?', back: 'Acting last gives you information about opponents\' actions before you decide. IP players win more money long-term.' },
                 { front: 'Which position is most profitable?', back: 'The Button (BTN) — always acts last postflop, averages +10bb/100 in 6-max.' },
                 { front: 'Why is SB the worst position?', back: 'SB is always OOP postflop (except vs BB) and must invest 0.5bb before seeing cards. Averages -7bb/100.' },
+                { front: '6-max positions in order?', back: 'UTG (Under the Gun), HJ (Hijack/MP), CO (Cutoff), BTN (Button), SB (Small Blind), BB (Big Blind). BTN is most profitable, SB is least.' },
+                { front: 'What is a steal attempt?', back: 'Opening (raising first) from late position (CO, BTN, SB) to win the blinds. GTO open ranges from BTN are ~45-50% of hands.' },
+                { front: 'Why open tighter from UTG?', back: 'UTG has 5 players left to act who could wake up with a strong hand. You also play the entire hand OOP except against the blinds.' },
+                { front: 'What is positional advantage postflop?', back: 'Being IP lets you: control pot size, realize equity more efficiently, bluff more effectively, and value bet thinner because you see opponent actions first.' },
+                { front: 'CO vs BTN opening range?', back: 'CO opens ~27-30% of hands, BTN opens ~45-50%. BTN gets to open wider because only 2 players remain (SB/BB) and they always have position.' },
+                { front: 'What is the blinds\' disadvantage?', back: 'Blinds post forced bets, act first postflop (OOP), and defend wide ranges. BB loses -20 to -30bb/100, SB loses -40 to -70bb/100 at equilibrium.' },
+                { front: 'What is a squeeze play?', back: 'A 3-bet from the blinds (or late position) after an open and one or more calls. Squeezes are powerful because callers have capped ranges.' },
             ],
             betting: [
                 { front: 'What is a polarized range?', back: 'A range consisting of very strong hands (value) and very weak hands (bluffs), with no medium-strength hands.' },
                 { front: 'What is a merged/linear range?', back: 'A range that includes all hand strengths — strong, medium, and weak. Used with small bet sizes.' },
                 { front: 'What is MDF (Minimum Defense Frequency)?', back: 'MDF = 1 - bet/(pot+bet). Tells you how often to defend vs a bet to prevent villain from profiting with any two cards.' },
+                { front: 'When to use small bet sizes?', back: 'On dry/static boards where you have a range advantage. Small bets let you bet with a wide, merged range (value + medium hands).' },
+                { front: 'When to use large bet sizes?', back: 'On dynamic boards or when your range is polarized (nuts or air). Large bets maximize value from strong hands and maximize fold equity with bluffs.' },
+                { front: 'What is a blocker?', back: 'A card in your hand that reduces the number of combos an opponent can have. Example: having A♠ blocks opponent from having AA and some AK combos.' },
+                { front: 'What is an overbet?', back: 'Betting more than the pot size. Used with extremely polarized ranges on later streets. GTO uses overbets of 125-200% pot on rivers with nutted hands.' },
+                { front: 'Value-to-bluff ratio for pot bet?', back: 'For a pot-sized bet, optimal bluff frequency is 33% bluffs, 67% value (a 2:1 value-to-bluff ratio). This makes opponent indifferent to calling.' },
+                { front: 'What is a donk bet?', back: 'Betting into the previous street\'s aggressor (out of position, before they can continuation bet). GTO uses donk bets ~5-10% on specific board textures.' },
+                { front: 'Why does solver use multiple bet sizes?', back: 'Different hand strengths prefer different bet sizes. Thin value hands prefer smaller bets, nutted hands prefer larger bets, and each size creates a different bluff-to-value ratio.' },
             ],
             draws: [
                 { front: 'Rule of 4 and 2?', back: 'Multiply outs by 4 on the flop (2 cards to come) or by 2 on the turn (1 card to come) to estimate equity %.' },
                 { front: 'How many outs does a flush draw have?', back: '9 outs — 13 cards of the suit minus 4 you can see (2 in hand, 2 on board).' },
                 { front: 'What is a combo draw?', back: 'A draw with both flush and straight potential — typically 12-15 outs, often a favorite vs one pair.' },
+                { front: 'Open-ended straight draw outs?', back: '8 outs — 4 cards on each end complete the straight. Example: 89 on a 67x board has 8 outs (four 5s + four Ts).' },
+                { front: 'Gutshot straight draw outs?', back: '4 outs — only one rank completes the straight. Example: 89 on a 6Tx board needs a 7 (four 7s in deck).' },
+                { front: 'When are draws playable OOP?', back: 'When you have good implied odds, the draw is to the nuts (not 2nd best), and you can semi-bluff effectively by representing a made hand.' },
+                { front: 'What is a semi-bluff?', back: 'Betting or raising with a draw that can improve on later streets. It wins if opponent folds now OR if the draw hits. Combines fold equity + draw equity.' },
+                { front: 'Flush draw equity vs top pair?', back: 'A flush draw has ~35% equity vs top pair on the flop (9 outs x 4 = 36% minus slight overcount). On the turn it drops to ~18% (9 outs x 2).' },
+                { front: 'What is a backdoor draw?', back: 'A draw needing two cards to complete (e.g., two more suited cards for a flush). Adds ~4% equity. Backdoor flush + backdoor straight adds ~8%.' },
+                { front: 'How to play a made hand vs a draw?', back: 'Bet large enough to deny correct odds. If opponent has 35% equity (flush draw), bet at least 75% pot to make calling -EV.' },
+            ],
+            preflop: [
+                { front: 'What is a 3-bet?', back: 'The third raise preflop. First raise = open, second raise = 3-bet. In position, 3-bet to ~3x the open. Out of position, 3-bet to ~3.5-4x.' },
+                { front: 'What hands should you 3-bet for value?', back: 'QQ+, AKs, AKo are almost always 3-bet for value. KK and AA never flat. JJ and TT are sometimes 3-bet, sometimes called depending on position.' },
+                { front: 'What is a 3-bet bluff?', back: 'A 3-bet with a hand too weak to call but with some playability/blockers. Good candidates: A5s, A4s (blocks AA/AK), suited connectors, small pairs.' },
+                { front: 'Standard open raise size?', back: '2.0-2.5x BB from most positions. Some players use 3x from early position. Online tends to be 2.0-2.3x, live is often 3x+.' },
+                { front: 'What is a cold call?', back: 'Calling a raise (or 3-bet) without having put any money in the pot yet. Avoid cold-calling 3-bets without strong hands or being IP.' },
+                { front: 'Why do we raise preflop?', back: 'Raising isolates opponents (play vs fewer players), builds the pot with strong hands, denies equity to weak hands, and establishes initiative.' },
+                { front: 'When to limp preflop?', back: 'Almost never in a competitive game. Exception: SB completing vs BB in certain structures. Open-limping is a significant leak because it forfeits initiative.' },
+                { front: 'How to handle a 4-bet?', back: 'Fold most of your 3-bet bluffs. 5-bet jam with QQ+, AKs. Call some 4-bets IP with hands like JJ, TT, AQs, AKo depending on stack depth.' },
+                { front: 'What is SPR (Stack-to-Pot Ratio)?', back: 'Effective stack / pot after preflop. SPR < 4 favors big hands (top pair+). SPR > 10 favors speculative hands (suited connectors, small pairs).' },
+                { front: 'Preflop hand categories?', back: 'Premium: AA-QQ, AKs. Strong: JJ-TT, AKo, AQs. Playable: 99-22, suited connectors, suited aces, broadways. Marginal: offsuit connectors, weak aces.' },
+            ],
+            board_texture: [
+                { front: 'What is a dry board?', back: 'A board with no flush/straight draws and disconnected ranks. Example: K72 rainbow. Ranges are less likely to connect, favoring c-bets with wide ranges.' },
+                { front: 'What is a wet/dynamic board?', back: 'A board with many draws possible (flush draws, straight draws, or both). Example: Jh Th 8c. Ranges connect heavily, requiring larger bets for protection.' },
+                { front: 'What is a monotone board?', back: 'All three flop cards are the same suit (e.g., Ah 8h 3h). Strongly favors the caller because they have more suited hands that connected.' },
+                { front: 'Range advantage vs nut advantage?', back: 'Range advantage: your overall range has more equity. Nut advantage: you have more of the strongest possible hands. You can have one without the other.' },
+                { front: 'Who has range advantage on A-high flops?', back: 'The preflop raiser has more Ax hands in range. They should c-bet frequently with small sizes since their whole range benefits.' },
+                { front: 'Who has range advantage on low boards?', back: 'On boards like 6-4-2, the caller often has more two-pair/set combos. The raiser should check more frequently and use polar bet sizes when betting.' },
+                { front: 'How does a paired board affect strategy?', back: 'Paired boards reduce the number of possible made hands. The PFR usually has range advantage and can c-bet with high frequency at small sizes.' },
+                { front: 'What is a connected board?', back: 'A board where cards are close in rank (e.g., 9-8-6). Creates many straight draws. Both players connect, so bet sizing tends to be larger (protection).' },
+                { front: 'How do turns change board texture?', back: 'Turns that complete draws (flush cards, straight cards) shift advantage. An offsuit low card on a dry flop changes little. A third suited card changes everything.' },
+                { front: 'What is board coverage?', back: 'Having hands that interact with every type of board texture. GTO ranges are constructed so you can credibly represent strength on any flop.' },
+            ],
+            river_play: [
+                { front: 'Why is river play the most important street?', back: 'The pot is largest on the river, so mistakes are most expensive. EV loss from a single bad river call can exceed all other street mistakes combined.' },
+                { front: 'What is a bluff-catcher?', back: 'A hand that beats all bluffs but loses to all value bets. On the river, you must decide if opponent is value-betting or bluffing.' },
+                { front: 'How often should you bluff-catch?', back: 'Based on MDF. Vs a pot-sized bet, defend ~50% of your range. Vs half-pot, defend ~67%. This prevents opponent from profiting with pure bluffs.' },
+                { front: 'What is a thin value bet?', back: 'Betting a hand that is only slightly ahead of opponent\'s calling range. If you expect to be called by worse >50% of the time, it is a value bet.' },
+                { front: 'River check-raise frequency?', back: 'GTO check-raises rivers rarely (~5-10%) but with extreme polarity — the nuts or bluffs with zero showdown value. Never check-raise medium hands.' },
+                { front: 'When to give up on a river bluff?', back: 'When your bluff candidate has showdown value (can win at showdown), when opponent\'s range is very strong (4-bet pot), or when you have no blockers to opponent\'s folds.' },
+                { front: 'What are good river bluff candidates?', back: 'Hands that: (1) block opponent\'s value range, (2) unblock their folding range, (3) have zero showdown value, (4) are busted draws that bricked.' },
+                { front: 'River probe bet strategy?', back: 'When the PFR checks back the turn, OOP player can probe (donk-bet) the river with a polar range. Good spots: scare cards, completed draws, or when PFR capped their range by checking.' },
+            ],
+            gto_theory: [
+                { front: 'What is Nash Equilibrium?', back: 'A strategy pair where neither player can improve their EV by unilaterally changing strategy. GTO poker seeks this equilibrium — unexploitable play.' },
+                { front: 'What is a mixed strategy?', back: 'When GTO says to take different actions with the same hand at certain frequencies. Example: check AQ 60%, bet 33% 30%, bet 75% 10%.' },
+                { front: 'Why use mixed strategies?', back: 'To remain unpredictable (balanced). If you always bet strong hands and check weak ones, opponents can exploit your pattern. Mixing prevents this.' },
+                { front: 'What is EV (Expected Value)?', back: 'The average profit/loss of a decision over infinite repetitions. A call is +EV if you win more than you lose over time. GTO maximizes EV vs perfect opponents.' },
+                { front: 'GTO vs Exploitative play?', back: 'GTO: unexploitable, best vs strong opponents. Exploitative: deviates from GTO to target opponent leaks, more profitable vs weak opponents but vulnerable to counter-exploitation.' },
+                { front: 'What is indifference?', back: 'When GTO makes an opponent indifferent between calling and folding with their bluff-catchers. If you bluff at exactly the right frequency, calling and folding have equal EV for them.' },
+                { front: 'What is range vs range equity?', back: 'How one player\'s entire range performs against another player\'s entire range. The PFR has ~53-55% range equity on most flops, which is why c-betting is profitable.' },
+                { front: 'What is a capped range?', back: 'A range that does not contain very strong hands. Example: after checking back the flop, your range is capped (you would have bet nutted hands).' },
+                { front: 'What is equity denial?', back: 'Betting to prevent opponent from realizing their equity for free. A hand with 30% equity that gets to see free cards will eventually win 30% of the pot.' },
+                { front: 'What is ICM?', back: 'Independent Chip Model — converts tournament chips to monetary value. Near the bubble, chip survival matters more than chip accumulation, changing optimal strategy significantly.' },
             ],
         };
 
@@ -10703,23 +10777,89 @@ export class DeterministicGTOEngine {
     generateQuickFireQuestion(scenario, heroHand, correctAction) {
         const a = (correctAction || '').toLowerCase();
         const street = scenario.street || 'flop';
+        const heroPos = scenario.heroPosition || 'BTN';
+        const villPos = scenario.villainPosition || 'BB';
+        const nodeType = scenario.nodeType || '';
+        const board = scenario.board || '';
 
-        // Simplified binary questions
+        // Build diverse question pool, then pick randomly
         const questions = [];
 
         if (street === 'preflop') {
-            questions.push({ q: `Should you open ${heroHand} from ${scenario.heroPosition || 'this position'}?`, a: a.startsWith('r') || a === 'call' ? 'YES' : 'NO' });
+            const shouldPlay = a.startsWith('r') || a === 'call';
+            questions.push({ q: `Should you open ${heroHand} from ${heroPos}?`, a: shouldPlay ? 'YES' : 'NO' });
+            questions.push({ q: `Is ${heroHand} a fold from ${heroPos}?`, a: shouldPlay ? 'NO' : 'YES' });
+            if (nodeType.includes('3bet') || nodeType.includes('vs_raise')) {
+                questions.push({ q: `Should you 3-bet ${heroHand} here?`, a: a.startsWith('r') ? 'YES' : 'NO' });
+                questions.push({ q: `Is ${heroHand} a call vs the raise from ${heroPos}?`, a: a === 'call' || a === 'c' ? 'YES' : 'NO' });
+            }
+            if (heroPos === 'SB' || heroPos === 'BB') {
+                questions.push({ q: `Should you defend ${heroHand} from the ${heroPos}?`, a: shouldPlay ? 'YES' : 'NO' });
+            }
         } else {
-            if (a.startsWith('r') || a === 'allin') {
-                questions.push({ q: 'Should you bet/raise here?', a: 'YES' });
-            } else if (a === 'f') {
-                questions.push({ q: 'Should you continue in this hand?', a: 'NO' });
-            } else {
-                questions.push({ q: 'Is this a checking spot?', a: 'YES' });
+            // Postflop — many question templates
+            const isBet = a.startsWith('b') || a.startsWith('r') || a === 'allin';
+            const isFold = a === 'f' || a === 'simple_fold';
+            const isCheck = a === 'c' || a === 'x' || a === 'check';
+
+            // Core decision questions
+            if (isBet) {
+                questions.push({ q: `Should you bet ${heroHand} on this ${street}?`, a: 'YES' });
+                questions.push({ q: `Is checking better than betting here with ${heroHand}?`, a: 'NO' });
+            }
+            if (isFold) {
+                questions.push({ q: `Should you continue with ${heroHand} here?`, a: 'NO' });
+                questions.push({ q: `Is folding ${heroHand} correct on this ${street}?`, a: 'YES' });
+            }
+            if (isCheck) {
+                questions.push({ q: `Is this a checking spot with ${heroHand}?`, a: 'YES' });
+                questions.push({ q: `Should you bet for value with ${heroHand} here?`, a: 'NO' });
+            }
+
+            // Bet sizing questions
+            const betMatch = a.match(/^b(\d+)$/);
+            if (betMatch) {
+                const pct = parseInt(betMatch[1]);
+                questions.push({ q: `Is a ${pct <= 40 ? 'small' : pct <= 75 ? 'medium' : 'large'} bet correct with ${heroHand}?`, a: 'YES' });
+                if (pct <= 40) questions.push({ q: `Should you use a large bet (75%+) here?`, a: 'NO' });
+                if (pct >= 75) questions.push({ q: `Is a small bet (33%) sufficient here?`, a: 'NO' });
+            }
+
+            // Position awareness
+            if (heroPos === 'BTN' || heroPos === 'CO') {
+                questions.push({ q: `Does your position favor aggression with ${heroHand}?`, a: isBet ? 'YES' : 'NO' });
+            }
+
+            // Street-specific questions
+            if (street === 'river') {
+                if (isBet) questions.push({ q: `Is ${heroHand} a value bet on this river?`, a: 'YES' });
+                if (isFold) questions.push({ q: `Should you bluff-catch with ${heroHand}?`, a: 'NO' });
+            }
+            if (street === 'turn') {
+                if (isBet) questions.push({ q: `Should you barrel the turn with ${heroHand}?`, a: 'YES' });
             }
         }
 
-        return questions[0] || null;
+        // Standalone concept questions (no scenario needed)
+        const conceptQs = [
+            { q: 'Is position more important than card strength?', a: 'YES' },
+            { q: 'Should you always c-bet the flop as PFR?', a: 'NO' },
+            { q: 'Is a pot-sized bet ever used in GTO?', a: 'YES' },
+            { q: 'Should you limp-call preflop with small pairs?', a: 'NO' },
+            { q: 'Does checking always mean weakness?', a: 'NO' },
+            { q: 'Is defending your blind with any two cards correct?', a: 'NO' },
+            { q: 'Should you 3-bet light more from the BTN?', a: 'YES' },
+            { q: 'Is slow-playing always best with the nuts?', a: 'NO' },
+            { q: 'Can a fold ever be the highest-EV play?', a: 'YES' },
+            { q: 'Should you always bet when you have the nut advantage?', a: 'NO' },
+        ];
+
+        // Add some concept questions to the pool
+        const conceptSample = conceptQs[Math.floor(Math.random() * conceptQs.length)];
+        questions.push(conceptSample);
+
+        // Return a random question from the pool
+        return questions[Math.floor(Math.random() * questions.length)] || null;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

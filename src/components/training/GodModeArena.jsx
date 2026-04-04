@@ -654,7 +654,7 @@ function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, 
         }
     };
 
-    const catLabels = { pot_odds: 'Pot Odds', position: 'Position Play', betting: 'Betting Strategy', draws: 'Drawing Hands' };
+    const catLabels = { pot_odds: 'Pot Odds', position: 'Position Play', betting: 'Betting Strategy', draws: 'Drawing Hands', preflop: 'Preflop Play', board_texture: 'Board Texture', river_play: 'River Play', gto_theory: 'GTO Theory' };
 
     if (isComplete) {
         const totalCards = score.knew + score.learning;
