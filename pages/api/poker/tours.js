@@ -29,6 +29,30 @@ const STATIONARY_CODES = new Set([
     'COMMERCE', 'BESTBET', 'BAY_101', 'TCH'
 ]);
 
+// Known tour logo paths (files in /public/images/tours/)
+const TOUR_LOGOS = {
+    WSOP: '/images/tours/wsop.png',
+    WPT: '/images/tours/wpt.png',
+    WSOPC: '/images/tours/wsopc.png',
+    MSPT: '/images/tours/mspt.png',
+    RGPS: '/images/tours/rgps.png',
+    PGT: '/images/tours/pgt.png',
+    NAPT: '/images/tours/napt.png',
+    BPO: '/images/tours/bpo.png',
+    ROUGHRIDER: '/images/tours/roughrider.png',
+    FPN: '/images/tours/fpn.png',
+    LIPS: '/images/tours/lips.png',
+    // Stationary venue series
+    VENETIAN: '/images/tours/venetian.png',
+    WYNN: '/images/tours/wynn.png',
+    BORGATA: '/images/tours/borgata.png',
+    SEMINOLE: '/images/tours/seminole.png',
+    LODGE: '/images/tours/lodge.png',
+    COMMERCE: '/images/tours/commerce.png',
+    BESTBET: '/images/tours/bestbet.png',
+    BAY_101: '/images/tours/bay101.png',
+};
+
 // Build tours list from registry (authoritative source for rich data)
 function getToursFromRegistry(excludeStationary = false) {
     const tours = [];
@@ -50,6 +74,7 @@ function getToursFromRegistry(excludeStationary = false) {
             series_2026: tour.series_2026 || [],
             stops_2026: tour.stops_2026 || [],
             is_traveling: !STATIONARY_CODES.has(code),
+            logo_url: TOUR_LOGOS[code] || null,
         });
     }
     return tours.sort((a, b) => a.priority - b.priority);

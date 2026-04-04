@@ -667,6 +667,7 @@ export default function PokerNearMePage() {
         // Restore saved GPS location from localStorage for instant venue display
         // Check BOTH keys: sp-user-gps (main page) AND pnm_last_location (lobby page)
         let hasSavedLocation = false;
+        let hasSavedCity = false;
         try {
             const saved = localStorage.getItem('sp-user-gps');
             if (saved) {
@@ -702,7 +703,6 @@ export default function PokerNearMePage() {
                 }
             }
             // Fallback 3: check for a previously-selected city (user chose from city list)
-            let hasSavedCity = false;
             if (!hasSavedLocation) {
                 const savedCity = localStorage.getItem('pnm_last_selected_city');
                 if (savedCity) {
