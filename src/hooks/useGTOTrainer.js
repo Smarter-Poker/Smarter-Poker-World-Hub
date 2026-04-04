@@ -1594,6 +1594,38 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.generateCoachingSummary(); } catch (e) { return { summary: '', tips: [] }; }
         },
 
+        // Phase 291-300: Advanced Training Intelligence II
+        getStreakAnalysis: () => {
+            try { return deterministicEngine.getStreakAnalysis(); } catch (e) { return null; }
+        },
+        getTimePressureAnalysis: () => {
+            try { return deterministicEngine.getTimePressureAnalysis(); } catch (e) { return null; }
+        },
+        getRangeConstructionDrill: (position, nodeType) => {
+            try { return deterministicEngine.getRangeConstructionDrill(position, nodeType); } catch (e) { return null; }
+        },
+        getExploitativeAdjustments: () => {
+            try { return deterministicEngine.getExploitativeAdjustments(); } catch (e) { return null; }
+        },
+        getICMPressureAnalysis: (stackSize, avgStack, playersLeft, payoutSpots) => {
+            try { return deterministicEngine.getICMPressureAnalysis(stackSize, avgStack, playersLeft, payoutSpots); } catch (e) { return null; }
+        },
+        getMultiGameTypeStats: () => {
+            try { return deterministicEngine.getMultiGameTypeStats(); } catch (e) { return null; }
+        },
+        getBettingSizeAnalysis: () => {
+            try { return deterministicEngine.getBettingSizeAnalysis(); } catch (e) { return null; }
+        },
+        getHandReadingDrill: (street, villainActions) => {
+            try { return deterministicEngine.getHandReadingDrill(street, villainActions); } catch (e) { return null; }
+        },
+        getVarianceSimulator: (winRate, sampleSize) => {
+            try { return deterministicEngine.getVarianceSimulator(winRate, sampleSize); } catch (e) { return null; }
+        },
+        getPerformanceTrendAnalysis: () => {
+            try { return deterministicEngine.getPerformanceTrendAnalysis(); } catch (e) { return null; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,

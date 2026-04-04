@@ -851,6 +851,17 @@ function GodModeArenaInner({
         getEVLossHeatmap,
         getPositionLeaderboard,
         generateCoachingSummary,
+        // ═══ PHASE 291-300: Advanced training intelligence II ═══
+        getStreakAnalysis,
+        getTimePressureAnalysis,
+        getRangeConstructionDrill,
+        getExploitativeAdjustments,
+        getICMPressureAnalysis,
+        getMultiGameTypeStats,
+        getBettingSizeAnalysis,
+        getHandReadingDrill,
+        getVarianceSimulator,
+        getPerformanceTrendAnalysis,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2480,6 +2491,155 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
+                        {/* ═══ PHASE 291: Streak Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const sa = getStreakAnalysis();
+                                if (!sa) return null;
+                                const tiltColor = sa.tiltResistance >= 70 ? '#22c55e' : sa.tiltResistance >= 50 ? '#fbbf24' : '#ef4444';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tiltColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: tiltColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Streak &amp; Tilt Analysis</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Current Streak</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: sa.currentStreakType === 'win' ? '#22c55e' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{sa.currentStreak} {sa.currentStreakType === 'win' ? 'W' : 'L'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Best Win Streak</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{sa.longestWinStreak}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Tilt Resistance</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: tiltColor, fontFamily: "'Orbitron', monospace" }}>{sa.tiltResistance}%</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{sa.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 292: Session Stamina ═══ */}
+                        {(() => {
+                            try {
+                                const tp = getTimePressureAnalysis();
+                                if (!tp) return null;
+                                const staminaColors = { Excellent: '#22c55e', Good: '#4ade80', Fair: '#fbbf24', Poor: '#ef4444' };
+                                const sColor = staminaColors[tp.staminaRating] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${sColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: sColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Stamina</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tp.earlyAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Early</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tp.midAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Mid</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tp.lateAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Late</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Stamina Rating</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: sColor }}>{tp.staminaRating}</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{tp.recommendation}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 294: Exploitative Adjustments ═══ */}
+                        {(() => {
+                            try {
+                                const ea = getExploitativeAdjustments();
+                                if (!ea || ea.isBalanced) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,191,36,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Exploitable Tendencies</div>
+                                    <div style={{ display: 'flex', gap: 8, marginBottom: 8, justifyContent: 'center' }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>F: <strong style={{ color: '#e2e8f0' }}>{ea.actionProfile.foldPct}%</strong></span>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>C: <strong style={{ color: '#e2e8f0' }}>{ea.actionProfile.callPct}%</strong></span>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>R: <strong style={{ color: '#e2e8f0' }}>{ea.actionProfile.raisePct}%</strong></span>
+                                    </div>
+                                    {ea.adjustments.slice(0, 3).map((adj, i) => (
+                                        <div key={i} style={{ marginBottom: 6, padding: '6px 8px', background: adj.severity === 'critical' ? 'rgba(239,68,68,0.1)' : 'rgba(251,191,36,0.08)', borderRadius: 6, border: `1px solid ${adj.severity === 'critical' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.1)'}` }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: adj.severity === 'critical' ? '#ef4444' : '#fbbf24' }}>{adj.title}</div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{adj.fix}</div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 296: Multi Game Type Stats ═══ */}
+                        {(() => {
+                            try {
+                                const mgs = getMultiGameTypeStats();
+                                if (!mgs || mgs.stats.length < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(139,92,246,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Pot Type Performance</div>
+                                    {mgs.stats.map((s, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0' }}>{s.type}</span>
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: s.accuracy >= 70 ? '#22c55e' : s.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{s.accuracy}%</span>
+                                                <span style={{ fontSize: 9, color: '#64748b' }}>({s.total}h)</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{mgs.recommendation}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 297: Bet Sizing Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const bsa = getBettingSizeAnalysis();
+                                if (!bsa || bsa.analysis.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(6,182,212,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Bet Sizing Accuracy</div>
+                                    {bsa.analysis.map((a, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0' }}>{a.size}</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: a.accuracy >= 70 ? '#22c55e' : a.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{a.accuracy}% ({a.total})</span>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{bsa.tip}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 300: Performance Trend ═══ */}
+                        {(() => {
+                            try {
+                                const pt = getPerformanceTrendAnalysis();
+                                if (!pt) return null;
+                                const trendColors = { strongly_improving: '#22c55e', slightly_improving: '#4ade80', stable: '#06b6d4', slightly_declining: '#fbbf24', strongly_declining: '#ef4444' };
+                                const tColor = trendColors[pt.trend] || '#94a3b8';
+                                const trendLabels = { strongly_improving: 'Strongly Improving', slightly_improving: 'Improving', stable: 'Stable', slightly_declining: 'Declining', strongly_declining: 'Strongly Declining' };
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Performance Trend</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Trend</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: tColor }}>{trendLabels[pt.trend] || pt.trend}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Consistency</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{pt.consistencyScore}%</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Peak</span>
+                                        <span style={{ fontSize: 10, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{pt.peakAccuracy}% ({pt.peakAt})</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Trough</span>
+                                        <span style={{ fontSize: 10, color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>{pt.troughAccuracy}% ({pt.troughAt})</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{pt.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
                         {/* ═══ PHASE 20: EV by Street visualization ═══ */}
                         <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
@@ -2963,6 +3123,10 @@ function GodModeArenaInner({
                                     getSolverLineComparison={getSolverLineComparison}
                                     generateHints={generateHints}
                                     getRunoutImpactPreview={getRunoutImpactPreview}
+                                    getRangeConstructionDrill={getRangeConstructionDrill}
+                                    getHandReadingDrill={getHandReadingDrill}
+                                    getExploitativeAdjustments={getExploitativeAdjustments}
+                                    getVarianceSimulator={getVarianceSimulator}
                                     // GTOW scoring props
                                     moveClassification={moveClassification}
                                     evLoss={evLoss}
