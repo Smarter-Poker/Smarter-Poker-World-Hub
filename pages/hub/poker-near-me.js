@@ -563,6 +563,34 @@ export default function PokerNearMePage() {
     // Selected room for detail panel
     const [selectedRoom, setSelectedRoom] = useState(null);
 
+    // ═══ MAP CENTER — Compute center for map zoom (GPS or city venue centroid) ═══
+    const mapCenter = useMemo(() => {
+        // Priority 1: GPS location
+        if (userLocation) return userLocation;
+        // Priority 2: Centroid of returned venues (city search)
+        if (selectedCity && venues.length > 0) {
+            const withCoords = venues.filter(v => v.latitude && v.longitude);
+            if (withCoords.length > 0) {
+                const sumLat = withCoords.reduce((s, v) => s + v.latitude, 0);
+                const sumLng = withCoords.reduce((s, v) => s + v.longitude, 0);
+                return { lat: sumLat / withCoords.length, lng: sumLng / withCoords.length };
+            }
+        }
+        return null;
+    }, [userLocation, selectedCity, venues]);
+
+    // ═══ AUTO-REFETCH on radius change — re-searches with new radius ═══
+    const prevRadiusRef = useRef(filters.radius);
+    useEffect(() => {
+        if (prevRadiusRef.current === filters.radius) return;
+        prevRadiusRef.current = filters.radius;
+        // Only re-fetch if user has already searched (has location or city)
+        if (userLocation || selectedCity || hasSearched) {
+            setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
+            fetchVenues();
+        }
+    }, [filters.radius]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Load all venues for the map (from static JSON) on mount — with offline cache
     useEffect(() => {
         if (typeof window === 'undefined') return;

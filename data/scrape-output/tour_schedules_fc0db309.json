@@ -1,0 +1,163 @@
+{
+  "batch_id": "fc0db309-f49c-48a0-b0fc-9de150c44a62",
+  "scrape_timestamp": "2026-04-04T20:56:15.707751+00:00",
+  "scrape_script": "scripts/scrape_tour_logos_schedules.py",
+  "tours_scraped": 15,
+  "data": {
+    "WSOP": {
+      "tour_code": "WSOP",
+      "tour_name": "World Series of Poker",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:56:22.563436+00:00",
+      "scrape_html_hash": "c600c1f4fdb63db06d358e8f277cdcbba7651a2f0ae4b039c53a27ea706b7070"
+    },
+    "WPT": {
+      "tour_code": "WPT",
+      "tour_name": "World Poker Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:56:26.098106+00:00",
+      "scrape_html_hash": "5c7695ca8c8b521efcd6e5c029c7115ea5dc9dfe6eb0d7cc9be5c208df30fe71"
+    },
+    "WSOPC": {
+      "tour_code": "WSOPC",
+      "tour_name": "WSOP Circuit",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:56:33.541079+00:00",
+      "scrape_html_hash": "8ff8c9d626b68ba57a69d986c074fff53a83acd1a516bee39e09633554bb70c6"
+    },
+    "MSPT": {
+      "tour_code": "MSPT",
+      "tour_name": "Mid-States Poker Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 1,
+      "events": [
+        {
+          "event_name": "$3,500 MSPT Championship Main Event Dates: Nov. 27 - Dec. 2",
+          "dates_raw": ""
+        }
+      ],
+      "scrape_timestamp": "2026-04-04T20:56:38.452207+00:00",
+      "scrape_html_hash": "49868ff87be58f573beca9b974ab398c9d6c9bc81f297278ae6d2ecfdbf714b0"
+    },
+    "RGPS": {
+      "tour_code": "RGPS",
+      "tour_name": "RunGood Poker Series",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:56:44.312766+00:00",
+      "scrape_html_hash": "142149e65ee45a2ac63dfa214417d7b83338d0ffddeb8fe249b735e0562a8116"
+    },
+    "PGT": {
+      "tour_code": "PGT",
+      "tour_name": "PokerGO Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:56:49.742867+00:00",
+      "scrape_html_hash": "3dde573d3958a21a88d83dac72f9904dfde36aa39ab0ed5ca7e79571620b40fc"
+    },
+    "TRITON": {
+      "tour_code": "TRITON",
+      "tour_name": "Triton Poker",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:58:55.780299+00:00",
+      "scrape_html_hash": null
+    },
+    "NAPT": {
+      "tour_code": "NAPT",
+      "tour_name": "North American Poker Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:59:00.867297+00:00",
+      "scrape_html_hash": "338559456e093319076a677ff6845621bd65dd709ebd20e8afb9fd2dde04ca33"
+    },
+    "CPPT": {
+      "tour_code": "CPPT",
+      "tour_name": "Card Player Poker Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:59:05.433199+00:00",
+      "scrape_html_hash": null
+    },
+    "ROUGHRIDER": {
+      "tour_code": "ROUGHRIDER",
+      "tour_name": "Roughrider Poker Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:59:17.798768+00:00",
+      "scrape_html_hash": "df3dcc3e2ca0d4a3465c0414dd019bb43d957b964d0cd2081af5ce682a58c619"
+    },
+    "BPO": {
+      "tour_code": "BPO",
+      "tour_name": "Bar Poker Open",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:59:27.002240+00:00",
+      "scrape_html_hash": "169a9367b6be4b916de8afe53fb0a6af49b77d51e267ec40c6c19573de1a0ff2"
+    },
+    "FPN": {
+      "tour_code": "FPN",
+      "tour_name": "Free Poker Network",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T20:59:35.544613+00:00",
+      "scrape_html_hash": "f6b7127a9491d96dda04540b43434cc4c875c22244d2902f0de4022aa67bd83e"
+    },
+    "LIPS": {
+      "tour_code": "LIPS",
+      "tour_name": "Ladies International Poker Series",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T21:00:02.188037+00:00",
+      "scrape_html_hash": null
+    },
+    "CARD_PLAYER_CRUISES": {
+      "tour_code": "CARD_PLAYER_CRUISES",
+      "tour_name": "Card Player Poker Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T21:00:14.346593+00:00",
+      "scrape_html_hash": "74318db786d3d36e2359f1a396b7688fd96f9445e08199b1dec519ec02fc8427"
+    },
+    "HPT": {
+      "tour_code": "HPT",
+      "tour_name": "Heartland Poker Tour",
+      "logo_path": null,
+      "logo_source_url": null,
+      "events_count": 0,
+      "events": [],
+      "scrape_timestamp": "2026-04-04T21:00:25.719208+00:00",
+      "scrape_html_hash": null
+    }
+  }
+}

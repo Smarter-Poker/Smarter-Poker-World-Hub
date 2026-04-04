@@ -815,6 +815,10 @@ const styles = `
   }
 
   /* Back Button */
+  .back-btn-container {
+    max-width: 900px;
+    margin: 0 auto 12px;
+  }
   .back-btn {
     display: inline-flex;
     align-items: center;
@@ -830,8 +834,6 @@ const styles = `
     cursor: pointer;
     transition: all 0.2s ease;
     -webkit-tap-highlight-color: transparent;
-    max-width: 900px;
-    margin: 0 auto 12px;
   }
   .back-btn:hover {
     background: rgba(0, 212, 255, 0.15);

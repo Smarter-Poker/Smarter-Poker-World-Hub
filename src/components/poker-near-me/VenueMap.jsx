@@ -347,7 +347,7 @@ function buildPopupHtml(venue) {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor }) {
+export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -669,15 +669,29 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
   }, [userLocation, mapReady]);
 
   // ═══ DYNAMIC RADIUS ZOOM — Adjust map zoom when search radius changes ═══
+  // Uses centerLocation (GPS or city centroid) to zoom appropriately
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
-    // Only zoom when we have a user location AND a specific radius
-    if (!userLocation || !radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') return;
-
+    
+    // Determine the center point: prefer explicit centerLocation, fallback to userLocation
+    const center = centerLocation || userLocation;
+    if (!center) return;
+    
+    // For "Any" / "all" radius, show full US overview
+    if (!radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') {
+      const L = window.L;
+      const usBounds = L.latLngBounds(
+        L.latLng(24.396308, -125.0),
+        L.latLng(49.384358, -66.93457)
+      );
+      mapInstanceRef.current.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6, animate: true, duration: 0.6 });
+      return;
+    }
+    
     const map = mapInstanceRef.current;
     const zoom = radiusToZoom(radiusMiles);
-    map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
-  }, [radiusMiles, userLocation, mapReady]);
+    map.setView([center.lat, center.lng], zoom, { animate: true, duration: 0.6 });
+  }, [radiusMiles, centerLocation, userLocation, mapReady]);
 
   // Legend items
   const legendItems = [
