@@ -1669,43 +1669,58 @@ export class DeterministicGTOEngine {
     }
 
     /**
-     * Phase 25: Explain WHY the solver chose this specific sizing.
+     * Phase 34: Explain WHY the solver chose this specific sizing.
+     * Hand-aware reasoning — references actual hand strength + board interaction.
      */
     _getSizingReason(sizePct, handStrength, texture, street, isBet, isRaise) {
         if (!isBet && !isRaise) return '';
         if (sizePct === 0) return '';
+        const hs = handStrength.toLowerCase();
+        const isNutted = hs.includes('set') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house') || hs.includes('quads');
+        const isTopPair = hs.includes('top pair');
+        const isDraw = hs.includes('draw') || hs.includes('oesd') || hs.includes('gutshot');
+        const isAir = hs.includes('air') || hs.includes('overcard') || hs.includes('no pair');
+        const isOverpair = hs.includes('overpair');
 
         // Small bets (16-33%)
         if (sizePct <= 33) {
-            if (texture.dry || texture.paired) return 'Small sizing on a dry/paired board targets thin value and denies equity cheaply.';
-            if (texture.aceHigh) return 'Small sizing leverages range advantage on ace-high textures.';
-            if (street === 'flop') return 'Small c-bet uses efficient sizing to attack opponent\'s capped range.';
-            return 'Small sizing puts pressure while risking less.';
+            if (isNutted && texture.dry) return 'Small sizing with a nutted hand on a dry board — keeping villain in the pot and building it gradually.';
+            if (isTopPair && texture.dry) return 'Small sizing with top pair on a dry board — few draws to worry about, extract thin value.';
+            if (isAir && street === 'flop') return 'Small c-bet bluff — minimal risk with maximum frequency, attacking a capped range.';
+            if (texture.aceHigh) return 'Small sizing on ace-high texture leverages range advantage — villain folds or calls with weak pairs.';
+            if (texture.dry || texture.paired) return 'Small sizing on a static board denies equity cheaply.';
+            if (street === 'flop') return 'Efficient c-bet sizing — small bets work across the entire range on this texture.';
+            return 'Small sizing minimizes risk while applying pressure.';
         }
 
         // Medium bets (40-66%)
         if (sizePct <= 66) {
-            if (texture.wet || texture.connected) return 'Medium sizing on a wet board charges draws and builds the pot with value hands.';
-            if (street === 'turn') return 'Medium turn sizing sets up a river shove.';
-            if (handStrength.includes('pair') || handStrength.includes('set')) return 'Medium sizing extracts value from worse made hands.';
-            return 'Medium sizing balances value and bluffs effectively.';
+            if (isNutted && texture.wet) return 'Medium sizing builds the pot with a nutted hand while charging draws.';
+            if (isTopPair && texture.connected) return 'Medium sizing with top pair on a connected board — charge draws and protect equity.';
+            if (isDraw && texture.wet) return 'Semi-bluff sizing — enough fold equity to be profitable, plus backup equity when called.';
+            if (isOverpair) return 'Medium sizing with an overpair — extract value while keeping worse pairs calling.';
+            if (street === 'turn') return 'Medium turn bet sets up a pot-sized river shove — geometric sizing.';
+            if (texture.wet || texture.connected) return 'Medium sizing on a coordinated board charges draws and builds value.';
+            return 'Medium sizing balances the betting range — enough to build the pot, not so much that only better hands call.';
         }
 
         // Large bets (75-100%)
         if (sizePct <= 100) {
-            if (texture.flushy || texture.monotone) return 'Large sizing on flushy boards polarizes — strong value or draws as bluffs.';
+            if (isNutted) return 'Large sizing to maximize value from a monster — villain is priced in with strong hands.';
+            if (isDraw && street !== 'river') return 'Large semi-bluff — maximum fold equity with a draw, and still profitable if called.';
+            if (isAir && street === 'river') return 'Pot-sized bluff polarizes — looks like the nuts, putting villain in a tough spot.';
+            if (texture.flushy || texture.monotone) return 'Large sizing on a flushy board — strong hands bet big, draws are priced out.';
             if (street === 'river') return 'Pot-sized river bet polarizes between value and bluffs.';
-            if (handStrength.includes('draw')) return 'Large sizing maximizes fold equity with a draw.';
-            return 'Large sizing polarizes the range — strong value or semi-bluffs.';
+            return 'Large sizing polarizes — betting this big commits to the hand\'s story.';
         }
 
         // Overbets (125%+) / All-in
         if (sizePct >= 125 || sizePct === 999) {
-            if (street === 'river') return 'Overbet/jam on the river maximizes value with nutted hands and applies maximum pressure as a bluff.';
-            if (handStrength.includes('set') || handStrength.includes('straight') || handStrength.includes('flush') || handStrength.includes('full house')) {
-                return 'Overbet extracts maximum value from a nutted hand.';
-            }
-            return 'Overbet jams create maximum pressure — the opponent must have a strong hand to continue.';
+            if (isNutted && street === 'river') return 'Overbet with the nuts on the river — extracting maximum value from hands that can\'t fold.';
+            if (isNutted) return 'Overbet builds a massive pot with a nutted hand — villain\'s bluff-catchers are put to the test.';
+            if (isAir && street === 'river') return 'Overbet bluff on the river — representing the nuts with maximum pressure. Villain must be very strong to call.';
+            if (isDraw && sizePct === 999) return 'All-in semi-bluff — maximum fold equity plus draw equity creates a profitable jam.';
+            return 'Overbet applies extreme pressure — only the strongest hands can continue.';
         }
 
         return '';
