@@ -580,6 +580,373 @@ function AnalysisSection({ title, icon, color = '#94a3b8', defaultOpen = false, 
     );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CARD PATH HELPER — Same custom card images used in UniversalDynamicTable
+// ═══════════════════════════════════════════════════════════════════════════
+function getCardImagePath(card) {
+    if (!card || card.length < 2) return '/cards/back.png';
+    const rankChar = card[0].toLowerCase();
+    const suit = card[1].toLowerCase();
+    const rank = rankChar === 't' ? '10' : rankChar;
+    const suitMap = { 'h': 'hearts', 'd': 'diamonds', 'c': 'clubs', 's': 'spades' };
+    return `/cards/${suitMap[suit] || 'hearts'}_${rank}.png`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLASHCARD MODE — GTO concept flip-cards with spaced repetition feel
+// ═══════════════════════════════════════════════════════════════════════════
+
+function FlashcardMode({ flashcardState, setFlashcardState, generateFlashcards, onExit }) {
+    const { cards, currentIndex, flipped, score } = flashcardState;
+
+    // Initialize cards if empty
+    useEffect(() => {
+        if (cards.length === 0 && generateFlashcards) {
+            const data = generateFlashcards();
+            if (data) {
+                const cardList = data.cards || data;
+                setFlashcardState(prev => ({
+                    ...prev,
+                    category: data.category || 'mixed',
+                    cards: Array.isArray(cardList) ? cardList : [],
+                }));
+            }
+        }
+    }, [cards.length, generateFlashcards, setFlashcardState]);
+
+    if (cards.length === 0) {
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
+                Loading flashcards...
+            </div>
+        );
+    }
+
+    const card = cards[currentIndex];
+    const progress = currentIndex / cards.length;
+    const isComplete = currentIndex >= cards.length;
+
+    const handleFlip = () => setFlashcardState(prev => ({ ...prev, flipped: !prev.flipped }));
+
+    const handleResponse = (knew) => {
+        setFlashcardState(prev => ({
+            ...prev,
+            flipped: false,
+            currentIndex: prev.currentIndex + 1,
+            completed: prev.completed + 1,
+            score: {
+                knew: prev.score.knew + (knew ? 1 : 0),
+                learning: prev.score.learning + (knew ? 0 : 1),
+            },
+        }));
+    };
+
+    const handleNewDeck = () => {
+        const data = generateFlashcards();
+        if (data) {
+            const cardList = data.cards || data;
+            setFlashcardState({
+                category: data.category || 'mixed',
+                cards: Array.isArray(cardList) ? cardList : [],
+                currentIndex: 0, flipped: false, completed: 0,
+                score: { knew: 0, learning: 0 },
+            });
+        }
+    };
+
+    const catLabels = { pot_odds: 'Pot Odds', position: 'Position Play', betting: 'Betting Strategy', draws: 'Drawing Hands' };
+
+    if (isComplete) {
+        const totalCards = score.knew + score.learning;
+        const pct = totalCards > 0 ? Math.round((score.knew / totalCards) * 100) : 0;
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 20 }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>{pct >= 80 ? '🏆' : pct >= 50 ? '📚' : '💪'}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', marginBottom: 8 }}>Deck Complete!</div>
+                <div style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20 }}>{catLabels[flashcardState.category] || 'GTO Concepts'}</div>
+                <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{score.knew}</div>
+                        <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Knew It</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: '#f59e0b', fontFamily: "'Orbitron', monospace" }}>{score.learning}</div>
+                        <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Learning</div>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 300 }}>
+                    <button onClick={handleNewDeck} style={{ flex: 1, padding: '12px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        New Deck
+                    </button>
+                    <button onClick={onExit} style={{ flex: 1, padding: '12px 0', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: '#94a3b8', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 20 }}>
+            {/* Decorative custom card images */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 8, opacity: 0.5 }}>
+                <img src={getCardImagePath('As')} alt="card" style={{ width: 28, height: 39, borderRadius: 3 }} />
+                <img src={getCardImagePath('Kh')} alt="card" style={{ width: 28, height: 39, borderRadius: 3 }} />
+            </div>
+
+            {/* Category + Progress */}
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                {catLabels[flashcardState.category] || 'GTO Concepts'} • Card {currentIndex + 1}/{cards.length}
+            </div>
+            <div style={{ width: '80%', maxWidth: 300, height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${progress * 100}%`, background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)', borderRadius: 2, transition: 'width 0.3s' }} />
+            </div>
+
+            {/* Card */}
+            <div
+                onClick={handleFlip}
+                style={{
+                    width: '100%', maxWidth: 360, minHeight: 200, padding: 24, borderRadius: 16, cursor: 'pointer',
+                    background: flipped
+                        ? 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.06))'
+                        : 'linear-gradient(135deg, rgba(59,130,246,0.12), rgba(139,92,246,0.06))',
+                    border: `1px solid ${flipped ? 'rgba(34,197,94,0.25)' : 'rgba(59,130,246,0.25)'}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.3s', transform: flipped ? 'rotateY(0deg)' : 'rotateY(0deg)',
+                }}
+            >
+                <div style={{ fontSize: 9, fontWeight: 700, color: flipped ? '#22c55e' : '#3b82f6', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>
+                    {flipped ? 'Answer' : 'Question'}
+                </div>
+                <div style={{ fontSize: 15, color: '#e2e8f0', fontWeight: 600, textAlign: 'center', lineHeight: 1.5 }}>
+                    {flipped ? (card?.back || 'No answer') : (card?.front || 'No question')}
+                </div>
+                {!flipped && (
+                    <div style={{ fontSize: 10, color: '#475569', marginTop: 12 }}>Tap to reveal answer</div>
+                )}
+            </div>
+
+            {/* Response buttons (only when flipped) */}
+            {flipped && (
+                <div style={{ display: 'flex', gap: 10, marginTop: 16, width: '100%', maxWidth: 360 }}>
+                    <button onClick={() => handleResponse(false)} style={{ flex: 1, padding: '14px 0', borderRadius: 10, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)', color: '#f59e0b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        Still Learning
+                    </button>
+                    <button onClick={() => handleResponse(true)} style={{ flex: 1, padding: '14px 0', borderRadius: 10, border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.08)', color: '#22c55e', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        Knew It ✓
+                    </button>
+                </div>
+            )}
+
+            {/* Score bar */}
+            <div style={{ display: 'flex', gap: 16, marginTop: 16 }}>
+                <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>✓ {score.knew}</div>
+                <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>📖 {score.learning}</div>
+            </div>
+
+            {/* Back */}
+            <button onClick={onExit} style={{ marginTop: 16, background: 'none', border: 'none', color: '#475569', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                ← Back to Training
+            </button>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DRILL MODE — Rapid-fire yes/no GTO decisions with countdown timer
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DrillMode({ drillState, setDrillState, currentQuestion, generateQuickFireQuestion, getBoardTextureQuiz, getConceptQuiz, onExit, timerRef }) {
+    const { currentQ, answered, correct, streak, bestStreak, timeLeft, results } = drillState;
+
+    // Generate first drill question
+    useEffect(() => {
+        if (!currentQ && currentQuestion) {
+            const scenario = currentQuestion.scenario || {};
+            const heroHand = currentQuestion.heroHand || 'AKs';
+            const correctAction = currentQuestion.correctAnswer || 'c';
+            let q = null;
+            if (generateQuickFireQuestion) {
+                q = generateQuickFireQuestion(scenario, heroHand, correctAction);
+            }
+            if (!q && getBoardTextureQuiz) {
+                const btq = getBoardTextureQuiz();
+                if (btq) q = { q: btq.question || btq.prompt || 'Classify this board texture', a: btq.answer || 'YES' };
+            }
+            if (!q && getConceptQuiz) {
+                const cq = getConceptQuiz();
+                if (cq && cq.question) q = { q: cq.question, a: cq.correctAnswer === 0 ? 'YES' : 'NO' };
+            }
+            if (q) setDrillState(prev => ({ ...prev, currentQ: q, timeLeft: 10 }));
+        }
+    }, [currentQ, currentQuestion, generateQuickFireQuestion, getBoardTextureQuiz, getConceptQuiz, setDrillState]);
+
+    // Countdown timer
+    useEffect(() => {
+        if (!currentQ) return;
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+            setDrillState(prev => {
+                if (prev.timeLeft <= 1) {
+                    clearInterval(timerRef.current);
+                    // Time's up = wrong
+                    return {
+                        ...prev, timeLeft: 0,
+                        answered: prev.answered + 1,
+                        streak: 0,
+                        results: [...prev.results, { q: prev.currentQ?.q, correct: false, timedOut: true }],
+                        currentQ: null, // triggers new question generation
+                    };
+                }
+                return { ...prev, timeLeft: prev.timeLeft - 1 };
+            });
+        }, 1000);
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, [currentQ, timerRef, setDrillState]);
+
+    const handleAnswer = (answer) => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        const isCorrect = currentQ && answer === currentQ.a;
+        setDrillState(prev => ({
+            ...prev,
+            answered: prev.answered + 1,
+            correct: prev.correct + (isCorrect ? 1 : 0),
+            streak: isCorrect ? prev.streak + 1 : 0,
+            bestStreak: isCorrect ? Math.max(prev.bestStreak, prev.streak + 1) : prev.bestStreak,
+            results: [...prev.results, { q: currentQ?.q, correct: isCorrect, answer }],
+            currentQ: null, // triggers re-generation
+            timeLeft: 10,
+        }));
+    };
+
+    const isComplete = answered >= 20;
+    const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+
+    if (isComplete) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 20 }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>{accuracy >= 80 ? '🔥' : accuracy >= 60 ? '⚡' : '💪'}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', marginBottom: 4 }}>Drill Complete!</div>
+                <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>20 rapid-fire decisions</div>
+                <div style={{ display: 'flex', gap: 20, marginBottom: 24 }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 32, fontWeight: 800, color: accuracy >= 70 ? '#22c55e' : '#f59e0b', fontFamily: "'Orbitron', monospace" }}>{accuracy}%</div>
+                        <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Accuracy</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 32, fontWeight: 800, color: '#00d4ff', fontFamily: "'Orbitron', monospace" }}>{bestStreak}</div>
+                        <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Best Streak</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 32, fontWeight: 800, color: '#a78bfa', fontFamily: "'Orbitron', monospace" }}>{correct}/{answered}</div>
+                        <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>Score</div>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 300 }}>
+                    <button onClick={() => setDrillState({ active: true, currentQ: null, answered: 0, correct: 0, streak: 0, bestStreak: 0, timeLeft: 10, results: [] })} style={{ flex: 1, padding: '12px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #f59e0b, #ef4444)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        Again
+                    </button>
+                    <button onClick={onExit} style={{ flex: 1, padding: '12px 0', borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)', color: '#94a3b8', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!currentQ) {
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
+                Loading drill question...
+            </div>
+        );
+    }
+
+    const timerPct = (timeLeft / 10) * 100;
+    const timerColor = timeLeft > 5 ? '#22c55e' : timeLeft > 2 ? '#f59e0b' : '#ef4444';
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 20 }}>
+            {/* Header stats */}
+            <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>Q {answered + 1}/20</div>
+                <div style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>✓ {correct}</div>
+                <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>🔥 {streak}</div>
+            </div>
+
+            {/* Timer bar */}
+            <div style={{ width: '80%', maxWidth: 300, height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: 20, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${timerPct}%`, background: timerColor, borderRadius: 2, transition: 'width 1s linear, background 0.3s' }} />
+            </div>
+
+            {/* Timer number */}
+            <div style={{ fontSize: 36, fontWeight: 800, color: timerColor, fontFamily: "'Orbitron', monospace", marginBottom: 16, transition: 'color 0.3s' }}>
+                {timeLeft}
+            </div>
+
+            {/* Hero Cards + Board (custom card images) */}
+            {currentQuestion && (currentQuestion.heroCards || currentQuestion.scenario?.board) && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                    {/* Hero hand */}
+                    {currentQuestion.heroCards && currentQuestion.heroCards.length >= 2 && (
+                        <div style={{ display: 'flex', gap: 4 }}>
+                            {currentQuestion.heroCards.map((c, i) => (
+                                <img key={i} src={getCardImagePath(c)} alt={c} style={{ width: 40, height: 56, borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)' }} />
+                            ))}
+                        </div>
+                    )}
+                    {/* Board cards */}
+                    {currentQuestion.scenario?.board && (() => {
+                        const boardStr = currentQuestion.scenario.board;
+                        const bc = typeof boardStr === 'string' ? boardStr.replace(/\s+/g, '').match(/.{2}/g) || [] : (Array.isArray(boardStr) ? boardStr : []);
+                        if (bc.length === 0) return null;
+                        return (
+                            <div style={{ display: 'flex', gap: 3 }}>
+                                {bc.map((c, i) => (
+                                    <img key={i} src={getCardImagePath(c)} alt={c} style={{ width: 32, height: 44, borderRadius: 3, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
+                                ))}
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {/* Question */}
+            <div style={{
+                width: '100%', maxWidth: 380, padding: '20px 24px', borderRadius: 14,
+                background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.04))',
+                border: '1px solid rgba(59,130,246,0.2)', textAlign: 'center', marginBottom: 20,
+            }}>
+                <div style={{ fontSize: 16, color: '#e2e8f0', fontWeight: 700, lineHeight: 1.5 }}>
+                    {currentQ.q}
+                </div>
+            </div>
+
+            {/* YES / NO buttons */}
+            <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 380 }}>
+                <button onClick={() => handleAnswer('YES')} style={{
+                    flex: 1, padding: '18px 0', borderRadius: 12, border: 'none',
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: '#fff',
+                    fontSize: 18, fontWeight: 800, cursor: 'pointer', letterSpacing: 1,
+                }}>
+                    YES
+                </button>
+                <button onClick={() => handleAnswer('NO')} style={{
+                    flex: 1, padding: '18px 0', borderRadius: 12, border: 'none',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff',
+                    fontSize: 18, fontWeight: 800, cursor: 'pointer', letterSpacing: 1,
+                }}>
+                    NO
+                </button>
+            </div>
+
+            <button onClick={onExit} style={{ marginTop: 16, background: 'none', border: 'none', color: '#475569', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                ← Exit Drill
+            </button>
+        </div>
+    );
+}
+
 // F7: DRILL FILTERS — Pre-session position/street filter modal
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -947,6 +1314,9 @@ function GodModeArenaInner({
         getWinRateByHandCategory,
         getActionTimeline,
         getPreDecisionPreview,
+        // ═══ Flashcard & Drill mode methods ═══
+        generateFlashcards,
+        generateQuickFireQuestion,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -1079,6 +1449,28 @@ function GodModeArenaInner({
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
     const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
+
+    // ═══ TRAINING MODE: Standard / Flashcard / Drill ═══
+    const [trainingMode, setTrainingMode] = useState('standard'); // 'standard' | 'flashcard' | 'drill'
+    const [flashcardState, setFlashcardState] = useState({
+        category: null,
+        cards: [],
+        currentIndex: 0,
+        flipped: false,
+        completed: 0,
+        score: { knew: 0, learning: 0 },
+    });
+    const [drillState, setDrillState] = useState({
+        active: false,
+        currentQ: null,
+        answered: 0,
+        correct: 0,
+        streak: 0,
+        bestStreak: 0,
+        timeLeft: 10,
+        results: [],
+    });
+    const drillTimerRef = useRef(null);
     const [shareStatus, setShareStatus] = useState(null); // 'success' | 'error' | null
     // ═══ PHASE 19: Share Card + Achievements ═══
     const [showShareCard, setShowShareCard] = useState(false);
@@ -1244,10 +1636,17 @@ function GodModeArenaInner({
     }, [gamePhase, currentQuestion, loading]);
 
     const handleStartTraining = useCallback(() => {
-        if (splashReady) {
+        if (!splashReady) return;
+        if (trainingMode === 'flashcard') {
+            setFlashcardState({ category: null, cards: [], currentIndex: 0, flipped: false, completed: 0, score: { knew: 0, learning: 0 } });
+            setGamePhase('flashcard');
+        } else if (trainingMode === 'drill') {
+            setDrillState({ active: true, currentQ: null, answered: 0, correct: 0, streak: 0, bestStreak: 0, timeLeft: 10, results: [] });
+            setGamePhase('drill');
+        } else {
             setGamePhase('playing');
         }
-    }, [splashReady]);
+    }, [splashReady, trainingMode]);
 
     // Phase 8: Listen for adaptive difficulty changes
     useEffect(() => {
@@ -1627,6 +2026,50 @@ function GodModeArenaInner({
                                             ))}
                                         </div>
                                     )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ Session Summary Card (getSessionSummaryCard) ═══ */}
+                        {(() => {
+                            try {
+                                const ssc = getSessionSummaryCard();
+                                if (!ssc || !ssc.title) return null;
+                                return (<div style={{
+                                    marginBottom: 12, padding: '12px 16px', borderRadius: 12,
+                                    background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)',
+                                }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa', marginBottom: 6 }}>{ssc.title}</div>
+                                    {ssc.summary && <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.5, marginBottom: 6 }}>{ssc.summary}</div>}
+                                    {ssc.keyStats && ssc.keyStats.length > 0 && (
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                            {ssc.keyStats.slice(0, 4).map((s, i) => (
+                                                <div key={i} style={{ padding: '4px 10px', borderRadius: 6, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                                    <div style={{ fontSize: 12, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{s.value}</div>
+                                                    <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600 }}>{s.label}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ Comprehensive Report — Next Session Prep ═══ */}
+                        {(() => {
+                            try {
+                                const csr = getComprehensiveSessionReport();
+                                if (!csr || !csr.nextSessionPlan) return null;
+                                const plan = csr.nextSessionPlan;
+                                return (<div style={{
+                                    marginBottom: 12, padding: '12px 16px', borderRadius: 12,
+                                    background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.15)',
+                                }}>
+                                    <div style={{ fontSize: 9, fontWeight: 700, color: '#06b6d4', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Next Session Plan</div>
+                                    {plan.focus && <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600, marginBottom: 4 }}>Focus: {plan.focus}</div>}
+                                    {plan.drills && plan.drills.length > 0 && plan.drills.slice(0, 3).map((d, i) => (
+                                        <div key={i} style={{ fontSize: 10, color: '#94a3b8', padding: '1px 0' }}>• {d}</div>
+                                    ))}
                                 </div>);
                             } catch (_) { return null; }
                         })()}
@@ -3889,6 +4332,45 @@ function GodModeArenaInner({
                                     </div>
                                 </motion.div>
 
+                                {/* Training Mode Selector */}
+                                <motion.div
+                                    initial={{ y: 10, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.38 }}
+                                    style={{
+                                        padding: '12px 16px', borderRadius: 12, marginBottom: 12,
+                                        background: 'rgba(0,0,0,0.2)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}
+                                >
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                                        Training Mode
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        {[
+                                            { key: 'standard', label: 'Standard', desc: 'Full GTO', icon: '🎯', color: '#3b82f6' },
+                                            { key: 'flashcard', label: 'Flashcards', desc: 'Concepts', icon: '🃏', color: '#a78bfa' },
+                                            { key: 'drill', label: 'Speed Drill', desc: '20 Qs', icon: '⚡', color: '#f59e0b' },
+                                        ].map(m => (
+                                            <button
+                                                key={m.key}
+                                                onClick={() => setTrainingMode(m.key)}
+                                                style={{
+                                                    flex: 1, padding: '8px 4px', borderRadius: 8, cursor: 'pointer',
+                                                    border: `1px solid ${trainingMode === m.key ? m.color + '60' : 'rgba(255,255,255,0.08)'}`,
+                                                    background: trainingMode === m.key ? m.color + '15' : 'transparent',
+                                                    color: trainingMode === m.key ? m.color : '#64748b',
+                                                    transition: 'all 0.15s',
+                                                }}
+                                            >
+                                                <div style={{ fontSize: 16 }}>{m.icon}</div>
+                                                <div style={{ fontSize: 10, fontWeight: 700, marginTop: 2 }}>{m.label}</div>
+                                                <div style={{ fontSize: 8, fontWeight: 600, opacity: 0.7 }}>{m.desc}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </motion.div>
+
                                 {/* Spaced Repetition Due */}
                                 {reviewDueCount > 0 && (
                                     <motion.div
@@ -3939,7 +4421,10 @@ function GodModeArenaInner({
                                             fontFamily: "'Inter', -apple-system, sans-serif",
                                         }}
                                     >
-                                        {splashReady ? 'Start Training →' : 'Loading Solver Data...'}
+                                        {!splashReady ? 'Loading Solver Data...'
+                                            : trainingMode === 'flashcard' ? 'Start Flashcards 🃏'
+                                            : trainingMode === 'drill' ? 'Start Speed Drill ⚡'
+                                            : 'Start Training →'}
                                     </motion.button>
                                 </motion.div>
 
@@ -3959,6 +4444,48 @@ function GodModeArenaInner({
                                     ← Back to Training
                                 </motion.button>
                             </div>
+                        </motion.div>
+                    )}
+
+                    {/* ═══ FLASHCARD MODE ═══ */}
+                    {gamePhase === 'flashcard' && (
+                        <motion.div
+                            key="flashcard"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            style={{ width: '100%', height: '100%', position: 'relative' }}
+                        >
+                            <FlashcardMode
+                                flashcardState={flashcardState}
+                                setFlashcardState={setFlashcardState}
+                                generateFlashcards={generateFlashcards}
+                                onExit={() => { setGamePhase('splash'); setTrainingMode('standard'); }}
+                            />
+                        </motion.div>
+                    )}
+
+                    {/* ═══ DRILL MODE ═══ */}
+                    {gamePhase === 'drill' && (
+                        <motion.div
+                            key="drill"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            style={{ width: '100%', height: '100%', position: 'relative' }}
+                        >
+                            <DrillMode
+                                drillState={drillState}
+                                setDrillState={setDrillState}
+                                currentQuestion={currentQuestion}
+                                generateQuickFireQuestion={generateQuickFireQuestion}
+                                getBoardTextureQuiz={getBoardTextureQuiz}
+                                getConceptQuiz={getConceptQuiz}
+                                onExit={() => { setGamePhase('splash'); setTrainingMode('standard'); }}
+                                timerRef={drillTimerRef}
+                            />
                         </motion.div>
                     )}
 
