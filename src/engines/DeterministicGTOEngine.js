@@ -1654,6 +1654,9 @@ export class DeterministicGTOEngine {
         // ═══ STRATEGIC CONCEPT — What poker concept drives this? ═══
         const concept = this._getStrategicConcept(optimalAction, handStrength, texture, street, freq, validActions, handActions);
 
+        // ═══ Phase 60: BLOCKER AWARENESS ═══
+        const blockerNote = this._getBlockerContext(heroHand, board, handStrength, optimalAction, street, texture);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1669,7 +1672,7 @@ export class DeterministicGTOEngine {
 
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
-            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}${streetExtra ? ' ' + streetExtra : ''}`;
+            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}${blockerNote ? ' ' + blockerNote : ''}${streetExtra ? ' ' + streetExtra : ''}`;
         }
 
         // Near-pure — one clear best action but some mixing
@@ -1680,7 +1683,7 @@ export class DeterministicGTOEngine {
                 .slice(0, 2)
                 .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
             const mixNote = altActions.length > 0 ? ` Mixes with ${altActions.join(', ')}.` : '';
-            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${streetExtra ? ' ' + streetExtra : ''}${mixNote}`;
+            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${blockerNote ? ' ' + blockerNote : ''}${streetExtra ? ' ' + streetExtra : ''}${mixNote}`;
         }
 
         // True mixed strategy — explain WHY the solver mixes
@@ -1692,7 +1695,7 @@ export class DeterministicGTOEngine {
             .join(', ');
 
         const mixReason = this._getMixingReason(handStrength, texture, street, validActions, handActions);
-        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${streetExtra ? ' ' + streetExtra : ''}`;
+        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${blockerNote ? ' ' + blockerNote : ''}${streetExtra ? ' ' + streetExtra : ''}`;
     }
 
     /**
@@ -2359,6 +2362,177 @@ export class DeterministicGTOEngine {
      * Phase 45: Enhanced mixed strategy reasoning — GTO Wizard-level depth.
      * Explains indifference points, range balance, and exploitability prevention.
      */
+    /**
+     * Phase 60: Blocker awareness — explains how hero's hole cards block
+     * or unblock villain's ranges, and why that matters for the chosen action.
+     */
+    _getBlockerContext(heroHand, board, handStrength, action, street, texture) {
+        if (!heroHand || heroHand.length < 2 || street === 'preflop') return '';
+
+        const a = action.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isRaise = a.startsWith('r');
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isCheck = a === 'c' || a === 'x';
+        const isAggressive = isBet || isRaise;
+        const isPassive = isCall || isCheck;
+        const hs = handStrength.toLowerCase();
+
+        const r1 = heroHand[0], r2 = heroHand[1];
+        const suffix = heroHand.length >= 3 ? heroHand[2] : '';
+        const isSuited = suffix === 's';
+        const rankVal = r => '23456789TJQKA'.indexOf(r);
+        const v1 = rankVal(r1), v2 = rankVal(r2);
+
+        // Parse board
+        const validBoard = (board || []).filter(c => c && typeof c === 'string' && c.length >= 2);
+        const boardRanks = validBoard.map(c => c[0].toUpperCase());
+        const boardSuits = validBoard.map(c => c[1]?.toLowerCase());
+        const boardVals = boardRanks.map(r => rankVal(r));
+
+        // Detect board flush potential
+        const suitCounts = {};
+        boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const flushSuit = Object.entries(suitCounts).find(([s, c]) => c >= 3)?.[0] || null;
+        const threeFlush = flushSuit && suitCounts[flushSuit] === 3;
+        const fourFlush = flushSuit && suitCounts[flushSuit] >= 4;
+
+        // Hero suit info
+        const heroSuit1 = isSuited ? suffix : null; // for suited hands, both share the suit letter... but heroHand is like "AKs" not actual cards
+        // We need to work with rank-level blockers since heroHand is notation (AKs) not specific cards (Ah Kh)
+
+        const hasAce = r1 === 'A' || r2 === 'A';
+        const hasKing = r1 === 'K' || r2 === 'K';
+        const hasQueen = r1 === 'Q' || r2 === 'Q';
+        const hasJack = r1 === 'J' || r2 === 'J';
+        const hasTen = r1 === 'T' || r2 === 'T';
+        const nonAceRank = r1 === 'A' ? r2 : r1;
+        const isPair = r1 === r2;
+
+        // Board top card
+        const boardHighVal = Math.max(...boardVals);
+        const boardHighRank = '23456789TJQKA'[boardHighVal] || '';
+
+        // Detect straight-heavy boards
+        const sortedBoardVals = [...boardVals].sort((a, b) => a - b);
+        const boardSpread = sortedBoardVals.length >= 3 ? sortedBoardVals[sortedBoardVals.length - 1] - sortedBoardVals[0] : 99;
+        const connectedBoard = boardSpread <= 4 && validBoard.length >= 3;
+
+        // ═══ BLOCKER EFFECTS FOR AGGRESSIVE ACTIONS (bet/raise) ═══
+        if (isAggressive) {
+            // Bluffing with blockers — the most important blocker concept
+            if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard') || hs.includes('busted') || hs.includes('missed')) {
+                const blockers = [];
+
+                // Ace blocks AA, AK, AQ — reduces villain's premium combos
+                if (hasAce) blockers.push('Holding an A blocks villain\'s AA/AK/AQ combos');
+                // King blocks KK, AK
+                if (hasKing && !hasAce) blockers.push('The K blocks KK and AK combos');
+
+                // Suited ace on flush board blocks nut flush
+                if (hasAce && isSuited && (threeFlush || fourFlush)) {
+                    blockers.push('Your suited A blocks villain\'s nut flush combos');
+                }
+
+                // Cards that block straights on connected boards
+                if (connectedBoard) {
+                    const heroInRange = boardVals.some(bv => Math.abs(v1 - bv) <= 2 || Math.abs(v2 - bv) <= 2);
+                    if (heroInRange) blockers.push('Your cards block key straight combos on this connected board');
+                }
+
+                if (blockers.length > 0) {
+                    return `Blocker effect: ${blockers[0]}${blockers.length > 1 ? '; ' + blockers[1] : ''} — making this a premium bluff candidate.`;
+                }
+            }
+
+            // Semi-bluffing with draw + blockers
+            if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('OESD') || hs.includes('gutshot')) {
+                if (hasAce && isSuited && (threeFlush || fourFlush)) {
+                    return 'Blocker effect: Your suited ace blocks villain\'s nut flush — they\'re less likely to have the nuts, making your semi-bluff more effective.';
+                }
+                if (hasAce && (threeFlush || fourFlush)) {
+                    return 'Blocker effect: Holding an A reduces the chance villain has the nut flush, supporting this aggression.';
+                }
+            }
+
+            // Value betting — unblocking calling range is key
+            if (hs.includes('set') || hs.includes('two pair') || hs.includes('full house') || hs.includes('straight') || hs.includes('flush')) {
+                // Set on Axx board — you block AA but unblock AK/AQ
+                if (isPair && boardRanks.includes(r1)) {
+                    if (r1 === 'A') return 'Blocker note: Your set blocks AA (no combos left) but villain can still have AK/AQ — good targets for value.';
+                    if (hasAce || boardRanks.includes('A')) return ''; // complex, skip
+                }
+                // Two pair on flushy board — no flush blocker is good
+                if (hs.includes('two pair') && (threeFlush || fourFlush) && !isSuited) {
+                    return 'Blocker note: Your offsuit hand doesn\'t block flush draws — villain\'s range has more missed draws that may call.';
+                }
+            }
+
+            // Overbet with nut blocker
+            if (isBet) {
+                const sizeMatch = a.match(/^b(\d+)$/);
+                const sizePct = sizeMatch ? parseInt(sizeMatch[1]) : 0;
+                if (sizePct >= 125 && hasAce && (threeFlush || fourFlush)) {
+                    return 'Blocker effect: Overbetting while holding the A on a flushy board — you block the nuts, making villain less likely to have a hand that can call.';
+                }
+            }
+        }
+
+        // ═══ BLOCKER EFFECTS FOR CALLING (bluff-catching) ═══
+        if (isCall) {
+            // Calling is better when you UNBLOCK bluffs and BLOCK value
+            if (street === 'river') {
+                const effects = [];
+
+                // Blocking value: good for calling
+                if (isPair && v1 >= 10) {
+                    effects.push(`Your ${r1}${r1} blocks some of villain's value combos`);
+                }
+                if (hasAce && (threeFlush || fourFlush)) {
+                    effects.push('Your A blocks the nut flush');
+                }
+
+                // Unblocking bluffs: also good for calling (absence of blockers to draws)
+                if ((threeFlush || fourFlush) && !isSuited) {
+                    effects.push('your offsuit hand doesn\'t block missed flush draws — villain has more bluff combos');
+                }
+
+                if (effects.length > 0) {
+                    return `Blocker logic: ${effects.join('; ')} — supporting the call.`;
+                }
+            }
+        }
+
+        // ═══ BLOCKER EFFECTS FOR FOLDING ═══
+        if (isFold) {
+            // Folding is correct when you UNBLOCK value and BLOCK bluffs
+            if (street === 'river' || street === 'turn') {
+                if (isSuited && (threeFlush || fourFlush)) {
+                    return 'Blocker consideration: Your suited cards block some of villain\'s missed flush draw bluffs — they have fewer bluffs, supporting the fold.';
+                }
+                if (connectedBoard && (Math.abs(v1 - boardVals[0]) <= 2 || Math.abs(v2 - boardVals[0]) <= 2)) {
+                    return 'Your cards block some of villain\'s missed straight draws — fewer bluffs in their range supports folding.';
+                }
+            }
+        }
+
+        // ═══ BLOCKER EFFECTS FOR CHECKING ═══
+        if (isCheck) {
+            // Strong hands checking — sometimes because blockers reduce action
+            if (hs.includes('top pair') || hs.includes('overpair')) {
+                if (hasAce && boardRanks.includes('A')) {
+                    return 'Blocker note: Holding an A on an ace-high board reduces villain\'s top pair combos — fewer hands can pay you off, supporting a check.';
+                }
+                if (hasKing && boardRanks.includes('K')) {
+                    return 'Blocker note: Your K on a king-high board reduces villain\'s top pair combos — checking makes sense when value targets are scarce.';
+                }
+            }
+        }
+
+        return '';
+    }
+
     _getMixingReason(handStrength, texture, street, validActions, handActions) {
         const sorted = validActions
             .filter(a => handActions[a] > 0.01)
@@ -2531,7 +2705,8 @@ export class DeterministicGTOEngine {
                     if (freq >= 0.95) {
                         if (isSuperPremium) return `${heroHand}: Always 4-bet ${handDesc} vs ${vs}'s 3-bet. This is a mandatory value 4-bet — trap with AA/KK only at exploitative frequencies.${stackContext}`;
                         if (isPremium) return `${heroHand}: Pure 4-bet vs ${vs}'s 3-bet. ${handDesc} is too strong to flat — re-raising for value and pot control.${stackContext}`;
-                        if (isAx && isSuited) return `${heroHand}: Pure 4-bet bluff vs ${vs}'s 3-bet. ${handDesc} blocks aces in villain's value range and has nut potential if called.${stackContext}`;
+                        if (isAx && isSuited) return `${heroHand}: Pure 4-bet bluff vs ${vs}'s 3-bet. ${handDesc} blocks AA/AK in villain's value range (removing ~16 combos) and has nut potential if called.${stackContext}`;
+                        if (isKx && isSuited) return `${heroHand}: Pure 4-bet bluff vs ${vs}'s 3-bet. ${handDesc} blocks KK and AK combos, reducing villain's premium holdings — a balanced 4-bet bluff.${stackContext}`;
                         return `${heroHand}: Pure 4-bet vs ${vs}'s 3-bet. Strong enough to continue aggressively in a 3-bet pot.${stackContext}`;
                     }
                     const callFreq = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
@@ -2554,6 +2729,7 @@ export class DeterministicGTOEngine {
                 }
                 if (isFold) {
                     if (freq >= 0.95) {
+                        if (!hasAce && !hasKing) return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue, and no blockers to villain's premium range (AA/KK/AK).${stackContext}`;
                         return `${heroHand}: Fold vs ${vs}'s 3-bet. ${handDesc} — not enough equity to continue against a polarized 3-bet range. Pot odds don't justify calling.${stackContext}`;
                     }
                     const callFreq2 = handActions['call'] ? (handActions['call'] * 100).toFixed(0) : null;
@@ -2567,7 +2743,8 @@ export class DeterministicGTOEngine {
                 if (isRaise) {
                     if (freq >= 0.95) {
                         if (isPremium) return `${heroHand}: Always 3-bet ${handDesc} vs ${vs}'s open. Too strong to just call — build the pot preflop.${stackContext}`;
-                        if (isAx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} has great playability as a 3-bet bluff — blockers, suitedness, and nut potential.${stackContext}`;
+                        if (isAx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} — premium 3-bet bluff because the A blocks AA/AK (removes ~16 combos), plus suitedness gives nut potential.${stackContext}`;
+                        if (isKx && isSuited) return `${heroHand}: Pure 3-bet vs ${vs}. ${handDesc} — the K blocks KK and AK, reducing villain's continue range. Good 3-bet bluff with playability.${stackContext}`;
                         if (isBlind) return `${heroHand}: Pure 3-bet from the blinds vs ${vs}. ${handDesc} — 3-betting compensates for being out of position postflop.${stackContext}`;
                         return `${heroHand}: Pure 3-bet vs ${vs}'s open. Strong enough to re-raise for value and build the pot.${stackContext}`;
                     }
