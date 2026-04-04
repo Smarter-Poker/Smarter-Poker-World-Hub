@@ -6102,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '4.1.0-phase340',
-            phasesImplemented: 340,
+            version: '4.2.0-phase350',
+            phasesImplemented: 350,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6163,6 +6163,8 @@ export class DeterministicGTOEngine {
                 phase326_330: ['valueBetAnalysis', 'sessionSummaryCard', 'difficultyProgression', 'weaknessHeatmap', 'gtoComplianceScore'],
                 phase331_335: ['rangeBalance', 'checkBackAnalysis', 'donkBetAnalysis', 'multiWayPots', 'thinValueFreq'],
                 phase336_340: ['protectionBets', 'showdownAnalysis', 'riverDecisionQuality', 'preFlopLeaks', 'sessionProgressChart'],
+                phase341_345: ['equityRealization', 'potControl', 'boardTextureQuiz', 'stackDepthStrategy', 'mixedStrategyAccuracy'],
+                phase346_350: ['endgameReport', 'playstyleEvolution', 'conceptReminders', 'nextSessionPrep', 'ultimatePlayerRating'],
             },
             totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
@@ -14413,6 +14415,391 @@ export class DeterministicGTOEngine {
             totalHands: history.length,
             finalAccuracy: dataPoints[dataPoints.length - 1]?.runningAccuracy || 0,
             totalEVLoss: Math.round(cumEV * 100) / 100,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 341: EQUITY REALIZATION ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getEquityRealizationAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // IP vs OOP equity realization
+        const ipHands = history.filter(h => {
+            const pos = (h.heroPosition || h.position || '').toUpperCase();
+            return ['BTN', 'CO', 'IP'].includes(pos);
+        });
+        const oopHands = history.filter(h => {
+            const pos = (h.heroPosition || h.position || '').toUpperCase();
+            return ['SB', 'BB', 'UTG', 'OOP', 'EP'].includes(pos);
+        });
+
+        const calcAcc = (arr) => arr.length > 0 ? Math.round((arr.filter(h => h.correct).length / arr.length) * 100) : 0;
+
+        return {
+            ipAccuracy: calcAcc(ipHands),
+            oopAccuracy: calcAcc(oopHands),
+            ipHands: ipHands.length,
+            oopHands: oopHands.length,
+            positionAdvantage: calcAcc(ipHands) - calcAcc(oopHands),
+            insight: calcAcc(ipHands) - calcAcc(oopHands) > 15
+                ? 'Significant IP advantage — you realize equity much better in position. Work on OOP strategy.'
+                : calcAcc(ipHands) - calcAcc(oopHands) > 5
+                    ? 'Slight IP advantage — normal pattern. Position is power in poker.'
+                    : 'Your IP/OOP accuracy is close — either great OOP play or room to improve IP play.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 342: POT CONTROL ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getPotControlAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let shouldControl = 0, controlledCorrectly = 0, inflatedWhenShouldControl = 0;
+
+        history.forEach(h => {
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const userAction = (h.selectedAction || '').toLowerCase();
+            const isCorrectPassive = correctAction.includes('check') || correctAction.includes('call');
+            const isUserAggressive = userAction.includes('bet') || userAction.includes('raise');
+
+            if (isCorrectPassive) {
+                shouldControl++;
+                if (!isUserAggressive) controlledCorrectly++;
+                else inflatedWhenShouldControl++;
+            }
+        });
+
+        return {
+            shouldControl,
+            controlledCorrectly,
+            inflatedWhenShouldControl,
+            controlRate: shouldControl > 0 ? Math.round((controlledCorrectly / shouldControl) * 100) : null,
+            tip: inflatedWhenShouldControl > 3
+                ? `You inflated the pot ${inflatedWhenShouldControl} times when the solver prefers pot control. Save aggression for polarized spots.`
+                : 'Good pot control awareness — you keep pots small when appropriate.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 343: BOARD TEXTURE QUIZ
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getBoardTextureQuiz() {
+        const quizzes = [
+            { board: 'A♠ K♥ 7♦', texture: 'Dry', cbetFreq: 'High (~75%)', explanation: 'Dry, disconnected board with high cards. Preflop raiser has massive range advantage. C-bet frequently with small sizing.' },
+            { board: 'J♠ T♥ 9♣', texture: 'Wet/Connected', cbetFreq: 'Low (~33%)', explanation: 'Highly connected board. Many draws available. Callers connect well here. Check more frequently and bet larger when you do.' },
+            { board: '8♠ 7♠ 6♥', texture: 'Very Wet', cbetFreq: 'Low (~25%)', explanation: 'Extremely connected with straight and flush draws. Callers hit this board hard. Mostly check, bet large with strong hands and good draws.' },
+            { board: 'K♠ 8♦ 3♣', texture: 'Dry', cbetFreq: 'High (~70%)', explanation: 'Dry board with one high card. Raiser has range advantage. C-bet small (1/3 pot) with high frequency.' },
+            { board: 'Q♥ J♦ T♠', texture: 'Wet/Broadway', cbetFreq: 'Medium (~45%)', explanation: 'Connected broadway board. Both ranges connect, but callers have more two-pair combos. Be selective with c-bets.' },
+            { board: '2♠ 2♥ 5♦', texture: 'Paired/Dry', cbetFreq: 'Medium (~50%)', explanation: 'Paired board. Nobody connects often. Small sizing works well because ranges are wide and equity runs close.' },
+        ];
+
+        const idx = this._sessionStats?.total
+            ? (this._sessionStats.total * 13 + 7) % quizzes.length
+            : Math.floor(Math.random() * quizzes.length);
+
+        return quizzes[idx];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 344: STACK DEPTH STRATEGY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getStackDepthStrategy(effectiveStack = 100) {
+        let strategy;
+        if (effectiveStack <= 10) {
+            strategy = {
+                depth: 'Ultra-Short (≤10bb)',
+                approach: 'Push/Fold',
+                keyPrinciple: 'At 10bb or less, your strategy is binary: shove or fold. No limping, no min-raising.',
+                ranges: 'Shove wider from late position. Tighten up from early position. Any pair, suited ace, KQ+ from BTN.',
+                mistakes: 'Limping, calling opens, min-raising — all are errors at this depth.',
+            };
+        } else if (effectiveStack <= 20) {
+            strategy = {
+                depth: 'Short (11-20bb)',
+                approach: 'Raise/Fold or Shove',
+                keyPrinciple: 'Open-raise to 2-2.2x or shove. Your 3-bet range should be shove-or-fold only.',
+                ranges: 'Open wider from BTN/CO. Shove over opens with 15bb or less with strong broadways and pairs.',
+                mistakes: 'Calling 3-bets and seeing flops with shallow stacks is a major leak.',
+            };
+        } else if (effectiveStack <= 40) {
+            strategy = {
+                depth: 'Medium (21-40bb)',
+                approach: 'Standard with adjustments',
+                keyPrinciple: 'Standard preflop ranges but postflop play simplifies. SPR is low, so commit easier with top pair+.',
+                ranges: 'Can open standard ranges but 4-bet/shove ranges widen. Avoid flatting 3-bets with speculative hands.',
+                mistakes: 'Playing too many multi-street bluffs. With low SPR, one pair hands become very committal.',
+            };
+        } else {
+            strategy = {
+                depth: 'Deep (40bb+)',
+                approach: 'Full postflop poker',
+                keyPrinciple: 'Deep stacks enable complex multi-street play. Implied odds increase for speculative hands.',
+                ranges: 'Can flat more with suited connectors, small pairs. Position is even more valuable deep.',
+                mistakes: 'Not adjusting bet sizes for stack depth. Overbetting becomes more powerful when deep.',
+            };
+        }
+
+        return { ...strategy, effectiveStack };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 345: MIXED STRATEGY ACCURACY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getMixedStrategyAccuracy() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let mixedSpots = 0, mixedCorrect = 0, pureSpots = 0, pureCorrect = 0;
+
+        history.forEach(h => {
+            const isMixed = h.correctFreq && h.correctFreq < 85 && h.correctFreq > 15;
+            if (isMixed) { mixedSpots++; if (h.correct) mixedCorrect++; }
+            else { pureSpots++; if (h.correct) pureCorrect++; }
+        });
+
+        return {
+            mixedSpots,
+            mixedCorrect,
+            mixedAccuracy: mixedSpots > 0 ? Math.round((mixedCorrect / mixedSpots) * 100) : null,
+            pureSpots,
+            pureCorrect,
+            pureAccuracy: pureSpots > 0 ? Math.round((pureCorrect / pureSpots) * 100) : null,
+            gap: (pureSpots > 0 && mixedSpots > 0)
+                ? Math.round((pureCorrect / pureSpots) * 100) - Math.round((mixedCorrect / mixedSpots) * 100)
+                : null,
+            insight: mixedSpots > 0 && (mixedCorrect / mixedSpots) < 0.5
+                ? 'Mixed strategy spots are your weakest area. These spots have close EV between actions — focus on understanding why the solver mixes.'
+                : 'Your mixed strategy spot accuracy is respectable.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 346: ENDGAME REPORT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getEndgameReport() {
+        if (!this._sessionStats || this._sessionStats.total < 5) return null;
+        const stats = this._sessionStats;
+        const accuracy = Math.round((stats.correct / stats.total) * 100);
+
+        // Aggregate key metrics
+        const report = {
+            accuracy,
+            totalHands: stats.total,
+            grade: accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 55 ? 'C' : accuracy >= 40 ? 'D' : 'F',
+            evLoss: Math.round((stats.evLoss || 0) * 100) / 100,
+            highlights: [],
+            areasForImprovement: [],
+        };
+
+        // Highlights
+        if (accuracy >= 80) report.highlights.push(`${accuracy}% accuracy — top tier performance!`);
+        if (stats.bestStreak >= 5) report.highlights.push(`${stats.bestStreak}-hand winning streak!`);
+
+        // Areas for improvement from various sources
+        try { const ea = this.getExploitativeAdjustments(); if (ea?.adjustments?.[0]) report.areasForImprovement.push(ea.adjustments[0].title); } catch (_) {}
+        try { const pfl = this.getPreFlopLeaks(); if (pfl?.leaks?.[0]) report.areasForImprovement.push(`Preflop: ${pfl.leaks[0].area}`); } catch (_) {}
+        try { const rdq = this.getRiverDecisionQuality(); if (rdq?.grade === 'D') report.areasForImprovement.push('River decisions'); } catch (_) {}
+
+        return report;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 347: PLAYSTYLE EVOLUTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getPlaystyleEvolution() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 10) return null;
+        const history = this._sessionStats.history;
+        const half = Math.floor(history.length / 2);
+        const firstHalf = history.slice(0, half);
+        const secondHalf = history.slice(half);
+
+        const getProfile = (hands) => {
+            let folds = 0, calls = 0, raises = 0;
+            hands.forEach(h => {
+                const a = (h.selectedAction || '').toLowerCase();
+                if (a.includes('fold')) folds++;
+                else if (a.includes('call') || a.includes('check')) calls++;
+                else raises++;
+            });
+            const t = hands.length;
+            return {
+                foldPct: Math.round((folds / t) * 100),
+                callPct: Math.round((calls / t) * 100),
+                raisePct: Math.round((raises / t) * 100),
+                accuracy: Math.round((hands.filter(h => h.correct).length / t) * 100),
+            };
+        };
+
+        const early = getProfile(firstHalf);
+        const late = getProfile(secondHalf);
+
+        const aggressionShift = late.raisePct - early.raisePct;
+        let evolution;
+        if (aggressionShift > 10) evolution = 'Becoming more aggressive';
+        else if (aggressionShift < -10) evolution = 'Becoming more passive';
+        else if (late.accuracy > early.accuracy + 10) evolution = 'Improving accuracy';
+        else if (late.accuracy < early.accuracy - 10) evolution = 'Declining focus';
+        else evolution = 'Consistent play';
+
+        return { early, late, evolution, aggressionShift };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 348: KEY CONCEPT REMINDERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getKeyConceptReminders(street = 'flop', nodeType = '', heroPosition = '') {
+        const reminders = [];
+
+        if (street === 'preflop') {
+            reminders.push('Position is the most valuable asset in poker — play tighter from early positions.');
+            if (nodeType.includes('3bet')) reminders.push('3-bet with a polarized range: premiums for value + suited aces/small pairs as bluffs.');
+        } else if (street === 'flop') {
+            reminders.push('On dry boards, c-bet small and frequently. On wet boards, check more and bet larger.');
+            if (heroPosition === 'SB' || heroPosition === 'BB') reminders.push('OOP ranges should check-raise strong hands and draws to build pots.');
+        } else if (street === 'turn') {
+            reminders.push('The turn is where ranges narrow significantly. Continuing to barrel shows real strength.');
+            reminders.push('If you checked the flop, consider a delayed c-bet if the turn improves your range.');
+        } else if (street === 'river') {
+            reminders.push('River ranges should be polarized: bet big with strong hands and bluffs, check medium hands.');
+            reminders.push('Use blockers to select bluffs — blocking strong hands villain could have makes bluffs more profitable.');
+        }
+
+        return { reminders: reminders.slice(0, 3), street, position: heroPosition };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 349: NEXT SESSION PREPARATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getNextSessionPrep() {
+        if (!this._sessionStats || this._sessionStats.total < 5) return null;
+
+        const prep = { warmup: [], focus: [], studyTopics: [] };
+
+        // Warmup based on strengths
+        try {
+            const posLB = this.getPositionLeaderboard();
+            if (posLB?.bestPosition) prep.warmup.push(`Start from your strongest position: ${posLB.bestPosition.position} (${posLB.bestPosition.accuracy}%)`);
+        } catch (_) {}
+
+        // Focus areas from weaknesses
+        try {
+            const dr = this.getAdaptiveDrillRecommendation();
+            if (dr?.recommendations) dr.recommendations.slice(0, 2).forEach(r => prep.focus.push(r.drill));
+        } catch (_) {}
+
+        // Study topics
+        try {
+            const gto = this.getGTOComplianceScore();
+            if (gto) {
+                if (gto.components.frequency < 70) prep.studyTopics.push('Mixed frequency spots — understand when the solver mixes and why');
+                if (gto.components.balance < 70) prep.studyTopics.push('Range balance — review your fold/call/raise distribution vs solver');
+                if (gto.components.accuracy < 70) prep.studyTopics.push('Core strategy — review opening ranges and postflop fundamentals');
+            }
+        } catch (_) {}
+
+        try {
+            const rdq = this.getRiverDecisionQuality();
+            if (rdq && rdq.grade === 'C' || rdq?.grade === 'D') prep.studyTopics.push('River play — focus on bluff-catching and thin value betting');
+        } catch (_) {}
+
+        if (prep.warmup.length === 0) prep.warmup.push('Start with 5 hands of familiar spots to get warmed up');
+        if (prep.focus.length === 0) prep.focus.push('General GTO practice');
+        if (prep.studyTopics.length === 0) prep.studyTopics.push('Review solver lines for spots you found tricky');
+
+        return prep;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 350: ULTIMATE PLAYER RATING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getUltimatePlayerRating() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Composite rating from multiple dimensions
+        let scores = {};
+
+        // Accuracy (25%)
+        const accuracy = Math.round((history.filter(h => h.correct).length / history.length) * 100);
+        scores.accuracy = accuracy;
+
+        // GTO Compliance (20%)
+        try {
+            const gto = this.getGTOComplianceScore();
+            scores.gtoCompliance = gto?.overall || accuracy;
+        } catch (_) { scores.gtoCompliance = accuracy; }
+
+        // Mental game (15%)
+        try {
+            const sa = this.getStreakAnalysis();
+            scores.mentalGame = sa?.tiltResistance || 70;
+        } catch (_) { scores.mentalGame = 70; }
+
+        // Range balance (15%)
+        try {
+            const rb = this.getRangeBalanceScore();
+            scores.rangeBalance = rb?.balanceScore || 60;
+        } catch (_) { scores.rangeBalance = 60; }
+
+        // Consistency (10%)
+        try {
+            const pt = this.getPerformanceTrendAnalysis();
+            scores.consistency = pt?.consistencyScore || 60;
+        } catch (_) { scores.consistency = 60; }
+
+        // Adaptability (10%)
+        try {
+            const fc = this.getFrequencyConvergenceTracker();
+            scores.adaptability = fc?.isConverging ? 80 : 50;
+        } catch (_) { scores.adaptability = 50; }
+
+        // Mixed strategy skill (5%)
+        try {
+            const ms = this.getMixedStrategyAccuracy();
+            scores.mixedStrategy = ms?.mixedAccuracy || 50;
+        } catch (_) { scores.mixedStrategy = 50; }
+
+        const compositeRating = Math.round(
+            scores.accuracy * 0.25 +
+            scores.gtoCompliance * 0.20 +
+            scores.mentalGame * 0.15 +
+            scores.rangeBalance * 0.15 +
+            scores.consistency * 0.10 +
+            scores.adaptability * 0.10 +
+            scores.mixedStrategy * 0.05
+        );
+
+        // Convert to tier
+        let tier, elo;
+        if (compositeRating >= 90) { tier = 'Grandmaster'; elo = 2400 + (compositeRating - 90) * 20; }
+        else if (compositeRating >= 80) { tier = 'Master'; elo = 2200 + (compositeRating - 80) * 20; }
+        else if (compositeRating >= 70) { tier = 'Expert'; elo = 2000 + (compositeRating - 70) * 20; }
+        else if (compositeRating >= 60) { tier = 'Advanced'; elo = 1800 + (compositeRating - 60) * 20; }
+        else if (compositeRating >= 50) { tier = 'Intermediate'; elo = 1600 + (compositeRating - 50) * 20; }
+        else if (compositeRating >= 35) { tier = 'Developing'; elo = 1400 + (compositeRating - 35) * 13; }
+        else { tier = 'Beginner'; elo = 1200 + compositeRating * 6; }
+
+        return {
+            compositeRating,
+            elo: Math.round(elo),
+            tier,
+            scores,
+            totalHands: history.length,
+            insight: `Your ${tier} rating of ${Math.round(elo)} reflects ${compositeRating}% composite skill across accuracy, GTO compliance, mental game, range balance, consistency, and adaptability.`,
         };
     }
 }

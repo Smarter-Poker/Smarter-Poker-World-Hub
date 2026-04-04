@@ -895,6 +895,12 @@ function GodModeArenaInner({
         getRiverDecisionQuality,
         getPreFlopLeaks,
         getSessionProgressionChart,
+        // ═══ PHASE 341-350: Mastery & deep analysis ═══
+        getEquityRealizationAnalysis,
+        getMixedStrategyAccuracy,
+        getPlaystyleEvolution,
+        getUltimatePlayerRating,
+        getNextSessionPrep,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2966,6 +2972,130 @@ function GodModeArenaInner({
                                     ))}
                                     {tp.estimatedImprovement > 0 && (
                                         <div style={{ fontSize: 10, color: '#a78bfa', fontWeight: 600, marginTop: 6 }}>Estimated improvement: +{tp.estimatedImprovement}% accuracy</div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 350: Ultimate Player Rating ═══ */}
+                        {(() => {
+                            try {
+                                const upr = getUltimatePlayerRating();
+                                if (!upr) return null;
+                                const tierColors = { Grandmaster: '#f59e0b', Master: '#22c55e', Expert: '#06b6d4', Advanced: '#818cf8', Intermediate: '#94a3b8', Developing: '#fbbf24', Beginner: '#ef4444' };
+                                const tColor = tierColors[upr.tier] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '16px', background: `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, ${tColor}08 100%)`, borderRadius: 14, border: `2px solid ${tColor}40` }}>
+                                    <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>Player Rating</div>
+                                        <div style={{ fontSize: 36, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace", lineHeight: 1 }}>{upr.elo}</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginTop: 2 }}>{upr.tier}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+                                        {Object.entries(upr.scores).map(([key, val]) => (
+                                            <div key={key} style={{ padding: '3px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontSize: 9 }}>
+                                                <span style={{ color: '#64748b' }}>{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                                                <span style={{ color: val >= 70 ? '#4ade80' : val >= 50 ? '#fbbf24' : '#ef4444', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{val}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 341: Equity Realization ═══ */}
+                        {(() => {
+                            try {
+                                const er = getEquityRealizationAnalysis();
+                                if (!er || (er.ipHands < 2 && er.oopHands < 2)) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Position Advantage</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{er.ipAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>In Position ({er.ipHands})</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{er.oopAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Out of Position ({er.oopHands})</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{er.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 345: Mixed Strategy Accuracy ═══ */}
+                        {(() => {
+                            try {
+                                const ms = getMixedStrategyAccuracy();
+                                if (!ms || ms.mixedSpots < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Mixed vs Pure Spots</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: ms.mixedAccuracy >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{ms.mixedAccuracy || 0}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Mixed ({ms.mixedSpots})</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: (ms.pureAccuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{ms.pureAccuracy || 0}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Pure ({ms.pureSpots})</div>
+                                        </div>
+                                    </div>
+                                    {ms.gap !== null && ms.gap > 15 && (
+                                        <div style={{ fontSize: 10, color: '#fbbf24', fontStyle: 'italic' }}>Gap of {ms.gap}% — mixed spots need work</div>
+                                    )}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 2 }}>{ms.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 347: Playstyle Evolution ═══ */}
+                        {(() => {
+                            try {
+                                const pe = getPlaystyleEvolution();
+                                if (!pe) return null;
+                                const evoColors = { 'Becoming more aggressive': '#fbbf24', 'Becoming more passive': '#06b6d4', 'Improving accuracy': '#22c55e', 'Declining focus': '#ef4444', 'Consistent play': '#94a3b8' };
+                                const eColor = evoColors[pe.evolution] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${eColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: eColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Evolution</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8, fontSize: 12, fontWeight: 600, color: eColor }}>{pe.evolution}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.early.accuracy}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Early Acc</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center', color: '#475569' }}>→</div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.late.accuracy}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Late Acc</div>
+                                        </div>
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 349: Next Session Prep ═══ */}
+                        {(() => {
+                            try {
+                                const nsp = getNextSessionPrep();
+                                if (!nsp) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(34,211,238,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Next Session Prep</div>
+                                    {nsp.focus.length > 0 && (
+                                        <div style={{ marginBottom: 6 }}>
+                                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, marginBottom: 2 }}>FOCUS</div>
+                                            {nsp.focus.map((f, i) => (
+                                                <div key={i} style={{ fontSize: 10, color: '#e2e8f0', padding: '2px 0' }}>{f}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {nsp.studyTopics.length > 0 && (
+                                        <div>
+                                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, marginBottom: 2, marginTop: 6 }}>STUDY</div>
+                                            {nsp.studyTopics.slice(0, 2).map((s, i) => (
+                                                <div key={i} style={{ fontSize: 10, color: '#94a3b8', padding: '2px 0' }}>{s}</div>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>);
                             } catch (_) { return null; }

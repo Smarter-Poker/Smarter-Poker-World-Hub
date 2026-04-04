@@ -1754,6 +1754,38 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.getSessionProgressionChart(); } catch (e) { return null; }
         },
 
+        // Phase 341-350: Mastery & Deep Analysis
+        getEquityRealizationAnalysis: () => {
+            try { return deterministicEngine.getEquityRealizationAnalysis(); } catch (e) { return null; }
+        },
+        getPotControlAnalysis: () => {
+            try { return deterministicEngine.getPotControlAnalysis(); } catch (e) { return null; }
+        },
+        getBoardTextureQuiz: () => {
+            try { return deterministicEngine.getBoardTextureQuiz(); } catch (e) { return null; }
+        },
+        getStackDepthStrategy: (effectiveStack) => {
+            try { return deterministicEngine.getStackDepthStrategy(effectiveStack); } catch (e) { return null; }
+        },
+        getMixedStrategyAccuracy: () => {
+            try { return deterministicEngine.getMixedStrategyAccuracy(); } catch (e) { return null; }
+        },
+        getEndgameReport: () => {
+            try { return deterministicEngine.getEndgameReport(); } catch (e) { return null; }
+        },
+        getPlaystyleEvolution: () => {
+            try { return deterministicEngine.getPlaystyleEvolution(); } catch (e) { return null; }
+        },
+        getKeyConceptReminders: (street, nodeType, heroPosition) => {
+            try { return deterministicEngine.getKeyConceptReminders(street, nodeType, heroPosition); } catch (e) { return null; }
+        },
+        getNextSessionPrep: () => {
+            try { return deterministicEngine.getNextSessionPrep(); } catch (e) { return null; }
+        },
+        getUltimatePlayerRating: () => {
+            try { return deterministicEngine.getUltimatePlayerRating(); } catch (e) { return null; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,
