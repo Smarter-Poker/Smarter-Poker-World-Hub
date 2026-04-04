@@ -2762,36 +2762,51 @@ export class DeterministicGTOEngine {
         const secondIsCheck = second === 'c' || second === 'x';
         const hs = handStrength.toLowerCase();
 
+        // Board texture tag for context
+        const texTag = texture.monotone ? ' on this monotone board' : texture.wet ? ' on this wet board' : texture.paired ? ' on this paired board' : texture.dry ? ' on this dry board' : '';
+
         // Check vs Bet mix — the most common mixed strategy
         if ((topIsCheck && secondIsBet) || (topIsBet && secondIsCheck)) {
             if (hs.includes('top pair') || hs.includes('overpair')) {
                 if (texture.wet) return `This hand is at the indifference point between betting for value/protection and checking to control the pot. On a wet board, betting ${topIsBet ? topFreq : secondFreq}% protects against draws while checking preserves a balanced checking range.`;
+                if (texture.dry) return `On a dry board, top pair is less vulnerable — the solver splits between betting for thin value and checking to trap. Neither line dominates.`;
+                if (texture.paired) return `On a paired board, top pair is relatively strong. The solver mixes between betting thin and checking, since fewer draws exist and villain's range is more capped.`;
                 return `At the boundary between value betting and pot control. If this hand always bet, the checking range would become too weak and exploitable. The solver splits to keep both ranges strong.`;
             }
             if (hs.includes('set') || hs.includes('two pair')) {
+                if (texture.wet) return `Strong hand mixing bet/check on a wet board — betting protects against draws while checking traps aggressive opponents. Wet textures increase the mix frequency.`;
+                if (texture.dry) return `Slow-playing a monster on a dry board — fewer draws mean less urgency to bet. Trapping is more viable when villain can't outdraw you easily.`;
                 return `Strong hand that mixes between building the pot and trapping. Slow-playing some percentage disguises hand strength and protects the checking range with monsters.`;
             }
             if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd')) {
+                if (texture.wet) return `Draw at the indifference point on a wet board — semi-bluffing has more credibility when many draws exist, but checking also realizes equity well.`;
                 return `Draw at the indifference point — sometimes semi-bluffing for fold equity, sometimes checking to realize equity freely. Both lines have approximately equal EV.`;
             }
             if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
+                if (texture.dry) return `On a dry board, the solver bluffs less frequently — villain has fewer draws to fold out, so bluff profitability is lower. The mix keeps frequencies unpredictable.`;
+                if (texture.wet) return `Wet board gives air more semi-bluff equity through backdoors. The solver bluffs enough to make villain indifferent between calling and folding.`;
                 return `This hand sometimes bluffs and sometimes gives up. The solver bluffs just often enough to make villain indifferent between calling and folding — the foundation of GTO balance.`;
             }
             if (hs.includes('second pair') || hs.includes('bottom pair') || hs.includes('middle pair')) {
+                if (texture.wet) return `Marginal hand on a wet board — betting risks getting raised, checking risks giving free cards. The solver mixes because neither option clearly dominates.`;
                 return `Marginal made hand at the bet/check boundary. Betting extracts thin value from worse hands, but checking preserves the option to call a river bet with showdown value.`;
             }
-            return `Indifferent between betting and checking — at Nash equilibrium, both actions yield identical EV. The solver randomizes to prevent opponents from exploiting predictable patterns.`;
+            return `Indifferent between betting and checking${texTag} — at Nash equilibrium, both actions yield identical EV. The solver randomizes to prevent opponents from exploiting predictable patterns.`;
         }
 
         // Multiple bet sizes
         if (topIsBet && secondIsBet) {
-            const topSize = top.match(/\d+/)?.[0] || '';
-            const secSize = second.match(/\d+/)?.[0] || '';
+            const topSize = parseInt(top.match(/\d+/)?.[0] || '0');
+            const secSize = parseInt(second.match(/\d+/)?.[0] || '0');
             if (hs.includes('set') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house')) {
+                if (texture.wet) return `Multiple sizings with a strong hand on a wet board — smaller bets keep draws in, while larger bets charge them. The solver optimizes the value extraction mix.`;
                 return `The solver uses multiple sizings with the nuts — smaller bets target thin calls from medium-strength hands, while larger bets maximize value from strong holdings.`;
             }
             if (hs.includes('draw')) {
-                return `Different bluff sizings with a draw — smaller bets risk less when bluffing, while larger bets generate more fold equity. The solver optimizes the sizing mix.`;
+                return `Different bluff sizings with a draw — smaller bets risk less when bluffing, while larger bets generate more fold equity. The solver optimizes the sizing mix${texTag}.`;
+            }
+            if (Math.abs(topSize - secSize) >= 40) {
+                return `Wide sizing split (${topSize}% vs ${secSize}%)${texTag} — each size targets a different portion of villain's range. The larger size is polarized; the smaller is merged.`;
             }
             return `Multiple bet sizes at the indifference point. The solver splits sizings to target different parts of villain's range — each size attacks a different hand class optimally.`;
         }
@@ -2800,19 +2815,23 @@ export class DeterministicGTOEngine {
         if ((top === 'call' && (second.startsWith('r') || second === 'allin')) ||
             ((top.startsWith('r') || top === 'allin') && second === 'call')) {
             if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
+                if (texture.wet) return `Strong hand mixing flat/raise on a wet board — raising denies equity but narrows villain's range. Flatting keeps bluffs in and maintains pot size for river extraction.`;
                 return `Strong hand that mixes flat and raise. Raising always would cap the flatting range, making it exploitable. Slow-playing some percentage keeps both ranges balanced.`;
             }
             if (hs.includes('draw')) {
+                if (texture.wet) return `Semi-bluff raise vs. float on a wet board — raising maximizes fold equity against villain's many vulnerable hands. Calling preserves implied odds.`;
                 return `Semi-bluff raise vs. floating call — raising applies maximum pressure, calling preserves implied odds. Both lines are approximately +EV.`;
             }
-            return `Mixing call/raise at the indifference point — flatting traps bluffs, raising builds the pot. The solver balances both to stay unexploitable.`;
+            return `Mixing call/raise at the indifference point${texTag} — flatting traps bluffs, raising builds the pot. The solver balances both to stay unexploitable.`;
         }
 
         // Fold vs Call mix — critical bluff-catching theory
         if ((top === 'f' && second === 'call') || (top === 'call' && second === 'f')) {
             if (street === 'river') {
+                if (texture.flushy || texture.monotone) return `At the bluff-catching threshold on a flushy river board. Missed flush draws are a large part of villain's bluffing range — calling just enough to prevent them from auto-profiting with bluffs.`;
                 return `At the exact bluff-catching threshold on the river. Calling too much lets villain profit by over-bluffing; folding too much lets villain steal pots unchallenged. The solver calls just enough to keep villain indifferent.`;
             }
+            if (texture.wet) return `At the minimum defense frequency on a wet board — many draws increase villain's semi-bluff frequency, but this hand is at the threshold of profitability.`;
             return `At the minimum defense frequency boundary — this hand is nearly indifferent between continuing and folding. Defending slightly more than breakeven prevents exploitation.`;
         }
 
@@ -2821,7 +2840,7 @@ export class DeterministicGTOEngine {
         const hasCall = sorted.some(s => s.toLowerCase() === 'call');
         const hasRaise = sorted.some(s => s.toLowerCase().startsWith('r') || s.toLowerCase() === 'allin');
         if (hasFold && hasCall && hasRaise) {
-            return `Three-way mix (fold/call/raise) — this hand is at a complex indifference point where all three actions yield similar EV. The solver distributes across all lines to maintain perfect balance.`;
+            return `Three-way mix (fold/call/raise)${texTag} — this hand is at a complex indifference point where all three actions yield similar EV. The solver distributes across all lines to maintain perfect balance.`;
         }
 
         return `Multiple actions at the Nash equilibrium indifference point — all mixed-in actions yield identical EV. Deviating from these frequencies creates exploitable imbalances.`;
