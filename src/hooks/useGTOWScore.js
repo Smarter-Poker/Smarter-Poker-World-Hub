@@ -332,6 +332,14 @@ export default function useGTOWScore() {
     const [totalFreqDiff, setTotalFreqDiff] = useState(0);
     const [handHistory, setHandHistory] = useState([]);
 
+    // ═══ Phase 36: Classification breakdown + streak tracking ═══
+    const [classificationCounts, setClassificationCounts] = useState({
+        best: 0, correct: 0, inaccuracy: 0, wrong: 0, blunder: 0,
+    });
+    const [currentStreak, setCurrentStreak] = useState(0);  // positive = correct streak, negative = mistake streak
+    const [bestStreak, setBestStreak] = useState(0);
+    const [lastClassification, setLastClassification] = useState(null);
+
     // Derived metrics
     const gtowScore = useMemo(() => {
         if (movesMade === 0) return 100;
@@ -389,6 +397,24 @@ export default function useGTOWScore() {
         setMaxPossibleScore(prev => prev + CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.BEST].scoreImpact.max);
         setTotalFreqDiff(prev => prev + frequencyDiff);
 
+        // ═══ Phase 36: Track classification breakdown ═══
+        setClassificationCounts(prev => ({
+            ...prev,
+            [classification]: (prev[classification] || 0) + 1,
+        }));
+
+        // ═══ Phase 36: Track streaks ═══
+        const isCorrectMove = classification === MOVE_CLASSIFICATIONS.BEST || classification === MOVE_CLASSIFICATIONS.CORRECT;
+        setCurrentStreak(prev => {
+            if (isCorrectMove) {
+                const newStreak = prev >= 0 ? prev + 1 : 1;
+                setBestStreak(best => Math.max(best, newStreak));
+                return newStreak;
+            }
+            return prev > 0 ? -1 : prev - 1; // Reset to -1 on first mistake
+        });
+        setLastClassification(classification);
+
         // Add to hand history
         setHandHistory(prev => [...prev, {
             handNumber: prev.length + 1,
@@ -412,7 +438,18 @@ export default function useGTOWScore() {
         setMaxPossibleScore(0);
         setTotalFreqDiff(0);
         setHandHistory([]);
+        setClassificationCounts({ best: 0, correct: 0, inaccuracy: 0, wrong: 0, blunder: 0 });
+        setCurrentStreak(0);
+        setBestStreak(0);
+        setLastClassification(null);
     }, []);
+
+    // ═══ Phase 36: Derived accuracy metric ═══
+    const accuracy = useMemo(() => {
+        if (movesMade === 0) return 100;
+        const correct = (classificationCounts.best || 0) + (classificationCounts.correct || 0);
+        return Math.round((correct / movesMade) * 100);
+    }, [movesMade, classificationCounts]);
 
     return {
         // Core metrics
@@ -425,6 +462,13 @@ export default function useGTOWScore() {
         avgEVLossPerMistake,
         avgFrequencyDiff,
         handHistory,
+
+        // Phase 36: Enhanced metrics
+        classificationCounts,
+        currentStreak,
+        bestStreak,
+        lastClassification,
+        accuracy,
 
         // Actions
         recordMove,
