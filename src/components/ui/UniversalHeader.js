@@ -506,39 +506,49 @@ export default function UniversalHeader({
         };
     }, [user?.id]);
 
-    // Track the page path we arrived on (before any shallow replaces happen)
-    const arrivalPathRef = useRef(null);
-    useEffect(() => {
-        if (typeof window !== 'undefined' && !arrivalPathRef.current) {
-            arrivalPathRef.current = window.location.pathname;
-        }
-    }, []);
+    // Guard against rapid double-click on back button
+    const backInProgressRef = useRef(false);
 
     const handleBack = () => {
         if (typeof window === 'undefined') return;
+        // Block re-entrant clicks while a back navigation is in flight
+        if (backInProgressRef.current) return;
+        backInProgressRef.current = true;
 
-        // If there's real browser history (length > 2 means there's a real previous page),
-        // try going back. But we need to detect if it actually navigates away or stays stuck
-        // on the same page (due to replaceState / shallow routing eating history entries).
+        // Snapshot the current pathname BEFORE calling back().
+        // This lets us distinguish real cross-page navigation from
+        // same-page shallow popstate events (replaceState / router.replace).
+        const originPath = window.location.pathname;
+
         if (window.history.length > 1) {
-            const currentPath = window.location.pathname;
-            // Use a timeout to detect if navigation happened.
-            // If popstate doesn't fire within 150ms, we're stuck — fallback to /hub.
-            let didNavigate = false;
-            const onPopState = () => { didNavigate = true; };
+            const onPopState = () => {
+                window.removeEventListener('popstate', onPopState);
+                // Check if we actually left the page.
+                // If popstate fired but pathname is unchanged, the browser
+                // just popped a replaceState entry (same page, different query).
+                // That's not a real "go back" — fall through to /hub.
+                if (window.location.pathname === originPath) {
+                    window.location.href = '/hub';
+                }
+                // else: pathname changed — real navigation happened, nothing to do.
+                backInProgressRef.current = false;
+            };
             window.addEventListener('popstate', onPopState);
 
             window.history.back();
 
+            // Safety net: if popstate never fires (no history entry at all),
+            // clean up and navigate to /hub after 300ms.
             setTimeout(() => {
                 window.removeEventListener('popstate', onPopState);
-                if (!didNavigate) {
-                    // history.back() didn't navigate anywhere — use sovereign navigation
+                if (backInProgressRef.current) {
+                    backInProgressRef.current = false;
                     window.location.href = '/hub';
                 }
-            }, 150);
+            }, 300);
         } else {
             // No history at all — navigate to hub
+            backInProgressRef.current = false;
             window.location.href = '/hub';
         }
     };

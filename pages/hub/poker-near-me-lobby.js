@@ -239,9 +239,9 @@ export default function PokerNearMeLobby() {
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [showTutorial, setShowTutorial] = useState(() => {
     if (typeof window !== 'undefined') {
-      // DISABLE auto-tutorial on mobile — it blocks the entire view
+      // DISABLE auto-tutorial on mobile/tablet — it blocks the entire view
       // Users can still replay from the hamburger menu
-      if (window.innerWidth < 600) return false;
+      if (window.innerWidth < 900) return false;
       return !localStorage.getItem('pnm_lobby_tutorial_seen');
     }
     return false;
@@ -532,6 +532,18 @@ export default function PokerNearMeLobby() {
       .then(r => r.json())
       .then(j => { if (j.success && j.counts) setCheckinCounts(j.counts); })
       .catch(() => { /* silent */ });
+  }, [venues]);
+
+  // ─── Batch fetch review stats for venue cards (star ratings) ───
+  const [reviewStatsMap, setReviewStatsMap] = useState({});
+  useEffect(() => {
+    if (venues.length === 0) return;
+    const ids = venues.map(v => v.id).filter(Boolean).slice(0, 50).join(',');
+    if (!ids) return;
+    fetch('/api/poker/reviews?stats_only=true&venue_ids=' + ids)
+      .then(r => r.json())
+      .then(j => { if (j.success && j.stats) setReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
+      .catch(() => { /* silent — review stats are non-critical */ });
   }, [venues]);
 
   // ─── Fetch global check-in leaderboard (cross-venue top users) ───
@@ -1485,7 +1497,7 @@ export default function PokerNearMeLobby() {
                             <VenueCard venue={v} isFavorited={!!favorites[v.id]}
                               onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
                               onNavigate={(url) => handleVenueNavigate(url, v)}
-                              userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} />
+                              userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} reviewStats={reviewStatsMap[String(v.id)]} />
                           </div>
                         );
                       })}
@@ -1596,6 +1608,7 @@ export default function PokerNearMeLobby() {
                       onNavigate={(url) => handleVenueNavigate(url, v)}
                       userLocation={userLocation}
                       checkinCount={checkinCounts[String(v.id)] || 0}
+                      reviewStats={reviewStatsMap[String(v.id)]}
                     />
                   ))}
                 </div>
@@ -1833,7 +1846,7 @@ export default function PokerNearMeLobby() {
                             <VenueCard venue={v} isFavorited={!!favorites[v.id]}
                               onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
                               onNavigate={(url) => handleVenueNavigate(url, v)}
-                              userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} />
+                              userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} reviewStats={reviewStatsMap[String(v.id)]} />
                           </div>
                         );
                       })}
@@ -2084,6 +2097,7 @@ export default function PokerNearMeLobby() {
                 onNavigate={(url) => handleVenueNavigate(url, v)}
                 userLocation={userLocation}
                 checkinCount={checkinCounts[String(v.id)] || 0}
+                reviewStats={reviewStatsMap[String(v.id)]}
               />
             ))}
             {favVenues.length === 0 && (

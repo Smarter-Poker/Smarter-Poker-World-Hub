@@ -1886,6 +1886,8 @@ export class DeterministicGTOEngine {
             if (isAir && street === 'flop') return 'Small c-bet bluff — range betting at minimum cost. Villain folds their weakest hands, you lose little when called.';
             if (isDraw && street === 'flop') return 'Small c-bet with a draw — cheap equity denial that sets up the turn. Low risk, high reward on favorable runouts.';
             if (texture.aceHigh) return 'Range bet sizing on ace-high board — IP player has range advantage. Small bets target the entire range.';
+            if (texture.broadwayHeavy) return 'Small c-bet on a broadway-heavy board — PFR has significant range advantage with more premium broadway combos.';
+            if (texture.lowBoard && !texture.connected) return 'Small sizing on a low disconnected board — neither range connects strongly, so a cheap range bet picks up dead money.';
             if (texture.dry && texture.paired) return 'Small sizing on paired dry texture — few combinations hit this board. Range bet denies equity.';
             if (street === 'flop') return 'Range c-bet sizing — on this texture, betting small with your entire range is more profitable than checking.';
             if (street === 'turn') return 'Small turn probe — testing villain\'s range after a checked flop. Minimal investment with fold equity.';
@@ -2622,7 +2624,9 @@ export class DeterministicGTOEngine {
         // ═══ HERO ACTS FIRST (hero_bets_or_checks) ═══
         if (nodeType === 'hero_bets_or_checks') {
             if (street === 'flop') {
+                if (isBet && texture.straightPossible) return `Villain's checking range contains straight draws and connected hands. Betting charges these draws before the turn completes them.`;
                 if (isBet && texture.wet) return `Villain's checking range contains many draws that get a free card if you check. Betting charges these draws and denies their equity realization.`;
+                if (isCheck && texture.dry && texture.spread > 6) return `Villain's range whiffs this spread-out dry board frequently. Checking lets them bluff the turn with hands that would fold to a flop bet.`;
                 if (isCheck && texture.dry) return `Villain's range whiffs this dry board frequently. Checking lets them bluff the turn with hands that would fold to a flop bet.`;
                 if (isBet && texture.dry && (hs.includes('air') || hs.includes('no pair'))) return `Villain likely missed this dry board — c-betting as a bluff targets the large portion of their range that can't continue.`;
             }
@@ -2775,6 +2779,7 @@ export class DeterministicGTOEngine {
                     return 'Multi-street plan: Big flop bet → sets up a 60-75% turn barrel → pot-sized river shove. This geometric sizing path gets all the money in by the river.';
                 }
                 if (sizePct >= 60 && hasDraw) {
+                    if (texture.connectedness === 'high') return 'Multi-street plan: Large semi-bluff on this highly connected board → many turn cards improve your hand. Barrel any card that completes a draw or scares villain.';
                     return 'Multi-street plan: Large semi-bluff now → if the draw hits, barrel for value; if it misses, you can either give up or triple-barrel bluff representing the nuts.';
                 }
                 if (sizePct <= 33 && isNutted) {
@@ -2909,6 +2914,12 @@ export class DeterministicGTOEngine {
             if (isHighBoard && boardRanks.includes('K')) {
                 if (isBet) return 'Range advantage: King-high boards favor the preflop raiser — more KK/AK/KQ in your range than the caller\'s.';
             }
+            if (texture.broadwayDraw) {
+                if (isBet) return 'Range advantage: Broadway-draw board (3+ cards T-A) — the preflop raiser\'s range has more broadway combinations, giving significant range advantage.';
+            }
+            if (texture.highCard && !isAceHighBoard && !boardRanks.includes('K')) {
+                if (isBet) return 'Range advantage: High board favors the preflop raiser — more premium hands in your range connect with these high cards.';
+            }
             if (isLowBoard && texture.connected) {
                 if (texture.gapSize === 'rundown') {
                     if (isCheck) return 'Range advantage: This low rundown board (3+ connected cards) massively favors the caller — they have straights, sets, two pair, and combo draws. Check frequently as the PFR.';
@@ -3033,9 +3044,19 @@ export class DeterministicGTOEngine {
                 }
 
                 // Cards that block straights on connected boards
-                if (connectedBoard) {
+                if (connectedBoard || texture.straightDrawHeavy) {
                     const heroInRange = boardVals.some(bv => Math.abs(v1 - bv) <= 2 || Math.abs(v2 - bv) <= 2);
                     if (heroInRange) blockers.push('Your cards block key straight combos on this connected board');
+                }
+
+                // Broadway blockers on broadway-heavy boards
+                if (texture.broadwayHeavy && (hasQueen || hasJack || hasTen)) {
+                    blockers.push('Your broadway card blocks villain\'s strong broadway combos');
+                }
+
+                // Wheel blocker on low boards with wheel potential
+                if (texture.wheelDraw && (v1 <= 3 || v2 <= 3)) {
+                    blockers.push('Your low card blocks wheel straight combos');
                 }
 
                 if (blockers.length > 0) {

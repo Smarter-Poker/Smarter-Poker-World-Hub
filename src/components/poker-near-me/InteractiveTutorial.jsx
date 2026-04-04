@@ -674,7 +674,20 @@ export default function InteractiveTutorial({
     if (visible) setCurrentStep(0);
   }, [visible]);
 
-  if (!visible || !step || steps.length === 0) return null;
+  // ─── BELT-AND-SUSPENDERS: Never render on mobile/tablet regardless of props ───
+  // The parent pages should gate this via their own width checks, but this prevents
+  // accidental full-page blocking if a parent misses the check.
+  const [isMobileView, setIsMobileView] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const check = () => setIsMobileView(window.innerWidth < 900);
+      check();
+      window.addEventListener('resize', check);
+      return () => window.removeEventListener('resize', check);
+    }
+  }, []);
+
+  if (!visible || !step || steps.length === 0 || isMobileView) return null;
 
   const clipPath = targetRect ? buildClipPath(targetRect) : null;
 

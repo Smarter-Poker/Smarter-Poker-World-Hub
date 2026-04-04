@@ -186,13 +186,13 @@ export default function LobbyOverlay({
                 onClick={onVoiceClick}
                 aria-label="Voice search"
                 style={{
-                  flexShrink: 0, width: 36, height: 36, borderRadius: '50%',
+                  flexShrink: 0, width: 44, height: 44, borderRadius: '50%',
                   border: '1px solid rgba(110, 231, 239, 0.15)',
                   background: 'rgba(110, 231, 239, 0.06)',
                   color: 'rgba(200, 214, 229, 0.5)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer', transition: 'all 0.25s',
-                  marginRight: 4,
+                  marginRight: 4, padding: 0,
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -212,14 +212,24 @@ export default function LobbyOverlay({
                 onClick={onGpsClick}
                 disabled={gpsLoading}
                 aria-label={gpsLoading ? 'Locating...' : 'Use GPS location'}
-                style={gpsLoading ? { opacity: 0.6, cursor: 'wait' } : undefined}
+                style={{
+                  flexShrink: 0, width: 44, height: 44, borderRadius: '50%',
+                  border: gpsActive ? '1.5px solid rgba(34,197,94,0.5)' : '1px solid rgba(110, 231, 239, 0.15)',
+                  background: gpsActive ? 'rgba(34,197,94,0.12)' : 'rgba(110, 231, 239, 0.06)',
+                  color: gpsActive ? '#22c55e' : 'rgba(200, 214, 229, 0.5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: gpsLoading ? 'wait' : 'pointer',
+                  transition: 'all 0.25s',
+                  opacity: gpsLoading ? 0.6 : 1,
+                  padding: 0,
+                }}
               >
                 {gpsLoading ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" />
                   </svg>
                 ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polygon points="3 11 22 2 13 21 11 13 3 11" />
                   </svg>
                 )}
