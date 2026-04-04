@@ -3355,6 +3355,56 @@ function UniversalDynamicTable({
                         </div>
                     )}
 
+                    {/* Phase 44: EV Loss Summary — "Your action: +X BB | Optimal: +Y BB | Cost: Z BB" */}
+                    {showFeedback && question?.evData?.actionEVs && selectedAnswer && correctAnswer && selectedAnswer !== correctAnswer && (() => {
+                        const selEV = question.evData.actionEVs[selectedAnswer] ?? question.evData.actionEVs[selectedAnswer?.toLowerCase()];
+                        const corEV = question.evData.actionEVs[correctAnswer] ?? question.evData.actionEVs[correctAnswer?.toLowerCase()];
+                        if (selEV === undefined || corEV === undefined) return null;
+                        const evCost = corEV - selEV;
+                        if (evCost <= 0) return null; // No cost (shouldn't happen for wrong answers)
+                        const selText = options.find(o => o.id === selectedAnswer)?.text || selectedAnswer;
+                        const corText = options.find(o => o.id === correctAnswer)?.text || correctAnswer;
+                        return (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.1 }}
+                                style={{
+                                    width: '100%', padding: '8px 12px',
+                                    background: 'rgba(239, 68, 68, 0.06)', borderRadius: 8,
+                                    border: '1px solid rgba(239, 68, 68, 0.15)',
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                }}
+                            >
+                                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                    <div>
+                                        <div style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>You</div>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', fontFamily: "'Inter', monospace" }}>
+                                            {selText} ({selEV >= 0 ? '+' : ''}{selEV.toFixed(2)} BB)
+                                        </div>
+                                    </div>
+                                    <div style={{ color: '#475569', fontSize: 12 }}>→</div>
+                                    <div>
+                                        <div style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase' }}>Optimal</div>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', fontFamily: "'Inter', monospace" }}>
+                                            {corText} ({corEV >= 0 ? '+' : ''}{corEV.toFixed(2)} BB)
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style={{
+                                    padding: '3px 8px', borderRadius: 6,
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                                }}>
+                                    <div style={{ fontSize: 8, color: '#f87171', fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', textAlign: 'center' }}>Cost</div>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: '#ef4444', fontFamily: "'Orbitron', monospace", textAlign: 'center' }}>
+                                        -{evCost.toFixed(2)} BB
+                                    </div>
+                                </div>
+                            </motion.div>
+                        );
+                    })()}
+
                     {/* Phase 32: Stacked GTO Frequency Bar — shows all actions in one visual strip */}
                     {computedFrequencies && Object.keys(computedFrequencies).length > 0 && (
                         <motion.div
