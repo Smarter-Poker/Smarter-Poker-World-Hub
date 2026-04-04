@@ -1029,6 +1029,14 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         getWeakSpots,
         weakSpotMap: weakSpotMapRef.current,
 
+        // ═══ PHASE 90: Session weakness summary ═══
+        getSessionSummary: () => {
+            try { return deterministicEngine.generateSessionSummary(); } catch (e) { return null; }
+        },
+        getMistakeTrackerData: () => {
+            try { return deterministicEngine.getMistakeTrackerData(); } catch (e) { return {}; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,

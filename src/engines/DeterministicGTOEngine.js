@@ -1718,6 +1718,18 @@ export class DeterministicGTOEngine {
         // ═══ Phase 85: KICKER STRENGTH ═══
         const kickerNote = this._getKickerNote(heroHand, handStrength, board, optimalAction, street);
 
+        // ═══ Phase 86: NUT ADVANTAGE ═══
+        const nutAdvNote = this._getNutAdvantageNote(board, ctx.heroPosition, ctx.villainPosition, street, texture, ctx.nodeType);
+
+        // ═══ Phase 87: BACKDOOR EQUITY ═══
+        const backdoorNote = this._getBackdoorEquityNote(heroHand, board, handStrength, street);
+
+        // ═══ Phase 88: PROTECTION URGENCY ═══
+        const protectionNote = this._getProtectionNote(optimalAction, handStrength, street, texture, ctx.heroPosition, ctx.villainPosition);
+
+        // ═══ Phase 89: SHOWDOWN VALUE ═══
+        const showdownNote = this._getShowdownValueNote(optimalAction, handStrength, street, ctx.nodeType);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1735,7 +1747,7 @@ export class DeterministicGTOEngine {
         // Concise mode: only sizing reason + concept (skip secondary notes)
         // Verbose mode: all notes + coaching preamble (up to 5 most relevant)
         // Standard: top 3-4 most relevant notes
-        const allNotes = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote, boardCoverageNote, multiStreetEVNote, kickerNote].filter(Boolean);
+        const allNotes = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote, boardCoverageNote, multiStreetEVNote, kickerNote, nutAdvNote, backdoorNote, protectionNote, showdownNote].filter(Boolean);
 
         let extras;
         if (explanationDepth === 'concise') {
@@ -5008,6 +5020,438 @@ export class DeterministicGTOEngine {
         }
 
         return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 86: NUT ADVANTAGE DETECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 86: Detect which player has the nut advantage on this board texture.
+     * Nut advantage = who is more likely to have the strongest hands.
+     * This drives sizing, bluffing frequency, and checking strategy.
+     *
+     * @param {string[]} board - Board cards
+     * @param {string} heroPosition - Hero's position
+     * @param {string} villainPosition - Villain's position
+     * @param {string} street - Current street
+     * @param {Object} texture - Board texture
+     * @param {string} nodeType - Node type
+     * @returns {string} Nut advantage context note
+     */
+    _getNutAdvantageNote(board, heroPosition, villainPosition, street, texture, nodeType) {
+        if (!board || board.length < 3 || !heroPosition || !villainPosition || street === 'preflop') return '';
+
+        const boardRanks = board.map(c => c[0].toUpperCase());
+        const boardVals = boardRanks.map(r => '23456789TJQKA'.indexOf(r));
+        const highestBoard = Math.max(...boardVals);
+        const isPFR = nodeType === 'hero_bets_or_checks'; // Simplified: aggressor = PFR
+
+        // Determine if hero was likely the preflop raiser
+        const earlyPositions = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ'];
+        const latePositions = ['CO', 'BTN'];
+        const blinds = ['SB', 'BB'];
+
+        const heroIsPFR = !blinds.includes(heroPosition); // Simplified: non-blind = likely raiser
+        const villainIsBB = villainPosition === 'BB';
+
+        // ─── A-high boards ───
+        if (highestBoard === 12) { // Ace on board
+            if (heroIsPFR) {
+                return 'Nut advantage: PFR has the nut advantage on A-high boards — more Ax combos in the raising range than the caller\'s range. This supports aggressive play.';
+            }
+            return 'Nut advantage: the raiser has more Ax combos on this A-high board. As the caller, be cautious — your range is capped more than villain\'s.';
+        }
+
+        // ─── K-high boards ───
+        if (highestBoard === 11 && !boardRanks.includes('A')) {
+            if (heroIsPFR) {
+                return 'Nut advantage: PFR has a significant nut advantage on K-high boards — more KK/AK combos vs. caller\'s wider but weaker range.';
+            }
+        }
+
+        // ─── Low/medium boards (7-high and below) ───
+        if (highestBoard <= 5) {
+            if (villainIsBB && heroIsPFR) {
+                return 'Nut advantage: low boards favor the BB defender — their wider preflop range (small pairs, suited connectors) connects heavily here. PFR\'s range advantage is reduced.';
+            }
+        }
+
+        // ─── Monotone boards ───
+        if (texture && texture.monotone) {
+            if (villainIsBB) {
+                return 'Nut advantage: monotone boards shift nut advantage toward the caller — suited hands are more common in BB\'s wide defense range than in PFR\'s tighter range.';
+            }
+            if (heroIsPFR) {
+                return 'Nut advantage: on monotone boards, be cautious — the caller often has more suited combos. Your nut advantage is reduced unless you hold the nut flush draw.';
+            }
+        }
+
+        // ─── Paired boards ───
+        if (texture && texture.paired) {
+            if (heroIsPFR) {
+                return 'Nut advantage: paired boards generally favor the PFR — trips and full houses come from pocket pairs, which the raiser has more of.';
+            }
+        }
+
+        // ─── Connected low-mid boards ───
+        if (texture && texture.connected && highestBoard <= 8) {
+            if (villainIsBB) {
+                return 'Nut advantage: connected middle/low boards favor the caller\'s range — suited connectors and small pairs hit these boards hard.';
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 87: BACKDOOR EQUITY AWARENESS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 87: Detect backdoor flush and straight draws that add equity.
+     * Backdoor draws are hugely important in GTO play because they:
+     *   - Add ~4-5% equity on the flop (2 cards to come)
+     *   - Turn weak hands into semi-bluff candidates
+     *   - Provide additional outs when combined with other draws
+     *
+     * @param {string} heroHand - Hero's hand notation
+     * @param {string[]} board - Board cards
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @returns {string} Backdoor equity note
+     */
+    _getBackdoorEquityNote(heroHand, board, handStrength, street) {
+        if (!heroHand || !board || board.length < 3 || street !== 'flop') return ''; // Only relevant on flop
+        if (heroHand.length < 2) return '';
+
+        const hc = (handStrength || '').toLowerCase();
+        // Skip if already has a direct draw (the draw itself is more important)
+        if (hc.includes('flush draw') || hc.includes('oesd') || hc.includes('combo draw') || hc.includes('monster draw')) return '';
+
+        const r1 = heroHand[0].toUpperCase();
+        const r2 = heroHand[1].toUpperCase();
+        const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
+
+        const boardSuits = board.map(c => c[1]?.toLowerCase());
+        const boardRanks = board.map(c => c[0].toUpperCase());
+        const boardVals = boardRanks.map(r => '23456789TJQKA'.indexOf(r));
+        const heroV1 = '23456789TJQKA'.indexOf(r1);
+        const heroV2 = '23456789TJQKA'.indexOf(r2);
+
+        const backdoors = [];
+
+        // ─── Backdoor flush draw ───
+        if (isSuited) {
+            // Check if one board card matches hero's suit
+            // Since hero is suited, both hero cards share a suit
+            // We need 1 board card of that suit to have a backdoor flush draw (need 2 more of same suit)
+            const suitCounts = {};
+            boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+            // Hero needs a suit with exactly 1 board card (so 2 hero + 1 board = 3, need 2 more = backdoor)
+            // Actually: backdoor flush = 2 cards of same suit on the flop (hero has 2). 1 board card of that suit = 3 total.
+            // We need 2 more of that suit to come on turn+river.
+            // The condition: hero suited + at least 1 board card of same suit but NOT 2 (that would be a direct flush draw)
+            const heroSuit = isSuited ? 's' : ''; // We don't know the actual suit but can infer
+            // Simpler check: if suited hand and board has 1 card of any single suit matching, it's a backdoor
+            // Since we generated hero's cards to match suit in parseHandToCards, check if any suit appears exactly once
+            const hasPotentialBackdoor = Object.values(suitCounts).some(c => c === 1);
+            if (hasPotentialBackdoor && !Object.values(suitCounts).some(c => c >= 2)) {
+                const highCard = Math.max(heroV1, heroV2);
+                if (highCard >= 12) {
+                    backdoors.push('nut backdoor flush draw (suited with A)');
+                } else if (highCard >= 11) {
+                    backdoors.push('strong backdoor flush draw (suited with K)');
+                } else {
+                    backdoors.push('backdoor flush draw');
+                }
+            }
+        }
+
+        // ─── Backdoor straight draw ───
+        // Check if hero's cards connect with 1-2 board cards to create a 3-card straight base
+        const allVals = [...new Set([...boardVals, heroV1, heroV2])].sort((a, b) => a - b);
+        // Count 5-card windows where hero contributes at least 1 card and total >= 3
+        let hasBackdoorStraight = false;
+        for (let low = -1; low <= 8; low++) {
+            const window = [];
+            for (let j = 0; j < 5; j++) {
+                let v = low + j;
+                if (v === -1) v = 12; // Ace-low
+                window.push(v);
+            }
+            const windowSet = new Set(window);
+            const heroInWindow = windowSet.has(heroV1) || windowSet.has(heroV2);
+            const boardInWindow = boardVals.filter(v => windowSet.has(v)).length;
+            const totalInWindow = allVals.filter(v => windowSet.has(v)).length;
+
+            // Backdoor straight: 3 cards in a 5-card window, hero contributes, need 2 more
+            if (heroInWindow && totalInWindow === 3 && boardInWindow >= 1 && boardInWindow <= 2) {
+                hasBackdoorStraight = true;
+                break;
+            }
+        }
+        if (hasBackdoorStraight && !hc.includes('gutshot') && !hc.includes('straight')) {
+            backdoors.push('backdoor straight draw');
+        }
+
+        if (backdoors.length === 0) return '';
+
+        const bdList = backdoors.join(' + ');
+        if (hc.includes('pair')) {
+            return `Backdoor equity: your ${bdList} adds ~4-5% equity on top of your made hand — this makes your hand significantly more playable across streets.`;
+        }
+        if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
+            return `Backdoor equity: your ${bdList} is critical for this hand — without it, this would be pure air. The backdoor potential makes this a viable semi-bluff candidate.`;
+        }
+        return `Backdoor equity: ${bdList} — adds hidden equity that improves your hand's playability on future streets.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 88: PROTECTION URGENCY CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 88: Explain whether protection betting is urgent or unnecessary.
+     * Protection = betting to deny equity to drawing hands.
+     *
+     * Urgency depends on:
+     *   - Board wetness (more draws = more urgency)
+     *   - Hand vulnerability (top pair < set in terms of needing protection)
+     *   - Position (OOP has more urgency to protect than IP)
+     *   - Stack depth (deeper = more implied odds for draws = more protection needed)
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {Object} texture - Board texture
+     * @param {string} heroPosition - Hero's position
+     * @param {string} villainPosition - Villain's position
+     * @returns {string} Protection urgency note
+     */
+    _getProtectionNote(optimalAction, handStrength, street, texture, heroPosition, villainPosition) {
+        if (!handStrength || street === 'preflop' || street === 'river') return '';
+        const a = (optimalAction || '').toLowerCase();
+        const hc = handStrength.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+
+        // Protection only matters for vulnerable made hands
+        const isVulnerable = hc.includes('pair') && !hc.includes('two pair') && !hc.includes('set') && !hc.includes('full house');
+        const isInvulnerable = hc.includes('set') || hc.includes('full house') || hc.includes('quads') || hc.includes('nut flush') || hc.includes('nut straight');
+
+        if (!isVulnerable && !isInvulnerable) return '';
+
+        if (isVulnerable && isBet) {
+            if (texture && texture.wet) {
+                return `Protection: betting is urgent — the wet board gives villain many drawing combinations. Checking lets them realize equity cheaply against your vulnerable ${hc}.`;
+            }
+            if (texture && texture.straightDrawHeavy) {
+                return `Protection: straight draw heavy board requires a protection bet — many hands in villain\'s range have straight draws that erode your equity significantly.`;
+            }
+            if (!isIP && texture && !texture.dry) {
+                return `Protection: betting OOP for protection is important here — if you check, villain gets a free card IP and can bet you off your hand on scary runouts.`;
+            }
+        }
+
+        if (isVulnerable && isCheck) {
+            if (texture && texture.dry) {
+                return `No protection needed: the dry board has few draws that threaten your hand. Checking is fine — you can call future bets or bet later streets.`;
+            }
+            if (isIP) {
+                return `Protection not urgent IP: you can control the pot by checking back. If a scary card comes, you save money; if a blank comes, you can bet for value later.`;
+            }
+        }
+
+        if (isInvulnerable && isCheck) {
+            return `No protection needed: your hand is nearly invulnerable — very few runouts hurt you. Slow-playing is viable to extract maximum value.`;
+        }
+
+        if (isInvulnerable && isBet && texture && texture.wet) {
+            return `Strong but bet anyway: even with a near-invulnerable hand, the wet board means villain has many draws. Betting denies equity AND extracts value from draws.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 89: SHOWDOWN VALUE VS. BLUFF DICHOTOMY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 89: Clarify whether a hand should try to reach showdown cheaply
+     * (showdown value) or should be used as a bluff (no showdown value).
+     *
+     * This is one of the most fundamental GTO concepts:
+     *   - Hands with showdown value (pairs, overcards) should usually check/call
+     *   - Hands without showdown value (air, weak draws) should bet as bluffs
+     *   - Medium-strength hands are the toughest — sometimes both strategies apply
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {string} nodeType - Node type
+     * @returns {string} Showdown value context note
+     */
+    _getShowdownValueNote(optimalAction, handStrength, street, nodeType) {
+        if (!handStrength) return '';
+        const a = (optimalAction || '').toLowerCase();
+        const hc = handStrength.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+
+        // ─── No showdown value → bluff candidate ───
+        const noShowdown = hc.includes('air') || hc.includes('no pair') || (hc.includes('overcard') && !hc.includes('draw'));
+
+        if (noShowdown && isBet) {
+            if (street === 'river') {
+                return 'Showdown value: zero — your hand can\'t win at showdown, so betting as a bluff is the only way to profit. Choose bluffs with good blockers to nutted hands.';
+            }
+            return 'Showdown value: very low — your hand needs to bet to win the pot since it can\'t win at showdown. This is a profitable bluff spot when you have fold equity.';
+        }
+        if (noShowdown && isCheck) {
+            return 'Showdown value: none — checking here gives up on the pot. Sometimes this is correct to keep your checking range balanced, but you\'re surrendering equity.';
+        }
+        if (noShowdown && isFold) {
+            return 'Showdown value: none — folding is correct because you have no equity, no draw, and no fold equity if you bet.';
+        }
+
+        // ─── Strong showdown value → protect it ───
+        const strongShowdown = hc.includes('overpair') || hc.includes('top pair') || hc.includes('set') || hc.includes('two pair') || hc.includes('flush') || hc.includes('straight');
+
+        if (strongShowdown && isCheck && street === 'river') {
+            return 'Showdown value: high — your hand is strong enough to win at showdown. Checking aims to induce bluffs or because villain\'s calling range is too strong to value bet against.';
+        }
+
+        // ─── Medium showdown value → the decision is nuanced ───
+        const mediumShowdown = hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('second pair') || hc.includes('weak pair');
+
+        if (mediumShowdown && isCheck) {
+            return 'Showdown value: medium — your hand has some showdown value but isn\'t strong enough to bet for value. Check-call to realize your equity without bloating the pot.';
+        }
+        if (mediumShowdown && isBet) {
+            return 'Showdown value: medium but betting anyway — this could be thin value against worse hands or a merge-bet that uses your equity edge. Be aware your hand is vulnerable if raised.';
+        }
+        if (mediumShowdown && isCall && nodeType === 'hero_faces_bet') {
+            return 'Showdown value: medium — calling is correct because you beat bluffs and some thin value bets. Folding would over-fold your range in this spot.';
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 90: SESSION WEAKNESS SUMMARY GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 90: Generate a comprehensive session weakness summary.
+     * Analyzes mistake tracker data to produce an actionable summary of:
+     *   - Top 3 weakness categories
+     *   - Specific patterns (e.g., "folding too much on rivers")
+     *   - Improvement suggestions
+     *
+     * Called externally after session ends or at checkpoints.
+     *
+     * @param {number} minSamples - Minimum samples for a pattern to be reported
+     * @returns {Object} { summary: string, weaknesses: Array, strengths: Array, totalQuestions: number }
+     */
+    generateSessionSummary(minSamples = 3) {
+        if (!this._mistakeTracker) return { summary: 'Not enough data yet.', weaknesses: [], strengths: [], totalQuestions: 0 };
+
+        const entries = Object.entries(this._mistakeTracker)
+            .filter(([_, v]) => v.total >= minSamples)
+            .map(([key, v]) => ({
+                key,
+                total: v.total,
+                mistakes: v.mistakes,
+                mistakeRate: v.mistakes / v.total,
+                accuracy: 1 - (v.mistakes / v.total),
+            }))
+            .sort((a, b) => b.mistakeRate - a.mistakeRate);
+
+        if (entries.length === 0) return { summary: 'Not enough data to generate a summary.', weaknesses: [], strengths: [], totalQuestions: 0 };
+
+        // Separate weaknesses and strengths
+        const weaknesses = entries.filter(e => e.mistakeRate >= 0.35).slice(0, 5);
+        const strengths = entries.filter(e => e.mistakeRate <= 0.15 && e.total >= 5).slice(0, 3);
+
+        // Total questions from session stats
+        const totalQuestions = this._sessionStats?.total || 0;
+
+        // Build human-readable descriptions
+        const describeKey = (key) => {
+            const [type, value] = key.includes(':') ? key.split(':') : [key, ''];
+            if (type === 'street') return `${value} decisions`;
+            if (type === 'hand') return `playing ${value.replace(/_/g, ' ')} hands`;
+            if (type === 'action') return `${value} decisions`;
+            if (type === 'node') return value === 'hero_faces_bet' ? 'facing bets' : value === 'hero_bets_or_checks' ? 'bet/check decisions' : 'facing raises';
+            if (type === 'spot') return `${value.replace(/_/g, ' ')} spots`;
+            // Compound keys
+            if (key.includes(':')) {
+                const parts = key.split(':');
+                return `${parts[0].replace(/_/g, ' ')} + ${parts[1].replace(/_/g, ' ')}`;
+            }
+            return key;
+        };
+
+        const weaknessDescriptions = weaknesses.map(w => ({
+            ...w,
+            description: describeKey(w.key),
+            accuracyPct: Math.round(w.accuracy * 100),
+            mistakeRatePct: Math.round(w.mistakeRate * 100),
+        }));
+
+        const strengthDescriptions = strengths.map(s => ({
+            ...s,
+            description: describeKey(s.key),
+            accuracyPct: Math.round(s.accuracy * 100),
+        }));
+
+        // Build summary text
+        const summaryParts = [];
+        if (totalQuestions > 0) {
+            const overallAcc = this._sessionStats ? Math.round((this._sessionStats.correct / this._sessionStats.total) * 100) : 0;
+            summaryParts.push(`Session: ${totalQuestions} questions, ${overallAcc}% overall accuracy.`);
+        }
+
+        if (weaknessDescriptions.length > 0) {
+            summaryParts.push('Areas to improve:');
+            weaknessDescriptions.forEach((w, i) => {
+                summaryParts.push(`${i + 1}. ${w.description} — ${w.mistakeRatePct}% mistake rate (${w.total} samples)`);
+            });
+        }
+
+        if (strengthDescriptions.length > 0) {
+            summaryParts.push('Strengths:');
+            strengthDescriptions.forEach(s => {
+                summaryParts.push(`✓ ${s.description} — ${s.accuracyPct}% accuracy`);
+            });
+        }
+
+        // Improvement suggestions based on top weakness
+        if (weaknessDescriptions.length > 0) {
+            const topWeak = weaknessDescriptions[0];
+            let suggestion = '';
+            if (topWeak.key.includes('fold')) suggestion = 'Focus on pot odds calculations — you may be folding too often in spots where calling is profitable.';
+            else if (topWeak.key.includes('river')) suggestion = 'River play is your biggest leak — study polarization (value vs. bluff) and bluff-catching frequencies.';
+            else if (topWeak.key.includes('turn')) suggestion = 'Turn decisions need work — focus on when to continue barreling vs. pot-controlling with medium hands.';
+            else if (topWeak.key.includes('draw') || topWeak.key.includes('flush_draw')) suggestion = 'Draw play is a weakness — practice pot odds, implied odds, and semi-bluff sizing decisions.';
+            else if (topWeak.key.includes('air') || topWeak.key.includes('bluff')) suggestion = 'Bluffing decisions need refinement — look for hands with blockers and no showdown value for optimal bluffs.';
+            else if (topWeak.key.includes('top_pair')) suggestion = 'Top pair play needs work — focus on kicker strength, board texture, and when to slow down vs. bet for value.';
+            else suggestion = `Focus on ${topWeak.description} — review the solver explanations in these spots and look for patterns in your mistakes.`;
+
+            summaryParts.push(`💡 Suggestion: ${suggestion}`);
+        }
+
+        return {
+            summary: summaryParts.join('\n'),
+            weaknesses: weaknessDescriptions,
+            strengths: strengthDescriptions,
+            totalQuestions,
+        };
     }
 }
 
