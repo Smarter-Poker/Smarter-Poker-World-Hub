@@ -15,7 +15,7 @@
  * - Return to Hub button (for major pages) or Back button (for nested pages)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 
 import Head from 'next/head';
@@ -506,11 +506,40 @@ export default function UniversalHeader({
         };
     }, [user?.id]);
 
+    // Track the page path we arrived on (before any shallow replaces happen)
+    const arrivalPathRef = useRef(null);
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !arrivalPathRef.current) {
+            arrivalPathRef.current = window.location.pathname;
+        }
+    }, []);
+
     const handleBack = () => {
-        if (typeof window !== 'undefined' && window.history.length > 1) {
-            router.back();
+        if (typeof window === 'undefined') return;
+
+        // If there's real browser history (length > 2 means there's a real previous page),
+        // try going back. But we need to detect if it actually navigates away or stays stuck
+        // on the same page (due to replaceState / shallow routing eating history entries).
+        if (window.history.length > 1) {
+            const currentPath = window.location.pathname;
+            // Use a timeout to detect if navigation happened.
+            // If popstate doesn't fire within 150ms, we're stuck — fallback to /hub.
+            let didNavigate = false;
+            const onPopState = () => { didNavigate = true; };
+            window.addEventListener('popstate', onPopState);
+
+            window.history.back();
+
+            setTimeout(() => {
+                window.removeEventListener('popstate', onPopState);
+                if (!didNavigate) {
+                    // history.back() didn't navigate anywhere — use sovereign navigation
+                    window.location.href = '/hub';
+                }
+            }, 150);
         } else {
-            router.push('/hub');
+            // No history at all — navigate to hub
+            window.location.href = '/hub';
         }
     };
 
