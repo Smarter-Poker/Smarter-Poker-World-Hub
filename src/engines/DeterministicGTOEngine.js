@@ -1657,6 +1657,9 @@ export class DeterministicGTOEngine {
         // ═══ Phase 60: BLOCKER AWARENESS ═══
         const blockerNote = this._getBlockerContext(heroHand, board, handStrength, optimalAction, street, texture);
 
+        // ═══ Phase 61: RANGE ADVANTAGE CONTEXT ═══
+        const rangeNote = this._getRangeAdvantageNote(board, street, optimalAction, texture, ctx.nodeType, ctx.heroPosition, ctx.villainPosition, handStrength);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1670,9 +1673,12 @@ export class DeterministicGTOEngine {
         // Street-specific enhancement
         const streetExtra = riverEnhancement || turnEnhancement || flopEnhancement;
 
+        // Combine optional notes
+        const extras = [sizingReason, blockerNote, rangeNote].filter(Boolean).map(s => ' ' + s).join('');
+
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
-            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}${blockerNote ? ' ' + blockerNote : ''}${streetExtra ? ' ' + streetExtra : ''}`;
+            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
         }
 
         // Near-pure — one clear best action but some mixing
@@ -1683,7 +1689,7 @@ export class DeterministicGTOEngine {
                 .slice(0, 2)
                 .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
             const mixNote = altActions.length > 0 ? ` Mixes with ${altActions.join(', ')}.` : '';
-            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${blockerNote ? ' ' + blockerNote : ''}${streetExtra ? ' ' + streetExtra : ''}${mixNote}`;
+            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${extras}${streetExtra ? ' ' + streetExtra : ''}${mixNote}`;
         }
 
         // True mixed strategy — explain WHY the solver mixes
@@ -1695,7 +1701,7 @@ export class DeterministicGTOEngine {
             .join(', ');
 
         const mixReason = this._getMixingReason(handStrength, texture, street, validActions, handActions);
-        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${blockerNote ? ' ' + blockerNote : ''}${streetExtra ? ' ' + streetExtra : ''}`;
+        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
     }
 
     /**
@@ -2362,6 +2368,105 @@ export class DeterministicGTOEngine {
      * Phase 45: Enhanced mixed strategy reasoning — GTO Wizard-level depth.
      * Explains indifference points, range balance, and exploitability prevention.
      */
+    /**
+     * Phase 61: Range advantage — explains which player has the range advantage
+     * on this board and how it affects the optimal strategy.
+     * Key concepts: nut advantage, equity advantage, IP vs OOP dynamics.
+     */
+    _getRangeAdvantageNote(board, street, action, texture, nodeType, heroPosition, villainPosition, handStrength) {
+        if (!board || board.length < 3 || street === 'preflop') return '';
+
+        const a = action.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+        const hs = handStrength.toLowerCase();
+
+        const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
+        const boardRanks = validBoard.map(c => c[0].toUpperCase());
+        const rankVal = r => '23456789TJQKA'.indexOf(r);
+        const boardVals = boardRanks.map(r => rankVal(r));
+        const boardHighVal = Math.max(...boardVals);
+        const boardLowVal = Math.min(...boardVals);
+
+        // Determine IP/OOP
+        const posOrder = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+        const heroIdx = posOrder.indexOf(heroPosition);
+        const villIdx = posOrder.indexOf(villainPosition);
+        // Postflop: BTN is last to act (most IP), BB acts first (OOP)
+        // SB/BB are OOP postflop; BTN/CO/HJ are IP
+        const oopPositions = ['SB', 'BB'];
+        const heroIsOOP = oopPositions.includes(heroPosition);
+        const heroIsIP = !heroIsOOP && villainPosition && oopPositions.includes(villainPosition);
+
+        // Board categorization for range advantage
+        const isHighBoard = boardHighVal >= 10; // T+ high
+        const isAceHighBoard = boardRanks.includes('A');
+        const isLowBoard = boardHighVal <= 8; // 8-high or lower
+        const isMidBoard = !isHighBoard && !isLowBoard;
+
+        // Only add range advantage notes for flop (most impactful) and selectively for turn
+        if (street === 'turn' || street === 'river') {
+            // On later streets, only mention range advantage in specific scenarios
+            if (street === 'river') return '';
+            // Turn: only if it's a significant texture shift
+            if (!texture.monotone && !texture.paired) return '';
+        }
+
+        // ═══ PREFLOP AGGRESSOR RANGE ADVANTAGE (c-bet spots) ═══
+        if (nodeType === 'hero_bets_or_checks' && street === 'flop') {
+            // Hero is the preflop aggressor (c-bet decision)
+            if (isAceHighBoard) {
+                if (isBet) return 'Range advantage: Ace-high boards heavily favor the preflop raiser — your range has more AA/AK/AQ combos than the caller.';
+                if (isCheck) return 'Range advantage: Even though ace-high boards favor the raiser, checking balances your range and prevents being exploited by always c-betting.';
+            }
+            if (isHighBoard && boardRanks.includes('K')) {
+                if (isBet) return 'Range advantage: King-high boards favor the preflop raiser — more KK/AK/KQ in your range than the caller\'s.';
+            }
+            if (isLowBoard && texture.connected) {
+                if (isCheck) return 'Range advantage: Low connected boards favor the caller\'s range — they have more sets, two pair, and straight combos. Checking is often correct as the PFR.';
+                if (isBet && hs.includes('overpair')) return 'Range note: Low connected boards favor the caller, but your overpair still needs to bet for protection against the many draws and strong hands in their range.';
+            }
+            if (isLowBoard && !texture.connected) {
+                if (isBet) return 'Range advantage: Low dry boards are close in range advantage — small c-bets with wide range work because neither player connects strongly.';
+            }
+            if (texture.monotone) {
+                if (isCheck) return 'Range note: Monotone boards reduce the preflop raiser\'s range advantage — the caller has more suited combos that hit flushes and flush draws.';
+                if (isBet) return 'Range note: Despite the monotone texture reducing your range advantage, betting protects your equity and charges villain\'s draws.';
+            }
+            if (texture.paired) {
+                if (isBet) return 'Range advantage: Paired boards strongly favor the preflop raiser — your range has more overpairs and big pairs while the caller rarely has trips.';
+            }
+        }
+
+        // ═══ CALLER/OOP RANGE ADVANTAGE (facing c-bet) ═══
+        if (nodeType === 'hero_faces_bet' && street === 'flop') {
+            if (isLowBoard && texture.connected) {
+                if (isRaise) return 'Range advantage: You (the caller) have the range advantage on this low connected board — more two pair, sets, and straights than the preflop raiser. Check-raising exploits this.';
+                if (isCall) return 'Range advantage: Low connected boards favor the caller\'s range — you connect more often with sets and two pair here.';
+            }
+            if (isAceHighBoard && isFold) {
+                return 'Range disadvantage: Ace-high boards favor the preflop raiser heavily. Without a strong hand, folding is correct because villain\'s range connects much more often here.';
+            }
+        }
+
+        // ═══ IP vs OOP DYNAMICS ═══
+        if (heroIsIP && isCheck && street === 'flop') {
+            if (hs.includes('draw') || hs.includes('backdoor')) {
+                return 'Position advantage: Being in position allows you to check back draws and realize equity freely — a key IP advantage.';
+            }
+        }
+        if (heroIsOOP && isBet && street === 'flop') {
+            if (hs.includes('air') || hs.includes('no pair')) {
+                return 'Position note: Donk-betting OOP is uncommon in GTO — when the solver uses it, the board texture strongly favors the OOP player\'s range.';
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Phase 60: Blocker awareness — explains how hero's hole cards block
      * or unblock villain's ranges, and why that matters for the chosen action.
