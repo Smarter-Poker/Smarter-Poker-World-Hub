@@ -552,6 +552,34 @@ function EVLossGraph({ handHistory }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══ COLLAPSIBLE ANALYSIS SECTION — Groups analysis panels into expandable categories ═══
+function AnalysisSection({ title, icon, color = '#94a3b8', defaultOpen = false, children }) {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <div style={{ marginBottom: 8 }}>
+            <button
+                onClick={() => setOpen(!open)}
+                style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 14px', background: 'rgba(0,0,0,0.25)', border: `1px solid ${color}22`,
+                    borderRadius: open ? '10px 10px 0 0' : 10, cursor: 'pointer', transition: 'all 0.2s',
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14 }}>{icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: 1 }}>{title}</span>
+                </div>
+                <span style={{ fontSize: 14, color: '#64748b', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+            </button>
+            {open && (
+                <div style={{ padding: '12px 14px', background: 'rgba(0,0,0,0.15)', borderRadius: '0 0 10px 10px', border: `1px solid ${color}11`, borderTop: 'none' }}>
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // F7: DRILL FILTERS — Pre-session position/street filter modal
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -892,15 +920,36 @@ function GodModeArenaInner({
         getGTOComplianceScore,
         // ═══ PHASE 331-340: Ultimate training intelligence ═══
         getRangeBalanceScore,
+        getCheckBackAnalysis,
+        getDonkBetAnalysis,
+        getMultiWayPotAnalysis,
+        getThinValueFrequency,
+        getProtectionBetAnalysis,
+        getShowdownAnalysis,
         getRiverDecisionQuality,
         getPreFlopLeaks,
         getSessionProgressionChart,
         // ═══ PHASE 341-350: Mastery & deep analysis ═══
         getEquityRealizationAnalysis,
+        getPotControlAnalysis,
+        getBoardTextureQuiz,
+        getStackDepthStrategy,
         getMixedStrategyAccuracy,
+        getEndgameReport,
         getPlaystyleEvolution,
+        getKeyConceptReminders,
         getUltimatePlayerRating,
         getNextSessionPrep,
+        getSessionSummaryCard,
+        // ═══ Previously unused methods now wired ═══
+        getDifficultyProgression,
+        getHandStrengthDistribution,
+        getWinRateByHandCategory,
+        getActionTimeline,
+        getOverbetAnalysis,
+        getConceptQuiz,
+        getComprehensiveSessionReport,
+        getPreDecisionPreview,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -1547,6 +1596,44 @@ function GodModeArenaInner({
 
                     {/* ═══ TAB: OVERVIEW ═══ */}
                     {reviewTab === 'overview' && (<>
+
+                        {/* ═══ ENDGAME REPORT — Beautiful session recap ═══ */}
+                        {(() => {
+                            try {
+                                const eg = getEndgameReport();
+                                if (!eg) return null;
+                                const gradeColors = { 'S': '#f59e0b', 'A': '#22c55e', 'B': '#4ade80', 'C': '#06b6d4', 'D': '#fbbf24', 'F': '#ef4444' };
+                                const gColor = gradeColors[eg.grade] || '#94a3b8';
+                                return (<div style={{
+                                    marginBottom: 16, padding: '18px', borderRadius: 14,
+                                    background: `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, ${gColor}08 100%)`,
+                                    border: `2px solid ${gColor}30`,
+                                }}>
+                                    <div style={{ textAlign: 'center', marginBottom: 12 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: gColor, textTransform: 'uppercase', letterSpacing: 2 }}>Session Complete</div>
+                                        <div style={{ fontSize: 42, fontWeight: 900, color: gColor, fontFamily: "'Orbitron', monospace", lineHeight: 1, marginTop: 4 }}>{eg.grade}</div>
+                                        {eg.title && <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', marginTop: 4 }}>{eg.title}</div>}
+                                    </div>
+                                    {eg.highlights && eg.highlights.length > 0 && (
+                                        <div style={{ marginBottom: 10 }}>
+                                            <div style={{ fontSize: 9, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Highlights</div>
+                                            {eg.highlights.slice(0, 3).map((h, i) => (
+                                                <div key={i} style={{ fontSize: 10, color: '#e2e8f0', padding: '2px 0' }}>✓ {h}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {eg.improvementAreas && eg.improvementAreas.length > 0 && (
+                                        <div>
+                                            <div style={{ fontSize: 9, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Focus Areas</div>
+                                            {eg.improvementAreas.slice(0, 3).map((a, i) => (
+                                                <div key={i} style={{ fontSize: 10, color: '#94a3b8', padding: '2px 0' }}>→ {a}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
                         {/* ═══ Phase 54: Session Performance Summary ═══ */}
                         <div style={{
                             marginBottom: 16, padding: '14px 16px',
@@ -2224,7 +2311,108 @@ function GodModeArenaInner({
                     {/* ═══ TAB: ANALYSIS ═══ */}
                     {reviewTab === 'analysis' && (<>
 
-                        {/* ═══ PHASE 254: Leak Report + Phase 258: Drill Prescription ═══ */}
+                        {/* ═══════════════════════════════════════════════════════════════
+                            GROUPED ANALYSIS — Collapsible sections for organized insights
+                            ═══════════════════════════════════════════════════════════════ */}
+
+                        {/* ══ SECTION 1: PLAYER RATING & OVERVIEW ══ */}
+                        <AnalysisSection title="Player Rating & Overview" icon="🏆" color="#f59e0b" defaultOpen={true}>
+                            {/* PHASE 350: Ultimate Player Rating */}
+                            {(() => {
+                                try {
+                                    const upr = getUltimatePlayerRating();
+                                    if (!upr) return null;
+                                    const tierColors = { Grandmaster: '#f59e0b', Master: '#22c55e', Expert: '#06b6d4', Advanced: '#818cf8', Intermediate: '#94a3b8', Developing: '#fbbf24', Beginner: '#ef4444' };
+                                    const tColor = tierColors[upr.tier] || '#94a3b8';
+                                    return (<div style={{ marginBottom: 16, padding: '16px', background: `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, ${tColor}08 100%)`, borderRadius: 14, border: `2px solid ${tColor}40` }}>
+                                        <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>Player Rating</div>
+                                            <div style={{ fontSize: 36, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace", lineHeight: 1 }}>{upr.elo}</div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginTop: 2 }}>{upr.tier}</div>
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+                                            {Object.entries(upr.scores).map(([key, val]) => (
+                                                <div key={key} style={{ padding: '3px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontSize: 9 }}>
+                                                    <span style={{ color: '#64748b' }}>{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                                                    <span style={{ color: val >= 70 ? '#4ade80' : val >= 50 ? '#fbbf24' : '#ef4444', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{val}%</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>);
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* PHASE 330: GTO Compliance */}
+                            {(() => {
+                                try {
+                                    const gto = getGTOComplianceScore();
+                                    if (!gto) return null;
+                                    const tierColors = { Elite: '#22c55e', Advanced: '#4ade80', Intermediate: '#06b6d4', Developing: '#fbbf24', Beginner: '#ef4444' };
+                                    const tColor = tierColors[gto.tier] || '#94a3b8';
+                                    return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tColor}22` }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>GTO Compliance</div>
+                                        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                            <div style={{ fontSize: 28, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace" }}>{gto.overall}%</div>
+                                            <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>{gto.tier}</div>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                            {['accuracy', 'frequency', 'balance'].map(k => (
+                                                <div key={k} style={{ textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components[k]}%</div>
+                                                    <div style={{ fontSize: 8, color: '#64748b', textTransform: 'capitalize' }}>{k}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{gto.insight}</div>
+                                    </div>);
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* PHASE 322: Player Profile */}
+                            {(() => {
+                                try {
+                                    const ap = getAggressionProfile();
+                                    if (!ap) return null;
+                                    const profileColors = { 'TAG (Tight-Aggressive)': '#22c55e', 'LAG (Loose-Aggressive)': '#fbbf24', 'LP (Loose-Passive)': '#ef4444', 'TP (Tight-Passive)': '#f87171' };
+                                    const pColor = profileColors[ap.profile] || '#94a3b8';
+                                    return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${pColor}22` }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Player Profile</div>
+                                        <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: pColor }}>{ap.profile}</div>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.vpip}%</div><div style={{ fontSize: 8, color: '#64748b' }}>VPIP</div></div>
+                                            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionPct}%</div><div style={{ fontSize: 8, color: '#64748b' }}>Aggression</div></div>
+                                            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionFactor}</div><div style={{ fontSize: 8, color: '#64748b' }}>AF</div></div>
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{ap.tip}</div>
+                                    </div>);
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* PHASE 347: Session Evolution */}
+                            {(() => {
+                                try {
+                                    const pe = getPlaystyleEvolution();
+                                    if (!pe) return null;
+                                    const evoColors = { 'Becoming more aggressive': '#fbbf24', 'Becoming more passive': '#06b6d4', 'Improving accuracy': '#22c55e', 'Declining focus': '#ef4444', 'Consistent play': '#94a3b8' };
+                                    const eColor = evoColors[pe.evolution] || '#94a3b8';
+                                    return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${eColor}22` }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: eColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Evolution</div>
+                                        <div style={{ textAlign: 'center', marginBottom: 8, fontSize: 12, fontWeight: 600, color: eColor }}>{pe.evolution}</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.early.accuracy}%</div><div style={{ fontSize: 8, color: '#64748b' }}>Early Acc</div></div>
+                                            <div style={{ textAlign: 'center', color: '#475569' }}>→</div>
+                                            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.late.accuracy}%</div><div style={{ fontSize: 8, color: '#64748b' }}>Late Acc</div></div>
+                                        </div>
+                                    </div>);
+                                } catch (_) { return null; }
+                            })()}
+                        </AnalysisSection>
+
+                        {/* ══ SECTION 2: LEAK DETECTION ══ */}
+                        <AnalysisSection title="Leak Detection" icon="🔍" color="#ef4444" defaultOpen={true}>
+                            {/* PHASE 254: Leak Report */}
                         {(() => {
                             try {
                                 const report = generateLeakReport();
@@ -2435,7 +2623,10 @@ function GodModeArenaInner({
                                 </div>);
                             } catch (_) { return null; }
                         })()}
+                        </AnalysisSection>
 
+                        {/* ══ SECTION 3: SESSION ANALYTICS ══ */}
+                        <AnalysisSection title="Session Analytics" icon="📊" color="#06b6d4" defaultOpen={false}>
                         {/* ═══ PHASE 290: AI Coaching Summary ═══ */}
                         {(() => {
                             try {
@@ -2678,7 +2869,10 @@ function GodModeArenaInner({
                                 </div>);
                             } catch (_) { return null; }
                         })()}
+                        </AnalysisSection>
 
+                        {/* ══ SECTION 4: STRATEGY & PATTERNS ══ */}
+                        <AnalysisSection title="Strategy & Patterns" icon="♟️" color="#a78bfa" defaultOpen={false}>
                         {/* ═══ PHASE 302: Street Transition Analysis ═══ */}
                         {(() => {
                             try {
@@ -2977,31 +3171,10 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
-                        {/* ═══ PHASE 350: Ultimate Player Rating ═══ */}
-                        {(() => {
-                            try {
-                                const upr = getUltimatePlayerRating();
-                                if (!upr) return null;
-                                const tierColors = { Grandmaster: '#f59e0b', Master: '#22c55e', Expert: '#06b6d4', Advanced: '#818cf8', Intermediate: '#94a3b8', Developing: '#fbbf24', Beginner: '#ef4444' };
-                                const tColor = tierColors[upr.tier] || '#94a3b8';
-                                return (<div style={{ marginBottom: 16, padding: '16px', background: `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, ${tColor}08 100%)`, borderRadius: 14, border: `2px solid ${tColor}40` }}>
-                                    <div style={{ textAlign: 'center', marginBottom: 10 }}>
-                                        <div style={{ fontSize: 10, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>Player Rating</div>
-                                        <div style={{ fontSize: 36, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace", lineHeight: 1 }}>{upr.elo}</div>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginTop: 2 }}>{upr.tier}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
-                                        {Object.entries(upr.scores).map(([key, val]) => (
-                                            <div key={key} style={{ padding: '3px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontSize: 9 }}>
-                                                <span style={{ color: '#64748b' }}>{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
-                                                <span style={{ color: val >= 70 ? '#4ade80' : val >= 50 ? '#fbbf24' : '#ef4444', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{val}%</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>);
-                            } catch (_) { return null; }
-                        })()}
+                        </AnalysisSection>
 
+                        {/* ══ SECTION 5: DEEP STATS & BALANCE ══ */}
+                        <AnalysisSection title="Deep Stats & Balance" icon="⚖️" color="#38bdf8" defaultOpen={false}>
                         {/* ═══ PHASE 341: Equity Realization ═══ */}
                         {(() => {
                             try {
@@ -3049,31 +3222,6 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
-                        {/* ═══ PHASE 347: Playstyle Evolution ═══ */}
-                        {(() => {
-                            try {
-                                const pe = getPlaystyleEvolution();
-                                if (!pe) return null;
-                                const evoColors = { 'Becoming more aggressive': '#fbbf24', 'Becoming more passive': '#06b6d4', 'Improving accuracy': '#22c55e', 'Declining focus': '#ef4444', 'Consistent play': '#94a3b8' };
-                                const eColor = evoColors[pe.evolution] || '#94a3b8';
-                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${eColor}22` }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: eColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Evolution</div>
-                                    <div style={{ textAlign: 'center', marginBottom: 8, fontSize: 12, fontWeight: 600, color: eColor }}>{pe.evolution}</div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.early.accuracy}%</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>Early Acc</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center', color: '#475569' }}>→</div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.late.accuracy}%</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>Late Acc</div>
-                                        </div>
-                                    </div>
-                                </div>);
-                            } catch (_) { return null; }
-                        })()}
-
                         {/* ═══ PHASE 349: Next Session Prep ═══ */}
                         {(() => {
                             try {
@@ -3097,69 +3245,6 @@ function GodModeArenaInner({
                                             ))}
                                         </div>
                                     )}
-                                </div>);
-                            } catch (_) { return null; }
-                        })()}
-
-                        {/* ═══ PHASE 330: GTO Compliance Score ═══ */}
-                        {(() => {
-                            try {
-                                const gto = getGTOComplianceScore();
-                                if (!gto) return null;
-                                const tierColors = { Elite: '#22c55e', Advanced: '#4ade80', Intermediate: '#06b6d4', Developing: '#fbbf24', Beginner: '#ef4444' };
-                                const tColor = tierColors[gto.tier] || '#94a3b8';
-                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tColor}22` }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>GTO Compliance</div>
-                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
-                                        <div style={{ fontSize: 28, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace" }}>{gto.overall}%</div>
-                                        <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>{gto.tier}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.accuracy}%</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>Accuracy</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.frequency}%</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>Frequency</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.balance}%</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>Balance</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{gto.insight}</div>
-                                </div>);
-                            } catch (_) { return null; }
-                        })()}
-
-                        {/* ═══ PHASE 322: Aggression Profile ═══ */}
-                        {(() => {
-                            try {
-                                const ap = getAggressionProfile();
-                                if (!ap) return null;
-                                const profileColors = { 'TAG (Tight-Aggressive)': '#22c55e', 'LAG (Loose-Aggressive)': '#fbbf24', 'LP (Loose-Passive)': '#ef4444', 'TP (Tight-Passive)': '#f87171' };
-                                const pColor = profileColors[ap.profile] || '#94a3b8';
-                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${pColor}22` }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Player Profile</div>
-                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
-                                        <div style={{ fontSize: 14, fontWeight: 800, color: pColor }}>{ap.profile}</div>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-around' }}>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.vpip}%</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>VPIP</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionPct}%</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>Aggression</div>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionFactor}</div>
-                                            <div style={{ fontSize: 8, color: '#64748b' }}>AF</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{ap.tip}</div>
                                 </div>);
                             } catch (_) { return null; }
                         })()}
@@ -3307,6 +3392,141 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
+                        {/* ═══ NEW: Pot Control Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const pc = getPotControlAnalysis();
+                                if (!pc || pc.totalHands < 3) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Pot Control</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 14, fontWeight: 800, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{pc.potControlRate || 0}%</div><div style={{ fontSize: 9, color: '#64748b' }}>Control Rate</div></div>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 14, fontWeight: 800, color: pc.inflatedCount > 2 ? '#ef4444' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{pc.inflatedCount || 0}</div><div style={{ fontSize: 9, color: '#64748b' }}>Inflated Pots</div></div>
+                                    </div>
+                                    {pc.insight && <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{pc.insight}</div>}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ NEW: Check-Back Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const cb = getCheckBackAnalysis();
+                                if (!cb || cb.totalChecks < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(34,197,94,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Check-Back Decisions</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{cb.correctChecks || 0}</div><div style={{ fontSize: 9, color: '#64748b' }}>Good Checks</div></div>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{cb.betInsteadOfCheck || 0}</div><div style={{ fontSize: 9, color: '#64748b' }}>Should've Bet</div></div>
+                                    </div>
+                                    {cb.insight && <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{cb.insight}</div>}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ NEW: Showdown Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const sd = getShowdownAnalysis();
+                                if (!sd || sd.totalHands < 5) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,146,60,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fb923c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Showdown Profile</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{sd.showdownRate || 0}%</div><div style={{ fontSize: 9, color: '#64748b' }}>Showdown %</div></div>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{sd.aggressionRate || 0}%</div><div style={{ fontSize: 9, color: '#64748b' }}>Aggression %</div></div>
+                                    </div>
+                                    {sd.insight && <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{sd.insight}</div>}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ NEW: Thin Value + Protection Bets ═══ */}
+                        {(() => {
+                            try {
+                                const tv = getThinValueFrequency();
+                                const pb = getProtectionBetAnalysis();
+                                if (!tv && !pb) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Value & Protection</div>
+                                    {tv && tv.thinValueSpots > 0 && (
+                                        <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: 10, color: '#94a3b8' }}>Thin Value Accuracy</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: (tv.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{tv.accuracy || 0}% ({tv.thinValueSpots})</span>
+                                        </div>
+                                    )}
+                                    {pb && pb.protectionSpots > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: 10, color: '#94a3b8' }}>Protection Bet Accuracy</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: (pb.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{pb.accuracy || 0}% ({pb.protectionSpots})</span>
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ NEW: Overbet Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const ob = getOverbetAnalysis();
+                                if (!ob || ob.overbetSpots < 1) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,191,36,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Overbet Usage</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ob.overbetSpots}</div><div style={{ fontSize: 9, color: '#64748b' }}>Overbet Spots</div></div>
+                                        <div style={{ textAlign: 'center' }}><div style={{ fontSize: 12, fontWeight: 700, color: (ob.accuracy || 0) >= 50 ? '#22c55e' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{ob.accuracy || 0}%</div><div style={{ fontSize: 9, color: '#64748b' }}>Accuracy</div></div>
+                                    </div>
+                                    {ob.insight && <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{ob.insight}</div>}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ NEW: Hand Strength Distribution ═══ */}
+                        {(() => {
+                            try {
+                                const hsd = getHandStrengthDistribution();
+                                if (!hsd || !hsd.distribution) return null;
+                                const catColors = { premium: '#f59e0b', strong: '#22c55e', medium: '#06b6d4', weak: '#fbbf24', trash: '#ef4444' };
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Hand Strength Distribution</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+                                        {Object.entries(hsd.distribution).map(([cat, count]) => (
+                                            <div key={cat} style={{ padding: '4px 10px', background: `${catColors[cat] || '#64748b'}15`, borderRadius: 6, border: `1px solid ${catColors[cat] || '#64748b'}30` }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: catColors[cat] || '#94a3b8', fontFamily: "'Orbitron', monospace" }}>{count}</div>
+                                                <div style={{ fontSize: 8, color: '#64748b', textTransform: 'capitalize' }}>{cat}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ NEW: Donk Bet + Multiway ═══ */}
+                        {(() => {
+                            try {
+                                const db = getDonkBetAnalysis();
+                                const mw = getMultiWayPotAnalysis();
+                                if (!db && !mw) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(100,116,139,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Specialized Spots</div>
+                                    {db && db.donkBets > 0 && (
+                                        <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: 10, color: '#94a3b8' }}>Donk Bet Accuracy</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{db.accuracy || 0}% ({db.donkBets})</span>
+                                        </div>
+                                    )}
+                                    {mw && mw.multiWayHands > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span style={{ fontSize: 10, color: '#94a3b8' }}>Multiway Accuracy</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{mw.multiWayAccuracy || 0}% ({mw.multiWayHands})</span>
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+                        </AnalysisSection>
+
+                        {/* ══ SECTION 6: DATA & HISTORY ══ */}
+                        <AnalysisSection title="Data & History" icon="📈" color="#22d3ee" defaultOpen={false}>
                         {/* ═══ PHASE 20: EV by Street visualization ═══ */}
                         <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
@@ -3400,6 +3620,7 @@ function GodModeArenaInner({
 
                         {/* ═══ PHASE 18: Leaderboard ═══ */}
                         <LeaderboardPanel userId={userId} gameId={gameId} />
+                        </AnalysisSection>
                     </>)}
 
                     {/* ACTION BUTTONS */}
@@ -3795,6 +4016,9 @@ function GodModeArenaInner({
                                     getExploitativeAdjustments={getExploitativeAdjustments}
                                     getVarianceSimulator={getVarianceSimulator}
                                     getOptimalLineNarration={getOptimalLineNarration}
+                                    // Phase 351+: Pre-decision hints & concept reminders
+                                    getPreDecisionPreview={getPreDecisionPreview}
+                                    getKeyConceptReminders={getKeyConceptReminders}
                                     // GTOW scoring props
                                     moveClassification={moveClassification}
                                     evLoss={evLoss}
@@ -3893,6 +4117,9 @@ function GodModeArenaInner({
                         handSummary={handSummary}
                         onExit={onExit}
                         difficultyLevel={computedDifficultyLevel}
+                        // Phase 351+: Pre-decision hints
+                        getPreDecisionPreview={getPreDecisionPreview}
+                        getKeyConceptReminders={getKeyConceptReminders}
                         trainerConfig={{
                             ...trainerConfig,
                             timerEnabled: trainerConfig?.timerEnabled || (timerMode !== 'relaxed'),

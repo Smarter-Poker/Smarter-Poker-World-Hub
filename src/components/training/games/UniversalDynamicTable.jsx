@@ -1088,6 +1088,9 @@ function UniversalDynamicTable({
     getExploitativeAdjustments = null,
     getVarianceSimulator = null,
     getOptimalLineNarration = null,
+    // Phase 351+: Pre-decision hints
+    getPreDecisionPreview = null,
+    getKeyConceptReminders = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -2894,6 +2897,43 @@ function UniversalDynamicTable({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* ═══ PRE-DECISION HINTS — Show contextual tips BEFORE user answers ═══ */}
+            {!showFeedback && !selectedAnswer && question && (() => {
+                try {
+                    const sc = question?.scenario || question || {};
+                    const hints = [];
+                    // Key concept reminders
+                    if (getKeyConceptReminders) {
+                        const kcr = getKeyConceptReminders(sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '');
+                        if (kcr && kcr.reminders && kcr.reminders.length > 0) {
+                            hints.push(kcr.reminders[0]);
+                        }
+                    }
+                    // Pre-decision preview
+                    if (getPreDecisionPreview && hints.length === 0) {
+                        const pdp = getPreDecisionPreview(
+                            question?.handCategory || '',
+                            sc.street || 'flop',
+                            sc.nodeType || '',
+                            sc.heroPosition || '',
+                            gtoFrequencies || {}
+                        );
+                        if (pdp && pdp.hint) hints.push(pdp.hint);
+                    }
+                    if (hints.length === 0) return null;
+                    return (
+                        <div style={{
+                            margin: '0 16px 6px', padding: '6px 12px',
+                            background: 'linear-gradient(90deg, rgba(34,211,238,0.08), rgba(14,165,233,0.04))',
+                            borderRadius: 8, border: '1px solid rgba(34,211,238,0.15)',
+                        }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>💡 Hint</div>
+                            <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>{hints[0]}</div>
+                        </div>
+                    );
+                } catch (_) { return null; }
+            })()}
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
             <div style={{ ...styles.actionBar, position: 'relative' }}>

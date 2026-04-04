@@ -133,6 +133,9 @@ export default function GameUIRouter({
     getExploitativeAdjustments = null,
     getVarianceSimulator = null,
     getOptimalLineNarration = null,
+    // Phase 351+: Pre-decision hints & concept reminders
+    getPreDecisionPreview = null,
+    getKeyConceptReminders = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -221,6 +224,8 @@ export default function GameUIRouter({
             getExploitativeAdjustments={getExploitativeAdjustments}
             getVarianceSimulator={getVarianceSimulator}
             getOptimalLineNarration={getOptimalLineNarration}
+            getPreDecisionPreview={getPreDecisionPreview}
+            getKeyConceptReminders={getKeyConceptReminders}
         />
     );
 }
