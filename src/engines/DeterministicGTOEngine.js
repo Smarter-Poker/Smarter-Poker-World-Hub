@@ -2828,11 +2828,19 @@ export class DeterministicGTOEngine {
                 if (isBet) return 'Range advantage: King-high boards favor the preflop raiser — more KK/AK/KQ in your range than the caller\'s.';
             }
             if (isLowBoard && texture.connected) {
+                if (texture.gapSize === 'rundown') {
+                    if (isCheck) return 'Range advantage: This low rundown board (3+ connected cards) massively favors the caller — they have straights, sets, two pair, and combo draws. Check frequently as the PFR.';
+                    if (isBet) return 'Range note: Rundown low boards strongly favor the caller, but betting with your specific hand applies pressure to their capped portions.';
+                }
                 if (isCheck) return 'Range advantage: Low connected boards favor the caller\'s range — they have more sets, two pair, and straight combos. Checking is often correct as the PFR.';
                 if (isBet && hs.includes('overpair')) return 'Range note: Low connected boards favor the caller, but your overpair still needs to bet for protection against the many draws and strong hands in their range.';
             }
             if (isLowBoard && !texture.connected) {
                 if (isBet) return 'Range advantage: Low dry boards are close in range advantage — small c-bets with wide range work because neither player connects strongly.';
+            }
+            if (texture.straightDrawHeavy && !isLowBoard) {
+                if (isCheck) return 'Range note: This connected board allows many straight draws — checking accounts for the caller\'s strong equity realization with connected hands.';
+                if (isBet && (hs.includes('set') || hs.includes('two pair'))) return 'Range note: Connected board with many straight possibilities — bet to charge the numerous draws before the turn changes the landscape.';
             }
             if (texture.monotone) {
                 if (isCheck) return 'Range note: Monotone boards reduce the preflop raiser\'s range advantage — the caller has more suited combos that hit flushes and flush draws.';
@@ -3058,7 +3066,7 @@ export class DeterministicGTOEngine {
         const hs = handStrength.toLowerCase();
 
         // Board texture tag for context
-        const texTag = texture.monotone ? ' on this monotone board' : texture.wet ? ' on this wet board' : texture.paired ? ' on this paired board' : texture.dry ? ' on this dry board' : '';
+        const texTag = texture.monotone ? ' on this monotone board' : texture.straightDrawHeavy ? ' on this straight-heavy board' : texture.wet ? ' on this wet board' : texture.paired ? ' on this paired board' : texture.dry ? ' on this dry board' : '';
 
         // Check vs Bet mix — the most common mixed strategy
         if ((topIsCheck && secondIsBet) || (topIsBet && secondIsCheck)) {
