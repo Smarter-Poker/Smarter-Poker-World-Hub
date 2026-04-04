@@ -1663,6 +1663,9 @@ export class DeterministicGTOEngine {
         // ═══ Phase 62: MULTI-STREET PLANNING ═══
         const multiStreetNote = this._getMultiStreetPlan(street, optimalAction, sizePct, handStrength, texture, ctx.estimatedPot, ctx.stackDepth);
 
+        // ═══ Phase 64: POT ODDS & EQUITY MATH ═══
+        const potOddsNote = this._getPotOddsMath(optimalAction, handStrength, street, validActions, ctx.estimatedPot, ctx.nodeType);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1677,7 +1680,7 @@ export class DeterministicGTOEngine {
         const streetExtra = riverEnhancement || turnEnhancement || flopEnhancement;
 
         // Combine optional notes
-        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote].filter(Boolean).map(s => ' ' + s).join('');
+        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote].filter(Boolean).map(s => ' ' + s).join('');
 
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
@@ -2371,6 +2374,109 @@ export class DeterministicGTOEngine {
      * Phase 45: Enhanced mixed strategy reasoning — GTO Wizard-level depth.
      * Explains indifference points, range balance, and exploitability prevention.
      */
+    /**
+     * Phase 64: Pot odds and equity math — when facing a bet (call/fold decisions),
+     * calculate and display the pot odds, required equity, and how they compare
+     * to the hand's estimated equity.
+     */
+    _getPotOddsMath(action, handStrength, street, validActions, pot, nodeType) {
+        const a = action.toLowerCase();
+        const isCall = a === 'call';
+        const isFold = a === 'f';
+        if (!isCall && !isFold) return '';
+        if (nodeType !== 'hero_faces_bet') return '';
+
+        const hs = handStrength.toLowerCase();
+
+        // Try to infer the bet size from available actions
+        // If "call" is an action, there must be a bet to call
+        // We can estimate bet size from the pot context
+        // Common bet sizes in solver: 33%, 50%, 67%, 75%, 100%
+        // Without exact bet size, we provide general pot odds guidance
+
+        // Estimate hand equity based on hand strength category
+        let estEquity = 0;
+        if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house') || hs.includes('quads')) {
+            estEquity = 75; // Monster
+        } else if (hs.includes('top pair') && hs.includes('top kicker')) {
+            estEquity = 60;
+        } else if (hs.includes('top pair') || hs.includes('overpair')) {
+            estEquity = 55;
+        } else if (hs.includes('monster draw') || hs.includes('combo draw')) {
+            estEquity = 45; // 15+ outs ≈ 45% with two cards, ~33% with one
+            if (street === 'turn') estEquity = 33;
+        } else if (hs.includes('flush draw') || hs.includes('nut flush draw')) {
+            estEquity = 36; // 9 outs ≈ 36% with two cards, 19% with one
+            if (street === 'turn') estEquity = 19;
+        } else if (hs.includes('OESD') || hs.includes('double gutshot')) {
+            estEquity = 32; // 8 outs ≈ 32% with two cards, 17% with one
+            if (street === 'turn') estEquity = 17;
+        } else if (hs.includes('gutshot')) {
+            estEquity = 17; // 4 outs ≈ 17% with two cards, 8.5% with one
+            if (street === 'turn') estEquity = 9;
+        } else if (hs.includes('second pair') || hs.includes('middle pair')) {
+            estEquity = 35;
+        } else if (hs.includes('bottom pair')) {
+            estEquity = 25;
+        } else if (hs.includes('overcard') || hs.includes('high cards')) {
+            estEquity = 15; // ~6 outs
+        } else if (hs.includes('air') || hs.includes('no pair')) {
+            estEquity = 8;
+        }
+
+        if (estEquity === 0) return '';
+
+        // Common pot odds by bet size:
+        // 33% pot bet → need 20% equity to call
+        // 50% pot bet → need 25% equity to call
+        // 67% pot bet → need 29% equity to call
+        // 75% pot bet → need 30% equity to call
+        // 100% pot bet → need 33% equity to call
+        // 150% pot bet → need 38% equity to call
+
+        if (isCall) {
+            if (hs.includes('flush draw') || hs.includes('nut flush draw')) {
+                if (street === 'flop') return `Pot odds math: 9 flush outs × 4 = ~36% equity (rule of 4). You need ~25-33% equity to call most bet sizes — this is a clear call.`;
+                if (street === 'turn') return `Pot odds math: 9 flush outs × 2 = ~18% equity (rule of 2). Marginal on pot odds alone, but implied odds when the flush hits make this profitable.`;
+            }
+            if (hs.includes('OESD') || hs.includes('double gutshot')) {
+                if (street === 'flop') return `Pot odds math: 8 straight outs × 4 = ~32% equity (rule of 4). Sufficient to call most standard bet sizes.`;
+                if (street === 'turn') return `Pot odds math: 8 outs × 2 = ~16% equity (rule of 2). Needs implied odds to justify — when the straight completes, you should win a large pot.`;
+            }
+            if (hs.includes('gutshot')) {
+                if (street === 'flop') return `Pot odds math: 4 gutshot outs × 4 = ~16% equity. Marginal call — needs implied odds and possibly backdoor equity to justify continuing.`;
+                if (street === 'turn') return `Pot odds math: 4 outs × 2 = ~8% equity. Direct pot odds don't justify calling — but implied odds when the straight hits make this close.`;
+            }
+            if (hs.includes('monster draw') || hs.includes('combo draw')) {
+                return `Pot odds math: 15+ outs give ${estEquity}% equity — you're essentially a coin flip. Calling is always correct, and raising is also viable.`;
+            }
+            if (hs.includes('top pair') || hs.includes('overpair')) {
+                if (street === 'river') return `Equity estimate: ~${estEquity}% vs villain's river betting range. Against balanced opponents, you need to call enough to prevent auto-profit bluffs.`;
+                return `Equity estimate: ~${estEquity}% against villain's range — comfortably above the pot odds threshold for most bet sizes.`;
+            }
+            if (hs.includes('second pair') || hs.includes('bottom pair')) {
+                if (street === 'river') return `Equity estimate: ~${estEquity}% vs villain's river range — close to the bluff-catching threshold. Call if villain bluffs enough.`;
+            }
+        }
+
+        if (isFold) {
+            if (hs.includes('flush draw') && street === 'turn') {
+                return `Pot odds math: 9 outs × 2 = ~18% equity. If the bet size requires more than 18% equity, folding is correct without sufficient implied odds.`;
+            }
+            if (hs.includes('gutshot')) {
+                return `Pot odds math: 4 outs = only ~${estEquity}% equity. This is below the required equity for nearly any bet size — folding is mathematically correct.`;
+            }
+            if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
+                return `Equity estimate: ~${estEquity}% — well below the required equity to call. No profitable continue.`;
+            }
+            if (hs.includes('overpair') || hs.includes('top pair')) {
+                return `Despite holding a strong hand (~${estEquity}% in a vacuum), villain's aggression narrows their range to hands that beat you. Effective equity drops below the calling threshold.`;
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Phase 62: Multi-street planning — explains how the current action fits
      * into a broader plan across remaining streets. Covers geometric sizing,
