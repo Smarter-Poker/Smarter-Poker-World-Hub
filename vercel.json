@@ -304,6 +304,10 @@
     {
       "path": "/api/cron/venue-review-prompts",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/tour-schedule-scraper",
+      "schedule": "0 4 */3 * *"
     }
   ]
 }

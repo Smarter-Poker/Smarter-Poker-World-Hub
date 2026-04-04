@@ -999,6 +999,24 @@ export default function PokerToursPage() {
                         border-radius: 6px;
                         min-width: 60px;
                     }
+                    .tour-logo-container {
+                        width: 42px;
+                        height: 42px;
+                        border-radius: 8px;
+                        overflow: hidden;
+                        background: rgba(255,255,255,0.08);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        flex-shrink: 0;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .tour-logo-img {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: contain;
+                        padding: 2px;
+                    }
                     .tour-type-pill {
                         font-size: 11px;
                         font-weight: 600;

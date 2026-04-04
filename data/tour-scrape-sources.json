@@ -1,0 +1,283 @@
+{
+  "metadata": {
+    "description": "SOURCE OF TRUTH: Authoritative scraping URLs for all US traveling poker tour schedules. Used by automated scrapers to refresh tour-source-registry.json.",
+    "created": "2026-04-04",
+    "last_updated": "2026-04-04",
+    "refresh_interval_days": 3,
+    "notes": "These URLs are the CANONICAL sources for schedule data. Each tour has primary (official site), secondary (aggregator), and API sources where available."
+  },
+  "tours": {
+    "WSOP": {
+      "tour_name": "World Series of Poker",
+      "scrape_priority": 1,
+      "sources": {
+        "primary": {
+          "url": "https://www.wsop.com/tournaments/",
+          "method": "puppeteer",
+          "notes": "Official WSOP schedule page. JS-rendered, requires headless browser."
+        },
+        "pokernews_schedule": {
+          "url": "https://www.pokernews.com/tours/wsop/2026-wsop/schedule.htm",
+          "method": "puppeteer",
+          "notes": "PokerNews WSOP schedule page with detailed event breakdowns. JS-rendered table."
+        },
+        "pokernews_pdf": {
+          "url": "https://content.pokernews.com/2026-wsop-schedule.pdf",
+          "method": "direct_download",
+          "notes": "Printable PDF of full schedule - most reliable static source."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments/wsop",
+          "method": "scrapling",
+          "notes": "PokerAtlas aggregator with structured tournament data."
+        },
+        "hendonmob": {
+          "url": "https://www.thehendonmob.com/festivals/world-series-of-poker",
+          "method": "scrapling",
+          "notes": "Hendon Mob festival data with results integration."
+        }
+      },
+      "selectors": {
+        "event_list": "table tbody tr, .event-row, .schedule-item",
+        "event_name": ".event-name, td:nth-child(2), .title",
+        "buy_in": ".buy-in, td:nth-child(3), .buyin",
+        "start_date": ".start-date, td:nth-child(4), .date",
+        "guaranteed": ".guarantee, .gtd"
+      },
+      "schedule_release": "February (annually)",
+      "series_window": "Late May - Mid July"
+    },
+    "WPT": {
+      "tour_name": "World Poker Tour",
+      "scrape_priority": 1,
+      "sources": {
+        "primary": {
+          "url": "https://www.worldpokertour.com/schedule/",
+          "method": "puppeteer",
+          "notes": "Official WPT schedule. React SPA, requires JS rendering."
+        },
+        "wpt_prime": {
+          "url": "https://www.worldpokertour.com/wpt-prime/",
+          "method": "puppeteer",
+          "notes": "WPT Prime (lower buy-in) series schedule."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments/wpt",
+          "method": "scrapling",
+          "notes": "PokerAtlas WPT schedule aggregation."
+        },
+        "hendonmob": {
+          "url": "https://www.thehendonmob.com/festivals/world-poker-tour",
+          "method": "scrapling",
+          "notes": "Hendon Mob WPT data."
+        }
+      },
+      "schedule_release": "Rolling (announced per-stop)",
+      "series_window": "Year-round"
+    },
+    "WSOPC": {
+      "tour_name": "WSOP Circuit",
+      "scrape_priority": 2,
+      "sources": {
+        "primary": {
+          "url": "https://www.wsop.com/circuit/",
+          "method": "puppeteer",
+          "notes": "Official WSOP Circuit page with all domestic stop dates."
+        },
+        "maineventtravel": {
+          "url": "https://maineventtravel.com/wsop-circuit/",
+          "method": "scrapling",
+          "notes": "Maine Event Travel frequently publishes full WSOPC calendar."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments/wsop-circuit",
+          "method": "scrapling",
+          "notes": "PokerAtlas WSOPC stop aggregation."
+        }
+      },
+      "schedule_release": "Q4 of prior year",
+      "series_window": "Year-round (US domestic stops)"
+    },
+    "MSPT": {
+      "tour_name": "Mid-States Poker Tour (Major Series of Poker: The Tour)",
+      "scrape_priority": 2,
+      "sources": {
+        "primary": {
+          "url": "https://msptpoker.com/schedule/",
+          "method": "scrapling",
+          "notes": "Official MSPT schedule page."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments/mspt",
+          "method": "scrapling",
+          "notes": "PokerAtlas MSPT stop data."
+        },
+        "hendonmob": {
+          "url": "https://www.thehendonmob.com/festivals/mid-states-poker-tour",
+          "method": "scrapling",
+          "notes": "Hendon Mob MSPT series data."
+        }
+      },
+      "schedule_release": "Q4 of prior year (partial), rolled out quarterly",
+      "series_window": "Year-round, heavy Q1-Q2"
+    },
+    "RGPS": {
+      "tour_name": "RunGood Poker Series",
+      "scrape_priority": 3,
+      "sources": {
+        "primary": {
+          "url": "https://www.rungoodgear.com/poker/",
+          "method": "scrapling",
+          "notes": "Official RunGood schedule page (via rungoodgear.com)."
+        },
+        "rungood_events": {
+          "url": "https://rungood.com/schedule",
+          "method": "scrapling",
+          "notes": "Alternative schedule source."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments/rungood-poker-series",
+          "method": "scrapling",
+          "notes": "PokerAtlas RGPS data."
+        }
+      },
+      "schedule_release": "Rolling (announced per-stop)",
+      "series_window": "Year-round"
+    },
+    "PGT": {
+      "tour_name": "PokerGO Tour",
+      "scrape_priority": 2,
+      "sources": {
+        "primary": {
+          "url": "https://www.pokergo.com/tour",
+          "method": "puppeteer",
+          "notes": "Official PokerGO Tour schedule. React SPA."
+        },
+        "pokernews": {
+          "url": "https://www.pokernews.com/tours/pgt/",
+          "method": "scrapling",
+          "notes": "PokerNews PGT coverage and schedule."
+        }
+      },
+      "schedule_release": "Q4 of prior year",
+      "series_window": "Year-round, primarily Las Vegas"
+    },
+    "ROUGHRIDER": {
+      "tour_name": "Roughrider Poker Tour",
+      "scrape_priority": 4,
+      "sources": {
+        "primary": {
+          "url": "https://roughriderpokertour.com/",
+          "method": "scrapling",
+          "notes": "Official RPT website with full event schedule."
+        },
+        "facebook": {
+          "url": "https://www.facebook.com/roughriderpokertour",
+          "method": "manual",
+          "notes": "Facebook page frequently updated with event announcements."
+        }
+      },
+      "schedule_release": "Q1 annually",
+      "series_window": "Apr - Oct (ND/SD regional)"
+    },
+    "BPO": {
+      "tour_name": "Bar Poker Open",
+      "scrape_priority": 4,
+      "sources": {
+        "primary": {
+          "url": "https://barpokeropen.com/",
+          "method": "scrapling",
+          "notes": "Official BPO website with championship dates."
+        },
+        "barpokeropen_events": {
+          "url": "https://barpokeropen.com/events/",
+          "method": "scrapling",
+          "notes": "Events listing page."
+        }
+      },
+      "schedule_release": "Rolling",
+      "series_window": "2 championships per year (Mar FL, Jun LV)"
+    },
+    "FPN": {
+      "tour_name": "Free Poker Network",
+      "scrape_priority": 4,
+      "sources": {
+        "primary": {
+          "url": "https://freepokernetwork.com/",
+          "method": "scrapling",
+          "notes": "Official FPN website."
+        },
+        "fpn_nationals": {
+          "url": "https://freepokernetwork.com/nationals/",
+          "method": "scrapling",
+          "notes": "National championship event page."
+        }
+      },
+      "schedule_release": "Q3-Q4 of prior year",
+      "series_window": "National championship in January"
+    },
+    "LIPS": {
+      "tour_name": "Ladies International Poker Series",
+      "scrape_priority": 3,
+      "sources": {
+        "primary": {
+          "url": "https://lipstour.com/",
+          "method": "scrapling",
+          "notes": "Official LIPS Tour website with event calendar."
+        },
+        "lips_events": {
+          "url": "https://lipstour.com/events/",
+          "method": "scrapling",
+          "notes": "Events listing page."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments?q=lips",
+          "method": "scrapling",
+          "notes": "PokerAtlas LIPS events."
+        }
+      },
+      "schedule_release": "Rolling (event-by-event)",
+      "series_window": "Year-round, major spring festival in April"
+    },
+    "NAPT": {
+      "tour_name": "North American Poker Tour",
+      "scrape_priority": 3,
+      "sources": {
+        "primary": {
+          "url": "https://www.pokerstarslive.com/napt/",
+          "method": "puppeteer",
+          "notes": "Official PokerStars Live NAPT page."
+        },
+        "pokerfuse": {
+          "url": "https://pokerfuse.com/news/live-poker/napt/",
+          "method": "scrapling",
+          "notes": "Pokerfuse NAPT news/coverage."
+        }
+      },
+      "schedule_release": "Mid-summer (typically July)",
+      "series_window": "Fall (typically November, Las Vegas)"
+    }
+  },
+  "aggregator_sources": {
+    "pokeratlas": {
+      "url": "https://www.pokeratlas.com/poker-tournaments",
+      "notes": "Best aggregator for US poker tournament schedules. Good structured data.",
+      "method": "scrapling"
+    },
+    "pokernews_calendar": {
+      "url": "https://www.pokernews.com/poker-tournaments/",
+      "notes": "PokerNews live tournament calendar — covers all major tours.",
+      "method": "puppeteer"
+    },
+    "hendonmob": {
+      "url": "https://www.thehendonmob.com/festivals",
+      "notes": "Hendon Mob festival database — comprehensive but UK-focused UI.",
+      "method": "scrapling"
+    },
+    "cardplayer_schedule": {
+      "url": "https://www.cardplayer.com/poker-tournaments",
+      "notes": "Card Player magazine tournament listings.",
+      "method": "scrapling"
+    }
+  }
+}
