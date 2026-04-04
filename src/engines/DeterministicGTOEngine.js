@@ -1700,6 +1700,9 @@ export class DeterministicGTOEngine {
         // ═══ Phase 78: EQUITY REALIZATION CONTEXT ═══
         const eqRealizationNote = this._getEquityRealizationNote(optimalAction, handStrength, street, ctx.heroPosition, ctx.villainPosition, ctx.stackDepth, texture);
 
+        // ═══ Phase 79: POSITION-AWARE STRATEGY ═══
+        const positionNote = this._getPositionStrategyNote(optimalAction, handStrength, street, ctx.heroPosition, ctx.villainPosition, ctx.nodeType, texture, freq);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1721,7 +1724,7 @@ export class DeterministicGTOEngine {
         if (explanationDepth === 'concise') {
             extras = [sizingReason].filter(Boolean).map(s => ' ' + s).join('');
         } else {
-            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote].filter(Boolean).map(s => ' ' + s).join('');
+            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote].filter(Boolean).map(s => ' ' + s).join('');
         }
 
         // Phase 76: Coaching preamble for verbose mode
@@ -4413,6 +4416,102 @@ export class DeterministicGTOEngine {
         const heroOrder = postflopOrder[heroPos] ?? posOrder[heroPos] ?? 0;
         const villainOrder = postflopOrder[villainPos] ?? posOrder[villainPos] ?? 0;
         return heroOrder > villainOrder; // Higher = later to act = in position
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 79: POSITION-AWARE STRATEGY ADJUSTMENTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 79: Explain how position shapes the optimal strategy for this spot.
+     * Goes beyond Phase 78's equity realization to cover:
+     *   - IP c-bet frequency and sizing tendencies
+     *   - OOP check-raise construction and donk-bet spots
+     *   - Blind defense vs steal dynamics
+     *   - BTN vs blind postflop range asymmetry
+     *   - HJ/CO dynamics in multiway considerations
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {string} heroPosition - Hero's position
+     * @param {string} villainPosition - Villain's position
+     * @param {string} nodeType - hero_bets_or_checks / hero_faces_bet / hero_faces_raise
+     * @param {Object} texture - Board texture
+     * @param {number} freq - Frequency of optimal action
+     * @returns {string} Position strategy note
+     */
+    _getPositionStrategyNote(optimalAction, handStrength, street, heroPosition, villainPosition, nodeType, texture, freq) {
+        if (!heroPosition || !villainPosition || street === 'preflop') return '';
+
+        const a = (optimalAction || '').toLowerCase();
+        const hc = handStrength.toLowerCase();
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isRaise = a.startsWith('r');
+        const isFold = a === 'f';
+
+        // ─── BTN vs BB (most common postflop dynamic) ───
+        if (heroPosition === 'BTN' && villainPosition === 'BB') {
+            if (street === 'flop' && nodeType === 'hero_bets_or_checks') {
+                if (isBet && texture && texture.dry) {
+                    return 'BTN vs BB on dry boards: IP aggressor c-bets at high frequency with small sizing — BB\'s wide defense range misses these boards often.';
+                }
+                if (isBet && texture && texture.wet) {
+                    return 'BTN vs BB on wet boards: IP c-bet frequency drops — BB connects more with suited/connected hands, so be selective with your bets.';
+                }
+                if (isCheck) {
+                    return 'BTN checking back: even as IP aggressor, some hands prefer a free card — you can bet later streets when your equity improves or bluff when draws miss.';
+                }
+            }
+            if (street === 'turn' && isBet) {
+                return 'BTN double-barreling: the IP aggressor narrows to value + draws on the turn — be honest about whether your hand improved or if this is a profitable bluff card.';
+            }
+        }
+
+        // ─── BB vs BTN (defending OOP) ───
+        if (heroPosition === 'BB' && villainPosition === 'BTN') {
+            if (street === 'flop' && nodeType === 'hero_faces_bet') {
+                if (isRaise) {
+                    return 'BB check-raising vs BTN c-bet: OOP needs to build a check-raise range with both value (sets, two pair) and semi-bluffs (draws) to prevent BTN from c-betting with impunity.';
+                }
+                if (isFold && freq > 0.5) {
+                    return 'BB folding to BTN c-bet: even though you defend wide preflop, you must fold your weakest holdings — defending too wide here costs more than it saves.';
+                }
+            }
+            if (nodeType === 'hero_bets_or_checks' && isBet) {
+                return 'BB leading (donk bet) into BTN: solvers use donk bets on specific textures where BB\'s range advantage justifies taking the initiative despite being OOP.';
+            }
+        }
+
+        // ─── SB dynamics ───
+        if (heroPosition === 'SB') {
+            if (street === 'flop' && isBet && nodeType === 'hero_bets_or_checks') {
+                return 'SB as preflop raiser: playing a raised pot OOP, SB tends to c-bet at moderate frequency — your range is narrower but stronger than a cold-caller.';
+            }
+        }
+
+        // ─── CO/HJ vs blinds ───
+        if ((heroPosition === 'CO' || heroPosition === 'HJ') && (villainPosition === 'BB' || villainPosition === 'SB')) {
+            if (street === 'flop' && isBet && nodeType === 'hero_bets_or_checks') {
+                return `${heroPosition} vs ${villainPosition}: similar to BTN vs blind dynamics but with a tighter opening range — your range advantage on most boards supports c-betting.`;
+            }
+        }
+
+        // ─── Generic IP vs OOP ───
+        if (isIP && isCheck && street !== 'river') {
+            if (hc.includes('pair') && !hc.includes('overpair') && !hc.includes('top pair')) {
+                return 'IP with medium strength: checking behind controls the pot and lets you realize equity — no need to build a big pot with a marginal hand.';
+            }
+        }
+        if (!isIP && nodeType === 'hero_faces_bet') {
+            if (hc.includes('draw') && !isFold) {
+                return 'Defending draws OOP vs IP bet: calling keeps your range balanced, but be prepared for tough river decisions if the draw misses.';
+            }
+        }
+
+        return '';
     }
 }
 

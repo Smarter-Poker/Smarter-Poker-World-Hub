@@ -12,11 +12,21 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 const TOUR_COLORS = {
   'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
-  'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
   'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
+  'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
   'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff' },
   'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff' },
   'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff' },
+  'TRITON': { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff' },
+  'EPT': { bg: 'linear-gradient(135deg, #dc2626, #7f1d1d)', text: '#fff' },
+  'NAPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
+  'CPPT': { bg: 'linear-gradient(135deg, #0f766e, #134e4a)', text: '#fff' },
+  'APT': { bg: 'linear-gradient(135deg, #b45309, #78350f)', text: '#fff' },
+  'BPO': { bg: 'linear-gradient(135deg, #0369a1, #0c4a6e)', text: '#fff' },
+  'FPN': { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff' },
+  'LIPS': { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff' },
+  'ROUGHRIDER': { bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff' },
+  'CARD_PLAYER_CRUISES': { bg: 'linear-gradient(135deg, #0e7490, #164e63)', text: '#fff' },
   'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff' },
 };
 
@@ -26,6 +36,8 @@ const TOUR_TYPE_LABELS = {
   regional: 'Regional',
   high_roller: 'High Roller',
   grassroots: 'Grassroots',
+  charity: 'Charity',
+  cruise: 'Cruise',
 };
 
 const ACTIVITY_TYPE_COLORS = {
@@ -227,9 +239,8 @@ export default function TourDetailPage() {
   return (
     <>
       <SEOHead
-        title="Poker Tour Details"
-        description="View Details For This Poker Tour On Smarter.Poker."
-        noindex={true}
+        title={tour ? (tour.tour_name + ' — Poker Tour Details') : 'Poker Tour Details'}
+        description={tour ? ('View ' + tour.tour_name + ' schedule, stops, and results on Smarter.Poker.') : 'View details for this poker tour on Smarter.Poker.'}
       >
 
 
@@ -393,13 +404,14 @@ export default function TourDetailPage() {
             {/* Upcoming Series Section */}
             <section className="tour-series">
               <h2 className="section-title">
-                Upcoming Series
-                {tour.upcoming_series && tour.upcoming_series.length > 0 && (
-                  <span className="series-count">{tour.upcoming_series.length}</span>
-                )}
+                Upcoming Stops
+                {(() => {
+                  const count = (tour.upcoming_series || []).length || (tour.series_2026 || []).length;
+                  return count > 0 ? <span className="series-count">{count}</span> : null;
+                })()}
               </h2>
 
-              {(!tour.upcoming_series || tour.upcoming_series.length === 0) && (
+              {(!tour.upcoming_series || tour.upcoming_series.length === 0) && (!tour.series_2026 || tour.series_2026.length === 0) && (
                 <div className="empty-state">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -407,79 +419,80 @@ export default function TourDetailPage() {
                     <line x1="8" y1="2" x2="8" y2="6" />
                     <line x1="3" y1="10" x2="21" y2="10" />
                   </svg>
-                  <p>No Upcoming Series Announced Yet.</p>
+                  <p>No Upcoming Stops Announced Yet.</p>
                   <p className="empty-subtext">Check Back Soon For Updates.</p>
                 </div>
               )}
 
+              {/* Render upcoming_series from API (parsed dates) */}
               {tour.upcoming_series && tour.upcoming_series.length > 0 && (
                 <div className="series-grid">
                   {tour.upcoming_series.map((series, idx) => {
                     const seriesTypeBadge = getSeriesTypeBadge(series.series_type);
                     return (
-                      <Link key={idx} href={'/hub/series/' + (series.id || idx + 1)} legacyBehavior>
-                        <a className="series-card">
-                          <div className="series-card-header">
-                            <h3 className="series-name">{series.name}</h3>
-                            {series.series_type && (
-                              <span className="series-type-badge" style={{ backgroundColor: seriesTypeBadge.bg }}>
-                                {seriesTypeBadge.label}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="series-venue" onClick={series.venue_id ? function (e) { e.preventDefault(); e.stopPropagation(); router.push('/hub/venues/' + series.venue_id); } : undefined}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                              <polyline points="9 22 9 12 15 12 15 22" />
-                            </svg>
-                            <span className={series.venue_id ? 'venue-link-text' : ''}>{series.venue}</span>
-                          </div>
-
-                          {(series.city || series.state) && (
-                            <div className="series-location">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                                <circle cx="12" cy="10" r="3" />
-                              </svg>
-                              <span>{[series.city, series.state].filter(Boolean).join(', ')}</span>
-                            </div>
+                      <div key={idx} className="series-card">
+                        <div className="series-card-header">
+                          <h3 className="series-name">{series.short_name || series.name}</h3>
+                          {series.series_type && (
+                            <span className="series-type-badge" style={{ backgroundColor: seriesTypeBadge.bg }}>
+                              {seriesTypeBadge.label}
+                            </span>
                           )}
+                        </div>
 
-                          <div className="series-dates">
+                        {(series.city || series.state) && (
+                          <div className="series-location">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                              <line x1="16" y1="2" x2="16" y2="6" />
-                              <line x1="8" y1="2" x2="8" y2="6" />
-                              <line x1="3" y1="10" x2="21" y2="10" />
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                              <circle cx="12" cy="10" r="3" />
                             </svg>
-                            <span>{formatDateRange(series.start_date, series.end_date)}</span>
+                            <span>{[series.city, series.state].filter(Boolean).join(', ')}</span>
                           </div>
+                        )}
 
-                          <div className="series-meta">
-                            {series.main_event_buyin && (
-                              <div className="meta-item">
-                                <span className="meta-label">Main Event</span>
-                                <span className="meta-value">{formatMoney(series.main_event_buyin)}</span>
-                              </div>
-                            )}
-                            {series.total_events && (
-                              <div className="meta-item">
-                                <span className="meta-label">Events</span>
-                                <span className="meta-value">{series.total_events}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="series-card-arrow">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="9 18 15 12 9 6" />
-                            </svg>
-                          </div>
-                        </a>
-                      </Link>
+                        <div className="series-dates">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                          </svg>
+                          <span>{formatDateRange(series.start_date, series.end_date)}</span>
+                        </div>
+                      </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Fallback: render series_2026 from registry (informal dates) */}
+              {(!tour.upcoming_series || tour.upcoming_series.length === 0) && tour.series_2026 && tour.series_2026.length > 0 && (
+                <div className="series-grid">
+                  {tour.series_2026.map((s, idx) => (
+                    <div key={idx} className="series-card">
+                      <div className="series-card-header">
+                        <h3 className="series-name">{s.name}</h3>
+                      </div>
+                      {s.city && (
+                        <div className="series-location">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
+                          <span>{s.city}</span>
+                        </div>
+                      )}
+                      <div className="series-dates">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        <span>{s.dates || 'TBD'}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </section>
