@@ -720,10 +720,17 @@ export default function LiveGamesFeed({
 
     // ─── DYNAMIC STATE OPTIONS (only show states that actually have live data) ───
     const availableStates = useMemo(() => {
+        // Pre-build slug→venue lookup (O(n)) instead of nested find (O(n*m))
+        const bySlug = {};
+        const byName = {};
+        for (const pv of venues) {
+            if (pv.bravo_slug) bySlug[pv.bravo_slug] = pv;
+            if (pv.slug) bySlug[pv.slug] = pv;
+            if (pv.name) byName[pv.name.toLowerCase()] = pv;
+        }
         const states = new Set();
         Object.values(liveData).forEach(v => {
-            // Try to find parent venue state
-            const parent = venues.find(pv => pv.bravo_slug === v.bravo_slug || (pv.name && pv.name.toLowerCase() === (v.venue_name || '').toLowerCase()));
+            const parent = bySlug[v.bravo_slug] || byName[(v.venue_name || '').toLowerCase()] || null;
             if (parent?.state) states.add(parent.state);
         });
         return Array.from(states).sort();
