@@ -902,7 +902,8 @@ export class DeterministicGTOEngine {
         const explanation = this.buildExplanation(heroHand, board, scenario.street,
             optimalAction, handActions, heroHandEV, validActions,
             { nodeType, heroPosition, villainPosition, estimatedPot, stackDepth: scenario.stack_depth,
-              potType: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition).potType });
+              potType: extractScenarioContext(scenario.scenario_hash, scenario.street, heroPosition, villainPosition).potType,
+              actionEVs });
 
         // ═══ DETERMINE MIXED STRATEGY CORRECTNESS ═══
         // In GTO, if a hand checks 62% and bets 38%, BOTH are correct
@@ -1648,7 +1649,11 @@ export class DeterministicGTOEngine {
 
         // ═══ PREFLOP-SPECIFIC EXPLANATIONS ═══
         if (street === 'preflop') {
-            return this._buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, ctx.potType);
+            const baseExpl = this._buildPreflopExplanation(heroHand, optimalAction, handActions, freq, freqPct, label, validActions, nodeType, heroPosition, villainPosition, stackDepth, ctx.potType);
+            // Phase 91: Append hand equity tier context
+            const handTier = this._getPreflopHandTier(heroHand);
+            const tierNote = handTier.equityVsRandom ? ` [~${handTier.equityVsRandom}% equity vs random — ${handTier.description}]` : '';
+            return baseExpl + tierNote;
         }
 
         // ═══ STRATEGIC REASONING ENGINE ═══
@@ -1730,6 +1735,12 @@ export class DeterministicGTOEngine {
         // ═══ Phase 89: SHOWDOWN VALUE ═══
         const showdownNote = this._getShowdownValueNote(optimalAction, handStrength, street, ctx.nodeType);
 
+        // ═══ Phase 92: EV COMPARISON ═══
+        const evCompNote = this._getEVComparisonNote(optimalAction, ctx.actionEVs, ctx.estimatedPot);
+
+        // ═══ Phase 93: CHECK-RAISE STRATEGY ═══
+        const checkRaiseNote = this._getCheckRaiseNote(optimalAction, handStrength, street, ctx.nodeType, texture);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1747,7 +1758,7 @@ export class DeterministicGTOEngine {
         // Concise mode: only sizing reason + concept (skip secondary notes)
         // Verbose mode: all notes + coaching preamble (up to 5 most relevant)
         // Standard: top 3-4 most relevant notes
-        const allNotes = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote, boardCoverageNote, multiStreetEVNote, kickerNote, nutAdvNote, backdoorNote, protectionNote, showdownNote].filter(Boolean);
+        const allNotes = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote, boardCoverageNote, multiStreetEVNote, kickerNote, nutAdvNote, backdoorNote, protectionNote, showdownNote, evCompNote, checkRaiseNote].filter(Boolean);
 
         let extras;
         if (explanationDepth === 'concise') {
@@ -5452,6 +5463,231 @@ export class DeterministicGTOEngine {
             strengths: strengthDescriptions,
             totalQuestions,
         };
+    }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 91: PREFLOP HAND EQUITY TIERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 91: Classify preflop hands into equity tiers for explanation context.
+     * Provides approximate all-in equity vs. typical ranges to help players
+     * understand WHY certain hands are opens/3bets/folds.
+     *
+     * @param {string} heroHand - Hand notation (e.g., "AKs")
+     * @returns {Object} { tier: string, equityVsRandom: number, description: string }
+     */
+    _getPreflopHandTier(heroHand) {
+        if (!heroHand || heroHand.length < 2) return { tier: 'unknown', equityVsRandom: 50, description: '' };
+
+        const r1 = heroHand[0].toUpperCase();
+        const r2 = heroHand[1].toUpperCase();
+        const suffix = heroHand.length >= 3 ? heroHand[2] : '';
+        const isPair = r1 === r2;
+        const isSuited = suffix === 's';
+        const rankVal = r => '23456789TJQKA'.indexOf(r);
+        const v1 = rankVal(r1), v2 = rankVal(r2);
+        const highVal = Math.max(v1, v2);
+        const lowVal = Math.min(v1, v2);
+
+        // Approximate equity vs random hand (simplified)
+        let eq;
+        if (isPair) {
+            // Pairs: AA~85%, KK~82%, QQ~80%, JJ~77%, TT~75%, 99~72%, 88~69%, 77~66%, etc.
+            eq = 50 + (v1 * 2.7);
+        } else if (isSuited) {
+            // Suited: AKs~67%, AQs~66%, KQs~63%, T9s~56%, 76s~52%
+            eq = 46 + (highVal * 1.0) + (lowVal * 0.5) + 2;
+        } else {
+            // Offsuit: AKo~65%, AQo~64%, KQo~61%, T9o~54%, 76o~50%
+            eq = 44 + (highVal * 1.0) + (lowVal * 0.5);
+        }
+
+        // Clamp
+        eq = Math.min(87, Math.max(33, eq));
+
+        // Tier classification
+        let tier, description;
+        if (eq >= 78) { tier = 'premium'; description = 'top-tier hand — always play aggressively'; }
+        else if (eq >= 66) { tier = 'strong'; description = 'strong hand with high raw equity'; }
+        else if (eq >= 58) { tier = 'playable'; description = 'solid playable hand with good equity'; }
+        else if (eq >= 52) { tier = 'marginal'; description = 'marginal hand — position and context matter most'; }
+        else { tier = 'speculative'; description = 'speculative hand — needs suitedness/connectivity to justify playing'; }
+
+        return { tier, equityVsRandom: Math.round(eq), description };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 92: EV COMPARISON IN EXPLANATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 92: When EV data is available, add EV comparison context to explanations.
+     * Shows the EV difference between the optimal action and alternatives.
+     *
+     * @param {string} optimalAction - Best action
+     * @param {Object} actionEVs - Map of action → EV
+     * @param {number} estimatedPot - Pot size
+     * @returns {string} EV comparison note
+     */
+    _getEVComparisonNote(optimalAction, actionEVs, estimatedPot) {
+        if (!actionEVs || !optimalAction) return '';
+        const optEV = actionEVs[optimalAction];
+        if (optEV === undefined || optEV === null) return '';
+
+        // Find the second-best action for comparison
+        const sorted = Object.entries(actionEVs)
+            .filter(([a, _]) => a !== optimalAction)
+            .sort(([_, ev1], [__, ev2]) => ev2 - ev1);
+
+        if (sorted.length === 0) return '';
+        const [secondAction, secondEV] = sorted[0];
+        const evDiff = optEV - secondEV;
+
+        if (evDiff <= 0) return ''; // No meaningful EV advantage
+
+        const secondLabel = this.getActionLabelGTOW(secondAction);
+
+        // Express EV diff relative to pot
+        if (estimatedPot && estimatedPot > 0) {
+            const diffAsPct = ((evDiff / estimatedPot) * 100).toFixed(1);
+            if (evDiff >= estimatedPot * 0.15) {
+                return `EV context: this action is significantly higher EV — ${diffAsPct}% of pot better than ${secondLabel}. Clear best play.`;
+            }
+            if (evDiff >= estimatedPot * 0.05) {
+                return `EV context: ${diffAsPct}% pot EV edge over ${secondLabel}. Meaningful but not huge — a close spot where execution matters.`;
+            }
+            if (evDiff < estimatedPot * 0.02) {
+                return `EV context: essentially break-even between top actions (${diffAsPct}% pot difference). Both are viable in practice.`;
+            }
+        }
+
+        // Absolute EV diff
+        if (evDiff >= 2.0) {
+            return `EV context: ${evDiff.toFixed(1)}bb better than ${secondLabel}. Clear best action.`;
+        }
+        if (evDiff >= 0.5) {
+            return `EV context: ${evDiff.toFixed(1)}bb edge over ${secondLabel}. Meaningful EV difference.`;
+        }
+        if (evDiff < 0.2) {
+            return `EV context: only ${evDiff.toFixed(2)}bb separates the top actions — razor-thin margin. Mixed strategy is natural here.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 93: CHECK-RAISE STRATEGY CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 93: Explain check-raise strategy when hero faces a bet and raises.
+     * Check-raises are complex because they serve multiple purposes:
+     *   - Value: extracting maximum with strong hands
+     *   - Semi-bluff: using fold equity with draws
+     *   - Range balance: preventing villain from betting with impunity
+     *   - Pot building: getting more money in OOP with strong hands
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {string} nodeType - Node type
+     * @param {Object} texture - Board texture
+     * @returns {string} Check-raise context note
+     */
+    _getCheckRaiseNote(optimalAction, handStrength, street, nodeType, texture) {
+        const a = (optimalAction || '').toLowerCase();
+        const isRaise = a.startsWith('r') || a === 'allin';
+        if (!isRaise || nodeType !== 'hero_faces_bet') return '';
+
+        const hc = (handStrength || '').toLowerCase();
+
+        // ─── Value check-raises ───
+        if (hc.includes('set') || hc.includes('two pair') || hc.includes('full house') || hc.includes('quads')) {
+            if (street === 'flop') {
+                return 'Check-raise for value: you have a monster that plays best by trapping then raising. This builds a big pot early while disguising your hand strength.';
+            }
+            if (street === 'turn') {
+                return 'Turn check-raise for value: building the pot with a strong hand. After check-raising the turn, you can comfortably bet or shove the river.';
+            }
+            if (street === 'river') {
+                return 'River check-raise for value: the ultimate extraction play — you checked hoping villain would bet, then raise for maximum value. Only do this with hands that beat villain\'s betting range.';
+            }
+        }
+
+        // ─── Semi-bluff check-raises ───
+        if (hc.includes('draw') || hc.includes('oesd') || hc.includes('gutshot') || hc.includes('combo draw')) {
+            if (texture && texture.wet) {
+                return 'Semi-bluff check-raise: raising with a draw on a wet board gives you two ways to win — villain folds now (instant profit) or you hit your draw when called. This is a key OOP play.';
+            }
+            return 'Semi-bluff check-raise: using your drawing equity plus fold equity. Even if called, you have outs to improve. This balances your check-raise range with value hands.';
+        }
+
+        // ─── Bluff check-raises ───
+        if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
+            return 'Bluff check-raise: raising with a weak hand to deny villain\'s equity and generate fold equity. This works because your range also contains strong hands — villain can\'t tell.';
+        }
+
+        // ─── Overpair/top pair check-raises ───
+        if (hc.includes('overpair') || hc.includes('top pair')) {
+            return 'Check-raise with a strong one-pair hand: raising for value and protection. On this texture, your hand is vulnerable enough that building the pot now is better than pot-controlling.';
+        }
+
+        return 'Check-raise: raising after checking builds a larger pot and applies maximum pressure. Your range should include both value hands and bluffs for balance.';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 94: SESSION MILESTONE COACHING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 94: Generate coaching messages at session milestones.
+     * Provides encouragement and targeted advice at key points:
+     *   - Every 10 questions: quick progress check
+     *   - Every 25 questions: deeper analysis
+     *   - End of session: comprehensive review
+     *
+     * @param {number} questionNumber - Current question number
+     * @returns {string|null} Coaching message or null if not a milestone
+     */
+    getMilestoneCoaching(questionNumber) {
+        if (!this._sessionStats || this._sessionStats.total === 0) return null;
+
+        const stats = this._sessionStats;
+        const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+        const recentWindow = stats.recentWindow.slice(-10);
+        const recentAcc = recentWindow.length > 0 ? Math.round((recentWindow.filter(Boolean).length / recentWindow.length) * 100) : 0;
+
+        // Every 10 questions
+        if (questionNumber % 10 === 0 && questionNumber > 0) {
+            if (recentAcc >= 80) {
+                return `🔥 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. You're in the zone — the solver would be proud.`;
+            }
+            if (recentAcc >= 60) {
+                return `📊 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Solid progress — keep focusing on the explanations for spots you miss.`;
+            }
+            if (recentAcc >= 40) {
+                return `💪 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Room to improve — try reading each explanation carefully and look for patterns in your mistakes.`;
+            }
+            return `📈 ${questionNumber} questions in! Last 10: ${recentAcc}% accuracy. Consider dropping down a level to build confidence, then come back stronger.`;
+        }
+
+        // Every 25 questions — deeper analysis
+        if (questionNumber % 25 === 0 && questionNumber > 0) {
+            const tracker = this._mistakeTracker || {};
+            const weakest = Object.entries(tracker)
+                .filter(([_, v]) => v.total >= 3 && v.mistakes / v.total >= 0.4)
+                .sort(([_, a], [__, b]) => (b.mistakes / b.total) - (a.mistakes / a.total))
+                .slice(0, 1);
+
+            if (weakest.length > 0) {
+                const [key, data] = weakest[0];
+                const mistakeRate = Math.round((data.mistakes / data.total) * 100);
+                return `📋 ${questionNumber}-question checkpoint! Overall: ${accuracy}%. Your biggest leak: "${key.replace(/_/g, ' ')}" (${mistakeRate}% mistake rate, ${data.total} samples). Focus on this area to see the biggest improvement.`;
+            }
+            return `📋 ${questionNumber}-question checkpoint! Overall accuracy: ${accuracy}%. ${accuracy >= 70 ? 'Great session — you\'re building strong GTO fundamentals.' : 'Keep grinding — consistency is key to improving.'}`;
+        }
+
+        return null;
     }
 }
 

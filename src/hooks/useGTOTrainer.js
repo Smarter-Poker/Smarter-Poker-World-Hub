@@ -1036,6 +1036,10 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         getMistakeTrackerData: () => {
             try { return deterministicEngine.getMistakeTrackerData(); } catch (e) { return {}; }
         },
+        // ═══ PHASE 94: Milestone coaching ═══
+        getMilestoneCoaching: (qNum) => {
+            try { return deterministicEngine.getMilestoneCoaching(qNum); } catch (e) { return null; }
+        },
 
         // Actions
         submitAnswer,
