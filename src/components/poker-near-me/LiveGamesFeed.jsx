@@ -545,9 +545,6 @@ export default function LiveGamesFeed({
                 key={v.bravo_slug} 
                 style={{ 
                     position: 'relative',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
                     animation: `lgf-fadeInUp 0.3s ease-out ${Math.min(index * 0.04, 0.4)}s both`,
                 }}
             >
@@ -567,9 +564,6 @@ export default function LiveGamesFeed({
                     boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
                     transition: 'all 0.2s ease',
                     cursor: router ? 'pointer' : 'default',
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
                 }}
                 onClick={() => { if (router) router.push(`/hub/venues/${v.id}`); }}
                 >
@@ -662,10 +656,8 @@ export default function LiveGamesFeed({
                         </div>
                     )}
 
-                    {/* Game Breakdown — COLLAPSIBLE (flex-grow pushes rest to bottom) */}
-                    <div style={{ flex: 1 }}>
-                        {renderTableBreakdown(v.bravo_slug, v.games)}
-                    </div>
+                    {/* Game Breakdown — COLLAPSIBLE */}
+                    {renderTableBreakdown(v.bravo_slug, v.games)}
 
                     {/* === ACTION BAR === */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 8 }}>
@@ -926,7 +918,7 @@ export default function LiveGamesFeed({
                             </div>
                         ) : (
                             (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14, paddingBottom: 24, alignItems: 'stretch' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 14, paddingBottom: 24 }}>
                                     {mergedVenues.slice(0, 50).map((v, i) => renderLiveVenueCard(v, i))}
                                 </div>
                             )
