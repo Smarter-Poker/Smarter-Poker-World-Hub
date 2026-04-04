@@ -1442,6 +1442,92 @@ function GodModeArenaInner({
 
                     {/* ═══ TAB: OVERVIEW ═══ */}
                     {reviewTab === 'overview' && (<>
+                        {/* ═══ Phase 54: Session Performance Summary ═══ */}
+                        <div style={{
+                            marginBottom: 16, padding: '14px 16px',
+                            background: 'rgba(0,0,0,0.3)', borderRadius: 12,
+                            border: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                            {/* Key metrics row */}
+                            <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 12 }}>
+                                {[
+                                    { label: 'GTOW Score', value: gtowScore, color: gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444', suffix: '' },
+                                    { label: 'Accuracy', value: Math.round(gtowAccuracy), color: gtowAccuracy >= 80 ? '#22c55e' : gtowAccuracy >= 60 ? '#fbbf24' : '#ef4444', suffix: '%' },
+                                    { label: 'EV Loss', value: totalEVLoss?.toFixed(1) || '0.0', color: totalEVLoss > 5 ? '#ef4444' : totalEVLoss > 2 ? '#fbbf24' : '#22c55e', suffix: ' BB', prefix: '-' },
+                                    { label: 'Best Streak', value: bestGTOWStreak || 0, color: '#00d4ff', suffix: '' },
+                                ].map((stat, i) => (
+                                    <div key={i} style={{ textAlign: 'center' }}>
+                                        <div style={{
+                                            fontSize: 20, fontWeight: 800, color: stat.color,
+                                            fontFamily: "'Orbitron', 'Inter', monospace",
+                                            lineHeight: 1.2,
+                                        }}>
+                                            {stat.prefix || ''}{stat.value}{stat.suffix}
+                                        </div>
+                                        <div style={{ fontSize: 8, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                            {stat.label}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Position accuracy breakdown */}
+                            {positionAccuracy && Object.keys(positionAccuracy).length > 0 && (
+                                <div style={{ marginBottom: 8 }}>
+                                    <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                                        By Position
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                        {['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'].filter(p => positionAccuracy[p]).map(pos => {
+                                            const data = positionAccuracy[pos];
+                                            const accColor = data.accuracy >= 80 ? '#22c55e' : data.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                                            const isWeakest = weakestPosition === pos;
+                                            return (
+                                                <div key={pos} style={{
+                                                    flex: 1, minWidth: 45, textAlign: 'center',
+                                                    padding: '4px 6px', borderRadius: 6,
+                                                    background: isWeakest ? `${accColor}15` : 'rgba(255,255,255,0.03)',
+                                                    border: `1px solid ${isWeakest ? accColor + '44' : 'rgba(255,255,255,0.06)'}`,
+                                                }}>
+                                                    <div style={{ fontSize: 8, fontWeight: 700, color: '#94a3b8', marginBottom: 2 }}>{pos}</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</div>
+                                                    <div style={{ fontSize: 7, color: '#475569' }}>{data.correct}/{data.total}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Street accuracy breakdown */}
+                            {streetAccuracy && Object.keys(streetAccuracy).length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                                        By Street
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                        {['preflop', 'flop', 'turn', 'river'].filter(s => streetAccuracy[s]).map(st => {
+                                            const data = streetAccuracy[st];
+                                            const streetColors = { preflop: '#a78bfa', flop: '#4ade80', turn: '#fb923c', river: '#f87171' };
+                                            const accColor = data.accuracy >= 80 ? '#22c55e' : data.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                                            return (
+                                                <div key={st} style={{
+                                                    flex: 1, textAlign: 'center',
+                                                    padding: '4px 6px', borderRadius: 6,
+                                                    background: 'rgba(255,255,255,0.03)',
+                                                    border: '1px solid rgba(255,255,255,0.06)',
+                                                }}>
+                                                    <div style={{ fontSize: 8, fontWeight: 700, color: streetColors[st], marginBottom: 2, textTransform: 'capitalize' }}>{st}</div>
+                                                    <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</div>
+                                                    <div style={{ fontSize: 7, color: '#475569' }}>{data.correct}/{data.total}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* ═══ PHASE 17: Smart Practice Recommendation ═══ */}
                         <SmartPracticeBanner
                             gameId={gameId}
