@@ -499,7 +499,7 @@ export default function LiveGamesFeed({
         if (value.trim().length >= 2) {
             const q = value.trim().toLowerCase();
             const matches = Object.values(liveData)
-                .filter(v => (v.venue_name || '').toLowerCase().includes(q))
+                .filter(v => decodeHtmlEntities(v.venue_name || '').toLowerCase().includes(q))
                 .slice(0, 8)
                 .map(v => ({ id: v.bravo_slug, bravo_slug: v.bravo_slug, name: decodeHtmlEntities(v.venue_name), totalTables: v.totalTables || 0 }));
             setSearchSuggestions(matches);

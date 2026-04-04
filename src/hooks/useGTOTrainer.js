@@ -1786,6 +1786,14 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.getUltimatePlayerRating(); } catch (e) { return null; }
         },
 
+        // Phase 355-356: Hand History Import + Game Tree
+        importHandToTrainingQuestion: (parsedHand, targetStreet) => {
+            try { return deterministicEngine.importHandToTrainingQuestion(parsedHand, targetStreet); } catch (e) { return null; }
+        },
+        buildDetailedGameTree: (spotData, heroHand, heroPosition, villainPosition, street) => {
+            try { return deterministicEngine.buildDetailedGameTree(spotData, heroHand, heroPosition, villainPosition, street); } catch (e) { return null; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,

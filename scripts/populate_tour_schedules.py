@@ -330,6 +330,38 @@ NAPT_SCHEDULE = {
     "notes": "2026 schedule not yet announced. Typically announced mid-summer. Expected fall Las Vegas stop."
 }
 
+# ── PAT (PokerAtlas Tour) 2026 ───────────────────────────────────────────────
+# Source: pokeratlastour.com + pokeratlas.com/poker-tournaments
+PAT_SCHEDULE = {
+    "stops_2026": [
+        {"name": "PokerAtlas Tour TCH Houston", "venue": "Texas Card House Houston", "location": "Houston, TX", "dates": "May 6 - May 26", "buyin": 400, "events_count": 26, "total_guarantee": 1200000},
+        {"name": "PokerAtlas Tour TCH Social Austin", "venue": "TCH Social Austin", "location": "Austin, TX", "dates": "Oct 27 - Nov 11", "buyin": 400, "total_guarantee": 1000000}
+    ],
+    "notes": "PokerAtlas-branded tournament series. Features low-to-mid buy-in events with large guaranteed prize pools at Texas card houses."
+}
+
+# ── GCPT (Gulf Coast Poker Tour) 2026 ────────────────────────────────────────
+# Source: gulfcoastpoker.net
+GCPT_SCHEDULE = {
+    "stops_2026": [
+        {"name": "The Heater", "venue": "Beau Rivage Casino", "location": "Biloxi, MS", "dates": "Jan 7 - Jan 19", "buyin": 600},
+        {"name": "Ark/La/Tex Poker Championship", "venue": "Horseshoe Bossier City", "location": "Bossier City, LA", "dates": "Feb 26 - Mar 8", "buyin": 1100},
+        {"name": "Milly in Philly (GCP Tour Championship)", "venue": "Pearl River Resorts", "location": "Choctaw, MS", "dates": "Mar 18 - Mar 29", "buyin": 1100},
+        {"name": "Spring 7 Clans Poker Cup Series", "venue": "Coushatta Casino Resort", "location": "Kinder, LA", "dates": "Apr 8 - Apr 19", "buyin": 600},
+        {"name": "Emperor's Challenge", "venue": "Caesars New Orleans", "location": "New Orleans, LA", "dates": "Apr 23 - Apr 26", "buyin": 600},
+        {"name": "Golden Mini-Series", "venue": "Golden Nugget", "location": "Las Vegas, NV", "dates": "Jun 16 - Jun 20", "buyin": 400},
+        {"name": "Blazing Summer SP Series", "venue": "Horseshoe Bossier City", "location": "Bossier City, LA", "dates": "Jun 16 - Jun 21", "buyin": 600},
+        {"name": "Mid-South Mini-Series", "venue": "Horseshoe Casino Tunica", "location": "Tunica, MS", "dates": "Jul 17 - Jul 26", "buyin": 600},
+        {"name": "Summer Sizzler", "venue": "Pearl River Resorts", "location": "Choctaw, MS", "dates": "Jul 28 - Aug 2", "buyin": 400},
+        {"name": "Caesars Sizzler", "venue": "Caesars New Orleans", "location": "New Orleans, LA", "dates": "Aug 6 - Aug 16", "buyin": 600},
+        {"name": "Louisiana State Poker Championship", "venue": "Horseshoe Bossier City", "location": "Bossier City, LA", "dates": "Aug 19 - Aug 30", "buyin": 1100},
+        {"name": "Fall 7 Clans Poker Cup Series", "venue": "Coushatta Casino Resort", "location": "Kinder, LA", "dates": "Sep 1 - Sep 13", "buyin": 600},
+        {"name": "Fall Brawl", "venue": "TBD", "location": "Gulf Coast", "dates": "Sep 23 - Oct 4", "buyin": 600},
+        {"name": "Arkansas Championship", "venue": "Saracen Casino", "location": "Pine Bluff, AR", "dates": "Oct 6 - Oct 11", "buyin": 1100}
+    ],
+    "notes": "Premier Gulf Coast regional tour. Stops across Mississippi, Louisiana, Arkansas, and Las Vegas. Pending gaming approval."
+}
+
 
 def main():
     print("=" * 60)
@@ -363,6 +395,8 @@ def main():
         "FPN": FPN_SCHEDULE,
         "LIPS": LIPS_SCHEDULE,
         "NAPT": NAPT_SCHEDULE,
+        "PAT": PAT_SCHEDULE,
+        "GCPT": GCPT_SCHEDULE,
     }
 
     total_events = 0
@@ -390,7 +424,7 @@ def main():
     registry["metadata"]["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     registry["metadata"]["active_tours"] = active_tours
     registry["metadata"]["total_events_2026"] = total_events
-    registry["metadata"]["schedule_source"] = "Web search aggregation (wsop.com, wpt.com, msptpoker.com, pokergo.com, barpokeropen.com, freepokernetwork.com, lipstour.com, roughriderpokertour.com)"
+    registry["metadata"]["schedule_source"] = "Web search aggregation (wsop.com, wpt.com, msptpoker.com, pokergo.com, barpokeropen.com, freepokernetwork.com, lipstour.com, roughriderpokertour.com, pokeratlastour.com)"
 
     # Save
     with open(REGISTRY_PATH, "w") as f:

@@ -593,6 +593,147 @@ function getCardImagePath(card) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HAND HISTORY IMPORT MODAL — Paste hand history to train from your own hands
+// ═══════════════════════════════════════════════════════════════════════════
+
+function HandHistoryImportModal({ importState, setImportState, importHandToTrainingQuestion, onStartImported, onClose }) {
+    const { parseHandHistory, detectFormat } = require('../../utils/hh-parser');
+
+    const handleParse = () => {
+        if (!importState.rawText.trim()) {
+            setImportState(prev => ({ ...prev, error: 'Paste a hand history to continue' }));
+            return;
+        }
+        try {
+            const parsed = parseHandHistory(importState.rawText.trim());
+            if (!parsed || !parsed.success) {
+                setImportState(prev => ({ ...prev, error: parsed?.error || 'Could not parse hand history', parsedHand: null }));
+                return;
+            }
+            setImportState(prev => ({ ...prev, parsedHand: parsed, error: null }));
+        } catch (e) {
+            setImportState(prev => ({ ...prev, error: `Parse error: ${e.message}`, parsedHand: null }));
+        }
+    };
+
+    const handleTrain = (street) => {
+        if (!importState.parsedHand) return;
+        const question = importHandToTrainingQuestion(importState.parsedHand, street);
+        if (question) {
+            onStartImported(question);
+        }
+    };
+
+    const parsed = importState.parsedHand;
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
+        }}>
+            <div style={{
+                background: 'linear-gradient(180deg, #0f172a 0%, #0a0e17 100%)',
+                border: '1px solid rgba(16,185,129,0.3)', borderRadius: 16,
+                width: '100%', maxWidth: 520, maxHeight: '90vh', overflow: 'auto',
+                padding: 24,
+            }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h3 style={{ color: '#10b981', fontSize: 16, fontWeight: 700, margin: 0, fontFamily: "'Orbitron', sans-serif" }}>
+                        Import Hand History
+                    </h3>
+                    <button onClick={onClose} style={{
+                        background: 'none', border: 'none', color: '#64748b', fontSize: 20, cursor: 'pointer',
+                    }}>x</button>
+                </div>
+
+                {/* Format badges */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                    {['PokerStars', 'GGPoker', 'Ignition', '888poker', 'WPN/ACR'].map(f => (
+                        <span key={f} style={{
+                            padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 600,
+                            background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)',
+                        }}>{f}</span>
+                    ))}
+                </div>
+
+                {/* Textarea */}
+                <textarea
+                    value={importState.rawText}
+                    onChange={(e) => setImportState(prev => ({ ...prev, rawText: e.target.value, error: null }))}
+                    placeholder="Paste your hand history here..."
+                    style={{
+                        width: '100%', minHeight: 140, padding: 12, borderRadius: 8,
+                        background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#e2e8f0', fontSize: 11, fontFamily: 'monospace', resize: 'vertical',
+                        outline: 'none',
+                    }}
+                />
+
+                {importState.error && (
+                    <div style={{ color: '#ef4444', fontSize: 11, marginTop: 6 }}>{importState.error}</div>
+                )}
+
+                {/* Parse button */}
+                <button onClick={handleParse} style={{
+                    width: '100%', padding: '10px', marginTop: 10, borderRadius: 8,
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                }}>
+                    Parse Hand
+                </button>
+
+                {/* Parsed result */}
+                {parsed && (
+                    <div style={{
+                        marginTop: 16, padding: 14, borderRadius: 10,
+                        background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)',
+                    }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', marginBottom: 8 }}>
+                            Hand Parsed Successfully
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 11, color: '#94a3b8' }}>
+                            <div>Format: <span style={{ color: '#e2e8f0' }}>{parsed.format}</span></div>
+                            <div>Position: <span style={{ color: '#e2e8f0' }}>{parsed.heroPosition}</span></div>
+                            <div>Hero: <span style={{ color: '#e2e8f0' }}>{parsed.heroCards?.join(' ') || 'N/A'}</span></div>
+                            <div>Pot: <span style={{ color: '#e2e8f0' }}>{parsed.potSize || '?'} BB</span></div>
+                            <div>Flop: <span style={{ color: '#e2e8f0' }}>{parsed.board?.flop?.join(' ') || 'N/A'}</span></div>
+                            <div>Players: <span style={{ color: '#e2e8f0' }}>{parsed.numPlayers}</span></div>
+                            {parsed.board?.turn && <div>Turn: <span style={{ color: '#e2e8f0' }}>{parsed.board.turn}</span></div>}
+                            {parsed.board?.river && <div>River: <span style={{ color: '#e2e8f0' }}>{parsed.board.river}</span></div>}
+                        </div>
+
+                        {/* Street buttons */}
+                        <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
+                            {parsed.board?.flop?.length > 0 && (
+                                <button onClick={() => handleTrain('flop')} style={{
+                                    flex: 1, padding: '8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                                    background: '#3b82f6', color: '#fff', fontSize: 11, fontWeight: 700,
+                                }}>Train Flop</button>
+                            )}
+                            {parsed.board?.turn && (
+                                <button onClick={() => handleTrain('turn')} style={{
+                                    flex: 1, padding: '8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                                    background: '#f59e0b', color: '#fff', fontSize: 11, fontWeight: 700,
+                                }}>Train Turn</button>
+                            )}
+                            {parsed.board?.river && (
+                                <button onClick={() => handleTrain('river')} style={{
+                                    flex: 1, padding: '8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                                    background: '#ef4444', color: '#fff', fontSize: 11, fontWeight: 700,
+                                }}>Train River</button>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // FLASHCARD MODE — GTO concept flip-cards with spaced repetition feel
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1317,6 +1458,9 @@ function GodModeArenaInner({
         // ═══ Flashcard & Drill mode methods ═══
         generateFlashcards,
         generateQuickFireQuestion,
+        // ═══ Phase 355-356: Hand History Import + Game Tree ═══
+        importHandToTrainingQuestion,
+        buildDetailedGameTree,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -1451,7 +1595,16 @@ function GodModeArenaInner({
     const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
 
     // ═══ TRAINING MODE: Standard / Flashcard / Drill ═══
-    const [trainingMode, setTrainingMode] = useState('standard'); // 'standard' | 'flashcard' | 'drill'
+    const [trainingMode, setTrainingMode] = useState('standard'); // 'standard' | 'flashcard' | 'drill' | 'import'
+
+    // ═══ HAND HISTORY IMPORT STATE ═══
+    const [importState, setImportState] = useState({
+        showModal: false,
+        rawText: '',
+        parsedHand: null,
+        error: null,
+        importedQuestion: null,
+    });
     const [flashcardState, setFlashcardState] = useState({
         category: null,
         cards: [],
@@ -1570,7 +1723,7 @@ function GodModeArenaInner({
     // ═══ Phase 21: Game Phase State Machine ═══
     const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
     const [isTransitioning, setIsTransitioning] = useState(false);
-    const [reviewTab, setReviewTab] = useState('overview'); // 'overview' | 'hands' | 'analysis'
+    const [reviewTab, setReviewTab] = useState('overview'); // 'overview' | 'hands' | 'analysis' | 'gametree'
     const [adaptiveToast, setAdaptiveToast] = useState(null);
 
     // ═══ Phase 2: Speed Bonus Aggregation ═══
@@ -1643,6 +1796,8 @@ function GodModeArenaInner({
         } else if (trainingMode === 'drill') {
             setDrillState({ active: true, currentQ: null, answered: 0, correct: 0, streak: 0, bestStreak: 0, timeLeft: 10, results: [] });
             setGamePhase('drill');
+        } else if (trainingMode === 'import') {
+            setImportState(prev => ({ ...prev, showModal: true, rawText: '', parsedHand: null, error: null }));
         } else {
             setGamePhase('playing');
         }
@@ -1968,7 +2123,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'analysis', label: 'Analysis' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -4351,6 +4506,7 @@ function GodModeArenaInner({
                                             { key: 'standard', label: 'Standard', desc: 'Full GTO', icon: '🎯', color: '#3b82f6' },
                                             { key: 'flashcard', label: 'Flashcards', desc: 'Concepts', icon: '🃏', color: '#a78bfa' },
                                             { key: 'drill', label: 'Speed Drill', desc: '20 Qs', icon: '⚡', color: '#f59e0b' },
+                                            { key: 'import', label: 'Import HH', desc: 'Your Hands', icon: '📋', color: '#10b981' },
                                         ].map(m => (
                                             <button
                                                 key={m.key}
@@ -4487,6 +4643,20 @@ function GodModeArenaInner({
                                 timerRef={drillTimerRef}
                             />
                         </motion.div>
+                    )}
+
+                    {/* ═══ HAND HISTORY IMPORT MODAL ═══ */}
+                    {importState.showModal && (
+                        <HandHistoryImportModal
+                            importState={importState}
+                            setImportState={setImportState}
+                            importHandToTrainingQuestion={importHandToTrainingQuestion}
+                            onStartImported={(question) => {
+                                setImportState(prev => ({ ...prev, showModal: false, importedQuestion: question }));
+                                setGamePhase('playing');
+                            }}
+                            onClose={() => setImportState(prev => ({ ...prev, showModal: false }))}
+                        />
                     )}
 
                     {/* ═══ GAMEPLAY ═══ */}

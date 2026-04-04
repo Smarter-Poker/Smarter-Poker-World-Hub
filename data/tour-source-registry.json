@@ -5,10 +5,10 @@
     "description": "Authoritative registry of all traveling poker tour sources with refresh scheduling",
     "refresh_interval_days": 3,
     "total_tours": 26,
-    "active_tours": 19,
+    "active_tours": 21,
     "last_updated": "2026-04-04",
-    "total_events_2026": 199,
-    "schedule_source": "Web search aggregation (wsop.com, wpt.com, msptpoker.com, pokergo.com, barpokeropen.com, freepokernetwork.com, lipstour.com, roughriderpokertour.com)"
+    "total_events_2026": 215,
+    "schedule_source": "Web search aggregation (wsop.com, wpt.com, msptpoker.com, pokergo.com, barpokeropen.com, freepokernetwork.com, lipstour.com, roughriderpokertour.com, pokeratlastour.com)"
   },
   "tours": {
     "WSOP": {
@@ -2119,6 +2119,182 @@
           "dates": "Nov (TBD)",
           "buyin": 5000,
           "status": "unconfirmed"
+        }
+      ],
+      "series_2026": []
+    },
+    "PAT": {
+      "tour_code": "PAT",
+      "tour_name": "PokerAtlas Tour",
+      "tour_type": "circuit",
+      "priority": 4,
+      "official_website": "https://pokeratlastour.com",
+      "source_urls": {
+        "primary": "https://pokeratlastour.com",
+        "pokeratlas": "https://www.pokeratlas.com/poker-tournaments"
+      },
+      "scrape_config": {
+        "method": "scrapling"
+      },
+      "refresh_interval_days": 3,
+      "typical_buyins": {
+        "min": 130,
+        "max": 1100,
+        "main_event": 400
+      },
+      "regions": [
+        "Texas"
+      ],
+      "headquarters": "Austin, TX",
+      "established": 2023,
+      "notes": "PokerAtlas-branded tournament series. Features low-to-mid buy-in events with large guaranteed prize pools at Texas card houses.",
+      "stops_2026": [
+        {
+          "name": "PokerAtlas Tour TCH Houston",
+          "venue": "Texas Card House Houston",
+          "location": "Houston, TX",
+          "dates": "May 6 - May 26",
+          "buyin": 400,
+          "events_count": 26,
+          "total_guarantee": 1200000
+        },
+        {
+          "name": "PokerAtlas Tour TCH Social Austin",
+          "venue": "TCH Social Austin",
+          "location": "Austin, TX",
+          "dates": "Oct 27 - Nov 11",
+          "buyin": 400,
+          "total_guarantee": 1000000
+        }
+      ],
+      "series_2026": []
+    },
+    "GCPT": {
+      "tour_code": "GCPT",
+      "tour_name": "Gulf Coast Poker Tour",
+      "tour_type": "regional",
+      "priority": 4,
+      "official_website": "https://gulfcoastpoker.net",
+      "source_urls": {
+        "primary": "https://gulfcoastpoker.net"
+      },
+      "scrape_config": {
+        "method": "scrapling"
+      },
+      "refresh_interval_days": 3,
+      "typical_buyins": {
+        "min": 200,
+        "max": 2500,
+        "main_event": 1100
+      },
+      "regions": [
+        "Southeast",
+        "Gulf Coast",
+        "Louisiana",
+        "Mississippi",
+        "Arkansas"
+      ],
+      "headquarters": "Biloxi, MS",
+      "established": 2012,
+      "notes": "Premier Gulf Coast regional tour. Stops across Mississippi, Louisiana, Arkansas, and Las Vegas. Pending gaming approval.",
+      "stops_2026": [
+        {
+          "name": "The Heater",
+          "venue": "Beau Rivage Casino",
+          "location": "Biloxi, MS",
+          "dates": "Jan 7 - Jan 19",
+          "buyin": 600
+        },
+        {
+          "name": "Ark/La/Tex Poker Championship",
+          "venue": "Horseshoe Bossier City",
+          "location": "Bossier City, LA",
+          "dates": "Feb 26 - Mar 8",
+          "buyin": 1100
+        },
+        {
+          "name": "Milly in Philly (GCP Tour Championship)",
+          "venue": "Pearl River Resorts",
+          "location": "Choctaw, MS",
+          "dates": "Mar 18 - Mar 29",
+          "buyin": 1100
+        },
+        {
+          "name": "Spring 7 Clans Poker Cup Series",
+          "venue": "Coushatta Casino Resort",
+          "location": "Kinder, LA",
+          "dates": "Apr 8 - Apr 19",
+          "buyin": 600
+        },
+        {
+          "name": "Emperor's Challenge",
+          "venue": "Caesars New Orleans",
+          "location": "New Orleans, LA",
+          "dates": "Apr 23 - Apr 26",
+          "buyin": 600
+        },
+        {
+          "name": "Golden Mini-Series",
+          "venue": "Golden Nugget",
+          "location": "Las Vegas, NV",
+          "dates": "Jun 16 - Jun 20",
+          "buyin": 400
+        },
+        {
+          "name": "Blazing Summer SP Series",
+          "venue": "Horseshoe Bossier City",
+          "location": "Bossier City, LA",
+          "dates": "Jun 16 - Jun 21",
+          "buyin": 600
+        },
+        {
+          "name": "Mid-South Mini-Series",
+          "venue": "Horseshoe Casino Tunica",
+          "location": "Tunica, MS",
+          "dates": "Jul 17 - Jul 26",
+          "buyin": 600
+        },
+        {
+          "name": "Summer Sizzler",
+          "venue": "Pearl River Resorts",
+          "location": "Choctaw, MS",
+          "dates": "Jul 28 - Aug 2",
+          "buyin": 400
+        },
+        {
+          "name": "Caesars Sizzler",
+          "venue": "Caesars New Orleans",
+          "location": "New Orleans, LA",
+          "dates": "Aug 6 - Aug 16",
+          "buyin": 600
+        },
+        {
+          "name": "Louisiana State Poker Championship",
+          "venue": "Horseshoe Bossier City",
+          "location": "Bossier City, LA",
+          "dates": "Aug 19 - Aug 30",
+          "buyin": 1100
+        },
+        {
+          "name": "Fall 7 Clans Poker Cup Series",
+          "venue": "Coushatta Casino Resort",
+          "location": "Kinder, LA",
+          "dates": "Sep 1 - Sep 13",
+          "buyin": 600
+        },
+        {
+          "name": "Fall Brawl",
+          "venue": "TBD",
+          "location": "Gulf Coast",
+          "dates": "Sep 23 - Oct 4",
+          "buyin": 600
+        },
+        {
+          "name": "Arkansas Championship",
+          "venue": "Saracen Casino",
+          "location": "Pine Bluff, AR",
+          "dates": "Oct 6 - Oct 11",
+          "buyin": 1100
         }
       ],
       "series_2026": []

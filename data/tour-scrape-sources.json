@@ -256,6 +256,47 @@
       },
       "schedule_release": "Mid-summer (typically July)",
       "series_window": "Fall (typically November, Las Vegas)"
+    },
+    "PAT": {
+      "tour_name": "PokerAtlas Tour",
+      "scrape_priority": 3,
+      "sources": {
+        "primary": {
+          "url": "https://pokeratlastour.com/",
+          "method": "scrapling",
+          "notes": "Official PokerAtlas Tour website."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments",
+          "method": "scrapling",
+          "notes": "PokerAtlas main tournament listing."
+        }
+      },
+      "schedule_release": "Rolling (event-by-event)",
+      "series_window": "Year-round, primarily Texas"
+    },
+    "GCPT": {
+      "tour_name": "Gulf Coast Poker Tour",
+      "scrape_priority": 3,
+      "sources": {
+        "primary": {
+          "url": "https://gulfcoastpoker.net/",
+          "method": "scrapling",
+          "notes": "Official Gulf Coast Poker website with full tour schedule."
+        },
+        "gcpt_schedule": {
+          "url": "https://gulfcoastpoker.net/schedule/",
+          "method": "scrapling",
+          "notes": "Direct schedule page."
+        },
+        "pokeratlas": {
+          "url": "https://www.pokeratlas.com/poker-tournaments?q=gulf+coast",
+          "method": "scrapling",
+          "notes": "PokerAtlas GCPT events."
+        }
+      },
+      "schedule_release": "Q4 of prior year (full annual)",
+      "series_window": "Year-round, heavy Gulf Coast spring/summer"
     }
   },
   "aggregator_sources": {
