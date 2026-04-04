@@ -1528,6 +1528,85 @@ function GodModeArenaInner({
                                 </div>
                             )}
 
+                            {/* Phase 67: Leak-specific coaching tips */}
+                            {(() => {
+                                const tips = [];
+
+                                // Leak-based tips from mistake patterns
+                                if (mistakePatterns && mistakePatterns.length > 0) {
+                                    const highLeaks = mistakePatterns.filter(p => p.severity === 'high');
+                                    const medLeaks = mistakePatterns.filter(p => p.severity === 'medium' && p.count >= 3);
+                                    highLeaks.forEach(leak => {
+                                        if (leak.type === 'fold_too_much') tips.push({ priority: 1, text: 'You\'re folding too often. Practice defending wider — use pot odds to decide close calls.', color: '#ef4444' });
+                                        else if (leak.type === 'call_too_much') tips.push({ priority: 1, text: 'Over-calling is costing you. Tighten up against aggression — not every pair is worth a call.', color: '#ef4444' });
+                                        else if (leak.type === 'bet_too_small') tips.push({ priority: 2, text: 'Your bet sizes are too small. Use larger bets with strong hands to build pots and deny equity.', color: '#f97316' });
+                                        else if (leak.type === 'bet_too_big') tips.push({ priority: 2, text: 'You\'re overbetting too often. Use smaller sizes with merged ranges on dry boards.', color: '#f97316' });
+                                        else if (leak.type === 'missed_value') tips.push({ priority: 1, text: 'You\'re missing value bets. When you have a strong hand, bet for value — don\'t be afraid to build the pot.', color: '#ef4444' });
+                                        else if (leak.type === 'bluff_too_much') tips.push({ priority: 1, text: 'Over-bluffing is a leak. Choose bluff candidates with blockers and backdoor equity, not random air.', color: '#ef4444' });
+                                        else tips.push({ priority: 2, text: leak.tip || `Fix your ${leak.type.replace(/_/g, ' ')} leak (${leak.count} times this session).`, color: '#f97316' });
+                                    });
+                                    medLeaks.forEach(leak => {
+                                        tips.push({ priority: 3, text: leak.tip || `Watch for ${leak.type.replace(/_/g, ' ')} patterns (${leak.count}x).`, color: '#fbbf24' });
+                                    });
+                                }
+
+                                // Position-based tips
+                                if (weakestPosition && positionAccuracy) {
+                                    const weakAcc = positionAccuracy[weakestPosition];
+                                    if (weakAcc !== undefined && weakAcc < 50) {
+                                        tips.push({ priority: 2, text: `Your ${weakestPosition} play is weak (${Math.round(weakAcc)}% accuracy). Study ${weakestPosition} ranges and common spots from this seat.`, color: '#f97316' });
+                                    }
+                                }
+
+                                // Street-based tips
+                                if (streetAccuracy) {
+                                    const streets = Object.entries(streetAccuracy).filter(([, acc]) => acc < 50);
+                                    streets.forEach(([st, acc]) => {
+                                        if (st === 'preflop') tips.push({ priority: 2, text: `Preflop accuracy is low (${Math.round(acc)}%). Drill opening ranges and 3-bet/call frequencies.`, color: '#f97316' });
+                                        else if (st === 'river') tips.push({ priority: 2, text: `River decisions need work (${Math.round(acc)}%). Focus on bluff-catching frequencies and value bet sizing.`, color: '#f97316' });
+                                        else tips.push({ priority: 3, text: `${st.charAt(0).toUpperCase() + st.slice(1)} accuracy is ${Math.round(acc)}% — review board texture analysis for this street.`, color: '#fbbf24' });
+                                    });
+                                }
+
+                                // Hand type tips
+                                if (handTypePerformance && handTypePerformance.length > 0) {
+                                    const worstType = handTypePerformance[0]; // sorted worst-first
+                                    if (worstType.accuracy < 40 && worstType.total >= 3) {
+                                        tips.push({ priority: 1, text: `Your ${worstType.type} play is a major leak (${worstType.accuracy}% accuracy, -${worstType.evLoss}bb). Focus practice on these hands.`, color: '#ef4444' });
+                                    }
+                                }
+
+                                // EV-based tips
+                                if (avgEVLossPerHand > 0.3) {
+                                    tips.push({ priority: 1, text: `Average EV loss of ${avgEVLossPerHand.toFixed(2)}bb/hand is high. Focus on avoiding blunders — those cost the most.`, color: '#ef4444' });
+                                } else if (avgEVLossPerHand > 0.1) {
+                                    tips.push({ priority: 3, text: `Your ${avgEVLossPerHand.toFixed(2)}bb/hand EV loss is moderate. Refine marginal spots to push into the green zone.`, color: '#fbbf24' });
+                                }
+
+                                // Sort by priority and take top 3
+                                const topTips = tips.sort((a, b) => a.priority - b.priority).slice(0, 3);
+
+                                if (topTips.length === 0) return null;
+
+                                return (
+                                    <div style={{ marginTop: 8, marginBottom: 4 }}>
+                                        <div style={{ fontSize: 9, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                                            Coaching Tips
+                                        </div>
+                                        {topTips.map((tip, i) => (
+                                            <div key={i} style={{
+                                                fontSize: 9, color: tip.color, lineHeight: 1.5,
+                                                padding: '3px 6px', marginBottom: 2,
+                                                background: `${tip.color}08`, borderRadius: 4,
+                                                borderLeft: `2px solid ${tip.color}44`,
+                                            }}>
+                                                {tip.text}
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+
                             {/* Phase 59: Hand type performance */}
                             {handTypePerformance && handTypePerformance.length > 0 && (
                                 <div style={{ marginTop: 8 }}>
