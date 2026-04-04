@@ -148,8 +148,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             // Filter tournaments by date range if set
             let matchingTournaments = [];
             if (dateRange.start && dateRange.end) {
-                const startDate = new Date(dateRange.start);
-                const endDate = new Date(dateRange.end);
+                const startDate = new Date(dateRange.start.replace(/-/g, '\/'));
+                const endDate = new Date(dateRange.end.replace(/-/g, '\/'));
                 const venueIds = new Set(nearbyVenues.map(v => String(v.id)));
                 // Build set of day abbreviations within travel window
                 const travelDays = new Set();
@@ -168,12 +168,12 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
             // Filter series by date range
             let matchingSeries = [];
             if (dateRange.start && dateRange.end) {
-                const startDate = new Date(dateRange.start);
-                const endDate = new Date(dateRange.end);
+                const startDate = new Date(dateRange.start.replace(/-/g, '\/'));
+                const endDate = new Date(dateRange.end.replace(/-/g, '\/'));
                 matchingSeries = series.filter(s => {
                     if (!s.start_date) return false;
-                    const sStart = new Date(s.start_date);
-                    const sEnd = s.end_date ? new Date(s.end_date) : sStart;
+                    const sStart = new Date(s.start_date.replace(/-/g, '\/'));
+                    const sEnd = s.end_date ? new Date(s.end_date.replace(/-/g, '\/')) : sStart;
                     return sStart <= endDate && sEnd >= startDate;
                 });
             }

@@ -74,7 +74,17 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
     const [radius, setRadius] = useState(50);
     const [filter, setFilter] = useState('all');
     const refreshRef = useRef(null);
+    const abortRef = useRef(null);
+    const isMounted = useRef(true);
     const [lastRefresh, setLastRefresh] = useState(null);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+            if (abortRef.current) abortRef.current.abort();
+        };
+    }, []);
 
     const computeDistance = useCallback((venue) => {
         if (!userLocation || !venue.latitude || !venue.longitude) return null;
@@ -90,11 +100,15 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
 
     // Fetch all feed data
     const fetchFeed = useCallback(async () => {
+        if (abortRef.current) abortRef.current.abort();
+        const ac = new AbortController();
+        abortRef.current = ac;
+        const signal = ac.signal;
         const items = [];
 
         try {
             // Live games
-            const liveRes = await fetch('/api/poker/live-games?limit=50&active=true');
+            const liveRes = await fetch('/api/poker/live-games?limit=50&active=true', { signal });
             if (!liveRes.ok) throw new Error(`Live games: HTTP ${liveRes.status}`);
             const liveData = await liveRes.json();
             (liveData.games || liveData.data || []).forEach(g => {
@@ -120,8 +134,9 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             // Get checkins from nearby venues (last 2 hours)
             const nearbyVenues = venues.filter(isWithinRadius).slice(0, 20);
             for (const v of nearbyVenues) {
+                if (!isMounted.current) return;
                 try {
-                    const res = await fetch(`/api/poker/checkins?venue_id=${v.id}&count_only=false&since=${encodeURIComponent(twoHoursAgo)}`);
+                    const res = await fetch(`/api/poker/checkins?venue_id=${v.id}&count_only=false&since=${encodeURIComponent(twoHoursAgo)}`, { signal });
                     const data = await res.json();
                     (data.checkins || []).forEach(c => {
                         items.push({
@@ -138,9 +153,10 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             }
         } catch { /* continue */ }
 
+        if (!isMounted.current) return;
         try {
             // Promotions
-            const promoRes = await fetch('/api/poker/promotions?limit=30');
+            const promoRes = await fetch('/api/poker/promotions?limit=30', { signal });
             const promoData = await promoRes.json();
             (promoData.promotions || promoData.data || []).forEach(p => {
                 const venue = venues.find(v => String(v.id) === String(p.page_id) || String(v.id) === String(p.venue_id));
@@ -158,6 +174,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             });
         } catch { /* continue */ }
 
+        if (!isMounted.current) return;
         // Sort by time descending
         items.sort((a, b) => new Date(b.time) - new Date(a.time));
         setFeedItems(items);

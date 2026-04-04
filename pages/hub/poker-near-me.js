@@ -19,6 +19,7 @@ import useTrainingBus from '../../src/hooks/useTrainingBus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
+import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
 import BottomNavBar from '../../src/components/ui/BottomNavBar';
 import InteractiveTutorial, { PNM_TAB_TUTORIALS } from '../../src/components/poker-near-me/InteractiveTutorial';
@@ -270,6 +271,7 @@ export default function PokerNearMePage() {
     const [gpsLoading, setGpsLoading] = useState(false);
     const [gpsLocationLabel, setGpsLocationLabel] = useState(null);
     const [showLocationModal, setShowLocationModal] = useState(false);
+    const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCity, setSelectedCity] = useState(null);
     const [nearestDistance, setNearestDistance] = useState(null);
@@ -2267,6 +2269,7 @@ export default function PokerNearMePage() {
                             fullHeight={mapFullscreen}
                             onVenueClick={onMapVenueClick}
                             radiusMiles={filters.radius}
+                            onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
                         />
                     </MapErrorBoundary>
                 </div>

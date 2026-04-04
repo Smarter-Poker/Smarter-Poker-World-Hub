@@ -42,7 +42,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         if (!selectedVenue) return null;
 
         // Distance & gas
-        const distance = userLocation
+        const distance = (userLocation && selectedVenue.latitude && selectedVenue.longitude)
             ? haversineMiles(userLocation.lat, userLocation.lng, parseFloat(selectedVenue.latitude), parseFloat(selectedVenue.longitude))
             : 0;
         const roundTripMiles = distance * 2;

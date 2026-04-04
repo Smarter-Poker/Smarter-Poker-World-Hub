@@ -2098,6 +2098,43 @@ function GodModeArenaInner({
                         })()}
                     </motion.div>
 
+                    {/* DIAMOND REWARD CARD */}
+                    {(() => {
+                        const baseReward = Math.max(5, Math.round(gtowScore * 0.5));
+                        const bonusReward = speedBonusDiamonds || 0;
+                        const totalReward = baseReward + bonusReward;
+                        return (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(245, 158, 11, 0.04))',
+                                    border: '1px solid rgba(251, 191, 36, 0.2)',
+                                    borderRadius: 12, padding: '12px 16px', marginBottom: 12,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: 22 }}>{'\uD83D\uDC8E'}</span>
+                                    <div>
+                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, letterSpacing: 1 }}>DIAMONDS EARNED</div>
+                                        <div style={{ fontSize: 18, fontWeight: 900, color: '#fbbf24', fontFamily: "'Orbitron', monospace" }}>+{totalReward}</div>
+                                    </div>
+                                </div>
+                                {bonusReward > 0 && (
+                                    <div style={{
+                                        padding: '4px 10px', borderRadius: 8,
+                                        background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.3)',
+                                        fontSize: 10, fontWeight: 700, color: '#fbbf24',
+                                    }}>
+                                        +{bonusReward} SPEED BONUS
+                                    </div>
+                                )}
+                            </motion.div>
+                        );
+                    })()}
+
                     {/* SUMMARY STATS ROW */}
                     <div style={styles.summaryRow}>
                         <div style={styles.summaryItem}>

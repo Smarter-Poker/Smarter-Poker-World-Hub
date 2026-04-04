@@ -16,6 +16,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { supabase } from '../../../src/lib/supabase';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
+import { addVenueFavorite, removeVenueFavorite } from '../../../src/services/pokerNearMeFavorites';
 import { formatGameType } from '../../../src/utils/pokerFormatters';
 import dynamic from 'next/dynamic';
 
@@ -197,6 +198,25 @@ export default function VenueDetailPage() {
   const router = useRouter();
   const { id, action } = router.query;
   const bus = useTrainingBus();
+
+  // Global Favorite Status (Poker Near Me)
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    const loadFavs = () => {
+      try {
+        const f = JSON.parse(localStorage.getItem('sp-favorites') || '{}');
+        setIsSaved(!!f['venue-' + id]);
+      } catch {}
+    };
+    loadFavs();
+    const handleStorage = (e) => {
+      if (e.key === 'sp-favorites') loadFavs();
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [id]);
 
   // Fast-load follow state from localStorage (instant, before API round-trip)
   const [isFollowed, setIsFollowed] = useState(false);
@@ -685,6 +705,51 @@ export default function VenueDetailPage() {
   }, [id]);
 
   // Handlers
+  const handleSaveVenue = async () => {
+    const venueId = String(id);
+    const newState = !isSaved;
+    setIsSaved(newState); // Optimistic UI
+
+    try {
+      // Sync to Native EventBus and localStorage
+      const spFavoritesStr = localStorage.getItem('sp-favorites') || '{}';
+      const spFavs = JSON.parse(spFavoritesStr);
+      if (newState) {
+        spFavs['venue-' + venueId] = Date.now();
+        try { bus?.emit?.('venue:favorite', { venueId, name: venue?.name }); } catch {}
+      } else {
+        delete spFavs['venue-' + venueId];
+        try { bus?.emit?.('venue:unfavorite', { venueId }); } catch {}
+      }
+      localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
+      // Cross-tab trigger native event (for the current tab, EventBus handles it)
+      window.dispatchEvent(new Event('storage')); 
+
+      // Sync to Supabase
+      const authUser = getAuthUser();
+      const uId = (authUser && authUser.id) ? authUser.id : getAnonymousUserId();
+      if (newState) {
+        await addVenueFavorite(uId, venueId, {
+          name: venue?.name,
+          address: venue?.address,
+          city: venue?.city,
+          state: venue?.state
+        });
+      } else {
+        await removeVenueFavorite(uId, venueId);
+      }
+    } catch (err) {
+      console.error('Failed to save venue:', err);
+      // Rollback optimistic UI
+      setIsSaved(!newState);
+      try {
+        const spFavs = JSON.parse(localStorage.getItem('sp-favorites') || '{}');
+        if (!newState) { spFavs['venue-' + venueId] = Date.now(); } else { delete spFavs['venue-' + venueId]; }
+        localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
+      } catch {}
+    }
+  };
+
   var handleFollow = function () {
     var venueId = String(id);
     var newState = !isFollowed;
@@ -1056,25 +1121,6 @@ export default function VenueDetailPage() {
 
         {venue && !loading && (
           <>
-            {/* Back Button */}
-            <div className="back-btn-container">
-              <button
-                className="back-btn"
-                onClick={function () {
-                  if (typeof window !== 'undefined' && window.history.length > 1) {
-                    router.back();
-                  } else {
-                    router.push('/hub/poker-near-me-lobby');
-                  }
-                }}
-                aria-label="Go back"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-                Back
-              </button>
-            </div>
 
             {/* Breadcrumb Navigation */}
             <nav className="breadcrumb-nav" aria-label="Breadcrumb">
@@ -1157,14 +1203,31 @@ export default function VenueDetailPage() {
                 <TrustDots score={venue.trust_score} />
               </div>
 
-              {/* Follow / Share Buttons */}
+              {/* Action Buttons */}
               <div className="action-buttons">
+                <button
+                  className={'action-btn save-btn' + (isSaved ? ' saved' : '')}
+                  onClick={handleSaveVenue}
+                  style={isSaved ? { borderColor: 'rgba(239, 68, 68, 0.5)', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' } : {}}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? '#ef4444' : 'none'} stroke={isSaved ? '#ef4444' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  {isSaved ? 'Saved' : 'Save'}
+                </button>
                 <button
                   className={'action-btn follow-btn' + (isFollowed ? ' followed' : '')}
                   onClick={handleFollow}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={isFollowed ? '#00D4FF' : 'none'} stroke={isFollowed ? '#00D4FF' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isFollowed ? '#00D4FF' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="8.5" cy="7" r="4" fill={isFollowed ? '#00D4FF' : 'none'} />
+                    {!isFollowed && (
+                      <>
+                        <line x1="20" y1="8" x2="20" y2="14" />
+                        <line x1="23" y1="11" x2="17" y2="11" />
+                      </>
+                    )}
                   </svg>
                   {isFollowed ? 'Following' : 'Follow'}
                   {followerCount > 0 && <span className="follow-count">{followerCount}</span>}

@@ -1394,19 +1394,77 @@ export default function TrainingPage() {
                                     style={{ background: 'linear-gradient(180deg, #1a1a2e, #0f0f1a)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, padding: 24, width: '90%', maxWidth: 400 }}
                                 >
                                     <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 16 }}>Last Session Recap</div>
-                                    <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 16 }}>
-                                        "Strong performance in MTTs, but work on Big-Blind defense."
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
-                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Mistakes</div>
-                                            <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24' }}>3</div>
-                                        </div>
-                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
-                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>EV Loss</div>
-                                            <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>-1.2</div>
-                                        </div>
-                                    </div>
+                                    {(() => {
+                                        const recent = sessionHistory.slice(-20);
+                                        const mistakes = recent.filter(h => h.classification && h.classification !== 'best' && h.classification !== 'correct');
+                                        const totalEV = recent.reduce((sum, h) => sum + (h.evLoss || 0), 0);
+                                        const accuracy = recent.length > 0 ? Math.round(((recent.length - mistakes.length) / recent.length) * 100) : 0;
+                                        const grade = accuracy >= 95 ? 'S' : accuracy >= 85 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 50 ? 'C' : 'D';
+                                        const gradeColors = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' };
+
+                                        // Find weakest position
+                                        const posLosses = {};
+                                        recent.forEach(h => {
+                                            const pos = h.handData?.heroPosition;
+                                            if (pos && h.evLoss > 0) posLosses[pos] = (posLosses[pos] || 0) + h.evLoss;
+                                        });
+                                        const worstPos = Object.entries(posLosses).sort(([, a], [, b]) => b - a)[0];
+
+                                        return (
+                                            <>
+                                                {/* Grade Display */}
+                                                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                                                    <div style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                                                        padding: '6px 16px', borderRadius: 12,
+                                                        background: `${gradeColors[grade]}15`, border: `1px solid ${gradeColors[grade]}44`,
+                                                    }}>
+                                                        <span style={{ fontSize: 28, fontWeight: 900, color: gradeColors[grade], fontFamily: "'Orbitron', monospace" }}>{grade}</span>
+                                                        <span style={{ fontSize: 12, color: '#94a3b8' }}>{accuracy}% accuracy</span>
+                                                    </div>
+                                                </div>
+
+                                                {worstPos && (
+                                                    <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 16, textAlign: 'center' }}>
+                                                        Focus on <span style={{ color: '#fbbf24' }}>{worstPos[0]}</span> play &mdash; leaking {worstPos[1].toFixed(1)} BB there.
+                                                    </div>
+                                                )}
+
+                                                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
+                                                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>HANDS</div>
+                                                        <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{recent.length}</div>
+                                                    </div>
+                                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
+                                                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>MISTAKES</div>
+                                                        <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24' }}>{mistakes.length}</div>
+                                                    </div>
+                                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
+                                                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>EV LOSS</div>
+                                                        <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>{totalEV > 0 ? `-${totalEV.toFixed(1)}` : '0.0'}</div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Mini Trend */}
+                                                {recent.length >= 3 && (
+                                                    <div style={{
+                                                        display: 'flex', alignItems: 'flex-end', gap: 3, height: 36, marginBottom: 16, padding: '0 8px',
+                                                    }}>
+                                                        {recent.slice(-15).map((h, i, arr) => {
+                                                            const isCorrect = h.classification === 'best' || h.classification === 'correct';
+                                                            return (
+                                                                <div key={i} style={{
+                                                                    flex: 1, height: isCorrect ? '100%' : '30%',
+                                                                    background: isCorrect ? '#22C55E66' : '#EF444466',
+                                                                    borderRadius: 2, transition: 'height 0.3s ease',
+                                                                }} />
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                     <button onClick={() => setShowRecapDrawer(false)} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Close</button>
                                 </motion.div>
                             </motion.div>

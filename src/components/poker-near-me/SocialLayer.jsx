@@ -38,9 +38,24 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     const [inviteModal, setInviteModal] = useState(null);
     const [inviteCopied, setInviteCopied] = useState(false);
     const refreshRef = useRef(null);
+    const abortRef = useRef(null);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+            if (abortRef.current) abortRef.current.abort();
+        };
+    }, []);
 
     // Fetch friends list
     const fetchFriends = useCallback(async () => {
+        if (abortRef.current) abortRef.current.abort();
+        const ac = new AbortController();
+        abortRef.current = ac;
+        const signal = ac.signal;
+
         if (!userId) {
             setLoading(false);
             return;
@@ -48,15 +63,17 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         try {
             const headers = {};
             if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-            const res = await fetch(`/api/friends/list?user_id=${userId}`, { headers });
+            const res = await fetch(`/api/friends/list?user_id=${userId}`, { headers, signal });
             if (!res.ok) {
                 // API may not exist yet or user has no friends — show empty state
                 setLoading(false);
                 return;
             }
             const data = await res.json();
+            if (!isMounted.current) return;
             setFriendsList(data.friends || data.data || []);
         } catch (err) {
+            if (!isMounted.current) return;
             console.error('Failed to fetch friends:', err);
             setLoading(false);
         }
@@ -77,8 +94,9 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             // Batch fetch checkins for each friend (last 24h)
             const allCheckins = [];
             for (const fid of friendIds.slice(0, 50)) {
+                if (!isMounted.current) return;
                 try {
-                    const res = await fetch(`/api/poker/checkins?user_id=${fid}`);
+                    const res = await fetch(`/api/poker/checkins?user_id=${fid}`, { signal: abortRef.current?.signal });
                     const data = await res.json();
                     if (data.checkins) {
                         allCheckins.push(...data.checkins.map(c => ({
@@ -109,11 +127,13 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
                 venueMap[vid].checkins.push(c);
             });
 
+            if (!isMounted.current) return;
             setFriendCheckins(Object.values(venueMap));
         } catch (err) {
+            if (!isMounted.current) return;
             console.error('Failed to fetch friend checkins:', err);
         } finally {
-            setLoading(false);
+            if (isMounted.current) setLoading(false);
         }
     }, [userId, friendsList, venues]);
 

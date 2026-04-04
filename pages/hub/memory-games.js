@@ -2799,6 +2799,133 @@ export default function MemoryGamesPage() {
                                 </>
                             )}
 
+                            {/* Recent Sessions */}
+                            {sessionHistory.length > 0 && (
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(30, 41, 59, 0.4))',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    borderRadius: 16,
+                                    padding: 20,
+                                    marginTop: 24,
+                                    marginBottom: 16,
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: 0.5 }}>
+                                            RECENT SESSIONS
+                                        </span>
+                                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                                            Last {Math.min(sessionHistory.length, 8)}
+                                        </span>
+                                    </div>
+
+                                    {/* Mini Trend Chart */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'flex-end',
+                                        gap: 4,
+                                        height: 48,
+                                        marginBottom: 16,
+                                        padding: '0 4px',
+                                    }}>
+                                        {sessionHistory.slice(-12).map((s, i, arr) => {
+                                            const maxScore = Math.max(...arr.map(x => x.score || 0), 1);
+                                            const pct = ((s.score || 0) / maxScore) * 100;
+                                            const isLast = i === arr.length - 1;
+                                            const color = (s.score || 0) >= 85 ? '#22C55E' : (s.score || 0) >= 60 ? '#3B82F6' : '#F59E0B';
+                                            return (
+                                                <div key={i} style={{
+                                                    flex: 1,
+                                                    height: `${Math.max(pct, 8)}%`,
+                                                    background: isLast
+                                                        ? `linear-gradient(to top, ${color}, ${color}88)`
+                                                        : `${color}44`,
+                                                    borderRadius: 3,
+                                                    transition: 'height 0.3s ease',
+                                                    position: 'relative',
+                                                }} title={`Score: ${s.score || 0}%`} />
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Session List */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {sessionHistory.slice(-5).reverse().map((s, i) => {
+                                            const date = new Date(s.timestamp);
+                                            const timeAgo = (() => {
+                                                const diff = Date.now() - s.timestamp;
+                                                const mins = Math.floor(diff / 60000);
+                                                if (mins < 60) return `${mins}m ago`;
+                                                const hrs = Math.floor(mins / 60);
+                                                if (hrs < 24) return `${hrs}h ago`;
+                                                return `${Math.floor(hrs / 24)}d ago`;
+                                            })();
+                                            const grade = (s.score || 0) >= 95 ? 'S' : (s.score || 0) >= 85 ? 'A' : (s.score || 0) >= 70 ? 'B' : (s.score || 0) >= 50 ? 'C' : 'D';
+                                            const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                                            return (
+                                                <div key={i} style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 10,
+                                                    padding: '8px 12px',
+                                                    background: 'rgba(0,0,0,0.2)',
+                                                    borderRadius: 10,
+                                                }}>
+                                                    <div style={{
+                                                        width: 28,
+                                                        height: 28,
+                                                        borderRadius: 6,
+                                                        background: `${gradeColor}22`,
+                                                        border: `1px solid ${gradeColor}55`,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: 13,
+                                                        fontWeight: 900,
+                                                        color: gradeColor,
+                                                        flexShrink: 0,
+                                                    }}>
+                                                        {grade}
+                                                    </div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                                                            Level {s.level || '?'} {s.position ? `\u2022 ${s.position}` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                        <div style={{ fontSize: 13, fontWeight: 700, color: gradeColor }}>
+                                                            {s.score || 0}%
+                                                        </div>
+                                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>
+                                                            {timeAgo}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Quick Stats Row */}
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-around',
+                                        marginTop: 14,
+                                        paddingTop: 14,
+                                        borderTop: '1px solid rgba(255,255,255,0.06)',
+                                    }}>
+                                        {[
+                                            { label: 'SESSIONS', value: sessionHistory.length },
+                                            { label: 'AVG SCORE', value: `${Math.round(sessionHistory.reduce((a, s) => a + (s.score || 0), 0) / sessionHistory.length)}%` },
+                                            { label: 'BEST', value: `${Math.max(...sessionHistory.map(s => s.score || 0))}%` },
+                                        ].map((stat, i) => (
+                                            <div key={i} style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{stat.value}</div>
+                                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontWeight: 600, letterSpacing: 1 }}>{stat.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* VIP Upsell */}
                             {!isVIP && (
                                 <div style={styles.vipUpsell}>

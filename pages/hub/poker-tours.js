@@ -8,6 +8,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
+import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
 // ─── Lazy-load components ───
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
@@ -87,6 +88,7 @@ export default function PokerToursPage() {
     const [loading, setLoading] = useState(true);
     const [allVenues, setAllVenues] = useState([]);
     const [userLocation, setUserLocation] = useState(null);
+    const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
 
     // ─── Filter State ───
     const [searchQuery, setSearchQuery] = useState('');
@@ -337,6 +339,7 @@ export default function PokerToursPage() {
         if (tours.length === 0) return [];
         const markers = [];
         const seen = new Set();
+        const coordsOffsetMap = {}; // Track overlapping offsets
 
         tours.forEach(tour => {
             const stopInfo = tourCurrentStops[tour.tour_code];
@@ -388,13 +391,30 @@ export default function PokerToursPage() {
             const stopCity = stop.location?.split(',')[0]?.trim() || stop.city || venueMatch.city || '';
             const stopState = stop.location?.split(',')[1]?.trim() || stop.state || venueMatch.state || '';
 
+            // Offset jitter logic so tours in the exact same city display side-by-side
+            let renderLat = venueMatch.latitude;
+            let renderLng = venueMatch.longitude;
+            
+            const offsetKey = `${renderLat.toFixed(1)}_${renderLng.toFixed(1)}`;
+            if (coordsOffsetMap[offsetKey] === undefined) {
+                coordsOffsetMap[offsetKey] = 0;
+            }
+            
+            const shiftIndex = coordsOffsetMap[offsetKey];
+            const shiftPattern = [0, 1, -1, 2, -2];
+            const currentShift = shiftPattern[shiftIndex % shiftPattern.length];
+            
+            // 1.2 longitude is ~60 miles in USA, spreading them visually side-by-side
+            renderLng += (currentShift * 1.2);
+            coordsOffsetMap[offsetKey]++;
+
             markers.push({
                 id: `tour-${tour.tour_code}-${stop.name || stop.venue || 'stop'}`,
                 name: `${tour.tour_code}: ${stop.name || stop.venue || 'Tour Stop'}`,
                 city: stopCity,
                 state: stopState,
-                latitude: venueMatch.latitude,
-                longitude: venueMatch.longitude,
+                latitude: renderLat,
+                longitude: renderLng,
                 venue_type: 'tour_stop',
                 trust_score: 5,
                 tour_code: tour.tour_code,
@@ -631,6 +651,8 @@ export default function PokerToursPage() {
                                 userLocation={userLocation}
                                 hideLegend={true}
                                 uniformColor="#ffffff"
+                                disableClustering={true}
+                                onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
                             />
                         </MapErrorBoundary>
                         </div>
@@ -847,6 +869,13 @@ export default function PokerToursPage() {
                         )}
                     </main>
                 </div>
+
+                <FullScreenPageOverlay
+                    isOpen={iframeModal.isOpen}
+                    onClose={() => setIframeModal({ isOpen: false, url: '', title: '' })}
+                    url={iframeModal.url}
+                    title={iframeModal.title}
+                />
 
                 {/* ═══════════════════════════════════════ */}
                 {/* STYLES — Reuses PNM architecture       */}

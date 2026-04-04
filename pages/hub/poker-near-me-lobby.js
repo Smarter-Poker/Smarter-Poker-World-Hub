@@ -742,22 +742,44 @@ export default function PokerNearMeLobby() {
     fetchVenues(searchQuery);
   }, [sortBy]); // Only re-fetch on sortBy changes, not on every filter change // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Cross-page favorites sync ───
+  // ─── Cross-page favorites sync (Native Storage Event) ───
   useEffect(() => {
-    const handleFavoritesChanged = (e) => {
-      const { venueId, favorited } = e.detail || {};
-      if (venueId) {
-        setFavorites(prev => ({ ...prev, [venueId]: favorited }));
+    const handleStorageSync = (e) => {
+      // Listen to cross-tab updates from localStorage 'sp-favorites'
+      if (e.key === 'sp-favorites' && e.newValue) {
+        try {
+          const rawFavs = JSON.parse(e.newValue);
+          setFavorites(prev => {
+            const next = { ...prev };
+            let changed = false;
+            // Map venue-* back to lobby venueIds
+            const newFavIds = Object.keys(rawFavs)
+              .filter(k => k.startsWith('venue-'))
+              .map(k => k.replace('venue-', ''));
+
+            // Check for additions
+            newFavIds.forEach(vid => {
+              if (!next[vid]) {
+                next[vid] = true;
+                changed = true;
+              }
+            });
+            // Check for removals
+            Object.keys(next).forEach(vid => {
+              if (!newFavIds.includes(String(vid))) {
+                delete next[vid];
+                changed = true;
+              }
+            });
+            return changed ? next : prev;
+          });
+        } catch { }
       }
     };
-    window.addEventListener('pnm:favorites-changed', handleFavoritesChanged);
-
-    // NOTE: Global EventBus sync for venue:favorite/unfavorite is handled by the
-    // dedicated useEffect at the top of the component (lines ~382-401).
-    // Do NOT duplicate listeners here — it causes double state updates.
+    window.addEventListener('storage', handleStorageSync);
 
     return () => {
-      window.removeEventListener('pnm:favorites-changed', handleFavoritesChanged);
+      window.removeEventListener('storage', handleStorageSync);
     };
   }, []);
 
@@ -1329,9 +1351,18 @@ export default function PokerNearMeLobby() {
         await addVenueFavorite(userId, venueId, venueData);
         try { eventBus.emit('venue:favorite', { venueId, name: venueData?.name }, 'PokerNearMe'); } catch { }
       }
-      // Emit event for cross-page sync after successful DB write
+      // Write to localStorage to trigger cross-tab state syncing via native 'storage' event
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('pnm:favorites-changed', { detail: { venueId, favorited: !wasFavorited } }));
+        const rawFavs = localStorage.getItem('sp-favorites');
+        try {
+          const spFavs = rawFavs ? JSON.parse(rawFavs) : {};
+          if (wasFavorited) {
+            delete spFavs[`venue-${venueId}`];
+          } else {
+            spFavs[`venue-${venueId}`] = Date.now();
+          }
+          localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
+        } catch { }
       }
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
