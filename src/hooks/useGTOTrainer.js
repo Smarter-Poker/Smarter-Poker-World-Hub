@@ -429,6 +429,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 scenarioHash: scenario.scenarioHash || null,
                 // ═══ PHASE 21: EV data for RangeGrid EV overlay ═══
                 evData: currentQuestion.evData || null,
+                // ═══ PHASE 27: Explanation text for hand replay review ═══
+                explanation: currentQuestion.explanation || null,
             },
         });
 

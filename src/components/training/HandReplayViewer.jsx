@@ -220,6 +220,61 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Phase 27: Strategic Explanation */}
+                            {handData.explanation && (
+                                <div style={{
+                                    marginTop: 12, padding: '10px 12px',
+                                    background: 'rgba(0, 212, 255, 0.04)',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(0, 212, 255, 0.12)',
+                                }}>
+                                    <div style={{
+                                        fontSize: 9, fontWeight: 700, color: '#00d4ff',
+                                        textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
+                                    }}>
+                                        WHY THIS IS OPTIMAL
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.6 }}>
+                                        {handData.explanation}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Phase 27: Per-Action EV comparison */}
+                            {handData.evData?.actionEVs && Object.keys(handData.evData.actionEVs).length > 0 && (
+                                <div style={{ marginTop: 10 }}>
+                                    <div style={styles.sectionLabel}>EV BY ACTION</div>
+                                    {Object.entries(handData.evData.actionEVs)
+                                        .sort(([, a], [, b]) => b - a)
+                                        .map(([action, ev]) => {
+                                            const isOptimal = action === handData.correctAction ||
+                                                (handData.correctAction && action.toLowerCase() === handData.correctAction.toLowerCase());
+                                            const isSelected = action === handData.action ||
+                                                (handData.action && action.toLowerCase() === handData.action.toLowerCase());
+                                            return (
+                                                <div key={action} style={{
+                                                    display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3,
+                                                }}>
+                                                    <div style={{
+                                                        width: 55, fontSize: 10, fontWeight: 600,
+                                                        color: isOptimal ? '#22c55e' : isSelected ? config.color : '#94a3b8',
+                                                        textAlign: 'right',
+                                                    }}>
+                                                        {isOptimal && '✓ '}{isSelected && !isOptimal && '✗ '}{action}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: 11, fontWeight: 700,
+                                                        fontFamily: "'Inter', monospace",
+                                                        color: ev >= 0 ? '#22c55e' : '#ef4444',
+                                                    }}>
+                                                        {ev >= 0 ? '+' : ''}{typeof ev === 'number' ? ev.toFixed(2) : ev} BB
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            )}
                         </motion.div>
                     </AnimatePresence>
 
@@ -281,9 +336,23 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 }}>
                                     {c.icon} {c.label}
                                 </div>
-                                <div style={styles.listHand}>
-                                    {hd.heroPosition && <span style={styles.listPos}>{hd.heroPosition}</span>}
-                                    {Array.isArray(hd.heroCards) ? hd.heroCards.join('') : (hd.heroCards || '')}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={styles.listHand}>
+                                        {hd.heroPosition && <span style={styles.listPos}>{hd.heroPosition}</span>}
+                                        {hd.street && <span style={{ fontSize: 9, color: '#64748b', marginRight: 4 }}>{hd.street}</span>}
+                                        {Array.isArray(hd.heroCards) ? hd.heroCards.join('') : (hd.heroCards || '')}
+                                    </div>
+                                    {/* Phase 27: Show action taken + correct action in list view */}
+                                    <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {hd.action && (
+                                            <span style={{ color: entry.classification === 'best' || entry.classification === 'correct' ? '#22c55e' : c.color }}>
+                                                {hd.action}
+                                            </span>
+                                        )}
+                                        {hd.correctAction && hd.action !== hd.correctAction && (
+                                            <span style={{ color: '#64748b' }}> → <span style={{ color: '#22c55e' }}>{hd.correctAction}</span></span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div style={{
                                     ...styles.listEV,
