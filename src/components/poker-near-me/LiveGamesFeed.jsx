@@ -388,8 +388,8 @@ export default function LiveGamesFeed({
                 
                 return {
                     bravo_slug: liveEntry.bravo_slug,
-                    name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
-                    venue_name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
+                    name: liveEntry.venue_name,
+                    venue_name: liveEntry.venue_name,
                     totalTables: liveEntry.totalTables || 0,
                     totalWait: liveEntry.totalWait || 0,
                     games: liveEntry.games || [],

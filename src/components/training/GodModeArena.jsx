@@ -822,7 +822,7 @@ function GodModeArenaInner({
         prescribeDrills,
         getFrequencyMasteryScore,
         generateSessionReport,
-        // ═══ PHASE 261-270: Deep coaching intelligence ═══
+        // ═══ PHASE 261-280: Deep coaching + analytics ═══
         getTeachingPrinciple,
         getPositionReminder,
         getTextureStrategyGuide,
@@ -833,6 +833,16 @@ function GodModeArenaInner({
         getTiltRecoveryAdvice,
         getSessionPacingAnalysis,
         estimateSpotDifficultyEnhanced,
+        classifyHandStrength,
+        estimateEquityVsRange,
+        getActionEVComparison,
+        getSolverLineComparison,
+        getConceptMasteryReport,
+        generateHints,
+        getRunoutImpactPreview,
+        getMixedFrequencyDrillData,
+        getHandCategoryBreakdown,
+        getSessionComparison,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2267,102 +2277,104 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
-                        {/* ═══ PHASE 267: Frequency Correction Alert ═══ */}
+                        {/* ═══ PHASE 267-269: Frequency Correction + Tilt + Pacing ═══ */}
                         {(() => {
                             try {
-                                const freqCorrection = getFrequencyCorrectionPrompt();
-                                if (!freqCorrection || !freqCorrection.action) return null;
-                                return (
-                                    <div style={{
-                                        marginBottom: 16, padding: '10px 14px',
-                                        background: 'rgba(168,85,247,0.06)', borderRadius: 10,
-                                        border: '1px solid rgba(168,85,247,0.15)',
-                                    }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc', marginBottom: 4 }}>
-                                            Frequency Correction
-                                        </div>
-                                        <div style={{ fontSize: 10, color: '#e2e8f0', lineHeight: 1.5 }}>
-                                            {freqCorrection.message || `Your ${freqCorrection.action} frequency deviates ${freqCorrection.deviation?.toFixed(1)}% from solver.`}
-                                        </div>
-                                    </div>
-                                );
+                                const freqCorr = getFrequencyCorrectionPrompt();
+                                if (!freqCorr || !freqCorr.action) return null;
+                                return (<div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(168,85,247,0.06)', borderRadius: 10, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc', marginBottom: 4 }}>Frequency Correction</div>
+                                    <div style={{ fontSize: 10, color: '#e2e8f0', lineHeight: 1.5 }}>{freqCorr.message || `Your ${freqCorr.action} frequency deviates ${freqCorr.deviation?.toFixed(1)}% from solver.`}</div>
+                                </div>);
                             } catch (_) { return null; }
                         })()}
-
-                        {/* ═══ PHASE 268: Tilt Recovery ═══ */}
                         {(() => {
                             try {
-                                const tiltAdvice = getTiltRecoveryAdvice();
-                                if (!tiltAdvice || tiltAdvice.severity === 'none') return null;
-                                const tiltColors = { low: '#fbbf24', medium: '#f97316', high: '#ef4444', critical: '#dc2626' };
-                                const tiltColor = tiltColors[tiltAdvice.severity] || '#fbbf24';
-                                return (
-                                    <div style={{
-                                        marginBottom: 16, padding: '10px 14px',
-                                        background: `${tiltColor}08`, borderRadius: 10,
-                                        border: `1px solid ${tiltColor}22`,
-                                    }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: tiltColor, marginBottom: 4 }}>
-                                            {tiltAdvice.title || 'Tilt Recovery'}
-                                        </div>
-                                        <div style={{ fontSize: 10, color: '#e2e8f0', lineHeight: 1.5, marginBottom: 6 }}>
-                                            {tiltAdvice.advice}
-                                        </div>
-                                        {tiltAdvice.actionItems && tiltAdvice.actionItems.length > 0 && (
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                                {tiltAdvice.actionItems.map((item, i) => (
-                                                    <span key={i} style={{
-                                                        fontSize: 9, padding: '3px 8px', borderRadius: 6,
-                                                        background: `${tiltColor}11`, color: tiltColor,
-                                                        border: `1px solid ${tiltColor}22`,
-                                                    }}>
-                                                        {item}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
+                                const tiltAdv = getTiltRecoveryAdvice();
+                                if (!tiltAdv || tiltAdv.severity === 'none') return null;
+                                const tc = { low: '#fbbf24', medium: '#f97316', high: '#ef4444', critical: '#dc2626' };
+                                const tiltColor = tc[tiltAdv.severity] || '#fbbf24';
+                                return (<div style={{ marginBottom: 16, padding: '10px 14px', background: `${tiltColor}08`, borderRadius: 10, border: `1px solid ${tiltColor}22` }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: tiltColor, marginBottom: 4 }}>{tiltAdv.title || 'Tilt Recovery'}</div>
+                                    <div style={{ fontSize: 10, color: '#e2e8f0', lineHeight: 1.5 }}>{tiltAdv.advice}</div>
+                                </div>);
                             } catch (_) { return null; }
                         })()}
-
-                        {/* ═══ PHASE 269: Session Pacing Analysis ═══ */}
                         {(() => {
                             try {
                                 const pacing = getSessionPacingAnalysis();
                                 if (!pacing || !pacing.avgTimePerHand) return null;
                                 const paceColor = pacing.recommendation === 'slow_down' ? '#f97316' : pacing.recommendation === 'speed_up' ? '#22c55e' : '#94a3b8';
-                                return (
-                                    <div style={{
-                                        marginBottom: 16, padding: '10px 14px',
-                                        background: 'rgba(0,0,0,0.2)', borderRadius: 10,
-                                        border: `1px solid ${paceColor}22`,
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                            <span style={{ fontSize: 11, fontWeight: 700, color: paceColor }}>
-                                                Session Pacing
-                                            </span>
-                                            <span style={{ fontSize: 10, fontFamily: "'Orbitron', monospace", color: '#e2e8f0' }}>
-                                                {pacing.avgTimePerHand.toFixed(1)}s / hand
-                                            </span>
-                                        </div>
-                                        <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>
-                                            {pacing.message || `${pacing.fastHands || 0} fast decisions, ${pacing.slowHands || 0} slow decisions`}
-                                        </div>
-                                        {pacing.accuracyBySpeed && (
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                                                {Object.entries(pacing.accuracyBySpeed).map(([speed, acc]) => (
-                                                    <span key={speed} style={{
-                                                        fontSize: 9, padding: '2px 6px', borderRadius: 4,
-                                                        background: 'rgba(255,255,255,0.04)', color: '#94a3b8',
-                                                    }}>
-                                                        {speed}: {typeof acc === 'number' ? acc.toFixed(0) : acc}%
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
+                                return (<div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10, border: `1px solid ${paceColor}22` }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: paceColor }}>Session Pacing</span>
+                                        <span style={{ fontSize: 10, fontFamily: "'Orbitron', monospace", color: '#e2e8f0' }}>{pacing.avgTimePerHand.toFixed(1)}s / hand</span>
                                     </div>
-                                );
+                                    <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>{pacing.message || `${pacing.fastHands || 0} fast, ${pacing.slowHands || 0} slow decisions`}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 275: Concept Mastery Report ═══ */}
+                        {(() => {
+                            try {
+                                const mastery = getConceptMasteryReport();
+                                if (!mastery || mastery.concepts.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Concept Mastery ({mastery.overallMastery}%)</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                                        {mastery.concepts.slice(0, 8).map((c, i) => (
+                                            <span key={i} style={{ fontSize: 9, padding: '3px 8px', borderRadius: 6, background: c.mastered ? 'rgba(34,197,94,0.1)' : c.struggling ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.04)', color: c.mastered ? '#4ade80' : c.struggling ? '#ef4444' : '#94a3b8', border: `1px solid ${c.mastered ? 'rgba(34,197,94,0.2)' : c.struggling ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.06)'}` }}>
+                                                {c.name}: {c.accuracy}%
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 279: Hand Category Breakdown ═══ */}
+                        {(() => {
+                            try {
+                                const breakdown = getHandCategoryBreakdown();
+                                if (!breakdown || breakdown.categories.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,191,36,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Performance by Hand Type</div>
+                                    {breakdown.categories.map((cat, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: i < breakdown.categories.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0', fontWeight: 600 }}>{cat.name}</span>
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <span style={{ fontSize: 10, color: cat.accuracy >= 70 ? '#4ade80' : cat.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{cat.accuracy}%</span>
+                                                <span style={{ fontSize: 9, color: '#64748b' }}>({cat.total} hands)</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 280: Session Comparison ═══ */}
+                        {(() => {
+                            try {
+                                const comparison = getSessionComparison();
+                                if (!comparison) return null;
+                                const hasChanges = comparison.improvements.length > 0 || comparison.regressions.length > 0;
+                                if (!hasChanges) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(0,212,255,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>vs Average Player</div>
+                                    {comparison.improvements.map((imp, i) => (
+                                        <div key={'imp-' + i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 10 }}>
+                                            <span style={{ color: '#94a3b8' }}>{imp.metric}</span>
+                                            <span style={{ color: '#4ade80', fontWeight: 700 }}>{imp.delta}</span>
+                                        </div>
+                                    ))}
+                                    {comparison.regressions.map((reg, i) => (
+                                        <div key={'reg-' + i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 10 }}>
+                                            <span style={{ color: '#94a3b8' }}>{reg.metric}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: 700 }}>{reg.delta}</span>
+                                        </div>
+                                    ))}
+                                </div>);
                             } catch (_) { return null; }
                         })()}
 
@@ -2834,7 +2846,7 @@ function GodModeArenaInner({
                                     feedbackResult={feedbackResult}
                                     explanation={explanation}
                                     structuredExplanation={structuredExplanation}
-                                    // Phase 261-270: Deep coaching props
+                                    // Phase 261-280: Deep coaching callbacks
                                     getTeachingPrinciple={getTeachingPrinciple}
                                     getPositionReminder={getPositionReminder}
                                     getTextureStrategyGuide={getTextureStrategyGuide}
@@ -2843,6 +2855,12 @@ function GodModeArenaInner({
                                     getMultiStreetPlanningGuide={getMultiStreetPlanningGuide}
                                     getFrequencyCorrectionPrompt={getFrequencyCorrectionPrompt}
                                     getTiltRecoveryAdvice={getTiltRecoveryAdvice}
+                                    classifyHandStrength={classifyHandStrength}
+                                    estimateEquityVsRange={estimateEquityVsRange}
+                                    getActionEVComparison={getActionEVComparison}
+                                    getSolverLineComparison={getSolverLineComparison}
+                                    generateHints={generateHints}
+                                    getRunoutImpactPreview={getRunoutImpactPreview}
                                     // GTOW scoring props
                                     moveClassification={moveClassification}
                                     evLoss={evLoss}

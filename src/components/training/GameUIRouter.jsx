@@ -112,7 +112,7 @@ export default function GameUIRouter({
     // Settings config
     onConfigClick = null,
     trainerConfig = null,
-    // Phase 261-270: Deep coaching callbacks
+    // Phase 261-280: Deep coaching callbacks
     getTeachingPrinciple = null,
     getPositionReminder = null,
     getTextureStrategyGuide = null,
@@ -121,6 +121,12 @@ export default function GameUIRouter({
     getMultiStreetPlanningGuide = null,
     getFrequencyCorrectionPrompt = null,
     getTiltRecoveryAdvice = null,
+    classifyHandStrength = null,
+    estimateEquityVsRange = null,
+    getActionEVComparison = null,
+    getSolverLineComparison = null,
+    generateHints = null,
+    getRunoutImpactPreview = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -189,7 +195,7 @@ export default function GameUIRouter({
             // Settings config — render gear in scenario area
             onConfigClick={onConfigClick}
             trainerConfig={trainerConfig}
-            // Phase 261-270: Deep coaching
+            // Phase 261-280: Deep coaching
             getTeachingPrinciple={getTeachingPrinciple}
             getPositionReminder={getPositionReminder}
             getTextureStrategyGuide={getTextureStrategyGuide}
@@ -198,6 +204,12 @@ export default function GameUIRouter({
             getMultiStreetPlanningGuide={getMultiStreetPlanningGuide}
             getFrequencyCorrectionPrompt={getFrequencyCorrectionPrompt}
             getTiltRecoveryAdvice={getTiltRecoveryAdvice}
+            classifyHandStrength={classifyHandStrength}
+            estimateEquityVsRange={estimateEquityVsRange}
+            getActionEVComparison={getActionEVComparison}
+            getSolverLineComparison={getSolverLineComparison}
+            generateHints={generateHints}
+            getRunoutImpactPreview={getRunoutImpactPreview}
         />
     );
 }

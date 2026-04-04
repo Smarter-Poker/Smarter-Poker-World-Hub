@@ -1500,45 +1500,67 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         generateSessionReport: () => {
             try { return deterministicEngine.generateSessionReport(); } catch (e) { return null; }
         },
-        // ═══ PHASE 261: Teaching principle ═══
+        // ═══ PHASE 261-270: Deep coaching intelligence ═══
         getTeachingPrinciple: (street, nodeType, correctAction, handStrength, texture) => {
             try { return deterministicEngine.getTeachingPrinciple(street, nodeType, correctAction, handStrength, texture); } catch (e) { return null; }
         },
-        // ═══ PHASE 262: Position reminder ═══
         getPositionReminder: (heroPosition, street, nodeType) => {
             try { return deterministicEngine.getPositionReminder(heroPosition, street, nodeType); } catch (e) { return null; }
         },
-        // ═══ PHASE 263: Texture strategy guide ═══
         getTextureStrategyGuide: (texture, street, heroPosition, villainPosition) => {
             try { return deterministicEngine.getTextureStrategyGuide(texture, street, heroPosition, villainPosition); } catch (e) { return null; }
         },
-        // ═══ PHASE 264: SPR strategy guide ═══
         getSPRStrategyGuide: (estimatedPot, stackDepth) => {
             try { return deterministicEngine.getSPRStrategyGuide(estimatedPot, stackDepth); } catch (e) { return null; }
         },
-        // ═══ PHASE 265: Villain range narration ═══
         getVillainRangeNarration: (street, nodeType, villainActions) => {
             try { return deterministicEngine.getVillainRangeNarration(street, nodeType, villainActions); } catch (e) { return null; }
         },
-        // ═══ PHASE 266: Multi-street planning guide ═══
         getMultiStreetPlanningGuide: (street, handStrength, optimalAction, estimatedPot, stackDepth) => {
             try { return deterministicEngine.getMultiStreetPlanningGuide(street, handStrength, optimalAction, estimatedPot, stackDepth); } catch (e) { return null; }
         },
-        // ═══ PHASE 267: Frequency correction prompt ═══
         getFrequencyCorrectionPrompt: () => {
             try { return deterministicEngine.getFrequencyCorrectionPrompt(); } catch (e) { return null; }
         },
-        // ═══ PHASE 268: Tilt recovery advice ═══
         getTiltRecoveryAdvice: () => {
             try { return deterministicEngine.getTiltRecoveryAdvice(); } catch (e) { return null; }
         },
-        // ═══ PHASE 269: Session pacing analysis ═══
         getSessionPacingAnalysis: () => {
             try { return deterministicEngine.getSessionPacingAnalysis(); } catch (e) { return null; }
         },
-        // ═══ PHASE 270: Enhanced spot difficulty ═══
         estimateSpotDifficultyEnhanced: (frequencies, street, stackDepth, nodeType, heroPosition, villainPosition, handStrength, texture) => {
             try { return deterministicEngine.estimateSpotDifficultyEnhanced(frequencies, street, stackDepth, nodeType, heroPosition, villainPosition, handStrength, texture); } catch (e) { return { difficulty: 3, label: 'Intermediate' }; }
+        },
+        // ═══ PHASE 271-280: Advanced coaching + analytics ═══
+        classifyHandStrength: (handCategory, boardTexture, street) => {
+            try { return deterministicEngine.classifyHandStrength(handCategory, boardTexture, street); } catch (e) { return null; }
+        },
+        estimateEquityVsRange: (handCategory, street, nodeType, heroPosition, villainPosition) => {
+            try { return deterministicEngine.estimateEquityVsRange(handCategory, street, nodeType, heroPosition, villainPosition); } catch (e) { return null; }
+        },
+        getActionEVComparison: (frequencies, correctAction, selectedAction) => {
+            try { return deterministicEngine.getActionEVComparison(frequencies, correctAction, selectedAction); } catch (e) { return null; }
+        },
+        getSolverLineComparison: (selectedAction, correctAction, frequencies, street, nodeType) => {
+            try { return deterministicEngine.getSolverLineComparison(selectedAction, correctAction, frequencies, street, nodeType); } catch (e) { return null; }
+        },
+        getConceptMasteryReport: () => {
+            try { return deterministicEngine.getConceptMasteryReport(); } catch (e) { return { concepts: [], overallMastery: 0 }; }
+        },
+        generateHints: (frequencies, street, nodeType, handCategory, heroPosition, texture) => {
+            try { return deterministicEngine.generateHints(frequencies, street, nodeType, handCategory, heroPosition, texture); } catch (e) { return { hints: [], currentLevel: 0, maxLevel: 0 }; }
+        },
+        getRunoutImpactPreview: (handCategory, street, correctAction, boardTexture) => {
+            try { return deterministicEngine.getRunoutImpactPreview(handCategory, street, correctAction, boardTexture); } catch (e) { return null; }
+        },
+        getMixedFrequencyDrillData: () => {
+            try { return deterministicEngine.getMixedFrequencyDrillData(); } catch (e) { return { mixedSpots: [], needsPractice: false }; }
+        },
+        getHandCategoryBreakdown: () => {
+            try { return deterministicEngine.getHandCategoryBreakdown(); } catch (e) { return { categories: [] }; }
+        },
+        getSessionComparison: (previousSessionData) => {
+            try { return deterministicEngine.getSessionComparison(previousSessionData); } catch (e) { return null; }
         },
 
         // Actions
