@@ -40,6 +40,8 @@ import GTODeviationHeatmap from './GTODeviationHeatmap';
 // ═══ PHASE 21: Study Streak Map + Ghost Replay ═══
 import { StudyStreakMapAuto } from './StudyStreakMap';
 import GhostReplayEngine from './GhostReplayEngine';
+// ═══ PHASE 356: Solver Tree Viewer ═══
+import SolverTreeViewer from './SolverTreeViewer';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -553,7 +555,8 @@ function EVLossGraph({ handHistory }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ═══ COLLAPSIBLE ANALYSIS SECTION — Groups analysis panels into expandable categories ═══
-function AnalysisSection({ title, icon, color = '#94a3b8', defaultOpen = false, children }) {
+// Phase 357: Memoized to prevent re-renders when switching review tabs
+const AnalysisSection = memo(function AnalysisSection({ title, icon, color = '#94a3b8', defaultOpen = false, children }) {
     const [open, setOpen] = useState(defaultOpen);
     return (
         <div style={{ marginBottom: 8 }}>
@@ -578,7 +581,7 @@ function AnalysisSection({ title, icon, color = '#94a3b8', defaultOpen = false, 
             )}
         </div>
     );
-}
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD PATH HELPER — Same custom card images used in UniversalDynamicTable
@@ -1724,6 +1727,7 @@ function GodModeArenaInner({
     const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [reviewTab, setReviewTab] = useState('overview'); // 'overview' | 'hands' | 'analysis' | 'gametree'
+    const [gameTreeData, setGameTreeData] = useState(null);
     const [adaptiveToast, setAdaptiveToast] = useState(null);
 
     // ═══ Phase 2: Speed Bonus Aggregation ═══
@@ -4216,6 +4220,71 @@ function GodModeArenaInner({
                         {/* ═══ PHASE 18: Leaderboard ═══ */}
                         <LeaderboardPanel userId={userId} gameId={gameId} />
                         </AnalysisSection>
+                    </>)}
+
+                    {/* ═══ GAME TREE TAB ═══ */}
+                    {reviewTab === 'gametree' && (<>
+                        <div style={{
+                            padding: 16, borderRadius: 12,
+                            background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)',
+                            marginBottom: 12,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <span style={{ fontSize: 18 }}>🌳</span>
+                                <h3 style={{ color: '#00d4ff', fontSize: 14, fontWeight: 700, margin: 0, fontFamily: "'Orbitron', sans-serif" }}>
+                                    Solver Decision Tree
+                                </h3>
+                            </div>
+                            <p style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.5, marginBottom: 12 }}>
+                                Interactive visualization of the solver game tree. Click nodes to expand branches.
+                                Edge thickness indicates action frequency. Select a hand below to see its tree.
+                            </p>
+
+                            {/* Hand selector for game tree */}
+                            {handHistory && handHistory.length > 0 ? (
+                                <div>
+                                    {/* Quick hand pills */}
+                                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12 }}>
+                                        {handHistory.slice(0, 10).map((hand, i) => {
+                                            const hd = hand.handData || hand;
+                                            const cls = hand.classification || 'wrong';
+                                            const clsColor = cls === 'gto_perfect' ? '#22c55e' : cls === 'acceptable' ? '#eab308' : '#ef4444';
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => {
+                                                        const spotData = { actions: hd.gtoFrequencies || {}, scenario: hd, boardCards: hd.boardCards };
+                                                        const tree = buildDetailedGameTree(spotData, hd.heroHand, hd.heroPosition, hd.villainPosition, hd.street);
+                                                        setGameTreeData(tree);
+                                                    }}
+                                                    style={{
+                                                        padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                                                        cursor: 'pointer', border: `1px solid ${clsColor}40`,
+                                                        background: `${clsColor}10`, color: clsColor,
+                                                    }}
+                                                >
+                                                    #{i + 1} {hd.heroHand || '??'}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Solver Tree Viewer */}
+                                    <SolverTreeViewer
+                                        spotDetail={gameTreeData || (() => {
+                                            const firstHand = handHistory[0]?.handData || handHistory[0];
+                                            return { actions: firstHand?.gtoFrequencies || {}, street: firstHand?.street, heroPosition: firstHand?.heroPosition };
+                                        })()}
+                                        width={Math.min(600, typeof window !== 'undefined' ? window.innerWidth - 48 : 520)}
+                                        height={350}
+                                    />
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: 24, color: '#475569', fontSize: 12 }}>
+                                    Play some hands first to see the solver decision tree here.
+                                </div>
+                            )}
+                        </div>
                     </>)}
 
                     {/* ACTION BUTTONS */}
