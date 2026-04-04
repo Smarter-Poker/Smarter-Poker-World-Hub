@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario, RANKS } from './ScenarioDatabase';
+import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
 import achievementService from '../services/AchievementService';
 
@@ -43,6 +44,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     const nextRound = useCallback(() => {
         if (round >= maxRounds) {
             setGameState('gameover');
+            { const acc = Math.round((correctAnswers / maxRounds) * 100); const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 65 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pattern-recognition', score, g); }
             const diamondReward = correctAnswers * 2 + Math.floor(score / 100);
             if (DiamondEngine && diamondReward > 0) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
             if (userId) {
@@ -164,7 +166,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                             <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
                                     <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
@@ -217,6 +219,24 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                                 borderRadius: 12, color: '#fff', cursor: 'pointer'
                             }}>BACK TO MENU</button>
                         </div>
+
+                        {/* Share Result */}
+                        <button onClick={() => shareResult({
+                            gameTitle: 'PATTERN RECOGNITION',
+                            grade,
+                            score,
+                            scoreLabel: 'SCORE',
+                            stats: [
+                                { label: 'Streak', value: maxStreak },
+                                { label: 'Correct', value: `${correctAnswers}/${maxRounds}` },
+                                { label: 'Accuracy', value: accuracy + '%' },
+                            ],
+                            color: '#00D4FF',
+                        })} style={{
+                            width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
+                            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                        }}>{'\uD83D\uDCF4'} Share Result</button>
                     </div>
                 );
             })()}

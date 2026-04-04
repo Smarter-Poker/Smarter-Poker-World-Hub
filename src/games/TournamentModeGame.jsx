@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { SoundEngine } from './GameEngine';
+import { shareResult, savePersonalBest } from '../utils/shareCard';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -457,6 +458,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
         } else {
             // Match complete
             const playerWon = playerScore > opponentScore;
+            savePersonalBest('tournament', playerElo + (playerWon ? 10 : 0), playerWon ? 'S' : 'D');
             const eloChange = calculateEloChange(playerElo, opponent.elo, playerWon);
             const newElo = playerElo + eloChange;
 
@@ -976,7 +978,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                             vs {opponent?.name || 'Opponent'}
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
                                 <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 24, fontWeight: 800, color: lastMatch?.eloChange >= 0 ? '#00ff88' : '#ff4444' }}>
                                     {lastMatch?.eloChange >= 0 ? '+' : ''}{lastMatch?.eloChange}
@@ -1031,6 +1033,25 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                             borderRadius: 12, color: '#fff', cursor: 'pointer'
                         }}>BACK TO LOBBY</button>
                     </div>
+
+                    {/* Share Result */}
+                    <button onClick={() => shareResult({
+                        gameTitle: 'VS RANKED',
+                        grade: playerWon ? 'S' : 'D',
+                        score: playerScore,
+                        scoreLabel: playerWon ? 'VICTORY' : 'DEFEAT',
+                        stats: [
+                            { label: 'ELO Change', value: `${lastMatch?.eloChange >= 0 ? '+' : ''}${lastMatch?.eloChange}` },
+                            { label: 'New ELO', value: playerElo },
+                            { label: 'Win Rate', value: accuracy + '%' },
+                        ],
+                        color: '#9333EA',
+                        subtitle: `vs ${opponent?.name || 'Opponent'}`,
+                    })} style={{
+                        width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                    }}>{'\uD83D\uDCF4'} Share Result</button>
                 </div>
             </motion.div>
         );

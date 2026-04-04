@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
+import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
 import achievementService from '../services/AchievementService';
 
@@ -76,6 +77,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                 SoundEngine.play('levelUp');
                 const diamondReward = Math.floor(score / 50) + 10;
                 if (DiamondEngine) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
+                { const acc = newHandsCompleted > 0 ? Math.round(((correctCount + 1) / newHandsCompleted) * 100) : 0; const g = acc >= 95 ? 'S' : acc >= 85 ? 'A' : acc >= 70 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pressure-cooker', score, g); }
                 if (userId) {
                     const accuracy = Math.round((score / (newHandsCompleted * 100)) * 100);
                     gameSessionService.recordSession(userId, {
@@ -92,6 +94,15 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
             else { nextHand(); }
         }, 600);
     }, [gameState, currentHand, streak, handsCompleted, handsRequired, timeRemaining, score, nextHand, DiamondEngine, onScoreUpdate, userId, level]);
+
+    // Save personal best on failed too
+    useEffect(() => {
+        if (gameState === 'failed' && handsCompleted > 0) {
+            const acc = Math.round((correctCount / handsCompleted) * 100);
+            const g = acc >= 90 ? 'A' : acc >= 70 ? 'B' : acc >= 50 ? 'C' : 'D';
+            savePersonalBest('pressure-cooker', score, g);
+        }
+    }, [gameState, handsCompleted, correctCount, score]);
 
     useEffect(() => {
         if (gameState === 'playing' || gameState === 'revealed') {
@@ -172,14 +183,14 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             )}
                         </div>
                     )}
-                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-                        <button onClick={() => handleAnswer('fold')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(100,100,100,0.3)', border: '2px solid #666', borderRadius: 12, color: '#fff', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button onClick={() => handleAnswer('fold')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(100,100,100,0.3)', border: '2px solid #666', borderRadius: 12, color: '#fff', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
                             <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)' }}>1</span>FOLD
                         </button>
-                        <button onClick={() => handleAnswer('call')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(16,185,129,0.3)', border: '2px solid #10B981', borderRadius: 12, color: '#10B981', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                        <button onClick={() => handleAnswer('call')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(16,185,129,0.3)', border: '2px solid #10B981', borderRadius: 12, color: '#10B981', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
                             <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>2</span>CALL
                         </button>
-                        <button onClick={() => handleAnswer('raise')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(239,68,68,0.3)', border: '2px solid #EF4444', borderRadius: 12, color: '#EF4444', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                        <button onClick={() => handleAnswer('raise')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(239,68,68,0.3)', border: '2px solid #EF4444', borderRadius: 12, color: '#EF4444', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
                             <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>3</span>RAISE
                         </button>
                     </div>
@@ -203,7 +214,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
                                     <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
@@ -258,6 +269,25 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                                 borderRadius: 12, color: '#fff', cursor: 'pointer'
                             }}>BACK TO MENU</button>
                         </div>
+
+                        {/* Share Result */}
+                        <button onClick={() => shareResult({
+                            gameTitle: 'PRESSURE COOKER',
+                            grade,
+                            score,
+                            scoreLabel: 'SCORE',
+                            stats: [
+                                { label: 'Time Left', value: timerSec + 's' },
+                                { label: 'Streak', value: maxStreak },
+                                { label: 'Correct', value: `${correctCount}/${handsCompleted}` },
+                                { label: 'Accuracy', value: accuracy + '%' },
+                            ],
+                            color: '#ff4444',
+                        })} style={{
+                            width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
+                            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                        }}>{'\uD83D\uDCF4'} Share Result</button>
                     </div>
                 );
             })()}
@@ -279,7 +309,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
                                     <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
@@ -332,6 +362,25 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                                 borderRadius: 12, color: '#fff', cursor: 'pointer'
                             }}>BACK TO MENU</button>
                         </div>
+
+                        {/* Share Result */}
+                        <button onClick={() => shareResult({
+                            gameTitle: 'PRESSURE COOKER',
+                            grade,
+                            score,
+                            scoreLabel: 'SCORE',
+                            stats: [
+                                { label: 'Streak', value: maxStreak },
+                                { label: 'Completed', value: `${handsCompleted}/${handsRequired}` },
+                                { label: 'Accuracy', value: accuracy + '%' },
+                            ],
+                            color: '#ff4444',
+                            subtitle: "TIME'S UP!",
+                        })} style={{
+                            width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
+                            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                        }}>{'\uD83D\uDCF4'} Share Result</button>
                     </div>
                 );
             })()}

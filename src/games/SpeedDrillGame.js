@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
+import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
 import achievementService from '../services/AchievementService';
 
@@ -87,6 +88,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
             if (lives - (isCorrect ? 0 : 1) <= 0) {
                 setGameState('gameover');
                 SoundEngine.play('gameOver');
+                { const acc = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 75 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('speed-drill', score, g); }
                 const diamondReward = Math.floor(score / 100);
                 if (diamondReward > 0 && DiamondEngine) {
                     const newBalance = DiamondEngine.award(diamondReward);
@@ -280,6 +282,28 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                                 background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
                                 borderRadius: 12, color: '#fff', cursor: 'pointer'
                             }}>BACK TO MENU</button>
+                        </div>
+
+                        {/* Share */}
+                        <div style={{ textAlign: 'center', marginTop: 12 }}>
+                            <button onClick={() => shareResult({
+                                gameTitle: 'Speed Drill',
+                                grade,
+                                score,
+                                scoreLabel: 'SCORE',
+                                color: '#FFD700',
+                                subtitle: `${handsPlayed} hands \u2022 ${maxStreak} streak`,
+                                stats: [
+                                    { label: 'SCORE', value: score.toLocaleString() },
+                                    { label: 'STREAK', value: maxStreak },
+                                    { label: 'HANDS', value: handsPlayed },
+                                    { label: 'ACCURACY', value: `${accuracy}%` },
+                                ],
+                            })} style={{
+                                padding: '8px 20px', fontSize: 11, fontWeight: 600,
+                                background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: 8, color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+                            }}>{'\uD83D\uDCF7'} Share Result</button>
                         </div>
                     </div>
                 );

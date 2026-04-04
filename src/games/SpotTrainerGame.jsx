@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
+import { shareResult, savePersonalBest } from '../utils/shareCard';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -497,6 +498,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
         else {
             setGameOver(true);
             const accuracy = (correctAnswers / totalAnswers) * 100;
+            { const g = accuracy >= 95 ? 'S' : accuracy >= 85 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 55 ? 'C' : 'D'; savePersonalBest('spot-trainer', score, g); }
             SoundEngine.play(accuracy >= 70 ? 'levelUp' : 'gameOver');
 
             // Award diamonds based on performance
@@ -617,7 +619,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                         <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 10 }}>
                             <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
                                 <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score}</div>
                                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
@@ -683,6 +685,25 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                             borderRadius: 12, color: '#fff', cursor: 'pointer'
                         }}>BACK TO MENU</button>
                     </div>
+
+                    {/* Share Result */}
+                    <button onClick={() => shareResult({
+                        gameTitle: 'SPOT TRAINER',
+                        grade,
+                        score,
+                        scoreLabel: 'SCORE',
+                        stats: [
+                            { label: 'Streak', value: maxStreak },
+                            { label: 'Correct', value: `${correctAnswers}/${totalAnswers}` },
+                            { label: 'Spots', value: SPOT_SCENARIOS.length },
+                            { label: 'Accuracy', value: accuracy + '%' },
+                        ],
+                        color: '#00ff88',
+                    })} style={{
+                        width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                    }}>{'\uD83D\uDCF4'} Share Result</button>
                 </div>
             </motion.div>
         );

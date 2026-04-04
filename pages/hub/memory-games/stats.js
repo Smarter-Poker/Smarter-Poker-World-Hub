@@ -344,6 +344,122 @@ export default function MemoryGamesStats() {
                                     ))}
                                 </div>
 
+                                {/* Performance Trend Chart */}
+                                {recentSessions.length >= 3 && (() => {
+                                    const sorted = [...recentSessions].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                                    const maxScore = Math.max(...sorted.map(s => s.score || 0), 1);
+                                    const avgLine = sorted.reduce((sum, s) => sum + (s.accuracy || 0), 0) / sorted.length;
+                                    return (
+                                        <div style={{
+                                            background: 'rgba(255,255,255,0.03)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '16px',
+                                            padding: '24px',
+                                            marginBottom: '24px',
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                                <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 700, margin: 0 }}>
+                                                    Performance Trend
+                                                </h2>
+                                                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                                                    Avg: <span style={{ color: avgLine >= 80 ? '#22C55E' : avgLine >= 60 ? '#F59E0B' : '#EF4444', fontWeight: 700 }}>
+                                                        {avgLine.toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Score Bars */}
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'flex-end',
+                                                gap: 6,
+                                                height: 100,
+                                                padding: '0 4px',
+                                                marginBottom: 8,
+                                                position: 'relative',
+                                            }}>
+                                                {/* Average line */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    left: 0, right: 0,
+                                                    bottom: `${avgLine}%`,
+                                                    height: 1,
+                                                    borderTop: '1px dashed rgba(255,255,255,0.15)',
+                                                    zIndex: 1,
+                                                }} />
+                                                {sorted.map((s, i) => {
+                                                    const acc = s.accuracy || 0;
+                                                    const color = acc >= 85 ? '#22C55E' : acc >= 70 ? '#3B82F6' : acc >= 50 ? '#F59E0B' : '#EF4444';
+                                                    const isLast = i === sorted.length - 1;
+                                                    return (
+                                                        <div key={i} style={{
+                                                            flex: 1,
+                                                            height: `${Math.max(acc, 5)}%`,
+                                                            background: isLast
+                                                                ? `linear-gradient(to top, ${color}, ${color}88)`
+                                                                : `${color}55`,
+                                                            borderRadius: '4px 4px 0 0',
+                                                            transition: 'height 0.5s ease',
+                                                            position: 'relative',
+                                                            minWidth: 0,
+                                                        }}>
+                                                            {isLast && (
+                                                                <div style={{
+                                                                    position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)',
+                                                                    fontSize: 10, fontWeight: 700, color, whiteSpace: 'nowrap',
+                                                                }}>
+                                                                    {acc.toFixed(0)}%
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Date labels */}
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                {sorted.map((s, i) => (
+                                                    <div key={i} style={{
+                                                        flex: 1, textAlign: 'center',
+                                                        fontSize: 9, color: 'rgba(255,255,255,0.25)',
+                                                    }}>
+                                                        {s.created_at ? new Date(s.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Accuracy Trend Arrow */}
+                                            {sorted.length >= 4 && (() => {
+                                                const firstHalf = sorted.slice(0, Math.floor(sorted.length / 2));
+                                                const secondHalf = sorted.slice(Math.floor(sorted.length / 2));
+                                                const firstAvg = firstHalf.reduce((s, x) => s + (x.accuracy || 0), 0) / firstHalf.length;
+                                                const secondAvg = secondHalf.reduce((s, x) => s + (x.accuracy || 0), 0) / secondHalf.length;
+                                                const diff = secondAvg - firstAvg;
+                                                const trending = diff > 3 ? 'up' : diff < -3 ? 'down' : 'flat';
+                                                const trendConfig = {
+                                                    up: { label: 'Improving', color: '#22C55E', arrow: '\u2191' },
+                                                    down: { label: 'Declining', color: '#EF4444', arrow: '\u2193' },
+                                                    flat: { label: 'Steady', color: '#F59E0B', arrow: '\u2192' },
+                                                };
+                                                const tc = trendConfig[trending];
+                                                return (
+                                                    <div style={{
+                                                        marginTop: 12, padding: '8px 14px',
+                                                        background: `${tc.color}11`, border: `1px solid ${tc.color}33`,
+                                                        borderRadius: 10, display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                    }}>
+                                                        <span style={{ fontSize: 16, color: tc.color }}>{tc.arrow}</span>
+                                                        <span style={{ fontSize: 12, color: tc.color, fontWeight: 700 }}>{tc.label}</span>
+                                                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                                                            ({diff > 0 ? '+' : ''}{diff.toFixed(1)}% recent vs earlier)
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    );
+                                })()}
+
                                 {/* Game Mode Breakdown */}
                                 {modeBreakdown.length > 0 && (
                                     <div style={{

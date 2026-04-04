@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SoundEngine } from './GameEngine';
 import { MIXED_SCENARIOS } from './ScenarioDatabase';
+import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
 import achievementService from '../services/AchievementService';
 
@@ -47,6 +48,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
     const nextRound = useCallback(() => {
         if (roundsPlayed >= maxRounds) {
             setGameState('gameover');
+            { const acc = maxRounds > 0 ? Math.round((closeCount / maxRounds) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('mixed-strategy', score, g); }
             const diamondReward = Math.floor(score / 500) + (score >= 4000 ? 20 : 0);
             if (DiamondEngine && diamondReward > 0) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
             if (userId) {
@@ -154,7 +156,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                             <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>FREQUENCY MASTERY</div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
                                     <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
@@ -207,6 +209,24 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                                 borderRadius: 12, color: '#fff', cursor: 'pointer'
                             }}>BACK TO MENU</button>
                         </div>
+
+                        {/* Share Result */}
+                        <button onClick={() => shareResult({
+                            gameTitle: 'MIXED STRATEGY',
+                            grade,
+                            score,
+                            scoreLabel: 'SCORE',
+                            stats: [
+                                { label: 'Streak', value: maxStreak },
+                                { label: 'Within 15%', value: `${closeCount}/${maxRounds}` },
+                                { label: 'Precision', value: accuracy + '%' },
+                            ],
+                            color: '#A855F7',
+                        })} style={{
+                            width: '100%', marginTop: 12, padding: '12px 0', fontSize: 13, fontWeight: 600,
+                            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                        }}>{'\uD83D\uDCF4'} Share Result</button>
                     </div>
                 );
             })()}

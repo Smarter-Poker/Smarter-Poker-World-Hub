@@ -12,6 +12,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { shareResult } from '../../utils/shareCard';
 import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
@@ -4325,34 +4326,110 @@ function GodModeArenaInner({
                     </>)}
 
                     {/* ACTION BUTTONS */}
-                    <div style={styles.reviewActions}>
+                    <div style={{
+                        display: 'flex', gap: 12, marginBottom: 20,
+                        flexDirection: levelPassed ? 'row' : 'column',
+                    }}>
                         {levelPassed && currentLevel < TRAINING_CONFIG.totalLevels && (
-                            <button onClick={() => { sessionSavedRef.current = false; startNextLevel(); }} style={styles.nextLevelButton}>
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => { sessionSavedRef.current = false; startNextLevel(); }}
+                                style={{
+                                    flex: 1, padding: '16px 24px', fontSize: 15, fontWeight: 800,
+                                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                                    border: 'none', borderRadius: 14, color: '#fff', cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(34, 197, 94, 0.3)',
+                                    letterSpacing: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                }}
+                            >
+                                <span style={{ fontSize: 18 }}>{'\u2192'}</span>
                                 Next Level ({currentLevel + 1})
-                            </button>
+                            </motion.button>
                         )}
                         {!levelPassed && (
-                            <button onClick={() => { sessionSavedRef.current = false; retryLevel(); }} style={styles.retryButton}>
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => { sessionSavedRef.current = false; retryLevel(); }}
+                                style={{
+                                    padding: '16px 24px', fontSize: 15, fontWeight: 800,
+                                    background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                                    border: 'none', borderRadius: 14, color: '#fff', cursor: 'pointer',
+                                    boxShadow: '0 4px 20px rgba(249, 115, 22, 0.3)',
+                                    letterSpacing: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                }}
+                            >
+                                <span style={{ fontSize: 18 }}>{'\u21BB'}</span>
                                 Retry Level {currentLevel}
-                            </button>
+                            </motion.button>
                         )}
-                        <button onClick={() => {
-                            onComplete?.({
-                                gameId,
-                                accuracy,
-                                questionsAnswered: totalQuestions,
-                                questionsCorrect: correctCount,
-                                bestStreak,
-                                levelPassed,
-                                level: currentLevel,
-                                gtowScore,
-                                totalEVLoss,
-                                sessionMistakes,
-                            });
-                            onExit?.();
-                        }} style={styles.exitButton}>
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                                onComplete?.({
+                                    gameId,
+                                    accuracy,
+                                    questionsAnswered: totalQuestions,
+                                    questionsCorrect: correctCount,
+                                    bestStreak,
+                                    levelPassed,
+                                    level: currentLevel,
+                                    gtowScore,
+                                    totalEVLoss,
+                                    sessionMistakes,
+                                });
+                                onExit?.();
+                            }}
+                            style={{
+                                flex: levelPassed ? 1 : undefined,
+                                padding: '16px 24px', fontSize: 15, fontWeight: 700,
+                                background: 'rgba(255,255,255,0.06)',
+                                border: '2px solid rgba(255,255,255,0.15)', borderRadius: 14,
+                                color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            }}
+                        >
+                            <span style={{ fontSize: 16 }}>{'\u2190'}</span>
                             Back to Training
-                        </button>
+                        </motion.button>
+                    </div>
+
+                    {/* SHARE RESULT */}
+                    <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                                const grade = (() => {
+                                    try { const g = getSessionGrade(); return g?.grade || (gtowScore >= 95 ? 'S' : gtowScore >= 80 ? 'A' : gtowScore >= 65 ? 'B' : gtowScore >= 45 ? 'C' : 'D'); }
+                                    catch { return gtowScore >= 95 ? 'S' : gtowScore >= 80 ? 'A' : gtowScore >= 65 ? 'B' : gtowScore >= 45 ? 'C' : 'D'; }
+                                })();
+                                shareResult({
+                                    gameTitle: gameName || 'GTO Training',
+                                    grade,
+                                    score: gtowScore,
+                                    scoreLabel: 'GTOW SCORE',
+                                    subtitle: `Level ${currentLevel} \u2022 ${totalQuestions} hands`,
+                                    color: '#00D4FF',
+                                    stats: [
+                                        { label: 'HANDS', value: totalQuestions },
+                                        { label: 'EV LOSS', value: `-${totalEVLoss.toFixed(1)}` },
+                                        { label: 'MISTAKES', value: sessionMistakes },
+                                        { label: 'STREAK', value: bestStreak },
+                                    ],
+                                });
+                            }}
+                            style={{
+                                padding: '10px 24px', fontSize: 12, fontWeight: 700,
+                                background: 'transparent', border: '1px solid rgba(255,255,255,0.12)',
+                                borderRadius: 10, color: 'rgba(255,255,255,0.45)', cursor: 'pointer',
+                                display: 'inline-flex', alignItems: 'center', gap: 6, letterSpacing: 0.5,
+                            }}
+                        >
+                            {'\uD83D\uDCF7'} Share Result
+                        </motion.button>
                     </div>
 
                     {/* MASTERY PROGRESS */}

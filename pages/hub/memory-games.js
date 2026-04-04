@@ -2203,6 +2203,13 @@ export default function MemoryGamesPage() {
                                 const card = MODE_CARDS[gameType];
                                 if (!card) return null;
 
+                                // Personal best from localStorage
+                                let personalBest = null;
+                                try {
+                                    const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`pb_${card.mode}`) || 'null') : null;
+                                    if (stored && stored.score) personalBest = stored;
+                                } catch {}
+
                                 return (
                                     <motion.div
                                         key={gameType}
@@ -2285,6 +2292,29 @@ export default function MemoryGamesPage() {
                                                 </div>
                                             ))}
                                         </div>
+
+                                        {/* Personal Best Badge */}
+                                        {personalBest && (
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+                                                background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)',
+                                                borderRadius: 10, padding: '8px 16px', marginBottom: 16,
+                                            }}>
+                                                <span style={{ fontSize: 14 }}>{'\uD83C\uDFC6'}</span>
+                                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>YOUR BEST</span>
+                                                <span style={{ fontSize: 14, color: '#FFD700', fontWeight: 800, fontFamily: 'Orbitron, sans-serif' }}>{personalBest.score}</span>
+                                                {personalBest.grade && (
+                                                    <span style={{
+                                                        fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4,
+                                                        background: ({ S: '#FFD70022', A: '#22C55E22', B: '#3B82F622', C: '#F59E0B22', D: '#EF444422' })[personalBest.grade] || '#fff1',
+                                                        color: ({ S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' })[personalBest.grade] || '#fff',
+                                                    }}>{personalBest.grade}</span>
+                                                )}
+                                                {personalBest.plays && (
+                                                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{personalBest.plays} plays</span>
+                                                )}
+                                            </div>
+                                        )}
 
                                         <button
                                             onClick={async () => {
