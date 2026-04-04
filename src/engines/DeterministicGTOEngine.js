@@ -1753,6 +1753,26 @@ export class DeterministicGTOEngine {
         // ═══ Phase 98: GTO FRAMING ═══
         const gtoFrameNote = this._getGTOFramingNote(optimalAction, freq, handActions, handStrength);
 
+        // ═══ Phases 106-123: ADVANCED THEORY NOTES ═══
+        const cbetNote = this._getCBetTheory(optimalAction, handStrength, street, ctx.nodeType, texture, ctx.heroPosition, ctx.villainPosition);
+        const barrelNote = this._getBarrelTheory(optimalAction, handStrength, street, texture, freq);
+        const donkNote = this._getDonkBetTheory(optimalAction, handStrength, street, ctx.nodeType, texture, ctx.heroPosition, ctx.villainPosition);
+        const mdfNote = this._getMDFContext(optimalAction, street, ctx.nodeType, ctx.estimatedPot);
+        const probeNote = this._getProbeBetTheory(optimalAction, handStrength, street, ctx.nodeType, texture);
+        const cappingNote = this._getRangeCappingNote(street, ctx.nodeType, texture);
+        const reverseIONote = this._getReverseImpliedOddsNote(handStrength, street, texture);
+        const cardRemovalNote = this._getCardRemovalNote(heroHand, board, handStrength, optimalAction);
+        const impliedOddsNote = this._getImpliedOddsNote(handStrength, street, optimalAction, ctx.estimatedPot, ctx.stackDepth);
+        const foldEquityNote = this._getFoldEquityNote(optimalAction, handStrength, street, ctx.nodeType, freq);
+        const comboDrawNote = this._getCombDrawNote(handStrength);
+        const boardPairNote = this._getBoardPairNote(handStrength, texture, street);
+        const aceHighNote = this._getAceHighBoardNote(handStrength, texture, street, ctx.nodeType, ctx.heroPosition);
+        const monotoneNote = this._getMonotoneBoardNote(handStrength, texture, street);
+        const lowBoardNote = this._getLowBoardNote(handStrength, texture, street, ctx.heroPosition, ctx.nodeType);
+        const riverBluffNote = this._getRiverBluffCriteria(heroHand, handStrength, board, optimalAction, street);
+        const bluffCatchNote = this._getBluffCatcherNote(handStrength, optimalAction, street, ctx.nodeType);
+        const rangeNarrowNote = this._getRangeNarrowingNote(street, ctx.nodeType);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1770,17 +1790,30 @@ export class DeterministicGTOEngine {
         // Concise mode: only sizing reason + concept (skip secondary notes)
         // Verbose mode: all notes + coaching preamble (up to 5 most relevant)
         // Standard: top 3-4 most relevant notes
-        const allNotes = [sizingReason, trapNote, checkRaiseNote, overbetNote, thinValueNote, blockerNote, rangeNote, polarizationNote, nutAdvNote, protectionNote, showdownNote, kickerNote, backdoorNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, boardCoverageNote, multiStreetEVNote, textureEvoNote, evCompNote, gtoFrameNote].filter(Boolean);
+        // Phase 125: Relevance-scored note selection
+        const allNotesRaw = [sizingReason, trapNote, checkRaiseNote, overbetNote, thinValueNote,
+            cbetNote, barrelNote, donkNote, comboDrawNote, riverBluffNote, bluffCatchNote,
+            blockerNote, cardRemovalNote, rangeNote, polarizationNote, nutAdvNote,
+            protectionNote, showdownNote, foldEquityNote, kickerNote, backdoorNote,
+            reverseIONote, impliedOddsNote, mdfNote, probeNote, cappingNote,
+            boardPairNote, aceHighNote, monotoneNote, lowBoardNote,
+            multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote,
+            eqRealizationNote, positionNote, boardCoverageNote, multiStreetEVNote,
+            textureEvoNote, evCompNote, rangeNarrowNote, gtoFrameNote].filter(Boolean);
+
+        // Score and sort by relevance
+        const scoredNotes = allNotesRaw.map(note => ({
+            note,
+            score: this._scoreNoteRelevance(note, handStrength, street, optimalAction),
+        })).sort((a, b) => b.score - a.score);
 
         let extras;
         if (explanationDepth === 'concise') {
             extras = [sizingReason].filter(Boolean).map(s => ' ' + s).join('');
         } else if (explanationDepth === 'verbose') {
-            // Show up to 5 notes in verbose mode
-            extras = allNotes.slice(0, 5).map(s => ' ' + s).join('');
+            extras = scoredNotes.slice(0, 5).map(s => ' ' + s.note).join('');
         } else {
-            // Standard: top 3 notes to keep explanations focused
-            extras = allNotes.slice(0, 3).map(s => ' ' + s).join('');
+            extras = scoredNotes.slice(0, 3).map(s => ' ' + s.note).join('');
         }
 
         // Phase 76: Coaching preamble for verbose mode
@@ -5997,6 +6030,848 @@ export class DeterministicGTOEngine {
                 'Preflop hand equity tier classification',
             ],
         };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 101: PREFLOP OPEN RANGE PERCENTAGES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 101: Provide approximate GTO open-raise range percentages by position.
+     * Helps players understand where their hand falls in the opening range.
+     */
+    _getOpenRangeContext(heroPosition, heroHand) {
+        if (!heroPosition || !heroHand) return '';
+        const ranges = {
+            'UTG': { pct: 13, desc: 'tight ~13%' }, 'UTG+1': { pct: 15, desc: '~15%' },
+            'MP': { pct: 18, desc: '~18%' }, 'MP+1': { pct: 20, desc: '~20%' },
+            'HJ': { pct: 23, desc: '~23%' }, 'CO': { pct: 30, desc: '~30%' },
+            'BTN': { pct: 45, desc: '~45%' }, 'SB': { pct: 40, desc: '~40% (steal)' },
+        };
+        const r = ranges[heroPosition];
+        if (!r) return '';
+        const tier = this._getPreflopHandTier(heroHand);
+        if (tier.tier === 'premium' || tier.tier === 'strong') {
+            return `This hand is comfortably inside ${heroPosition}'s ${r.desc} opening range.`;
+        }
+        if (tier.tier === 'marginal' || tier.tier === 'speculative') {
+            return `${heroPosition} opens ${r.desc} of hands — your hand is at or near the boundary. Position matters most for marginal opens.`;
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 102: 3-BET RANGE CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 102: Explain 3-bet range construction — value vs bluff 3-bets.
+     * GTO 3-bet ranges are polarized: premiums for value + suited Ax/Kx for bluffs.
+     */
+    _get3BetRangeContext(heroHand, heroPosition, villainPosition) {
+        if (!heroHand || heroHand.length < 2) return '';
+        const r1 = heroHand[0], r2 = heroHand[1];
+        const suffix = heroHand.length >= 3 ? heroHand[2] : '';
+        const isPair = r1 === r2;
+        const isSuited = suffix === 's';
+        const v1 = '23456789TJQKA'.indexOf(r1), v2 = '23456789TJQKA'.indexOf(r2);
+        const isAx = r1 === 'A' || r2 === 'A';
+        const isKx = (r1 === 'K' || r2 === 'K') && !isAx;
+
+        // Value 3-bets
+        if (isPair && v1 >= 10) { // JJ+
+            return `3-bet for value: ${heroHand} is always in the value 3-bet range — too strong to flat and risk multiway pots.`;
+        }
+        if (isAx && (Math.max(v1, v2) >= 11 || (isSuited && Math.max(v1, v2) >= 9))) { // AK, AQs+
+            return `3-bet for value: ${heroHand} — strong enough to 3-bet vs most positions. Building the pot preflop with a premium hand.`;
+        }
+
+        // Bluff 3-bets
+        if (isAx && isSuited && Math.min(v1, v2) <= 5) { // A2s-A5s
+            return `3-bet as a bluff: ${heroHand} — suited Ax blocks AA/AK in villain's range (removes ~16 combos) while having nut flush potential if called. Ideal 3-bet bluff.`;
+        }
+        if (isKx && isSuited && Math.min(v1, v2) <= 6) {
+            return `3-bet as a bluff: ${heroHand} — suited Kx blocks KK/AK, removing key combos from villain's 4-bet/continue range. Good candidate for a polarized 3-bet.`;
+        }
+
+        // Flatting hands
+        if (isPair && v1 >= 5 && v1 <= 9) { // 77-TT
+            return `Medium pairs typically flat a raise rather than 3-bet — set mining value is highest when you see a flop, and 3-betting builds an awkward pot with a hand that's often behind.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 103: SQUEEZE PLAY CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 103: Explain squeeze play dynamics (3-bet over a raise + cold caller).
+     */
+    _getSqueezeContext(heroHand, heroPosition, nodeType, potType) {
+        if (!potType || !potType.includes('squeeze') && !potType.includes('Squeeze')) return '';
+        const tier = this._getPreflopHandTier(heroHand);
+        if (tier.tier === 'premium' || tier.tier === 'strong') {
+            return `Squeeze for value: with a strong hand against a raiser + cold caller, squeezing builds a large pot against two opponents who often have capped ranges.`;
+        }
+        if (tier.tier === 'marginal') {
+            return `Squeeze as a semi-bluff: the cold caller often has a medium-strength hand that folds to a 3-bet. Squeezing picks up dead money from both opponents.`;
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 104: BLIND DEFENSE THEORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 104: Explain BB defense theory — MDF and pot odds in blinds.
+     * BB gets the best pot odds to defend (already invested 1bb).
+     */
+    _getBlindDefenseContext(heroPosition, optimalAction, heroHand, villainPosition) {
+        if (heroPosition !== 'BB' && heroPosition !== 'SB') return '';
+        const a = (optimalAction || '').toLowerCase();
+
+        if (heroPosition === 'BB') {
+            if (a === 'call') {
+                return `BB defense: you're getting excellent pot odds (typically 2:1 or better) to call. The BB defends wide (~55-65% vs BTN open) because of the price — even marginal hands are profitable calls.`;
+            }
+            if (a === 'f') {
+                return `BB fold: even though you have good pot odds, some hands are too weak to defend profitably — they play too poorly postflop OOP to justify the call.`;
+            }
+            if (a.startsWith('r')) {
+                const tier = this._getPreflopHandTier(heroHand);
+                if (tier.tier === 'premium') {
+                    return `BB 3-bet for value: raising strong hands from the BB builds the pot while you're guaranteed to see a flop.`;
+                }
+                return `BB 3-bet: mixing raises into your BB defense range prevents villain from auto-profiting with steal attempts. Balance value raises with bluff 3-bets.`;
+            }
+        }
+
+        if (heroPosition === 'SB') {
+            if (a === 'call') {
+                return `SB flat: SB flatting is generally discouraged in GTO — you'll be OOP postflop with the BB still to act. Consider 3-betting or folding instead.`;
+            }
+            if (a.startsWith('r')) {
+                return `SB 3-bet: the preferred way to play from the SB is either fold or 3-bet — flatting creates a multiway pot where you're OOP, which is the worst outcome.`;
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 105: PREFLOP POSITION ADVANTAGE QUANTIFIED
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 105: Quantify the positional advantage in BB/hand.
+     * Research shows BTN is the most profitable seat (~10bb/100),
+     * while SB is the most unprofitable (~-7bb/100).
+     */
+    _getPositionEVContext(heroPosition) {
+        const posEV = {
+            'BTN': '+10bb/100 — most profitable seat. IP postflop with widest stealing range.',
+            'CO': '+5bb/100 — strong seat with IP advantage in most pots.',
+            'HJ': '+2bb/100 — moderately profitable, narrower range but still favorable.',
+            'MP': '~0bb/100 — break-even position, tight range required.',
+            'UTG': '-1bb/100 — tightest range, often OOP postflop.',
+            'SB': '-7bb/100 — most unprofitable seat. Always OOP postflop.',
+            'BB': '-3bb/100 — forced investment, but best pot odds to defend.',
+        };
+        return posEV[heroPosition] ? `Position EV: ${heroPosition} averages ${posEV[heroPosition]}` : '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 106: CONTINUATION BET THEORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 106: Explain c-bet theory — when to c-bet, when to check.
+     * Continuation bets are one of the most important postflop concepts.
+     */
+    _getCBetTheory(optimalAction, handStrength, street, nodeType, texture, heroPosition, villainPosition) {
+        if (street !== 'flop' || nodeType !== 'hero_bets_or_checks') return '';
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b');
+        const isCheck = a === 'c' || a === 'x';
+        const isIP = this._isInPosition(heroPosition, villainPosition);
+        const hc = (handStrength || '').toLowerCase();
+
+        if (isBet) {
+            if (isIP && texture && texture.dry) {
+                return `C-bet theory: IP on a dry board — c-bet frequency should be high (70%+). Your range advantage is significant and villain rarely connects. Small sizing is most efficient.`;
+            }
+            if (isIP && texture && texture.wet) {
+                return `C-bet theory: IP on a wet board — be selective. C-bet with strong hands, draws with equity, and give up weak holdings. Frequency drops to ~40-50%.`;
+            }
+            if (!isIP && texture && texture.dry) {
+                return `C-bet theory: OOP on a dry board — c-betting is still effective but use a smaller size. Your range advantage as PFR still applies, but you lack position for future streets.`;
+            }
+            if (!isIP && texture && texture.wet) {
+                return `C-bet theory: OOP on a wet board — the lowest c-bet frequency spot. Check more often to build a strong checking range. Only c-bet with strong hands and draws.`;
+            }
+        }
+
+        if (isCheck) {
+            if (isIP) {
+                return `Checking IP as PFR: protecting your checking range by including some strong and medium hands. This prevents villain from probe-betting with impunity on the turn.`;
+            }
+            return `Checking OOP as PFR: building a strong checking range. On this board texture, checking allows you to check-raise with your strongest hands and check-call with draws.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 107: DOUBLE AND TRIPLE BARREL THEORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 107: Explain multi-street barreling — when to keep betting
+     * and when to give up.
+     */
+    _getBarrelTheory(optimalAction, handStrength, street, texture, freq) {
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const hc = (handStrength || '').toLowerCase();
+
+        if (street === 'turn' && isBet) {
+            const isValue = hc.includes('overpair') || hc.includes('top pair') || hc.includes('set') || hc.includes('two pair') || hc.includes('flush') || hc.includes('straight');
+            if (isValue) {
+                return `Double barrel for value: continuing to bet strong hands on the turn builds the pot. Villain's flop calling range is now defined — extract from it.`;
+            }
+            if (hc.includes('draw') || hc.includes('oesd') || hc.includes('gutshot')) {
+                return `Double barrel semi-bluff: barreling the turn with a draw maintains pressure. You have equity when called and fold equity against villain's weaker continuing range.`;
+            }
+            if (hc.includes('air') || hc.includes('no pair')) {
+                return `Double barrel bluff: continuing the story on the turn. The turn card either helped your perceived range or you're targeting specific hands in villain's range that fold to continued pressure.`;
+            }
+        }
+
+        if (street === 'turn' && isCheck) {
+            if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
+                return `Giving up on the turn: after c-betting the flop, not every hand should continue. Checking and giving up with air preserves your stack for better spots.`;
+            }
+        }
+
+        if (street === 'river' && isBet) {
+            if (hc.includes('air') || hc.includes('no pair')) {
+                return `Triple barrel bluff: the ultimate test — betting all three streets with nothing. This only works against a range that can fold. Choose bluffs with good blockers to villain's calling range.`;
+            }
+            if (hc.includes('overpair') || hc.includes('top pair') || hc.includes('set') || hc.includes('flush') || hc.includes('straight')) {
+                return `Triple barrel for value: betting all three streets with a strong hand maximizes extraction. Your sizing should target the specific hands villain calls with on the river.`;
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 108: DONK BET THEORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 108: Explain donk betting — when the caller leads into the PFR.
+     * Historically considered bad, but solvers use donk bets on specific textures.
+     */
+    _getDonkBetTheory(optimalAction, handStrength, street, nodeType, texture, heroPosition, villainPosition) {
+        if (nodeType !== 'hero_bets_or_checks') return '';
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b');
+        if (!isBet) return '';
+
+        // Donk bet = caller leads into PFR
+        const isPFR = !['SB', 'BB'].includes(heroPosition);
+        if (isPFR) return ''; // PFR betting is a c-bet, not a donk
+
+        const hc = (handStrength || '').toLowerCase();
+
+        if (texture && texture.lowBoard) {
+            return `Donk bet: leading into the PFR on a low board. Solver donk-bets here because the caller's range connects heavily with low/medium boards, giving you the range advantage.`;
+        }
+        if (texture && texture.paired) {
+            return `Donk bet: leading on a paired board. The PFR's range misses trips as often as yours, so the informational disadvantage of donking is minimal while you seize the initiative.`;
+        }
+        if (hc.includes('set') || hc.includes('two pair')) {
+            return `Donk bet with a monster: leading with a strong hand disguises your hand strength. Many players don't expect donk bets to be value-heavy, which gets you more action.`;
+        }
+
+        return `Donk bet: leading into the preflop raiser. Modern solvers use donk bets on specific board textures where the caller's range advantage justifies taking the betting lead.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 109: MINIMUM DEFENSE FREQUENCY (MDF)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 109: Calculate and explain MDF — the minimum percentage of range
+     * that must defend to prevent villain from auto-profiting with bluffs.
+     * MDF = 1 - (bet size / (pot + bet size))
+     */
+    _getMDFContext(optimalAction, street, nodeType, estimatedPot) {
+        if (nodeType !== 'hero_faces_bet' || !estimatedPot) return '';
+        const a = (optimalAction || '').toLowerCase();
+
+        // Estimate bet size from the solver action
+        const betMatch = a.match(/^[br](\d+)$/);
+        const isCall = a === 'call';
+        const isFold = a === 'f';
+
+        if (!isFold && !isCall) return '';
+
+        // We need the bet size villain used — estimate from common sizing
+        // In facing-bet spots, the bet size is typically in the scenario
+        // Use a reasonable default
+        const commonBetPct = 67; // approximate
+        const betSize = estimatedPot * (commonBetPct / 100);
+        const totalPot = estimatedPot + betSize;
+        const mdf = 1 - (betSize / totalPot);
+        const mdfPct = Math.round(mdf * 100);
+
+        if (isFold) {
+            return `MDF note: against a ~${commonBetPct}% pot bet, you need to defend ~${mdfPct}% of your range to prevent villain from auto-profiting with bluffs. Folding here is fine — this hand is below your defense threshold.`;
+        }
+        if (isCall) {
+            return `MDF note: against a ~${commonBetPct}% pot bet, MDF is ~${mdfPct}%. Calling keeps your defense frequency honest and prevents villain from exploiting with excessive bluffs.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 110: PROBE BET THEORY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 110: Explain probe bets — when you bet into the PFR after they
+     * checked the previous street.
+     */
+    _getProbeBetTheory(optimalAction, handStrength, street, nodeType, texture) {
+        if (street === 'flop' || nodeType !== 'hero_bets_or_checks') return '';
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b');
+        if (!isBet) return '';
+
+        const hc = (handStrength || '').toLowerCase();
+
+        // Probe bet = betting when PFR checked previous street (indicating weakness)
+        if (street === 'turn') {
+            if (hc.includes('air') || hc.includes('no pair') || hc.includes('overcard')) {
+                return `Probe bet: betting the turn after PFR checked flop. Their check signals a capped range — they would have c-bet with strong hands. Exploit this weakness with a probe bet.`;
+            }
+            if (hc.includes('pair') || hc.includes('draw')) {
+                return `Probe bet for thin value: PFR's flop check caps their range. You can bet thinner for value here because their range is weaker than if they had c-bet.`;
+            }
+        }
+
+        if (street === 'river') {
+            return `River probe: villain has checked two streets, heavily capping their range. A well-timed river bet exploits their passivity — they rarely have strong hands after checking twice.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 111: OPPONENT RANGE CAPPING DETECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 111: Detect when villain's range is capped (limited to non-nutted hands).
+     * Capped ranges allow hero to apply more pressure.
+     */
+    _getRangeCappingNote(street, nodeType, texture) {
+        if (street === 'preflop') return '';
+
+        // Villain's range is capped when they've made passive actions
+        if (nodeType === 'hero_bets_or_checks') {
+            // If we're the one to act, villain checked to us
+            if (street === 'turn') {
+                return 'Range capping: villain checked to you on the turn. If they c-bet the flop and checked the turn, their range is capped — they likely don\'t have strong value hands, which they would have bet. Increase your bluffing frequency.';
+            }
+            if (street === 'river') {
+                return 'Range capping: two checks from villain suggests a heavily capped range. Strong hands would have bet for value on at least one street. You can bluff more aggressively here.';
+            }
+        }
+
+        if (nodeType === 'hero_faces_bet' && street === 'river') {
+            if (texture && texture.wet) {
+                return 'Villain betting river on a wet board: if draws completed, villain\'s bet could be a made flush/straight. If draws missed, their range is polarized — they either have it or they\'re bluffing.';
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 112: REVERSE IMPLIED ODDS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 112: Explain reverse implied odds — when making your hand
+     * will lose you even more money.
+     */
+    _getReverseImpliedOddsNote(handStrength, street, texture) {
+        if (street === 'preflop' || street === 'river') return '';
+        const hc = (handStrength || '').toLowerCase();
+
+        // Non-nut flush draws
+        if (hc.includes('flush draw') && !hc.includes('nut') && !hc.includes('strong')) {
+            return `Reverse implied odds: your non-nut flush draw is dangerous — if you hit, a higher flush could cost you your entire stack. Proceed with caution.`;
+        }
+
+        // Bottom-end straight draws
+        if (hc.includes('bottom-end') || hc.includes('baby straight')) {
+            return `Reverse implied odds: completing a bottom-end straight means higher straights are also possible. You might make your hand and still lose a big pot.`;
+        }
+
+        // Dominated top pair
+        if (hc.includes('top pair') && (hc.includes('weak kicker') || hc.includes('bad kicker'))) {
+            if (texture && texture.wet) {
+                return `Reverse implied odds: top pair with a weak kicker on a wet board is dangerous. You might pay off better top pairs or two pairs/sets.`;
+            }
+        }
+
+        // Second pair facing aggression
+        if ((hc.includes('middle pair') || hc.includes('second pair') || hc.includes('bottom pair'))) {
+            return `Reverse implied odds: medium/small pairs have significant reverse implied odds — when villain has a better hand, you'll often lose more than you gain from catching bluffs.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 113: CARD REMOVAL EFFECTS (COMBINATORICS)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 113: Explain card removal (blocker) effects quantitatively.
+     * When hero holds certain cards, it changes the number of combos
+     * villain can have of specific hands.
+     */
+    _getCardRemovalNote(heroHand, board, handStrength, optimalAction) {
+        if (!heroHand || heroHand.length < 2) return '';
+        const r1 = heroHand[0].toUpperCase(), r2 = heroHand[1].toUpperCase();
+        const a = (optimalAction || '').toLowerCase();
+        const hc = (handStrength || '').toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isFold = a === 'f';
+
+        // Ace blocker effects
+        if (r1 === 'A' || r2 === 'A') {
+            if (isBet && (hc.includes('air') || hc.includes('no pair'))) {
+                return `Card removal: holding an Ace removes 3 combos of AA, 4 combos of AK, and blocks villain's strongest holdings. This makes your bluff more effective — villain is less likely to have the nuts.`;
+            }
+            if (isFold) {
+                return `Card removal: your Ace blocks AA/AK combos, reducing the chance villain has premiums. However, other factors outweigh this blocker effect in this spot.`;
+            }
+        }
+
+        // King blocker
+        if (r1 === 'K' || r2 === 'K') {
+            if (isBet && (hc.includes('air') || hc.includes('no pair'))) {
+                return `Card removal: holding a King blocks KK (3 combos) and AK (8 combos). This is a good bluffing blocker — villain is less likely to have a hand that can comfortably call.`;
+            }
+        }
+
+        // Flush blocker
+        if (board && board.length >= 3) {
+            const boardSuits = board.map(c => c[1]?.toLowerCase());
+            const suitCounts = {};
+            boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+            const flushSuit = Object.entries(suitCounts).find(([_, c]) => c >= 3)?.[0];
+            if (flushSuit && !hc.includes('flush')) {
+                // Hero's cards that block the flush suit
+                const heroSuits = [];
+                // We don't know exact suits but can note the concept
+                if (isBet) {
+                    return `Card removal on a flush board: if you block the nut flush suit, villain has fewer flush combos. Blocking the A or K of the flush suit is a powerful bluffing factor.`;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 114: IMPLIED ODDS CALCULATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 114: Calculate and explain implied odds for drawing hands.
+     * Implied odds = how much you expect to win on future streets if you hit.
+     */
+    _getImpliedOddsNote(handStrength, street, optimalAction, estimatedPot, stackDepth) {
+        if (!estimatedPot || !stackDepth || street === 'river' || street === 'preflop') return '';
+        const hc = (handStrength || '').toLowerCase();
+        const a = (optimalAction || '').toLowerCase();
+        const isCall = a === 'call';
+        if (!isCall) return '';
+
+        const isDraw = hc.includes('draw') || hc.includes('oesd') || hc.includes('gutshot');
+        if (!isDraw) return '';
+
+        const remainingStack = stackDepth - estimatedPot;
+        if (remainingStack <= 0) return '';
+
+        const impliedOddsRatio = remainingStack / estimatedPot;
+
+        if (impliedOddsRatio >= 5) {
+            return `Implied odds: excellent (${impliedOddsRatio.toFixed(1)}x pot behind). When you hit your draw, villain's stack provides massive implied odds. Even marginal draws become profitable calls.`;
+        }
+        if (impliedOddsRatio >= 2) {
+            return `Implied odds: good (${impliedOddsRatio.toFixed(1)}x pot behind). Enough stack depth to profit when your draw completes. Focus on draws that make the nuts.`;
+        }
+        if (impliedOddsRatio < 1) {
+            return `Implied odds: poor — not much stack left behind (${impliedOddsRatio.toFixed(1)}x pot). You need direct pot odds to justify calling, as there's little extra money to win.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 115: FOLD EQUITY ESTIMATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 115: Estimate fold equity and explain when it matters.
+     * Fold equity = the chance villain folds to your bet/raise.
+     */
+    _getFoldEquityNote(optimalAction, handStrength, street, nodeType, freq) {
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isRaise = a.startsWith('r');
+        if (!isBet && !isRaise) return '';
+
+        const hc = (handStrength || '').toLowerCase();
+        const hasShowdownValue = hc.includes('pair') || hc.includes('flush') || hc.includes('straight') || hc.includes('set');
+        const noShowdownValue = hc.includes('air') || hc.includes('no pair') || hc.includes('overcard');
+        const isDraw = hc.includes('draw') || hc.includes('oesd') || hc.includes('gutshot');
+
+        if (noShowdownValue) {
+            if (street === 'river') {
+                return `Fold equity is everything: with no showdown value, your entire profit comes from villain folding. Your bluff needs to work often enough to compensate for the times you're caught.`;
+            }
+            return `Fold equity driven: your hand can't win at showdown, so betting relies entirely on fold equity. The more polarized your range looks, the more fold equity you generate.`;
+        }
+
+        if (isDraw) {
+            return `Combined equity: your semi-bluff has both fold equity (villain folds now) and draw equity (you improve when called). This dual equity makes aggressive play with draws highly profitable.`;
+        }
+
+        if (hasShowdownValue && isRaise && street === 'river') {
+            return `Value raise with fold equity bonus: you're raising for value, but some of villain's calling range also folds, adding fold equity to your already-profitable raise.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 116: COMBO DRAW POWER RANKING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 116: Quantify combo draw strength — total outs and equity.
+     */
+    _getCombDrawNote(handStrength) {
+        const hc = (handStrength || '').toLowerCase();
+        if (!hc.includes('combo draw') && !hc.includes('monster draw')) return '';
+
+        let outs = 0;
+        const parts = [];
+        if (hc.includes('flush draw')) { outs += 9; parts.push('9 flush outs'); }
+        if (hc.includes('oesd') || hc.includes('open-ended')) { outs += 8; parts.push('8 straight outs'); }
+        else if (hc.includes('gutshot')) { outs += 4; parts.push('4 gutshot outs'); }
+        if (hc.includes('overcard')) { outs += 6; parts.push('~6 overcard outs'); }
+
+        // Remove double-counted outs (typically ~2 overlap between flush and straight)
+        if (parts.length >= 2) outs = Math.max(outs - 2, outs * 0.85);
+
+        const equityFlop = Math.min(outs * 4, 70); // Rule of 4 (capped)
+        const equityTurn = Math.min(outs * 2, 45); // Rule of 2
+
+        if (outs >= 12) {
+            return `Monster draw: ~${Math.round(outs)} outs (${parts.join(' + ')}). Approximately ${Math.round(equityFlop)}% equity on the flop — you're actually a mathematical favorite vs most one-pair hands. Play aggressively.`;
+        }
+        return `Combo draw: ~${Math.round(outs)} outs (${parts.join(' + ')}). ~${Math.round(equityFlop)}% equity on flop. Strong enough to semi-bluff aggressively.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 117: BOARD PAIR IMPLICATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 117: Explain strategic implications of a paired board.
+     */
+    _getBoardPairNote(handStrength, texture, street) {
+        if (!texture || !texture.paired || street === 'preflop') return '';
+        const hc = (handStrength || '').toLowerCase();
+
+        if (hc.includes('full house') || hc.includes('quads')) {
+            return `Paired board: you have the nuts or near it. Paired boards reduce the number of strong hands in villain's range, making your monster even more disguised.`;
+        }
+        if (hc.includes('trips') || hc.includes('three of a kind')) {
+            return `Paired board: you have trips — strong but vulnerable to full houses. Villain's pocket pairs could be full houses, so be cautious if raised.`;
+        }
+        if (hc.includes('flush') || hc.includes('straight')) {
+            return `Paired board warning: your flush/straight is vulnerable to full houses. Paired boards allow trips and full houses that beat you. Size for value but be ready to fold to raises.`;
+        }
+        if (hc.includes('pair') && !hc.includes('two pair')) {
+            return `Paired board: one-pair hands play cautiously on paired boards. The pair on the board means fewer combinations of strong hands exist, but any trip or full house has you crushed.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 118: ACE-HIGH BOARD DYNAMICS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 118: Specific strategy for ace-high boards (most common board type).
+     */
+    _getAceHighBoardNote(handStrength, texture, street, nodeType, heroPosition) {
+        if (!texture || !texture.aceHigh || street === 'preflop') return '';
+        const hc = (handStrength || '').toLowerCase();
+
+        if (hc.includes('top pair') && hc.includes('ace')) {
+            return `Ace-high board with top pair: you have the nuts in terms of one-pair hands. The PFR's range heavily favors Ax, so you can bet confidently for value.`;
+        }
+        if (hc.includes('pair') && !hc.includes('ace') && !hc.includes('top pair')) {
+            return `Ace-high board without an ace: your pair is dominated by all the Ax combos in villain's range. Play cautiously — you're often behind.`;
+        }
+        if (hc.includes('air') || hc.includes('no pair')) {
+            if (nodeType === 'hero_bets_or_checks') {
+                return `Ace-high board with air: the Ace on the board is great for bluffing as PFR — your range is perceived to have many Ax hands. Villain will fold pairs below top pair.`;
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 119: MONOTONE BOARD STRATEGY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 119: Strategy for monotone (3+ cards same suit) boards.
+     */
+    _getMonotoneBoardNote(handStrength, texture, street) {
+        if (!texture || !texture.monotone || street === 'preflop') return '';
+        const hc = (handStrength || '').toLowerCase();
+
+        if (hc.includes('nut flush')) {
+            return `Monotone board with nut flush: you have the nuts. Bet for value — anyone with a lower flush or a pair will often pay you off.`;
+        }
+        if (hc.includes('flush') && !hc.includes('nut')) {
+            return `Monotone board with a non-nut flush: be cautious. The board having 3+ of a suit means anyone with a higher card of that suit beats you. Size for thin value but don't overcommit.`;
+        }
+        if (hc.includes('flush draw') && !hc.includes('nut')) {
+            return `Monotone board with a flush draw: dangerous situation. Even if you hit, you might not have the best flush. Nut draws are valuable; non-nut draws have significant reverse implied odds.`;
+        }
+        if (!hc.includes('flush') && !hc.includes('flush draw')) {
+            return `Monotone board without flush equity: play defensively. Anyone with a single card of the flush suit has a draw, and made flushes are common. One-pair hands are significantly devalued.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 120: LOW BOARD DYNAMICS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 120: Strategy for low boards (highest card ≤ 8).
+     */
+    _getLowBoardNote(handStrength, texture, street, heroPosition, nodeType) {
+        if (!texture || !texture.lowBoard || street === 'preflop') return '';
+        const hc = (handStrength || '').toLowerCase();
+
+        if (hc.includes('overpair')) {
+            return `Low board with overpair: your hand is very strong but vulnerable to sets and two pairs. Villain's BB defense range connects heavily with low cards — bet for value and protection.`;
+        }
+        if (hc.includes('air') || hc.includes('no pair')) {
+            if (nodeType === 'hero_bets_or_checks') {
+                return `Low board with overcards: your range advantage as PFR is reduced on low boards. Villain's wide calling range hits these boards often. Be selective with bluffs.`;
+            }
+        }
+        if (hc.includes('set') || hc.includes('two pair')) {
+            return `Low board with a strong made hand: excellent spot. Low boards heavily favor the caller's range, so when you have a monster, villain's strong hands (two pairs, straights) will often pay you off.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 121: RIVER BLUFF SELECTION CRITERIA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 121: Explain what makes a good river bluff candidate.
+     */
+    _getRiverBluffCriteria(heroHand, handStrength, board, optimalAction, street) {
+        if (street !== 'river') return '';
+        const a = (optimalAction || '').toLowerCase();
+        if (!a.startsWith('b') && a !== 'allin') return '';
+        const hc = (handStrength || '').toLowerCase();
+        if (!hc.includes('air') && !hc.includes('no pair') && !hc.includes('overcard') && !hc.includes('missed')) return '';
+
+        const r1 = heroHand?.[0]?.toUpperCase(), r2 = heroHand?.[1]?.toUpperCase();
+        const criteria = [];
+
+        // Blockers to calling range
+        if (r1 === 'A' || r2 === 'A') criteria.push('blocks top pair/overpairs');
+        if (r1 === 'K' || r2 === 'K') criteria.push('blocks second-best holdings');
+
+        // Missed draws are good bluff candidates
+        if (hc.includes('missed') || hc.includes('draw')) criteria.push('missed draw — naturally arrives at river without a made hand');
+
+        // No showdown value
+        criteria.push('zero showdown value — can only win by betting');
+
+        if (criteria.length > 0) {
+            return `River bluff selection: your hand qualifies because: ${criteria.join('; ')}. Ideal river bluffs combine blocker effects with no showdown equity.`;
+        }
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 122: RIVER BLUFF-CATCHING CRITERIA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 122: Explain what makes a hand a good bluff-catcher on the river.
+     */
+    _getBluffCatcherNote(handStrength, optimalAction, street, nodeType) {
+        if (street !== 'river' || nodeType !== 'hero_faces_bet') return '';
+        const a = (optimalAction || '').toLowerCase();
+        if (a !== 'call') return '';
+        const hc = (handStrength || '').toLowerCase();
+
+        const isBluffCatcher = hc.includes('pair') && !hc.includes('two pair') && !hc.includes('set') && !hc.includes('overpair');
+
+        if (isBluffCatcher) {
+            return `Bluff-catching: your one-pair hand beats bluffs but loses to value bets. The decision comes down to: does villain bluff enough in this spot? If villain's bluff-to-value ratio exceeds your pot odds, calling is correct.`;
+        }
+
+        if (hc.includes('overpair') || hc.includes('top pair')) {
+            return `Strong bluff-catcher: your hand is near the top of the bluff-catching range. Calling is correct because folding would let villain profit by bluffing with impunity in this spot.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 123: STREET-BY-STREET RANGE NARROWING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 123: Explain how ranges narrow across streets.
+     */
+    _getRangeNarrowingNote(street, nodeType) {
+        if (street === 'preflop' || street === 'flop') return '';
+
+        if (street === 'turn') {
+            if (nodeType === 'hero_faces_bet') {
+                return `Range narrowing: by the turn, both ranges have narrowed significantly from the flop. Villain's betting range is now weighted toward strong made hands and draws — medium hands would have checked.`;
+            }
+            return `Range narrowing: the turn is where ranges start to crystallize. Hands that continued from the flop either improved, had draws, or were strong enough to keep investing.`;
+        }
+
+        if (street === 'river') {
+            if (nodeType === 'hero_faces_bet') {
+                return `Range narrowing: villain's river betting range is highly polarized — they either have a strong hand (value) or nothing (bluff). Medium-strength hands check the river for showdown. Use this to calibrate your calling decision.`;
+            }
+            return `Range narrowing: by the river, ranges are at their narrowest. Decisions are binary: bet for value/bluff or check for showdown. Every hand in your range should have a clear purpose.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 124: SESSION PERFORMANCE TREND TRACKING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 124: Track performance trends within a session — are you improving
+     * or declining as the session progresses?
+     */
+    getPerformanceTrend() {
+        if (!this._sessionStats || this._sessionStats.total < 10) return null;
+
+        const window = this._sessionStats.recentWindow;
+        if (window.length < 10) return null;
+
+        const firstHalf = window.slice(0, Math.floor(window.length / 2));
+        const secondHalf = window.slice(Math.floor(window.length / 2));
+
+        const firstAcc = firstHalf.filter(Boolean).length / firstHalf.length;
+        const secondAcc = secondHalf.filter(Boolean).length / secondHalf.length;
+        const diff = secondAcc - firstAcc;
+
+        if (diff > 0.15) {
+            return { trend: 'improving', diff: Math.round(diff * 100), message: `Your accuracy is improving! Up ${Math.round(diff * 100)}% in the second half of your session. You're warming up and making better decisions.` };
+        }
+        if (diff < -0.15) {
+            return { trend: 'declining', diff: Math.round(diff * 100), message: `Your accuracy is declining (${Math.round(Math.abs(diff) * 100)}% drop). Consider taking a break — decision fatigue is real in poker training.` };
+        }
+        return { trend: 'stable', diff: Math.round(diff * 100), message: `Consistent performance throughout the session. You're maintaining focus well.` };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 125: COMPREHENSIVE EXPLANATION RELEVANCE SCORING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 125: Score explanation notes for relevance to the specific hand.
+     * Instead of just taking the first N notes, score each note and pick
+     * the most relevant ones for this specific situation.
+     *
+     * Scoring factors:
+     *   - Specificity (hand-specific > generic)
+     *   - Actionability (teaches something concrete > abstract)
+     *   - Street relevance (river notes on river > generic notes)
+     *   - Player weakness (notes in weak areas score higher)
+     */
+    _scoreNoteRelevance(note, handStrength, street, optimalAction) {
+        if (!note) return 0;
+        let score = 1.0;
+        const n = note.toLowerCase();
+        const hc = (handStrength || '').toLowerCase();
+
+        // Specificity bonus — notes that mention the specific hand type
+        if (hc.includes('flush draw') && n.includes('flush')) score += 2;
+        if (hc.includes('set') && (n.includes('set') || n.includes('trap'))) score += 2;
+        if (hc.includes('top pair') && n.includes('top pair')) score += 1.5;
+        if (hc.includes('air') && (n.includes('bluff') || n.includes('fold equity') || n.includes('showdown'))) score += 2;
+        if (hc.includes('overbet') && n.includes('overbet')) score += 3;
+
+        // Actionability bonus — concrete advice
+        if (n.includes('bet') || n.includes('check') || n.includes('fold') || n.includes('call') || n.includes('raise')) score += 0.5;
+
+        // Street relevance
+        if (street === 'river' && n.includes('river')) score += 1;
+        if (street === 'turn' && n.includes('turn')) score += 1;
+        if (street === 'flop' && (n.includes('c-bet') || n.includes('flop'))) score += 1;
+
+        // Warning/coaching markers
+        if (n.includes('⚠️') || n.includes('🎯') || n.includes('warning') || n.includes('caution')) score += 1;
+
+        // Numeric/quantitative notes (EV, percentage, outs)
+        if (n.includes('%') || n.includes('bb') || n.includes('outs') || n.includes('equity')) score += 0.5;
+
+        // Check if this relates to a tracked weakness
+        if (this._mistakeTracker) {
+            const handBucket = this._getHandBucket(handStrength);
+            const streetKey = `street:${street}`;
+            const handKey = `hand:${handBucket}`;
+            if (this._mistakeTracker[streetKey]?.mistakes > 0) score += 1;
+            if (this._mistakeTracker[handKey]?.mistakes > 0) score += 1.5;
+        }
+
+        return score;
     }
 }
 

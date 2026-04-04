@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import { busEmit } from '../../../src/engine/EventBus';
 const TOUR_COLORS = {
   'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
   'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
@@ -133,10 +134,18 @@ export default function TourDetailPage() {
     } catch (_) { }
   }, [code]);
 
-  // Load follow state from Supabase API
+  // Load follow state from Supabase API (with JWT for authenticated users)
   useEffect(() => {
     if (!code) return;
-    fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code) + '&check_user=1')
+    const headers = {};
+    try {
+      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (sbKeys.length > 0) {
+        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+        if (tokenData.access_token) headers['Authorization'] = 'Bearer ' + tokenData.access_token;
+      }
+    } catch (_) { }
+    fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code) + '&check_user=1', { headers })
       .then(r => r.json())
       .then(d => { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
       .catch(() => {});
@@ -181,17 +190,26 @@ export default function TourDetailPage() {
       localStorage.setItem('followed-tours', JSON.stringify(updated));
     } catch (_) { }
 
-    // Persist follow state via API
+    // Persist follow state via API (JWT required)
+    const fetchHeaders = { 'Content-Type': 'application/json' };
+    try {
+      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (sbKeys.length > 0) {
+        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+        if (tokenData.access_token) fetchHeaders['Authorization'] = 'Bearer ' + tokenData.access_token;
+      }
+    } catch (_) { }
     fetch('/api/poker/follow', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: fetchHeaders,
       body: JSON.stringify({
         page_type: 'tour',
         page_id: code,
         action: newState ? 'follow' : 'unfollow',
-        user_id: getAnonymousUserId(),
       }),
-    }).catch(() => { }).catch(() => {});
+    }).catch(() => { });
+    // Emit EventBus event for cross-page reactivity
+    try { busEmit.socialFollowChanged(code, 'tour-detail', { added: newState }); } catch (_) { }
   }
 
   function getAnonymousUserId() {

@@ -93,7 +93,12 @@ export default function PokerToursPage() {
     const [selectedType, setSelectedType] = useState('all');
     const [selectedRegion, setSelectedRegion] = useState('all');
     const [sortBy, setSortBy] = useState('priority');
-    const [favorites, setFavorites] = useState({});
+    const [favorites, setFavorites] = useState(() => {
+        if (typeof window === 'undefined') return {};
+        try {
+            return JSON.parse(localStorage.getItem('pnm_tour_favorites') || '{}');
+        } catch { return {}; }
+    });
 
     // ─── Fetch tours data ───
     useEffect(() => {
@@ -351,6 +356,7 @@ export default function PokerToursPage() {
             const next = { ...prev };
             if (next[tourCode]) delete next[tourCode];
             else next[tourCode] = Date.now();
+            try { localStorage.setItem('pnm_tour_favorites', JSON.stringify(next)); } catch {}
             return next;
         });
     }, []);
@@ -484,16 +490,14 @@ export default function PokerToursPage() {
 
                         {/* ═══ MAP ═══ */}
                         <div className="tours-map-container">
-                            {typeof window !== 'undefined' && (
-                                <MapErrorBoundary>
-                                <VenueMap
-                                        venues={tourVenuesForMap}
-                                        userLocation={null}
-                                        hideLegend={true}
-                                        uniformColor="#ffffff"
-                                    />
-                                </MapErrorBoundary>
-                            )}
+                            <MapErrorBoundary>
+                            <VenueMap
+                                venues={tourVenuesForMap}
+                                userLocation={null}
+                                hideLegend={true}
+                                uniformColor="#ffffff"
+                            />
+                        </MapErrorBoundary>
                         </div>
 
                         {/* ═══ RESULTS BAR ═══ */}

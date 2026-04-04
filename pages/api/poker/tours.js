@@ -263,9 +263,11 @@ export default async function handler(req, res) {
               );
           }
 
-          // Attach upcoming series from registry data
+          // Get upcoming series from registry data (used for both series-per-tour and summary stats)
+          const allUpcoming = getUpcomingSeries(null, registryTours);
+
+          // Attach upcoming series per tour
           if (include_series === 'true') {
-              const allUpcoming = getUpcomingSeries(null, registryTours);
               const seriesByTour = {};
               allUpcoming.forEach(s => {
                   if (!seriesByTour[s.tour]) seriesByTour[s.tour] = [];
@@ -279,7 +281,6 @@ export default async function handler(req, res) {
           }
 
           // Get summary stats
-          const allUpcoming = getUpcomingSeries(null, registryTours);
           const seriesCountByTour = {};
           allUpcoming.forEach(s => {
               seriesCountByTour[s.tour] = (seriesCountByTour[s.tour] || 0) + 1;

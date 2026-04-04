@@ -677,11 +677,13 @@ export default function InteractiveTutorial({
   // ─── BELT-AND-SUSPENDERS: Never render on mobile/tablet regardless of props ───
   // The parent pages should gate this via their own width checks, but this prevents
   // accidental full-page blocking if a parent misses the check.
-  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window !== 'undefined') return window.innerWidth < 900;
+    return false;
+  });
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const check = () => setIsMobileView(window.innerWidth < 900);
-      check();
       window.addEventListener('resize', check);
       return () => window.removeEventListener('resize', check);
     }

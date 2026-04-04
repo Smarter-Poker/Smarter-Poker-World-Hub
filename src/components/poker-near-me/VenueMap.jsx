@@ -351,6 +351,8 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const clusterGroupRef = useRef(null);
+  const circlesGroupRef = useRef(null);
   const userMarkerRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -526,7 +528,7 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
     };
     loadOverlays();
 
-    // ═══ VENUE MARKERS — Lower cluster radius for more individual pins ═══
+    // ═══ VENUE MARKERS — Cluster group (populated by separate useEffect) ═══
     const clusterGroup = L.markerClusterGroup({
       maxClusterRadius: 30,
       iconCreateFunction: function(cluster) {
@@ -537,44 +539,13 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
       zoomToBoundsOnClick: true,
       disableClusteringAtZoom: 8,
     });
-
-    const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
-
-    validVenues.forEach(function(venue) {
-      const venueIcon = createVenueIcon(L, venue.venue_type, uniformColor || null);
-      const popupHtml = buildPopupHtml(venue);
-
-      const marker = L.marker([venue.latitude, venue.longitude], { icon: venueIcon })
-        .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
-
-      const radius = getGeofenceRadius(venue.venue_type);
-      const circleColor = uniformColor || (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR).fill;
-      const circle = L.circle([venue.latitude, venue.longitude], {
-        radius: radius,
-        color: circleColor,
-        weight: 1,
-        opacity: 0.35,
-        fillColor: circleColor,
-        fillOpacity: 0.08,
-      });
-
-      marker._venueCircle = circle;
-      marker._venueData = venue;
-      // Fire onVenueClick callback when marker popup opens
-      marker.on('popupopen', function() {
-        if (onVenueClick && venue.id) {
-          onVenueClick(venue);
-        }
-      });
-
-      clusterGroup.addLayer(marker);
-    });
-
     map.addLayer(clusterGroup);
+    clusterGroupRef.current = clusterGroup;
 
     // Geofence circles at high zoom
     const circlesGroup = L.layerGroup();
     circlesGroup.addTo(map);
+    circlesGroupRef.current = circlesGroup;
 
     function updateCircles() {
       circlesGroup.clearLayers();
@@ -589,7 +560,6 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
     }
 
     map.on('zoomend', updateCircles);
-    updateCircles();
 
     // ═══ SHOW USER LOCATION PIN IMMEDIATELY IF AVAILABLE ═══
     if (userLocation) {
@@ -615,8 +585,53 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
     return () => {
       map.remove();
       mapInstanceRef.current = null;
+      clusterGroupRef.current = null;
+      circlesGroupRef.current = null;
     };
   }, [mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ═══ UPDATE MARKERS when venues prop changes ═══
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current || !clusterGroupRef.current) return;
+    const L = window.L;
+    const clusterGroup = clusterGroupRef.current;
+    const circlesGroup = circlesGroupRef.current;
+
+    // Clear existing markers
+    clusterGroup.clearLayers();
+    if (circlesGroup) circlesGroup.clearLayers();
+
+    const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
+
+    validVenues.forEach(function(venue) {
+      const venueIcon = createVenueIcon(L, venue.venue_type, uniformColor || null);
+      const popupHtml = buildPopupHtml(venue);
+
+      const marker = L.marker([venue.latitude, venue.longitude], { icon: venueIcon })
+        .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
+
+      const radius = getGeofenceRadius(venue.venue_type);
+      const circleColor = uniformColor || (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR).fill;
+      const circle = L.circle([venue.latitude, venue.longitude], {
+        radius: radius,
+        color: circleColor,
+        weight: 1,
+        opacity: 0.35,
+        fillColor: circleColor,
+        fillOpacity: 0.08,
+      });
+
+      marker._venueCircle = circle;
+      marker._venueData = venue;
+      marker.on('popupopen', function() {
+        if (onVenueClick && venue.id) {
+          onVenueClick(venue);
+        }
+      });
+
+      clusterGroup.addLayer(marker);
+    });
+  }, [venues, uniformColor, onVenueClick, mapReady]);
 
   // Update user location marker
   useEffect(() => {

@@ -536,11 +536,18 @@ export default function PokerNearMeLobby() {
 
   // ─── Batch fetch review stats for venue cards (star ratings) ───
   const [reviewStatsMap, setReviewStatsMap] = useState({});
+  const reviewStatsMapRef = useRef(reviewStatsMap);
+  reviewStatsMapRef.current = reviewStatsMap;
   useEffect(() => {
     if (venues.length === 0) return;
-    const ids = venues.map(v => v.id).filter(Boolean).slice(0, 50).join(',');
-    if (!ids) return;
-    fetch('/api/poker/reviews?stats_only=true&venue_ids=' + ids)
+    // Only fetch stats for IDs we haven't already fetched
+    const newIds = venues
+      .map(v => v.id)
+      .filter(id => id && !reviewStatsMapRef.current[String(id)])
+      .slice(0, 50);
+    if (newIds.length === 0) return;
+    const idStr = newIds.join(',');
+    fetch('/api/poker/reviews?stats_only=true&venue_ids=' + idStr)
       .then(r => r.json())
       .then(j => { if (j.success && j.stats) setReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
       .catch(() => { /* silent — review stats are non-critical */ });
