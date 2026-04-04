@@ -1,10 +1,15 @@
 /**
  * Poker Tours API - Get traveling poker tour information
  * Supports filtering by tour type, region, and search
+ * 
+ * Data Strategy:
+ *   1. Try DB for tour records
+ *   2. Always merge with tour-source-registry.json for rich data
+ *      (stops_2026, series_2026, typical_buyins, regions, etc.)
+ *   3. Fall back to registry-only if DB unavailable
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import tourRegistry from '../../../data/tour-source-registry.json';
-import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 import allVenuesData from '../../../data/all-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
@@ -18,11 +23,19 @@ function getSupabase() {
     return _supabase;
 }
 
-// Build tours list from registry
-function getToursFromRegistry() {
+// Stationary casino series — NOT traveling tours
+const STATIONARY_CODES = new Set([
+    'VENETIAN', 'WYNN', 'BORGATA', 'SEMINOLE', 'LODGE',
+    'COMMERCE', 'BESTBET', 'BAY_101', 'TCH'
+]);
+
+// Build tours list from registry (authoritative source for rich data)
+function getToursFromRegistry(excludeStationary = false) {
     const tours = [];
     for (const [code, tour] of Object.entries(tourRegistry.tours)) {
-        if (tour.is_active === false) continue; // Skip defunct tours
+        if (tour.is_active === false) continue;
+        if (excludeStationary && STATIONARY_CODES.has(code)) continue;
+
         tours.push({
             tour_code: code,
             tour_name: tour.tour_name,
@@ -35,10 +48,41 @@ function getToursFromRegistry() {
             regions: tour.regions || [],
             notes: tour.notes,
             series_2026: tour.series_2026 || [],
-            stops_2026: tour.stops_2026 || []
+            stops_2026: tour.stops_2026 || [],
+            is_traveling: !STATIONARY_CODES.has(code),
         });
     }
     return tours.sort((a, b) => a.priority - b.priority);
+}
+
+// Merge DB record with registry data (registry fills gaps)
+function mergeWithRegistry(dbTour, registryTour) {
+    if (!registryTour) return {
+        ...dbTour,
+        is_traveling: !STATIONARY_CODES.has(dbTour.tour_code),
+        series_2026: [],
+        stops_2026: [],
+    };
+
+    return {
+        ...dbTour,
+        // Prefer DB fields when populated, fall back to registry
+        tour_name: dbTour.tour_name || registryTour.tour_name,
+        tour_type: dbTour.tour_type || registryTour.tour_type,
+        headquarters: dbTour.headquarters || registryTour.headquarters,
+        established: dbTour.established_year || dbTour.established || registryTour.established,
+        official_website: dbTour.official_website || registryTour.official_website,
+        // Always use registry for rich schedule data (DB doesn't have it)
+        typical_buyins: registryTour.typical_buyins || null,
+        regions: (Array.isArray(dbTour.regions) && dbTour.regions.length > 0)
+            ? dbTour.regions
+            : registryTour.regions || [],
+        notes: dbTour.notes || registryTour.notes,
+        series_2026: registryTour.series_2026 || [],
+        stops_2026: registryTour.stops_2026 || [],
+        priority: registryTour.priority || 3,
+        is_traveling: !STATIONARY_CODES.has(dbTour.tour_code),
+    };
 }
 
 // Build venue name → ID lookup for cross-linking
@@ -53,38 +97,77 @@ function buildVenueNameLookup() {
     return lookup;
 }
 
-function findVenueId(venueName, lookup) {
-    if (!venueName) return null;
-    const lower = venueName.toLowerCase();
-    // Exact match
-    if (lookup[lower]) return lookup[lower];
-    // Partial match: check if any venue name is contained in the series venue string
-    for (const [name, id] of Object.entries(lookup)) {
-        if (lower.indexOf(name) !== -1 || name.indexOf(lower) !== -1) return id;
-    }
-    return null;
-}
-
 const venueLookup = buildVenueNameLookup();
 
-// Get tour series/stops for 2026
-function getUpcomingSeries(tourCode) {
-    const series = tourSeriesData.series_2026 || [];
-    const today = new Date().toISOString().split('T')[0];
+// Get upcoming series from registry stops/series data
+function getUpcomingSeries(tourCode, registryTours) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
 
-    // Assign global numeric IDs (matching series API: index + 1)
-    const withIds = series.map((s, i) => ({
-        ...s,
-        id: i + 1,
-        venue_id: findVenueId(s.venue, venueLookup),
-    }));
+    // Parse informal dates like "Apr 2-13" or "Feb 22 - Mar 9"
+    function parseInformalDate(dateStr) {
+        if (!dateStr) return null;
+        const parts = dateStr.split(/\s*[-–]\s*/);
+        const parseOne = (s, fallbackMonth) => {
+            if (!s) return null;
+            s = s.trim().replace(',', '');
+            const m = s.match(/^([A-Z][a-z]{2})\s+(\d{1,2})(?:\s+(\d{4}))?/);
+            if (m) {
+                const month = MONTHS[m[1]];
+                if (month === undefined) return null;
+                const year = m[3] ? parseInt(m[3]) : 2026;
+                return new Date(year, month, parseInt(m[2]));
+            }
+            const dayOnly = s.match(/^(\d{1,2})$/);
+            if (dayOnly && fallbackMonth !== undefined) {
+                return new Date(2026, fallbackMonth, parseInt(dayOnly[1]));
+            }
+            return null;
+        };
+        const start = parseOne(parts[0]);
+        if (!start) return null;
+        let end = start;
+        if (parts.length >= 2) {
+            end = parseOne(parts[parts.length - 1], start.getMonth()) || start;
+            if (end < start && !dateStr.includes('2025')) {
+                end.setFullYear(end.getFullYear() + 1);
+            }
+        }
+        return { start, end };
+    }
 
-    return withIds
-        .filter(s => {
-            if (tourCode && s.tour !== tourCode) return false;
-            return s.end_date >= today;
-        })
-        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+    const results = [];
+    const toursToCheck = registryTours || getToursFromRegistry();
+
+    for (const tour of toursToCheck) {
+        if (tourCode && tour.tour_code !== tourCode) continue;
+
+        // Combine stops and series
+        const allStops = [
+            ...(tour.stops_2026 || []).map(s => ({ ...s, tour: tour.tour_code })),
+            ...(tour.series_2026 || []).map(s => ({ ...s, tour: tour.tour_code })),
+        ];
+
+        for (const stop of allStops) {
+            const dates = parseInformalDate(stop.dates);
+            if (!dates) continue;
+            
+            // Include if end date is today or later
+            if (dates.end >= today) {
+                results.push({
+                    ...stop,
+                    tour: tour.tour_code,
+                    start_date: dates.start.toISOString().split('T')[0],
+                    end_date: dates.end.toISOString().split('T')[0],
+                    short_name: stop.name || stop.venue || 'Tour Stop',
+                });
+            }
+        }
+    }
+
+    return results.sort((a, b) => a.start_date.localeCompare(b.start_date));
 }
 
 export default async function handler(req, res) {
@@ -102,28 +185,53 @@ export default async function handler(req, res) {
               search,
               tour_code,      // Specific tour
               include_series, // Include upcoming series
+              traveling_only, // Exclude stationary casino series
               limit = 50
           } = req.query;
 
-          // Try to get from database first
-          let dbTours = [];
+          const excludeStationary = traveling_only === 'true';
+
+          // Get registry tours (always available, has rich data)
+          const registryTours = getToursFromRegistry(excludeStationary);
+          const registryByCode = {};
+          registryTours.forEach(t => { registryByCode[t.tour_code] = t; });
+
+          // Try to get DB tours
+          let tours = [];
+          let source = 'registry';
           try {
               const { data, error } = await getSupabase()
                   .from('tour_source_registry')
                   .select('*')
                   .eq('is_active', true)
                   .order('tour_type', { ascending: true })
-                      .limit(100);
+                  .limit(100);
 
               if (!error && data && data.length > 0) {
-                  dbTours = data;
+                  // Merge DB with registry data
+                  const mergedFromDb = data
+                      .filter(d => !excludeStationary || !STATIONARY_CODES.has(d.tour_code))
+                      .map(d => mergeWithRegistry(d, registryByCode[d.tour_code]));
+
+                  // Add registry-only tours not in DB
+                  const dbCodes = new Set(data.map(d => d.tour_code));
+                  const registryOnly = registryTours
+                      .filter(t => !dbCodes.has(t.tour_code));
+
+                  tours = [...mergedFromDb, ...registryOnly];
+                  source = 'merged';
               }
           } catch (e) {
-              // DB not available, use fallback
+              // DB not available
           }
 
-          // Use registry as fallback/primary source
-          let tours = dbTours.length > 0 ? dbTours : getToursFromRegistry();
+          // Fall back to registry-only
+          if (tours.length === 0) {
+              tours = registryTours;
+          }
+
+          // Sort by priority
+          tours.sort((a, b) => (a.priority || 99) - (b.priority || 99));
 
           // Filter by tour type
           if (type) {
@@ -155,19 +263,26 @@ export default async function handler(req, res) {
               );
           }
 
-          // Optionally include upcoming series for each tour
+          // Attach upcoming series from registry data
           if (include_series === 'true') {
+              const allUpcoming = getUpcomingSeries(null, registryTours);
+              const seriesByTour = {};
+              allUpcoming.forEach(s => {
+                  if (!seriesByTour[s.tour]) seriesByTour[s.tour] = [];
+                  seriesByTour[s.tour].push(s);
+              });
+
               tours = tours.map(tour => ({
                   ...tour,
-                  upcoming_series: getUpcomingSeries(tour.tour_code).slice(0, 5)
+                  upcoming_series: (seriesByTour[tour.tour_code] || []).slice(0, 5),
               }));
           }
 
-          // Get upcoming series count for summary
-          const upcomingSeries = getUpcomingSeries(null);
-          const seriesByTour = {};
-          upcomingSeries.forEach(s => {
-              seriesByTour[s.tour] = (seriesByTour[s.tour] || 0) + 1;
+          // Get summary stats
+          const allUpcoming = getUpcomingSeries(null, registryTours);
+          const seriesCountByTour = {};
+          allUpcoming.forEach(s => {
+              seriesCountByTour[s.tour] = (seriesCountByTour[s.tour] || 0) + 1;
           });
 
           return res.status(200).json({
@@ -177,24 +292,23 @@ export default async function handler(req, res) {
               summary: {
                   total_tours: tours.length,
                   by_type: countByField(tours, 'tour_type'),
-                  upcoming_series_count: upcomingSeries.length,
-                  series_by_tour: seriesByTour
+                  upcoming_series_count: allUpcoming.length,
+                  series_by_tour: seriesCountByTour,
               },
               metadata: {
-                  source: dbTours.length > 0 ? 'database' : 'registry',
-                  last_updated: tourRegistry.metadata?.created || '2026-01-26'
-              }
+                  source,
+                  last_updated: tourRegistry.metadata?.created || '2026-01-26',
+              },
           });
 
       } catch (error) {
           console.error('Tours API error:', error);
-          // Return fallback data
           const tours = getToursFromRegistry();
           return res.status(200).json({
               success: true,
               data: tours,
               total: tours.length,
-              error: error.message
+              error: error.message,
           });
       }
 

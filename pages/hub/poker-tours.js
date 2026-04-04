@@ -37,11 +37,15 @@ const TOUR_COLORS = {
     'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981', fill: '#10b981' },
     'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6', fill: '#8b5cf6' },
     'TRITON': { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff', border: '#06b6d4', fill: '#06b6d4' },
-    'VENETIAN': { bg: 'linear-gradient(135deg, #b91c1c, #7f1d1d)', text: '#fff', border: '#ef4444', fill: '#ef4444' },
-    'WYNN': { bg: 'linear-gradient(135deg, #a16207, #713f12)', text: '#fff', border: '#eab308', fill: '#eab308' },
-    'BORGATA': { bg: 'linear-gradient(135deg, #7c3aed, #4c1d95)', text: '#fff', border: '#a78bfa', fill: '#a78bfa' },
-    'SEMINOLE': { bg: 'linear-gradient(135deg, #ca8a04, #854d0e)', text: '#000', border: '#facc15', fill: '#facc15' },
-    'LODGE': { bg: 'linear-gradient(135deg, #166534, #14532d)', text: '#fff', border: '#22c55e', fill: '#22c55e' },
+    'EPT': { bg: 'linear-gradient(135deg, #dc2626, #7f1d1d)', text: '#fff', border: '#ef4444', fill: '#ef4444' },
+    'NAPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#f87171', fill: '#f87171' },
+    'CPPT': { bg: 'linear-gradient(135deg, #0f766e, #134e4a)', text: '#fff', border: '#2dd4bf', fill: '#2dd4bf' },
+    'APT': { bg: 'linear-gradient(135deg, #b45309, #78350f)', text: '#fff', border: '#f59e0b', fill: '#f59e0b' },
+    'BPO': { bg: 'linear-gradient(135deg, #0369a1, #0c4a6e)', text: '#fff', border: '#38bdf8', fill: '#38bdf8' },
+    'FPN': { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff', border: '#818cf8', fill: '#818cf8' },
+    'LIPS': { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff', border: '#ec4899', fill: '#ec4899' },
+    'ROUGHRIDER': { bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff', border: '#d97706', fill: '#d97706' },
+    'CARD_PLAYER_CRUISES': { bg: 'linear-gradient(135deg, #0e7490, #164e63)', text: '#fff', border: '#22d3ee', fill: '#22d3ee' },
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563', fill: '#6b7280' }
 };
 
@@ -94,12 +98,12 @@ export default function PokerToursPage() {
     // ─── Fetch tours data ───
     useEffect(() => {
         setLoading(true);
-        fetch('/api/poker/tours?include_series=true&limit=100')
+        fetch('/api/poker/tours?include_series=true&traveling_only=true&limit=100')
             .then(r => r.json())
             .then(json => {
                 const tourData = json.data || json.tours || [];
-                // ONLY traveling tours - exclude stationary casino series
-                setTours(tourData.filter(t => t.tour_type !== 'regional'));
+                // API handles stationary filtering with traveling_only=true
+                setTours(tourData);
             })
             .catch(() => setTours([]))
             .finally(() => setLoading(false));
@@ -313,14 +317,20 @@ export default function PokerToursPage() {
             case 'priority': result.sort((a, b) => (a.priority || 99) - (b.priority || 99)); break;
             case 'date': 
                 result.sort((a, b) => {
-                    const today = new Date().toISOString().split('T')[0];
                     const getNextDate = (t) => {
+                        // 1. Check upcoming_series (from API merge)
                         const series = t.upcoming_series || [];
-                        if (series.length === 0) return '9999-12-31';
-                        // Keep things simple since data payload is mixed sometimes
-                        const upcoming = series.filter(s => (s.end_date || s.start_date || s.dates || '') >= today || !s.start_date);
-                        if (upcoming.length === 0) return '9999-12-31';
-                        return upcoming[0].start_date || '9999-12-31';
+                        if (series.length > 0 && series[0].start_date) {
+                            return series[0].start_date;
+                        }
+                        // 2. Parse stops_2026 / series_2026 dates
+                        const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
+                        if (allStops.length === 0) return '9999-12-31';
+                        const parsed = allStops.map(s => parseStopDates(s.dates)).filter(Boolean);
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        const upcoming = parsed.filter(d => d.end >= today).sort((x, y) => x.start - y.start);
+                        if (upcoming.length > 0) return upcoming[0].start.toISOString().split('T')[0];
+                        return '9999-12-31';
                     };
                     return getNextDate(a).localeCompare(getNextDate(b));
                 }); 
@@ -524,7 +534,23 @@ export default function PokerToursPage() {
                                     const buyinMin = tour.typical_buyins?.min;
                                     const buyinMax = tour.typical_buyins?.max;
                                     const hasBuyins = buyinMin || buyinMax;
-                                    const series = tour.upcoming_series || [];
+                                    // Prefer API-provided upcoming_series, fall back to registry stops
+                                    let series = tour.upcoming_series || [];
+                                    if (series.length === 0) {
+                                        const allStops = [...(tour.stops_2026 || []), ...(tour.series_2026 || [])];
+                                        // Convert to display format, only include today or upcoming
+                                        const today = new Date(); today.setHours(0,0,0,0);
+                                        series = allStops.map(s => {
+                                            const parsed = parseStopDates(s.dates);
+                                            if (!parsed || parsed.end < today) return null;
+                                            return {
+                                                short_name: s.name || s.venue || 'Tour Stop',
+                                                start_date: parsed.start.toISOString().split('T')[0],
+                                                end_date: parsed.end.toISOString().split('T')[0],
+                                                dates: s.dates,
+                                            };
+                                        }).filter(Boolean).sort((a, b) => a.start_date.localeCompare(b.start_date));
+                                    }
                                     const regions = tour.regions || [];
 
                                     return (
@@ -603,7 +629,7 @@ export default function PokerToursPage() {
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                                                         </svg>
-                                                        Upcoming Series ({series.length})
+                                                        Upcoming Stops ({series.length})
                                                     </div>
                                                     {series.slice(0, 3).map((s, i) => (
                                                         <div key={i} className="tour-series-item">

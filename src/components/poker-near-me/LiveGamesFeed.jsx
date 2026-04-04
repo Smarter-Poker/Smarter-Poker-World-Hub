@@ -284,6 +284,8 @@ export default function LiveGamesFeed({
         for (const v of venues) {
             if (v.name) venueByName[v.name.toLowerCase()] = v;
             if (v.bravo_slug) venueBySlug[v.bravo_slug] = v;
+            // Also index by 'slug' — all-venues.json uses 'slug' not 'bravo_slug'
+            if (v.slug && !venueBySlug[v.slug]) venueBySlug[v.slug] = v;
         }
 
         let list = [];
@@ -721,46 +723,38 @@ export default function LiveGamesFeed({
 
     return (
         <div style={{ padding: '0 0 40px' }}>
-            {/* ─── HEADER ─── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 16px' }}>
-                <div>
-                    <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>Live Games</h2>
-                    <p style={{ fontSize: 12, color: 'rgba(200,214,229,0.4)', margin: 0 }}>
-                        Powered By Smarter.Poker Intelligence
-                    </p>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    {/* Mobile filter toggle */}
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="lgf-filter-toggle"
-                        style={{
-                            display: 'none', /* shown via CSS media query */
-                            alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10,
-                            background: sidebarOpen ? 'rgba(212,168,83,0.15)' : 'rgba(255,255,255,0.05)',
-                            border: sidebarOpen ? '1px solid rgba(212,168,83,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                            color: sidebarOpen ? '#d4a853' : '#8b949e', fontSize: 12, fontWeight: 700,
-                            cursor: 'pointer', fontFamily: 'inherit',
-                        }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
-                        Filters
-                    </button>
-                    <button 
-                        onClick={handleResetFilters}
-                        style={{ 
-                            background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)', 
-                            color: '#fff', border: '1px solid rgba(255,255,255,0.1)', 
-                            borderRadius: 10, padding: '8px 14px', fontSize: 12, 
-                            fontWeight: 700, cursor: 'pointer', display: 'flex', 
-                            alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(46,160,67,0.4)',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.3)', fontFamily: 'inherit',
-                        }}
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                        </svg>
-                        RESET
-                    </button>
-                </div>
+            {/* ─── CONTROLS (no header — attribution is on the map) ─── */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12, padding: '0 16px', gap: 8 }}>
+                {/* Mobile filter toggle */}
+                <button onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="lgf-filter-toggle"
+                    style={{
+                        display: 'none', /* shown via CSS media query */
+                        alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10,
+                        background: sidebarOpen ? 'rgba(212,168,83,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: sidebarOpen ? '1px solid rgba(212,168,83,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                        color: sidebarOpen ? '#d4a853' : '#8b949e', fontSize: 12, fontWeight: 700,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                    }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
+                    Filters
+                </button>
+                <button 
+                    onClick={handleResetFilters}
+                    style={{ 
+                        background: 'linear-gradient(180deg, #3fb950 0%, #2ea043 100%)', 
+                        color: '#fff', border: '1px solid rgba(255,255,255,0.1)', 
+                        borderRadius: 10, padding: '8px 14px', fontSize: 12, 
+                        fontWeight: 700, cursor: 'pointer', display: 'flex', 
+                        alignItems: 'center', gap: 5, boxShadow: '0 4px 12px rgba(46,160,67,0.4)',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)', fontFamily: 'inherit',
+                    }}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    RESET
+                </button>
             </div>
 
             {/* ─── GPS LOCATION BANNER ─── */}

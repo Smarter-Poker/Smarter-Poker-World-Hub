@@ -313,9 +313,17 @@ export default function PokerNearMePage() {
         showNewcomerFriendly: true
     });
 
-    // Intro video state - only show when navigated from World Hub (via sessionStorage flag)
+    // Intro video state - ONLY show when navigated directly from World Hub card click
+    // NOT when navigating via lobby pods (which add ?tab= params)
     const [showIntro, setShowIntro] = useState(() => {
         if (typeof window !== 'undefined') {
+            // If there's a tab param in the URL, user came from lobby — never play intro
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab')) {
+                // Consume the flag so it doesn't stick around
+                sessionStorage.removeItem('poker-near-me-from-hub');
+                return false;
+            }
             // Only play intro when user came from World Hub page (flag set by WorldHub.tsx)
             const fromHub = sessionStorage.getItem('poker-near-me-from-hub');
             if (fromHub === '1' && !sessionStorage.getItem('poker-near-me-intro-seen')) {
@@ -342,9 +350,9 @@ export default function PokerNearMePage() {
     const [currentTutorialTab, setCurrentTutorialTab] = useState(null);
 
     // Trigger tab tutorial on first visit to each tab
-    // DISABLED on mobile — tutorials block the entire mobile view
+    // DISABLED on mobile/tablet — tutorials block the entire mobile view
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth < 600) return; // skip on mobile
+        if (typeof window !== 'undefined' && window.innerWidth < 900) return; // skip on mobile + tablet
         if (activeTab && !tabTutorialsSeen[activeTab] && PNM_TAB_TUTORIALS[activeTab]) {
             // Small delay to let the tab content render first
             const timer = setTimeout(() => {
@@ -2725,6 +2733,36 @@ export default function PokerNearMePage() {
                     <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 
+                {/* ═══ MOBILE GPS ACTION ROW — visible only on mobile ═══ */}
+                <div className="mobile-gps-row">
+                    {!userLocation ? (
+                        <button
+                            className={'mobile-gps-enable-btn' + (gpsLoading ? ' loading' : '')}
+                            onClick={requestGpsLocation}
+                            disabled={gpsLoading}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                            </svg>
+                            {gpsLoading ? 'Locating...' : 'Enable GPS For Nearby Venues'}
+                        </button>
+                    ) : gpsLocationLabel ? (
+                        <div className="mobile-gps-active">
+                            <div className="mobile-gps-pulse" />
+                            <div className="mobile-gps-info">
+                                <span className="mobile-gps-label-text">Your Location</span>
+                                <strong className="mobile-gps-city">{gpsLocationLabel}</strong>
+                            </div>
+                            <button
+                                className="mobile-gps-clear"
+                                onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }}
+                                aria-label="Clear location"
+                            >&times;</button>
+                        </div>
+                    ) : null}
+                </div>
+
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
                 <div className="pnm-layout">
 
@@ -3386,6 +3424,115 @@ export default function PokerNearMePage() {
                     .sidebar-select:focus {
                         border-color: rgba(212,168,83,0.4);
                         outline: none;
+                    }
+
+                    /* ═══ MOBILE GPS ACTION ROW ═══ */
+                    .mobile-gps-row {
+                        display: none; /* hidden on desktop — sidebar has its own GPS button */
+                    }
+                    @media (max-width: 768px) {
+                        .mobile-gps-row {
+                            display: block;
+                            padding: 0 14px 8px;
+                        }
+                        .mobile-gps-enable-btn {
+                            width: 100%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 10px;
+                            padding: 14px 16px;
+                            background: linear-gradient(135deg, rgba(34,197,94,0.18), rgba(16,185,129,0.12));
+                            border: 2px solid rgba(34,197,94,0.45);
+                            border-radius: 12px;
+                            color: #4ade80;
+                            font-size: 14px;
+                            font-weight: 700;
+                            font-family: inherit;
+                            cursor: pointer;
+                            transition: all 0.25s;
+                            box-shadow: 0 0 16px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+                            letter-spacing: 0.3px;
+                            animation: mobileGpsPulse 3s ease-in-out infinite;
+                        }
+                        .mobile-gps-enable-btn:active {
+                            transform: scale(0.97);
+                        }
+                        .mobile-gps-enable-btn.loading {
+                            opacity: 0.6;
+                            pointer-events: none;
+                            animation: none;
+                        }
+                        @keyframes mobileGpsPulse {
+                            0%, 100% { box-shadow: 0 0 16px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.05); }
+                            50% { box-shadow: 0 0 24px rgba(34,197,94,0.25), inset 0 1px 0 rgba(255,255,255,0.05); }
+                        }
+                        .mobile-gps-active {
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                            padding: 10px 14px;
+                            background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(16,185,129,0.05));
+                            border: 1.5px solid rgba(34,197,94,0.3);
+                            border-radius: 12px;
+                        }
+                        .mobile-gps-pulse {
+                            width: 10px;
+                            height: 10px;
+                            border-radius: 50%;
+                            background: #22c55e;
+                            flex-shrink: 0;
+                            box-shadow: 0 0 6px rgba(34,197,94,0.4);
+                            animation: gpsDotPulse 2s ease-in-out infinite;
+                        }
+                        @keyframes gpsDotPulse {
+                            0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+                            50% { opacity: 0.6; box-shadow: 0 0 12px rgba(34,197,94,0.6); }
+                        }
+                        .mobile-gps-info {
+                            flex: 1;
+                            min-width: 0;
+                            display: flex;
+                            flex-direction: column;
+                            gap: 1px;
+                        }
+                        .mobile-gps-label-text {
+                            font-size: 10px;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            color: rgba(74,222,128,0.7);
+                        }
+                        .mobile-gps-city {
+                            font-size: 14px;
+                            font-weight: 700;
+                            color: #e2e8f0;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .mobile-gps-clear {
+                            background: rgba(200,214,229,0.06);
+                            border: 1px solid rgba(200,214,229,0.15);
+                            border-radius: 50%;
+                            width: 28px;
+                            height: 28px;
+                            color: rgba(200,214,229,0.5);
+                            font-size: 16px;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                            padding: 0;
+                            line-height: 1;
+                            transition: all 0.2s;
+                        }
+                        .mobile-gps-clear:active {
+                            background: rgba(239,68,68,0.15);
+                            border-color: rgba(239,68,68,0.3);
+                            color: #f87171;
+                        }
                     }
 
                     /* ═══ MAIN CONTENT AREA ═══ */
@@ -6345,6 +6492,13 @@ export default function PokerNearMePage() {
                 isOpen={showLocationModal}
                 onClose={() => setShowLocationModal(false)}
                 onRetry={() => { setShowLocationModal(false); requestGpsLocation(); }}
+                onManualEntry={() => {
+                    // Focus the search input for manual city entry
+                    setTimeout(() => {
+                        const searchEl = document.querySelector('.sidebar-search-input');
+                        if (searchEl) { searchEl.focus(); searchEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    }, 200);
+                }}
             />
 
             {/* ═══ Tab-Specific Interactive Tutorial ═══ */}
