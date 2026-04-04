@@ -50,6 +50,7 @@ function MiniCard({ card, size = 'sm' }) {
 export default function HandReplayViewer({ handHistory, onClose }) {
     const [selectedHandIndex, setSelectedHandIndex] = useState(0);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'detail'
+    const [filterMistakesOnly, setFilterMistakesOnly] = useState(false); // Phase 39: mistakes filter
 
     const selectedHand = handHistory[selectedHandIndex];
     const handData = selectedHand?.handData || selectedHand || {};
@@ -97,6 +98,20 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                         style={{ ...styles.toggleBtn, ...(viewMode === 'detail' ? styles.toggleBtnActive : {}) }}
                     >
                         Detail
+                    </button>
+                    {/* Phase 39: Mistakes filter */}
+                    <button
+                        onClick={() => setFilterMistakesOnly(v => !v)}
+                        style={{
+                            ...styles.toggleBtn,
+                            ...(filterMistakesOnly ? {
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                color: '#f87171',
+                                borderColor: 'rgba(239, 68, 68, 0.3)',
+                            } : {}),
+                        }}
+                    >
+                        {filterMistakesOnly ? '✗ Mistakes' : 'All'}
                     </button>
                 </div>
             </div>
@@ -221,6 +236,26 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 </div>
                             )}
 
+                            {/* Phase 39: Spot Context — rich question text from engine */}
+                            {handData.question && (
+                                <div style={{
+                                    marginTop: 12, padding: '8px 12px',
+                                    background: 'rgba(255,255,255,0.02)',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                }}>
+                                    <div style={{
+                                        fontSize: 9, fontWeight: 700, color: '#94a3b8',
+                                        textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
+                                    }}>
+                                        SPOT CONTEXT
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#cbd5e1', lineHeight: 1.5 }}>
+                                        {handData.question}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Phase 27: Strategic Explanation */}
                             {handData.explanation && (
                                 <div style={{
@@ -317,7 +352,8 @@ export default function HandReplayViewer({ handHistory, onClose }) {
             ) : (
                 /* LIST VIEW — Compact scrollable list */
                 <div style={styles.listView}>
-                    {handHistory.map((entry, i) => {
+                    {handHistory.filter(entry => !filterMistakesOnly || ['inaccuracy', 'wrong', 'blunder'].includes(entry.classification)).map((entry, i) => {
+                        const originalIndex = handHistory.indexOf(entry);
                         const c = CLASSIFICATION_CONFIG[entry.classification] || CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.WRONG];
                         const hd = entry.handData || entry;
                         return (
@@ -326,10 +362,10 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: i * 0.03 }}
-                                onClick={() => { setSelectedHandIndex(i); setViewMode('detail'); }}
+                                onClick={() => { setSelectedHandIndex(originalIndex); setViewMode('detail'); }}
                                 style={styles.listItem}
                             >
-                                <div style={{ ...styles.listNum, borderColor: c.borderColor }}>{i + 1}</div>
+                                <div style={{ ...styles.listNum, borderColor: c.borderColor }}>{originalIndex + 1}</div>
                                 <div style={{
                                     ...styles.listBadge,
                                     background: c.bgColor, borderColor: c.borderColor, color: c.color,
