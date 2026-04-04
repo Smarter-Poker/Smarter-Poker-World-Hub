@@ -393,6 +393,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
         setTimeout(() => {
             clearInterval(searchTimerRef.current);
             setMatchmakingPhase('found');
+            SoundEngine.play('matchFound');
 
             const opp = getSimulatedOpponent(playerElo, horses);
             setOpponent(opp);
