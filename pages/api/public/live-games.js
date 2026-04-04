@@ -187,7 +187,7 @@ async function handlePost(req, res) {
 
     } catch (err) {
         console.error('Report live game error:', err);
-        return res.status(500).json({ error: err.message || 'Failed to report game' });
+        return res.status(500).json({ error: 'Failed to report game' });
     }
 }
 
@@ -195,13 +195,14 @@ async function handleGet(req, res) {
     try {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         const { venue_id, limit = 20 } = req.query;
+        const clampedLimit = Math.max(1, Math.min(100, parseInt(limit) || 20));
 
         let query = supabase
             .from('venue_live_reports')
             .select('*')
             .gte('expires_at', new Date().toISOString())
             .order('reported_at', { ascending: false })
-            .limit(parseInt(limit));
+            .limit(clampedLimit);
 
         if (venue_id) {
             query = query.eq('venue_id', venue_id);
@@ -224,6 +225,6 @@ async function handleGet(req, res) {
 
     } catch (err) {
         console.error('Get live reports error:', err);
-        return res.status(500).json({ error: err.message || 'Failed to fetch reports' });
+        return res.status(500).json({ error: 'Failed to fetch reports' });
     }
 }

@@ -21,7 +21,7 @@
  * @returns {number} Distance in miles
  */
 export function haversineMiles(lat1, lng1, lat2, lng2) {
-    if (!lat1 || !lng1 || !lat2 || !lng2) return 0;
+    if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) return 0;
     const R = 3958.8;
     const toRad = (d) => (d * Math.PI) / 180;
     const dLat = toRad(lat2 - lat1);
