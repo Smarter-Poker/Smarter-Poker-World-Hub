@@ -3714,9 +3714,26 @@ function UniversalDynamicTable({
                             }
                             if (moveClassification === 'correct') {
                                 const selFreq = computedFrequencies?.[selectedAnswer] || 0;
-                                if (selFreq >= 30) return `Good — ${selectedOpt} at ${selFreq}% is a solid part of the GTO mix. The solver also uses ${correctOpt} at ${correctFreq}%.`;
-                                if (selFreq >= 15) return `Acceptable — ${selectedOpt} at ${selFreq}% is in the solver's strategy, though ${correctOpt} at ${correctFreq}% is higher-frequency.`;
-                                return `Part of the mix — ${selectedOpt} is used ${selFreq}% of the time. ${correctOpt} at ${correctFreq}% is the primary action.`;
+                                const freqGap = correctFreq - selFreq;
+                                // Explain why the primary action is preferred
+                                const selA = selectedAnswer?.toLowerCase() || '';
+                                const corA = correctAnswer?.toLowerCase() || '';
+                                let mixContext = '';
+                                if ((corA.startsWith('b') || corA === 'allin') && (selA === 'c' || selA === 'x')) {
+                                    mixContext = ' The solver bets more often here to deny equity and extract value.';
+                                } else if ((selA.startsWith('b') || selA === 'allin') && (corA === 'c' || corA === 'x')) {
+                                    mixContext = ' The solver checks more to trap and balance the checking range.';
+                                } else if (selA === 'call' && (corA.startsWith('r') || corA === 'allin')) {
+                                    mixContext = ' The solver raises more to build the pot and apply maximum pressure.';
+                                } else if ((selA.startsWith('r') || selA === 'allin') && corA === 'call') {
+                                    mixContext = ' The solver flats more to keep villain\'s bluffs in and control the pot.';
+                                } else if (selA === 'f' && corA === 'call') {
+                                    mixContext = ' The solver calls more to defend at the right frequency against bluffs.';
+                                }
+                                if (selFreq >= 30) return `Good — ${selectedOpt} at ${selFreq}% is a solid part of the GTO mix.${mixContext || ` The solver also uses ${correctOpt} at ${correctFreq}%.`}`;
+                                if (selFreq >= 15) return `Acceptable — ${selectedOpt} at ${selFreq}% is in the solver's strategy, though ${correctOpt} at ${correctFreq}% is higher-frequency.${mixContext}`;
+                                if (freqGap > 50) return `Part of the mix — ${selectedOpt} is used ${selFreq}% of the time, but ${correctOpt} at ${correctFreq}% is strongly preferred.${mixContext}`;
+                                return `Part of the mix — ${selectedOpt} is used ${selFreq}% of the time.${mixContext || ` ${correctOpt} at ${correctFreq}% is the primary action.`}`;
                             }
                             if (moveClassification === 'inaccuracy') return `${correctOpt} is the solver's primary action${correctFreq > 0 ? ` at ${correctFreq}%` : ''}. ${mistakeFeedback}`;
                             if (moveClassification === 'wrong') return `${mistakeFeedback || `The solver prefers ${correctOpt}${correctFreq > 0 ? ` (${correctFreq}%)` : ''}.`}`;
