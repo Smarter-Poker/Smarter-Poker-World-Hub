@@ -521,6 +521,20 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 160: Positional awareness ═══
         try { deterministicEngine.recordPositionalDecision(scenario.heroPosition || '', isCorrect); } catch (e) { /* non-critical */ }
 
+        // ═══ PHASE 180: Question type diversity ═══
+        try { deterministicEngine.recordQuestionType(`${scenario.street || 'flop'}:${scenario.nodeType || 'general'}`); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 185: User vs solver frequency ═══
+        try { deterministicEngine.recordUserAction(selectedOptionId, correctAnswer, scenario.street || 'flop', scenario.nodeType || ''); } catch (e) { /* non-critical */ }
+
+        // ═══ PHASE 190: Hand history replay ═══
+        try {
+            deterministicEngine.recordHandForReplay(
+                scenario, currentQuestion.heroHand || '', currentQuestion.board || [],
+                selectedOptionId, correctAnswer, currentQuestion.explanation || ''
+            );
+        } catch (e) { /* non-critical */ }
+
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback
         if (isCorrect) {
@@ -1187,6 +1201,62 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 160: Positional awareness ═══
         getPositionalAwarenessScore: () => {
             try { return deterministicEngine.getPositionalAwarenessScore(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 178: Streak messages ═══
+        getStreakMessage: (streak) => {
+            try { return deterministicEngine.getStreakMessage(streak); } catch (e) { return null; }
+        },
+        // ═══ PHASE 181-183: Quiz generators ═══
+        generateTextureQuiz: (board) => {
+            try { return deterministicEngine.generateTextureQuiz(board); } catch (e) { return null; }
+        },
+        generateRangeQuiz: (position) => {
+            try { return deterministicEngine.generateRangeQuiz(position); } catch (e) { return null; }
+        },
+        generatePotOddsQuiz: () => {
+            try { return deterministicEngine.generatePotOddsQuiz(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 185: Frequency comparison ═══
+        getFrequencyComparison: () => {
+            try { return deterministicEngine.getFrequencyComparison(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 187: Leak finder ═══
+        generateLeakFinderReport: () => {
+            try { return deterministicEngine.generateLeakFinderReport(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 188: Timing analysis ═══
+        getTimingAnalysis: () => {
+            try { return deterministicEngine.getTimingAnalysis(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 190: Hand history ═══
+        getHandHistory: (filter) => {
+            try { return filter ? deterministicEngine.getFilteredHandHistory(filter) : deterministicEngine.getHandHistory(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 191: Custom drills ═══
+        createCustomDrill: (config) => {
+            try { return deterministicEngine.createCustomDrill(config); } catch (e) { return null; }
+        },
+        getCustomDrills: () => {
+            try { return deterministicEngine.getCustomDrills(); } catch (e) { return []; }
+        },
+        // ═══ PHASE 192: Progressive level ═══
+        getProgressiveLevel: () => {
+            try { return deterministicEngine.getProgressiveLevelDescription(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 196: Thought prompts ═══
+        generateThoughtPrompts: (scenario, heroHand, board) => {
+            try { return deterministicEngine.generateThoughtPrompts(scenario, heroHand, board); } catch (e) { return []; }
+        },
+        // ═══ PHASE 198: Mental game ═══
+        getMentalGameNote: () => {
+            try { return deterministicEngine.getMentalGameNote(); } catch (e) { return null; }
+        },
+        // ═══ PHASE 200: Engine health ═══
+        getEngineHealth: () => {
+            try { return deterministicEngine.getEngineHealth(); } catch (e) { return null; }
+        },
+        resetSession: () => {
+            try { deterministicEngine.resetSession(); } catch (e) { /* non-critical */ }
         },
 
         // Actions
