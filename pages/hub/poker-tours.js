@@ -539,7 +539,7 @@ export default function PokerToursPage() {
                                     const isFav = !!favorites[tour.tour_code];
                                     const buyinMin = tour.typical_buyins?.min;
                                     const buyinMax = tour.typical_buyins?.max;
-                                    const hasBuyins = buyinMin || buyinMax;
+                                    const hasBuyins = buyinMin != null || buyinMax != null;
                                     // Prefer API-provided upcoming_series, fall back to registry stops
                                     let series = tour.upcoming_series || [];
                                     if (series.length === 0) {
@@ -614,7 +614,7 @@ export default function PokerToursPage() {
                                                         <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                                                     </svg>
                                                     <span>
-                                                        Buy-ins: {formatMoney(buyinMin)}{buyinMin && buyinMax ? ' – ' : ''}{formatMoney(buyinMax)}
+                                                        Buy-ins: {formatMoney(buyinMin)}{buyinMin != null && buyinMax != null ? ' – ' : ''}{formatMoney(buyinMax)}
                                                     </span>
                                                 </div>
                                             )}
