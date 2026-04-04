@@ -2508,8 +2508,9 @@ export class DeterministicGTOEngine {
         let hasGutshot = false;
         let hasBackdoorStraight = false;
 
-        // Check standard windows
+        // Check standard windows — track missing cards for double gutshot detection
         let bestStraightTop = -1;
+        const straightMissingCards = []; // Track which cards complete each 4-of-5 window
         for (let start = 0; start <= 8; start++) {
             const window = [start, start + 1, start + 2, start + 3, start + 4];
             const have = window.filter(v => allValsSet.has(v)).length;
@@ -2519,6 +2520,8 @@ export class DeterministicGTOEngine {
                 if (start + 4 > bestStraightTop) bestStraightTop = start + 4;
             } else if (have === 4 && heroContributes) {
                 straightOuts++;
+                const missing = window.find(v => !allValsSet.has(v));
+                if (missing !== undefined) straightMissingCards.push(missing);
             } else if (have === 3 && heroContributes && validBoard.length === 3 && !hasMadeStraight) {
                 hasBackdoorStraight = true;
             }
@@ -2533,11 +2536,30 @@ export class DeterministicGTOEngine {
             if (3 > bestStraightTop) bestStraightTop = 3; // 5-high straight
         } else if (wheelHave === 4 && wheelHeroContributes && !hasMadeStraight) {
             straightOuts++;
+            const missing = wheelRanks.find(v => !allValsSet.has(v));
+            if (missing !== undefined) straightMissingCards.push(missing);
         }
 
+        // Double gutshot: 2+ straight windows but needing DIFFERENT cards (8 outs like OESD)
+        let hasDoubleGutshot = false;
         if (!hasMadeStraight) {
-            if (straightOuts >= 2) hasOESD = true;
-            else if (straightOuts === 1) hasGutshot = true;
+            const uniqueMissing = new Set(straightMissingCards);
+            if (straightOuts >= 2 && uniqueMissing.size >= 2) {
+                // Two different cards complete straights = double gutshot or OESD
+                // True OESD = consecutive cards needed; double gutshot = non-adjacent
+                const sortedMissing = [...uniqueMissing].sort((a, b) => a - b);
+                const isConsecutive = sortedMissing.length === 2 && Math.abs(sortedMissing[0] - sortedMissing[1]) === 1;
+                if (!isConsecutive && uniqueMissing.size >= 2) {
+                    hasDoubleGutshot = true;
+                    hasOESD = false; // Double gutshot, not OESD
+                } else {
+                    hasOESD = true;
+                }
+            } else if (straightOuts >= 2) {
+                hasOESD = true;
+            } else if (straightOuts === 1) {
+                hasGutshot = true;
+            }
         }
 
         // Check if it's the nut straight (highest possible straight using the board)
@@ -2631,6 +2653,27 @@ export class DeterministicGTOEngine {
             }
         }
 
+        // ═══ FULL HOUSE DRAW DETECTION ═══
+        let hasFHDraw = false;
+        let fhDrawType = '';
+        if (!hasFlush && !hasMadeStraight) {
+            // Set with no full house yet → board pairing gives FH
+            if (madeHand === 'a set' && validBoard.length >= 3) {
+                hasFHDraw = true;
+                fhDrawType = 'full house redraw';
+            }
+            // Two pair → any of our paired ranks gives FH
+            if (madeHand && madeHand.includes('two pair') && validBoard.length >= 3) {
+                hasFHDraw = true;
+                fhDrawType = 'full house draw';
+            }
+            // Trips on board + our pair = already FH (handled above), but trips + unpaired hero card → FH draw
+            if (madeHand === 'trips' || madeHand === 'trips, top kicker') {
+                hasFHDraw = true;
+                fhDrawType = 'full house draw';
+            }
+        }
+
         // ═══ COMBINE: Made hand + draw equity ═══
         const draws = [];
         if (hasFlush) {
@@ -2643,41 +2686,70 @@ export class DeterministicGTOEngine {
 
         if (hasMadeStraight) {
             // Already classified
+        } else if (hasDoubleGutshot) {
+            draws.push('double gutshot (8 outs)');
         } else if (hasOESD) {
             draws.push('OESD');
         } else if (hasGutshot) {
             draws.push('gutshot');
         }
 
-        // Backdoor draws on flop only (not shown on turn/river)
-        if (validBoard.length === 3 && !madeHand && draws.length === 0) {
-            const bdDraws = [];
-            if (hasBackdoorFlush) bdDraws.push('backdoor flush draw');
-            if (hasBackdoorStraight) bdDraws.push('backdoor straight draw');
-            if (bdDraws.length > 0) {
-                // With overcards, backdoor draws add playability
-                if (heroHigh > highestBoardVal && heroLow > highestBoardVal) {
-                    return `two overcards + ${bdDraws.join(' + ')}`;
-                }
-                if (heroHigh > highestBoardVal) {
-                    return `one overcard + ${bdDraws.join(' + ')}`;
-                }
-                return bdDraws.join(' + ');
-            }
+        // Add FH draw for made hands with redraw equity
+        if (hasFHDraw && madeHand) {
+            draws.push(fhDrawType);
+        }
+
+        // Backdoor draws on flop — now shown with made hands too for playability context
+        const bdDraws = [];
+        if (validBoard.length === 3) {
+            if (hasBackdoorFlush) bdDraws.push('backdoor flush');
+            if (hasBackdoorStraight) bdDraws.push('backdoor straight');
+        }
+
+        // Overcard context for draws (OESD + two overcards = 14+ outs)
+        const hasTwoOvers = heroHigh > highestBoardVal && heroLow > highestBoardVal;
+        const hasOneOver = !hasTwoOvers && heroHigh > highestBoardVal;
+
+        if (!madeHand && draws.length === 0 && bdDraws.length > 0) {
+            // Pure backdoor equity — show with overcard context
+            if (hasTwoOvers) return `two overcards + ${bdDraws.join(' + ')}`;
+            if (hasOneOver) return `one overcard + ${bdDraws.join(' + ')}`;
+            return bdDraws.join(' + ');
         }
 
         if (madeHand && draws.length > 0) {
-            return `${madeHand} + ${draws.join(' + ')}`;
+            // Made hand + draws — add backdoor context on flop if present
+            const allDraws = [...draws, ...bdDraws];
+            return `${madeHand} + ${allDraws.join(' + ')}`;
         }
-        if (madeHand) return madeHand;
+        if (madeHand) {
+            // Made hand with only backdoor equity
+            if (bdDraws.length > 0) return `${madeHand} + ${bdDraws.join(' + ')}`;
+            return madeHand;
+        }
         if (draws.length > 0) {
-            if (draws.length >= 2) return `combo draw (${draws.join(' + ')})`;
-            return draws[0];
+            // Draw-only hands — add overcard context and tier the combo draw label
+            const overStr = hasTwoOvers ? ' + two overcards' : (hasOneOver ? ' + overcard' : '');
+            const allDraws = [...draws, ...bdDraws];
+            if (allDraws.length >= 2 || (allDraws.length === 1 && overStr)) {
+                // Estimate outs for monster draw label
+                let estOuts = 0;
+                if (draws.some(d => d.includes('flush draw'))) estOuts += 9;
+                if (draws.some(d => d === 'OESD' || d.includes('double gutshot'))) estOuts += 8;
+                else if (draws.some(d => d === 'gutshot')) estOuts += 4;
+                if (hasTwoOvers) estOuts += 6;
+                else if (hasOneOver) estOuts += 3;
+
+                if (estOuts >= 15) return `monster draw (${allDraws.join(' + ')}${overStr})`;
+                if (allDraws.length >= 2) return `combo draw (${allDraws.join(' + ')}${overStr})`;
+                return `${allDraws[0]}${overStr}`;
+            }
+            return allDraws[0];
         }
 
         // No made hand, no draw
-        if (heroHigh > highestBoardVal && heroLow > highestBoardVal) return 'two overcards';
-        if (heroHigh > highestBoardVal) return 'one overcard';
+        if (hasTwoOvers) return 'two overcards';
+        if (hasOneOver) return 'one overcard';
         return heroHigh >= 9 ? 'high cards, no pair' : 'air';
     }
 
