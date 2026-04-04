@@ -1227,12 +1227,20 @@ export class DeterministicGTOEngine {
         const formatStr = context.gameFormat ? `${context.gameFormat} ` : '';
 
         if (street === 'preflop') {
-            // GTOW-style preflop: "6-Max Cash 100bb • CO — Folded to you. You hold AKs. Your action?"
+            // Phase 52: GTO Wizard-style preflop with pot type context
             const stackPart = stackStr ? ` ${stackStr}` : '';
             const prefix = formatStr ? `${formatStr}${stackPart} • ` : (stackPart ? `${stackPart} • ` : '');
+            const potType = context.potType || '';
+
             if (nodeType === 'preflop_open') {
                 return `${prefix}${heroPosition} — Folded to you. You hold ${heroHand}. Your action?`;
             } else if (nodeType === 'preflop_facing_raise') {
+                // Differentiate facing open vs facing 3-bet vs facing 4-bet
+                if (potType === '4-Bet' || potType === '4bet') {
+                    return `${prefix}${heroPosition} — Facing a 4-bet from ${villainPosition}. You hold ${heroHand}. Your action?`;
+                } else if (potType === '3-Bet' || potType === '3bet') {
+                    return `${prefix}${heroPosition} — ${villainPosition} 3-bets. You hold ${heroHand}. Your action?`;
+                }
                 return `${prefix}${heroPosition} — ${villainPosition} opens. You hold ${heroHand}. Your action?`;
             } else if (nodeType === 'preflop_bb_option') {
                 return `${prefix}BB — ${villainPosition} limps. You hold ${heroHand}. Check or raise?`;
@@ -1278,14 +1286,20 @@ export class DeterministicGTOEngine {
         // When facing a bet, extract what size villain might have used from solver actions
         let villainAction = '';
         if (nodeType === 'hero_faces_bet') {
-            // Infer villain bet size from the raise options available
-            // If solver offers raise sizes, villain's bet was proportional to pot
-            const raiseActions = solverActions.filter(a => a.toLowerCase().startsWith('r'));
-            const hasSmallRaise = raiseActions.some(a => /r(50|75)/.test(a.toLowerCase()));
-            const hasLargeRaise = raiseActions.some(a => /r(100|200|300)/.test(a.toLowerCase()));
-            villainAction = `${villainPosition} bets`;
+            // Phase 52: Infer villain bet size from scenario hash and solver actions
+            const betSizeFromHash = this._inferVillainBetSize(scenarioHash, solverActions, pot);
+            villainAction = betSizeFromHash
+                ? `${villainPosition} bets ${betSizeFromHash}`
+                : `${villainPosition} bets`;
         } else {
             villainAction = `${villainPosition} checks to you`;
+        }
+
+        // Phase 52: Pot size in BB for context
+        let potPart = '';
+        if (pot && pot > 0) {
+            const potBB = typeof pot === 'number' ? pot.toFixed(1).replace(/\.0$/, '') : pot;
+            potPart = ` Pot: ${potBB}bb.`;
         }
 
         // ═══ Phase 29: Action line context from scenario hash ═══
@@ -1293,12 +1307,46 @@ export class DeterministicGTOEngine {
 
         switch (nodeType) {
             case 'hero_bets_or_checks':
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainPosition} checks to you.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainPosition} checks to you.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             case 'hero_faces_bet':
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             default:
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext}${potPart}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
         }
+    }
+
+    /**
+     * Phase 52: Infer villain bet size from scenario hash naming convention.
+     * PIO scenario hashes often encode the bet sizes in the node path, e.g.:
+     *   "BTN_vs_BB_SRP_Flop_b33_call_Turn_b66" → villain bet 66% pot on turn
+     */
+    _inferVillainBetSize(scenarioHash, solverActions, pot) {
+        if (!scenarioHash) return null;
+        const hash = scenarioHash.toLowerCase();
+
+        // Look for the last bet size in the scenario hash path
+        // Patterns: b33, b50, b66, b75, b100, b125, b150, b200, b300
+        const betPatterns = hash.match(/[_.]b(\d+)/g);
+        if (betPatterns && betPatterns.length > 0) {
+            const lastBet = betPatterns[betPatterns.length - 1];
+            const pctMatch = lastBet.match(/b(\d+)/);
+            if (pctMatch) {
+                const pct = parseInt(pctMatch[1]);
+                // Convert percentage to BB if we have pot info
+                if (pot && pot > 0) {
+                    const betBB = ((pct / 100) * pot).toFixed(1).replace(/\.0$/, '');
+                    return `${betBB}bb (${pct}% pot)`;
+                }
+                return `${pct}% pot`;
+            }
+        }
+
+        // Check for all-in in hash
+        if (hash.includes('allin') || hash.includes('jam') || hash.includes('shove')) {
+            return 'all-in';
+        }
+
+        return null;
     }
 
     /**
