@@ -1525,10 +1525,17 @@ export class DeterministicGTOEngine {
             impacts.push(`overcard (${display})`);
         }
 
-        // Check if it's a blank/brick (low card, no draws completed)
+        // Phase 57: Enhanced brick/scare card detection
         if (impacts.length === 0) {
-            if (newVal <= 5) impacts.push('brick — low card changes nothing');
+            if (newVal <= 3) impacts.push('brick — deuce/trey changes nothing');
+            else if (newVal <= 5) impacts.push('low brick — doesn\'t change the board dynamics');
+            else if (newVal >= 9 && newVal <= 11) impacts.push('broadway card — could have connected with many hands');
             else impacts.push('relatively blank runout');
+        }
+
+        // Phase 57: Add strategic context based on combination of impacts
+        if (impacts.length >= 2 && impacts.some(i => i.includes('flush')) && impacts.some(i => i.includes('straight'))) {
+            impacts.push('double-draw completion — very dynamic card');
         }
 
         return impacts.join(', ');
