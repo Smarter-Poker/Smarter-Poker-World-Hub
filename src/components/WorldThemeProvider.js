@@ -13,8 +13,8 @@ const ROUTE_TO_WORLD = {
     '/hub/training': 'training',
     '/hub/news': 'news',
     '/hub/personal-assistant': 'personal-assistant',
-    '/hub/memory-games': 'memory-games',
-    // memory-campaign removed - use memory-games
+    '/hub/preflop-charts': 'preflop-charts',
+    '/hub/memory-games': 'preflop-charts', // Legacy redirect
     '/hub/bankroll-manager': 'bankroll-manager',
     '/hub/poker-near-me-lobby': 'poker-near-me',
     '/hub/poker-near-me': 'poker-near-me',

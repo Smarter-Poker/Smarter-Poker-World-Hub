@@ -583,18 +583,18 @@ export const MENU_CONFIGS = {
 
 
 
-    'memory-games': (user, state, handlers) => ({
+    'preflop-charts': (user, state, handlers) => ({
         menuItems: [
-            createMenuItem.section('Game Modes'),
-            createMenuItem.navigation('Speed Drill', '/hub/memory-games?mode=speed-drill'),
-            createMenuItem.navigation('Pressure Cooker', '/hub/memory-games?mode=pressure-cooker'),
-            createMenuItem.navigation('Pattern Recognition', '/hub/memory-games?mode=pattern'),
-            createMenuItem.navigation('Mixed Strategy', '/hub/memory-games?mode=mixed'),
+            createMenuItem.section('Training Modes'),
+            createMenuItem.navigation('Speed Drill', '/hub/preflop-charts?mode=speed-drill'),
+            createMenuItem.navigation('Pressure Cooker', '/hub/preflop-charts?mode=pressure-cooker'),
+            createMenuItem.navigation('Pattern Recognition', '/hub/preflop-charts?mode=pattern'),
+            createMenuItem.navigation('Mixed Strategy', '/hub/preflop-charts?mode=mixed'),
             createMenuItem.divider(),
             createMenuItem.section('Progress'),
-            createMenuItem.navigation('Leaderboard', '/hub/memory-games/leaderboard'),
-            createMenuItem.navigation('My Stats', '/hub/memory-games/stats'),
-            createMenuItem.navigation('Achievements', '/hub/memory-games/achievements'),
+            createMenuItem.navigation('Leaderboard', '/hub/preflop-charts/leaderboard'),
+            createMenuItem.navigation('My Stats', '/hub/preflop-charts/stats'),
+            createMenuItem.navigation('Achievements', '/hub/preflop-charts/achievements'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),
             createMenuItem.toggle('Sound Effects', state.soundEffects !== false, handlers.setSoundEffects),
@@ -602,7 +602,8 @@ export const MENU_CONFIGS = {
             createMenuItem.toggle('Show Timer', state.showTimer !== false, handlers.setShowTimer),
             createMenuItem.toggle('Visual Hints', state.visualHints || false, handlers.setVisualHints),
             createMenuItem.divider(),
-            createMenuItem.navigation('How to Play', '/hub/memory-games/tutorial')
+            createMenuItem.navigation('How to Play', '/hub/preflop-charts/tutorial'),
+            createMenuItem.navigation('GTO Training', '/hub/training')
         ],
         bottomLinks: [
             { label: 'Help', href: '/hub/help', icon: MenuIcons.help }

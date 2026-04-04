@@ -303,6 +303,86 @@ function createClusterIcon(L, cluster) {
   });
 }
 
+// ─── Tour Colors for map markers ───
+const TOUR_MARKER_COLORS = {
+  WSOP: '#c9a227', WPT: '#dc2626', WSOPC: '#c9a227', MSPT: '#3b82f6', RGPS: '#10b981',
+  PGT: '#8b5cf6', NAPT: '#f87171', BPO: '#38bdf8', FPN: '#818cf8', LIPS: '#ec4899',
+  ROUGHRIDER: '#d97706', PAT: '#22c55e', GCPT: '#06b6d4',
+};
+
+// ─── Helper: Create tour logo icon for map markers ───
+function createTourLogoIcon(L, venue) {
+  const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#d4a853';
+  const logoUrl = venue.logo_url;
+  const isRunning = venue.is_running;
+  const pulseRing = isRunning
+    ? `<div style="position:absolute;inset:-4px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;"></div>`
+    : '';
+
+  if (logoUrl) {
+    // Logo-based marker — round circle with the tour logo inside
+    return L.divIcon({
+      className: 'tour-logo-marker',
+      html: `<div style="position:relative;width:42px;height:42px;">
+        ${pulseRing}
+        <div style="position:absolute;inset:0;border-radius:50%;background:#0a0a15;border:2.5px solid ${tourColor};box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+          <img src="${logoUrl}" alt="" style="width:32px;height:32px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+          <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${(venue.tour_code || '').slice(0, 4)}</div>
+        </div>
+      </div>`,
+      iconSize: [42, 42],
+      iconAnchor: [21, 21],
+      popupAnchor: [0, -22],
+    });
+  }
+
+  // Fallback — text badge marker with tour code
+  return L.divIcon({
+    className: 'tour-logo-marker',
+    html: `<div style="position:relative;width:42px;height:42px;">
+      ${pulseRing}
+      <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,${tourColor},${tourColor}99);border:2.5px solid #fff;box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:9px;font-weight:900;color:#fff;letter-spacing:0.3px;text-shadow:0 1px 2px rgba(0,0,0,0.5);">${(venue.tour_code || 'TOUR').slice(0, 4)}</span>
+      </div>
+    </div>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+    popupAnchor: [0, -22],
+  });
+}
+
+// ─── Helper: Build tour-specific popup HTML ───
+function buildTourPopupHtml(venue) {
+  const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#d4a853';
+  const logoHtml = venue.logo_url
+    ? `<img src="${venue.logo_url}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:3px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`
+    : `<div style="display:flex;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`;
+
+  const statusBadge = venue.is_running
+    ? `<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;letter-spacing:0.3px;border:1px solid rgba(34,197,94,0.3);">LIVE NOW</span>`
+    : `<span style="padding:2px 8px;border-radius:4px;background:rgba(59,130,246,0.12);color:#60a5fa;font-size:10px;font-weight:700;letter-spacing:0.3px;border:1px solid rgba(59,130,246,0.25);">UPCOMING</span>`;
+
+  return `<div style="min-width:240px;max-width:320px;padding:16px 18px 14px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      ${logoHtml}
+      <div>
+        <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${venue.tour_name || venue.tour_code}</div>
+        <div style="font-size:11px;color:rgba(148,163,184,0.7);margin-top:2px;">${venue.city || ''}, ${venue.state || ''}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="padding:3px 10px;border-radius:6px;background:${tourColor}20;color:${tourColor};font-size:11px;font-weight:700;letter-spacing:0.3px;border:1px solid ${tourColor}30;">${venue.tour_code}</span>
+      ${statusBadge}
+    </div>
+    <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${venue.stop_name || venue.name || 'Tour Stop'}</div>
+    ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${venue.dates}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="/hub/tours/${venue.tour_code}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;">View Tour</a>
+      <a href="https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}" target="_blank" rel="noopener" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;">Directions</a>
+    </div>
+  </div>`;
+}
+
 // ─── Helper: Build popup HTML ───
 function buildPopupHtml(venue) {
   const trust = getTrustLevel(venue.trust_score);
@@ -607,8 +687,14 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
 
     validVenues.forEach(function(venue) {
-      const venueIcon = createVenueIcon(L, venue.venue_type, uniformColor || null);
-      const popupHtml = buildPopupHtml(venue);
+      // Use tour logo markers for tour stops, standard markers for everything else
+      const isTourStop = venue.venue_type === 'tour_stop' && venue.tour_code;
+      const venueIcon = isTourStop
+        ? createTourLogoIcon(L, venue)
+        : createVenueIcon(L, venue.venue_type, uniformColor || null);
+      const popupHtml = isTourStop
+        ? buildTourPopupHtml(venue)
+        : buildPopupHtml(venue);
 
       const marker = L.marker([venue.latitude, venue.longitude], { icon: venueIcon })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });

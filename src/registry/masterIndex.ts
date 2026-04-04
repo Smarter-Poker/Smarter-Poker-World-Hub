@@ -76,7 +76,7 @@ export const MASTER_REGISTRY = {
             'club-arena',
             'diamond-arena',
             'training',
-            'memory-games',
+            'preflop-charts',
             'personal-assistant',
 
             'bankroll-manager',

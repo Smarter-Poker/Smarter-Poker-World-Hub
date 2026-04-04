@@ -20,7 +20,7 @@ const CARD_EMOJI: Record<string, string> = {
     'training': '🎓',
     'news': '📰',
     'personal-assistant': '🤖',
-    'memory-games': '♟️',
+    'preflop-charts': '📊',
     'bankroll-manager': '💰',
     'poker-near-me': '📍',
     'marketplace': '🛒',

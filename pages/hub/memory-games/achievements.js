@@ -1,5 +1,5 @@
 /**
- * Memory Games - Achievements
+ * Preflop Charts - Achievements
  * Wired to Supabase with real achievement tracking
  */
 
@@ -46,7 +46,7 @@ const FALLBACK_ACHIEVEMENTS = [
 ];
 
 export default function MemoryGamesAchievements() {
-    const bus = useTrainingBus('memory-games-achievements');
+    const bus = useTrainingBus('preflop-charts-achievements');
     const router = useRouter();
     const { user } = useAvatar();
     const [achievements, setAchievements] = useState([]);
@@ -99,7 +99,7 @@ export default function MemoryGamesAchievements() {
             <SEOHead
                 title="Memory Games Achievements"
                 description="Track Your Memory Game Achievements And Cognitive Training Progress."
-                canonical="/hub/memory-games/achievements"
+                canonical="/hub/preflop-charts/achievements"
             />
 
             <PageTransition>

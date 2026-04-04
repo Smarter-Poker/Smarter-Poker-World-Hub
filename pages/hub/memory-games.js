@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-    MEMORY MATRIX 2.0 — THE GTO WIZARD KILLER
+    PREFLOP CHARTS — THE GTO WIZARD KILLER
    Full Video Game Experience with Pressure, Combos, and Diamond Economy
+   Master GTO Preflop Ranges Through High-Pressure Training
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useRouter } from 'next/router';
@@ -362,7 +363,7 @@ function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
 export default function MemoryGamesPage() {
     const router = useRouter();
     const { user } = useAvatar();
-    useTrainingBus('memory-games');
+    useTrainingBus('preflop-charts');
     const userId = user?.id;
     const containerRef = useRef(null);
 
@@ -485,7 +486,7 @@ export default function MemoryGamesPage() {
         }
     }, [preferences]);
 
-    const menuConfig = getMenuConfig('memory-games', user, preferences, {
+    const menuConfig = getMenuConfig('preflop-charts', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
         setKeyboardShortcuts: (val) => updatePreference('keyboardShortcuts', val),
         setShowTimer: (val) => updatePreference('showTimer', val),
@@ -951,8 +952,8 @@ export default function MemoryGamesPage() {
                 body: JSON.stringify({
                     userId: user.id,
                     sessionId: `memory_${Date.now()}`,
-                    gameId: 'memory-matrix',
-                    gameName: 'Memory Matrix',
+                    gameId: 'preflop-charts',
+                    gameName: 'Preflop Charts',
                     category: currentScenario?.position || 'PREFLOP',
                     level: currentLevel,
                     questionsAnswered: Object.keys(currentScenario?.solution || {}).length,
@@ -1361,12 +1362,12 @@ export default function MemoryGamesPage() {
                 body: JSON.stringify({
                     type: 'subscription',
                     items: [{
-                        name: 'Memory Matrix VIP',
+                        name: 'Preflop Charts VIP',
                         tier: 'vip',
                         priceId: process.env.NEXT_PUBLIC_STRIPE_VIP_PRICE_ID || 'price_vip_monthly' // Configured in Stripe dashboard
                     }],
-                    successUrl: `${window.location.origin}/hub/memory-games?vip_success=true`,
-                    cancelUrl: `${window.location.origin}/hub/memory-games?vip_canceled=true`
+                    successUrl: `${window.location.origin}/hub/preflop-charts?vip_success=true`,
+                    cancelUrl: `${window.location.origin}/hub/preflop-charts?vip_canceled=true`
                 })
             });
 
@@ -1455,9 +1456,9 @@ export default function MemoryGamesPage() {
                 </div>
             )}
             <SEOHead
-                title="Poker Memory Games — Train Your Brain"
-                description="Sharpen Your Poker Cognitive Skills With Memory Matrix Games. Train Pattern Recognition, Recall Speed, And Mental Agility."
-                canonical="/hub/memory-games"
+                title="Preflop Charts — Master GTO Ranges"
+                description="Master GTO Preflop Ranges Through High-Pressure Training. Speed Drills, Pattern Recognition, Mixed Strategy Practice, and Tournament Prep."
+                canonical="/hub/preflop-charts"
             >
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
             </SEOHead>
@@ -1509,7 +1510,7 @@ export default function MemoryGamesPage() {
                             {/* Title */}
                             <div style={styles.titleSection}>
                                 <div style={styles.orbIcon}></div>
-                                <h1 style={styles.title}>MEMORY MATRIX</h1>
+                                <h1 style={styles.title}>PREFLOP CHARTS</h1>
                                 <p style={styles.subtitle}>
                                     Master GTO ranges through high-pressure video game training
                                 </p>
@@ -1707,7 +1708,7 @@ export default function MemoryGamesPage() {
                                     Mix Mixed
                                 </button>
                                 <button
-                                    onClick={() => router.push('/hub/memory-games')}
+                                    onClick={() => router.push('/hub/preflop-charts')}
                                     style={{
                                         ...styles.gameModeTab,
                                         background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2))',

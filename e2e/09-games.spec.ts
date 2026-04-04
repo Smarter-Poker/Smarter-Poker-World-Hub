@@ -9,7 +9,7 @@ test.describe('Games — Hub Routes Load', () => {
   const gameRoutes = [
     { path: '/hub/diamond-arena', name: 'Diamond Arena' },
     { path: '/hub/diamond-store', name: 'Diamond Store' },
-    { path: '/hub/memory-games', name: 'Memory Games' },
+    { path: '/hub/preflop-charts', name: 'Preflop Charts' },
     { path: '/hub/trivia', name: 'Trivia' },
     { path: '/hub/training', name: 'Training' },
     { path: '/horses', name: 'Horses' },

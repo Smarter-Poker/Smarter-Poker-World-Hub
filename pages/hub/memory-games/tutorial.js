@@ -1,5 +1,5 @@
 /**
- * Memory Games - Tutorial
+ * Preflop Charts - Tutorial
  */
 
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -10,7 +10,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 export default function MemoryGamesTutorial() {
-    const bus = useTrainingBus('memory-games-tutorial');
+    const bus = useTrainingBus('preflop-charts-tutorial');
     const router = useRouter();
 
     const steps = [
@@ -22,9 +22,9 @@ export default function MemoryGamesTutorial() {
     return (
         <>
             <SEOHead
-                title="Memory Games Tutorial — How To Play"
-                description="Learn How To Play The Smarter.Poker Memory Games With This Step-by-step Tutorial."
-                canonical="/hub/memory-games/tutorial"
+                title="Preflop Charts Tutorial — How To Play"
+                description="Learn How To Master GTO Preflop Ranges With This Step-by-step Tutorial."
+                canonical="/hub/preflop-charts/tutorial"
             />
 
             <PageTransition>
@@ -75,7 +75,7 @@ export default function MemoryGamesTutorial() {
                         </div>
 
                         <button
-                            onClick={() => router.push('/hub/memory-games')}
+                            onClick={() => router.push('/hub/preflop-charts')}
                             style={{
                                 background: '#ec4899',
                                 border: 'none',

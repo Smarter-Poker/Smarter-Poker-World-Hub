@@ -30,7 +30,7 @@ The World Hub uses a 3D carousel navigation system with 13 interactive orbs:
 | #3 | Diamond Arena | Gold | `/hub/diamond-arena` | ✅ STABLE |
 | #4 | Training | Green | `/hub/training` | ✅ STABLE |
 | #5 | News | Orange | `/hub/news` | ✅ STABLE |
-| #6 | Memory Games | Aqua | `/hub/memory-games` | ⚠️ UNVERIFIED |
+| #6 | Preflop Charts | Aqua | `/hub/preflop-charts` | ✅ STABLE |
 | #7 | Trivia | Cyan | `/hub/trivia` | ⚠️ UNVERIFIED |
 | #8 | Video Library | Red | `/hub/reels` | ⚠️ UNVERIFIED |
 | #9 | Poker Near Me | White | `/hub/poker-near-me-lobby` | ✅ STABLE |

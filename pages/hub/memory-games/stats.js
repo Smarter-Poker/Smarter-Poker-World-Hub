@@ -1,5 +1,5 @@
 /**
- * Memory Games - Player Stats & Analytics Dashboard
+ * Preflop Charts - Player Stats & Analytics Dashboard
  * Comprehensive analytics with progress tracking and daily challenges
  */
 
@@ -52,7 +52,7 @@ const ProgressBar = ({ label, value, max, color = '#00D4FF' }) => {
 };
 
 export default function MemoryGamesStats() {
-    const bus = useTrainingBus('memory-games-stats');
+    const bus = useTrainingBus('preflop-charts-stats');
     const router = useRouter();
     const { user } = useAvatar();
     const [loading, setLoading] = useState(true);
@@ -208,7 +208,7 @@ export default function MemoryGamesStats() {
             <SEOHead
                 title="Memory Games Stats"
                 description="View Your Memory Game Performance, Scores, And Improvement Trends."
-                canonical="/hub/memory-games/stats"
+                canonical="/hub/preflop-charts/stats"
                 noindex={true}
             />
 
@@ -258,7 +258,7 @@ export default function MemoryGamesStats() {
                                                 <div>
                                                     <div style={{ color: '#fbbf24', fontWeight: 700 }}>+{dailyChallenge.diamond_reward} 💎</div>
                                                     <button
-                                                        onClick={() => router.push('/hub/memory-games')}
+                                                        onClick={() => router.push('/hub/preflop-charts')}
                                                         style={{
                                                             background: '#f59e0b',
                                                             border: 'none',

@@ -1,5 +1,5 @@
 /**
- * Memory Games - Leaderboard
+ * Preflop Charts - Leaderboard
  * Wired to Supabase for real-time rankings
  */
 
@@ -20,7 +20,7 @@ const GAME_MODES = [
 ];
 
 export default function MemoryGamesLeaderboard() {
-    const bus = useTrainingBus('memory-games-leaderboard');
+    const bus = useTrainingBus('preflop-charts-leaderboard');
     const router = useRouter();
     const { user } = useAvatar();
     const [selectedMode, setSelectedMode] = useState('range');
@@ -118,7 +118,7 @@ export default function MemoryGamesLeaderboard() {
             <SEOHead
                 title="Memory Games Leaderboard"
                 description="See Who Has The Sharpest Memory On The Smarter.Poker Memory Games Leaderboard."
-                canonical="/hub/memory-games/leaderboard"
+                canonical="/hub/preflop-charts/leaderboard"
             />
 
             <PageTransition>

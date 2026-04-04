@@ -17,7 +17,7 @@ export type OrbId =
     | 'club-arena'
     | 'diamond-arena'
     | 'training'
-    | 'memory-games'
+    | 'preflop-charts'
     | 'assistant'
     | 'bankroll'
     | 'poker-near-me'

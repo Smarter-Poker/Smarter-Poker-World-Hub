@@ -23,7 +23,7 @@ const staticPages = [
     { path: '/hub/video-library', priority: '0.8', changefreq: 'daily' },
     { path: '/hub/diamond-store', priority: '0.8', changefreq: 'weekly' },
     { path: '/hub/bankroll-manager', priority: '0.8', changefreq: 'weekly' },
-    { path: '/hub/memory-games', priority: '0.7', changefreq: 'weekly' },
+    { path: '/hub/preflop-charts', priority: '0.7', changefreq: 'weekly' },
 
     { path: '/hub/events-calendar', priority: '0.8', changefreq: 'daily' },
     { path: '/hub/daily-tournaments', priority: '0.7', changefreq: 'daily' },
@@ -78,11 +78,11 @@ const staticPages = [
     { path: '/hub/diamond-store/wishlist', priority: '0.4', changefreq: 'weekly' },
 
 
-    // Hub — Memory Games sub-pages
-    { path: '/hub/memory-games/achievements', priority: '0.5', changefreq: 'weekly' },
-    { path: '/hub/memory-games/leaderboard', priority: '0.5', changefreq: 'daily' },
-    { path: '/hub/memory-games/stats', priority: '0.4', changefreq: 'weekly' },
-    { path: '/hub/memory-games/tutorial', priority: '0.5', changefreq: 'monthly' },
+    // Hub — Preflop Charts sub-pages
+    { path: '/hub/preflop-charts/achievements', priority: '0.5', changefreq: 'weekly' },
+    { path: '/hub/preflop-charts/leaderboard', priority: '0.5', changefreq: 'daily' },
+    { path: '/hub/preflop-charts/stats', priority: '0.4', changefreq: 'weekly' },
+    { path: '/hub/preflop-charts/tutorial', priority: '0.5', changefreq: 'monthly' },
 
     // Hub — Reels sub-pages
     { path: '/hub/reels/saved', priority: '0.4', changefreq: 'weekly' },

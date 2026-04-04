@@ -265,7 +265,11 @@ export default function PokerToursPage() {
                     venue_type: 'tour_stop',
                     trust_score: 5,
                     tour_code: tour.tour_code,
+                    tour_name: tour.tour_name || tour.tour_code,
+                    logo_url: tour.logo_url || null,
+                    stop_name: stop.name || stop.venue || 'Tour Stop',
                     dates: stop.dates || '',
+                    is_running: stop === currentRunning,
                 });
             });
         });

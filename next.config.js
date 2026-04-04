@@ -212,6 +212,9 @@ const nextConfig = {
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
       // Club Arena — /hub/club-arena IS the lobby (the SPA). The native lobby.js was removed.
       { source: '/hub/club-arena/lobby', destination: '/hub/club-arena', permanent: true },
+      // Memory Games → Preflop Charts (renamed April 2026)
+      { source: '/hub/memory-games', destination: '/hub/preflop-charts', permanent: true },
+      { source: '/hub/memory-games/:path*', destination: '/hub/preflop-charts/:path*', permanent: true },
     ];
   },
 

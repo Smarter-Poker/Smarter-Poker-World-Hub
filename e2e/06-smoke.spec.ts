@@ -39,7 +39,7 @@ test.describe('Smoke Tests — Hub Pages (may redirect to login)', () => {
     'poker-near-me-lobby',
     'diamond-store',
     'bankroll',
-    'memory-games',
+    'preflop-charts',
     'diamond-arena',
     'trivia',
     'leaderboards',

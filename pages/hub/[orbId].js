@@ -38,12 +38,17 @@ const ORB_METADATA = {
         color: '#00ff66',
         features: ['GTO Drills', 'Hand Analysis', 'Leak Detection', 'Skill Levels 1-10', '85% Mastery Gate'],
     },
-    'memory-games': {
-        title: 'Memory Games',
-        description: 'Sharpen Your Poker Memory with Range Recall and Pattern Recognition Games',
+    'preflop-charts': {
+        title: 'Preflop Charts',
+        description: 'Master GTO Preflop Ranges Through Speed Drills, Pattern Recognition, and Mixed Strategy Training',
         emoji: '',
         color: '#00ffff',
-        features: ['Range Memory', 'Pattern Recognition', 'Speed Drills', 'Memory Challenges', 'Brain Training'],
+        features: ['Range Training', 'Pattern Recognition', 'Speed Drills', 'Mixed Strategy', 'Tournament Prep'],
+    },
+    // Legacy redirect — keep old URL working
+    'memory-games': {
+        title: 'Preflop Charts',
+        redirect: '/hub/preflop-charts',
     },
     'personal-assistant': {
         title: 'Personal Assistant',
@@ -102,6 +107,7 @@ export default function OrbPage() {
 
             'trivia': '/hub/trivia',
             'poker-near-me': '/hub/poker-near-me-lobby',
+            'memory-games': '/hub/preflop-charts',
         };
 
         if (dedicatedPages[key]) {
