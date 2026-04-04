@@ -851,6 +851,56 @@ function GodModeArenaInner({
         getEVLossHeatmap,
         getPositionLeaderboard,
         generateCoachingSummary,
+        // ═══ PHASE 291-300: Advanced training intelligence II ═══
+        getStreakAnalysis,
+        getTimePressureAnalysis,
+        getRangeConstructionDrill,
+        getExploitativeAdjustments,
+        getICMPressureAnalysis,
+        getMultiGameTypeStats,
+        getBettingSizeAnalysis,
+        getHandReadingDrill,
+        getVarianceSimulator,
+        getPerformanceTrendAnalysis,
+        // ═══ PHASE 301-310: Advanced training intelligence III ═══
+        getOptimalLineNarration,
+        getStreetTransitionAnalysis,
+        getDefenseFrequencyCheck,
+        getPolarizationIndex,
+        getMistakeRecoveryRate,
+        getConceptQuiz,
+        getSessionMilestones,
+        getAdaptiveDrillRecommendation,
+        getCriticalHandHighlights,
+        getComprehensiveSessionReport,
+        // ═══ PHASE 311-320: Training edge features ═══
+        getNodeTypeBreakdown,
+        getStreetSpecificLeaks,
+        getOverbetAnalysis,
+        getCheckRaiseAnalysis,
+        getCBetAnalysis,
+        getPositionPairAnalysis,
+        getFrequencyConvergenceTracker,
+        getSmartSessionLength,
+        getTrainingPlan,
+        // ═══ PHASE 321-330: Polish & competitive edge ═══
+        getAggressionProfile,
+        getTightLooseProfile,
+        getBluffSpotAnalysis,
+        getValueBetAnalysis,
+        getWeaknessHeatmap,
+        getGTOComplianceScore,
+        // ═══ PHASE 331-340: Ultimate training intelligence ═══
+        getRangeBalanceScore,
+        getRiverDecisionQuality,
+        getPreFlopLeaks,
+        getSessionProgressionChart,
+        // ═══ PHASE 341-350: Mastery & deep analysis ═══
+        getEquityRealizationAnalysis,
+        getMixedStrategyAccuracy,
+        getPlaystyleEvolution,
+        getUltimatePlayerRating,
+        getNextSessionPrep,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2480,6 +2530,783 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
+                        {/* ═══ PHASE 291: Streak Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const sa = getStreakAnalysis();
+                                if (!sa) return null;
+                                const tiltColor = sa.tiltResistance >= 70 ? '#22c55e' : sa.tiltResistance >= 50 ? '#fbbf24' : '#ef4444';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tiltColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: tiltColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Streak &amp; Tilt Analysis</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Current Streak</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: sa.currentStreakType === 'win' ? '#22c55e' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{sa.currentStreak} {sa.currentStreakType === 'win' ? 'W' : 'L'}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Best Win Streak</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{sa.longestWinStreak}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Tilt Resistance</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: tiltColor, fontFamily: "'Orbitron', monospace" }}>{sa.tiltResistance}%</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{sa.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 292: Session Stamina ═══ */}
+                        {(() => {
+                            try {
+                                const tp = getTimePressureAnalysis();
+                                if (!tp) return null;
+                                const staminaColors = { Excellent: '#22c55e', Good: '#4ade80', Fair: '#fbbf24', Poor: '#ef4444' };
+                                const sColor = staminaColors[tp.staminaRating] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${sColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: sColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Stamina</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tp.earlyAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Early</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tp.midAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Mid</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tp.lateAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Late</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Stamina Rating</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: sColor }}>{tp.staminaRating}</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{tp.recommendation}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 294: Exploitative Adjustments ═══ */}
+                        {(() => {
+                            try {
+                                const ea = getExploitativeAdjustments();
+                                if (!ea || ea.isBalanced) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,191,36,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Exploitable Tendencies</div>
+                                    <div style={{ display: 'flex', gap: 8, marginBottom: 8, justifyContent: 'center' }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>F: <strong style={{ color: '#e2e8f0' }}>{ea.actionProfile.foldPct}%</strong></span>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>C: <strong style={{ color: '#e2e8f0' }}>{ea.actionProfile.callPct}%</strong></span>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>R: <strong style={{ color: '#e2e8f0' }}>{ea.actionProfile.raisePct}%</strong></span>
+                                    </div>
+                                    {ea.adjustments.slice(0, 3).map((adj, i) => (
+                                        <div key={i} style={{ marginBottom: 6, padding: '6px 8px', background: adj.severity === 'critical' ? 'rgba(239,68,68,0.1)' : 'rgba(251,191,36,0.08)', borderRadius: 6, border: `1px solid ${adj.severity === 'critical' ? 'rgba(239,68,68,0.2)' : 'rgba(251,191,36,0.1)'}` }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: adj.severity === 'critical' ? '#ef4444' : '#fbbf24' }}>{adj.title}</div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{adj.fix}</div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 296: Multi Game Type Stats ═══ */}
+                        {(() => {
+                            try {
+                                const mgs = getMultiGameTypeStats();
+                                if (!mgs || mgs.stats.length < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(139,92,246,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Pot Type Performance</div>
+                                    {mgs.stats.map((s, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0' }}>{s.type}</span>
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: s.accuracy >= 70 ? '#22c55e' : s.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{s.accuracy}%</span>
+                                                <span style={{ fontSize: 9, color: '#64748b' }}>({s.total}h)</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{mgs.recommendation}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 297: Bet Sizing Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const bsa = getBettingSizeAnalysis();
+                                if (!bsa || bsa.analysis.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(6,182,212,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#06b6d4', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Bet Sizing Accuracy</div>
+                                    {bsa.analysis.map((a, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0' }}>{a.size}</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: a.accuracy >= 70 ? '#22c55e' : a.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{a.accuracy}% ({a.total})</span>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{bsa.tip}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 300: Performance Trend ═══ */}
+                        {(() => {
+                            try {
+                                const pt = getPerformanceTrendAnalysis();
+                                if (!pt) return null;
+                                const trendColors = { strongly_improving: '#22c55e', slightly_improving: '#4ade80', stable: '#06b6d4', slightly_declining: '#fbbf24', strongly_declining: '#ef4444' };
+                                const tColor = trendColors[pt.trend] || '#94a3b8';
+                                const trendLabels = { strongly_improving: 'Strongly Improving', slightly_improving: 'Improving', stable: 'Stable', slightly_declining: 'Declining', strongly_declining: 'Strongly Declining' };
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Performance Trend</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Trend</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: tColor }}>{trendLabels[pt.trend] || pt.trend}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Consistency</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{pt.consistencyScore}%</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Peak</span>
+                                        <span style={{ fontSize: 10, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{pt.peakAccuracy}% ({pt.peakAt})</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Trough</span>
+                                        <span style={{ fontSize: 10, color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>{pt.troughAccuracy}% ({pt.troughAt})</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{pt.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 302: Street Transition Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const sta = getStreetTransitionAnalysis();
+                                if (!sta || sta.streetAccuracy.length < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Street Accuracy</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        {sta.streetAccuracy.map((s, i) => (
+                                            <div key={i} style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 14, fontWeight: 800, color: s.accuracy >= 70 ? '#22c55e' : s.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{s.accuracy}%</div>
+                                                <div style={{ fontSize: 9, color: '#64748b' }}>{s.street} ({s.total})</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {sta.weakestStreet && sta.weakestStreet.accuracy < 60 && (
+                                        <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{sta.recommendation}</div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 303: Defense Frequency ═══ */}
+                        {(() => {
+                            try {
+                                const df = getDefenseFrequencyCheck();
+                                if (!df || df.facingBet.total < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(244,63,94,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fb7185', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Defense Frequency</div>
+                                    {df.facingBet.defendPct !== null && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                            <span style={{ fontSize: 10, color: '#94a3b8' }}>vs Bets</span>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: df.facingBet.defendPct >= 55 && df.facingBet.defendPct <= 75 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{df.facingBet.defendPct}% defend</span>
+                                        </div>
+                                    )}
+                                    {df.assessments.map((a, i) => (
+                                        <div key={i} style={{ fontSize: 9, color: a.severity === 'good' ? '#4ade80' : a.severity === 'critical' ? '#ef4444' : '#fbbf24', marginTop: 4 }}>{a.message}</div>
+                                    ))}
+                                    <div style={{ fontSize: 8, color: '#475569', marginTop: 6, fontStyle: 'italic' }}>{df.mdfReference}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 304: Polarization Index ═══ */}
+                        {(() => {
+                            try {
+                                const pi = getPolarizationIndex();
+                                if (!pi) return null;
+                                const pColor = pi.style === 'polarized' ? '#22c55e' : pi.style === 'semi-polarized' ? '#06b6d4' : '#fbbf24';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${pColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Range Style</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Style</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: pColor }}>{pi.style.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Polarization Score</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{pi.polarizationScore}%</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{pi.tip}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 305: Mistake Recovery ═══ */}
+                        {(() => {
+                            try {
+                                const mr = getMistakeRecoveryRate();
+                                if (!mr) return null;
+                                const gradeColors = { A: '#22c55e', B: '#4ade80', C: '#fbbf24', D: '#ef4444' };
+                                const gColor = gradeColors[mr.grade] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${gColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: gColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Mistake Recovery</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Recovery Grade</span>
+                                        <span style={{ fontSize: 16, fontWeight: 800, color: gColor, fontFamily: "'Orbitron', monospace" }}>{mr.grade}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Avg Recovery</span>
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{mr.avgRecoveryTime} hands</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Quick Recoveries</span>
+                                        <span style={{ fontSize: 10, color: '#4ade80' }}>{mr.quickRecoveries}</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{mr.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 307: Session Milestones ═══ */}
+                        {(() => {
+                            try {
+                                const milestones = getSessionMilestones();
+                                if (!milestones || milestones.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Milestones</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {milestones.map((m, i) => (
+                                            <div key={i} style={{ padding: '4px 10px', background: 'rgba(168,85,247,0.1)', borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', fontSize: 10, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <span>{m.icon}</span>
+                                                <span style={{ fontWeight: 600 }}>{m.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 308: Drill Recommendation ═══ */}
+                        {(() => {
+                            try {
+                                const dr = getAdaptiveDrillRecommendation();
+                                if (!dr || !dr.topRecommendation) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(34,211,238,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recommended Focus</div>
+                                    {dr.recommendations.slice(0, 3).map((r, i) => (
+                                        <div key={i} style={{ marginBottom: 6, padding: '6px 8px', background: r.priority === 'high' ? 'rgba(239,68,68,0.08)' : 'rgba(34,211,238,0.06)', borderRadius: 6, border: `1px solid ${r.priority === 'high' ? 'rgba(239,68,68,0.15)' : 'rgba(34,211,238,0.1)'}` }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: r.priority === 'high' ? '#ef4444' : '#22d3ee' }}>{r.drill}</div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{r.reason}</div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 309: Critical Hand Highlights ═══ */}
+                        {(() => {
+                            try {
+                                const ch = getCriticalHandHighlights();
+                                if (!ch || ch.totalHighlights === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,146,60,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fb923c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Key Hands</div>
+                                    {ch.biggestMistakes.map((m, i) => (
+                                        <div key={`m${i}`} style={{ fontSize: 10, color: '#fca5a5', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontWeight: 700 }}>#{m.handNumber}</span> {m.userAction} → should be {m.correctAction} <span style={{ color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>(-{m.evLoss} EV)</span>
+                                        </div>
+                                    ))}
+                                    {ch.bestDecisions.map((d, i) => (
+                                        <div key={`d${i}`} style={{ fontSize: 10, color: '#86efac', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontWeight: 700 }}>#{d.handNumber}</span> {d.action} on {d.street} — great play!
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 311: Node Type Breakdown ═══ */}
+                        {(() => {
+                            try {
+                                const ntb = getNodeTypeBreakdown();
+                                if (!ntb || ntb.breakdown.length < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(99,102,241,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Spot Type Breakdown</div>
+                                    {ntb.breakdown.slice(0, 6).map((n, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0' }}>{n.nodeType}</span>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: n.accuracy >= 70 ? '#22c55e' : n.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{n.accuracy}%</span>
+                                                <span style={{ fontSize: 9, color: '#64748b' }}>({n.total})</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 313: Street-Specific Leaks ═══ */}
+                        {(() => {
+                            try {
+                                const ssl = getStreetSpecificLeaks();
+                                if (!ssl || ssl.leaks.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(239,68,68,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Top Leaks by Street</div>
+                                    {ssl.leaks.slice(0, 5).map((l, i) => (
+                                        <div key={i} style={{ fontSize: 10, color: '#fca5a5', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            {l.description}
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 315: Check-Raise + Phase 316: C-Bet ═══ */}
+                        {(() => {
+                            try {
+                                const cr = getCheckRaiseAnalysis();
+                                const cb = getCBetAnalysis();
+                                if (!cr && !cb) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,191,36,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Action Analysis</div>
+                                    {cr && cr.checkRaiseSpots > 0 && (
+                                        <div style={{ marginBottom: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, color: '#94a3b8' }}>Check-Raise Accuracy</span>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: (cr.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{cr.accuracy || 0}%</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{cr.tip}</div>
+                                        </div>
+                                    )}
+                                    {cb && cb.cbetSpots > 0 && (
+                                        <div style={{ marginTop: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, color: '#94a3b8' }}>C-Bet Accuracy</span>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: (cb.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{cb.accuracy || 0}%</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{cb.tip}</div>
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 317: Position Pair Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const ppa = getPositionPairAnalysis();
+                                if (!ppa || ppa.pairs.length < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(52,211,153,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Position Matchups</div>
+                                    {ppa.pairs.slice(0, 6).map((p, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0' }}>{p.matchup}</span>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: p.accuracy >= 70 ? '#22c55e' : p.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{p.accuracy}% ({p.total})</span>
+                                        </div>
+                                    ))}
+                                    {ppa.weakestMatchup && ppa.weakestMatchup.accuracy < 50 && (
+                                        <div style={{ fontSize: 10, color: '#ef4444', fontStyle: 'italic', marginTop: 6 }}>Weakest: {ppa.weakestMatchup.matchup} at {ppa.weakestMatchup.accuracy}%</div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 318: Frequency Convergence ═══ */}
+                        {(() => {
+                            try {
+                                const fc = getFrequencyConvergenceTracker();
+                                if (!fc) return null;
+                                const convColor = fc.isConverging ? '#22c55e' : fc.improvement === 0 ? '#06b6d4' : '#fbbf24';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${convColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: convColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Learning Curve</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{fc.earlyAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>First Half</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center', fontSize: 16, color: fc.improvement > 0 ? '#22c55e' : fc.improvement < 0 ? '#ef4444' : '#94a3b8' }}>→</div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{fc.lateAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Second Half</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{fc.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 319: Smart Session Length ═══ */}
+                        {(() => {
+                            try {
+                                const ssl = getSmartSessionLength();
+                                if (!ssl) return null;
+                                const pctDone = Math.min(100, Math.round((ssl.currentLength / ssl.optimalLength) * 100));
+                                const barColor = pctDone < 80 ? '#22c55e' : pctDone < 100 ? '#fbbf24' : '#ef4444';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${barColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: barColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Meter</div>
+                                    <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, marginBottom: 8, overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${pctDone}%`, background: barColor, borderRadius: 3, transition: 'width 0.3s' }} />
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>{ssl.currentLength} / {ssl.optimalLength} hands</span>
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: barColor }}>{pctDone}%</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{ssl.recommendation}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 320: Training Plan ═══ */}
+                        {(() => {
+                            try {
+                                const tp = getTrainingPlan();
+                                if (!tp || tp.sessions.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(139,92,246,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>5-Session Training Plan</div>
+                                    {tp.sessions.map((s, i) => (
+                                        <div key={i} style={{ padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <div style={{ fontSize: 10, fontWeight: 600, color: '#e2e8f0' }}>{s.label}</div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8' }}>{s.focus} — {s.hands} hands — {s.goal}</div>
+                                        </div>
+                                    ))}
+                                    {tp.estimatedImprovement > 0 && (
+                                        <div style={{ fontSize: 10, color: '#a78bfa', fontWeight: 600, marginTop: 6 }}>Estimated improvement: +{tp.estimatedImprovement}% accuracy</div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 350: Ultimate Player Rating ═══ */}
+                        {(() => {
+                            try {
+                                const upr = getUltimatePlayerRating();
+                                if (!upr) return null;
+                                const tierColors = { Grandmaster: '#f59e0b', Master: '#22c55e', Expert: '#06b6d4', Advanced: '#818cf8', Intermediate: '#94a3b8', Developing: '#fbbf24', Beginner: '#ef4444' };
+                                const tColor = tierColors[upr.tier] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '16px', background: `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, ${tColor}08 100%)`, borderRadius: 14, border: `2px solid ${tColor}40` }}>
+                                    <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 4 }}>Player Rating</div>
+                                        <div style={{ fontSize: 36, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace", lineHeight: 1 }}>{upr.elo}</div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginTop: 2 }}>{upr.tier}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+                                        {Object.entries(upr.scores).map(([key, val]) => (
+                                            <div key={key} style={{ padding: '3px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: 8, fontSize: 9 }}>
+                                                <span style={{ color: '#64748b' }}>{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                                                <span style={{ color: val >= 70 ? '#4ade80' : val >= 50 ? '#fbbf24' : '#ef4444', fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{val}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 341: Equity Realization ═══ */}
+                        {(() => {
+                            try {
+                                const er = getEquityRealizationAnalysis();
+                                if (!er || (er.ipHands < 2 && er.oopHands < 2)) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Position Advantage</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#22c55e', fontFamily: "'Orbitron', monospace" }}>{er.ipAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>In Position ({er.ipHands})</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{er.oopAccuracy}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Out of Position ({er.oopHands})</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{er.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 345: Mixed Strategy Accuracy ═══ */}
+                        {(() => {
+                            try {
+                                const ms = getMixedStrategyAccuracy();
+                                if (!ms || ms.mixedSpots < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Mixed vs Pure Spots</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: ms.mixedAccuracy >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{ms.mixedAccuracy || 0}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Mixed ({ms.mixedSpots})</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: (ms.pureAccuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{ms.pureAccuracy || 0}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Pure ({ms.pureSpots})</div>
+                                        </div>
+                                    </div>
+                                    {ms.gap !== null && ms.gap > 15 && (
+                                        <div style={{ fontSize: 10, color: '#fbbf24', fontStyle: 'italic' }}>Gap of {ms.gap}% — mixed spots need work</div>
+                                    )}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 2 }}>{ms.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 347: Playstyle Evolution ═══ */}
+                        {(() => {
+                            try {
+                                const pe = getPlaystyleEvolution();
+                                if (!pe) return null;
+                                const evoColors = { 'Becoming more aggressive': '#fbbf24', 'Becoming more passive': '#06b6d4', 'Improving accuracy': '#22c55e', 'Declining focus': '#ef4444', 'Consistent play': '#94a3b8' };
+                                const eColor = evoColors[pe.evolution] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${eColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: eColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Evolution</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8, fontSize: 12, fontWeight: 600, color: eColor }}>{pe.evolution}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.early.accuracy}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Early Acc</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center', color: '#475569' }}>→</div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pe.late.accuracy}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Late Acc</div>
+                                        </div>
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 349: Next Session Prep ═══ */}
+                        {(() => {
+                            try {
+                                const nsp = getNextSessionPrep();
+                                if (!nsp) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(34,211,238,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Next Session Prep</div>
+                                    {nsp.focus.length > 0 && (
+                                        <div style={{ marginBottom: 6 }}>
+                                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, marginBottom: 2 }}>FOCUS</div>
+                                            {nsp.focus.map((f, i) => (
+                                                <div key={i} style={{ fontSize: 10, color: '#e2e8f0', padding: '2px 0' }}>{f}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {nsp.studyTopics.length > 0 && (
+                                        <div>
+                                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, marginBottom: 2, marginTop: 6 }}>STUDY</div>
+                                            {nsp.studyTopics.slice(0, 2).map((s, i) => (
+                                                <div key={i} style={{ fontSize: 10, color: '#94a3b8', padding: '2px 0' }}>{s}</div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 330: GTO Compliance Score ═══ */}
+                        {(() => {
+                            try {
+                                const gto = getGTOComplianceScore();
+                                if (!gto) return null;
+                                const tierColors = { Elite: '#22c55e', Advanced: '#4ade80', Intermediate: '#06b6d4', Developing: '#fbbf24', Beginner: '#ef4444' };
+                                const tColor = tierColors[gto.tier] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${tColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: tColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>GTO Compliance</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: tColor, fontFamily: "'Orbitron', monospace" }}>{gto.overall}%</div>
+                                        <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>{gto.tier}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.accuracy}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Accuracy</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.frequency}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Frequency</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{gto.components.balance}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Balance</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{gto.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 322: Aggression Profile ═══ */}
+                        {(() => {
+                            try {
+                                const ap = getAggressionProfile();
+                                if (!ap) return null;
+                                const profileColors = { 'TAG (Tight-Aggressive)': '#22c55e', 'LAG (Loose-Aggressive)': '#fbbf24', 'LP (Loose-Passive)': '#ef4444', 'TP (Tight-Passive)': '#f87171' };
+                                const pColor = profileColors[ap.profile] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${pColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Player Profile</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 800, color: pColor }}>{ap.profile}</div>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.vpip}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>VPIP</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionPct}%</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>Aggression</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{ap.aggressionFactor}</div>
+                                            <div style={{ fontSize: 8, color: '#64748b' }}>AF</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 6 }}>{ap.tip}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 324: Tight/Loose vs Solver ═══ */}
+                        {(() => {
+                            try {
+                                const tl = getTightLooseProfile();
+                                if (!tl) return null;
+                                const aColor = tl.assessment === 'balanced' ? '#22c55e' : tl.assessment.includes('tight') ? '#06b6d4' : '#fbbf24';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${aColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: aColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Fold Frequency vs Solver</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{tl.userFoldPct}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>You</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 14, fontWeight: 800, color: aColor, fontFamily: "'Orbitron', monospace" }}>{tl.solverFoldPct}%</div>
+                                            <div style={{ fontSize: 9, color: '#64748b' }}>Solver</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{tl.description}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 325+326: Bluff & Value Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const bs = getBluffSpotAnalysis();
+                                const vb = getValueBetAnalysis();
+                                if (!bs && !vb) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Bluff &amp; Value</div>
+                                    {bs && bs.bluffAttempts > 0 && (
+                                        <div style={{ marginBottom: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, color: '#94a3b8' }}>Bluff Accuracy</span>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: (bs.bluffAccuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{bs.bluffAccuracy || 0}% ({bs.bluffAttempts})</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8' }}>{bs.tip}</div>
+                                        </div>
+                                    )}
+                                    {vb && vb.valueBets > 0 && (
+                                        <div style={{ marginTop: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, color: '#94a3b8' }}>Value Bet Accuracy</span>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: (vb.accuracy || 0) >= 60 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{vb.accuracy || 0}% ({vb.valueBets})</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8' }}>{vb.tip}</div>
+                                        </div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 329: Weakness Heatmap ═══ */}
+                        {(() => {
+                            try {
+                                const wh = getWeaknessHeatmap();
+                                if (!wh || wh.heatmap.length < 3) return null;
+                                const intensityColors = { strong: '#22c55e', medium: '#fbbf24', weak: '#f97316', critical: '#ef4444' };
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,146,60,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fb923c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Weakness Map</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {wh.heatmap.map((cell, i) => (
+                                            <div key={i} style={{ padding: '3px 8px', background: `${intensityColors[cell.intensity]}15`, borderRadius: 4, border: `1px solid ${intensityColors[cell.intensity]}30`, fontSize: 9 }}>
+                                                <span style={{ color: '#94a3b8' }}>{cell.position}/{cell.street}: </span>
+                                                <span style={{ color: intensityColors[cell.intensity], fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{cell.accuracy}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {wh.weakestCell && (
+                                        <div style={{ fontSize: 10, color: '#ef4444', fontStyle: 'italic', marginTop: 6 }}>Weakest: {wh.weakestCell.position} on {wh.weakestCell.street} — {wh.weakestCell.accuracy}%</div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 331: Range Balance Score ═══ */}
+                        {(() => {
+                            try {
+                                const rb = getRangeBalanceScore();
+                                if (!rb) return null;
+                                const gradeColors = { A: '#22c55e', B: '#4ade80', C: '#fbbf24', D: '#ef4444' };
+                                const gColor = gradeColors[rb.grade] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${gColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: gColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Range Balance</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                        <span style={{ fontSize: 24, fontWeight: 900, color: gColor, fontFamily: "'Orbitron', monospace" }}>{rb.balanceScore}%</span>
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: gColor, marginLeft: 8 }}>{rb.grade}</span>
+                                    </div>
+                                    {rb.actionComparison.filter(a => a.deviation > 5).map((a, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 10 }}>
+                                            <span style={{ color: '#94a3b8' }}>{a.action}</span>
+                                            <span style={{ color: '#e2e8f0' }}>You: {a.userPct}% / Solver: {a.solverPct}% <span style={{ color: a.deviation > 10 ? '#ef4444' : '#fbbf24' }}>(±{a.deviation}%)</span></span>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{rb.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 338: River Decision Quality ═══ */}
+                        {(() => {
+                            try {
+                                const rdq = getRiverDecisionQuality();
+                                if (!rdq) return null;
+                                const gradeColors = { A: '#22c55e', B: '#4ade80', C: '#fbbf24', D: '#ef4444' };
+                                const gColor = gradeColors[rdq.grade] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${gColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: gColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>River Quality</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>River Accuracy</span>
+                                        <span style={{ fontSize: 14, fontWeight: 800, color: gColor, fontFamily: "'Orbitron', monospace" }}>{rdq.accuracy}%</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 9, color: '#94a3b8' }}>F: {rdq.actions.folds}</span>
+                                        <span style={{ fontSize: 9, color: '#94a3b8' }}>C: {rdq.actions.calls}</span>
+                                        <span style={{ fontSize: 9, color: '#94a3b8' }}>B: {rdq.actions.bets}</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{rdq.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 339: Preflop Leaks ═══ */}
+                        {(() => {
+                            try {
+                                const pfl = getPreFlopLeaks();
+                                if (!pfl || !pfl.hasLeaks) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(239,68,68,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Preflop Leaks</div>
+                                    {pfl.leaks.map((l, i) => (
+                                        <div key={i} style={{ marginBottom: 6, padding: '6px 8px', background: 'rgba(239,68,68,0.08)', borderRadius: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>{l.area}</span>
+                                                <span style={{ fontSize: 10, color: '#fca5a5', fontFamily: "'Orbitron', monospace" }}>{l.accuracy}%</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{l.fix}</div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
                         {/* ═══ PHASE 20: EV by Street visualization ═══ */}
                         <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
@@ -2963,6 +3790,11 @@ function GodModeArenaInner({
                                     getSolverLineComparison={getSolverLineComparison}
                                     generateHints={generateHints}
                                     getRunoutImpactPreview={getRunoutImpactPreview}
+                                    getRangeConstructionDrill={getRangeConstructionDrill}
+                                    getHandReadingDrill={getHandReadingDrill}
+                                    getExploitativeAdjustments={getExploitativeAdjustments}
+                                    getVarianceSimulator={getVarianceSimulator}
+                                    getOptimalLineNarration={getOptimalLineNarration}
                                     // GTOW scoring props
                                     moveClassification={moveClassification}
                                     evLoss={evLoss}

@@ -125,7 +125,7 @@ export default async function handler(req, res) {
               query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
           }
 
-          const parsedLimit = Math.min(parseInt(limit, 10) || 50, 200);
+          const parsedLimit = parseInt(limit, 10) || 50;
           query = query.limit(parsedLimit);
 
           const { data: dbTournaments, error } = await query;
@@ -271,14 +271,14 @@ export default async function handler(req, res) {
           console.error('Daily tournaments API error:', error);
           return res.status(500).json({
               success: false,
-              error: 'Daily tournaments query failed',
+              error: error.message,
               tournaments: []
           });
       }
 
   } catch (err) {
     console.error('[API Error]', err);
-    if (!res.headersSent) return res.status(500).json({ success: false, error: 'Internal server error' });
+    if (!res.headersSent) return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
 }
 // NOTE: generateFallbackSchedule was removed — only real scraped data is served
