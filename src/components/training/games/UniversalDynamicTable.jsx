@@ -3627,20 +3627,55 @@ function UniversalDynamicTable({
                             const corIsFold = corA === 'f';
                             const corIsRaise = corA.startsWith('r');
 
+                            // Hand strength context
+                            const hCat = question?.handCategory || '';
+                            const hcLow = hCat.toLowerCase();
+                            const hasDraw = hcLow.includes('draw') || hcLow.includes('oesd') || hcLow.includes('gutshot');
+                            const hasMonster = hcLow.includes('set') || hcLow.includes('two pair') || hcLow.includes('straight') || hcLow.includes('flush') || hcLow.includes('full house');
+                            const hasTopPair = hcLow.includes('top pair') || hcLow.includes('overpair');
+
                             // Player bet when should check
-                            if (selIsBet && corIsCheck) return `Betting here bloats the pot unnecessarily — ${correctOpt} controls the pot and realizes equity.`;
+                            if (selIsBet && corIsCheck) {
+                                if (hasMonster) return `Betting your monster here is too transparent — ${correctOpt} traps villain and builds a deceptive checking range.`;
+                                if (hasTopPair) return `Betting top pair here bloats the pot — ${correctOpt} controls the pot and avoids getting raised off a one-pair hand.`;
+                                if (hasDraw) return `Betting your draw here is unnecessary — ${correctOpt} realizes equity for free without putting more chips at risk.`;
+                                return `Betting here bloats the pot unnecessarily — ${correctOpt} controls the pot and realizes equity.`;
+                            }
                             // Player checked when should bet
-                            if (selIsCheck && corIsBet) return `Checking misses value or lets opponents realize equity for free — ${correctOpt} is more profitable.`;
+                            if (selIsCheck && corIsBet) {
+                                if (hasMonster) return `Checking a monster here misses value — ${correctOpt} builds the pot while your hand is strong. Don't slow-play when you should bet.`;
+                                if (hasDraw) return `Checking your draw misses fold equity — ${correctOpt} combines semi-bluff equity with the chance to win the pot now.`;
+                                return `Checking misses value or lets opponents realize equity for free — ${correctOpt} is more profitable.`;
+                            }
                             // Player called when should fold
-                            if (selIsCall && corIsFold) return `Calling here is unprofitable — the bet prices you out. Folding saves BB in the long run.`;
+                            if (selIsCall && corIsFold) {
+                                if (hasDraw) return `Calling your draw here is -EV — the sizing prices you out. You need better pot odds or implied odds to continue.`;
+                                if (hasTopPair) return `Calling with top pair is too loose here — villain's aggression indicates a range that beats you. Save your chips.`;
+                                return `Calling here is unprofitable — the bet prices you out. Folding saves BB in the long run.`;
+                            }
                             // Player folded when should call
-                            if (selIsFold && corIsCall) return `Folding here is too tight — you have enough equity against the betting range to call profitably.`;
+                            if (selIsFold && corIsCall) {
+                                if (hasDraw) return `Folding your draw is too tight — you have enough equity (pot odds + implied odds) to continue profitably.`;
+                                if (hasTopPair) return `Folding top pair here is too tight — your hand beats enough of villain's bluffs and thin value to call profitably.`;
+                                return `Folding here is too tight — you have enough equity against the betting range to call profitably.`;
+                            }
                             // Player called when should raise
-                            if (selIsCall && (corIsRaise || corIsBet)) return `Flatting is too passive — raising builds the pot with your equity advantage.`;
+                            if (selIsCall && (corIsRaise || corIsBet)) {
+                                if (hasMonster) return `Flatting a monster is too passive here — ${correctOpt} builds the pot while you have the nuts. Don't let villain off cheap.`;
+                                if (hasDraw) return `Flatting is too passive — raising as a semi-bluff maximizes fold equity while your draw gives backup equity.`;
+                                return `Flatting is too passive — raising builds the pot with your equity advantage.`;
+                            }
                             // Player raised when should call
-                            if (selIsRaise && corIsCall) return `Raising bloats the pot against a strong range — calling keeps bluffs in and controls the pot.`;
+                            if (selIsRaise && corIsCall) {
+                                if (hasMonster) return `Raising here is too aggressive — calling traps villain's bluffs and weaker value hands. Raising folds out the hands you beat.`;
+                                return `Raising bloats the pot against a strong range — calling keeps bluffs in and controls the pot.`;
+                            }
                             // Player folded when should bet/raise
-                            if (selIsFold && (corIsBet || corIsRaise)) return `Folding when you should be the aggressor — you have enough equity to put in money here.`;
+                            if (selIsFold && (corIsBet || corIsRaise)) {
+                                if (hasDraw) return `Folding a draw when you should be semi-bluffing — ${correctOpt} combines fold equity with draw equity.`;
+                                if (hasTopPair) return `Folding the best hand! Your top pair has enough equity to be the aggressor here.`;
+                                return `Folding when you should be the aggressor — you have enough equity to put in money here.`;
+                            }
                             // Wrong sizing — Phase 35: detailed sizing feedback
                             if (selIsBet && corIsBet) {
                                 const selSize = parseInt((selA.match(/^b(\d+)$/) || [])[1] || '0');
