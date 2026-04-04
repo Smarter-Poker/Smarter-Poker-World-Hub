@@ -1603,9 +1603,12 @@ export class DeterministicGTOEngine {
         // ═══ Phase 43: TURN-SPECIFIC ENHANCED REASONING ═══
         const turnEnhancement = (street === 'turn') ? this._getTurnContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq, sizePct) : '';
 
+        // ═══ Phase 46: FLOP-SPECIFIC ENHANCED REASONING ═══
+        const flopEnhancement = (street === 'flop') ? this._getFlopContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq, sizePct) : '';
+
         // ═══ BUILD FINAL EXPLANATION ═══
         // Street-specific enhancement
-        const streetExtra = riverEnhancement || turnEnhancement;
+        const streetExtra = riverEnhancement || turnEnhancement || flopEnhancement;
 
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
@@ -1841,6 +1844,90 @@ export class DeterministicGTOEngine {
     /**
      * Phase 25: Explain WHY the solver uses a mixed strategy here.
      */
+    /**
+     * Phase 46: Flop-specific context enhancement.
+     * Key concepts: c-bet logic, check-raise construction, range advantage,
+     * board texture interaction, donk betting, backdoor equity.
+     */
+    _getFlopContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq, sizePct) {
+        const a = optimalAction.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+        const hs = handStrength.toLowerCase();
+
+        let context = '';
+
+        // C-bet reasoning (hero bets or checks on flop, typically as preflop aggressor)
+        if (nodeType === 'hero_bets_or_checks') {
+            if (isBet) {
+                const isNutted = hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush');
+                const hasDraw = hs.includes('draw') || hs.includes('backdoor');
+                const isTopPair = hs.includes('top pair') || hs.includes('overpair');
+
+                if (sizePct <= 33 && texture.dry) {
+                    context = 'Small c-bet on a dry flop — range-betting strategy. On dry boards, the preflop aggressor c-bets small with most of their range because they have a range advantage.';
+                } else if (sizePct <= 33 && !texture.dry) {
+                    context = 'Small c-bet on a wet flop — probing for information while keeping the pot controlled. Smaller sizes risk less on coordinated boards.';
+                } else if (sizePct >= 60 && isNutted) {
+                    context = 'Large c-bet with a strong hand — polarizing on the flop to build the pot for later streets. This sizing allows for geometric bet-bet-shove lines.';
+                } else if (sizePct >= 60 && hasDraw) {
+                    context = 'Large c-bet semi-bluff — maximum fold equity with a draw. Two cards to come gives strong backup equity if called.';
+                } else if (sizePct >= 60 && (hs.includes('air') || hs.includes('no pair'))) {
+                    context = 'Large c-bet as a bluff on the flop — representing a strong range and putting villain in a tough spot with their entire range.';
+                } else if (isTopPair && texture.wet) {
+                    context = 'C-betting for value and protection — charging draws on a wet flop while your hand is currently best.';
+                } else if (isTopPair && texture.dry) {
+                    context = 'C-betting for thin value on a dry board — extracting from worse pairs and high-card hands.';
+                }
+            } else if (isCheck) {
+                if (hs.includes('set') || hs.includes('two pair')) {
+                    context = 'Checking back a strong hand on the flop — trapping to disguise strength and induce villain action on later streets.';
+                } else if (hs.includes('draw') && hs.includes('backdoor')) {
+                    context = 'Checking back with backdoor equity — preserving the option to improve on the turn without committing chips.';
+                } else if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard')) {
+                    context = 'Giving up the c-bet with air — the board doesn\'t favor the preflop aggressor\'s range enough to justify bluffing.';
+                } else if (hs.includes('top pair') || hs.includes('overpair')) {
+                    if (texture.wet) context = 'Checking back top pair on a wet board for pot control — a common GTO strategy to avoid being check-raised off a vulnerable hand.';
+                    else context = 'Checking back for deception — protecting the checking range with strong hands so it isn\'t always weak.';
+                }
+            }
+        }
+
+        // Facing a c-bet (hero calls, raises, or folds)
+        if (nodeType === 'hero_faces_bet') {
+            if (isCall) {
+                if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd')) {
+                    context = 'Floating the c-bet with a draw — calling with equity to improve on the turn. Two cards to come maximizes implied odds.';
+                } else if (hs.includes('top pair') || hs.includes('overpair')) {
+                    context = 'Calling the flop c-bet with a strong hand — keeping villain\'s bluffs in and not inflating the pot unnecessarily.';
+                } else if (hs.includes('second pair') || hs.includes('middle pair')) {
+                    context = 'Defending a medium-strength hand vs the c-bet — good enough to call but not strong enough to raise.';
+                } else if (hs.includes('backdoor')) {
+                    context = 'Floating with backdoor equity — calling the flop cheaply to see if the turn improves your draw potential.';
+                }
+            } else if (isRaise) {
+                if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight')) {
+                    context = 'Check-raising for value on the flop — the strongest play with a nutted hand, building a big pot early.';
+                } else if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('oesd')) {
+                    context = 'Check-raise semi-bluff — combining fold equity with draw equity. If called, you still have strong equity to improve.';
+                } else if (hs.includes('air') || hs.includes('no pair')) {
+                    context = 'Check-raise bluff on the flop — attacking the c-bettor\'s range with maximum aggression. This works because most c-bet ranges are wide and weak.';
+                }
+            } else if (isFold) {
+                if (hs.includes('draw') && sizePct >= 60) {
+                    context = 'Folding a draw to a large c-bet — the sizing prices out your draw equity. You need better pot odds to continue profitably.';
+                } else if (hs.includes('no pair') || hs.includes('air')) {
+                    context = 'Folding air to the c-bet — no equity and no backdoor draws make continuing unprofitable regardless of pot odds.';
+                }
+            }
+        }
+
+        return context;
+    }
+
     /**
      * Phase 43: Turn-specific context enhancement.
      * Key concepts: geometric sizing (setting up river shove), turn card dynamics,
