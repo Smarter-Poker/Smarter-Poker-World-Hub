@@ -99,20 +99,34 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                     >
                         Detail
                     </button>
-                    {/* Phase 39: Mistakes filter */}
-                    <button
-                        onClick={() => setFilterMistakesOnly(v => !v)}
-                        style={{
-                            ...styles.toggleBtn,
-                            ...(filterMistakesOnly ? {
-                                background: 'rgba(239, 68, 68, 0.15)',
-                                color: '#f87171',
-                                borderColor: 'rgba(239, 68, 68, 0.3)',
-                            } : {}),
-                        }}
-                    >
-                        {filterMistakesOnly ? '✗ Mistakes' : 'All'}
-                    </button>
+                    {/* Phase 39+51: Classification filter buttons */}
+                    {[
+                        { key: 'all', label: 'All', color: '#94a3b8' },
+                        { key: 'mistakes', label: '✗', color: '#f87171' },
+                        { key: 'blunder', label: '!!', color: '#ef4444' },
+                    ].map(f => {
+                        const isActive = (f.key === 'all' && !filterMistakesOnly) || (f.key === 'mistakes' && filterMistakesOnly === true) || (f.key === 'blunder' && filterMistakesOnly === 'blunder');
+                        return (
+                            <button
+                                key={f.key}
+                                onClick={() => {
+                                    if (f.key === 'all') setFilterMistakesOnly(false);
+                                    else if (f.key === 'mistakes') setFilterMistakesOnly(true);
+                                    else setFilterMistakesOnly('blunder');
+                                }}
+                                style={{
+                                    ...styles.toggleBtn,
+                                    ...(isActive ? {
+                                        background: `${f.color}22`,
+                                        color: f.color,
+                                        borderColor: `${f.color}44`,
+                                    } : {}),
+                                }}
+                            >
+                                {f.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -174,14 +188,42 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                 </div>
                             )}
 
-                            {/* Hero cards + position */}
+                            {/* Hero cards + position + hand category */}
                             <div style={styles.heroSection}>
                                 <div style={styles.sectionLabel}>
                                     YOUR HAND {handData.heroPosition && <span style={styles.positionBadge}>{handData.heroPosition}</span>}
+                                    {handData.street && (
+                                        <span style={{
+                                            fontSize: 9, fontWeight: 600, marginLeft: 6, padding: '1px 5px', borderRadius: 3,
+                                            background: handData.street === 'preflop' ? 'rgba(167,139,250,0.15)' :
+                                                handData.street === 'flop' ? 'rgba(74,222,128,0.15)' :
+                                                handData.street === 'turn' ? 'rgba(251,146,60,0.15)' : 'rgba(248,113,113,0.15)',
+                                            color: handData.street === 'preflop' ? '#a78bfa' :
+                                                handData.street === 'flop' ? '#4ade80' :
+                                                handData.street === 'turn' ? '#fb923c' : '#f87171',
+                                        }}>
+                                            {handData.street}
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={styles.cardRow}>
                                     {heroCards.map((c, i) => <MiniCard key={i} card={c} size="lg" />)}
                                 </div>
+                                {/* Phase 51: Hand categorization */}
+                                {handData.handCategory && (
+                                    <div style={{
+                                        marginTop: 6, fontSize: 11, fontWeight: 600, fontStyle: 'italic',
+                                        color: handData.handCategory.includes('monster') ? '#f97316' :
+                                            handData.handCategory.includes('nut') ? '#22c55e' :
+                                            handData.handCategory.includes('combo') ? '#a855f7' :
+                                            handData.handCategory.includes('draw') ? '#3b82f6' :
+                                            handData.handCategory.includes('top pair') ? '#4ade80' :
+                                            handData.handCategory.includes('overpair') ? '#22d3ee' :
+                                            handData.handCategory.includes('air') ? '#64748b' : '#cbd5e1',
+                                    }}>
+                                        {handData.handCategory}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Action taken vs optimal */}
@@ -352,7 +394,11 @@ export default function HandReplayViewer({ handHistory, onClose }) {
             ) : (
                 /* LIST VIEW — Compact scrollable list */
                 <div style={styles.listView}>
-                    {handHistory.filter(entry => !filterMistakesOnly || ['inaccuracy', 'wrong', 'blunder'].includes(entry.classification)).map((entry, i) => {
+                    {handHistory.filter(entry => {
+                        if (!filterMistakesOnly) return true;
+                        if (filterMistakesOnly === 'blunder') return entry.classification === 'blunder';
+                        return ['inaccuracy', 'wrong', 'blunder'].includes(entry.classification);
+                    }).map((entry, i) => {
                         const originalIndex = handHistory.indexOf(entry);
                         const c = CLASSIFICATION_CONFIG[entry.classification] || CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.WRONG];
                         const hd = entry.handData || entry;
@@ -387,6 +433,12 @@ export default function HandReplayViewer({ handHistory, onClose }) {
                                         )}
                                         {hd.correctAction && hd.action !== hd.correctAction && (
                                             <span style={{ color: '#64748b' }}> → <span style={{ color: '#22c55e' }}>{hd.correctAction}</span></span>
+                                        )}
+                                        {/* Phase 51: Hand category in list */}
+                                        {hd.handCategory && (
+                                            <span style={{ color: '#64748b', marginLeft: 4, fontStyle: 'italic' }}>
+                                                ({hd.handCategory})
+                                            </span>
                                         )}
                                     </div>
                                 </div>

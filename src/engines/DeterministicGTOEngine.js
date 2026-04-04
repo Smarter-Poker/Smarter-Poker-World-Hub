@@ -942,6 +942,8 @@ export class DeterministicGTOEngine {
             explanation,
             difficulty: level,
             heroHand,
+            // Phase 51: Hand categorization for replay display
+            handCategory: this.categorizeHand(heroHand, board),
         };
     }
 

@@ -431,6 +431,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 evData: currentQuestion.evData || null,
                 // ═══ PHASE 27: Explanation text for hand replay review ═══
                 explanation: currentQuestion.explanation || null,
+                // ═══ PHASE 51: Hand categorization for replay display ═══
+                handCategory: currentQuestion.handCategory || null,
             },
         });
 
