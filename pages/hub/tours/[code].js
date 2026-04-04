@@ -19,10 +19,8 @@ const TOUR_COLORS = {
   'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff' },
   'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff' },
   'TRITON': { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff' },
-  'EPT': { bg: 'linear-gradient(135deg, #dc2626, #7f1d1d)', text: '#fff' },
   'NAPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
   'CPPT': { bg: 'linear-gradient(135deg, #0f766e, #134e4a)', text: '#fff' },
-  'APT': { bg: 'linear-gradient(135deg, #b45309, #78350f)', text: '#fff' },
   'BPO': { bg: 'linear-gradient(135deg, #0369a1, #0c4a6e)', text: '#fff' },
   'FPN': { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff' },
   'LIPS': { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff' },
@@ -38,7 +36,6 @@ const TOUR_TYPE_LABELS = {
   high_roller: 'High Roller',
   grassroots: 'Grassroots',
   charity: 'Charity',
-  cruise: 'Cruise',
 };
 
 const ACTIVITY_TYPE_COLORS = {

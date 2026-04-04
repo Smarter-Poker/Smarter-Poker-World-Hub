@@ -663,8 +663,8 @@
     },
     "CARD_PLAYER_CRUISES": {
       "tour_code": "CARD_PLAYER_CRUISES",
-      "tour_name": "Card Player Cruises",
-      "tour_type": "cruise",
+      "tour_name": "Card Player Poker Tour",
+      "tour_type": "circuit",
       "priority": 3,
       "official_website": "https://www.cardplayercruises.com",
       "source_urls": {
@@ -679,16 +679,17 @@
         "max": 500,
         "main_event": 300
       },
-      "regions": ["Caribbean", "Alaska", "Mediterranean"],
+      "regions": ["US"],
       "headquarters": "Miami, FL",
       "established": 1990,
-      "notes": "Poker cruises. 4-5 per year. Buy-ins separate from cruise fare."
+      "notes": "Card Player Poker Tour. Previously known as Card Player Cruises."
     },
     "EPT": {
       "tour_code": "EPT",
       "tour_name": "European Poker Tour",
       "tour_type": "major",
-      "priority": 2,
+      "priority": 99,
+      "is_active": false,
       "official_website": "https://www.pokerstarslive.com/ept/",
       "source_urls": {
         "primary": "https://www.pokerstarslive.com/ept/",
@@ -706,7 +707,7 @@
       "regions": ["Europe"],
       "headquarters": "Isle of Man",
       "established": 2004,
-      "notes": "PokerStars owned. Premier European tour. Monte Carlo, Barcelona, Prague."
+      "notes": "REMOVED — Non-US tour. PokerStars owned. Premier European tour."
     },
     "NAPT": {
       "tour_code": "NAPT",
@@ -758,7 +759,8 @@
       "tour_code": "APT",
       "tour_name": "Asian Poker Tour",
       "tour_type": "major",
-      "priority": 3,
+      "priority": 99,
+      "is_active": false,
       "official_website": "https://www.theasianpokertour.com",
       "source_urls": {
         "primary": "https://www.theasianpokertour.com/schedule/",
@@ -776,7 +778,7 @@
       "regions": ["Asia"],
       "headquarters": "Manila, Philippines",
       "established": 2008,
-      "notes": "Asian circuit. Manila, Macau, Korea, Vietnam stops."
+      "notes": "REMOVED — Non-US tour. Asian circuit. Manila, Macau, Korea, Vietnam stops."
     },
     "HPT": {
       "tour_code": "HPT",
@@ -843,12 +845,12 @@
     },
     "priority_3_tours": {
       "interval_days": 7,
-      "tours": ["ROUGHRIDER", "BPO", "FPN", "LIPS", "BESTBET", "BAY_101", "EPT", "APT", "CPPT"],
+      "tours": ["ROUGHRIDER", "BPO", "FPN", "LIPS", "BESTBET", "BAY_101", "CPPT", "CARD_PLAYER_CRUISES"],
       "notes": "Lower priority - check weekly"
     },
     "manual_only": {
       "interval_days": 14,
-      "tours": ["CARD_PLAYER_CRUISES", "HPT"],
+      "tours": ["HPT"],
       "notes": "Manual updates or defunct"
     }
   }
