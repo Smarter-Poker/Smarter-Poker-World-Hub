@@ -332,7 +332,7 @@ export default function LiveGamesFeed({
                 .map(v => {
                     const logoUrl = getVenueLogoUrl(v);
                     return {
-                        bravo_slug: v.bravo_slug || v.slug || '',
+                        bravo_slug: v.bravo_slug || v.slug || `venue-${v.id}`,
                         name: v.name,
                         venue_name: v.name,
                         totalTables: v.poker_tables || 0,
@@ -542,7 +542,7 @@ export default function LiveGamesFeed({
         
         return (
             <div 
-                key={v.bravo_slug} 
+                key={v.bravo_slug || v.id || `venue-${index}`} 
                 style={{ 
                     position: 'relative',
                     height: '100%',
@@ -664,7 +664,7 @@ export default function LiveGamesFeed({
 
                     {/* Game Breakdown — COLLAPSIBLE (flex-grow pushes rest to bottom) */}
                     <div style={{ flex: 1 }}>
-                        {renderTableBreakdown(v.bravo_slug, v.games)}
+                        {renderTableBreakdown(v.bravo_slug || v.id || `venue-${index}`, v.games)}
                     </div>
 
                     {/* === ACTION BAR === */}
