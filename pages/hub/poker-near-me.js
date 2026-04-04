@@ -1988,6 +1988,7 @@ export default function PokerNearMePage() {
                             key="map-tab-main"
                             venues={filteredVenues}
                             userLocation={userLocation}
+                            centerLocation={mapCenter}
                             fullHeight
                             onVenueClick={onMapVenueClick}
                             radiusMiles={filters.radius}
@@ -2127,6 +2128,7 @@ export default function PokerNearMePage() {
                             key={mapFullscreen ? 'venues-fullscreen' : 'venues-preview'}
                             venues={sorted}
                             userLocation={userLocation}
+                            centerLocation={mapCenter}
                             fullHeight={mapFullscreen}
                             onVenueClick={onMapVenueClick}
                             radiusMiles={filters.radius}

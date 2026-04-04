@@ -34,11 +34,13 @@ const VENUE_TYPES = [
 ];
 
 const RADIUS_OPTIONS = [
-    { value: 10, label: '10 Miles' },
     { value: 25, label: '25 Miles' },
     { value: 50, label: '50 Miles' },
     { value: 100, label: '100 Miles' },
-    { value: 250, label: '250 Miles' }
+    { value: 200, label: '200 Miles' },
+    { value: 250, label: '250 Miles' },
+    { value: 500, label: '500 Miles' },
+    { value: 'Any', label: 'Any Distance' }
 ];
 
 export default function FilterPanel({
@@ -332,7 +334,7 @@ export default function FilterPanel({
                         </label>
                         <select
                             value={localFilters.radius}
-                            onChange={e => handleChange('radius', parseInt(e.target.value))}
+                            onChange={e => handleChange('radius', e.target.value === 'Any' ? 'Any' : parseInt(e.target.value))}
                             style={{
                                 width: '100%',
                                 padding: '10px 12px',
