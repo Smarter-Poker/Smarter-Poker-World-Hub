@@ -1660,6 +1660,9 @@ export class DeterministicGTOEngine {
         // ═══ Phase 61: RANGE ADVANTAGE CONTEXT ═══
         const rangeNote = this._getRangeAdvantageNote(board, street, optimalAction, texture, ctx.nodeType, ctx.heroPosition, ctx.villainPosition, handStrength);
 
+        // ═══ Phase 62: MULTI-STREET PLANNING ═══
+        const multiStreetNote = this._getMultiStreetPlan(street, optimalAction, sizePct, handStrength, texture, ctx.estimatedPot, ctx.stackDepth);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1674,7 +1677,7 @@ export class DeterministicGTOEngine {
         const streetExtra = riverEnhancement || turnEnhancement || flopEnhancement;
 
         // Combine optional notes
-        const extras = [sizingReason, blockerNote, rangeNote].filter(Boolean).map(s => ' ' + s).join('');
+        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote].filter(Boolean).map(s => ' ' + s).join('');
 
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
@@ -2368,6 +2371,110 @@ export class DeterministicGTOEngine {
      * Phase 45: Enhanced mixed strategy reasoning — GTO Wizard-level depth.
      * Explains indifference points, range balance, and exploitability prevention.
      */
+    /**
+     * Phase 62: Multi-street planning — explains how the current action fits
+     * into a broader plan across remaining streets. Covers geometric sizing,
+     * pot commitment thresholds, and value/bluff barrel plans.
+     */
+    _getMultiStreetPlan(street, action, sizePct, handStrength, texture, pot, stackDepth) {
+        if (!street || street === 'preflop' || street === 'river') return '';
+
+        const a = action.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+        const hs = handStrength.toLowerCase();
+        const effectiveStack = stackDepth || 100;
+
+        // ═══ FLOP: 2 streets remaining ═══
+        if (street === 'flop') {
+            if (isBet) {
+                const isNutted = hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house');
+                const hasDraw = hs.includes('draw') || hs.includes('OESD') || hs.includes('flush draw') || hs.includes('gutshot');
+                const isTopPair = hs.includes('top pair') || hs.includes('overpair');
+
+                if (sizePct >= 60 && isNutted) {
+                    return 'Multi-street plan: Big flop bet → sets up a 60-75% turn barrel → pot-sized river shove. This geometric sizing path gets all the money in by the river.';
+                }
+                if (sizePct >= 60 && hasDraw) {
+                    return 'Multi-street plan: Large semi-bluff now → if the draw hits, barrel for value; if it misses, you can either give up or triple-barrel bluff representing the nuts.';
+                }
+                if (sizePct <= 33 && isNutted) {
+                    return 'Multi-street plan: Small flop bet builds the pot gradually — allows larger turn and river bets while keeping villain\'s entire range in.';
+                }
+                if (sizePct <= 33 && (hs.includes('air') || hs.includes('no pair'))) {
+                    return 'Multi-street plan: Cheap flop c-bet → evaluate the turn card. Give up on bad runouts, barrel good turn cards that improve your equity or fold out villain\'s marginal hands.';
+                }
+                if (isTopPair && sizePct >= 40 && sizePct <= 70) {
+                    return 'Multi-street plan: Medium flop bet with top pair → often check the turn to control the pot, then decide on the river based on villain\'s action.';
+                }
+            }
+            if (isCheck) {
+                const isStrong = hs.includes('set') || hs.includes('two pair') || hs.includes('overpair');
+                if (isStrong) {
+                    return 'Multi-street plan: Check the flop to trap → bet or raise the turn when villain barrels. Two remaining streets give time to build a big pot.';
+                }
+                if (hs.includes('draw')) {
+                    return 'Multi-street plan: Check to see the turn for free → if the draw completes, start betting for value. If not, reassess with one card to come.';
+                }
+            }
+            if (isCall) {
+                if (hs.includes('draw') || hs.includes('flush draw') || hs.includes('OESD')) {
+                    return 'Multi-street plan: Call the flop with a draw → re-evaluate on the turn. If the draw completes, raise or bet for value. If not, decide based on pot odds.';
+                }
+                if (hs.includes('set') || hs.includes('two pair')) {
+                    return 'Multi-street plan: Flatting the flop with a monster → raise the turn or river to build a big pot when villain continues barreling.';
+                }
+            }
+        }
+
+        // ═══ TURN: 1 street remaining ═══
+        if (street === 'turn') {
+            if (isBet) {
+                const isNutted = hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house');
+                const hasDraw = hs.includes('draw') || hs.includes('OESD') || hs.includes('flush draw');
+
+                if (sizePct >= 60 && sizePct <= 75) {
+                    if (isNutted) return 'Multi-street plan: 60-75% turn bet sets up a pot-sized river shove — geometric sizing to get stacks in by the river.';
+                    if (hasDraw) return 'Multi-street plan: Large turn semi-bluff → if the river completes the draw, bet for value. If not, you\'ve already built fold equity for a river jam.';
+                }
+                if (sizePct >= 80) {
+                    return 'Multi-street plan: Large turn bet commits a significant portion of your stack — be prepared to follow through with a river shove regardless of the card.';
+                }
+                if (sizePct <= 40) {
+                    if (isNutted) return 'Multi-street plan: Small turn bet keeps villain\'s wide range in → overbet or pot-sized river bet for maximum extraction.';
+                    if (hs.includes('top pair') || hs.includes('overpair')) return 'Multi-street plan: Medium turn bet for value/protection → check back or make a small river value bet depending on the runout.';
+                }
+                if (a === 'allin') {
+                    if (hasDraw) return 'Multi-street plan: Shoving the turn as a semi-bluff — maximum fold equity with one card to come. If called, you still have draw outs.';
+                    if (isNutted) return 'Going all-in on the turn for max value — the pot is large enough relative to stacks to get it in now.';
+                }
+            }
+            if (isCheck) {
+                if (hs.includes('top pair') || hs.includes('overpair')) {
+                    return 'Multi-street plan: Checking the turn to control the pot → call a reasonable river bet or bet for thin value if checked to.';
+                }
+                if (hs.includes('set') || hs.includes('two pair')) {
+                    return 'Multi-street plan: Check the turn to induce a river bluff or delayed bet — then raise for maximum value on the river.';
+                }
+                if (hs.includes('draw')) {
+                    return 'Multi-street plan: Take a free card on the turn → if the draw completes on the river, bet for value. If not, check-fold or bluff based on runout.';
+                }
+            }
+            if (isCall) {
+                if (hs.includes('draw')) {
+                    return 'Multi-street plan: Calling the turn with a draw → final card decides everything. If the draw hits, you win a big pot. If not, fold to a river bet.';
+                }
+                if (hs.includes('top pair') || hs.includes('overpair')) {
+                    return 'Multi-street plan: Call turn → bluff-catch the river. One more bet to face — your hand should be good often enough to justify calling down.';
+                }
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Phase 61: Range advantage — explains which player has the range advantage
      * on this board and how it affects the optimal strategy.
