@@ -9292,6 +9292,13 @@ export class DeterministicGTOEngine {
         this._handHistory = [];
         this._sessionBests = {};
         this._freqComparison = {};
+        this._challengeMode = null;
+        this._achievements = new Set();
+        this._trainingCalendar = {};
+        this._cumulativeDeviationCost = null;
+        this._explanationRatings = [];
+        this._customDrills = [];
+        this._scenarioTags = {};
     }
 
     getEngineHealth() {

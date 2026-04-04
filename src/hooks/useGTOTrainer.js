@@ -552,8 +552,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // ═══ PHASE 179: Session bests tracking ═══
         try {
             if (isCorrect) {
-                const currentStreak = (this._recentResults || []).reduce((acc, r) => r ? acc + 1 : 0, 0);
-                deterministicEngine.recordSessionBest('streak', currentStreak);
+                const recentResults = deterministicEngine._recentResults || [];
+                const currentStreakVal = recentResults.reduce((acc, r) => r ? acc + 1 : 0, 0);
+                deterministicEngine.recordSessionBest('streak', currentStreakVal);
             }
         } catch (e) { /* non-critical */ }
 
