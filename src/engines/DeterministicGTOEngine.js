@@ -6102,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '3.8.0-phase310',
-            phasesImplemented: 310,
+            version: '3.9.0-phase320',
+            phasesImplemented: 320,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6157,6 +6157,8 @@ export class DeterministicGTOEngine {
                 phase296_300: ['multiGameType', 'bettingSizeAnalysis', 'handReadingDrill', 'varianceSimulator', 'performanceTrend'],
                 phase301_305: ['optimalLineNarration', 'streetTransition', 'defenseFrequency', 'polarizationIndex', 'mistakeRecovery'],
                 phase306_310: ['conceptQuiz', 'sessionMilestones', 'adaptiveDrillRec', 'criticalHandHighlights', 'comprehensiveReport'],
+                phase311_315: ['nodeTypeBreakdown', 'actionTimeline', 'streetSpecificLeaks', 'overbetAnalysis', 'checkRaiseAnalysis'],
+                phase316_320: ['cbetAnalysis', 'positionPairAnalysis', 'freqConvergence', 'smartSessionLength', 'trainingPlan'],
             },
             totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
@@ -13273,6 +13275,394 @@ export class DeterministicGTOEngine {
         } catch (_) {}
 
         return report;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 311: NODE TYPE BREAKDOWN
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getNodeTypeBreakdown() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+        const nodeMap = {};
+
+        history.forEach(h => {
+            const node = (h.nodeType || 'SRP').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            if (!nodeMap[node]) nodeMap[node] = { correct: 0, total: 0, evLoss: 0 };
+            nodeMap[node].total++;
+            if (h.correct) nodeMap[node].correct++;
+            nodeMap[node].evLoss += (h.evLoss || 0);
+        });
+
+        const breakdown = Object.entries(nodeMap).map(([node, data]) => ({
+            nodeType: node,
+            total: data.total,
+            correct: data.correct,
+            accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+            avgEVLoss: data.total > 0 ? Math.round((data.evLoss / data.total) * 100) / 100 : 0,
+        })).sort((a, b) => b.total - a.total);
+
+        const weakest = breakdown.filter(n => n.total >= 2).sort((a, b) => a.accuracy - b.accuracy)[0] || null;
+
+        return { breakdown, weakestNodeType: weakest, totalNodeTypes: breakdown.length };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 312: ACTION TIMELINE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getActionTimeline() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 3) return null;
+        const history = this._sessionStats.history;
+
+        return history.map((h, i) => ({
+            hand: i + 1,
+            correct: h.correct,
+            action: h.selectedAction || 'unknown',
+            correctAction: h.correctAction || 'unknown',
+            street: h.street || 'unknown',
+            position: h.heroPosition || h.position || 'unknown',
+            evLoss: Math.round((h.evLoss || 0) * 100) / 100,
+            classification: h.classification || null,
+        }));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 313: STREET-SPECIFIC LEAKS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getStreetSpecificLeaks() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 8) return null;
+        const history = this._sessionStats.history;
+        const leaks = {};
+
+        history.forEach(h => {
+            if (h.correct) return;
+            const street = (h.street || 'flop').toLowerCase();
+            const userAction = this._normalizeActionCategory(h.selectedAction || '');
+            const correctAction = this._normalizeActionCategory(h.correctAction || '');
+            const key = `${street}_${userAction}_should_${correctAction}`;
+
+            if (!leaks[key]) leaks[key] = { street, userAction, correctAction, count: 0, totalEVLoss: 0 };
+            leaks[key].count++;
+            leaks[key].totalEVLoss += (h.evLoss || 0);
+        });
+
+        const sorted = Object.values(leaks)
+            .sort((a, b) => b.totalEVLoss - a.totalEVLoss)
+            .slice(0, 10)
+            .map(l => ({
+                ...l,
+                totalEVLoss: Math.round(l.totalEVLoss * 100) / 100,
+                description: `${l.street.charAt(0).toUpperCase() + l.street.slice(1)}: ${l.userAction} instead of ${l.correctAction} (${l.count}x, -${Math.round(l.totalEVLoss * 100) / 100} EV)`,
+            }));
+
+        return { leaks: sorted, totalLeaks: sorted.length, biggestLeak: sorted[0] || null };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 314: OVERBET ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getOverbetAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let overbetSpots = 0, overbetCorrect = 0, shouldOverbet = 0, missedOverbets = 0;
+
+        history.forEach(h => {
+            const userAction = (h.selectedAction || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const isUserOverbet = userAction.includes('overbet') || userAction.includes('150%') || userAction.includes('200%');
+            const isCorrectOverbet = correctAction.includes('overbet') || correctAction.includes('150%') || correctAction.includes('200%');
+
+            if (isUserOverbet) { overbetSpots++; if (h.correct) overbetCorrect++; }
+            if (isCorrectOverbet) { shouldOverbet++; if (!isUserOverbet) missedOverbets++; }
+        });
+
+        return {
+            overbetSpots,
+            overbetCorrect,
+            overbetAccuracy: overbetSpots > 0 ? Math.round((overbetCorrect / overbetSpots) * 100) : null,
+            shouldOverbet,
+            missedOverbets,
+            tip: missedOverbets > 0
+                ? `You missed ${missedOverbets} overbet spot${missedOverbets > 1 ? 's' : ''}. Overbets are optimal when your range is highly polarized and villain is range-capped.`
+                : overbetSpots === 0
+                    ? 'No overbet spots this session. Overbets are powerful on dry boards where villain checks back capped ranges.'
+                    : `You used overbets ${overbetSpots} time${overbetSpots > 1 ? 's' : ''} with ${overbetSpots > 0 ? Math.round((overbetCorrect / overbetSpots) * 100) : 0}% accuracy.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 315: CHECK-RAISE ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getCheckRaiseAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let crSpots = 0, crCorrect = 0, shouldCR = 0, missedCR = 0;
+
+        history.forEach(h => {
+            const userAction = (h.selectedAction || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const isUserCR = userAction.includes('check') && userAction.includes('raise');
+            const isCorrectCR = correctAction.includes('check') && correctAction.includes('raise');
+
+            // Also catch "raise" when facing a bet (which is effectively a check-raise in OOP spots)
+            const node = (h.nodeType || '').toLowerCase();
+            const isCRSpot = node.includes('check_raise') || node.includes('facing_cbet');
+
+            if (isUserCR || (isCRSpot && userAction.includes('raise'))) { crSpots++; if (h.correct) crCorrect++; }
+            if (isCorrectCR || (isCRSpot && correctAction.includes('raise'))) { shouldCR++; if (!isUserCR && !userAction.includes('raise')) missedCR++; }
+        });
+
+        return {
+            checkRaiseSpots: crSpots,
+            checkRaiseCorrect: crCorrect,
+            accuracy: crSpots > 0 ? Math.round((crCorrect / crSpots) * 100) : null,
+            shouldCheckRaise: shouldCR,
+            missedCheckRaises: missedCR,
+            tip: missedCR > 1
+                ? `You missed ${missedCR} check-raise opportunities. Check-raising is crucial for protecting your checking range and building pots with strong hands OOP.`
+                : crSpots === 0
+                    ? 'No check-raise spots this session. Watch for check-raise opportunities when you have strong hands or draws in the blinds.'
+                    : `Check-raise accuracy: ${crSpots > 0 ? Math.round((crCorrect / crSpots) * 100) : 0}%. Keep up the aggression from OOP.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 316: C-BET ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getCBetAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let cbetSpots = 0, cbetCorrect = 0, shouldCbet = 0, shouldCheck = 0, cbetWhenShouldCheck = 0, checkWhenShouldCbet = 0;
+
+        history.forEach(h => {
+            const node = (h.nodeType || '').toLowerCase();
+            const street = (h.street || '').toLowerCase();
+            if (!node.includes('cbet') && !node.includes('continuation') && street !== 'flop') return;
+
+            const userAction = (h.selectedAction || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const userBets = userAction.includes('bet');
+            const correctBets = correctAction.includes('bet');
+
+            if (correctBets) { shouldCbet++; if (!userBets) checkWhenShouldCbet++; }
+            else { shouldCheck++; if (userBets) cbetWhenShouldCheck++; }
+
+            if (userBets) { cbetSpots++; if (h.correct) cbetCorrect++; }
+        });
+
+        return {
+            cbetSpots,
+            cbetCorrect,
+            accuracy: cbetSpots > 0 ? Math.round((cbetCorrect / cbetSpots) * 100) : null,
+            shouldCbet,
+            shouldCheck,
+            cbetWhenShouldCheck,
+            checkWhenShouldCbet,
+            tip: cbetWhenShouldCheck > 2
+                ? `You c-bet too often — ${cbetWhenShouldCheck} times when the solver prefers checking. Not every flop deserves a c-bet.`
+                : checkWhenShouldCbet > 2
+                    ? `You miss c-bet opportunities — the solver wants you to bet on ${checkWhenShouldCbet} more flops.`
+                    : 'Your c-bet frequency looks reasonable for this session.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 317: POSITION PAIR ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getPositionPairAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 8) return null;
+        const history = this._sessionStats.history;
+        const pairs = {};
+
+        history.forEach(h => {
+            const hero = (h.heroPosition || h.position || 'MP').toUpperCase();
+            const villain = (h.villainPosition || 'BB').toUpperCase();
+            const key = `${hero} vs ${villain}`;
+            if (!pairs[key]) pairs[key] = { correct: 0, total: 0, evLoss: 0 };
+            pairs[key].total++;
+            if (h.correct) pairs[key].correct++;
+            pairs[key].evLoss += (h.evLoss || 0);
+        });
+
+        const analysis = Object.entries(pairs).map(([pair, data]) => ({
+            matchup: pair,
+            total: data.total,
+            accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+            avgEVLoss: data.total > 0 ? Math.round((data.evLoss / data.total) * 100) / 100 : 0,
+        })).sort((a, b) => b.total - a.total);
+
+        const weakest = analysis.filter(a => a.total >= 2).sort((a, b) => a.accuracy - b.accuracy)[0] || null;
+
+        return { pairs: analysis, weakestMatchup: weakest, totalMatchups: analysis.length };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 318: FREQUENCY CONVERGENCE TRACKER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getFrequencyConvergenceTracker() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 10) return null;
+        const history = this._sessionStats.history;
+        const halfPoint = Math.floor(history.length / 2);
+        const firstHalf = history.slice(0, halfPoint);
+        const secondHalf = history.slice(halfPoint);
+
+        const calcDeviation = (hands) => {
+            let totalDev = 0, count = 0;
+            hands.forEach(h => {
+                if (h.correctFreq && h.selectedFreq !== undefined) {
+                    totalDev += Math.abs((h.selectedFreq || 0) - (h.correctFreq || 0));
+                    count++;
+                }
+            });
+            return count > 0 ? Math.round(totalDev / count) : null;
+        };
+
+        const earlyDeviation = calcDeviation(firstHalf);
+        const lateDeviation = calcDeviation(secondHalf);
+
+        // Also track overall action accuracy convergence
+        const earlyAcc = firstHalf.length > 0 ? Math.round((firstHalf.filter(h => h.correct).length / firstHalf.length) * 100) : 0;
+        const lateAcc = secondHalf.length > 0 ? Math.round((secondHalf.filter(h => h.correct).length / secondHalf.length) * 100) : 0;
+
+        const isConverging = lateAcc > earlyAcc || (lateDeviation !== null && earlyDeviation !== null && lateDeviation < earlyDeviation);
+
+        return {
+            earlyAccuracy: earlyAcc,
+            lateAccuracy: lateAcc,
+            earlyDeviation,
+            lateDeviation,
+            isConverging,
+            improvement: lateAcc - earlyAcc,
+            insight: isConverging
+                ? `Great progress! Your accuracy improved from ${earlyAcc}% to ${lateAcc}% over the session.`
+                : earlyAcc === lateAcc
+                    ? 'Consistent play throughout. Try to push past your comfort zone to improve.'
+                    : `Accuracy dipped from ${earlyAcc}% to ${lateAcc}%. Possible fatigue — consider shorter sessions.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 319: SMART SESSION LENGTH RECOMMENDATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getSmartSessionLength() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 10) return null;
+        const history = this._sessionStats.history;
+
+        // Find the point where accuracy starts consistently dropping
+        const windowSize = 5;
+        let peakWindow = 0;
+        let peakAcc = 0;
+
+        for (let i = 0; i <= history.length - windowSize; i++) {
+            const window = history.slice(i, i + windowSize);
+            const acc = window.filter(h => h.correct).length / window.length;
+            if (acc >= peakAcc) { peakAcc = acc; peakWindow = i; }
+        }
+
+        // Find where accuracy drops below 60% of peak
+        let dropOffPoint = history.length;
+        const threshold = peakAcc * 0.8;
+        for (let i = peakWindow + windowSize; i <= history.length - windowSize; i++) {
+            const window = history.slice(i, i + windowSize);
+            const acc = window.filter(h => h.correct).length / window.length;
+            if (acc < threshold) { dropOffPoint = i; break; }
+        }
+
+        const optimalLength = Math.min(dropOffPoint + windowSize, history.length);
+        const currentLength = history.length;
+
+        return {
+            optimalLength,
+            currentLength,
+            peakAccuracy: Math.round(peakAcc * 100),
+            peakAt: peakWindow + 1,
+            shouldContinue: currentLength < optimalLength * 0.9,
+            recommendation: currentLength >= optimalLength
+                ? `Consider stopping — your optimal session length is ~${optimalLength} hands based on when accuracy peaks.`
+                : currentLength >= optimalLength * 0.8
+                    ? `You're nearing your optimal session length (~${optimalLength} hands). Stay sharp for the last few.`
+                    : `You're in the zone. Optimal session length estimate: ~${optimalLength} hands.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 320: TRAINING PLAN GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getTrainingPlan() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+
+        const plan = { sessions: [], focus: [], estimatedImprovement: 0 };
+
+        // Gather weaknesses from various analyzers
+        const weaknesses = [];
+
+        try {
+            const posLB = this.getPositionLeaderboard();
+            if (posLB?.worstPosition && posLB.worstPosition.accuracy < 60) {
+                weaknesses.push({ area: 'position', detail: `${posLB.worstPosition.position} at ${posLB.worstPosition.accuracy}%`, priority: 1 });
+            }
+        } catch (_) {}
+
+        try {
+            const sta = this.getStreetTransitionAnalysis();
+            if (sta?.weakestStreet && sta.weakestStreet.accuracy < 55) {
+                weaknesses.push({ area: 'street', detail: `${sta.weakestStreet.street} at ${sta.weakestStreet.accuracy}%`, priority: 1 });
+            }
+        } catch (_) {}
+
+        try {
+            const ea = this.getExploitativeAdjustments();
+            if (ea?.adjustments?.length > 0) {
+                ea.adjustments.slice(0, 2).forEach(adj => {
+                    weaknesses.push({ area: 'balance', detail: adj.title, priority: adj.severity === 'critical' ? 1 : 2 });
+                });
+            }
+        } catch (_) {}
+
+        try {
+            const df = this.getDefenseFrequencyCheck();
+            if (df && !df.isBalanced) {
+                weaknesses.push({ area: 'defense', detail: 'Defense frequency imbalance', priority: 2 });
+            }
+        } catch (_) {}
+
+        try {
+            const mr = this.getMistakeRecoveryRate();
+            if (mr && (mr.grade === 'C' || mr.grade === 'D')) {
+                weaknesses.push({ area: 'mental', detail: `Mistake recovery grade: ${mr.grade}`, priority: 2 });
+            }
+        } catch (_) {}
+
+        // Generate 5-session plan
+        weaknesses.sort((a, b) => a.priority - b.priority);
+        const sessionLabels = ['Session 1: Foundation', 'Session 2: Deep Dive', 'Session 3: Practice', 'Session 4: Integration', 'Session 5: Assessment'];
+
+        for (let i = 0; i < 5; i++) {
+            const weakness = weaknesses[i % Math.max(1, weaknesses.length)];
+            plan.sessions.push({
+                label: sessionLabels[i],
+                focus: weakness ? weakness.detail : 'General practice',
+                hands: i < 2 ? 15 : i < 4 ? 20 : 25,
+                goal: i < 2 ? 'Identify patterns' : i < 4 ? 'Apply corrections' : 'Maintain accuracy',
+            });
+        }
+
+        plan.focus = weaknesses.slice(0, 3).map(w => w.detail);
+        plan.estimatedImprovement = Math.min(15, weaknesses.length * 3);
+
+        return plan;
     }
 }
 

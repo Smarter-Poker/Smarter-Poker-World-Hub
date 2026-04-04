@@ -1658,6 +1658,38 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.getComprehensiveSessionReport(); } catch (e) { return null; }
         },
 
+        // Phase 311-320: Training Edge Features
+        getNodeTypeBreakdown: () => {
+            try { return deterministicEngine.getNodeTypeBreakdown(); } catch (e) { return null; }
+        },
+        getActionTimeline: () => {
+            try { return deterministicEngine.getActionTimeline(); } catch (e) { return null; }
+        },
+        getStreetSpecificLeaks: () => {
+            try { return deterministicEngine.getStreetSpecificLeaks(); } catch (e) { return null; }
+        },
+        getOverbetAnalysis: () => {
+            try { return deterministicEngine.getOverbetAnalysis(); } catch (e) { return null; }
+        },
+        getCheckRaiseAnalysis: () => {
+            try { return deterministicEngine.getCheckRaiseAnalysis(); } catch (e) { return null; }
+        },
+        getCBetAnalysis: () => {
+            try { return deterministicEngine.getCBetAnalysis(); } catch (e) { return null; }
+        },
+        getPositionPairAnalysis: () => {
+            try { return deterministicEngine.getPositionPairAnalysis(); } catch (e) { return null; }
+        },
+        getFrequencyConvergenceTracker: () => {
+            try { return deterministicEngine.getFrequencyConvergenceTracker(); } catch (e) { return null; }
+        },
+        getSmartSessionLength: () => {
+            try { return deterministicEngine.getSmartSessionLength(); } catch (e) { return null; }
+        },
+        getTrainingPlan: () => {
+            try { return deterministicEngine.getTrainingPlan(); } catch (e) { return null; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,
