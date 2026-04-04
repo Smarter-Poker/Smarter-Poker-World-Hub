@@ -6102,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '4.0.0-phase330',
-            phasesImplemented: 330,
+            version: '4.1.0-phase340',
+            phasesImplemented: 340,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6161,6 +6161,8 @@ export class DeterministicGTOEngine {
                 phase316_320: ['cbetAnalysis', 'positionPairAnalysis', 'freqConvergence', 'smartSessionLength', 'trainingPlan'],
                 phase321_325: ['handStrengthDist', 'aggressionProfile', 'winRateByHand', 'tightLooseProfile', 'bluffSpotAnalysis'],
                 phase326_330: ['valueBetAnalysis', 'sessionSummaryCard', 'difficultyProgression', 'weaknessHeatmap', 'gtoComplianceScore'],
+                phase331_335: ['rangeBalance', 'checkBackAnalysis', 'donkBetAnalysis', 'multiWayPots', 'thinValueFreq'],
+                phase336_340: ['protectionBets', 'showdownAnalysis', 'riverDecisionQuality', 'preFlopLeaks', 'sessionProgressChart'],
             },
             totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
@@ -14052,6 +14054,365 @@ export class DeterministicGTOEngine {
                 : tier === 'Intermediate' ? 'Good foundation. Focus on frequency accuracy and range balance.'
                 : tier === 'Developing' ? 'Growing understanding. Study solver outputs and focus on one leak at a time.'
                 : 'Building fundamentals. Start with preflop ranges and basic c-bet strategy.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 331: RANGE BALANCE SCORE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getRangeBalanceScore() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 8) return null;
+        const history = this._sessionStats.history;
+
+        // For each action type, how well does user match solver frequencies?
+        const userActions = {};
+        const solverActions = {};
+
+        history.forEach(h => {
+            const ua = this._normalizeActionCategory(h.selectedAction || '');
+            const ca = this._normalizeActionCategory(h.correctAction || '');
+            userActions[ua] = (userActions[ua] || 0) + 1;
+            solverActions[ca] = (solverActions[ca] || 0) + 1;
+        });
+
+        const total = history.length;
+        const allActions = [...new Set([...Object.keys(userActions), ...Object.keys(solverActions)])];
+
+        let totalDeviation = 0;
+        const actionComparison = allActions.map(action => {
+            const userPct = Math.round(((userActions[action] || 0) / total) * 100);
+            const solverPct = Math.round(((solverActions[action] || 0) / total) * 100);
+            const deviation = Math.abs(userPct - solverPct);
+            totalDeviation += deviation;
+            return { action, userPct, solverPct, deviation };
+        });
+
+        const balanceScore = Math.max(0, Math.round(100 - totalDeviation));
+
+        return {
+            balanceScore,
+            actionComparison,
+            totalDeviation,
+            grade: balanceScore >= 85 ? 'A' : balanceScore >= 70 ? 'B' : balanceScore >= 55 ? 'C' : 'D',
+            insight: balanceScore >= 85 ? 'Excellent range balance — your action frequencies match the solver closely.'
+                : balanceScore >= 70 ? 'Good balance with minor deviations. Fine-tune your weaker spots.'
+                : 'Significant frequency imbalances. Study which actions you over- or under-use.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 332: CHECK-BACK ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getCheckBackAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let checkBackCorrect = 0, checkBackTotal = 0, shouldCheckBack = 0, betInsteadOfCheck = 0;
+
+        history.forEach(h => {
+            const ua = (h.selectedAction || '').toLowerCase();
+            const ca = (h.correctAction || '').toLowerCase();
+            const isUserCheck = ua.includes('check');
+            const isCorrectCheck = ca.includes('check');
+
+            if (isUserCheck && isCorrectCheck) { checkBackCorrect++; checkBackTotal++; }
+            else if (isUserCheck && !isCorrectCheck) { checkBackTotal++; }
+            if (isCorrectCheck) { shouldCheckBack++; if (!isUserCheck) betInsteadOfCheck++; }
+        });
+
+        return {
+            checkBackTotal,
+            checkBackCorrect,
+            accuracy: checkBackTotal > 0 ? Math.round((checkBackCorrect / checkBackTotal) * 100) : null,
+            shouldCheckBack,
+            betInsteadOfCheck,
+            tip: betInsteadOfCheck > 3
+                ? `You bet ${betInsteadOfCheck} times when the solver prefers checking. Checking protects your range and avoids bloating pots with medium hands.`
+                : 'Your check-back decisions look solid.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 333: DONK BET ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getDonkBetAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+        let donkSpots = 0, donkCorrect = 0;
+
+        history.forEach(h => {
+            const node = (h.nodeType || '').toLowerCase();
+            if (node.includes('donk') || node.includes('lead')) {
+                donkSpots++;
+                if (h.correct) donkCorrect++;
+            }
+        });
+
+        return {
+            donkSpots,
+            donkCorrect,
+            accuracy: donkSpots > 0 ? Math.round((donkCorrect / donkSpots) * 100) : null,
+            tip: donkSpots === 0
+                ? 'No donk bet spots this session. Donk bets are rare in GTO play but correct on specific board textures.'
+                : `Donk bet accuracy: ${donkSpots > 0 ? Math.round((donkCorrect / donkSpots) * 100) : 0}%. Donk bets work on boards that favor the caller\\'s range heavily.`,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 334: MULTIWAY POT ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getMultiWayPotAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        let multiway = { correct: 0, total: 0 };
+        let headsUp = { correct: 0, total: 0 };
+
+        history.forEach(h => {
+            const node = (h.nodeType || '').toLowerCase();
+            const isMultiway = node.includes('multiway') || node.includes('multi_way') || node.includes('3way') || node.includes('4way');
+            const target = isMultiway ? multiway : headsUp;
+            target.total++;
+            if (h.correct) target.correct++;
+        });
+
+        return {
+            multiway: { ...multiway, accuracy: multiway.total > 0 ? Math.round((multiway.correct / multiway.total) * 100) : null },
+            headsUp: { ...headsUp, accuracy: headsUp.total > 0 ? Math.round((headsUp.correct / headsUp.total) * 100) : null },
+            tip: multiway.total > 0 && headsUp.total > 0 && multiway.total >= 2
+                ? `Multiway: ${Math.round((multiway.correct / multiway.total) * 100)}% vs Heads-up: ${Math.round((headsUp.correct / headsUp.total) * 100)}%. Multiway pots require tighter ranges and less bluffing.`
+                : 'Most spots were heads-up this session.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 335: THIN VALUE FREQUENCY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getThinValueFrequency() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Thin value = betting with medium-strength hands for value
+        let thinValueSpots = 0, thinValueCorrect = 0;
+
+        history.forEach(h => {
+            const handCat = (h.handCategory || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const isMediumHand = handCat.includes('medium') || handCat.includes('middle') || handCat.includes('second') || handCat.includes('top pair weak');
+            const isBetting = correctAction.includes('bet') || correctAction.includes('raise');
+
+            if (isMediumHand && isBetting) {
+                thinValueSpots++;
+                if (h.correct) thinValueCorrect++;
+            }
+        });
+
+        return {
+            thinValueSpots,
+            thinValueCorrect,
+            accuracy: thinValueSpots > 0 ? Math.round((thinValueCorrect / thinValueSpots) * 100) : null,
+            tip: thinValueSpots === 0
+                ? 'No thin value spots identified. Thin value betting with medium-strength hands is a key skill for maximizing winnings.'
+                : thinValueSpots > 0 && (thinValueCorrect / thinValueSpots) < 0.5
+                    ? 'Your thin value betting needs work. Focus on determining if villain calls with worse.'
+                    : 'Good thin value betting recognition.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 336: PROTECTION BET ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getProtectionBetAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Protection bets: betting to deny free cards (usually on wet boards)
+        let protectionSpots = 0, protectionCorrect = 0;
+
+        history.forEach(h => {
+            const street = (h.street || '').toLowerCase();
+            const correctAction = (h.correctAction || '').toLowerCase();
+            const handCat = (h.handCategory || '').toLowerCase();
+            const texture = (h.boardTexture || h.texture || '').toLowerCase();
+
+            const isVulnerable = (handCat.includes('top pair') || handCat.includes('overpair') || handCat.includes('medium')) && (texture.includes('wet') || texture.includes('draw'));
+            const isBetting = correctAction.includes('bet');
+
+            if (isVulnerable && isBetting && (street === 'flop' || street === 'turn')) {
+                protectionSpots++;
+                if (h.correct) protectionCorrect++;
+            }
+        });
+
+        return {
+            protectionSpots,
+            protectionCorrect,
+            accuracy: protectionSpots > 0 ? Math.round((protectionCorrect / protectionSpots) * 100) : null,
+            tip: protectionSpots > 0 && (protectionCorrect / protectionSpots) < 0.5
+                ? 'You miss protection bets. On wet boards, bet to deny villain free equity with draws.'
+                : 'Your protection betting looks appropriate.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 337: SHOWDOWN ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getShowdownAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // How often user checks down to showdown vs takes aggressive line
+        let checkdowns = 0, aggressiveLines = 0, foldedOut = 0;
+
+        history.forEach(h => {
+            const action = (h.selectedAction || '').toLowerCase();
+            if (action.includes('fold')) foldedOut++;
+            else if (action.includes('check') || action.includes('call')) checkdowns++;
+            else aggressiveLines++;
+        });
+
+        const total = history.length;
+        const showdownRate = Math.round(((checkdowns + aggressiveLines) / total) * 100);
+        const aggressionRate = (checkdowns + aggressiveLines) > 0
+            ? Math.round((aggressiveLines / (checkdowns + aggressiveLines)) * 100) : 0;
+
+        return {
+            showdownRate,
+            aggressionRate,
+            checkdowns,
+            aggressiveLines,
+            foldedOut,
+            total,
+            insight: showdownRate > 75 ? 'High showdown rate — you see a lot of rivers. Make sure you are not calling too light.'
+                : showdownRate < 40 ? 'Low showdown rate — you fold a lot. Consider defending wider, especially in position.'
+                : 'Balanced showdown frequency.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 338: RIVER DECISION QUALITY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getRiverDecisionQuality() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+        const riverHands = history.filter(h => (h.street || '').toLowerCase() === 'river');
+        if (riverHands.length < 3) return null;
+
+        const correct = riverHands.filter(h => h.correct).length;
+        const accuracy = Math.round((correct / riverHands.length) * 100);
+        const totalEV = riverHands.reduce((sum, h) => sum + (h.evLoss || 0), 0);
+        const avgEV = Math.round((totalEV / riverHands.length) * 100) / 100;
+
+        // River-specific action breakdown
+        let riverFolds = 0, riverCalls = 0, riverBets = 0;
+        riverHands.forEach(h => {
+            const action = (h.selectedAction || '').toLowerCase();
+            if (action.includes('fold')) riverFolds++;
+            else if (action.includes('call') || action.includes('check')) riverCalls++;
+            else riverBets++;
+        });
+
+        return {
+            totalRiverHands: riverHands.length,
+            accuracy,
+            avgEVLoss: avgEV,
+            actions: { folds: riverFolds, calls: riverCalls, bets: riverBets },
+            grade: accuracy >= 80 ? 'A' : accuracy >= 65 ? 'B' : accuracy >= 50 ? 'C' : 'D',
+            insight: accuracy >= 80 ? 'Excellent river play — this is where the biggest decisions happen.'
+                : accuracy >= 65 ? 'Good river decisions. Focus on close bluff-catching and value betting spots.'
+                : 'River play needs work. This is the highest-EV street to improve on.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 339: PREFLOP LEAK IDENTIFICATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getPreFlopLeaks() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+        const preflopHands = history.filter(h => (h.street || '').toLowerCase() === 'preflop');
+        if (preflopHands.length < 3) return null;
+
+        const leaks = [];
+        let openCorrect = 0, openTotal = 0;
+        let defenseCorrect = 0, defenseTotal = 0;
+        let threeBetCorrect = 0, threeBetTotal = 0;
+
+        preflopHands.forEach(h => {
+            const node = (h.nodeType || '').toLowerCase();
+            if (node.includes('open') || node.includes('rfi')) {
+                openTotal++;
+                if (h.correct) openCorrect++;
+            } else if (node.includes('defense') || node.includes('facing') || node.includes('vs_')) {
+                defenseTotal++;
+                if (h.correct) defenseCorrect++;
+            } else if (node.includes('3bet') || node.includes('squeeze')) {
+                threeBetTotal++;
+                if (h.correct) threeBetCorrect++;
+            }
+        });
+
+        if (openTotal >= 2 && (openCorrect / openTotal) < 0.6) {
+            leaks.push({ area: 'Open Range', accuracy: Math.round((openCorrect / openTotal) * 100), fix: 'Review position-based open ranges. Memorize top hands for each position.' });
+        }
+        if (defenseTotal >= 2 && (defenseCorrect / defenseTotal) < 0.6) {
+            leaks.push({ area: 'Defense', accuracy: Math.round((defenseCorrect / defenseTotal) * 100), fix: 'Study defense ranges vs raises. Know which hands to call, 3-bet, or fold.' });
+        }
+        if (threeBetTotal >= 2 && (threeBetCorrect / threeBetTotal) < 0.5) {
+            leaks.push({ area: '3-Bet', accuracy: Math.round((threeBetCorrect / threeBetTotal) * 100), fix: 'Your 3-bet range may be too wide or too narrow. Study position-based 3-bet ranges.' });
+        }
+
+        return {
+            totalPreflopHands: preflopHands.length,
+            accuracy: preflopHands.length > 0 ? Math.round((preflopHands.filter(h => h.correct).length / preflopHands.length) * 100) : 0,
+            leaks,
+            hasLeaks: leaks.length > 0,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 340: SESSION PROGRESSION CHART DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getSessionProgressionChart() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Generate rolling accuracy data points for charting
+        let runningCorrect = 0;
+        const dataPoints = history.map((h, i) => {
+            if (h.correct) runningCorrect++;
+            return {
+                hand: i + 1,
+                correct: h.correct,
+                runningAccuracy: Math.round((runningCorrect / (i + 1)) * 100),
+                evLoss: Math.round((h.evLoss || 0) * 100) / 100,
+                cumulativeEVLoss: 0, // Will calculate below
+                street: h.street || 'unknown',
+            };
+        });
+
+        // Calculate cumulative EV loss
+        let cumEV = 0;
+        dataPoints.forEach(dp => {
+            cumEV += dp.evLoss;
+            dp.cumulativeEVLoss = Math.round(cumEV * 100) / 100;
+        });
+
+        return {
+            dataPoints,
+            totalHands: history.length,
+            finalAccuracy: dataPoints[dataPoints.length - 1]?.runningAccuracy || 0,
+            totalEVLoss: Math.round(cumEV * 100) / 100,
         };
     }
 }

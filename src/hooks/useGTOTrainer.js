@@ -1722,6 +1722,38 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.getGTOComplianceScore(); } catch (e) { return null; }
         },
 
+        // Phase 331-340: Ultimate Training Intelligence
+        getRangeBalanceScore: () => {
+            try { return deterministicEngine.getRangeBalanceScore(); } catch (e) { return null; }
+        },
+        getCheckBackAnalysis: () => {
+            try { return deterministicEngine.getCheckBackAnalysis(); } catch (e) { return null; }
+        },
+        getDonkBetAnalysis: () => {
+            try { return deterministicEngine.getDonkBetAnalysis(); } catch (e) { return null; }
+        },
+        getMultiWayPotAnalysis: () => {
+            try { return deterministicEngine.getMultiWayPotAnalysis(); } catch (e) { return null; }
+        },
+        getThinValueFrequency: () => {
+            try { return deterministicEngine.getThinValueFrequency(); } catch (e) { return null; }
+        },
+        getProtectionBetAnalysis: () => {
+            try { return deterministicEngine.getProtectionBetAnalysis(); } catch (e) { return null; }
+        },
+        getShowdownAnalysis: () => {
+            try { return deterministicEngine.getShowdownAnalysis(); } catch (e) { return null; }
+        },
+        getRiverDecisionQuality: () => {
+            try { return deterministicEngine.getRiverDecisionQuality(); } catch (e) { return null; }
+        },
+        getPreFlopLeaks: () => {
+            try { return deterministicEngine.getPreFlopLeaks(); } catch (e) { return null; }
+        },
+        getSessionProgressionChart: () => {
+            try { return deterministicEngine.getSessionProgressionChart(); } catch (e) { return null; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,

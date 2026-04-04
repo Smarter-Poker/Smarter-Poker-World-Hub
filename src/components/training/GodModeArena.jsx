@@ -890,6 +890,11 @@ function GodModeArenaInner({
         getValueBetAnalysis,
         getWeaknessHeatmap,
         getGTOComplianceScore,
+        // ═══ PHASE 331-340: Ultimate training intelligence ═══
+        getRangeBalanceScore,
+        getRiverDecisionQuality,
+        getPreFlopLeaks,
+        getSessionProgressionChart,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -3101,6 +3106,73 @@ function GodModeArenaInner({
                                     {wh.weakestCell && (
                                         <div style={{ fontSize: 10, color: '#ef4444', fontStyle: 'italic', marginTop: 6 }}>Weakest: {wh.weakestCell.position} on {wh.weakestCell.street} — {wh.weakestCell.accuracy}%</div>
                                     )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 331: Range Balance Score ═══ */}
+                        {(() => {
+                            try {
+                                const rb = getRangeBalanceScore();
+                                if (!rb) return null;
+                                const gradeColors = { A: '#22c55e', B: '#4ade80', C: '#fbbf24', D: '#ef4444' };
+                                const gColor = gradeColors[rb.grade] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${gColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: gColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Range Balance</div>
+                                    <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                                        <span style={{ fontSize: 24, fontWeight: 900, color: gColor, fontFamily: "'Orbitron', monospace" }}>{rb.balanceScore}%</span>
+                                        <span style={{ fontSize: 14, fontWeight: 700, color: gColor, marginLeft: 8 }}>{rb.grade}</span>
+                                    </div>
+                                    {rb.actionComparison.filter(a => a.deviation > 5).map((a, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 10 }}>
+                                            <span style={{ color: '#94a3b8' }}>{a.action}</span>
+                                            <span style={{ color: '#e2e8f0' }}>You: {a.userPct}% / Solver: {a.solverPct}% <span style={{ color: a.deviation > 10 ? '#ef4444' : '#fbbf24' }}>(±{a.deviation}%)</span></span>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{rb.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 338: River Decision Quality ═══ */}
+                        {(() => {
+                            try {
+                                const rdq = getRiverDecisionQuality();
+                                if (!rdq) return null;
+                                const gradeColors = { A: '#22c55e', B: '#4ade80', C: '#fbbf24', D: '#ef4444' };
+                                const gColor = gradeColors[rdq.grade] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${gColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: gColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>River Quality</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>River Accuracy</span>
+                                        <span style={{ fontSize: 14, fontWeight: 800, color: gColor, fontFamily: "'Orbitron', monospace" }}>{rdq.accuracy}%</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 9, color: '#94a3b8' }}>F: {rdq.actions.folds}</span>
+                                        <span style={{ fontSize: 9, color: '#94a3b8' }}>C: {rdq.actions.calls}</span>
+                                        <span style={{ fontSize: 9, color: '#94a3b8' }}>B: {rdq.actions.bets}</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{rdq.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 339: Preflop Leaks ═══ */}
+                        {(() => {
+                            try {
+                                const pfl = getPreFlopLeaks();
+                                if (!pfl || !pfl.hasLeaks) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(239,68,68,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Preflop Leaks</div>
+                                    {pfl.leaks.map((l, i) => (
+                                        <div key={i} style={{ marginBottom: 6, padding: '6px 8px', background: 'rgba(239,68,68,0.08)', borderRadius: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>{l.area}</span>
+                                                <span style={{ fontSize: 10, color: '#fca5a5', fontFamily: "'Orbitron', monospace" }}>{l.accuracy}%</span>
+                                            </div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{l.fix}</div>
+                                        </div>
+                                    ))}
                                 </div>);
                             } catch (_) { return null; }
                         })()}
