@@ -1709,6 +1709,15 @@ export class DeterministicGTOEngine {
         // ═══ Phase 82: TRAP DETECTION ═══
         const trapNote = this._getTrapDetectionNote(optimalAction, handStrength, street, texture, ctx.nodeType, freq);
 
+        // ═══ Phase 83: BOARD COVERAGE ═══
+        const boardCoverageNote = this._getBoardCoverageNote(optimalAction, handStrength, street, sizePct, freq, texture, ctx.nodeType, ctx.heroPosition);
+
+        // ═══ Phase 84: MULTI-STREET EV PROJECTION ═══
+        const multiStreetEVNote = this._getMultiStreetEVNote(optimalAction, handStrength, street, sizePct, ctx.estimatedPot, ctx.stackDepth, texture);
+
+        // ═══ Phase 85: KICKER STRENGTH ═══
+        const kickerNote = this._getKickerNote(heroHand, handStrength, board, optimalAction, street);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1724,13 +1733,19 @@ export class DeterministicGTOEngine {
 
         // Phase 76: Depth-aware extras assembly
         // Concise mode: only sizing reason + concept (skip secondary notes)
-        // Verbose mode: all notes + coaching preamble + runout predictions
-        // Standard: all notes + runout (original behavior enhanced)
+        // Verbose mode: all notes + coaching preamble (up to 5 most relevant)
+        // Standard: top 3-4 most relevant notes
+        const allNotes = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote, boardCoverageNote, multiStreetEVNote, kickerNote].filter(Boolean);
+
         let extras;
         if (explanationDepth === 'concise') {
             extras = [sizingReason].filter(Boolean).map(s => ' ' + s).join('');
+        } else if (explanationDepth === 'verbose') {
+            // Show up to 5 notes in verbose mode
+            extras = allNotes.slice(0, 5).map(s => ' ' + s).join('');
         } else {
-            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote].filter(Boolean).map(s => ' ' + s).join('');
+            // Standard: top 3 notes to keep explanations focused
+            extras = allNotes.slice(0, 3).map(s => ' ' + s).join('');
         }
 
         // Phase 76: Coaching preamble for verbose mode
@@ -4768,6 +4783,227 @@ export class DeterministicGTOEngine {
         if (isCall && isStrong && nodeType === 'hero_faces_bet') {
             if (isVeryStrong) {
                 return `🎯 Flat-calling with a monster: just calling instead of raising disguises your hand strength — this lets villain continue bluffing or value-betting thinner on later streets.`;
+            }
+        }
+
+        return '';
+    }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 83: BOARD COVERAGE — RANGE BET VS. POLAR BET STRATEGY
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 83: Explain when the solver uses a range bet vs. polar bet strategy.
+     * Range bet = small sizing with most of your range (33% pot with 70%+ frequency).
+     * Polar bet = larger sizing with a selected subset (value + bluffs only).
+     *
+     * This is board-texture-dependent:
+     *   - Dry A-high boards: range bet (PFR has massive range advantage)
+     *   - Wet connected boards: more selective/polar (both ranges connect)
+     *   - Paired boards: range bet with small sizing (hard for either range to have it)
+     *   - Low boards: polar (caller's range connects more)
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {number} sizePct - Bet sizing percentage
+     * @param {number} freq - Frequency of the optimal action (0.0-1.0)
+     * @param {Object} texture - Board texture
+     * @param {string} nodeType - Node type
+     * @param {string} heroPosition - Hero's position
+     * @returns {string} Board coverage strategy note
+     */
+    _getBoardCoverageNote(optimalAction, handStrength, street, sizePct, freq, texture, nodeType, heroPosition) {
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        if (!isBet || street !== 'flop' || !texture) return ''; // Most relevant on flop c-bets
+
+        const isAggressor = nodeType === 'hero_bets_or_checks';
+        if (!isAggressor) return ''; // Range/polar concepts apply to aggressor strategy
+
+        // Detect range bet pattern: small sizing + high frequency
+        const isRangeBet = sizePct <= 40 && freq >= 0.60;
+        // Detect polar bet pattern: large sizing + lower frequency
+        const isPolarBet = sizePct >= 60 && freq <= 0.50;
+
+        if (isRangeBet) {
+            if (texture.aceHigh && texture.dry) {
+                return `Board coverage: this is a range bet spot — the A-high dry board heavily favors the preflop raiser\'s range. Bet small and frequently because villain\'s range rarely connects.`;
+            }
+            if (texture.paired && !texture.wet) {
+                return `Board coverage: paired dry boards favor range betting — neither range hits trips often, but the aggressor\'s wider range of overcards and draws benefits from frequent small pressure.`;
+            }
+            if (texture.dry && !texture.lowBoard) {
+                return `Board coverage: dry board = range bet. Bet small with most hands because the board doesn\'t help either range much, and small bets are efficient at winning dead money.`;
+            }
+            return `Board coverage: the solver is using a range-bet approach here — small sizing with high frequency across many hand types to put consistent pressure.`;
+        }
+
+        if (isPolarBet) {
+            if (texture.wet) {
+                return `Board coverage: wet board = polar betting. The solver bets selectively with strong made hands and draws, skipping medium holdings that prefer pot control.`;
+            }
+            if (texture.lowBoard) {
+                return `Board coverage: low boards favor the caller\'s range — the aggressor can\'t range bet profitably, so they go polar with strong value hands and select bluffs.`;
+            }
+            if (texture.connected && texture.straightDrawHeavy) {
+                return `Board coverage: highly connected board = polar strategy. Both ranges connect, so only strong hands and draws with equity justify building the pot.`;
+            }
+            return `Board coverage: polar betting spot — the solver is selective about which hands to bet, using a larger size with fewer hands for maximum leverage.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 84: MULTI-STREET EV PROJECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 84: Project how the current action affects future street EV.
+     * Explains the multi-street implications:
+     *   - Building the pot for value hands (geometric sizing)
+     *   - Preserving fold equity for bluffs across streets
+     *   - The concept of "pot geometry" — sizing to get stacks in by river
+     *   - Why checking now can set up bigger future bets
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {number} sizePct - Bet sizing percentage
+     * @param {number} estimatedPot - Current pot size
+     * @param {number} stackDepth - Stack depth in BB
+     * @param {Object} texture - Board texture
+     * @returns {string} Multi-street EV projection note
+     */
+    _getMultiStreetEVNote(optimalAction, handStrength, street, sizePct, estimatedPot, stackDepth, texture) {
+        if (!estimatedPot || !stackDepth || street === 'river') return '';
+        const a = (optimalAction || '').toLowerCase();
+        const hc = (handStrength || '').toLowerCase();
+        const spr = stackDepth / estimatedPot;
+
+        // ─── Geometric sizing for value ───
+        if (a.startsWith('b') && spr > 2 && street === 'flop') {
+            const isValue = hc.includes('overpair') || hc.includes('top pair') || hc.includes('set') || hc.includes('two pair') || hc.includes('flush') || hc.includes('straight');
+            if (isValue) {
+                // Calculate geometric pot growth to get stacks in by river
+                // 3 streets remaining from flop: need pot to grow by spr factor over 3 bets
+                const streetsLeft = street === 'flop' ? 3 : 2;
+                const geoSize = Math.round((Math.pow(1 + spr, 1 / streetsLeft) - 1) * 100);
+                if (geoSize > 20 && geoSize < 200) {
+                    return `Multi-street plan: with ${streetsLeft} streets left and SPR ${spr.toFixed(1)}, geometric sizing of ~${geoSize}% pot per street gets all the money in by the river. This bet sets up the ideal pot trajectory for your value hand.`;
+                }
+            }
+        }
+
+        // ─── Check-to-bet lines ───
+        if ((a === 'c' || a === 'x') && street === 'flop') {
+            const isDrawy = hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd');
+            if (isDrawy) {
+                return `Multi-street plan: checking the flop with a draw preserves your stack for when you hit — on the turn, you can either bet with a made hand or check again for a free river.`;
+            }
+            const isStrong = hc.includes('set') || hc.includes('two pair') || hc.includes('overpair');
+            if (isStrong && spr > 4) {
+                return `Multi-street plan: checking a strong hand on the flop can set up bigger turn and river bets — if villain bets, you can check-raise; if they check, you can overbet later streets.`;
+            }
+        }
+
+        // ─── Turn barrel implications ───
+        if (a.startsWith('b') && street === 'turn') {
+            const streetsLeft = 1; // Only river remains
+            const newPot = estimatedPot * (1 + sizePct / 50); // Rough pot after bet+call
+            const remainingStack = stackDepth - (estimatedPot * sizePct / 100);
+            if (remainingStack > 0 && newPot > 0) {
+                const riverSPR = remainingStack / newPot;
+                if (riverSPR < 1) {
+                    return `Multi-street plan: this turn bet sets up a river all-in — after bet and call, the remaining stack-to-pot ratio will be under 1, committing you on the river.`;
+                }
+                if (riverSPR >= 1 && riverSPR <= 2) {
+                    return `Multi-street plan: this turn sizing leaves a pot-sized river bet — clean pot geometry that maximizes value or fold equity on the final street.`;
+                }
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 85: KICKER STRENGTH AWARENESS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 85: Explain how kicker strength affects the decision.
+     * Players often undervalue kicker differences:
+     *   - Top pair top kicker (TPTK) is much stronger than top pair weak kicker (TPWK)
+     *   - Kicker matters most in heads-up pots and on dry boards
+     *   - Dominated kickers (KJ vs KQ) have very low equity
+     *
+     * @param {string} heroHand - Hero's hand notation
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string[]} board - Board cards
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} street - Current street
+     * @returns {string} Kicker context note
+     */
+    _getKickerNote(heroHand, handStrength, board, optimalAction, street) {
+        if (!heroHand || heroHand.length < 2 || !board || board.length < 3) return '';
+        const hc = (handStrength || '').toLowerCase();
+
+        // Only relevant for one-pair hands (top pair, middle pair, overpair)
+        if (!hc.includes('pair') || hc.includes('two pair') || hc.includes('set') || hc.includes('trips')) return '';
+
+        const r1 = heroHand[0].toUpperCase();
+        const r2 = heroHand[1].toUpperCase();
+        const rankOrder = '23456789TJQKA';
+        const v1 = rankOrder.indexOf(r1);
+        const v2 = rankOrder.indexOf(r2);
+        const boardRanks = board.map(c => c[0].toUpperCase());
+        const boardVals = boardRanks.map(r => rankOrder.indexOf(r));
+
+        // Find which card is the pair and which is the kicker
+        let pairCard, kickerVal;
+        if (boardRanks.includes(r1)) {
+            pairCard = r1;
+            kickerVal = v2;
+        } else if (boardRanks.includes(r2)) {
+            pairCard = r2;
+            kickerVal = v1;
+        } else if (v1 === v2) {
+            // Pocket pair — kicker is irrelevant for pair vs pair
+            return '';
+        } else {
+            return ''; // Neither card pairs the board — overpair or something else
+        }
+
+        const a = (optimalAction || '').toLowerCase();
+        const kickerRank = rankOrder[kickerVal];
+
+        // Top pair analysis
+        if (hc.includes('top pair')) {
+            if (kickerVal >= 12) { // A kicker
+                return `Kicker context: TPTK (top pair, top kicker) — your A kicker is the best possible. This hand can confidently bet for value across streets.`;
+            }
+            if (kickerVal >= 11) { // K kicker
+                return `Kicker context: top pair with K kicker — very strong. Only Ax hands have a better kicker, and those are a small portion of villain's range.`;
+            }
+            if (kickerVal >= 9) { // Q-J kicker
+                return `Kicker context: top pair with ${kickerRank} kicker — solid but not premium. Be cautious against raises, as better kickers (A/K) are possible.`;
+            }
+            if (kickerVal <= 6) { // 8 or lower
+                if (a === 'c' || a === 'x' || a === 'f') {
+                    return `Kicker context: top pair weak kicker (${kickerRank}) — your hand is vulnerable to domination. Many hands in villain's range have the same pair with a better kicker, making this a check/call at best.`;
+                }
+                return `Kicker context: top pair weak kicker (${kickerRank}) — be careful. Your hand can be dominated by the same pair with A/K/Q/J kicker.`;
+            }
+        }
+
+        // Middle/bottom pair kicker
+        if (hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('second pair')) {
+            if (kickerVal >= 12) {
+                return `Kicker context: ${hc} with A kicker — the best possible kicker elevates this medium-strength hand. Worth calling lighter than with a weak kicker.`;
+            }
+            if (kickerVal <= 7) {
+                return `Kicker context: ${hc} with weak kicker (${kickerRank}) — this hand is at the bottom of the calling range. Folding to significant pressure is often correct.`;
             }
         }
 
