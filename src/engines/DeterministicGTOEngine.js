@@ -1690,6 +1690,10 @@ export class DeterministicGTOEngine {
         // ═══ Phase 73: VILLAIN TENDENCY CONTEXT ═══
         const villainNote = this._getVillainTendencyNote(optimalAction, handStrength, street, texture, ctx.nodeType, ctx.heroPosition, ctx.villainPosition, freq);
 
+        // ═══ Phase 76: DYNAMIC EXPLANATION DEPTH ═══
+        const explanationDepth = this._getExplanationDepth(street, handStrength, optimalAction, ctx.nodeType, ctx.spotType);
+        const coachingNote = this._getDepthCoachingNote(explanationDepth, street, handStrength, optimalAction);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1703,12 +1707,23 @@ export class DeterministicGTOEngine {
         // Street-specific enhancement
         const streetExtra = riverEnhancement || turnEnhancement || flopEnhancement;
 
-        // Combine optional notes
-        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote].filter(Boolean).map(s => ' ' + s).join('');
+        // Phase 76: Depth-aware extras assembly
+        // Concise mode: only sizing reason + concept (skip secondary notes)
+        // Verbose mode: all notes + coaching preamble
+        // Standard: all notes (original behavior)
+        let extras;
+        if (explanationDepth === 'concise') {
+            extras = [sizingReason].filter(Boolean).map(s => ' ' + s).join('');
+        } else {
+            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote].filter(Boolean).map(s => ' ' + s).join('');
+        }
+
+        // Phase 76: Coaching preamble for verbose mode
+        const coachingPrefix = coachingNote ? coachingNote + ' ' : '';
 
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
-            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
+            return `${coachingPrefix}${heroHand} (${handStrength}): Pure ${label}. ${concept}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
         }
 
         // Near-pure — one clear best action but some mixing
@@ -1719,7 +1734,7 @@ export class DeterministicGTOEngine {
                 .slice(0, 2)
                 .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
             const mixNote = altActions.length > 0 ? ` Mixes with ${altActions.join(', ')}.` : '';
-            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${extras}${streetExtra ? ' ' + streetExtra : ''}${mixNote}`;
+            return `${coachingPrefix}${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${extras}${streetExtra ? ' ' + streetExtra : ''}${mixNote}`;
         }
 
         // True mixed strategy — explain WHY the solver mixes
@@ -1731,7 +1746,7 @@ export class DeterministicGTOEngine {
             .join(', ');
 
         const mixReason = this._getMixingReason(handStrength, texture, street, validActions, handActions);
-        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
+        return `${coachingPrefix}${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${extras}${streetExtra ? ' ' + streetExtra : ''}`;
     }
 
     /**
@@ -3915,6 +3930,236 @@ export class DeterministicGTOEngine {
         if (level <= 3) return 'flop';
         if (level <= 7) return 'turn';
         return 'river';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 76: DYNAMIC EXPLANATION DEPTH — MISTAKE-HISTORY-AWARE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 76: Record a mistake pattern for explanation depth tracking.
+     * Called externally after each answered question with spot metadata.
+     *
+     * Tracks mistakes by 5 dimensions:
+     *   - street (flop/turn/river)
+     *   - handCategory (top pair, flush draw, air, etc.)
+     *   - actionType (bet/check/fold/raise/call)
+     *   - spotType (facing_cbet, 3bet_defense, etc.)
+     *   - nodeType (hero_bets_or_checks, hero_faces_bet, hero_faces_raise)
+     *
+     * @param {Object} params
+     * @param {boolean} params.isCorrect - Whether the answer was correct
+     * @param {string} params.street - flop/turn/river
+     * @param {string} params.handCategory - categorizeHand() output
+     * @param {string} params.correctAction - The GTO correct action
+     * @param {string} params.chosenAction - The player's chosen action
+     * @param {string} params.spotType - Spot type from deriveSpotType
+     * @param {string} params.nodeType - hero_bets_or_checks / hero_faces_bet / hero_faces_raise
+     * @param {string} params.classification - BEST/CORRECT/INACCURACY/WRONG/BLUNDER
+     */
+    recordMistakePattern({ isCorrect, street, handCategory, correctAction, chosenAction, spotType, nodeType, classification }) {
+        if (!this._mistakeTracker) {
+            this._mistakeTracker = {};
+        }
+
+        // Normalize hand category into a bucket for tracking
+        const handBucket = this._getHandBucket(handCategory);
+        // Normalize action into a bucket
+        const actionBucket = this._getActionBucket(correctAction);
+
+        // Track along each dimension
+        const dimensions = [
+            `street:${street || 'unknown'}`,
+            `hand:${handBucket}`,
+            `action:${actionBucket}`,
+            `spot:${spotType || 'general'}`,
+            `node:${nodeType || 'unknown'}`,
+            // Compound keys for fine-grained tracking
+            `${street || 'unknown'}:${handBucket}`,
+            `${street || 'unknown'}:${actionBucket}`,
+            `${handBucket}:${actionBucket}`,
+        ];
+
+        const isMistake = ['INACCURACY', 'WRONG', 'BLUNDER'].includes(classification);
+
+        for (const dim of dimensions) {
+            if (!this._mistakeTracker[dim]) {
+                this._mistakeTracker[dim] = { total: 0, mistakes: 0 };
+            }
+            this._mistakeTracker[dim].total++;
+            if (isMistake) {
+                this._mistakeTracker[dim].mistakes++;
+            }
+        }
+    }
+
+    /**
+     * Phase 76: Normalize hand category into a tracking bucket.
+     * Groups similar hand strengths together for meaningful sample sizes.
+     */
+    _getHandBucket(handCategory) {
+        if (!handCategory) return 'unknown';
+        const hc = handCategory.toLowerCase();
+
+        // Made hands
+        if (hc.includes('full house') || hc.includes('quads') || hc.includes('straight flush')) return 'nuts';
+        if (hc.includes('flush') && !hc.includes('draw')) return 'flush';
+        if (hc.includes('straight') && !hc.includes('draw')) return 'straight';
+        if (hc.includes('trips') || hc.includes('three of a kind') || hc.includes('set')) return 'trips_set';
+        if (hc.includes('two pair')) return 'two_pair';
+        if (hc.includes('overpair')) return 'overpair';
+        if (hc.includes('top pair')) return 'top_pair';
+        if (hc.includes('middle pair') || hc.includes('second pair')) return 'middle_pair';
+        if (hc.includes('bottom pair') || hc.includes('low pair') || hc.includes('weak pair')) return 'bottom_pair';
+
+        // Draws
+        if (hc.includes('combo draw') || hc.includes('monster draw')) return 'combo_draw';
+        if (hc.includes('flush draw')) return 'flush_draw';
+        if (hc.includes('oesd') || hc.includes('open-ended') || hc.includes('straight draw')) return 'straight_draw';
+        if (hc.includes('gutshot')) return 'gutshot';
+
+        // Weak / air
+        if (hc.includes('overcard')) return 'overcards';
+        if (hc.includes('air') || hc.includes('no pair')) return 'air';
+
+        return 'other';
+    }
+
+    /**
+     * Phase 76: Normalize action into a tracking bucket.
+     */
+    _getActionBucket(action) {
+        if (!action) return 'unknown';
+        const a = action.toLowerCase();
+        if (a === 'f') return 'fold';
+        if (a === 'c' || a === 'x') return 'check';
+        if (a === 'call') return 'call';
+        if (a.startsWith('b')) return 'bet';
+        if (a.startsWith('r')) return 'raise';
+        if (a === 'allin') return 'allin';
+        return 'other';
+    }
+
+    /**
+     * Phase 76: Determine explanation depth for the current spot.
+     * Returns 'verbose' | 'standard' | 'concise' based on the player's
+     * mistake history in spots similar to this one.
+     *
+     * Logic:
+     *   - If player has ≥3 samples in this spot type and mistake rate ≥50%: verbose
+     *   - If player has ≥5 samples and mistake rate ≤15%: concise (they've mastered it)
+     *   - Otherwise: standard
+     *
+     * Checks multiple dimensions and picks the most informative signal.
+     */
+    _getExplanationDepth(street, handCategory, correctAction, nodeType, spotType) {
+        if (!this._mistakeTracker) return 'standard';
+
+        const handBucket = this._getHandBucket(handCategory);
+        const actionBucket = this._getActionBucket(correctAction);
+
+        // Check compound keys first (more specific), then single dimensions
+        const keysToCheck = [
+            `${street || 'unknown'}:${handBucket}`,        // e.g., "river:flush_draw"
+            `${street || 'unknown'}:${actionBucket}`,      // e.g., "turn:fold"
+            `${handBucket}:${actionBucket}`,               // e.g., "top_pair:bet"
+            `street:${street || 'unknown'}`,
+            `hand:${handBucket}`,
+            `action:${actionBucket}`,
+            `node:${nodeType || 'unknown'}`,
+            `spot:${spotType || 'general'}`,
+        ];
+
+        let bestSignal = null;
+        let bestSampleSize = 0;
+
+        for (const key of keysToCheck) {
+            const tracker = this._mistakeTracker[key];
+            if (!tracker || tracker.total < 3) continue;
+
+            const mistakeRate = tracker.mistakes / tracker.total;
+            // Prefer compound keys (listed first) and larger sample sizes
+            if (tracker.total > bestSampleSize) {
+                bestSampleSize = tracker.total;
+                bestSignal = { mistakeRate, total: tracker.total, key };
+            }
+        }
+
+        if (!bestSignal) return 'standard';
+
+        // High mistake rate → verbose explanations to help the player learn
+        if (bestSignal.mistakeRate >= 0.50 && bestSignal.total >= 3) return 'verbose';
+        // Very high mistake rate with large sample → definitely verbose
+        if (bestSignal.mistakeRate >= 0.40 && bestSignal.total >= 6) return 'verbose';
+        // Low mistake rate with good sample → concise (player has mastered this)
+        if (bestSignal.mistakeRate <= 0.15 && bestSignal.total >= 5) return 'concise';
+
+        return 'standard';
+    }
+
+    /**
+     * Phase 76: Get a depth-aware coaching preamble for weak spots.
+     * When verbose, adds a targeted coaching tip based on the specific weakness.
+     */
+    _getDepthCoachingNote(depth, street, handCategory, correctAction) {
+        if (depth !== 'verbose') return '';
+
+        const handBucket = this._getHandBucket(handCategory);
+        const actionBucket = this._getActionBucket(correctAction);
+
+        // Street + action coaching tips
+        if (street === 'river' && actionBucket === 'fold') {
+            return '⚠️ You tend to over-fold rivers — remember that bluff-catchers need to call enough to keep villain honest.';
+        }
+        if (street === 'river' && actionBucket === 'bet') {
+            return '⚠️ River betting is a common leak area for you — focus on whether your hand is polarized (value or bluff) vs. a check-back.';
+        }
+        if (street === 'turn' && actionBucket === 'check') {
+            return '⚠️ Turn checking decisions have been tricky — consider whether you\'re pot-controlling with medium strength or giving up too cheaply.';
+        }
+        if (street === 'flop' && actionBucket === 'bet') {
+            return '⚠️ Flop bet sizing has been a pattern — focus on whether the board favors range bets (small) or polarized bets (large).';
+        }
+
+        // Hand category coaching tips
+        if (handBucket === 'flush_draw' || handBucket === 'straight_draw') {
+            return '⚠️ Draw decisions are a leak area — evaluate pot odds, implied odds, and whether you have fold equity with a semi-bluff.';
+        }
+        if (handBucket === 'top_pair' || handBucket === 'overpair') {
+            return '⚠️ Playing strong-but-vulnerable hands is tricky for you — think about protection vs. pot control based on board texture.';
+        }
+        if (handBucket === 'air' || handBucket === 'overcards') {
+            return '⚠️ Bluffing spots have been challenging — look for hands with blockers and backdoor equity rather than pure air.';
+        }
+        if (handBucket === 'middle_pair' || handBucket === 'bottom_pair') {
+            return '⚠️ Medium-strength hand decisions are a weak spot — these are often check-call candidates, not bets.';
+        }
+
+        return '⚠️ This is a spot type where you\'ve been making frequent mistakes — pay close attention to the reasoning below.';
+    }
+
+    /**
+     * Phase 76: Reset mistake tracker (e.g., on new session).
+     */
+    resetMistakeTracker() {
+        this._mistakeTracker = {};
+    }
+
+    /**
+     * Phase 76: Get current mistake tracker data for UI consumption.
+     */
+    getMistakeTrackerData() {
+        if (!this._mistakeTracker) return {};
+        const result = {};
+        for (const [key, val] of Object.entries(this._mistakeTracker)) {
+            if (val.total >= 2) {
+                result[key] = {
+                    ...val,
+                    mistakeRate: Math.round((val.mistakes / val.total) * 100),
+                };
+            }
+        }
+        return result;
     }
 }
 

@@ -448,6 +448,20 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // Phase 75: Update adaptive difficulty tracking
         try { deterministicEngine.updateSessionDifficulty(isCorrect); } catch (e) { /* non-critical */ }
 
+        // Phase 76: Record mistake pattern for dynamic explanation depth
+        try {
+            deterministicEngine.recordMistakePattern({
+                isCorrect,
+                street: scenario.street || 'flop',
+                handCategory: currentQuestion.handCategory || '',
+                correctAction: correctAnswer,
+                chosenAction: selectedOptionId,
+                spotType: deriveSpotType(scenario),
+                nodeType: scenario.nodeType || '',
+                classification: moveResult.classification,
+            });
+        } catch (e) { /* non-critical */ }
+
         // Update legacy scores
         let currentStreakCount = prevStreak => prevStreak; // fallback
         if (isCorrect) {
