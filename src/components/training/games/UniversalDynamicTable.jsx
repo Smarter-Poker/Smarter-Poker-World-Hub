@@ -1034,6 +1034,8 @@ function UniversalDynamicTable({
     positionAccuracy = null,       // { 'BTN': { total, correct, accuracy }, ... }
     streetAccuracy = null,         // { 'flop': { total, correct, accuracy }, ... }
     weakestPosition = null,        // Position string with lowest accuracy
+    // Phase 49: Live leak detection
+    mistakePatterns = null,        // [{ type, severity, count, pct, tip, icon }]
     // UI-2: Manual advance callback
     onNextHand = null,             // Called when user clicks "Next Hand"
     // Multi-street props
@@ -2172,6 +2174,47 @@ function UniversalDynamicTable({
                     )}
                 </div>
             )}
+
+            {/* Phase 49: Live Leak Ticker — compact inline leak alerts after 8+ hands */}
+            {mistakePatterns && mistakePatterns.length > 0 && questionNumber > 8 && (() => {
+                // Show only high/medium severity leaks, max 2
+                const significantLeaks = mistakePatterns
+                    .filter(p => p.severity === 'high' || (p.severity === 'medium' && p.count >= 3))
+                    .slice(0, 2);
+                if (significantLeaks.length === 0) return null;
+                return (
+                    <div style={{
+                        padding: '2px 16px', marginBottom: 2,
+                        display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap',
+                    }}>
+                        <span style={{ fontSize: 8, fontWeight: 800, color: '#f59e0b', letterSpacing: 1, textTransform: 'uppercase' }}>
+                            LEAK
+                        </span>
+                        {significantLeaks.map((leak, idx) => {
+                            const sevColor = leak.severity === 'high' ? '#ef4444' : '#f59e0b';
+                            return (
+                                <div key={idx} style={{
+                                    display: 'flex', alignItems: 'center', gap: 3,
+                                    padding: '1px 6px', borderRadius: 4,
+                                    background: `${sevColor}11`,
+                                    border: `1px solid ${sevColor}33`,
+                                }}>
+                                    <span style={{ fontSize: 9 }}>{leak.icon}</span>
+                                    <span style={{ fontSize: 8, fontWeight: 700, color: sevColor }}>
+                                        {leak.type.replace('_', ' ')}
+                                    </span>
+                                    <span style={{ fontSize: 7, color: '#94a3b8' }}>({leak.count}x)</span>
+                                </div>
+                            );
+                        })}
+                        {significantLeaks.length > 0 && significantLeaks[0].tip && (
+                            <span style={{ fontSize: 7, color: '#94a3b8', fontStyle: 'italic', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {significantLeaks[0].tip}
+                            </span>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* Phase 3: RNG / Study Mode Toggles */}
             <div style={{ display: 'flex', gap: 6, padding: '0 16px 4px', justifyContent: 'flex-end' }}>

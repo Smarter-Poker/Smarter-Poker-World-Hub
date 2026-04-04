@@ -96,6 +96,8 @@ export default function GameUIRouter({
     positionAccuracy = null,
     streetAccuracy = null,
     weakestPosition = null,
+    // Phase 49: Live leak detection
+    mistakePatterns = null,
     // UI-2: Manual advance callback
     onNextHand = null,
     // Multi-street props
@@ -161,6 +163,8 @@ export default function GameUIRouter({
             positionAccuracy={positionAccuracy}
             streetAccuracy={streetAccuracy}
             weakestPosition={weakestPosition}
+            // Phase 49: Live leak detection
+            mistakePatterns={mistakePatterns}
             // UI-2: Manual advance
             onNextHand={onNextHand}
             // Multi-street props

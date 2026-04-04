@@ -2382,6 +2382,8 @@ function GodModeArenaInner({
                                     positionAccuracy={positionAccuracy}
                                     streetAccuracy={streetAccuracy}
                                     weakestPosition={weakestPosition}
+                                    // Phase 49: Live leak detection
+                                    mistakePatterns={mistakePatterns}
                                     onNextHand={handleNextQuestion}
                                     isMultiStreetActive={isMultiStreetActive}
                                     currentStreet={currentStreet}
@@ -2454,6 +2456,8 @@ function GodModeArenaInner({
                         positionAccuracy={positionAccuracy}
                         streetAccuracy={streetAccuracy}
                         weakestPosition={weakestPosition}
+                        // Phase 49: Live leak detection
+                        mistakePatterns={mistakePatterns}
                         onNextHand={nextQuestion}
                         isMultiStreetActive={isMultiStreetActive}
                         currentStreet={currentStreet}
