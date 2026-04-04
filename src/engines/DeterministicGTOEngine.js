@@ -1703,6 +1703,12 @@ export class DeterministicGTOEngine {
         // ═══ Phase 79: POSITION-AWARE STRATEGY ═══
         const positionNote = this._getPositionStrategyNote(optimalAction, handStrength, street, ctx.heroPosition, ctx.villainPosition, ctx.nodeType, texture, freq);
 
+        // ═══ Phase 81: RANGE POLARIZATION CONTEXT ═══
+        const polarizationNote = this._getRangePolarizationNote(optimalAction, handStrength, street, sizePct, ctx.nodeType, texture);
+
+        // ═══ Phase 82: TRAP DETECTION ═══
+        const trapNote = this._getTrapDetectionNote(optimalAction, handStrength, street, texture, ctx.nodeType, freq);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1724,7 +1730,7 @@ export class DeterministicGTOEngine {
         if (explanationDepth === 'concise') {
             extras = [sizingReason].filter(Boolean).map(s => ' ' + s).join('');
         } else {
-            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote].filter(Boolean).map(s => ' ' + s).join('');
+            extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote].filter(Boolean).map(s => ' ' + s).join('');
         }
 
         // Phase 76: Coaching preamble for verbose mode
@@ -4622,6 +4628,150 @@ export class DeterministicGTOEngine {
         }
 
         return `${reason} ${freqContext}`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 81: RANGE POLARIZATION CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 81: Explain whether hero's betting/raising range is polarized or merged/linear.
+     * Polarized = nuts + bluffs (no medium strength). Used for large sizings.
+     * Linear/merged = value-heavy with some medium strength. Used for small sizings.
+     *
+     * This helps players understand WHY specific sizings pair with specific hand types.
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {number} sizePct - Bet sizing as percentage of pot
+     * @param {string} nodeType - Node type
+     * @param {Object} texture - Board texture
+     * @returns {string} Polarization context note
+     */
+    _getRangePolarizationNote(optimalAction, handStrength, street, sizePct, nodeType, texture) {
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isRaise = a.startsWith('r');
+        if (!isBet && !isRaise) return ''; // Only relevant for aggressive actions
+
+        const hc = (handStrength || '').toLowerCase();
+
+        // Determine if hand is at the top, middle, or bottom of the range
+        const isNuts = hc.includes('nut') || hc.includes('full house') || hc.includes('quads') || hc.includes('straight flush') || hc.includes('set') || hc.includes('flush');
+        const isStrong = isNuts || hc.includes('overpair') || hc.includes('top pair, top kicker') || hc.includes('two pair');
+        const isAir = hc.includes('air') || hc.includes('no pair') || hc.includes('overcard');
+        const isDraw = hc.includes('draw') || hc.includes('gutshot') || hc.includes('oesd');
+        const isMedium = !isStrong && !isAir && !isDraw;
+
+        // Large sizing = polarized range
+        if (sizePct >= 75 || a === 'allin') {
+            if (isNuts || isStrong) {
+                return `Range context: large sizing indicates a polarized range. Your strong hand is at the top of this range — you\'re betting big for value, knowing villain must call with their bluff-catchers.`;
+            }
+            if (isAir) {
+                return `Range context: large sizing indicates a polarized range. Your hand is at the bluffing end — you have no showdown value, so you\'re maximizing fold equity with a large bet.`;
+            }
+            if (isDraw) {
+                return `Range context: large sizing with a draw is a semi-bluff in a polarized range — you either win the pot now or have equity to improve when called.`;
+            }
+            if (isMedium) {
+                return `Range context: interesting — medium-strength hands occasionally appear in large sizing ranges as thin value bets or as range balance. This is a solver nuance that prevents exploitation.`;
+            }
+        }
+
+        // Small sizing = merged/linear range
+        if (sizePct > 0 && sizePct <= 40) {
+            if (isStrong) {
+                return `Range context: small sizing with a strong hand suggests a merged/linear betting range — you\'re betting frequently with many hand types, using a small size to get called by a wide range.`;
+            }
+            if (isMedium) {
+                return `Range context: small sizing fits naturally with medium-strength hands — a merged betting range includes thin value, letting you extract from worse while not overcommitting.`;
+            }
+            if (isAir) {
+                return `Range context: small-sizing bluffs are cheap to execute — in a merged range, small bets risk less with air while maintaining pressure across your entire betting range.`;
+            }
+        }
+
+        // Mid sizing
+        if (sizePct > 40 && sizePct < 75) {
+            if (street === 'river') {
+                return `Range context: medium river sizing often indicates a somewhat polarized range — stronger than merged but not fully polarized. This sizing targets villain\'s medium-strength calling range.`;
+            }
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 82: TRAP DETECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 82: Detect when checking a strong hand is a trapping play.
+     * Explains the strategic rationale for slow-playing:
+     *   - Checking range protection (preventing range reads)
+     *   - Inducing bluffs from aggressive opponents
+     *   - Board texture where strong hands are safe to slow-play
+     *   - When trapping is bad (wet boards, multiway)
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {Object} texture - Board texture
+     * @param {string} nodeType - Node type
+     * @param {number} freq - Frequency of optimal action
+     * @returns {string} Trap detection note
+     */
+    _getTrapDetectionNote(optimalAction, handStrength, street, texture, nodeType, freq) {
+        const a = (optimalAction || '').toLowerCase();
+        const isCheck = a === 'c' || a === 'x';
+        const isCall = a === 'call';
+        if (!isCheck && !isCall) return ''; // Trapping only applies to passive actions
+
+        const hc = (handStrength || '').toLowerCase();
+        const isVeryStrong = hc.includes('set') || hc.includes('full house') || hc.includes('quads') || hc.includes('nut flush') || hc.includes('nut straight') || hc.includes('two pair');
+        const isStrong = isVeryStrong || hc.includes('overpair') || hc.includes('top pair, top kicker') || hc.includes('flush') || hc.includes('straight');
+
+        if (!isStrong) return ''; // Only trapping with strong hands
+
+        // Checking strong hands = trapping
+        if (isCheck && isStrong) {
+            if (texture && texture.dry) {
+                if (isVeryStrong) {
+                    return `🎯 Trapping play: checking ${handStrength} on a dry board is a classic slow-play — few draws can outdraw you, and checking induces bluffs or lighter bets from villain on later streets.`;
+                }
+                return `🎯 Slow-play: checking with strong hands on dry boards protects your checking range — if you always bet your best hands, villain can exploit your checks by over-bluffing.`;
+            }
+
+            if (texture && texture.wet) {
+                if (freq >= 0.5) {
+                    return `🎯 Trap on a wet board: the solver still prefers checking even on a draw-heavy board — this may protect your checking range or set up a check-raise if villain bets.`;
+                }
+                return `⚠️ Careful slow-play: checking strong hands on wet boards is risky since draws can get there. The solver mixes here — sometimes you need to protect your equity by betting.`;
+            }
+
+            if (nodeType === 'hero_faces_bet' || isCall) {
+                return ''; // Calling a bet isn\'t really trapping
+            }
+
+            // Generic trap
+            if (isVeryStrong && street !== 'river') {
+                return `🎯 Trap: checking a monster on ${street} builds the pot on later streets when villain bets or lets you check-raise for maximum value.`;
+            }
+            if (isVeryStrong && street === 'river') {
+                return `🎯 River check with a monster: this could be a trap hoping villain bluffs, or the solver recognizes that betting won\'t get called by worse hands often enough.`;
+            }
+        }
+
+        // Flat-calling with a strong hand (when facing a bet)
+        if (isCall && isStrong && nodeType === 'hero_faces_bet') {
+            if (isVeryStrong) {
+                return `🎯 Flat-calling with a monster: just calling instead of raising disguises your hand strength — this lets villain continue bluffing or value-betting thinner on later streets.`;
+            }
+        }
+
+        return '';
     }
 }
 
