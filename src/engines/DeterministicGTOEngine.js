@@ -1741,6 +1741,18 @@ export class DeterministicGTOEngine {
         // ═══ Phase 93: CHECK-RAISE STRATEGY ═══
         const checkRaiseNote = this._getCheckRaiseNote(optimalAction, handStrength, street, ctx.nodeType, texture);
 
+        // ═══ Phase 95: BOARD TEXTURE EVOLUTION ═══
+        const textureEvoNote = this._getTextureEvolutionNote(board, street);
+
+        // ═══ Phase 96: OVERBETTING CONTEXT ═══
+        const overbetNote = this._getOverbetNote(optimalAction, handStrength, street, sizePct, texture);
+
+        // ═══ Phase 97: THIN VALUE BET ═══
+        const thinValueNote = this._getThinValueNote(optimalAction, handStrength, street, sizePct, freq);
+
+        // ═══ Phase 98: GTO FRAMING ═══
+        const gtoFrameNote = this._getGTOFramingNote(optimalAction, freq, handActions, handStrength);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1758,7 +1770,7 @@ export class DeterministicGTOEngine {
         // Concise mode: only sizing reason + concept (skip secondary notes)
         // Verbose mode: all notes + coaching preamble (up to 5 most relevant)
         // Standard: top 3-4 most relevant notes
-        const allNotes = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, polarizationNote, trapNote, boardCoverageNote, multiStreetEVNote, kickerNote, nutAdvNote, backdoorNote, protectionNote, showdownNote, evCompNote, checkRaiseNote].filter(Boolean);
+        const allNotes = [sizingReason, trapNote, checkRaiseNote, overbetNote, thinValueNote, blockerNote, rangeNote, polarizationNote, nutAdvNote, protectionNote, showdownNote, kickerNote, backdoorNote, multiStreetNote, potOddsNote, sprNote, villainNote, runoutNote, eqRealizationNote, positionNote, boardCoverageNote, multiStreetEVNote, textureEvoNote, evCompNote, gtoFrameNote].filter(Boolean);
 
         let extras;
         if (explanationDepth === 'concise') {
@@ -5688,6 +5700,303 @@ export class DeterministicGTOEngine {
         }
 
         return null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 95: BOARD TEXTURE EVOLUTION TRACKING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 95: Describe how the board texture changed from previous street.
+     * On turn and river, explains what changed and why it matters:
+     *   - "Turn completed the flush draw"
+     *   - "River bricked — all draws missed"
+     *   - "Board paired, enabling full houses"
+     *
+     * @param {string[]} board - Full board cards (4 for turn, 5 for river)
+     * @param {string} street - Current street (turn/river)
+     * @returns {string} Texture evolution note
+     */
+    _getTextureEvolutionNote(board, street) {
+        if (!board || street === 'flop' || street === 'preflop') return '';
+
+        if (street === 'turn' && board.length >= 4) {
+            const flopCards = board.slice(0, 3);
+            const turnCard = board[3];
+            return this._describeCardImpact(flopCards, turnCard, 'turn');
+        }
+
+        if (street === 'river' && board.length >= 5) {
+            const turnBoard = board.slice(0, 4);
+            const riverCard = board[4];
+            return this._describeCardImpact(turnBoard, riverCard, 'river');
+        }
+
+        return '';
+    }
+
+    /**
+     * Phase 95: Describe the impact of a new card on the existing board.
+     */
+    _describeCardImpact(existingBoard, newCard, streetName) {
+        if (!newCard || !existingBoard || existingBoard.length < 3) return '';
+
+        const newRank = newCard[0]?.toUpperCase();
+        const newSuit = newCard[1]?.toLowerCase();
+        const newVal = '23456789TJQKA'.indexOf(newRank);
+
+        const boardRanks = existingBoard.map(c => c[0].toUpperCase());
+        const boardSuits = existingBoard.map(c => c[1]?.toLowerCase());
+        const boardVals = boardRanks.map(r => '23456789TJQKA'.indexOf(r));
+
+        const impacts = [];
+
+        // Check if the new card completes a flush
+        const suitCounts = {};
+        boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        if (newSuit && suitCounts[newSuit] >= 2) {
+            const totalOfSuit = (suitCounts[newSuit] || 0) + 1;
+            if (totalOfSuit >= 3 && existingBoard.length === 3) {
+                impacts.push('puts a third flush card out — flush draws now have direct draws');
+            } else if (totalOfSuit >= 4) {
+                impacts.push('fourth flush card — flushes are now very likely');
+            }
+        }
+
+        // Check if the new card pairs the board
+        if (boardRanks.includes(newRank)) {
+            impacts.push('pairs the board — full houses now possible');
+        }
+
+        // Check if the new card is an overcard to previous board
+        const highestExisting = Math.max(...boardVals);
+        if (newVal > highestExisting) {
+            const overcardName = newRank;
+            impacts.push(`${overcardName} is an overcard — shifts range advantage`);
+        }
+
+        // Check if the new card completes straight possibilities
+        const allVals = [...boardVals, newVal].sort((a, b) => a - b);
+        const uniqueVals = [...new Set(allVals)];
+        // Check for 4-in-a-row
+        for (let i = 0; i < uniqueVals.length - 3; i++) {
+            if (uniqueVals[i + 3] - uniqueVals[i] === 3) {
+                impacts.push('connects the board — many straights now possible');
+                break;
+            }
+        }
+
+        // Low card on a high board = blank
+        if (impacts.length === 0 && newVal <= 5 && highestExisting >= 8) {
+            impacts.push('low card on a high board — likely a blank that changes nothing');
+        }
+
+        // High card on a low board = dynamic
+        if (impacts.length === 0 && newVal >= 9 && highestExisting <= 7) {
+            impacts.push('overcard to the board — changes the equity landscape significantly');
+        }
+
+        if (impacts.length === 0) return '';
+        return `${streetName.charAt(0).toUpperCase() + streetName.slice(1)} card impact: ${impacts.slice(0, 2).join('; ')}.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 96: OVERBETTING CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 96: Explain when and why overbetting (>100% pot) is the solver's choice.
+     * Overbets are used when:
+     *   - Hero has a strong nut advantage (range has many more nutted hands)
+     *   - Villain's range is capped (can't have the nuts)
+     *   - Board changed in a way that heavily favors hero's range
+     *   - Maximizing value from the top of a polarized range
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {number} sizePct - Bet sizing percentage
+     * @param {Object} texture - Board texture
+     * @returns {string} Overbet context note
+     */
+    _getOverbetNote(optimalAction, handStrength, street, sizePct, texture) {
+        if (sizePct < 100) return ''; // Only for overbets
+
+        const hc = (handStrength || '').toLowerCase();
+        const isNutted = hc.includes('nut') || hc.includes('full house') || hc.includes('quads') || hc.includes('set') || hc.includes('flush') || hc.includes('straight');
+        const isAir = hc.includes('air') || hc.includes('no pair') || hc.includes('overcard');
+
+        if (isNutted) {
+            if (street === 'river') {
+                return `Overbet for value: your nutted hand maximizes extraction by overbetting — villain's bluff-catchers face maximum pressure. They must call with their entire defend-vs-overbet range or let you profit.`;
+            }
+            return `Overbet for value: your strong hand leverages a nut advantage to overbet. This builds the maximum pot for when you have the goods and sets up large future bets.`;
+        }
+
+        if (isAir) {
+            if (street === 'river') {
+                return `Overbet bluff: with no showdown value, overbetting applies maximum fold pressure. Villain must defend narrowly against overbets — even strong one-pair hands often fold.`;
+            }
+            return `Overbet bluff: your hand has no showdown value. The overbet generates maximum fold equity — few hands in villain's range can profitably continue against this sizing.`;
+        }
+
+        if (hc.includes('draw')) {
+            return `Overbet semi-bluff: massive sizing with a draw applies extreme fold pressure. If villain folds, you win immediately; if called, you have outs to improve.`;
+        }
+
+        return `Overbetting: the solver uses a size above pot to maximize leverage. This is a polarized play — your range here should be nutted hands for value and select bluffs.`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 97: THIN VALUE BET RECOGNITION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 97: Identify when a bet is thin value — betting a hand that's only
+     * marginally ahead of the calling range.
+     *
+     * Thin value is critical for GTO play because:
+     *   - It extracts extra BB from spots most players check
+     *   - It balances your betting range (not just nuts and bluffs)
+     *   - Missing thin value is one of the biggest leaks for intermediate players
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {string} handStrength - categorizeHand() output
+     * @param {string} street - Current street
+     * @param {number} sizePct - Bet sizing percentage
+     * @param {number} freq - Frequency of optimal action
+     * @returns {string} Thin value note
+     */
+    _getThinValueNote(optimalAction, handStrength, street, sizePct, freq) {
+        const a = (optimalAction || '').toLowerCase();
+        const isBet = a.startsWith('b');
+        if (!isBet) return '';
+
+        const hc = (handStrength || '').toLowerCase();
+
+        // Thin value indicators: medium-strength hand + small-to-medium sizing + not pure
+        const isMedium = hc.includes('middle pair') || hc.includes('bottom pair') || hc.includes('second pair') ||
+                         hc.includes('weak pair') || (hc.includes('top pair') && !hc.includes('top kicker') && !hc.includes('good kicker'));
+
+        if (isMedium && sizePct <= 50 && freq < 0.85) {
+            if (street === 'river') {
+                return `Thin value: betting ${handStrength} for thin value on the river. You beat bluff-catchers and some weaker pairs — missing this bet is a common leak. Only bet if you expect to be called by worse more than half the time.`;
+            }
+            if (street === 'turn') {
+                return `Thin value: betting a medium-strength hand for value. This is thinly profitable — you beat some of villain's calling range, but be prepared to check the river if called.`;
+            }
+            return `Thin value: the solver bets this medium hand for a small amount, targeting worse hands that will call. Most players would check here — extracting thin value is what separates good from great.`;
+        }
+
+        // Top pair bad kicker thin value
+        if (hc.includes('top pair') && !hc.includes('top kicker') && street === 'river' && sizePct <= 40) {
+            return `Thin value: top pair without a premium kicker — betting small on the river targets second pair and other worse one-pair hands. This is a thin but profitable bet.`;
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 98: GTO vs EXPLOITATIVE FRAMING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 98: Frame the explanation in terms of GTO principles vs. exploitative adjustments.
+     * Helps players understand when they're at a "pure GTO" spot vs. a spot where
+     * exploitative play differs significantly from GTO.
+     *
+     * @param {string} optimalAction - GTO correct action
+     * @param {number} freq - Frequency of the action
+     * @param {Object} handActions - All action frequencies
+     * @param {string} handStrength - categorizeHand() output
+     * @returns {string} GTO framing note
+     */
+    _getGTOFramingNote(optimalAction, freq, handActions, handStrength) {
+        if (!handActions) return '';
+
+        const mixedActions = Object.entries(handActions).filter(([_, f]) => f > 0.05).length;
+
+        // Pure strategy — GTO has one clear answer
+        if (freq >= 0.95) {
+            return 'GTO note: this is a pure strategy spot — the solver always takes this action. Exploitatively, this doesn\'t change unless villain deviates significantly.';
+        }
+
+        // Heavily mixed — GTO and exploitative diverge most here
+        if (mixedActions >= 3 && freq < 0.50) {
+            return `GTO note: highly mixed spot with ${mixedActions} actions. In practice, you should pick the highest-frequency action and deviate exploitatively based on villain tendencies.`;
+        }
+
+        // Close spot — both actions are correct
+        if (mixedActions === 2 && freq < 0.65 && freq > 0.35) {
+            return 'GTO note: close decision — the solver mixes nearly 50/50. Against unknown opponents, either action is fine. Against specific tendencies, exploit accordingly.';
+        }
+
+        return '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 99-100: ENGINE STATISTICS & VERSION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Phase 99-100: Return comprehensive engine statistics.
+     * Used for debugging, analytics, and understanding the system's capabilities.
+     */
+    getEngineStats() {
+        return {
+            version: '2.0.0-phase100',
+            phasesImplemented: 100,
+            explanationModules: {
+                core: ['strategicConcept', 'sizingReason', 'mixingReason'],
+                phase25_34: ['boardTexture', 'sizingReason'],
+                phase42_46: ['riverContext', 'turnContext', 'flopContext'],
+                phase60_62: ['blockerAwareness', 'rangeAdvantage', 'multiStreetPlan'],
+                phase64_69: ['potOddsMath', 'sprContext'],
+                phase72_73: ['enhancedTexture', 'villainTendency'],
+                phase74_75: ['drawClassification', 'adaptiveDifficulty'],
+                phase76_80: ['dynamicDepth', 'runoutImpact', 'equityRealization', 'positionStrategy', 'frequencyDeviation'],
+                phase81_85: ['rangePolarization', 'trapDetection', 'boardCoverage', 'multiStreetEV', 'kickerStrength'],
+                phase86_90: ['nutAdvantage', 'backdoorEquity', 'protectionUrgency', 'showdownValue', 'sessionSummary'],
+                phase91_94: ['preflopEquityTiers', 'evComparison', 'checkRaiseStrategy', 'milestoneCoaching'],
+                phase95_100: ['textureEvolution', 'overbetting', 'thinValue', 'gtoFraming', 'engineStats'],
+            },
+            totalExplanationNotes: 21, // Number of notes in allNotes pipeline
+            smartNoteSelection: { concise: 1, standard: 3, verbose: 5 },
+            trackers: {
+                sessionStats: !!this._sessionStats,
+                mistakeTracker: !!this._mistakeTracker,
+                mistakeTrackerDimensions: this._mistakeTracker ? Object.keys(this._mistakeTracker).length : 0,
+            },
+            features: [
+                'Deterministic solver-driven question generation',
+                'Real PIO solver data (187k+ records)',
+                'Adaptive difficulty (beginner/standard/expert)',
+                'Dynamic explanation depth (concise/standard/verbose)',
+                'Mistake pattern tracking across 8 dimensions',
+                'Session weakness summary generation',
+                'Milestone coaching messages',
+                'Board runout impact predictions',
+                'Equity realization context',
+                'Position-aware strategy explanations',
+                'Range polarization detection',
+                'Trap/slow-play detection',
+                'Nut advantage analysis',
+                'Backdoor equity awareness',
+                'Protection urgency assessment',
+                'Showdown value vs bluff classification',
+                'Solver frequency deviation warnings',
+                'EV comparison in explanations',
+                'Check-raise strategy context',
+                'Board texture evolution tracking',
+                'Overbet strategy explanations',
+                'Thin value bet recognition',
+                'GTO vs exploitative framing',
+                'Kicker strength awareness',
+                'Board coverage (range bet vs polar bet)',
+                'Multi-street EV projection',
+                'Preflop hand equity tier classification',
+            ],
+        };
     }
 }
 
