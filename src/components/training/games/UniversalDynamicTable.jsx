@@ -3403,9 +3403,31 @@ function UniversalDynamicTable({
                             if (selIsRaise && corIsCall) return `Raising bloats the pot against a strong range — calling keeps bluffs in and controls the pot.`;
                             // Player folded when should bet/raise
                             if (selIsFold && (corIsBet || corIsRaise)) return `Folding when you should be the aggressor — you have enough equity to put in money here.`;
-                            // Wrong sizing
-                            if (selIsBet && corIsBet) return `Wrong sizing — the solver prefers ${correctOpt} here for a better risk/reward ratio.`;
-                            if (selIsRaise && corIsRaise) return `Wrong raise size — ${correctOpt} creates better SPR dynamics for the next street.`;
+                            // Wrong sizing — Phase 35: detailed sizing feedback
+                            if (selIsBet && corIsBet) {
+                                const selSize = parseInt((selA.match(/^b(\d+)$/) || [])[1] || '0');
+                                const corSize = parseInt((corA.match(/^b(\d+)$/) || [])[1] || '0');
+                                if (selSize > 0 && corSize > 0) {
+                                    if (selSize > corSize) return `Overbetting — ${correctOpt} is more efficient. Larger sizes fold out too many hands you want to get value from.`;
+                                    return `Underbetting — ${correctOpt} extracts more value and charges draws properly. Your sizing lets opponents continue too cheaply.`;
+                                }
+                                return `Wrong sizing — the solver prefers ${correctOpt} here for a better risk/reward ratio.`;
+                            }
+                            if (selIsRaise && corIsRaise) {
+                                const selSize = parseInt((selA.match(/^r(\d+)$/) || [])[1] || '0');
+                                const corSize = parseInt((corA.match(/^r(\d+)$/) || [])[1] || '0');
+                                if (selSize > 0 && corSize > 0) {
+                                    if (selSize > corSize) return `Raise too large — ${correctOpt} keeps more of villain's range in. Smaller raises often extract more.`;
+                                    return `Raise too small — ${correctOpt} puts more pressure and sets up better stack dynamics for the next street.`;
+                                }
+                                return `Wrong raise size — ${correctOpt} creates better SPR dynamics for the next street.`;
+                            }
+                            // Player bet when should fold
+                            if (selIsBet && corIsFold) return `Bluffing in a spot where the solver gives up — not enough fold equity or too much showdown risk.`;
+                            // Player checked when should fold (facing bet)
+                            if (selIsCheck && corIsFold) return `You can't check here (you're facing a bet) — the solver folds this hand.`;
+                            // Player raised when should fold
+                            if (selIsRaise && corIsFold) return `Raise-bluffing here is -EV — the solver recognizes this spot has poor bluff equity and folds.`;
                             return `${correctOpt} at ${correctFreq}% is the solver's preferred action here.`;
                         })();
 
