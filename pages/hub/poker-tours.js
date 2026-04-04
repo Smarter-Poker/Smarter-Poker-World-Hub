@@ -572,15 +572,27 @@ export default function PokerToursPage() {
                                                 </svg>
                                             </button>
 
-                                            {/* Card Header — Badge + Type */}
+                                            {/* Card Header — Logo + Badge + Type */}
                                             <div className="tour-card-header">
-                                                <div
-                                                    className="tour-code-badge"
-                                                    style={{ background: colors.bg, border: '1px solid ' + colors.border }}
-                                                >
-                                                    <span style={{ color: colors.text, fontSize: 14, fontWeight: 800, letterSpacing: '0.5px' }}>
-                                                        {tour.tour_code || 'TOUR'}
-                                                    </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    {tour.logo_url && (
+                                                        <div className="tour-logo-container">
+                                                            <img
+                                                                src={tour.logo_url}
+                                                                alt={tour.tour_name + ' logo'}
+                                                                className="tour-logo-img"
+                                                                onError={e => { e.target.style.display = 'none'; }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div
+                                                        className="tour-code-badge"
+                                                        style={{ background: colors.bg, border: '1px solid ' + colors.border }}
+                                                    >
+                                                        <span style={{ color: colors.text, fontSize: 14, fontWeight: 800, letterSpacing: '0.5px' }}>
+                                                            {tour.tour_code || 'TOUR'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <span
                                                     className="tour-type-pill"
@@ -637,7 +649,9 @@ export default function PokerToursPage() {
                                                         <div key={i} className="tour-series-item">
                                                             <span className="tour-series-name">{s.short_name || s.name || 'TBD'}</span>
                                                             <span className="tour-series-dates">
-                                                                {formatDate(s.start_date)}{s.end_date ? ' – ' + formatDate(s.end_date) : ''}
+                                                                {s.dates ? s.dates : (
+                                                                    formatDate(s.start_date) + (s.end_date ? ' – ' + formatDate(s.end_date) : '')
+                                                                )}
                                                             </span>
                                                         </div>
                                                     ))}
