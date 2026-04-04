@@ -1879,30 +1879,94 @@ export class DeterministicGTOEngine {
             return 'Checking to control the pot size and realize equity on future streets.';
         }
 
-        // ═══ BETTING CONCEPTS ═══
+        // ═══ BETTING CONCEPTS (Phase 58: Enhanced board-hand interaction) ═══
         if (isBet) {
-            if (handStrength.includes('set') || handStrength.includes('straight') || handStrength.includes('flush') || handStrength.includes('full house') || handStrength.includes('quads')) {
-                return 'Value betting a nutted hand — extracting maximum chips from worse holdings.';
+            const hs = handStrength.toLowerCase();
+            // Nutted hands
+            if (hs.includes('quads') || hs.includes('full house')) {
+                if (street === 'river') return 'Value betting the nuts on the river — extracting maximum from second-best hands that can\'t fold.';
+                return 'Building the pot with an unbeatable hand — bet to grow the pot for river value.';
             }
-            if (handStrength.includes('top pair') && (handStrength.includes('strong kicker') || handStrength.includes('overpair'))) {
-                return 'Value betting a strong made hand — targeting worse pairs and draws.';
+            if (hs.includes('nut flush') || hs.includes('nut straight')) {
+                if (street === 'river') return 'Betting the nuts for max value — your hand is the best possible. Target strong second-best hands.';
+                return 'Betting a nutted hand to build the pot — you want to get stacks in by the river.';
             }
-            if (handStrength.includes('top pair')) {
-                if (texture.wet) return 'Betting for value and protection on a wet board — charge draws while ahead.';
-                return 'Betting top pair for value — targeting weaker pairs and high cards.';
+            if (hs.includes('flush') && !hs.includes('draw')) {
+                if (texture.connected) return 'Betting a flush on a connected board — protect against full house draws and extract from worse flushes.';
+                return 'Betting a flush for value — target sets, two pair, and strong pairs.';
             }
-            if (handStrength.includes('draw') || handStrength.includes('OESD') || handStrength.includes('flush draw')) {
-                if (street === 'river') return 'Bluffing the river with a missed draw — converting busted equity into fold equity.';
-                return 'Semi-bluffing with draw equity — fold equity now plus backup equity if called.';
+            if (hs.includes('straight') && !hs.includes('draw')) {
+                if (texture.flushy || texture.monotone) return 'Betting a straight on a flushy board — need to extract value before a flush card kills action.';
+                return 'Betting a straight for value — target two pair, sets, and strong one-pair hands.';
             }
-            if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
-                if (street === 'river') return 'Pure bluff on the river — only way to win with air.';
-                return 'Bluffing as part of a balanced strategy — keeping the opponent guessing.';
+            if (hs.includes('set')) {
+                if (texture.wet) return 'Betting a set on a wet board — charge draws heavily. Sets want big pots before the board gets scary.';
+                if (texture.dry) return 'Betting a set on a dry board — slow-play is an option, but betting builds the pot for later streets.';
+                return 'Value betting a set — targeting top pair and overpairs that can\'t fold.';
             }
-            if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
-                return 'Thin value bet — targeting worse pairs or turning the hand into a bluff.';
+            if (hs.includes('two pair')) {
+                if (texture.connected) return 'Betting two pair on a connected board — charge straight draws and build the pot before the board changes.';
+                return 'Betting two pair for value — strong enough to target one-pair hands and draws.';
             }
-            return 'Betting for value and protection.';
+            if (hs.includes('top pair') && hs.includes('top kicker')) {
+                if (texture.wet) return 'Betting TPTK for value and protection — too many draws to give free cards.';
+                if (texture.dry) return 'Betting TPTK for thin value on a dry board — target weaker top pair and second pair.';
+                return 'Betting top pair top kicker — the strongest one-pair hand. Extract from worse pairs.';
+            }
+            if (hs.includes('top pair') && hs.includes('strong kicker')) {
+                return 'Betting top pair strong kicker for value — ahead of most of villain\'s calling range.';
+            }
+            if (hs.includes('top pair')) {
+                if (texture.wet) return 'Betting for value and protection on a wet board — charge draws while your top pair is ahead.';
+                if (hs.includes('weak kicker')) return 'Thin value bet with top pair weak kicker — targeting second pair and draws, but beware of domination.';
+                return 'Betting top pair for value — targeting weaker pairs and high card hands.';
+            }
+            if (hs.includes('overpair')) {
+                if (texture.wet) return 'Betting an overpair for protection on a wet board — too many draws to give a free card.';
+                return 'Betting an overpair for value — stronger than any pair on the board.';
+            }
+            // Draw hands
+            if (hs.includes('monster draw') || hs.includes('combo draw')) {
+                if (street === 'river') return 'Bluffing the river with a busted monster draw — your hand has no showdown value but you can represent the nuts.';
+                return 'Semi-bluffing with a monster draw — huge equity when called plus fold equity. This is one of the most +EV spots.';
+            }
+            if (hs.includes('nut flush draw')) {
+                if (street === 'river') return 'Bluffing with a missed nut flush draw — you block the nut flush, making it harder for villain to have it.';
+                return 'Semi-bluffing with the nut flush draw — 9 clean outs plus fold equity. Premium bluff candidate.';
+            }
+            if (hs.includes('flush draw')) {
+                if (street === 'river') return 'Bluffing with a missed flush draw — converting busted equity into fold equity on the river.';
+                return 'Semi-bluffing with a flush draw — betting now gives fold equity plus equity when called.';
+            }
+            if (hs.includes('OESD') || hs.includes('double gutshot')) {
+                if (street === 'river') return 'Bluffing with a missed straight draw — converting busted equity into a river bluff.';
+                return 'Semi-bluffing with 8 straight outs — enough equity to make betting very profitable.';
+            }
+            if (hs.includes('gutshot')) {
+                if (street === 'river') return 'Bluffing the river with a busted gutshot — no showdown value, only fold equity.';
+                return 'Semi-bluffing with a gutshot — 4 outs plus fold equity. A balanced bluff candidate.';
+            }
+            if (hs.includes('backdoor')) {
+                return 'Betting with backdoor equity — preserving the option to hit a draw on the turn while picking up the pot now.';
+            }
+            // Air
+            if (hs.includes('air') || hs.includes('no pair') || hs.includes('overcard') || hs.includes('high cards')) {
+                if (street === 'river') return 'Pure bluff on the river — the only way to win with no made hand. You\'re repping a strong range.';
+                if (street === 'flop') return 'C-bet bluff with air — attacking villain\'s capped range. Most opponents fold too much to flop c-bets.';
+                return 'Bluffing as part of a balanced strategy — keeping the opponent indifferent about calling.';
+            }
+            // Marginal hands
+            if (hs.includes('second pair')) {
+                if (street === 'river') return 'Thin value bet with second pair — targeting weaker holdings, though this is close between betting and checking.';
+                return 'Betting second pair for thin value and protection — charge draws and target bottom pair.';
+            }
+            if (hs.includes('bottom pair')) {
+                return 'Thin value bet / protection bet with bottom pair — targeting ace-high and king-high hands.';
+            }
+            if (hs.includes('underpair')) {
+                return 'Betting an underpair as a semi-bluff — some showdown value plus fold equity against overcards.';
+            }
+            return 'Betting for value and protection — extracting from worse hands while denying equity.';
         }
 
         // ═══ CALLING CONCEPTS (Phase 56: Enhanced depth) ═══
@@ -1946,18 +2010,39 @@ export class DeterministicGTOEngine {
             return 'Calling to see another card and realize equity.';
         }
 
-        // ═══ RAISING CONCEPTS ═══
+        // ═══ RAISING CONCEPTS (Phase 58: Enhanced) ═══
         if (isRaise) {
-            if (handStrength.includes('set') || handStrength.includes('two pair') || handStrength.includes('straight') || handStrength.includes('flush')) {
-                return 'Raising for value with a monster — building the pot while ahead.';
+            if (handStrength.includes('set')) {
+                if (street === 'flop') return 'Check-raising a set on the flop — the strongest play. Build the pot and let aggressive opponents barrel into you.';
+                return 'Raising a set for value — building a big pot with a hand that dominates two pair and overpairs.';
             }
-            if (handStrength.includes('draw')) {
-                return 'Semi-bluff raise — leveraging fold equity plus draw equity to create a profitable play.';
+            if (handStrength.includes('two pair')) {
+                return 'Raising two pair for value — strong enough to raise for value against top pair and overpairs.';
             }
-            if (handStrength.includes('air') || handStrength.includes('overcard')) {
-                return 'Bluff raise — attacking the opponent\'s capped range with maximum aggression.';
+            if (handStrength.includes('straight') || handStrength.includes('flush') || handStrength.includes('full house')) {
+                return 'Raising the nuts — building the pot with a monster hand. Get stacks in before the board changes.';
             }
-            return 'Raising to build the pot and apply pressure.';
+            if (handStrength.includes('top pair') && handStrength.includes('top kicker')) {
+                return 'Raising TPTK — in certain spots, raising for value targets worse top pair combos and avoids being outdrawn.';
+            }
+            if (handStrength.includes('monster draw') || handStrength.includes('combo draw')) {
+                return 'Semi-bluff raise with a monster draw — huge fold equity plus 15+ outs if called. One of the best raising hands.';
+            }
+            if (handStrength.includes('flush draw')) {
+                if (handStrength.includes('nut')) return 'Semi-bluff raise with the nut flush draw — premium bluff candidate that blocks villain\'s nutted range.';
+                return 'Semi-bluff raise with a flush draw — leveraging fold equity plus 9 outs when called.';
+            }
+            if (handStrength.includes('OESD') || handStrength.includes('double gutshot')) {
+                return 'Semi-bluff raise with 8 straight outs — enough equity to make this raise profitable even when called.';
+            }
+            if (handStrength.includes('gutshot')) {
+                return 'Semi-bluff raise with a gutshot — 4 outs isn\'t many, but the fold equity makes this raising hand profitable.';
+            }
+            if (handStrength.includes('air') || handStrength.includes('overcard') || handStrength.includes('no pair')) {
+                if (street === 'flop') return 'Check-raise bluff — attacking villain\'s c-bet with maximum aggression. Forces folds from better hands.';
+                return 'Bluff raise — attacking villain\'s capped range with aggression. You need villain to fold frequently.';
+            }
+            return 'Raising to build the pot and apply pressure — balancing value raises with bluffs.';
         }
 
         // ═══ FOLDING CONCEPTS (Phase 56: Enhanced depth) ═══
