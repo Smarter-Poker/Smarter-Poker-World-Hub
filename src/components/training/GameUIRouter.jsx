@@ -112,6 +112,15 @@ export default function GameUIRouter({
     // Settings config
     onConfigClick = null,
     trainerConfig = null,
+    // Phase 261-270: Deep coaching callbacks
+    getTeachingPrinciple = null,
+    getPositionReminder = null,
+    getTextureStrategyGuide = null,
+    getSPRStrategyGuide = null,
+    getVillainRangeNarration = null,
+    getMultiStreetPlanningGuide = null,
+    getFrequencyCorrectionPrompt = null,
+    getTiltRecoveryAdvice = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -180,6 +189,15 @@ export default function GameUIRouter({
             // Settings config — render gear in scenario area
             onConfigClick={onConfigClick}
             trainerConfig={trainerConfig}
+            // Phase 261-270: Deep coaching
+            getTeachingPrinciple={getTeachingPrinciple}
+            getPositionReminder={getPositionReminder}
+            getTextureStrategyGuide={getTextureStrategyGuide}
+            getSPRStrategyGuide={getSPRStrategyGuide}
+            getVillainRangeNarration={getVillainRangeNarration}
+            getMultiStreetPlanningGuide={getMultiStreetPlanningGuide}
+            getFrequencyCorrectionPrompt={getFrequencyCorrectionPrompt}
+            getTiltRecoveryAdvice={getTiltRecoveryAdvice}
         />
     );
 }

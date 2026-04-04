@@ -1067,6 +1067,15 @@ function UniversalDynamicTable({
     // Settings config — gear button relocated to scenario area
     onConfigClick = null,
     trainerConfig = null,
+    // Phase 261-270: Deep coaching callbacks
+    getTeachingPrinciple = null,
+    getPositionReminder = null,
+    getTextureStrategyGuide = null,
+    getSPRStrategyGuide = null,
+    getVillainRangeNarration = null,
+    getMultiStreetPlanningGuide = null,
+    getFrequencyCorrectionPrompt = null,
+    getTiltRecoveryAdvice = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -4047,6 +4056,174 @@ function UniversalDynamicTable({
                                     {structuredExplanation.fix}
                                 </div>
                             )}
+
+                            {/* ═══ PHASE 261: Teaching Principle ═══ */}
+                            {(() => {
+                                try {
+                                    if (!getTeachingPrinciple) return null;
+                                    const scenario = question?.scenario || {};
+                                    const principle = getTeachingPrinciple(
+                                        scenario.street || 'flop',
+                                        scenario.nodeType || '',
+                                        structuredExplanation?.correctAction || question?.correctAnswer || '',
+                                        question?.handCategory || '',
+                                        scenario.texture || ''
+                                    );
+                                    if (!principle || !principle.principle) return null;
+                                    return (
+                                        <div style={{
+                                            padding: '5px 10px', marginTop: 4,
+                                            background: 'rgba(34, 197, 94, 0.04)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(34, 197, 94, 0.1)',
+                                            fontSize: 9, lineHeight: 1.5, color: '#86efac',
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#4ade80' }}>PRINCIPLE: </span>
+                                            {principle.principle}
+                                            {principle.example && (
+                                                <div style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
+                                                    {principle.example}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* ═══ PHASE 262: Position Reminder ═══ */}
+                            {(() => {
+                                try {
+                                    if (!getPositionReminder) return null;
+                                    const scenario = question?.scenario || {};
+                                    const reminder = getPositionReminder(
+                                        scenario.heroPosition || scenario.position || '',
+                                        scenario.street || 'flop',
+                                        scenario.nodeType || ''
+                                    );
+                                    if (!reminder || !reminder.tip) return null;
+                                    return (
+                                        <div style={{
+                                            padding: '5px 10px', marginTop: 4,
+                                            background: 'rgba(251, 191, 36, 0.04)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(251, 191, 36, 0.1)',
+                                            fontSize: 9, lineHeight: 1.5, color: '#fde68a',
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#fbbf24' }}>POSITION TIP: </span>
+                                            {reminder.tip}
+                                        </div>
+                                    );
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* ═══ PHASE 263: Texture Strategy ═══ */}
+                            {(() => {
+                                try {
+                                    if (!getTextureStrategyGuide) return null;
+                                    const scenario = question?.scenario || {};
+                                    if (!scenario.texture && !scenario.boardTexture) return null;
+                                    const guide = getTextureStrategyGuide(
+                                        scenario.texture || scenario.boardTexture || '',
+                                        scenario.street || 'flop',
+                                        scenario.heroPosition || '',
+                                        scenario.villainPosition || ''
+                                    );
+                                    if (!guide || !guide.strategy) return null;
+                                    return (
+                                        <div style={{
+                                            padding: '5px 10px', marginTop: 4,
+                                            background: 'rgba(168, 85, 247, 0.04)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(168, 85, 247, 0.1)',
+                                            fontSize: 9, lineHeight: 1.5, color: '#d8b4fe',
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#c084fc' }}>BOARD TEXTURE: </span>
+                                            {guide.strategy}
+                                        </div>
+                                    );
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* ═══ PHASE 264: SPR Guide ═══ */}
+                            {(() => {
+                                try {
+                                    if (!getSPRStrategyGuide) return null;
+                                    const scenario = question?.scenario || {};
+                                    if (!scenario.potSize && !scenario.stackDepth) return null;
+                                    const sprGuide = getSPRStrategyGuide(
+                                        scenario.potSize || scenario.estimatedPot || 0,
+                                        scenario.stackDepth || scenario.effectiveStack || 100
+                                    );
+                                    if (!sprGuide || !sprGuide.guidance) return null;
+                                    return (
+                                        <div style={{
+                                            padding: '5px 10px', marginTop: 4,
+                                            background: 'rgba(0, 212, 255, 0.03)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(0, 212, 255, 0.08)',
+                                            fontSize: 9, lineHeight: 1.5, color: '#67e8f9',
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#22d3ee' }}>SPR: </span>
+                                            {sprGuide.spr && <span style={{ fontFamily: "'Orbitron', monospace", marginRight: 4 }}>{sprGuide.spr.toFixed(1)}</span>}
+                                            {sprGuide.guidance}
+                                        </div>
+                                    );
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* ═══ PHASE 265: Villain Range Narration ═══ */}
+                            {(() => {
+                                try {
+                                    if (!getVillainRangeNarration) return null;
+                                    const scenario = question?.scenario || {};
+                                    const narration = getVillainRangeNarration(
+                                        scenario.street || 'flop',
+                                        scenario.nodeType || '',
+                                        scenario.villainActions || scenario.actionSequence || []
+                                    );
+                                    if (!narration || !narration.narration) return null;
+                                    return (
+                                        <div style={{
+                                            padding: '5px 10px', marginTop: 4,
+                                            background: 'rgba(239, 68, 68, 0.04)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(239, 68, 68, 0.1)',
+                                            fontSize: 9, lineHeight: 1.5, color: '#fca5a5',
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#ef4444' }}>VILLAIN RANGE: </span>
+                                            {narration.narration}
+                                        </div>
+                                    );
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* ═══ PHASE 266: Multi-Street Planning ═══ */}
+                            {(() => {
+                                try {
+                                    if (!getMultiStreetPlanningGuide) return null;
+                                    const scenario = question?.scenario || {};
+                                    const plan = getMultiStreetPlanningGuide(
+                                        scenario.street || 'flop',
+                                        question?.handCategory || '',
+                                        structuredExplanation?.correctAction || question?.correctAnswer || '',
+                                        scenario.potSize || 0,
+                                        scenario.stackDepth || 100
+                                    );
+                                    if (!plan || !plan.plan) return null;
+                                    return (
+                                        <div style={{
+                                            padding: '5px 10px', marginTop: 4,
+                                            background: 'rgba(59, 130, 246, 0.04)',
+                                            borderRadius: 8,
+                                            border: '1px solid rgba(59, 130, 246, 0.1)',
+                                            fontSize: 9, lineHeight: 1.5, color: '#93c5fd',
+                                        }}>
+                                            <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#3b82f6' }}>STREET PLAN: </span>
+                                            {plan.plan}
+                                        </div>
+                                    );
+                                } catch (_) { return null; }
+                            })()}
                         </div>
                     )}
 

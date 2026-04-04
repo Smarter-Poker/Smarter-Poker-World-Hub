@@ -822,6 +822,17 @@ function GodModeArenaInner({
         prescribeDrills,
         getFrequencyMasteryScore,
         generateSessionReport,
+        // ═══ PHASE 261-270: Deep coaching intelligence ═══
+        getTeachingPrinciple,
+        getPositionReminder,
+        getTextureStrategyGuide,
+        getSPRStrategyGuide,
+        getVillainRangeNarration,
+        getMultiStreetPlanningGuide,
+        getFrequencyCorrectionPrompt,
+        getTiltRecoveryAdvice,
+        getSessionPacingAnalysis,
+        estimateSpotDifficultyEnhanced,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2256,6 +2267,105 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
+                        {/* ═══ PHASE 267: Frequency Correction Alert ═══ */}
+                        {(() => {
+                            try {
+                                const freqCorrection = getFrequencyCorrectionPrompt();
+                                if (!freqCorrection || !freqCorrection.action) return null;
+                                return (
+                                    <div style={{
+                                        marginBottom: 16, padding: '10px 14px',
+                                        background: 'rgba(168,85,247,0.06)', borderRadius: 10,
+                                        border: '1px solid rgba(168,85,247,0.15)',
+                                    }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc', marginBottom: 4 }}>
+                                            Frequency Correction
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#e2e8f0', lineHeight: 1.5 }}>
+                                            {freqCorrection.message || `Your ${freqCorrection.action} frequency deviates ${freqCorrection.deviation?.toFixed(1)}% from solver.`}
+                                        </div>
+                                    </div>
+                                );
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 268: Tilt Recovery ═══ */}
+                        {(() => {
+                            try {
+                                const tiltAdvice = getTiltRecoveryAdvice();
+                                if (!tiltAdvice || tiltAdvice.severity === 'none') return null;
+                                const tiltColors = { low: '#fbbf24', medium: '#f97316', high: '#ef4444', critical: '#dc2626' };
+                                const tiltColor = tiltColors[tiltAdvice.severity] || '#fbbf24';
+                                return (
+                                    <div style={{
+                                        marginBottom: 16, padding: '10px 14px',
+                                        background: `${tiltColor}08`, borderRadius: 10,
+                                        border: `1px solid ${tiltColor}22`,
+                                    }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: tiltColor, marginBottom: 4 }}>
+                                            {tiltAdvice.title || 'Tilt Recovery'}
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#e2e8f0', lineHeight: 1.5, marginBottom: 6 }}>
+                                            {tiltAdvice.advice}
+                                        </div>
+                                        {tiltAdvice.actionItems && tiltAdvice.actionItems.length > 0 && (
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                                {tiltAdvice.actionItems.map((item, i) => (
+                                                    <span key={i} style={{
+                                                        fontSize: 9, padding: '3px 8px', borderRadius: 6,
+                                                        background: `${tiltColor}11`, color: tiltColor,
+                                                        border: `1px solid ${tiltColor}22`,
+                                                    }}>
+                                                        {item}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 269: Session Pacing Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const pacing = getSessionPacingAnalysis();
+                                if (!pacing || !pacing.avgTimePerHand) return null;
+                                const paceColor = pacing.recommendation === 'slow_down' ? '#f97316' : pacing.recommendation === 'speed_up' ? '#22c55e' : '#94a3b8';
+                                return (
+                                    <div style={{
+                                        marginBottom: 16, padding: '10px 14px',
+                                        background: 'rgba(0,0,0,0.2)', borderRadius: 10,
+                                        border: `1px solid ${paceColor}22`,
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: paceColor }}>
+                                                Session Pacing
+                                            </span>
+                                            <span style={{ fontSize: 10, fontFamily: "'Orbitron', monospace", color: '#e2e8f0' }}>
+                                                {pacing.avgTimePerHand.toFixed(1)}s / hand
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>
+                                            {pacing.message || `${pacing.fastHands || 0} fast decisions, ${pacing.slowHands || 0} slow decisions`}
+                                        </div>
+                                        {pacing.accuracyBySpeed && (
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                                                {Object.entries(pacing.accuracyBySpeed).map(([speed, acc]) => (
+                                                    <span key={speed} style={{
+                                                        fontSize: 9, padding: '2px 6px', borderRadius: 4,
+                                                        background: 'rgba(255,255,255,0.04)', color: '#94a3b8',
+                                                    }}>
+                                                        {speed}: {typeof acc === 'number' ? acc.toFixed(0) : acc}%
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            } catch (_) { return null; }
+                        })()}
+
                         {/* ═══ PHASE 20: EV by Street visualization ═══ */}
                         <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
@@ -2724,6 +2834,15 @@ function GodModeArenaInner({
                                     feedbackResult={feedbackResult}
                                     explanation={explanation}
                                     structuredExplanation={structuredExplanation}
+                                    // Phase 261-270: Deep coaching props
+                                    getTeachingPrinciple={getTeachingPrinciple}
+                                    getPositionReminder={getPositionReminder}
+                                    getTextureStrategyGuide={getTextureStrategyGuide}
+                                    getSPRStrategyGuide={getSPRStrategyGuide}
+                                    getVillainRangeNarration={getVillainRangeNarration}
+                                    getMultiStreetPlanningGuide={getMultiStreetPlanningGuide}
+                                    getFrequencyCorrectionPrompt={getFrequencyCorrectionPrompt}
+                                    getTiltRecoveryAdvice={getTiltRecoveryAdvice}
                                     // GTOW scoring props
                                     moveClassification={moveClassification}
                                     evLoss={evLoss}
