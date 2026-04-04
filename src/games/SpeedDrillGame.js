@@ -212,19 +212,78 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                 </>
             )}
 
-            {gameState === 'gameover' && (
-                <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>💀</div>
-                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#ff4444', marginBottom: 30 }}>GAME OVER</h1>
-                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Final Score</span><span style={{ fontFamily: 'Orbitron', fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Best Streak</span><span> {maxStreak}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: 18, color: '#fff' }}><span>Hands Played</span><span>{handsPlayed}</span></div>
-                        {score >= 100 && (<div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>Diamonds +{Math.floor(score / 100)} Diamonds earned!</div>)}
+            {gameState === 'gameover' && (() => {
+                const accuracy = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0;
+                const diamondReward = Math.floor(score / 100);
+                const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 50 ? 'C' : 'D';
+                const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                return (
+                    <div style={{ marginTop: 20 }}>
+                        {/* Score Hero Card */}
+                        <div style={{
+                            background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
+                            border: `1px solid ${gradeColor}40`,
+                            borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{handsPlayed}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>HANDS</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Accuracy Bar */}
+                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
+                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
+                            </div>
+                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
+                            </div>
+                        </div>
+
+                        {/* Diamond Reward */}
+                        {diamondReward > 0 && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                                border: '1px solid rgba(0,255,136,0.3)',
+                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                    +{diamondReward} Diamonds Earned!
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={startGame} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                                background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000',
+                                border: 'none', borderRadius: 12, cursor: 'pointer'
+                            }}>PLAY AGAIN</button>
+                            <button onClick={onExit} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 12, color: '#fff', cursor: 'pointer'
+                            }}>BACK TO MENU</button>
+                        </div>
                     </div>
-                    <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>BACK TO MENU [SPACE]</button>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

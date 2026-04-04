@@ -87,6 +87,7 @@ function mergeWithRegistry(dbTour, registryTour) {
     if (!registryTour) return {
         ...dbTour,
         is_traveling: !STATIONARY_CODES.has(dbTour.tour_code),
+        logo_url: TOUR_LOGOS[dbTour.tour_code] || null,
         series_2026: [],
         stops_2026: [],
     };
@@ -109,6 +110,8 @@ function mergeWithRegistry(dbTour, registryTour) {
         stops_2026: registryTour.stops_2026 || [],
         priority: registryTour.priority || 3,
         is_traveling: !STATIONARY_CODES.has(dbTour.tour_code),
+        // Logo from TOUR_LOGOS map (always inject, DB doesn't have this)
+        logo_url: TOUR_LOGOS[dbTour.tour_code] || registryTour.logo_url || null,
     };
 }
 

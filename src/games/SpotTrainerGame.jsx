@@ -444,6 +444,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
     const [totalAnswers, setTotalAnswers] = useState(0);
     const [gameOver, setGameOver] = useState(false);
     const [streakCount, setStreakCount] = useState(0);
+    const [maxStreak, setMaxStreak] = useState(0);
 
     const currentSpot = SPOT_SCENARIOS[currentSpotIndex];
     const currentStreet = currentSpot?.streets[currentStreetIndex];
@@ -464,6 +465,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
             setScore(prev => prev + pointsEarned);
             setCorrectAnswers(prev => prev + 1);
             setStreakCount(prev => prev + 1);
+            setMaxStreak(prev => Math.max(prev, streakCount + 1));
 
             if (streakCount >= 4) {
                 fireConfetti({
@@ -593,7 +595,9 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
 
     if (gameOver) {
         const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
-        const grade = accuracy >= 90 ? 'A+' : accuracy >= 80 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 60 ? 'C' : 'D';
+        const diamondsEarned = accuracy >= 70 ? Math.round(accuracy / 10) : 0;
+        const grade = accuracy >= 95 ? 'S' : accuracy >= 85 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 55 ? 'C' : 'D';
+        const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
 
         return (
             <motion.div
@@ -601,28 +605,62 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                 animate={{ opacity: 1, scale: 1 }}
                 style={styles.container}
             >
-                <div style={styles.gameOverCard}>
-                    <div style={{ fontSize: 64, marginBottom: 16 }}>🎯</div>
-                    <h2 style={styles.gameOverTitle}>SPOT TRAINER COMPLETE!</h2>
+                <div style={{ maxWidth: 500, margin: '20px auto', textAlign: 'center' }}>
+                    {/* Performance Hero Card */}
+                    <div style={{
+                        background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
+                        border: `1px solid ${gradeColor}40`,
+                        borderRadius: 20, padding: 28, marginBottom: 20
+                    }}>
+                        <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
-                    <div style={styles.statsGrid}>
-                        <div style={styles.statBox}>
-                            <div style={styles.statValue}>{score}</div>
-                            <div style={styles.statLabel}>Total Score</div>
-                        </div>
-                        <div style={styles.statBox}>
-                            <div style={{ ...styles.statValue, color: accuracy >= 70 ? '#00ff88' : '#ff4444' }}>
-                                {accuracy}%
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
                             </div>
-                            <div style={styles.statLabel}>Accuracy</div>
-                        </div>
-                        <div style={styles.statBox}>
-                            <div style={styles.statValue}>{grade}</div>
-                            <div style={styles.statLabel}>Grade</div>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 20, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 20, fontWeight: 800, color: '#A78BFA' }}>{correctAnswers}/{totalAnswers}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CORRECT</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 20, fontWeight: 800, color: '#00ff88' }}>{SPOT_SCENARIOS.length}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SPOTS</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div style={styles.buttonRow}>
+                    {/* Accuracy Bar */}
+                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
+                            <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
+                        </div>
+                        <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
+                        </div>
+                    </div>
+
+                    {/* Diamond Reward */}
+                    {diamondsEarned > 0 && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                            border: '1px solid rgba(0,255,136,0.3)',
+                            borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                +{diamondsEarned} Diamonds Earned!
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: 12 }}>
                         <button onClick={() => {
                             setCurrentSpotIndex(0);
                             setCurrentStreetIndex(0);
@@ -630,13 +668,18 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                             setCorrectAnswers(0);
                             setTotalAnswers(0);
                             setStreakCount(0);
+                            setMaxStreak(0);
                             setGameOver(false);
-                        }} style={styles.playAgainButton}>
-                            🔄 PLAY AGAIN
-                        </button>
-                        <button onClick={onExit} style={styles.exitButton}>
-                            ← EXIT
-                        </button>
+                        }} style={{
+                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                            background: 'linear-gradient(135deg, #00ff88, #00D4FF)', color: '#000',
+                            border: 'none', borderRadius: 12, cursor: 'pointer'
+                        }}>PLAY AGAIN</button>
+                        <button onClick={onExit} style={{
+                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 12, color: '#fff', cursor: 'pointer'
+                        }}>BACK TO MENU</button>
                     </div>
                 </div>
             </motion.div>

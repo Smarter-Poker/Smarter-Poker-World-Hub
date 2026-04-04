@@ -480,6 +480,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const clusterGroupRef = useRef(null);
   const circlesGroupRef = useRef(null);
   const userMarkerRef = useRef(null);
+  const radiusCircleRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Dynamically load Leaflet scripts
@@ -816,29 +817,49 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     }
   }, [userLocation, mapReady]);
 
-  // ═══ DYNAMIC RADIUS ZOOM — Adjust map zoom when search radius changes ═══
+  // ═══ DYNAMIC RADIUS ZOOM + VISUAL CIRCLE — Adjust map zoom and show radius overlay ═══
   // Uses centerLocation (GPS or city centroid) to zoom appropriately
   useEffect(() => {
     if (!mapReady || !mapInstanceRef.current) return;
+    const L = window.L;
+    const map = mapInstanceRef.current;
+    
+    // Remove previous radius circle
+    if (radiusCircleRef.current) {
+      map.removeLayer(radiusCircleRef.current);
+      radiusCircleRef.current = null;
+    }
     
     // Determine the center point: prefer explicit centerLocation, fallback to userLocation
     const center = centerLocation || userLocation;
     if (!center) return;
     
-    // For "Any" / "all" radius, show full US overview
+    // For "Any" / "all" radius, show full US overview (no circle)
     if (!radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') {
-      const L = window.L;
       const usBounds = L.latLngBounds(
         L.latLng(24.396308, -125.0),
         L.latLng(49.384358, -66.93457)
       );
-      mapInstanceRef.current.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6, animate: true, duration: 0.6 });
+      map.fitBounds(usBounds, { padding: [20, 20], maxZoom: 6, animate: true, duration: 0.8 });
       return;
     }
     
-    const map = mapInstanceRef.current;
     const zoom = radiusToZoom(radiusMiles);
-    map.setView([center.lat, center.lng], zoom, { animate: true, duration: 0.6 });
+    map.setView([center.lat, center.lng], zoom, { animate: true, duration: 0.8 });
+    
+    // ═══ VISUAL RADIUS CIRCLE OVERLAY ═══
+    // Draw a translucent gold circle showing the search boundary
+    const radiusMeters = Number(radiusMiles) * 1609.34; // miles → meters
+    radiusCircleRef.current = L.circle([center.lat, center.lng], {
+      radius: radiusMeters,
+      color: '#d4a853',
+      weight: 1.5,
+      opacity: 0.5,
+      fillColor: '#d4a853',
+      fillOpacity: 0.04,
+      dashArray: '8, 6',
+      interactive: false,
+    }).addTo(map);
   }, [radiusMiles, centerLocation, userLocation, mapReady]);
 
   // Legend items

@@ -11,6 +11,23 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
+// Decode HTML entities and fix pipe separators in venue names
+function cleanVenueName(str) {
+    if (!str || typeof str !== 'string') return str || '';
+    let result = str.replace(/&amp;amp;/gi, '&amp;');
+    result = result
+        .replace(/&amp;/gi, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&#x27;/g, "'")
+        .replace(/&#x2F;/g, '/');
+    result = result.replace(/\|/g, ' ');
+    result = result.replace(/\s{2,}/g, ' ').trim();
+    return result;
+}
+
 let _supabase = null;
 function getSupabase() {
     if (!_supabase) {
@@ -51,7 +68,7 @@ export default async function handler(req, res) {
       for (const row of (data || [])) {
         if (!seen.has(row.bravo_slug)) {
           seen.add(row.bravo_slug);
-          venues.push({ slug: row.bravo_slug, name: row.venue_name });
+          venues.push({ slug: row.bravo_slug, name: cleanVenueName(row.venue_name) });
         }
       }
 
@@ -88,7 +105,7 @@ export default async function handler(req, res) {
       
       if (!grouped[slug]) {
         grouped[slug] = {
-          venue_name: row.venue_name,
+          venue_name: cleanVenueName(row.venue_name),
           bravo_slug: slug,
           last_updated: row.scrape_timestamp,
           games: [],

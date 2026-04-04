@@ -27,6 +27,8 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
     const [roundsPlayed, setRoundsPlayed] = useState(0);
     const [maxRounds] = useState(10);
     const [diff, setDiff] = useState(0);
+    const [maxStreak, setMaxStreak] = useState(0);
+    const [closeCount, setCloseCount] = useState(0);
 
     const getMixedScenario = useCallback(() => {
         const scenario = MIXED_SCENARIOS[Math.floor(Math.random() * MIXED_SCENARIOS.length)];
@@ -38,7 +40,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
     const startGame = useCallback(() => {
         const { scenario, action } = getMixedScenario();
         setCurrentScenario(scenario); setTargetAction(action); setGameState('playing');
-        setScore(0); setStreak(0); setRoundsPlayed(0); setUserFreq(50);
+        setScore(0); setStreak(0); setMaxStreak(0); setCloseCount(0); setRoundsPlayed(0); setUserFreq(50);
         SoundEngine.play('levelUp');
     }, [getMixedScenario]);
 
@@ -68,7 +70,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         if (difference === 0) points += 500;
         else if (difference <= 5) points += 200;
         else if (difference <= 15) points += 50;
-        if (difference <= 15) { setStreak(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play('correct'); }
+        if (difference <= 15) { setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCloseCount(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play('correct'); }
         else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); }
         setGameState('revealed');
         setTimeout(nextRound, 2000);
@@ -76,7 +78,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
 
     useEffect(() => {
         const handleKey = (e) => {
-            if ((gameState === 'ready' || gameState === 'gameover') && (e.key === ' ' || e.key === 'Enter')) { if (gameState === 'ready') startGame(); else onExit?.(); }
+            if ((gameState === 'ready' || gameState === 'gameover') && (e.key === ' ' || e.key === 'Enter')) { startGame(); }
             else if (gameState === 'playing') {
                 if (e.key === 'ArrowLeft') setUserFreq(prev => Math.max(0, prev - 5));
                 if (e.key === 'ArrowRight') setUserFreq(prev => Math.min(100, prev + 5));
@@ -136,16 +138,78 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                 </>
             )}
 
-            {gameState === 'gameover' && (
-                <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>Mix</div>
-                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, marginBottom: 30 }}>SESSION COMPLETE</h1>
-                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Final Score</span><span style={{ fontFamily: 'Orbitron', fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</span></div>
+            {gameState === 'gameover' && (() => {
+                const accuracy = maxRounds > 0 ? Math.round((closeCount / maxRounds) * 100) : 0;
+                const diamondReward = Math.floor(score / 500) + (score >= 4000 ? 20 : 0);
+                const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 60 ? 'B' : accuracy >= 40 ? 'C' : 'D';
+                const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                return (
+                    <div style={{ marginTop: 20 }}>
+                        {/* Performance Hero Card */}
+                        <div style={{
+                            background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
+                            border: `1px solid ${gradeColor}40`,
+                            borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>FREQUENCY MASTERY</div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#A855F7' }}>{closeCount}/{maxRounds}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>WITHIN 15%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Accuracy Bar */}
+                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>PRECISION</span>
+                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
+                            </div>
+                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
+                            </div>
+                        </div>
+
+                        {/* Diamond Reward */}
+                        {diamondReward > 0 && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                                border: '1px solid rgba(0,255,136,0.3)',
+                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                    +{diamondReward} Diamonds Earned!
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={startGame} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                                background: 'linear-gradient(135deg, #A855F7, #D946EF)', color: '#fff',
+                                border: 'none', borderRadius: 12, cursor: 'pointer'
+                            }}>PLAY AGAIN</button>
+                            <button onClick={onExit} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 12, color: '#fff', cursor: 'pointer'
+                            }}>BACK TO MENU</button>
+                        </div>
                     </div>
-                    <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>BACK TO MENU [SPACE]</button>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

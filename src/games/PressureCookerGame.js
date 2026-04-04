@@ -17,6 +17,8 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
     const [timeRemaining, setTimeRemaining] = useState(30000);
     const [userAnswer, setUserAnswer] = useState(null);
     const [streak, setStreak] = useState(0);
+    const [maxStreak, setMaxStreak] = useState(0);
+    const [correctCount, setCorrectCount] = useState(0);
     const timerRef = useRef(null);
 
     const TIME_BONUS = 3000;
@@ -36,7 +38,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         const hand = getRandomHand();
         if (!hand) return;
         setCurrentHand(hand); setGameState('playing'); setTimeRemaining(INITIAL_TIME);
-        setScore(0); setHandsCompleted(0); setStreak(0); setUserAnswer(null);
+        setScore(0); setHandsCompleted(0); setStreak(0); setMaxStreak(0); setCorrectCount(0); setUserAnswer(null);
         SoundEngine.play('levelUp');
     }, [getRandomHand]);
 
@@ -55,6 +57,8 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         if (isCorrect) {
             setScore(prev => prev + 100 + (streak * 20));
             setStreak(prev => prev + 1);
+            setMaxStreak(prev => Math.max(prev, streak + 1));
+            setCorrectCount(prev => prev + 1);
             setTimeRemaining(prev => Math.min(prev + TIME_BONUS, 60000));
             SoundEngine.play('correct');
         } else {
@@ -104,7 +108,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
     useEffect(() => {
         const handleKey = (e) => {
             if ((gameState === 'ready' || gameState === 'success' || gameState === 'failed') && (e.key === ' ' || e.key === 'Enter')) {
-                if (gameState === 'ready') startGame(); else onExit?.();
+                if (gameState === 'ready' || gameState === 'success' || gameState === 'failed') startGame();
             } else if (gameState === 'playing') {
                 if (e.key === '1') handleAnswer('fold');
                 else if (e.key === '2') handleAnswer('call');
@@ -182,30 +186,155 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                 </>
             )}
 
-            {gameState === 'success' && (
-                <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>Trophy</div>
-                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#00ff88', marginBottom: 30 }}>DEFUSED!</h1>
-                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Final Score</span><span style={{ fontFamily: 'Orbitron', fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Time Remaining</span><span style={{ color: '#00ff88' }}>{timerSec}s</span></div>
-                        <div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>Diamonds +{Math.floor(score / 50) + 10} Diamonds earned!</div>
-                    </div>
-                    <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>BACK TO MENU [SPACE]</button>
-                </div>
-            )}
+            {gameState === 'success' && (() => {
+                const accuracy = handsCompleted > 0 ? Math.round((correctCount / handsCompleted) * 100) : 0;
+                const diamondReward = Math.floor(score / 50) + 10;
+                const grade = accuracy >= 95 ? 'S' : accuracy >= 85 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 50 ? 'C' : 'D';
+                const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                return (
+                    <div style={{ marginTop: 20 }}>
+                        {/* Performance Hero Card */}
+                        <div style={{
+                            background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
+                            border: `1px solid ${gradeColor}40`,
+                            borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontSize: 14, color: '#00ff88', fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>DEFUSED!</div>
+                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
-            {gameState === 'failed' && (
-                <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>💥</div>
-                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#ff4444', marginBottom: 30 }}>BOOM!</h1>
-                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Hands Completed</span><span>{handsCompleted}/{handsRequired}</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: 18, color: '#fff' }}><span>Score</span><span style={{ fontFamily: 'Orbitron', fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</span></div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#00ff88' }}>{timerSec}s</div>
+                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>TIME LEFT</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#A78BFA' }}>{correctCount}/{handsCompleted}</div>
+                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CORRECT</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Accuracy Bar */}
+                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
+                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
+                            </div>
+                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
+                            </div>
+                        </div>
+
+                        {/* Diamond Reward */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                            border: '1px solid rgba(0,255,136,0.3)',
+                            borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                +{diamondReward} Diamonds Earned!
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={startGame} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                                background: 'linear-gradient(135deg, #00ff88, #00cc66)', color: '#000',
+                                border: 'none', borderRadius: 12, cursor: 'pointer'
+                            }}>PLAY AGAIN</button>
+                            <button onClick={onExit} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 12, color: '#fff', cursor: 'pointer'
+                            }}>BACK TO MENU</button>
+                        </div>
                     </div>
-                    <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>TRY AGAIN [SPACE]</button>
-                </div>
-            )}
+                );
+            })()}
+
+            {gameState === 'failed' && (() => {
+                const accuracy = handsCompleted > 0 ? Math.round((correctCount / handsCompleted) * 100) : 0;
+                const grade = accuracy >= 90 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 50 ? 'C' : 'D';
+                const gradeColor = { A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                const diamondReward = Math.floor(score / 100);
+                return (
+                    <div style={{ marginTop: 20 }}>
+                        {/* Performance Card */}
+                        <div style={{
+                            background: `linear-gradient(135deg, #EF444415, #EF444405)`,
+                            border: `1px solid #EF444440`,
+                            borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontSize: 14, color: '#ff4444', fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>TIME'S UP!</div>
+                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{handsCompleted}/{handsRequired}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>COMPLETED</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Accuracy Bar */}
+                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
+                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
+                            </div>
+                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
+                            </div>
+                        </div>
+
+                        {/* Diamond Reward (if any) */}
+                        {diamondReward > 0 && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                                border: '1px solid rgba(0,255,136,0.3)',
+                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                    +{diamondReward} Diamonds Earned!
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={startGame} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                                background: 'linear-gradient(135deg, #ff4444, #ff0066)', color: '#fff',
+                                border: 'none', borderRadius: 12, cursor: 'pointer'
+                            }}>TRY AGAIN</button>
+                            <button onClick={onExit} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 12, color: '#fff', cursor: 'pointer'
+                            }}>BACK TO MENU</button>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

@@ -17,6 +17,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     const [maxRounds] = useState(8);
     const [userAnswer, setUserAnswer] = useState(null);
     const [correctAnswers, setCorrectAnswers] = useState(0);
+    const [maxStreak, setMaxStreak] = useState(0);
 
     const generatePattern = useCallback(() => {
         const scenario = getRandomScenario(level);
@@ -35,7 +36,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     const startGame = useCallback(() => {
         const pattern = generatePattern();
         if (!pattern) return;
-        setCurrentPattern(pattern); setGameState('playing'); setScore(0); setStreak(0); setRound(1); setCorrectAnswers(0); setUserAnswer(null);
+        setCurrentPattern(pattern); setGameState('playing'); setScore(0); setStreak(0); setMaxStreak(0); setRound(1); setCorrectAnswers(0); setUserAnswer(null);
         SoundEngine.play('levelUp');
     }, [generatePattern]);
 
@@ -60,7 +61,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         if (gameState !== 'playing' || !currentPattern) return;
         setUserAnswer(action);
         const isCorrect = action === currentPattern.correctAnswer;
-        if (isCorrect) { setScore(prev => prev + 100 + (streak * 25)); setStreak(prev => prev + 1); setCorrectAnswers(prev => prev + 1); SoundEngine.play('correct'); }
+        if (isCorrect) { setScore(prev => prev + 100 + (streak * 25)); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play('correct'); }
         else { setStreak(0); SoundEngine.play('wrong'); }
         setGameState('revealed');
         setTimeout(() => { nextRound(); }, 1200);
@@ -68,7 +69,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
 
     useEffect(() => {
         const handleKey = (e) => {
-            if ((gameState === 'ready' || gameState === 'gameover') && (e.key === ' ' || e.key === 'Enter')) { if (gameState === 'ready') startGame(); else onExit?.(); }
+            if ((gameState === 'ready' || gameState === 'gameover') && (e.key === ' ' || e.key === 'Enter')) { startGame(); }
             else if (gameState === 'playing') {
                 if (e.key === '1') handleAnswer('fold'); else if (e.key === '2') handleAnswer('call'); else if (e.key === '3') handleAnswer('raise');
             }
@@ -147,18 +148,78 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                 </>
             )}
 
-            {gameState === 'gameover' && (
-                <div style={{ marginTop: 40 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>{correctAnswers >= 6 ? 'Trophy' : ''}</div>
-                    <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: correctAnswers >= 6 ? '#00ff88' : '#ffaa00', marginBottom: 30 }}>{correctAnswers >= 6 ? 'EXPERT PATTERN READER!' : 'KEEP STUDYING!'}</h1>
-                    <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: 24, marginBottom: 30 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Accuracy</span><span style={{ color: correctAnswers >= 6 ? '#00ff88' : '#ffaa00' }}>{correctAnswers}/{maxRounds} ({Math.round((correctAnswers / maxRounds) * 100)}%)</span></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 18, color: '#fff' }}><span>Score</span><span style={{ fontFamily: 'Orbitron', fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</span></div>
-                        {(correctAnswers * 2 + Math.floor(score / 100)) > 0 && (<div style={{ marginTop: 16, padding: 12, background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.15))', borderRadius: 12, color: '#00ff88', fontWeight: 700 }}>Diamonds +{correctAnswers * 2 + Math.floor(score / 100)} Diamonds earned!</div>)}
+            {gameState === 'gameover' && (() => {
+                const accuracy = Math.round((correctAnswers / maxRounds) * 100);
+                const diamondReward = correctAnswers * 2 + Math.floor(score / 100);
+                const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 65 ? 'B' : accuracy >= 50 ? 'C' : 'D';
+                const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
+                return (
+                    <div style={{ marginTop: 20 }}>
+                        {/* Performance Hero Card */}
+                        <div style={{
+                            background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
+                            border: `1px solid ${gradeColor}40`,
+                            borderRadius: 20, padding: 28, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#00d4ff' }}>{maxStreak}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>BEST STREAK</div>
+                                </div>
+                                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                    <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#A78BFA' }}>{correctAnswers}/{maxRounds}</div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>CORRECT</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Accuracy Bar */}
+                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
+                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
+                            </div>
+                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
+                            </div>
+                        </div>
+
+                        {/* Diamond Reward */}
+                        {diamondReward > 0 && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                                border: '1px solid rgba(0,255,136,0.3)',
+                                borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                            }}>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                    +{diamondReward} Diamonds Earned!
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 12 }}>
+                            <button onClick={startGame} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                                background: 'linear-gradient(135deg, #00D4FF, #0088ff)', color: '#fff',
+                                border: 'none', borderRadius: 12, cursor: 'pointer'
+                            }}>PLAY AGAIN</button>
+                            <button onClick={onExit} style={{
+                                flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                                borderRadius: 12, color: '#fff', cursor: 'pointer'
+                            }}>BACK TO MENU</button>
+                        </div>
                     </div>
-                    <button onClick={onExit} style={{ padding: '14px 40px', fontSize: 16, fontWeight: 600, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 30, color: '#fff', cursor: 'pointer' }}>BACK TO MENU [SPACE]</button>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

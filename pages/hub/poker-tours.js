@@ -165,62 +165,129 @@ export default function PokerToursPage() {
         return { start: startDate, end: endDate };
     }, []);
 
-    // ─── Find venue coordinates by fuzzy name matching ───
+    // ─── Fallback city coordinates for common poker tour locations ───
+    const CITY_COORDS = {
+        'las vegas, nv': { lat: 36.1699, lng: -115.1398 },
+        'hollywood, fl': { lat: 26.0112, lng: -80.1495 },
+        'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
+        'lincoln, ca': { lat: 38.8916, lng: -121.2930 },
+        'durant, ok': { lat: 33.9943, lng: -96.3709 },
+        'tampa, fl': { lat: 27.9506, lng: -82.4572 },
+        'bell gardens, ca': { lat: 33.9653, lng: -118.1514 },
+        'elgin, il': { lat: 42.0354, lng: -88.2826 },
+        'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
+        'tunica, ms': { lat: 34.6846, lng: -90.3829 },
+        'biloxi, ms': { lat: 30.3960, lng: -88.8853 },
+        'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
+        'san diego, ca': { lat: 32.7157, lng: -117.1611 },
+        'portland, or': { lat: 45.5155, lng: -122.6789 },
+        'council bluffs, ia': { lat: 41.2619, lng: -95.8608 },
+        'black hawk, co': { lat: 39.7969, lng: -105.4903 },
+        'choctaw, ok': { lat: 35.4976, lng: -97.2687 },
+        'shreveport, la': { lat: 32.5252, lng: -93.7502 },
+        'new orleans, la': { lat: 29.9511, lng: -90.0715 },
+        'kinder, la': { lat: 30.4855, lng: -92.8510 },
+        'gulfport, ms': { lat: 30.3674, lng: -89.0928 },
+        'marksville, la': { lat: 31.1268, lng: -92.0632 },
+        'oklahoma city, ok': { lat: 35.4676, lng: -97.5164 },
+        'minneapolis, mn': { lat: 44.9778, lng: -93.2650 },
+        'kansas city, mo': { lat: 39.0997, lng: -94.5786 },
+        'st. louis, mo': { lat: 38.6270, lng: -90.1994 },
+        'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
+        'phoenix, az': { lat: 33.4484, lng: -112.0740 },
+        'chicago, il': { lat: 41.8781, lng: -87.6298 },
+        'detroit, mi': { lat: 42.3314, lng: -83.0458 },
+        'bismarck, nd': { lat: 46.8083, lng: -100.7837 },
+        'fargo, nd': { lat: 46.8772, lng: -96.7898 },
+        'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
+        'thackerville, ok': { lat: 33.7918, lng: -97.1303 },
+        'gary, in': { lat: 41.5934, lng: -87.3464 },
+        'mount pleasant, mi': { lat: 43.5978, lng: -84.7753 },
+        'prior lake, mn': { lat: 44.7133, lng: -93.4227 },
+        'welch, mn': { lat: 44.5669, lng: -92.7233 },
+        'charleston, wv': { lat: 38.3498, lng: -81.6326 },
+        'temecula, ca': { lat: 33.4936, lng: -117.1484 },
+    };
+
+    // ─── Find venue coordinates by fuzzy name + city fallback ───
     const findVenueCoords = useCallback((stop) => {
-        if (allVenues.length === 0) return null;
         const venueName = (stop.venue || stop.name || '').toLowerCase();
+        const location = (stop.location || '').toLowerCase();
         const city = (stop.city || '').toLowerCase();
         const state = (stop.state || '').toLowerCase();
 
-        // 1. Exact venue name match
-        let match = allVenues.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
-        if (match) return match;
+        // Try to extract city from location field (e.g. "Las Vegas, NV")
+        const locationCity = location.split(',')[0]?.trim().toLowerCase() || '';
+        const locationState = location.split(',')[1]?.trim().toLowerCase() || '';
 
-        // 2. Venue name contains or is contained in
-        if (venueName.length > 3) {
-            match = allVenues.find(v => {
-                if (!v.name || !v.latitude) return false;
-                const n = v.name.toLowerCase();
-                return n.includes(venueName) || venueName.includes(n);
-            });
+        if (allVenues.length > 0) {
+            // 1. Exact venue name match
+            let match = allVenues.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
             if (match) return match;
+
+            // 2. Venue name contains or is contained in
+            if (venueName.length > 3) {
+                match = allVenues.find(v => {
+                    if (!v.name || !v.latitude) return false;
+                    const n = v.name.toLowerCase();
+                    return n.includes(venueName) || venueName.includes(n);
+                });
+                if (match) return match;
+            }
+
+            // 3. City + state match (first venue in that city)
+            const c = city || locationCity;
+            const s = state || locationState;
+            if (c && s) {
+                match = allVenues.find(v =>
+                    v.latitude &&
+                    (v.city || '').toLowerCase() === c &&
+                    (v.state || '').toLowerCase() === s
+                );
+                if (match) return match;
+            }
+
+            // 4. City-only match
+            if (c) {
+                match = allVenues.find(v =>
+                    v.latitude && (v.city || '').toLowerCase() === c
+                );
+                if (match) return match;
+            }
         }
 
-        // 3. City + state match (first venue in that city)
-        if (city && state) {
-            match = allVenues.find(v =>
-                v.latitude &&
-                (v.city || '').toLowerCase() === city &&
-                (v.state || '').toLowerCase() === state
-            );
-            if (match) return match;
+        // 5. Fallback: city coordinate lookup
+        const cityKey = location || ((city || locationCity) + (state || locationState ? ', ' + (state || locationState) : ''));
+        if (cityKey) {
+            const coords = CITY_COORDS[cityKey.toLowerCase()];
+            if (coords) return { latitude: coords.lat, longitude: coords.lng, city: locationCity || city, state: locationState || state };
         }
 
-        // 4. City-only match
-        if (city) {
-            match = allVenues.find(v =>
-                v.latitude && (v.city || '').toLowerCase() === city
-            );
-            if (match) return match;
+        // 6. Last resort: try matching just city name in fallback table
+        const justCity = locationCity || city;
+        if (justCity) {
+            for (const [key, coords] of Object.entries(CITY_COORDS)) {
+                if (key.startsWith(justCity + ',') || key === justCity) {
+                    return { latitude: coords.lat, longitude: coords.lng, city: justCity, state: locationState || state };
+                }
+            }
         }
 
         return null;
     }, [allVenues]);
 
-    // ─── Build map markers: currently-running + next-upcoming stop per tour ───
-    const tourVenuesForMap = useMemo(() => {
-        if (allVenues.length === 0 || tours.length === 0) return [];
+    // ─── Compute current/next stop for each tour (used by both map and cards) ───
+    const tourCurrentStops = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const markers = [];
-        const seen = new Set(); // Avoid duplicate markers at same venue
+        const result = {};
 
         tours.forEach(tour => {
             const stops = [
                 ...(tour.stops_2026 || []),
                 ...(tour.series_2026 || [])
             ];
-            if (stops.length === 0) return;
+            if (stops.length === 0) { result[tour.tour_code] = null; return; }
 
             let currentRunning = null;
             let nextUpcoming = null;
@@ -229,11 +296,9 @@ export default function PokerToursPage() {
                 const dates = parseStopDates(stop.dates);
                 if (!dates) continue;
 
-                // Currently running: today is between start and end
                 if (dates.start <= today && dates.end >= today) {
                     currentRunning = stop;
                 }
-                // Next upcoming: start is in the future, pick earliest
                 if (dates.start > today) {
                     if (!nextUpcoming) {
                         nextUpcoming = stop;
@@ -246,36 +311,59 @@ export default function PokerToursPage() {
                 }
             }
 
-            // Build markers for found stops
-            [currentRunning, nextUpcoming].forEach(stop => {
-                if (!stop) return;
-                const venueMatch = findVenueCoords(stop);
-                if (!venueMatch) return;
-                const key = `${venueMatch.latitude},${venueMatch.longitude}`;
-                if (seen.has(key)) return;
-                seen.add(key);
+            result[tour.tour_code] = {
+                currentRunning,
+                nextUpcoming,
+                activeStop: currentRunning || nextUpcoming,
+                isLive: !!currentRunning,
+            };
+        });
 
-                markers.push({
-                    id: `tour-${tour.tour_code}-${stop.name || stop.venue || 'stop'}`,
-                    name: `${tour.tour_code}: ${stop.name || stop.venue || 'Tour Stop'}`,
-                    city: stop.city || venueMatch.city || '',
-                    state: stop.state || venueMatch.state || '',
-                    latitude: venueMatch.latitude,
-                    longitude: venueMatch.longitude,
-                    venue_type: 'tour_stop',
-                    trust_score: 5,
-                    tour_code: tour.tour_code,
-                    tour_name: tour.tour_name || tour.tour_code,
-                    logo_url: tour.logo_url || null,
-                    stop_name: stop.name || stop.venue || 'Tour Stop',
-                    dates: stop.dates || '',
-                    is_running: stop === currentRunning,
-                });
+        return result;
+    }, [tours, parseStopDates]);
+
+    // ─── Build map markers: ONE per tour guaranteed ───
+    const tourVenuesForMap = useMemo(() => {
+        if (tours.length === 0) return [];
+        const markers = [];
+        const seen = new Set();
+
+        tours.forEach(tour => {
+            const stopInfo = tourCurrentStops[tour.tour_code];
+            const stop = stopInfo?.activeStop;
+            if (!stop) return;
+
+            const venueMatch = findVenueCoords(stop);
+            if (!venueMatch) return;
+
+            // Use tour_code as key instead of lat/lng to guarantee one per tour
+            if (seen.has(tour.tour_code)) return;
+            seen.add(tour.tour_code);
+
+            const stopCity = stop.location?.split(',')[0]?.trim() || stop.city || venueMatch.city || '';
+            const stopState = stop.location?.split(',')[1]?.trim() || stop.state || venueMatch.state || '';
+
+            markers.push({
+                id: `tour-${tour.tour_code}-${stop.name || stop.venue || 'stop'}`,
+                name: `${tour.tour_code}: ${stop.name || stop.venue || 'Tour Stop'}`,
+                city: stopCity,
+                state: stopState,
+                latitude: venueMatch.latitude,
+                longitude: venueMatch.longitude,
+                venue_type: 'tour_stop',
+                trust_score: 5,
+                tour_code: tour.tour_code,
+                tour_name: tour.tour_name || tour.tour_code,
+                logo_url: tour.logo_url || null,
+                stop_name: stop.name || stop.venue || 'Tour Stop',
+                stop_venue: stop.venue || '',
+                dates: stop.dates || '',
+                is_running: stopInfo?.isLive || false,
             });
         });
 
         return markers;
-    }, [tours, allVenues, parseStopDates, findVenueCoords]);
+    }, [tours, tourCurrentStops, findVenueCoords]);
 
     // ─── Get unique regions and types ───
     const availableTypes = useMemo(() => {
@@ -611,15 +699,38 @@ export default function PokerToursPage() {
                                             {/* Tour Name */}
                                             <h4 className="tour-card-name">{tour.tour_name || 'Unknown Tour'}</h4>
 
-                                            {/* Location */}
-                                            {tour.headquarters && (
-                                                <p className="tour-card-location">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                                                    </svg>
-                                                    {tour.headquarters}
-                                                </p>
-                                            )}
+                                            {/* Current Location — shows active stop, not headquarters */}
+                                            {(() => {
+                                                const stopInfo = tourCurrentStops[tour.tour_code];
+                                                const activeStop = stopInfo?.activeStop;
+                                                if (activeStop) {
+                                                    const stopLocation = activeStop.location || activeStop.venue || '';
+                                                    const stopVenue = activeStop.venue || '';
+                                                    return (
+                                                        <div className="tour-card-location-live">
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stopInfo.isLive ? '#22c55e' : '#60a5fa'} strokeWidth="2" style={{ flexShrink: 0 }}>
+                                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                                                                </svg>
+                                                                <span style={{ color: stopInfo.isLive ? '#22c55e' : '#60a5fa', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                                                                    {stopInfo.isLive ? 'LIVE NOW' : 'NEXT STOP'}
+                                                                </span>
+                                                            </div>
+                                                            {stopVenue && <span className="tour-stop-venue">{stopVenue}</span>}
+                                                            <span className="tour-stop-location">{stopLocation}</span>
+                                                        </div>
+                                                    );
+                                                }
+                                                // Fallback to headquarters when no active stop
+                                                return tour.headquarters ? (
+                                                    <p className="tour-card-location">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                                                        </svg>
+                                                        {tour.headquarters}
+                                                    </p>
+                                                ) : null;
+                                            })()}
 
                                             {/* Buy-in Range */}
                                             {hasBuyins && (
@@ -1049,6 +1160,27 @@ export default function PokerToursPage() {
                         font-size: 12px;
                         color: rgba(148,163,184,0.6);
                         margin: 0 0 8px;
+                    }
+                    .tour-card-location-live {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 3px;
+                        margin: 0 0 10px;
+                        padding: 8px 10px;
+                        background: rgba(0,0,0,0.25);
+                        border: 1px solid rgba(148,163,184,0.08);
+                        border-radius: 8px;
+                    }
+                    .tour-stop-venue {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.85);
+                        padding-left: 20px;
+                    }
+                    .tour-stop-location {
+                        font-size: 11px;
+                        color: rgba(148,163,184,0.6);
+                        padding-left: 20px;
                     }
 
                     /* Buy-ins */

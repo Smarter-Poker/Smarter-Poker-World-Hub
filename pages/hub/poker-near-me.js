@@ -1,6 +1,6 @@
 /**
  *  POKER NEAR ME - Live Venue Finder
- * Find poker rooms, casinos, and tournaments near you
+ * Find poker rooms, venues, and tournaments near you
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -2582,7 +2582,7 @@ export default function PokerNearMePage() {
                             value={liveSearchQuery}
                             onChange={(e) => handleLiveSearchInput(e.target.value)}
                             onFocus={() => { if (liveVenueList.length === 0) fetchLiveVenueList(); if (liveVenueSuggestions.length > 0) setShowLiveSuggestions(true); }}
-                            placeholder="Search for a casino or poker room..."
+                            placeholder="Search for a venue or poker room..."
                             style={{
                                 flex: 1, background: 'transparent', border: 'none', outline: 'none',
                                 color: '#fff', fontSize: 15, fontWeight: 500,
@@ -2633,9 +2633,9 @@ export default function PokerNearMePage() {
                             <circle cx="12" cy="12" r="7" stroke="rgba(239,68,68,0.2)" strokeWidth="1.5" />
                             <circle cx="12" cy="12" r="10" stroke="rgba(239,68,68,0.1)" strokeWidth="1" />
                         </svg>
-                        <p style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Search For A Casino</p>
+                        <p style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Search For A Cash Game</p>
                         <p style={{ fontSize: 13, opacity: 0.4, marginTop: 6, maxWidth: 320, textAlign: 'center' }}>
-                            Type a casino or poker room name above to see what games are running right now. Data updates every 15 minutes via Smarter.Poker Intelligence.
+                            Type a venue or poker room name above to see what games are running right now. Data updates every 15 minutes via Smarter.Poker Intelligence.
                         </p>
                     </div>
                 )}
