@@ -132,6 +132,7 @@ export default function GameUIRouter({
     getHandReadingDrill = null,
     getExploitativeAdjustments = null,
     getVarianceSimulator = null,
+    getOptimalLineNarration = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -219,6 +220,7 @@ export default function GameUIRouter({
             getHandReadingDrill={getHandReadingDrill}
             getExploitativeAdjustments={getExploitativeAdjustments}
             getVarianceSimulator={getVarianceSimulator}
+            getOptimalLineNarration={getOptimalLineNarration}
         />
     );
 }

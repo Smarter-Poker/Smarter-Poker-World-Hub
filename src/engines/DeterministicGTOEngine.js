@@ -6102,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '3.7.0-phase300',
-            phasesImplemented: 300,
+            version: '3.8.0-phase310',
+            phasesImplemented: 310,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6155,6 +6155,8 @@ export class DeterministicGTOEngine {
                 phase286_290: ['evLossHeatmap', 'quickFireReview', 'freqQuiz', 'positionLeaderboard', 'coachingSummary'],
                 phase291_295: ['streakAnalysis', 'timePressure', 'rangeConstruction', 'exploitativeAdjust', 'icmPressure'],
                 phase296_300: ['multiGameType', 'bettingSizeAnalysis', 'handReadingDrill', 'varianceSimulator', 'performanceTrend'],
+                phase301_305: ['optimalLineNarration', 'streetTransition', 'defenseFrequency', 'polarizationIndex', 'mistakeRecovery'],
+                phase306_310: ['conceptQuiz', 'sessionMilestones', 'adaptiveDrillRec', 'criticalHandHighlights', 'comprehensiveReport'],
             },
             totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
@@ -12710,6 +12712,567 @@ export class DeterministicGTOEngine {
                             ? 'Mild decline detected — possible fatigue. Consider a break.'
                             : 'Significant accuracy drop — take a break and review your recent mistakes.',
         };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 301: OPTIMAL LINE NARRATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getOptimalLineNarration(correctAction, frequencies, street, nodeType, heroPosition, handCategory) {
+        const freqEntries = frequencies ? Object.entries(frequencies).sort((a, b) => b[1] - a[1]) : [];
+        const topAction = freqEntries[0] || [correctAction, 100];
+        const secondAction = freqEntries[1] || null;
+        const isMixed = secondAction && secondAction[1] >= 15;
+
+        const streetName = (street || 'flop').charAt(0).toUpperCase() + (street || 'flop').slice(1);
+        const posLabel = (heroPosition || 'IP').toUpperCase();
+
+        let narration = '';
+        if (isMixed) {
+            narration = `On the ${streetName} from ${posLabel}, the solver mixes between ${topAction[0]} (${topAction[1]}%) and ${secondAction[0]} (${secondAction[1]}%). `;
+            narration += `This mixing occurs because both actions have similar EV. `;
+            if (topAction[0].toLowerCase().includes('bet') || topAction[0].toLowerCase().includes('raise')) {
+                narration += `The aggressive option builds the pot when you have equity advantage, while the passive option controls pot size.`;
+            } else {
+                narration += `The passive option protects your checking range, while the aggressive option extracts value or denies equity.`;
+            }
+        } else {
+            narration = `The solver strongly prefers ${correctAction} here (${topAction[1]}%). `;
+            const action = correctAction.toLowerCase();
+            if (action.includes('fold')) narration += `Your hand doesn't have enough equity to continue profitably in this spot.`;
+            else if (action.includes('check') || action.includes('call')) narration += `This is a spot to control the pot and realize equity rather than inflate it.`;
+            else if (action.includes('bet') || action.includes('raise')) narration += `You have enough equity and fold equity to justify aggression here.`;
+            else if (action.includes('all')) narration += `Stack depth and pot odds make committing all chips the highest-EV play.`;
+        }
+
+        return {
+            narration,
+            correctAction,
+            isMixed,
+            topActions: freqEntries.slice(0, 3).map(([a, f]) => ({ action: a, frequency: f })),
+            street: streetName,
+            position: posLabel,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 302: STREET TRANSITION ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getStreetTransitionAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 8) return null;
+        const history = this._sessionStats.history;
+        const transitions = { 'flop_to_turn': { correct: 0, total: 0 }, 'turn_to_river': { correct: 0, total: 0 }, 'preflop_to_flop': { correct: 0, total: 0 } };
+
+        // Group hands by their multi-street sequences
+        const streetOrder = { preflop: 0, flop: 1, turn: 2, river: 3 };
+        let prevStreet = null;
+        let prevCorrect = null;
+
+        history.forEach(h => {
+            const street = (h.street || 'flop').toLowerCase();
+            if (prevStreet !== null) {
+                const key = `${prevStreet}_to_${street}`;
+                if (transitions[key]) {
+                    transitions[key].total++;
+                    if (h.correct) transitions[key].correct++;
+                }
+            }
+            prevStreet = street;
+            prevCorrect = h.correct;
+        });
+
+        const analysis = Object.entries(transitions)
+            .filter(([_, data]) => data.total >= 2)
+            .map(([transition, data]) => ({
+                transition: transition.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                total: data.total,
+                correct: data.correct,
+                accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+            }));
+
+        // Check if accuracy drops on later streets
+        const streetAcc = {};
+        history.forEach(h => {
+            const st = (h.street || 'flop').toLowerCase();
+            if (!streetAcc[st]) streetAcc[st] = { correct: 0, total: 0 };
+            streetAcc[st].total++;
+            if (h.correct) streetAcc[st].correct++;
+        });
+
+        const streetResults = Object.entries(streetAcc).map(([st, data]) => ({
+            street: st.charAt(0).toUpperCase() + st.slice(1),
+            accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+            total: data.total,
+        })).sort((a, b) => (streetOrder[a.street.toLowerCase()] || 0) - (streetOrder[b.street.toLowerCase()] || 0));
+
+        const weakestStreet = streetResults.filter(s => s.total >= 2).sort((a, b) => a.accuracy - b.accuracy)[0] || null;
+
+        return {
+            transitions: analysis,
+            streetAccuracy: streetResults,
+            weakestStreet,
+            recommendation: weakestStreet && weakestStreet.accuracy < 50
+                ? `Your ${weakestStreet.street} play needs work (${weakestStreet.accuracy}%). Focus on ${weakestStreet.street.toLowerCase()}-specific strategy.`
+                : 'Your accuracy across streets is reasonably balanced.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 303: DEFENSE FREQUENCY CHECK
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getDefenseFrequencyCheck() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // When facing bets, how often do we defend (call + raise) vs fold?
+        let facingBet = { defend: 0, fold: 0, total: 0 };
+        let facingRaise = { defend: 0, fold: 0, total: 0 };
+
+        history.forEach(h => {
+            const node = (h.nodeType || '').toLowerCase();
+            const action = (h.selectedAction || '').toLowerCase();
+            const isFacingAggression = node.includes('facing') || node.includes('vs_bet') || node.includes('vs_raise') ||
+                node.includes('check_raise') || action.includes('fold') || action.includes('call');
+
+            if (isFacingAggression) {
+                const isFacingRaise = node.includes('raise') || node.includes('3bet') || node.includes('4bet');
+                const target = isFacingRaise ? facingRaise : facingBet;
+                target.total++;
+                if (action.includes('fold')) target.fold++;
+                else target.defend++;
+            }
+        });
+
+        // MDF (Minimum Defense Frequency) is typically ~60-67% vs pot-sized bets
+        const betDefendPct = facingBet.total > 0 ? Math.round((facingBet.defend / facingBet.total) * 100) : null;
+        const raiseDefendPct = facingRaise.total > 0 ? Math.round((facingRaise.defend / facingRaise.total) * 100) : null;
+
+        const assessments = [];
+        if (betDefendPct !== null) {
+            if (betDefendPct < 50) assessments.push({ type: 'overfolding_vs_bets', message: `Defending only ${betDefendPct}% vs bets — you are exploitably tight. MDF suggests ~60%+.`, severity: 'critical' });
+            else if (betDefendPct < 60) assessments.push({ type: 'slightly_tight_vs_bets', message: `Defending ${betDefendPct}% vs bets — slightly below MDF. Consider widening.`, severity: 'moderate' });
+            else if (betDefendPct > 80) assessments.push({ type: 'overdefending_vs_bets', message: `Defending ${betDefendPct}% vs bets — too loose. You can fold more weak hands.`, severity: 'moderate' });
+            else assessments.push({ type: 'balanced_vs_bets', message: `Defending ${betDefendPct}% vs bets — well balanced.`, severity: 'good' });
+        }
+
+        return {
+            facingBet: { ...facingBet, defendPct: betDefendPct },
+            facingRaise: { ...facingRaise, defendPct: raiseDefendPct },
+            assessments,
+            mdfReference: 'MDF = 1 - (bet / (pot + bet)). Vs a pot-sized bet, defend ~50%. Vs 2/3 pot, defend ~60%. Vs 1/3 pot, defend ~75%.',
+            isBalanced: assessments.every(a => a.severity === 'good'),
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 304: POLARIZATION INDEX
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getPolarizationIndex() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Analyze bet sizing patterns: polarized = big bets/checks, merged = medium bets
+        let bigBets = 0, smallBets = 0, checks = 0, mediumBets = 0, totalAggressive = 0;
+
+        history.forEach(h => {
+            const action = (h.selectedAction || '').toLowerCase();
+            if (action.includes('check') || action.includes('fold')) { checks++; return; }
+            if (action.includes('bet') || action.includes('raise') || action.includes('all')) {
+                totalAggressive++;
+                if (action.includes('all') || action.includes('overbet') || action.includes('150') || action.includes('200') || action.includes('pot') || action.includes('75%')) bigBets++;
+                else if (action.includes('25%') || action.includes('33%') || action.includes('1/3') || action.includes('small')) smallBets++;
+                else mediumBets++;
+            }
+        });
+
+        // Polarization = ratio of (big bets + checks) to total actions
+        // Highly polarized ranges use big bets or check, rarely medium
+        const totalActions = history.length;
+        const polarizationScore = totalActions > 0
+            ? Math.round(((bigBets + checks) / totalActions) * 100)
+            : 50;
+
+        let style, description;
+        if (polarizationScore >= 70) {
+            style = 'polarized';
+            description = 'Your range is highly polarized — you tend to use big bets or check. This is optimal on many board textures.';
+        } else if (polarizationScore >= 50) {
+            style = 'semi-polarized';
+            description = 'Mix of polarized and merged strategies. Generally solid approach.';
+        } else {
+            style = 'merged';
+            description = 'Your range is merged — lots of medium bets. Consider polarizing more on favorable textures.';
+        }
+
+        return {
+            polarizationScore,
+            style,
+            description,
+            breakdown: { bigBets, mediumBets, smallBets, checks, totalAggressive },
+            tip: style === 'merged'
+                ? 'On dry boards where you have range advantage, use a polarized strategy: bet big with strong hands and bluffs, check medium hands.'
+                : 'Good polarization awareness. Keep adjusting your strategy based on board texture.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 305: MISTAKE RECOVERY RATE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getMistakeRecoveryRate() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 8) return null;
+        const history = this._sessionStats.history;
+
+        // After each mistake, how many hands to get back to a correct answer?
+        const recoveryTimes = [];
+        let inMistakeStreak = false;
+        let streakLength = 0;
+
+        for (let i = 0; i < history.length; i++) {
+            if (!history[i].correct) {
+                if (!inMistakeStreak) inMistakeStreak = true;
+                streakLength++;
+            } else {
+                if (inMistakeStreak) {
+                    recoveryTimes.push(streakLength);
+                    inMistakeStreak = false;
+                    streakLength = 0;
+                }
+            }
+        }
+        if (inMistakeStreak) recoveryTimes.push(streakLength);
+
+        const avgRecovery = recoveryTimes.length > 0
+            ? Math.round((recoveryTimes.reduce((s, v) => s + v, 0) / recoveryTimes.length) * 10) / 10
+            : 0;
+        const maxRecovery = recoveryTimes.length > 0 ? Math.max(...recoveryTimes) : 0;
+        const quickRecoveries = recoveryTimes.filter(r => r === 1).length;
+        const prolongedTilts = recoveryTimes.filter(r => r >= 3).length;
+
+        let grade;
+        if (avgRecovery <= 1.2) grade = 'A';
+        else if (avgRecovery <= 1.8) grade = 'B';
+        else if (avgRecovery <= 2.5) grade = 'C';
+        else grade = 'D';
+
+        return {
+            avgRecoveryTime: avgRecovery,
+            maxMistakeStreak: maxRecovery,
+            totalMistakeStreaks: recoveryTimes.length,
+            quickRecoveries,
+            prolongedTilts,
+            grade,
+            insight: grade === 'A' ? 'Excellent mental recovery — you bounce back quickly after mistakes.'
+                : grade === 'B' ? 'Good recovery — occasional short mistake streaks but you reset well.'
+                : grade === 'C' ? 'Average recovery — mistakes sometimes cascade. Practice resetting between hands.'
+                : 'Tilt-prone — mistakes cluster together. Work on mental game fundamentals.',
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 306: CONCEPT QUIZ GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getConceptQuiz() {
+        const quizzes = [
+            {
+                concept: 'Minimum Defense Frequency',
+                question: 'Villain bets 2/3 pot. What % of your range should you continue with?',
+                answer: '60%',
+                explanation: 'MDF = 1 - (bet / (pot + bet)) = 1 - (0.67 / 1.67) = ~60%. You must defend at least 60% to prevent villain from profiting with any two cards.',
+            },
+            {
+                concept: 'Pot Odds',
+                question: 'You face a pot-sized bet. What odds are you getting to call?',
+                answer: '2:1 (33%)',
+                explanation: 'Pot is X, villain bets X. You call X to win 2X+X = 3X. You need X/3X = 33% equity to call profitably.',
+            },
+            {
+                concept: 'Position',
+                question: 'Which position has the highest win-rate in 6-max?',
+                answer: 'Button (BTN)',
+                explanation: 'The Button acts last on every postflop street, giving maximum information advantage. Solvers open widest from BTN (~42%).',
+            },
+            {
+                concept: 'SPR',
+                question: 'With 15bb effective stacks and a 6bb pot, what is the SPR?',
+                answer: '2.5',
+                explanation: 'SPR = Effective Stack / Pot = 15 / 6 = 2.5. Low SPR (<4) means you should be more willing to commit with top pair.',
+            },
+            {
+                concept: 'Blockers',
+                question: 'You hold A♠ on a board with 3 spades. Why is this a good bluff blocker?',
+                answer: 'You block the nut flush',
+                explanation: 'Holding A♠ means villain cannot have the nut flush (A-high flush). This increases the chance they fold to aggression since more of their range is weaker.',
+            },
+            {
+                concept: 'Range Polarization',
+                question: 'What does it mean when a range is "polarized"?',
+                answer: 'It contains strong value hands and bluffs, but few medium hands',
+                explanation: 'A polarized range bets big because it either has the nuts or nothing. Medium hands prefer to check since they have showdown value.',
+            },
+            {
+                concept: 'Equity Denial',
+                question: 'Why do you bet with medium-strength hands on wet boards?',
+                answer: 'To deny free cards that could improve villain',
+                explanation: 'On wet, connected boards, free cards are dangerous. Betting denies villain the free equity they would gain from seeing another card.',
+            },
+            {
+                concept: 'ICM',
+                question: 'In a tournament, why is a chip won worth less than a chip lost?',
+                answer: 'Due to ICM — your tournament equity diminishes as your stack grows',
+                explanation: 'The Independent Chip Model shows that doubling your stack does not double your tournament equity because of the prize structure.',
+            },
+        ];
+
+        // Pick based on session history for relevance
+        const idx = this._sessionStats?.total
+            ? (this._sessionStats.total * 7 + 13) % quizzes.length
+            : Math.floor(Math.random() * quizzes.length);
+
+        return quizzes[idx];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 307: SESSION MILESTONES
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getSessionMilestones() {
+        if (!this._sessionStats) return [];
+        const stats = this._sessionStats;
+        const milestones = [];
+
+        if (stats.total >= 5) milestones.push({ id: 'warmup', label: 'Warm Up', description: '5 hands completed', achieved: true, icon: '🔥' });
+        if (stats.total >= 10) milestones.push({ id: 'focused', label: 'Focused', description: '10 hands completed', achieved: true, icon: '🎯' });
+        if (stats.total >= 25) milestones.push({ id: 'grinder', label: 'Grinder', description: '25 hands completed', achieved: true, icon: '⚡' });
+        if (stats.total >= 50) milestones.push({ id: 'marathon', label: 'Marathon', description: '50 hands completed', achieved: true, icon: '🏆' });
+
+        const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+        if (accuracy >= 90 && stats.total >= 10) milestones.push({ id: 'precision', label: 'Precision', description: '90%+ accuracy (10+ hands)', achieved: true, icon: '💎' });
+        if (accuracy >= 80 && stats.total >= 20) milestones.push({ id: 'consistent', label: 'Consistent', description: '80%+ accuracy (20+ hands)', achieved: true, icon: '⭐' });
+
+        // Streak-based
+        const streak = stats.currentStreak || 0;
+        if (streak >= 5) milestones.push({ id: 'hot_streak', label: 'Hot Streak', description: '5+ correct in a row', achieved: true, icon: '🔥' });
+        if (streak >= 10) milestones.push({ id: 'unstoppable', label: 'Unstoppable', description: '10+ correct in a row', achieved: true, icon: '💫' });
+
+        // Recovery milestone
+        try {
+            const recovery = this.getMistakeRecoveryRate();
+            if (recovery && recovery.grade === 'A' && stats.total >= 10) {
+                milestones.push({ id: 'resilient', label: 'Resilient', description: 'Grade A mistake recovery', achieved: true, icon: '🛡' });
+            }
+        } catch (_) {}
+
+        return milestones;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 308: ADAPTIVE DRILL RECOMMENDATION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getAdaptiveDrillRecommendation() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+        const recommendations = [];
+
+        // Check street weakness
+        const streetAcc = {};
+        history.forEach(h => {
+            const st = (h.street || 'flop').toLowerCase();
+            if (!streetAcc[st]) streetAcc[st] = { c: 0, t: 0 };
+            streetAcc[st].t++;
+            if (h.correct) streetAcc[st].c++;
+        });
+        const weakStreet = Object.entries(streetAcc).filter(([_, d]) => d.t >= 3).sort((a, b) => (a[1].c / a[1].t) - (b[1].c / b[1].t))[0];
+        if (weakStreet && (weakStreet[1].c / weakStreet[1].t) < 0.5) {
+            recommendations.push({
+                drill: `${weakStreet[0].charAt(0).toUpperCase() + weakStreet[0].slice(1)} Mastery`,
+                reason: `${Math.round((weakStreet[1].c / weakStreet[1].t) * 100)}% accuracy on the ${weakStreet[0]}`,
+                type: 'street_focus',
+                priority: 'high',
+            });
+        }
+
+        // Check position weakness
+        const posAcc = {};
+        history.forEach(h => {
+            const pos = (h.heroPosition || h.position || 'MP').toUpperCase();
+            if (!posAcc[pos]) posAcc[pos] = { c: 0, t: 0 };
+            posAcc[pos].t++;
+            if (h.correct) posAcc[pos].c++;
+        });
+        const weakPos = Object.entries(posAcc).filter(([_, d]) => d.t >= 3).sort((a, b) => (a[1].c / a[1].t) - (b[1].c / b[1].t))[0];
+        if (weakPos && (weakPos[1].c / weakPos[1].t) < 0.5) {
+            recommendations.push({
+                drill: `${weakPos[0]} Position Drill`,
+                reason: `${Math.round((weakPos[1].c / weakPos[1].t) * 100)}% accuracy from ${weakPos[0]}`,
+                type: 'position_focus',
+                priority: 'high',
+            });
+        }
+
+        // Check exploitative tendencies
+        try {
+            const ea = this.getExploitativeAdjustments();
+            if (ea && ea.adjustments.length > 0) {
+                const topAdj = ea.adjustments[0];
+                recommendations.push({
+                    drill: `Balance Training: ${topAdj.title}`,
+                    reason: topAdj.description,
+                    type: 'balance',
+                    priority: topAdj.severity === 'critical' ? 'high' : 'medium',
+                });
+            }
+        } catch (_) {}
+
+        // Check defense frequency
+        try {
+            const df = this.getDefenseFrequencyCheck();
+            if (df && !df.isBalanced) {
+                const issue = df.assessments.find(a => a.severity !== 'good');
+                if (issue) {
+                    recommendations.push({
+                        drill: 'Defense Frequency Drill',
+                        reason: issue.message,
+                        type: 'defense',
+                        priority: issue.severity === 'critical' ? 'high' : 'medium',
+                    });
+                }
+            }
+        } catch (_) {}
+
+        recommendations.sort((a, b) => (a.priority === 'high' ? 0 : 1) - (b.priority === 'high' ? 0 : 1));
+
+        return {
+            recommendations: recommendations.slice(0, 5),
+            topRecommendation: recommendations[0] || null,
+            totalWeaknesses: recommendations.length,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 309: CRITICAL HAND HIGHLIGHTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getCriticalHandHighlights() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const history = this._sessionStats.history;
+
+        // Find the most impactful hands (highest EV loss + most important correct decisions)
+        const sorted = [...history].map((h, i) => ({ ...h, index: i + 1 }));
+
+        // Biggest mistakes
+        const biggestMistakes = sorted
+            .filter(h => !h.correct && (h.evLoss || 0) > 0)
+            .sort((a, b) => (b.evLoss || 0) - (a.evLoss || 0))
+            .slice(0, 3)
+            .map(h => ({
+                handNumber: h.index,
+                type: 'mistake',
+                evLoss: Math.round((h.evLoss || 0) * 100) / 100,
+                street: h.street || 'unknown',
+                position: h.heroPosition || h.position || 'unknown',
+                userAction: h.selectedAction || 'unknown',
+                correctAction: h.correctAction || 'unknown',
+                description: `Hand #${h.index}: ${h.selectedAction || 'unknown'} instead of ${h.correctAction || 'unknown'} on the ${h.street || 'unknown'} (${Math.round((h.evLoss || 0) * 100) / 100} EV loss)`,
+            }));
+
+        // Best decisions (correct on hard spots)
+        const bestDecisions = sorted
+            .filter(h => h.correct)
+            .sort((a, b) => {
+                // Prioritize correct answers on mixed frequency spots
+                const aScore = a.correctFreq ? (100 - a.correctFreq) : 0;
+                const bScore = b.correctFreq ? (100 - b.correctFreq) : 0;
+                return bScore - aScore;
+            })
+            .slice(0, 2)
+            .map(h => ({
+                handNumber: h.index,
+                type: 'great_play',
+                street: h.street || 'unknown',
+                position: h.heroPosition || h.position || 'unknown',
+                action: h.selectedAction || 'unknown',
+                description: `Hand #${h.index}: Correct ${h.selectedAction || 'unknown'} on the ${h.street || 'unknown'} — well played!`,
+            }));
+
+        return {
+            biggestMistakes,
+            bestDecisions,
+            totalHighlights: biggestMistakes.length + bestDecisions.length,
+            summaryEVLost: Math.round(biggestMistakes.reduce((sum, m) => sum + (m.evLoss || 0), 0) * 100) / 100,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 310: COMPREHENSIVE SESSION REPORT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getComprehensiveSessionReport() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const stats = this._sessionStats;
+        const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+
+        // Aggregate all sub-analyses
+        const report = {
+            overview: {
+                totalHands: stats.total,
+                correct: stats.correct,
+                accuracy,
+                totalEVLoss: Math.round((stats.evLoss || 0) * 100) / 100,
+                avgEVLoss: stats.total > 0 ? Math.round((stats.evLoss || 0) / stats.total * 100) / 100 : 0,
+            },
+            grade: accuracy >= 85 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 55 ? 'C' : accuracy >= 40 ? 'D' : 'F',
+            sections: [],
+        };
+
+        // Streak analysis
+        try {
+            const sa = this.getStreakAnalysis();
+            if (sa) report.sections.push({ title: 'Mental Game', data: { tiltResistance: sa.tiltResistance, longestWinStreak: sa.longestWinStreak, insight: sa.insight } });
+        } catch (_) {}
+
+        // Performance trend
+        try {
+            const pt = this.getPerformanceTrendAnalysis();
+            if (pt) report.sections.push({ title: 'Trend', data: { trend: pt.trend, consistency: pt.consistencyScore, insight: pt.insight } });
+        } catch (_) {}
+
+        // Exploitable tendencies
+        try {
+            const ea = this.getExploitativeAdjustments();
+            if (ea) report.sections.push({ title: 'Balance', data: { profile: ea.actionProfile, adjustments: ea.adjustments.length, summary: ea.summary } });
+        } catch (_) {}
+
+        // Critical hands
+        try {
+            const ch = this.getCriticalHandHighlights();
+            if (ch) report.sections.push({ title: 'Key Hands', data: { mistakes: ch.biggestMistakes.length, greatPlays: ch.bestDecisions.length, evLost: ch.summaryEVLost } });
+        } catch (_) {}
+
+        // Drill recommendation
+        try {
+            const dr = this.getAdaptiveDrillRecommendation();
+            if (dr && dr.topRecommendation) report.sections.push({ title: 'Next Focus', data: { drill: dr.topRecommendation.drill, reason: dr.topRecommendation.reason } });
+        } catch (_) {}
+
+        // Milestones
+        try {
+            const ms = this.getSessionMilestones();
+            if (ms.length > 0) report.milestones = ms;
+        } catch (_) {}
+
+        // Coaching summary
+        try {
+            const cs = this.generateCoachingSummary();
+            if (cs) report.coachingSummary = cs.summary;
+        } catch (_) {}
+
+        return report;
     }
 }
 

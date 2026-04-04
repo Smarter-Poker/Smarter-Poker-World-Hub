@@ -1626,6 +1626,38 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try { return deterministicEngine.getPerformanceTrendAnalysis(); } catch (e) { return null; }
         },
 
+        // Phase 301-310: Advanced Training Intelligence III
+        getOptimalLineNarration: (correctAction, frequencies, street, nodeType, heroPosition, handCategory) => {
+            try { return deterministicEngine.getOptimalLineNarration(correctAction, frequencies, street, nodeType, heroPosition, handCategory); } catch (e) { return null; }
+        },
+        getStreetTransitionAnalysis: () => {
+            try { return deterministicEngine.getStreetTransitionAnalysis(); } catch (e) { return null; }
+        },
+        getDefenseFrequencyCheck: () => {
+            try { return deterministicEngine.getDefenseFrequencyCheck(); } catch (e) { return null; }
+        },
+        getPolarizationIndex: () => {
+            try { return deterministicEngine.getPolarizationIndex(); } catch (e) { return null; }
+        },
+        getMistakeRecoveryRate: () => {
+            try { return deterministicEngine.getMistakeRecoveryRate(); } catch (e) { return null; }
+        },
+        getConceptQuiz: () => {
+            try { return deterministicEngine.getConceptQuiz(); } catch (e) { return null; }
+        },
+        getSessionMilestones: () => {
+            try { return deterministicEngine.getSessionMilestones(); } catch (e) { return []; }
+        },
+        getAdaptiveDrillRecommendation: () => {
+            try { return deterministicEngine.getAdaptiveDrillRecommendation(); } catch (e) { return null; }
+        },
+        getCriticalHandHighlights: () => {
+            try { return deterministicEngine.getCriticalHandHighlights(); } catch (e) { return null; }
+        },
+        getComprehensiveSessionReport: () => {
+            try { return deterministicEngine.getComprehensiveSessionReport(); } catch (e) { return null; }
+        },
+
         // Actions
         submitAnswer,
         nextQuestion,

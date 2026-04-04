@@ -1087,6 +1087,7 @@ function UniversalDynamicTable({
     getHandReadingDrill = null,
     getExploitativeAdjustments = null,
     getVarianceSimulator = null,
+    getOptimalLineNarration = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -4185,6 +4186,19 @@ function UniversalDynamicTable({
                                     if (!drill) return null;
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 9, lineHeight: 1.5, color: '#fbbf24' }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>HAND READING: </span>{drill.keyPrinciple}
+                                    </div>);
+                                } catch (_) { return null; }
+                            })()}
+
+                            {/* Phase 301: Optimal Line Narration */}
+                            {(() => {
+                                try {
+                                    if (!getOptimalLineNarration || !structuredExplanation?.isCorrect === undefined) return null;
+                                    const sc = question?.scenario || {};
+                                    const narr = getOptimalLineNarration(structuredExplanation?.primary || '', gtoFrequencies || {}, sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', question?.handCategory || '');
+                                    if (!narr) return null;
+                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.06)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.15)', fontSize: 9, lineHeight: 1.5, color: '#86efac' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#4ade80' }}>SOLVER LINE: </span>{narr.narration}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}

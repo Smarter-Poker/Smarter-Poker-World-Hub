@@ -862,6 +862,17 @@ function GodModeArenaInner({
         getHandReadingDrill,
         getVarianceSimulator,
         getPerformanceTrendAnalysis,
+        // ═══ PHASE 301-310: Advanced training intelligence III ═══
+        getOptimalLineNarration,
+        getStreetTransitionAnalysis,
+        getDefenseFrequencyCheck,
+        getPolarizationIndex,
+        getMistakeRecoveryRate,
+        getConceptQuiz,
+        getSessionMilestones,
+        getAdaptiveDrillRecommendation,
+        getCriticalHandHighlights,
+        getComprehensiveSessionReport,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2640,6 +2651,153 @@ function GodModeArenaInner({
                             } catch (_) { return null; }
                         })()}
 
+                        {/* ═══ PHASE 302: Street Transition Analysis ═══ */}
+                        {(() => {
+                            try {
+                                const sta = getStreetTransitionAnalysis();
+                                if (!sta || sta.streetAccuracy.length < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(14,165,233,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Street Accuracy</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 8 }}>
+                                        {sta.streetAccuracy.map((s, i) => (
+                                            <div key={i} style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 14, fontWeight: 800, color: s.accuracy >= 70 ? '#22c55e' : s.accuracy >= 50 ? '#fbbf24' : '#ef4444', fontFamily: "'Orbitron', monospace" }}>{s.accuracy}%</div>
+                                                <div style={{ fontSize: 9, color: '#64748b' }}>{s.street} ({s.total})</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {sta.weakestStreet && sta.weakestStreet.accuracy < 60 && (
+                                        <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic' }}>{sta.recommendation}</div>
+                                    )}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 303: Defense Frequency ═══ */}
+                        {(() => {
+                            try {
+                                const df = getDefenseFrequencyCheck();
+                                if (!df || df.facingBet.total < 2) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(244,63,94,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fb7185', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Defense Frequency</div>
+                                    {df.facingBet.defendPct !== null && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                            <span style={{ fontSize: 10, color: '#94a3b8' }}>vs Bets</span>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: df.facingBet.defendPct >= 55 && df.facingBet.defendPct <= 75 ? '#22c55e' : '#fbbf24', fontFamily: "'Orbitron', monospace" }}>{df.facingBet.defendPct}% defend</span>
+                                        </div>
+                                    )}
+                                    {df.assessments.map((a, i) => (
+                                        <div key={i} style={{ fontSize: 9, color: a.severity === 'good' ? '#4ade80' : a.severity === 'critical' ? '#ef4444' : '#fbbf24', marginTop: 4 }}>{a.message}</div>
+                                    ))}
+                                    <div style={{ fontSize: 8, color: '#475569', marginTop: 6, fontStyle: 'italic' }}>{df.mdfReference}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 304: Polarization Index ═══ */}
+                        {(() => {
+                            try {
+                                const pi = getPolarizationIndex();
+                                if (!pi) return null;
+                                const pColor = pi.style === 'polarized' ? '#22c55e' : pi.style === 'semi-polarized' ? '#06b6d4' : '#fbbf24';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${pColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: pColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Range Style</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Style</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: pColor }}>{pi.style.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Polarization Score</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{pi.polarizationScore}%</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{pi.tip}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 305: Mistake Recovery ═══ */}
+                        {(() => {
+                            try {
+                                const mr = getMistakeRecoveryRate();
+                                if (!mr) return null;
+                                const gradeColors = { A: '#22c55e', B: '#4ade80', C: '#fbbf24', D: '#ef4444' };
+                                const gColor = gradeColors[mr.grade] || '#94a3b8';
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: `1px solid ${gColor}22` }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: gColor, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Mistake Recovery</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Recovery Grade</span>
+                                        <span style={{ fontSize: 16, fontWeight: 800, color: gColor, fontFamily: "'Orbitron', monospace" }}>{mr.grade}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Avg Recovery</span>
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', fontFamily: "'Orbitron', monospace" }}>{mr.avgRecoveryTime} hands</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: '#94a3b8' }}>Quick Recoveries</span>
+                                        <span style={{ fontSize: 10, color: '#4ade80' }}>{mr.quickRecoveries}</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>{mr.insight}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 307: Session Milestones ═══ */}
+                        {(() => {
+                            try {
+                                const milestones = getSessionMilestones();
+                                if (!milestones || milestones.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(168,85,247,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Session Milestones</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {milestones.map((m, i) => (
+                                            <div key={i} style={{ padding: '4px 10px', background: 'rgba(168,85,247,0.1)', borderRadius: 16, border: '1px solid rgba(168,85,247,0.2)', fontSize: 10, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                <span>{m.icon}</span>
+                                                <span style={{ fontWeight: 600 }}>{m.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 308: Drill Recommendation ═══ */}
+                        {(() => {
+                            try {
+                                const dr = getAdaptiveDrillRecommendation();
+                                if (!dr || !dr.topRecommendation) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(34,211,238,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#22d3ee', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recommended Focus</div>
+                                    {dr.recommendations.slice(0, 3).map((r, i) => (
+                                        <div key={i} style={{ marginBottom: 6, padding: '6px 8px', background: r.priority === 'high' ? 'rgba(239,68,68,0.08)' : 'rgba(34,211,238,0.06)', borderRadius: 6, border: `1px solid ${r.priority === 'high' ? 'rgba(239,68,68,0.15)' : 'rgba(34,211,238,0.1)'}` }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: r.priority === 'high' ? '#ef4444' : '#22d3ee' }}>{r.drill}</div>
+                                            <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{r.reason}</div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 309: Critical Hand Highlights ═══ */}
+                        {(() => {
+                            try {
+                                const ch = getCriticalHandHighlights();
+                                if (!ch || ch.totalHighlights === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(251,146,60,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#fb923c', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Key Hands</div>
+                                    {ch.biggestMistakes.map((m, i) => (
+                                        <div key={`m${i}`} style={{ fontSize: 10, color: '#fca5a5', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontWeight: 700 }}>#{m.handNumber}</span> {m.userAction} → should be {m.correctAction} <span style={{ color: '#ef4444', fontFamily: "'Orbitron', monospace" }}>(-{m.evLoss} EV)</span>
+                                        </div>
+                                    ))}
+                                    {ch.bestDecisions.map((d, i) => (
+                                        <div key={`d${i}`} style={{ fontSize: 10, color: '#86efac', padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontWeight: 700 }}>#{d.handNumber}</span> {d.action} on {d.street} — great play!
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
                         {/* ═══ PHASE 20: EV by Street visualization ═══ */}
                         <EVGraph handHistory={handHistory} title="EV Loss by Street" />
 
@@ -3127,6 +3285,7 @@ function GodModeArenaInner({
                                     getHandReadingDrill={getHandReadingDrill}
                                     getExploitativeAdjustments={getExploitativeAdjustments}
                                     getVarianceSimulator={getVarianceSimulator}
+                                    getOptimalLineNarration={getOptimalLineNarration}
                                     // GTOW scoring props
                                     moveClassification={moveClassification}
                                     evLoss={evLoss}
