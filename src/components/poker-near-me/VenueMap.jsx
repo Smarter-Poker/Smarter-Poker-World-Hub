@@ -410,11 +410,14 @@ export default function VenueMap({ venues, userLocation, fullHeight = false, onV
         await new Promise(r => setTimeout(r, 100));
         await loadScript('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
 
-        const checkReady = () => {
+        const checkReady = (attempts = 0) => {
           if (window.L && window.L.MarkerClusterGroup) {
             setMapReady(true);
+          } else if (attempts < 50) {
+            setTimeout(() => checkReady(attempts + 1), 100);
           } else {
-            setTimeout(checkReady, 100);
+            console.warn('MarkerClusterGroup never loaded after 5s — continuing without clustering');
+            if (window.L) setMapReady(true);
           }
         };
         checkReady();

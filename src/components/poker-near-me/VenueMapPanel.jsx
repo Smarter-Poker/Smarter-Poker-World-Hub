@@ -178,7 +178,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
     }
-  }, [venues, userLocation]);
+  }, [venues, userLocation, onVenueSelect]);
 
   // ═══ DYNAMIC RADIUS ZOOM — Adjust zoom when radius filter changes ═══
   useEffect(() => {

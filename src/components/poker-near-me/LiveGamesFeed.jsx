@@ -231,8 +231,8 @@ export default function LiveGamesFeed({
         if (isRealtimeEvent) setIsRefreshing(true);
         try {
             const url = isRealtimeEvent 
-                ? `/api/poker/live-tables?list=false&_t=${Date.now()}`
-                : '/api/poker/live-tables?list=false';
+                ? `/api/poker/live-tables?_t=${Date.now()}`
+                : '/api/poker/live-tables';
             const res = await fetch(url);
             if (res.ok) {
                 const json = await res.json();
