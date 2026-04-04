@@ -388,8 +388,8 @@ export default function LiveGamesFeed({
                 
                 return {
                     bravo_slug: liveEntry.bravo_slug,
-                    name: liveEntry.venue_name,
-                    venue_name: liveEntry.venue_name,
+                    name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
+                    venue_name: parentVenue?.name || decodeHtmlEntities(liveEntry.venue_name),
                     totalTables: liveEntry.totalTables || 0,
                     totalWait: liveEntry.totalWait || 0,
                     games: liveEntry.games || [],
@@ -493,7 +493,7 @@ export default function LiveGamesFeed({
             const matches = Object.values(liveData)
                 .filter(v => (v.venue_name || '').toLowerCase().includes(q))
                 .slice(0, 8)
-                .map(v => ({ id: v.bravo_slug, bravo_slug: v.bravo_slug, name: v.venue_name, totalTables: v.totalTables || 0 }));
+                .map(v => ({ id: v.bravo_slug, bravo_slug: v.bravo_slug, name: decodeHtmlEntities(v.venue_name), totalTables: v.totalTables || 0 }));
             setSearchSuggestions(matches);
             setShowSuggestions(matches.length > 0);
         } else {
