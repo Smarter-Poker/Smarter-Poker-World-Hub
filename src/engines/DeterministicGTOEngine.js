@@ -1317,7 +1317,8 @@ export class DeterministicGTOEngine {
 
     /**
      * Build deterministic explanation from solver data — GTO Wizard style.
-     * GTOW explanations are concise: action + frequency + hand strength context.
+     * Phase 25: Rich strategic reasoning with sizing logic, position context,
+     * board texture impact, and conceptual poker theory.
      */
     buildExplanation(heroHand, board, street, optimalAction, handActions, ev, validActions) {
         const label = this.getActionLabelGTOW(optimalAction);
@@ -1325,28 +1326,31 @@ export class DeterministicGTOEngine {
         const freqPct = (freq * 100).toFixed(0);
         const handStrength = this.categorizeHand(heroHand, board);
 
-        // Street-specific reasoning context
-        let streetContext = '';
-        if (street === 'river') {
-            const isBet = optimalAction.startsWith('b') || optimalAction === 'allin';
-            const isCheck = optimalAction === 'c' || optimalAction === 'x';
-            const isFold = optimalAction === 'f';
-            const isCall = optimalAction === 'call';
-            if (isBet) streetContext = ' On the river, bets are either pure value or pure bluff.';
-            else if (isCheck) streetContext = ' Checking back to realize showdown value.';
-            else if (isFold) streetContext = ' Giving up — insufficient equity to continue on the river.';
-            else if (isCall) streetContext = ' Calling to catch bluffs — a bluff-catcher.';
-        } else if (street === 'turn') {
-            const isBet = optimalAction.startsWith('b') || optimalAction === 'allin';
-            const isCheck = optimalAction === 'c' || optimalAction === 'x';
-            if (isBet && handStrength.includes('draw')) streetContext = ' Semi-bluffing with draw equity on the turn.';
-            else if (isBet) streetContext = ' Building the pot on the turn for a river shove.';
-            else if (isCheck) streetContext = ' Pot control — keeping the pot manageable.';
-        }
+        // ═══ STRATEGIC REASONING ENGINE ═══
+        const a = optimalAction.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
 
+        // Extract bet sizing percentage
+        const sizeMatch = a.match(/^[br](\d+)$/);
+        const sizePct = sizeMatch ? parseInt(sizeMatch[1]) : (a === 'allin' ? 999 : 0);
+
+        // Board texture for reasoning
+        const texture = this._analyzeTexture(board);
+
+        // ═══ SIZING REASONING — Why this specific size? ═══
+        const sizingReason = this._getSizingReason(sizePct, handStrength, texture, street, isBet, isRaise);
+
+        // ═══ STRATEGIC CONCEPT — What poker concept drives this? ═══
+        const concept = this._getStrategicConcept(optimalAction, handStrength, texture, street, freq, validActions, handActions);
+
+        // ═══ BUILD FINAL EXPLANATION ═══
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
-            return `${heroHand} (${handStrength}): Pure ${label}.${streetContext} The solver always plays this way here.`;
+            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}`;
         }
 
         // Near-pure — one clear best action but some mixing
@@ -1356,10 +1360,11 @@ export class DeterministicGTOEngine {
                 .sort((a, b) => handActions[b] - handActions[a])
                 .slice(0, 2)
                 .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
-            return `${heroHand} (${handStrength}): ${label} ${freqPct}%${altActions.length > 0 ? `, mixing with ${altActions.join(', ')}` : ''}.${streetContext}`;
+            const mixNote = altActions.length > 0 ? ` Mixes with ${altActions.join(', ')}.` : '';
+            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${mixNote}`;
         }
 
-        // True mixed strategy — no action dominates
+        // True mixed strategy — explain WHY the solver mixes
         const mixedParts = validActions
             .filter(a => handActions[a] > 0.01)
             .sort((a, b) => handActions[b] - handActions[a])
@@ -1367,7 +1372,247 @@ export class DeterministicGTOEngine {
             .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`)
             .join(', ');
 
-        return `${heroHand} (${handStrength}): Mixed strategy — ${mixedParts}.${streetContext} Close spot, multiple actions are GTO-correct.`;
+        const mixReason = this._getMixingReason(handStrength, texture, street, validActions, handActions);
+        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}`;
+    }
+
+    /**
+     * Phase 25: Analyze board texture for strategic reasoning.
+     */
+    _analyzeTexture(board) {
+        if (!board || board.length < 3) return { wet: false, highCard: false, paired: false, flushy: false, connected: false, monotone: false };
+        const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
+        if (validBoard.length < 3) return { wet: false, highCard: false, paired: false, flushy: false, connected: false, monotone: false };
+
+        const ranks = validBoard.map(c => c[0].toUpperCase());
+        const suits = validBoard.map(c => c[1]?.toLowerCase());
+        const rankVals = ranks.map(r => '23456789TJQKA'.indexOf(r));
+
+        const suitCounts = {};
+        suits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const maxSuitCount = Math.max(...Object.values(suitCounts));
+
+        const rankCounts = {};
+        ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
+        const maxRankCount = Math.max(...Object.values(rankCounts));
+
+        const sorted = [...new Set(rankVals)].sort((a, b) => a - b);
+        let connected = false;
+        for (let i = 0; i < sorted.length - 1; i++) {
+            if (sorted[i + 1] - sorted[i] <= 2) { connected = true; break; }
+        }
+
+        const highCards = rankVals.filter(v => v >= 10).length;
+        const highestRank = Math.max(...rankVals);
+
+        return {
+            wet: (connected && maxSuitCount >= 2) || maxSuitCount >= 3,
+            dry: !connected && maxSuitCount < 2 && maxRankCount >= 2,
+            highCard: highCards >= 2 || highestRank >= 12,
+            lowBoard: highCards === 0,
+            paired: maxRankCount >= 2,
+            flushy: maxSuitCount >= 3,
+            connected,
+            monotone: maxSuitCount === validBoard.length && validBoard.length >= 3,
+            aceHigh: highestRank === 12,
+            broadwayHeavy: highCards >= 3,
+        };
+    }
+
+    /**
+     * Phase 25: Explain WHY the solver chose this specific sizing.
+     */
+    _getSizingReason(sizePct, handStrength, texture, street, isBet, isRaise) {
+        if (!isBet && !isRaise) return '';
+        if (sizePct === 0) return '';
+
+        // Small bets (16-33%)
+        if (sizePct <= 33) {
+            if (texture.dry || texture.paired) return 'Small sizing on a dry/paired board targets thin value and denies equity cheaply.';
+            if (texture.aceHigh) return 'Small sizing leverages range advantage on ace-high textures.';
+            if (street === 'flop') return 'Small c-bet uses efficient sizing to attack opponent\'s capped range.';
+            return 'Small sizing puts pressure while risking less.';
+        }
+
+        // Medium bets (40-66%)
+        if (sizePct <= 66) {
+            if (texture.wet || texture.connected) return 'Medium sizing on a wet board charges draws and builds the pot with value hands.';
+            if (street === 'turn') return 'Medium turn sizing sets up a river shove.';
+            if (handStrength.includes('pair') || handStrength.includes('set')) return 'Medium sizing extracts value from worse made hands.';
+            return 'Medium sizing balances value and bluffs effectively.';
+        }
+
+        // Large bets (75-100%)
+        if (sizePct <= 100) {
+            if (texture.flushy || texture.monotone) return 'Large sizing on flushy boards polarizes — strong value or draws as bluffs.';
+            if (street === 'river') return 'Pot-sized river bet polarizes between value and bluffs.';
+            if (handStrength.includes('draw')) return 'Large sizing maximizes fold equity with a draw.';
+            return 'Large sizing polarizes the range — strong value or semi-bluffs.';
+        }
+
+        // Overbets (125%+) / All-in
+        if (sizePct >= 125 || sizePct === 999) {
+            if (street === 'river') return 'Overbet/jam on the river maximizes value with nutted hands and applies maximum pressure as a bluff.';
+            if (handStrength.includes('set') || handStrength.includes('straight') || handStrength.includes('flush') || handStrength.includes('full house')) {
+                return 'Overbet extracts maximum value from a nutted hand.';
+            }
+            return 'Overbet jams create maximum pressure — the opponent must have a strong hand to continue.';
+        }
+
+        return '';
+    }
+
+    /**
+     * Phase 25: Identify the core strategic concept behind the solver's action.
+     */
+    _getStrategicConcept(action, handStrength, texture, street, freq, validActions, handActions) {
+        const a = action.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+
+        // ═══ CHECKING CONCEPTS ═══
+        if (isCheck) {
+            if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
+                return 'Pot control with a strong-but-vulnerable hand — checking protects against raises and keeps the pot manageable.';
+            }
+            if (handStrength.includes('set') || handStrength.includes('two pair') || handStrength.includes('full house')) {
+                return 'Trapping with a monster — checking to induce bets or delayed c-bet opponents.';
+            }
+            if (handStrength.includes('draw')) {
+                return 'Taking a free card with draw equity — checking preserves the option to realize equity without bloating the pot.';
+            }
+            if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
+                return 'Giving up with air — no equity to bet for value and insufficient fold equity to bluff.';
+            }
+            if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
+                return 'Check with marginal showdown value — too weak to bet for value, too strong to bluff.';
+            }
+            return 'Checking to control the pot size and realize equity.';
+        }
+
+        // ═══ BETTING CONCEPTS ═══
+        if (isBet) {
+            if (handStrength.includes('set') || handStrength.includes('straight') || handStrength.includes('flush') || handStrength.includes('full house') || handStrength.includes('quads')) {
+                return 'Value betting a nutted hand — extracting maximum chips from worse holdings.';
+            }
+            if (handStrength.includes('top pair') && (handStrength.includes('strong kicker') || handStrength.includes('overpair'))) {
+                return 'Value betting a strong made hand — targeting worse pairs and draws.';
+            }
+            if (handStrength.includes('top pair')) {
+                if (texture.wet) return 'Betting for value and protection on a wet board — charge draws while ahead.';
+                return 'Betting top pair for value — targeting weaker pairs and high cards.';
+            }
+            if (handStrength.includes('draw') || handStrength.includes('OESD') || handStrength.includes('flush draw')) {
+                if (street === 'river') return 'Bluffing the river with a missed draw — converting busted equity into fold equity.';
+                return 'Semi-bluffing with draw equity — fold equity now plus backup equity if called.';
+            }
+            if (handStrength.includes('air') || handStrength.includes('no pair') || handStrength.includes('overcard')) {
+                if (street === 'river') return 'Pure bluff on the river — only way to win with air.';
+                return 'Bluffing as part of a balanced strategy — keeping the opponent guessing.';
+            }
+            if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
+                return 'Thin value bet — targeting worse pairs or turning the hand into a bluff.';
+            }
+            return 'Betting for value and protection.';
+        }
+
+        // ═══ CALLING CONCEPTS ═══
+        if (isCall) {
+            if (handStrength.includes('draw')) {
+                return 'Calling with draw equity — pot odds justify continuing to chase the draw.';
+            }
+            if (handStrength.includes('top pair') || handStrength.includes('overpair') || handStrength.includes('set')) {
+                return 'Calling a strong hand — flatting to keep bluffs in and control the pot.';
+            }
+            if (street === 'river') {
+                return 'Bluff-catching on the river — calling to pick off opponent\'s bluffs.';
+            }
+            if (handStrength.includes('second pair') || handStrength.includes('bottom pair')) {
+                return 'Calling with a marginal hand that\'s ahead of enough bluffs to be profitable.';
+            }
+            return 'Calling to see another card and realize equity.';
+        }
+
+        // ═══ RAISING CONCEPTS ═══
+        if (isRaise) {
+            if (handStrength.includes('set') || handStrength.includes('two pair') || handStrength.includes('straight') || handStrength.includes('flush')) {
+                return 'Raising for value with a monster — building the pot while ahead.';
+            }
+            if (handStrength.includes('draw')) {
+                return 'Semi-bluff raise — leveraging fold equity plus draw equity to create a profitable play.';
+            }
+            if (handStrength.includes('air') || handStrength.includes('overcard')) {
+                return 'Bluff raise — attacking the opponent\'s capped range with maximum aggression.';
+            }
+            return 'Raising to build the pot and apply pressure.';
+        }
+
+        // ═══ FOLDING CONCEPTS ═══
+        if (isFold) {
+            if (handStrength.includes('draw')) {
+                return 'Folding a draw — bet sizing prices out the draw, making calling unprofitable.';
+            }
+            if (handStrength.includes('pair')) {
+                return 'Folding a marginal made hand — facing too much aggression to continue profitably.';
+            }
+            return 'Folding — the hand lacks sufficient equity against the opponent\'s range.';
+        }
+
+        return '';
+    }
+
+    /**
+     * Phase 25: Explain WHY the solver uses a mixed strategy here.
+     */
+    _getMixingReason(handStrength, texture, street, validActions, handActions) {
+        // Find the top two actions
+        const sorted = validActions
+            .filter(a => handActions[a] > 0.01)
+            .sort((a, b) => handActions[b] - handActions[a]);
+
+        if (sorted.length < 2) return 'Close decision — nearly pure.';
+
+        const top = sorted[0].toLowerCase();
+        const second = sorted[1].toLowerCase();
+        const topIsBet = top.startsWith('b') || top === 'allin';
+        const topIsCheck = top === 'c' || top === 'x';
+        const secondIsBet = second.startsWith('b') || second === 'allin';
+        const secondIsCheck = second === 'c' || second === 'x';
+
+        // Check vs Bet mix
+        if ((topIsCheck && secondIsBet) || (topIsBet && secondIsCheck)) {
+            if (handStrength.includes('top pair') || handStrength.includes('overpair')) {
+                return 'Mixing bet/check with a strong hand — betting always would make the checking range too weak, so the solver balances both.';
+            }
+            if (handStrength.includes('draw')) {
+                return 'Mixing semi-bluff/check with draw equity — the solver uses this hand as a bluff sometimes while checking to realize equity other times.';
+            }
+            if (handStrength.includes('set') || handStrength.includes('two pair')) {
+                return 'Trapping vs. value betting — sometimes slow-playing to disguise strength, sometimes building the pot immediately.';
+            }
+            return 'Indifferent between betting and checking — the solver balances both to keep its ranges unexploitable.';
+        }
+
+        // Multiple bet sizes
+        if (topIsBet && secondIsBet) {
+            return 'Mixing between bet sizes — the solver uses different sizings to maximize EV against different parts of the opponent\'s range.';
+        }
+
+        // Call vs Raise mix
+        if ((top === 'call' && (second.startsWith('r') || second === 'allin')) ||
+            ((top.startsWith('r') || top === 'allin') && second === 'call')) {
+            return 'Mixing call/raise — sometimes flatting to keep bluffs in, sometimes raising to build the pot and deny equity.';
+        }
+
+        // Fold vs Call mix
+        if ((top === 'f' && second === 'call') || (top === 'call' && second === 'f')) {
+            return 'Marginal spot at the bottom of the calling range — close between folding and calling, the solver is near-indifferent.';
+        }
+
+        return 'Multiple actions have similar EV — the solver randomizes to stay unexploitable.';
     }
 
     buildChartExplanation(heroHand, chart, pushFreq, correctAction) {
@@ -1375,12 +1620,31 @@ export class DeterministicGTOEngine {
         const pos = chart.hero_position || chart.position || 'BTN';
         const stack = chart.stack_depth || 15;
 
+        // Hand type reasoning
+        const r1 = heroHand[0], r2 = heroHand[1];
+        const isPair = r1 === r2;
+        const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
+        const isHighCard = ['A', 'K', 'Q'].includes(r1);
+
         if (correctAction === 'push') {
-            return `ICM chart: ${heroHand} is a ${pct}% push from ${pos} at ${stack}BB. ` +
-                `The hand has sufficient equity and fold equity to make shoving profitable.`;
+            let reason = '';
+            if (isPair) reason = 'Pocket pairs have strong all-in equity against calling ranges.';
+            else if (isHighCard && isSuited) reason = 'Suited broadway hands combine card removal, equity, and playability.';
+            else if (isHighCard) reason = 'High card strength plus fold equity makes this a profitable shove.';
+            else if (isSuited) reason = 'Suitedness adds ~3% equity, pushing this hand into shoving range.';
+            else reason = 'Fold equity at this stack depth compensates for marginal hand strength.';
+
+            if (stack <= 8) reason += ` At ${stack}BB, push-or-fold is optimal — no room for post-flop play.`;
+            else if (stack <= 12) reason += ` At ${stack}BB, shoving preserves fold equity before the blinds eat further into your stack.`;
+
+            return `ICM: ${heroHand} is a ${pct}% push from ${pos} at ${stack}BB. ${reason}`;
         }
-        return `ICM chart: ${heroHand} is only a ${pct}% push from ${pos} at ${stack}BB. ` +
-            `The hand lacks the equity needed to profitably shove at this stack depth.`;
+
+        let foldReason = '';
+        if (stack > 15) foldReason = `At ${stack}BB you have enough chips to wait for a better spot.`;
+        else foldReason = `Even at ${stack}BB, this hand doesn't have enough equity against calling ranges to justify the risk.`;
+
+        return `ICM: ${heroHand} is only a ${pct}% push from ${pos} at ${stack}BB. ${foldReason}`;
     }
 
     /**

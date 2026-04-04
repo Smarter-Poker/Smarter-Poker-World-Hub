@@ -3185,18 +3185,56 @@ function UniversalDynamicTable({
                         </motion.div>
                     )}
 
-                    {/* Explanation + Why Drawer */}
+                    {/* Phase 25: Explanation + Strategic Why Drawer */}
                     {(() => {
+                        const correctOpt = options.find(o => o.id === correctAnswer)?.text || correctAnswer;
+                        const selectedOpt = selectedAnswer ? (options.find(o => o.id === selectedAnswer)?.text || selectedAnswer) : '';
+                        const selectedFreq = computedFrequencies?.[selectedAnswer] || 0;
+                        const correctFreq = computedFrequencies?.[correctAnswer] || 0;
+
+                        // Phase 25: Mistake-specific feedback — tell the player what they did wrong
+                        const mistakeFeedback = (() => {
+                            if (!selectedAnswer || selectedAnswer === correctAnswer || feedbackResult === 'correct') return '';
+                            const selA = selectedAnswer.toLowerCase();
+                            const corA = correctAnswer.toLowerCase();
+                            const selIsBet = selA.startsWith('b') || selA === 'allin';
+                            const selIsCheck = selA === 'c' || selA === 'x';
+                            const selIsCall = selA === 'call';
+                            const selIsFold = selA === 'f';
+                            const selIsRaise = selA.startsWith('r');
+                            const corIsBet = corA.startsWith('b') || corA === 'allin';
+                            const corIsCheck = corA === 'c' || corA === 'x';
+                            const corIsCall = corA === 'call';
+                            const corIsFold = corA === 'f';
+                            const corIsRaise = corA.startsWith('r');
+
+                            // Player bet when should check
+                            if (selIsBet && corIsCheck) return `Betting here bloats the pot unnecessarily — ${correctOpt} controls the pot and realizes equity.`;
+                            // Player checked when should bet
+                            if (selIsCheck && corIsBet) return `Checking misses value or lets opponents realize equity for free — ${correctOpt} is more profitable.`;
+                            // Player called when should fold
+                            if (selIsCall && corIsFold) return `Calling here is unprofitable — the bet prices you out. Folding saves BB in the long run.`;
+                            // Player folded when should call
+                            if (selIsFold && corIsCall) return `Folding here is too tight — you have enough equity against the betting range to call profitably.`;
+                            // Player called when should raise
+                            if (selIsCall && (corIsRaise || corIsBet)) return `Flatting is too passive — raising builds the pot with your equity advantage.`;
+                            // Player raised when should call
+                            if (selIsRaise && corIsCall) return `Raising bloats the pot against a strong range — calling keeps bluffs in and controls the pot.`;
+                            // Player folded when should bet/raise
+                            if (selIsFold && (corIsBet || corIsRaise)) return `Folding when you should be the aggressor — you have enough equity to put in money here.`;
+                            // Wrong sizing
+                            if (selIsBet && corIsBet) return `Wrong sizing — the solver prefers ${correctOpt} here for a better risk/reward ratio.`;
+                            if (selIsRaise && corIsRaise) return `Wrong raise size — ${correctOpt} creates better SPR dynamics for the next street.`;
+                            return `${correctOpt} at ${correctFreq}% is the solver's preferred action here.`;
+                        })();
+
                         const displayExplanation = explanation || (() => {
                             if (!moveClassification) return null;
-                            const correctOpt = options.find(o => o.id === correctAnswer)?.text || correctAnswer;
-                            const selectedOpt = selectedAnswer ? (options.find(o => o.id === selectedAnswer)?.text || selectedAnswer) : '';
-                            const freq = computedFrequencies[correctAnswer] || 0;
-                            if (moveClassification === 'best') return `Great — ${correctOpt} is the highest-frequency play${freq > 0 ? ` at ${freq}%` : ''}.`;
+                            if (moveClassification === 'best') return `Great — ${correctOpt} is the highest-frequency play${correctFreq > 0 ? ` at ${correctFreq}%` : ''}.`;
                             if (moveClassification === 'correct') return `Good — your action is part of the GTO mix, though ${correctOpt} is more frequent.`;
-                            if (moveClassification === 'inaccuracy') return `${correctOpt} is the solver's primary action${freq > 0 ? ` at ${freq}%` : ''}. ${selectedOpt} costs ${evLoss > 0 ? evLoss.toFixed(1) + ' BB' : 'some'} EV.`;
-                            if (moveClassification === 'wrong') return `The solver prefers ${correctOpt}${freq > 0 ? ` (${freq}%)` : ''}. ${selectedOpt} loses ${evLoss > 0 ? evLoss.toFixed(1) + ' BB' : 'significant'} EV.`;
-                            return `A blunder — ${correctOpt} is the optimal play. ${selectedOpt} costs ${evLoss > 0 ? evLoss.toFixed(1) + ' BB' : 'heavy'} EV.`;
+                            if (moveClassification === 'inaccuracy') return `${correctOpt} is the solver's primary action${correctFreq > 0 ? ` at ${correctFreq}%` : ''}. ${mistakeFeedback}`;
+                            if (moveClassification === 'wrong') return `${mistakeFeedback || `The solver prefers ${correctOpt}${correctFreq > 0 ? ` (${correctFreq}%)` : ''}.`}`;
+                            return `${mistakeFeedback || `${correctOpt} is the optimal play here.`}`;
                         })();
                         if (!displayExplanation) return null;
                         return (
@@ -3228,41 +3266,83 @@ function UniversalDynamicTable({
                                             style={{ overflow: 'hidden' }}
                                         >
                                             <div style={{
-                                                marginTop: 6, padding: '8px 10px',
+                                                marginTop: 6, padding: '10px 12px',
                                                 background: 'rgba(0, 212, 255, 0.04)',
                                                 borderRadius: 8,
                                                 border: '1px solid rgba(0, 212, 255, 0.12)',
                                                 fontSize: 10, color: '#cbd5e1', lineHeight: 1.6,
                                             }}>
-                                                <div style={{ fontWeight: 700, color: '#00d4ff', marginBottom: 4, fontSize: 9, letterSpacing: 1 }}>
+                                                <div style={{ fontWeight: 700, color: '#00d4ff', marginBottom: 6, fontSize: 9, letterSpacing: 1 }}>
                                                     SOLVER ANALYSIS
                                                 </div>
-                                                <div style={{ marginBottom: 3 }}>
+
+                                                {/* Optimal action with frequency */}
+                                                <div style={{ marginBottom: 4 }}>
                                                     <strong style={{ color: '#22c55e' }}>Optimal:</strong>{' '}
-                                                    {options.find(o => o.id === correctAnswer)?.text || correctAnswer}
-                                                    {computedFrequencies[correctAnswer] > 0 && (
-                                                        <span style={{ color: '#94a3b8' }}> at {computedFrequencies[correctAnswer]}%</span>
+                                                    {correctOpt}
+                                                    {correctFreq > 0 && (
+                                                        <span style={{ color: '#94a3b8' }}> at {correctFreq}%</span>
                                                     )}
                                                 </div>
+
+                                                {/* Your pick with mistake reasoning */}
                                                 {selectedAnswer && selectedAnswer !== correctAnswer && (
-                                                    <div style={{ marginBottom: 3 }}>
+                                                    <div style={{ marginBottom: 4 }}>
                                                         <strong style={{ color: '#ef4444' }}>Your Pick:</strong>{' '}
-                                                        {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
+                                                        {selectedOpt}
+                                                        {selectedFreq > 0 ? (
+                                                            <span style={{ color: '#f97316' }}> ({selectedFreq}% — part of the mix but suboptimal)</span>
+                                                        ) : (
+                                                            <span style={{ color: '#ef4444' }}> (0% — not in the solver's strategy)</span>
+                                                        )}
                                                         {evLoss > 0 && (
-                                                            <span style={{ color: '#ef4444' }}> loses {evLoss.toFixed(2)} BB</span>
+                                                            <span style={{ color: '#ef4444' }}> — loses {evLoss.toFixed(2)} BB</span>
                                                         )}
                                                     </div>
                                                 )}
-                                                {boardTexture && (
-                                                    <div style={{ marginBottom: 3 }}>
-                                                        <strong style={{ color: '#94a3b8' }}>Board:</strong>{' '}
-                                                        {boardTexture.suitTexture} + {boardTexture.connectTexture}.
-                                                        {heroPosition && ` Hero in ${POSITION_NAMES[heroPosition] || heroPosition}.`}
+
+                                                {/* Mistake-specific reasoning */}
+                                                {mistakeFeedback && selectedAnswer !== correctAnswer && (
+                                                    <div style={{
+                                                        marginBottom: 4, padding: '4px 8px',
+                                                        background: 'rgba(249, 115, 22, 0.08)',
+                                                        borderRadius: 6,
+                                                        border: '1px solid rgba(249, 115, 22, 0.15)',
+                                                        color: '#fbbf24', fontSize: 10,
+                                                    }}>
+                                                        {mistakeFeedback}
                                                     </div>
                                                 )}
+
+                                                {/* Board texture context */}
+                                                {boardTexture && (
+                                                    <div style={{ marginBottom: 4 }}>
+                                                        <strong style={{ color: '#94a3b8' }}>Board:</strong>{' '}
+                                                        {boardTexture.suitTexture}{boardTexture.connectTexture ? ` + ${boardTexture.connectTexture}` : ''}.
+                                                        {heroPosition && ` Hero ${heroPosition}${question?.scenario?.villainPosition ? ` vs ${question.scenario.villainPosition}` : ''}.`}
+                                                    </div>
+                                                )}
+
+                                                {/* Strategic insight from the engine explanation */}
+                                                {explanation && explanation !== displayExplanation && (
+                                                    <div style={{
+                                                        marginBottom: 4, padding: '4px 8px',
+                                                        background: 'rgba(34, 197, 94, 0.06)',
+                                                        borderRadius: 6,
+                                                        border: '1px solid rgba(34, 197, 94, 0.12)',
+                                                        color: '#86efac', fontSize: 10,
+                                                    }}>
+                                                        {explanation}
+                                                    </div>
+                                                )}
+
+                                                {/* Spot metadata */}
                                                 {street && (
-                                                    <div style={{ color: '#64748b', fontSize: 9, marginTop: 3 }}>
-                                                        {street.charAt(0).toUpperCase() + street.slice(1)} | Pot: {pot} BB | SPR: {spr || 'N/A'}
+                                                    <div style={{ color: '#64748b', fontSize: 9, marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                        <span>{street.charAt(0).toUpperCase() + street.slice(1)}</span>
+                                                        <span>Pot: {pot} BB</span>
+                                                        {spr && <span>SPR: {spr}</span>}
+                                                        {question?.scenario?.stackDepth && <span>Stack: {question.scenario.stackDepth}bb</span>}
                                                     </div>
                                                 )}
                                             </div>
