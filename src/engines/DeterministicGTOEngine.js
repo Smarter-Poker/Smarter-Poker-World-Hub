@@ -195,57 +195,98 @@ function extractPositionFromHash(scenarioHash) {
  * Returns enriched context with preflopAction and actionLine.
  */
 function extractScenarioContext(scenarioHash, street, heroPosition, villainPosition) {
-    if (!scenarioHash) return { preflopAction: '', actionLine: '', gameFormat: '' };
+    if (!scenarioHash) return { preflopAction: '', actionLine: '', gameFormat: '', potType: 'SRP' };
 
     const parts = scenarioHash.toLowerCase().split('_');
     let gameFormat = '';
     let actionLine = '';
     let preflopAction = '';
+    let potType = 'SRP'; // Default: single-raised pot
 
-    // Detect game format
+    // ═══ GAME FORMAT DETECTION ═══
     if (parts.includes('hu') || parts.includes('heads') || parts.includes('2max')) gameFormat = 'Heads Up';
     else if (parts.includes('6max') || parts.includes('6-max')) gameFormat = '6-Max';
     else if (parts.includes('9max') || parts.includes('9-max')) gameFormat = '9-Max';
     else if (parts.includes('3max') || parts.includes('spin') || parts.includes('spins')) gameFormat = 'Spins 3-Max';
+    // Detect cash vs MTT from hash
+    if (parts.includes('mtt') || parts.includes('tourney') || parts.includes('icm')) {
+        gameFormat = gameFormat ? `${gameFormat} MTT` : 'MTT';
+    } else if (parts.includes('cash')) {
+        gameFormat = gameFormat ? `${gameFormat} Cash` : 'Cash';
+    }
 
-    // Detect action sequence tokens in hash
-    // 'xr' = check-raise, 'cb' = continuation bet, 'x' = check, 'b' = bet, 'r' = raise
-    const actionTokens = parts.filter(p => /^(xr|cb|x|b|r|3b|4b|limp|open|squeeze)$/.test(p));
+    // ═══ ACTION LINE DETECTION — Phase 30: Expanded token recognition ═══
+    const actionTokens = parts.filter(p => /^(xr|cb|x|b|r|3b|4b|5b|limp|open|squeeze|donk|probe|delay|float|cbet|xc|xf)$/.test(p));
 
     if (actionTokens.length > 0) {
         const actionLabels = {
             'xr': 'check-raise',
             'cb': 'c-bet',
+            'cbet': 'c-bet',
             'x': 'check',
             'b': 'bet',
             'r': 'raise',
             '3b': '3-bet',
             '4b': '4-bet',
+            '5b': '5-bet',
             'limp': 'limp',
             'open': 'open',
             'squeeze': 'squeeze',
+            'donk': 'donk bet',
+            'probe': 'probe bet',
+            'delay': 'delayed c-bet',
+            'float': 'float bet',
+            'xc': 'check-call',
+            'xf': 'check-fold',
         };
         actionLine = actionTokens.map(t => actionLabels[t] || t).join(' → ');
     }
 
-    // Build preflop action description based on positions
+    // ═══ POT TYPE DETECTION — Phase 30 ═══
+    // Identify whether this is a single-raised pot, 3-bet pot, 4-bet pot, etc.
+    if (actionTokens.includes('4b') || actionTokens.includes('5b')) {
+        potType = '4-Bet Pot';
+    } else if (actionTokens.includes('3b')) {
+        potType = '3-Bet Pot';
+    } else if (actionTokens.includes('limp')) {
+        potType = 'Limped Pot';
+    } else if (actionTokens.includes('squeeze')) {
+        potType = 'Squeeze Pot';
+    }
+
+    // ═══ PREFLOP ACTION DESCRIPTION — Phase 30: More accurate with pot type ═══
     if (street !== 'preflop') {
-        // Infer likely preflop action from positions
-        const ipPositions = ['BTN', 'CO', 'HJ', 'MP'];
+        const ipPositions = ['BTN', 'CO', 'HJ', 'MP', 'MP+1', 'UTG+1', 'UTG'];
         const blinds = ['SB', 'BB'];
 
-        if (ipPositions.includes(heroPosition) && blinds.includes(villainPosition)) {
-            preflopAction = `${heroPosition} opens, ${villainPosition} calls`;
-        } else if (blinds.includes(heroPosition) && ipPositions.includes(villainPosition)) {
-            preflopAction = `${villainPosition} opens, ${heroPosition} calls`;
-        } else if (heroPosition === 'SB' && villainPosition === 'BB') {
-            preflopAction = 'SB completes, BB checks';
+        if (potType === '3-Bet Pot') {
+            // In a 3-bet pot, one player opened and the other 3-bet
+            if (ipPositions.includes(heroPosition) && blinds.includes(villainPosition)) {
+                preflopAction = `${heroPosition} opens, ${villainPosition} 3-bets, ${heroPosition} calls`;
+            } else if (blinds.includes(heroPosition) && ipPositions.includes(villainPosition)) {
+                preflopAction = `${villainPosition} opens, ${heroPosition} 3-bets, ${villainPosition} calls`;
+            } else {
+                preflopAction = `3-bet pot: ${heroPosition} vs ${villainPosition}`;
+            }
+        } else if (potType === '4-Bet Pot') {
+            preflopAction = `4-bet pot: ${heroPosition} vs ${villainPosition}`;
+        } else if (potType === 'Limped Pot') {
+            preflopAction = `Limped pot: ${heroPosition} vs ${villainPosition}`;
         } else {
-            preflopAction = `${heroPosition} vs ${villainPosition}`;
+            // Standard SRP
+            if (ipPositions.includes(heroPosition) && blinds.includes(villainPosition)) {
+                preflopAction = `${heroPosition} opens, ${villainPosition} calls`;
+            } else if (blinds.includes(heroPosition) && ipPositions.includes(villainPosition)) {
+                preflopAction = `${villainPosition} opens, ${heroPosition} calls`;
+            } else if (heroPosition === 'SB' && villainPosition === 'BB') {
+                preflopAction = 'SB completes, BB checks';
+            } else {
+                preflopAction = `${heroPosition} vs ${villainPosition}`;
+            }
         }
     }
 
-    return { preflopAction, actionLine, gameFormat };
+    return { preflopAction, actionLine, gameFormat, potType };
 }
 
 /**
@@ -1007,30 +1048,51 @@ export class DeterministicGTOEngine {
 
         // If solver has both Check and Bet actions → hero acts first
         const hasCheck = actionSet.has('c') || actionSet.has('x');
-        const hasBet = [...actionSet].some(a => a.startsWith('b'));
+        const hasBet = [...actionSet].some(a => a.startsWith('b') && a !== 'b'); // b + number = bet size
+        const hasGenericBet = actionSet.has('b'); // Generic 'b' might be bet or might be call in some encodings
         const hasFold = actionSet.has('f');
-        const hasCall = actionSet.has('call') || [...actionSet].some(a => a === 'c' && hasBet); // 'c' can mean call in some contexts
+        const hasCall = actionSet.has('call');
         const hasRaise = [...actionSet].some(a => a.startsWith('r'));
+        const hasAllin = actionSet.has('allin');
 
         if (street === 'preflop') {
-            // 'c' in preflop always means call (there's no check preflop unless BB checks option)
+            // ═══ Phase 30: Better preflop node detection ═══
+            // 'c' in preflop = call (except BB option check where 'x'/'check' is used)
             const hasCallPreflop = actionSet.has('c') || actionSet.has('call');
+
+            // BB option check: solver gives Check + Raise (no fold) = BB facing limp/call
+            // This is a special case: BB can check their option or raise
+            if (hasCheck && hasRaise && !hasFold && !hasCallPreflop) {
+                return 'preflop_bb_option'; // BB can check or raise
+            }
+
             if (hasFold && hasCallPreflop && hasRaise) return 'preflop_facing_raise'; // F/C/R = facing raise
             if (hasFold && hasRaise && !hasCallPreflop) return 'preflop_open';         // F/R only = RFI
             if (hasFold && hasCallPreflop && !hasRaise) return 'preflop_facing_raise'; // F/C only = facing raise, no 3bet option
+            // F/C/Allin = facing a jam
+            if (hasFold && hasCallPreflop && hasAllin) return 'preflop_facing_raise';
             return 'preflop_open';
         }
 
-        // Postflop: if solver has Check + Bet options → hero can bet or check (acting first or IP after check)
-        if (hasCheck && hasBet) return 'hero_bets_or_checks';
+        // ═══ POSTFLOP NODE DETECTION ═══
+        // Check + Bet options → hero can bet or check (acting first or IP after villain checks)
+        if (hasCheck && (hasBet || hasGenericBet)) return 'hero_bets_or_checks';
         if (hasCheck && !hasBet && !hasFold) return 'hero_bets_or_checks'; // Pure check node
+        if (actionSet.has('x') && (hasBet || hasGenericBet)) return 'hero_bets_or_checks';
 
-        // If solver has Fold + Call/Raise → hero is facing a bet
-        if (hasFold && (hasCall || hasRaise)) return 'hero_faces_bet';
-        if (hasFold && hasBet) return 'hero_faces_bet'; // Some solvers use 'b' for raise facing bet
+        // Fold + Call/Raise → hero is facing a bet
+        if (hasFold && (hasCall || hasRaise || hasAllin)) return 'hero_faces_bet';
+        if (hasFold && (hasBet || hasGenericBet)) return 'hero_faces_bet'; // Some solvers use 'b' for raise
+
+        // ═══ Phase 30: Handle edge case where 'c' means call in postflop context ═══
+        // If we see 'c' + fold + raise sizes, 'c' is definitely call (not check)
+        if (hasFold && hasCheck && hasRaise) {
+            // Ambiguous: 'c' could be call in this context since fold is present
+            return 'hero_faces_bet';
+        }
 
         // Fallback: infer from presence of check vs fold
-        if (hasCheck) return 'hero_bets_or_checks';
+        if (hasCheck || actionSet.has('x')) return 'hero_bets_or_checks';
         if (hasFold) return 'hero_faces_bet';
 
         return 'hero_bets_or_checks'; // Default assumption
@@ -1087,6 +1149,16 @@ export class DeterministicGTOEngine {
                 }
                 break;
 
+            case 'preflop_bb_option':
+                // BB option: check or raise (no fold needed — already invested)
+                if (!existingIds.has('c') && !existingIds.has('x')) {
+                    fillers.push({ id: 'x', text: 'Check' });
+                }
+                if (![...existingIds].some(id => id.startsWith('r'))) {
+                    fillers.push({ id: 'r', text: 'Raise' });
+                }
+                break;
+
             default:
                 // Minimal safe fillers
                 if (!existingIds.has('c') && !existingIds.has('x')) {
@@ -1103,7 +1175,7 @@ export class DeterministicGTOEngine {
 
     /**
      * Build a contextual action description based on solver data.
-     * Replaces the hardcoded "Villain checks" with accurate descriptions.
+     * Phase 29: Richer descriptions with bet sizing context and action line awareness.
      */
     buildActionDescription(solverActions, street, heroPosition, villainPosition) {
         const nodeType = this.detectNodeType(solverActions, street);
@@ -1111,6 +1183,7 @@ export class DeterministicGTOEngine {
         if (street === 'preflop') {
             if (nodeType === 'preflop_open') return 'Folded to you';
             if (nodeType === 'preflop_facing_raise') return `${villainPosition} opens`;
+            if (nodeType === 'preflop_bb_option') return `${villainPosition} limps — BB option`;
             return '';
         }
 
@@ -1118,12 +1191,21 @@ export class DeterministicGTOEngine {
         switch (nodeType) {
             case 'hero_bets_or_checks':
                 return `${villainPosition} checks to ${heroPosition}`;
-            case 'hero_faces_bet':
-                // If solver has raise options, villain's bet was smaller; if only call/fold, bigger bet
-                const hasRaise = solverActions.some(a => a.toLowerCase().startsWith('r'));
-                return hasRaise
-                    ? `${villainPosition} bets into ${heroPosition}`
-                    : `${villainPosition} bets into ${heroPosition}`;
+            case 'hero_faces_bet': {
+                // Infer villain's bet type from what the solver offers as responses
+                const raiseActions = solverActions.filter(a => a.toLowerCase().startsWith('r'));
+                const hasAllin = solverActions.some(a => a.toLowerCase() === 'allin');
+                const hasFold = solverActions.some(a => a.toLowerCase() === 'f');
+
+                // If only fold/call (no raise), villain likely made a large bet
+                if (raiseActions.length === 0 && hasAllin) {
+                    return `${villainPosition} bets big into ${heroPosition}`;
+                }
+                if (raiseActions.length === 0 && !hasAllin) {
+                    return `${villainPosition} jams into ${heroPosition}`;
+                }
+                return `${villainPosition} bets into ${heroPosition}`;
+            }
             default:
                 return `${villainPosition} checks to ${heroPosition}`;
         }
@@ -1149,96 +1231,256 @@ export class DeterministicGTOEngine {
                 return `${prefix}${heroPosition} — Folded to you. You hold ${heroHand}. Your action?`;
             } else if (nodeType === 'preflop_facing_raise') {
                 return `${prefix}${heroPosition} — ${villainPosition} opens. You hold ${heroHand}. Your action?`;
+            } else if (nodeType === 'preflop_bb_option') {
+                return `${prefix}BB — ${villainPosition} limps. You hold ${heroHand}. Check or raise?`;
             }
             return `${prefix}${heroPosition} — You hold ${heroHand}. Your action?`;
         }
 
         const handStrength = this.categorizeHand(heroHand, board);
-        const preflopLine = context.preflopAction ? `${context.preflopAction}. ` : '';
+        // Phase 30: Include pot type in preflop context when it's not a standard SRP
+        const potTypeLabel = (context.potType && context.potType !== 'SRP') ? ` (${context.potType})` : '';
+        const preflopLine = context.preflopAction ? `${context.preflopAction}${potTypeLabel}. ` : '';
         const streetLabel = street.charAt(0).toUpperCase() + street.slice(1);
 
-        // Board texture description for turn/river
+        // ═══ Phase 29: Rich board texture description ═══
         const textureDesc = this.describeBoardTexture(board, street);
         const texturePart = textureDesc ? ` (${textureDesc})` : '';
 
-        // Runout card highlight for turn/river
+        // ═══ Phase 29: Runout card with significance ═══
         let runoutPart = '';
         if (street === 'turn' && board.length >= 4) {
-            runoutPart = ` → ${board[3]}`;
+            const significance = this.describeRunoutSignificance(board, street);
+            runoutPart = significance
+                ? ` → ${board[3]} (${significance})`
+                : ` → ${board[3]}`;
         } else if (street === 'river' && board.length >= 5) {
-            runoutPart = ` → ${board[4]}`;
+            const significance = this.describeRunoutSignificance(board, street);
+            runoutPart = significance
+                ? ` → ${board[4]} (${significance})`
+                : ` → ${board[4]}`;
         }
 
-        // SPR context for river decisions (pot-to-stack ratio matters a lot)
+        // SPR context — shows when stack-to-pot ratio is decision-critical
         let sprPart = '';
-        if (street === 'river' && stackDepth && pot) {
-            const effectiveStack = stackDepth - (pot / 2); // rough remaining stack
+        if (stackDepth && pot) {
+            const effectiveStack = stackDepth - (pot / 2);
             const spr = effectiveStack / pot;
-            if (spr < 1) sprPart = ' [Short SPR]';
-            else if (spr < 3) sprPart = ' [Medium SPR]';
+            if (spr < 0.5) sprPart = ' [Committed — very short SPR]';
+            else if (spr < 1) sprPart = ' [Short SPR]';
+            else if (spr < 3 && street === 'river') sprPart = ' [Medium SPR]';
         }
+
+        // ═══ Phase 29: Villain bet sizing context ═══
+        // When facing a bet, extract what size villain might have used from solver actions
+        let villainAction = '';
+        if (nodeType === 'hero_faces_bet') {
+            // Infer villain bet size from the raise options available
+            // If solver offers raise sizes, villain's bet was proportional to pot
+            const raiseActions = solverActions.filter(a => a.toLowerCase().startsWith('r'));
+            const hasSmallRaise = raiseActions.some(a => /r(50|75)/.test(a.toLowerCase()));
+            const hasLargeRaise = raiseActions.some(a => /r(100|200|300)/.test(a.toLowerCase()));
+            villainAction = `${villainPosition} bets`;
+        } else {
+            villainAction = `${villainPosition} checks to you`;
+        }
+
+        // ═══ Phase 29: Action line context from scenario hash ═══
+        const actionContext = context.actionLine ? ` [${context.actionLine} line]` : '';
 
         switch (nodeType) {
             case 'hero_bets_or_checks':
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}. ${villainPosition} checks to you.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainPosition} checks to you.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             case 'hero_faces_bet':
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}. ${villainPosition} bets.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext} ${villainAction}.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
             default:
-                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
+                return `${preflopLine}${streetLabel}: [${boardStr}]${texturePart}${runoutPart}.${actionContext}${sprPart} You hold ${heroHand} (${handStrength}). Your action?`;
         }
     }
 
     /**
-     * Describe board texture concisely — GTOW shows texture tags.
-     * e.g., "Monotone", "Two-tone", "Paired", "Rainbow", "Straight-heavy"
+     * Describe board texture in natural language — GTO Wizard style.
+     * Returns rich descriptions like "Dry ace-high rainbow" or "Wet low monotone with straight draws"
+     * instead of just tags. This reads like how a coach would describe the board.
      */
     describeBoardTexture(board, street) {
         if (!board || board.length < 3) return '';
-        // Defensive: filter out null/undefined/empty cards
         const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
         if (validBoard.length < 3) return '';
 
         const ranks = validBoard.map(c => c[0].toUpperCase());
         const suits = validBoard.map(c => c[1]?.toLowerCase());
         const rankVals = ranks.map(r => '23456789TJQKA'.indexOf(r));
+        const RANK_NAMES = { 0: '2', 1: '3', 2: '4', 3: '5', 4: '6', 5: '7', 6: '8', 7: '9', 8: 'T', 9: 'J', 10: 'Q', 11: 'K', 12: 'A' };
 
-        // Suit texture
+        // ═══ SUIT ANALYSIS ═══
         const suitCounts = {};
         suits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
         const maxSuitCount = Math.max(...Object.values(suitCounts));
+        const isMonotone = maxSuitCount === validBoard.length && validBoard.length >= 3;
+        const hasFlushDraw = maxSuitCount >= 2 && !isMonotone;
+        const hasFlushComplete = maxSuitCount >= 3 && validBoard.length >= 4;
+        const isRainbow = Object.values(suitCounts).every(c => c === 1);
 
-        let suitDesc = '';
-        if (maxSuitCount === validBoard.length) suitDesc = 'Monotone';       // ALL cards same suit
-        else if (maxSuitCount >= 3 && validBoard.length === 5) suitDesc = 'Flush possible';
-        else if (maxSuitCount >= 3) suitDesc = 'Flush draw';            // 3 of same suit on flop/turn
-        else if (maxSuitCount === 2) suitDesc = 'Two-tone';
-        else suitDesc = 'Rainbow';
-
-        // Pairing
+        // ═══ PAIRING ═══
         const rankCounts = {};
         ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
         const maxRankCount = Math.max(...Object.values(rankCounts));
-        let pairDesc = '';
-        if (maxRankCount >= 3) pairDesc = 'Trips';
-        else if (maxRankCount === 2) pairDesc = 'Paired';
+        const isPaired = maxRankCount === 2;
+        const isTrips = maxRankCount >= 3;
+        const pairedRank = isPaired ? Object.entries(rankCounts).find(([r, c]) => c >= 2)?.[0] : null;
 
-        // Connectivity (check for 3+ cards within 4-rank window)
+        // ═══ CONNECTIVITY ═══
         const sorted = [...new Set(rankVals)].sort((a, b) => a - b);
-        let connected = false;
-        for (let i = 0; i < sorted.length - 2; i++) {
-            if (sorted[i + 2] - sorted[i] <= 4) { connected = true; break; }
+        let maxConnect = 0;
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const gap = sorted[i + 1] - sorted[i];
+            if (gap <= 2) maxConnect++;
         }
-        let connectDesc = connected ? 'Connected' : '';
+        const isConnected = maxConnect >= 2; // 3+ cards within range
+        const hasGutshot = maxConnect >= 1;
+        const isStraightPossible = sorted.length >= 3 && (sorted[sorted.length - 1] - sorted[0]) <= 4;
 
-        // High card texture
-        const highCards = rankVals.filter(v => v >= 10).length; // T, J, Q, K, A
-        let highDesc = '';
-        if (highCards >= 3) highDesc = 'Broadway-heavy';
-        else if (highCards === 0) highDesc = 'Low';
+        // ═══ HIGH CARD TEXTURE ═══
+        const highCards = rankVals.filter(v => v >= 9).length; // T+ are high
+        const highestRank = Math.max(...rankVals);
+        const lowestRank = Math.min(...rankVals);
+        const isAceHigh = highestRank === 12;
+        const isKingHigh = highestRank === 11 && !isAceHigh;
+        const isLow = highestRank <= 7; // 9-high or lower
+        const isBroadwayHeavy = highCards >= 3;
+        const isMidrange = !isLow && highCards <= 1;
 
-        // Combine — pick the 2 most relevant descriptors
-        const parts = [pairDesc, suitDesc, connectDesc || highDesc].filter(Boolean);
-        return parts.slice(0, 2).join(', ');
+        // ═══ WETNESS SCORE ═══
+        let wetness = 0;
+        if (isConnected) wetness += 2;
+        else if (hasGutshot) wetness += 1;
+        if (isMonotone) wetness += 3;
+        else if (hasFlushDraw) wetness += 1;
+        if (!isPaired && !isTrips) wetness += 0.5; // unpaired = more draws
+        const isWet = wetness >= 2.5;
+        const isDry = wetness <= 1;
+
+        // ═══ BUILD NATURAL LANGUAGE ═══
+        const parts = [];
+
+        // Wetness descriptor
+        if (isWet) parts.push('Wet');
+        else if (isDry) parts.push('Dry');
+        else parts.push('Semi-wet');
+
+        // Height descriptor
+        if (isAceHigh) parts.push('ace-high');
+        else if (isKingHigh) parts.push('king-high');
+        else if (isBroadwayHeavy) parts.push('broadway');
+        else if (isLow) parts.push('low');
+        else if (isMidrange) parts.push('mid-range');
+
+        // Suit descriptor
+        if (isMonotone) parts.push('monotone');
+        else if (hasFlushComplete) parts.push('flush-completed');
+        else if (isRainbow) parts.push('rainbow');
+        else parts.push('two-tone');
+
+        // Special descriptors
+        const extras = [];
+        if (isPaired) extras.push('paired board');
+        if (isTrips) extras.push('trips on board');
+        if (isConnected) extras.push('coordinated');
+        if (isStraightPossible && !isConnected) extras.push('straight possible');
+
+        let desc = parts.join(' ');
+        if (extras.length > 0) desc += ` — ${extras.join(', ')}`;
+
+        return desc;
+    }
+
+    /**
+     * Phase 29: Describe significance of the turn/river card.
+     * GTO Wizard contextualizes runout cards — "flush-completing river"
+     * or "board pairs on the turn" changes decision-making dramatically.
+     */
+    describeRunoutSignificance(board, street) {
+        if (!board || board.length < 4) return '';
+        const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
+
+        if (street === 'turn' && validBoard.length >= 4) {
+            return this._describeCardImpact(validBoard.slice(0, 3), validBoard[3]);
+        }
+        if (street === 'river' && validBoard.length >= 5) {
+            return this._describeCardImpact(validBoard.slice(0, 4), validBoard[4]);
+        }
+        return '';
+    }
+
+    /**
+     * Phase 29: Analyze what a new card changes about the board.
+     */
+    _describeCardImpact(existingBoard, newCard) {
+        if (!newCard || newCard.length < 2) return '';
+
+        const newRank = newCard[0].toUpperCase();
+        const newSuit = newCard[1]?.toLowerCase();
+        const newVal = '23456789TJQKA'.indexOf(newRank);
+
+        const existRanks = existingBoard.map(c => c[0].toUpperCase());
+        const existSuits = existingBoard.map(c => c[1]?.toLowerCase());
+        const existVals = existRanks.map(r => '23456789TJQKA'.indexOf(r));
+
+        const impacts = [];
+
+        // Check if new card pairs the board
+        if (existRanks.includes(newRank)) {
+            const RANK_DISPLAY = { 'T': 'ten', 'J': 'jack', 'Q': 'queen', 'K': 'king', 'A': 'ace' };
+            const display = RANK_DISPLAY[newRank] || newRank;
+            impacts.push(`pairs the ${display}`);
+        }
+
+        // Check if new card completes a flush
+        const suitCounts = {};
+        existSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const sameSuitOnBoard = suitCounts[newSuit] || 0;
+        if (sameSuitOnBoard >= 2) {
+            impacts.push('completes a possible flush');
+        } else if (sameSuitOnBoard === 1) {
+            impacts.push('adds a second flush card');
+        }
+
+        // Check if new card completes a straight
+        const allVals = new Set([...existVals, newVal]);
+        for (let start = 0; start <= 8; start++) {
+            const window = [start, start + 1, start + 2, start + 3, start + 4];
+            if (window.every(v => allVals.has(v))) {
+                // Check that the new card is part of this straight
+                if (window.includes(newVal)) {
+                    impacts.push('completes a possible straight');
+                    break;
+                }
+            }
+        }
+        // Wheel check
+        const wheelVals = [12, 0, 1, 2, 3];
+        if (wheelVals.every(v => allVals.has(v)) && wheelVals.includes(newVal)) {
+            if (!impacts.includes('completes a possible straight')) {
+                impacts.push('completes a wheel straight');
+            }
+        }
+
+        // Check if it's an overcard
+        const highestExist = Math.max(...existVals);
+        if (newVal > highestExist) {
+            const RANK_DISPLAY = { 'T': 'ten', 'J': 'jack', 'Q': 'queen', 'K': 'king', 'A': 'ace' };
+            const display = RANK_DISPLAY[newRank] || newRank;
+            impacts.push(`overcard (${display})`);
+        }
+
+        // Check if it's a blank/brick (low card, no draws completed)
+        if (impacts.length === 0) {
+            if (newVal <= 5) impacts.push('brick — low card changes nothing');
+            else impacts.push('relatively blank runout');
+        }
+
+        return impacts.join(', ');
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1738,6 +1980,31 @@ export class DeterministicGTOEngine {
                 }
                 return `${heroHand}: Fold ${freqPct}% vs ${vs}. At the edge of the defending range.`;
             }
+        }
+
+        // ═══ Phase 30: BB OPTION (check or raise vs limp) ═══
+        if (nodeType === 'preflop_bb_option') {
+            const vs = villainPosition || 'limper';
+            if (isRaise) {
+                if (freq >= 0.95) {
+                    if (isPremium || isSuperPremium) return `${heroHand}: Always raise ${handDesc} vs a limper. Punish passive play and build the pot with a premium.`;
+                    if (isAx && isSuited) return `${heroHand}: Pure raise vs ${vs}'s limp. ${handDesc} plays well as a value-iso — charge weaker hands to see a flop.`;
+                    return `${heroHand}: Raise vs the limp. ${handDesc} is strong enough to iso-raise and take the initiative.`;
+                }
+                const checkFreq = (handActions['x'] || handActions['c'] || 0) * 100;
+                if (checkFreq > 10) {
+                    return `${heroHand}: Raise ${freqPct}%, check ${checkFreq.toFixed(0)}% from BB. ${handDesc} — sometimes iso-raising, sometimes trapping in the big blind.`;
+                }
+                return `${heroHand}: Raise ${freqPct}% from BB. ${handDesc} at the boundary of the iso-raise range.`;
+            }
+            // Checking the BB option
+            if (freq >= 0.95) {
+                if (handDesc.includes('air') || handDesc.includes('offsuit')) {
+                    return `${heroHand}: Check from BB vs limp. ${handDesc} — see a free flop with a marginal hand.`;
+                }
+                return `${heroHand}: Check from BB. ${handDesc} prefers to see a flop in position rather than bloating the pot.`;
+            }
+            return `${heroHand}: Check ${freqPct}% from BB. ${handDesc} — mixed between trapping and raising.`;
         }
 
         // Fallback

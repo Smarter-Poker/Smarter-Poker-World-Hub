@@ -3325,11 +3325,19 @@ function UniversalDynamicTable({
                                                     </div>
                                                 )}
 
-                                                {/* Board texture context */}
-                                                {boardTexture && (
+                                                {/* Board texture context — Phase 29: uses engine's rich description when available */}
+                                                {(boardTexture || question?.scenario?.board) && (
                                                     <div style={{ marginBottom: 4 }}>
                                                         <strong style={{ color: '#94a3b8' }}>Board:</strong>{' '}
-                                                        {boardTexture.suitTexture}{boardTexture.connectTexture ? ` + ${boardTexture.connectTexture}` : ''}.
+                                                        {(() => {
+                                                            // Try to extract rich texture from question text (engine generates it)
+                                                            const qText = question?.question || '';
+                                                            const textureMatch = qText.match(/\(([^)]*(?:Wet|Dry|Semi-wet|monotone|rainbow|two-tone|ace-high|king-high|broadway|low|mid-range)[^)]*)\)/i);
+                                                            if (textureMatch) return textureMatch[1];
+                                                            // Fallback to basic classifier
+                                                            if (boardTexture) return `${boardTexture.suitTexture}${boardTexture.connectTexture ? ` + ${boardTexture.connectTexture}` : ''}`;
+                                                            return '';
+                                                        })()}.
                                                         {heroPosition && ` Hero ${heroPosition}${question?.scenario?.villainPosition ? ` vs ${question.scenario.villainPosition}` : ''}.`}
                                                     </div>
                                                 )}
