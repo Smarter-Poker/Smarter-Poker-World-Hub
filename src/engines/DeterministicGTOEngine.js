@@ -1742,48 +1742,84 @@ export class DeterministicGTOEngine {
         const isNutted = hs.includes('set') || hs.includes('straight') || hs.includes('flush') || hs.includes('full house') || hs.includes('quads');
         const isTopPair = hs.includes('top pair');
         const isDraw = hs.includes('draw') || hs.includes('oesd') || hs.includes('gutshot');
+        const isMonster = hs.includes('monster');
+        const isCombo = hs.includes('combo');
         const isAir = hs.includes('air') || hs.includes('overcard') || hs.includes('no pair');
         const isOverpair = hs.includes('overpair');
+        const isSecondPair = hs.includes('second pair');
+        const isBottomPair = hs.includes('bottom pair');
+        const isTwoPair = hs.includes('two pair');
+        const isTrips = hs.includes('trips');
 
-        // Small bets (16-33%)
+        // Phase 55: Raise-specific sizing reasoning
+        if (isRaise) {
+            if (sizePct <= 75) {
+                if (isNutted || isTrips) return 'Min-raise with a monster — disguise hand strength while building the pot. Looks like a bluff.';
+                if (isDraw || isMonster) return 'Small raise as a semi-bluff — building fold equity cheaply with backup equity if called.';
+                return 'Small raise — polarized between value and bluffs, minimizing risk.';
+            }
+            if (sizePct <= 150) {
+                if (isNutted) return 'Standard raise for value — building the pot while keeping villain\'s calling range wide.';
+                if (isDraw) return 'Raise with a draw — leveraging fold equity plus implied odds if you hit.';
+                if (isTopPair) return 'Raise for protection — charge draws and deny equity on a dynamic board.';
+                return 'Standard raise size polarizes the range between value and bluffs.';
+            }
+            if (isNutted) return 'Large raise to extract maximum value — villain is committed with any reasonable holding.';
+            if (isAir) return 'Large raise as a bluff — representing an extremely strong range with maximum pressure.';
+            return 'Oversize raise applies extreme pressure — only the strongest hands can continue.';
+        }
+
+        // Small bets (16-33%) — merged/range betting strategy
         if (sizePct <= 33) {
-            if (isNutted && texture.dry) return 'Small sizing with a nutted hand on a dry board — keeping villain in the pot and building it gradually.';
-            if (isTopPair && texture.dry) return 'Small sizing with top pair on a dry board — few draws to worry about, extract thin value.';
-            if (isAir && street === 'flop') return 'Small c-bet bluff — minimal risk with maximum frequency, attacking a capped range.';
-            if (texture.aceHigh) return 'Small sizing on ace-high texture leverages range advantage — villain folds or calls with weak pairs.';
-            if (texture.dry || texture.paired) return 'Small sizing on a static board denies equity cheaply.';
-            if (street === 'flop') return 'Efficient c-bet sizing — small bets work across the entire range on this texture.';
-            return 'Small sizing minimizes risk while applying pressure.';
+            if (isNutted && texture.dry) return 'Small sizing with a nutted hand on a dry board — keeping villain\'s entire range in. The board runs out well for you.';
+            if (isTopPair && texture.dry) return 'Small sizing with top pair on a dry board — range bet exploiting range advantage. Few draws threaten you.';
+            if (isTwoPair && texture.dry) return 'Small sizing with two pair on a dry board — trapping, as villains can\'t put you on this exact hand.';
+            if (isAir && street === 'flop') return 'Small c-bet bluff — range betting at minimum cost. Villain folds their weakest hands, you lose little when called.';
+            if (isDraw && street === 'flop') return 'Small c-bet with a draw — cheap equity denial that sets up the turn. Low risk, high reward on favorable runouts.';
+            if (texture.aceHigh) return 'Range bet sizing on ace-high board — IP player has range advantage. Small bets target the entire range.';
+            if (texture.dry && texture.paired) return 'Small sizing on paired dry texture — few combinations hit this board. Range bet denies equity.';
+            if (street === 'flop') return 'Range c-bet sizing — on this texture, betting small with your entire range is more profitable than checking.';
+            if (street === 'turn') return 'Small turn probe — testing villain\'s range after a checked flop. Minimal investment with fold equity.';
+            return 'Small sizing minimizes risk while applying range-wide pressure.';
         }
 
-        // Medium bets (40-66%)
+        // Medium bets (40-66%) — value-heavy, protection-focused
         if (sizePct <= 66) {
-            if (isNutted && texture.wet) return 'Medium sizing builds the pot with a nutted hand while charging draws.';
-            if (isTopPair && texture.connected) return 'Medium sizing with top pair on a connected board — charge draws and protect equity.';
-            if (isDraw && texture.wet) return 'Semi-bluff sizing — enough fold equity to be profitable, plus backup equity when called.';
-            if (isOverpair) return 'Medium sizing with an overpair — extract value while keeping worse pairs calling.';
-            if (street === 'turn') return 'Medium turn bet sets up a pot-sized river shove — geometric sizing.';
-            if (texture.wet || texture.connected) return 'Medium sizing on a coordinated board charges draws and builds value.';
-            return 'Medium sizing balances the betting range — enough to build the pot, not so much that only better hands call.';
+            if (isNutted && texture.wet) return 'Medium sizing builds the pot with a monster while charging draws — the board is dynamic and you need to protect.';
+            if (isNutted && street === 'turn') return 'Medium sizing on the turn sets up a geometric river shove — betting ~66% on turn leaves a pot-sized jam on river.';
+            if (isTopPair && texture.connected) return 'Medium sizing with top pair on a connected board — charging straight and flush draws while extracting value.';
+            if (isTopPair && texture.wet) return 'Medium protection bet with top pair — too many draws to give a free card. Price villain\'s draws incorrectly.';
+            if (isDraw && texture.wet) return 'Semi-bluff sizing — enough fold equity to profit immediately, plus 30%+ equity when called.';
+            if (isCombo || isMonster) return 'Medium sizing with a combo draw — fold equity + massive equity when called makes this highly profitable.';
+            if (isOverpair) return 'Medium sizing with an overpair — extract value from top pair and worse while keeping the range balanced.';
+            if (isTwoPair) return 'Medium sizing with two pair — building the pot against top pair and draws before the board changes.';
+            if (isSecondPair && texture.dry) return 'Medium sizing with second pair for thin value — targeting bottom pair and ace-high hands.';
+            if (street === 'turn') return 'Geometric turn sizing — 60-66% bets on turn set up a natural pot-sized river shove.';
+            if (texture.wet || texture.connected) return 'Medium sizing on a coordinated board — polarized enough to deny equity, merged enough to get called.';
+            return 'Medium sizing builds the pot while keeping villain\'s calling range wide.';
         }
 
-        // Large bets (75-100%)
+        // Large bets (75-100%) — polarized strategy
         if (sizePct <= 100) {
-            if (isNutted) return 'Large sizing to maximize value from a monster — villain is priced in with strong hands.';
-            if (isDraw && street !== 'river') return 'Large semi-bluff — maximum fold equity with a draw, and still profitable if called.';
-            if (isAir && street === 'river') return 'Pot-sized bluff polarizes — looks like the nuts, putting villain in a tough spot.';
-            if (texture.flushy || texture.monotone) return 'Large sizing on a flushy board — strong hands bet big, draws are priced out.';
-            if (street === 'river') return 'Pot-sized river bet polarizes between value and bluffs.';
-            return 'Large sizing polarizes — betting this big commits to the hand\'s story.';
+            if (isNutted && street === 'river') return 'Pot-sized value bet on the river — villain\'s bluff-catchers are getting 2:1 odds. You need 33% bluffs to stay balanced.';
+            if (isNutted) return 'Large sizing to build a big pot with a monster — villain is priced in with strong-but-second-best hands.';
+            if (isDraw && street !== 'river') return 'Large semi-bluff — maximum fold equity with a draw. If villain calls, you still have outs to improve.';
+            if (isAir && street === 'river') return 'Pot-sized river bluff — fully polarized. You\'re repping the nuts and villain must be strong to call.';
+            if (isAir && street === 'turn') return 'Large turn barrel as a bluff — building a credible story. Villain must defend with strong hands.';
+            if (isTopPair && texture.wet) return 'Large bet with top pair on a wet board — forced to go big for protection. Can\'t risk a cheap draw completion.';
+            if (texture.flushy || texture.monotone) return 'Large sizing on a flush-possible board — polarized between flushes and bluffs. Medium hands check.';
+            if (street === 'river') return 'Pot-sized river bet — polarized between value and bluffs. At this size, your range should be ~67% value, ~33% bluffs.';
+            return 'Large sizing polarizes your range — only very strong hands and bluffs bet this big.';
         }
 
         // Overbets (125%+) / All-in
         if (sizePct >= 125 || sizePct === 999) {
-            if (isNutted && street === 'river') return 'Overbet with the nuts on the river — extracting maximum value from hands that can\'t fold.';
-            if (isNutted) return 'Overbet builds a massive pot with a nutted hand — villain\'s bluff-catchers are put to the test.';
-            if (isAir && street === 'river') return 'Overbet bluff on the river — representing the nuts with maximum pressure. Villain must be very strong to call.';
-            if (isDraw && sizePct === 999) return 'All-in semi-bluff — maximum fold equity plus draw equity creates a profitable jam.';
-            return 'Overbet applies extreme pressure — only the strongest hands can continue.';
+            if (isNutted && street === 'river') return 'River overbet for max value — targeting villain\'s second-nut type hands that can\'t fold. This is the most +EV sizing with the nuts.';
+            if (isNutted) return 'Overbet with a monster — puts villain\'s entire stack at risk. Strong hands can\'t fold, building a massive pot.';
+            if (isAir && street === 'river') return 'Overbet bluff — representing a polarized nutted range. Villain needs extremely strong hands to call, creating profitable bluffs.';
+            if ((isDraw || isCombo) && sizePct === 999) return 'All-in semi-bluff — maximum fold equity combined with draw equity. The math works: fold equity + equity when called = profitable.';
+            if (isTopPair && sizePct === 999) return 'All-in for protection — with a short stack-to-pot ratio, shoving denies villain\'s equity realization.';
+            return 'Overbet applies extreme pressure — exploiting range advantage. Only the strongest holdings continue.';
         }
 
         return '';
