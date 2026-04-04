@@ -187,6 +187,25 @@ export default function PokerNearMeLobby() {
     return () => { if (typeof unsub === 'function') unsub(); };
   }, []);
 
+  // ─── Listen for review submissions to refresh review stats for that venue ───
+  useEffect(() => {
+    const handleReviewSubmitted = (e) => {
+      const venueId = e?.detail?.venueId;
+      if (!venueId) return;
+      // Re-fetch stats for this specific venue to show updated rating
+      fetch('/api/poker/reviews?stats_only=true&venue_ids=' + venueId)
+        .then(r => r.json())
+        .then(j => {
+          if (j.success && j.stats) {
+            setReviewStatsMap(prev => ({ ...prev, ...j.stats }));
+          }
+        })
+        .catch(() => { /* silent */ });
+    };
+    window.addEventListener('pnm:review-submitted', handleReviewSubmitted);
+    return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
+  }, []);
+
   // ─── Core State ───
   const [activePod, setActivePod] = useState(null);
   const [showPanel, setShowPanel] = useState(false);

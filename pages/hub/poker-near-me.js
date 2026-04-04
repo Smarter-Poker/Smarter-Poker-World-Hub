@@ -279,6 +279,37 @@ export default function PokerNearMePage() {
     // Map fullscreen modal state
     const [mapFullscreen, setMapFullscreen] = useState(false);
 
+    // ─── Batch fetch review stats for venue cards (star ratings) ───
+    const [pnmReviewStatsMap, setPnmReviewStatsMap] = useState({});
+    const pnmReviewStatsRef = useRef(pnmReviewStatsMap);
+    pnmReviewStatsRef.current = pnmReviewStatsMap;
+    useEffect(() => {
+        if (venues.length === 0) return;
+        const newIds = venues
+            .map(v => v.id)
+            .filter(id => id && !pnmReviewStatsRef.current[String(id)])
+            .slice(0, 50);
+        if (newIds.length === 0) return;
+        fetch('/api/poker/reviews?stats_only=true&venue_ids=' + newIds.join(','))
+            .then(r => r.json())
+            .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
+            .catch(() => { /* silent */ });
+    }, [venues]);
+
+    // ─── Listen for review submissions to refresh review stats for that venue ───
+    useEffect(() => {
+        const handleReviewSubmitted = (e) => {
+            const venueId = e?.detail?.venueId;
+            if (!venueId) return;
+            fetch('/api/poker/reviews?stats_only=true&venue_ids=' + venueId)
+                .then(r => r.json())
+                .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
+                .catch(() => { /* silent */ });
+        };
+        window.addEventListener('pnm:review-submitted', handleReviewSubmitted);
+        return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
+    }, []);
+
     // Review panel state (Feature #9)
     const [reviewVenue, setReviewVenue] = useState(null);
 
@@ -1657,6 +1688,7 @@ export default function PokerNearMePage() {
 
                                 onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                 onNavigate={(path) => router.push(path)}
+                                reviewStats={pnmReviewStatsMap[String(venue.id)]}
                             />
                         );
                     })}
@@ -2100,6 +2132,7 @@ export default function PokerNearMePage() {
                                     hasPromo={promotionVenueIds.has(String(venue.id))}
                                     onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                     onNavigate={(path) => router.push(path)}
+                                    reviewStats={pnmReviewStatsMap[String(venue.id)]}
                                 />
                                 </div>
                             );

@@ -172,6 +172,12 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
                 setPhotos([]);
                 setShowWriteReview(false);
                 fetchReviews();
+                // Emit cross-page event so lobby pages can invalidate cached review stats
+                try {
+                    window.dispatchEvent(new CustomEvent('pnm:review-submitted', {
+                        detail: { venueId, rating: newRating }
+                    }));
+                } catch { /* silent */ }
             }
         } catch (err) {
             console.error('Failed to submit review:', err);
