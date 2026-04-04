@@ -647,17 +647,28 @@ function detectActionType(text) {
     if (/fold/i.test(lower)) return 'fold';
     if (/check/i.test(lower)) return 'check';
     if (/call/i.test(lower)) return 'call';
-    if (/raise|bet|3[- ]?bet|4[- ]?bet|all[- ]?in|shove|push|jam/i.test(lower)) return 'raise';
+    if (/all[- ]?in|shove|push|jam/i.test(lower)) return 'allin';
+    if (/overbet|1[2-9]\d%|[2-9]\d\d%/i.test(lower)) return 'overbet';
+    if (/raise|3[- ]?bet|4[- ]?bet/i.test(lower)) return 'raise';
+    if (/bet\s*pot|bet\s*100%/i.test(lower)) return 'betpot';
+    if (/bet\s*(6[0-9]|7[0-9]|8[0-9]|9[0-9])%/i.test(lower)) return 'betlarge';
+    if (/bet/i.test(lower)) return 'betsmall';
     return 'neutral';
 }
 
-// GTO Wizard-style color-coded action buttons — matches their exact scheme
-// CHECK = green passive, FOLD = muted blue-grey, CALL = teal, RAISE/BET = red/salmon
+// Phase 28: GTO Wizard-style color-coded action buttons with sizing differentiation
+// CHECK = green passive, FOLD = muted blue-grey, CALL = teal
+// BET/RAISE = red intensity gradient: small bets lighter, big bets deeper, overbet/allin darkest
 const ACTION_COLORS = {
     fold: { bg: '#334155', border: '#1e293b', text: '#f8fafc', accent: '#475569' },
     check: { bg: '#059669', border: '#047857', text: '#f0fdf4', accent: '#10b981' },
     call: { bg: '#2563eb', border: '#1d4ed8', text: '#eff6ff', accent: '#3b82f6' },
+    betsmall: { bg: '#b91c1c', border: '#991b1b', text: '#fef2f2', accent: '#dc2626' },
+    betlarge: { bg: '#dc2626', border: '#b91c1c', text: '#fef2f2', accent: '#ef4444' },
+    betpot: { bg: '#ef4444', border: '#dc2626', text: '#fef2f2', accent: '#f87171' },
     raise: { bg: '#dc2626', border: '#b91c1c', text: '#fef2f2', accent: '#ef4444' },
+    overbet: { bg: '#7f1d1d', border: '#991b1b', text: '#fecaca', accent: '#b91c1c' },
+    allin: { bg: '#450a0a', border: '#7f1d1d', text: '#fecaca', accent: '#991b1c' },
     neutral: { bg: '#334155', border: '#1e293b', text: '#f8fafc', accent: '#475569' },
 };
 
