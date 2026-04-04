@@ -549,7 +549,7 @@ export default function PokerNearMeLobby() {
     if (!ids) return;
     fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
       .then(r => r.json())
-      .then(j => { if (j.success && j.counts) setCheckinCounts(j.counts); })
+      .then(j => { if (j.success && j.counts) setCheckinCounts(prev => ({ ...prev, ...j.counts })); })
       .catch(() => { /* silent */ });
   }, [venues]);
 

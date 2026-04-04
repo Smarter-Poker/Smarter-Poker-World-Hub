@@ -161,7 +161,10 @@ export default function TourDetailPage() {
       fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code)).catch(() => ({ ok: false }))
     ]);
     if (!tourRes.ok) throw new Error(`Request failed (${tourRes.status})`);
-    const [tj, aj, rj, fj] = await Promise.all([tourRes.json(), activityRes.json(), resultsRes.json(), followRes.json()]);
+    const tj = await tourRes.json();
+    const aj = activityRes.ok ? await activityRes.json().catch(() => ({})) : {};
+    const rj = resultsRes.ok ? await resultsRes.json().catch(() => ({})) : {};
+    const fj = followRes.ok ? await followRes.json().catch(() => ({})) : {};
     return {
       tour: tj.data && tj.data.length > 0 ? tj.data[0] : null,
       activities: aj.success ? (Array.isArray(aj.activities || aj.data) ? (aj.activities || aj.data) : []) : [],
@@ -178,7 +181,10 @@ export default function TourDetailPage() {
   function handleFollow() {
     const newState = !isFollowed;
     setIsFollowed(newState);
-    setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
+    setFollowerCount(prev => {
+      const base = prev !== null ? prev : (swrData?.followerCount || 0);
+      return newState ? base + 1 : Math.max(0, base - 1);
+    });
 
     // Persist follow state to localStorage for instant load next visit
     try {
@@ -278,7 +284,7 @@ export default function TourDetailPage() {
           <div className="error-container">
             <div className="error-icon">!</div>
             <h2 className="error-title">Tour Not Found</h2>
-            <p className="error-text">{error}</p>
+            <p className="error-text">{error?.message || 'An error occurred loading this tour.'}</p>
           </div>
         )}
 
@@ -383,13 +389,13 @@ export default function TourDetailPage() {
                   </div>
                 )}
 
-                {tour.typical_buyins && (tour.typical_buyins.min || tour.typical_buyins.max) && (
+                {tour.typical_buyins && (tour.typical_buyins.min != null || tour.typical_buyins.max != null) && (
                   <div className="about-item">
                     <span className="about-label">Typical Buy-In Range</span>
                     <span className="about-value">
-                      {tour.typical_buyins.min && tour.typical_buyins.max
+                      {tour.typical_buyins.min != null && tour.typical_buyins.max != null
                         ? (formatMoney(tour.typical_buyins.min) + ' - ' + formatMoney(tour.typical_buyins.max))
-                        : tour.typical_buyins.min
+                        : tour.typical_buyins.min != null
                           ? ('From ' + formatMoney(tour.typical_buyins.min))
                           : ('Up to ' + formatMoney(tour.typical_buyins.max))}
                       {tour.typical_buyins.main_event && (

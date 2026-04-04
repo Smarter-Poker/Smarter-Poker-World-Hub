@@ -347,7 +347,7 @@ export default function PokerToursPage() {
         }
 
         return result;
-    }, [tours, selectedType, selectedRegion, searchQuery, sortBy]);
+    }, [tours, selectedType, selectedRegion, searchQuery, sortBy, parseStopDates]);
 
     // ─── Favorites toggle ───
     const toggleFavorite = useCallback((tourCode, e) => {
