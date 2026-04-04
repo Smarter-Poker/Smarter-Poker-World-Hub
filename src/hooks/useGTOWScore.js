@@ -663,6 +663,65 @@ export default function useGTOWScore() {
         });
     }, [handHistory]);
 
+    // ═══ Phase 59: Hand type performance tracking ═══
+    const handTypePerformance = useMemo(() => {
+        if (handHistory.length < 5) return null;
+
+        // Categorize each hand by type
+        const typeStats = {};
+        const categorize = (heroCards) => {
+            if (!heroCards) return 'unknown';
+            const cards = Array.isArray(heroCards) ? heroCards : (typeof heroCards === 'string' ? heroCards.split(' ').filter(Boolean) : []);
+            if (cards.length < 2) return 'unknown';
+
+            const r1 = cards[0][0]?.toUpperCase();
+            const r2 = (cards.length > 1 ? cards[1] : cards[0].substring(2))?.[0]?.toUpperCase();
+            if (!r1 || !r2) return 'unknown';
+
+            const s1 = cards[0][1]?.toLowerCase();
+            const s2 = (cards.length > 1 ? cards[1] : cards[0].substring(2))?.[1]?.toLowerCase();
+            const suited = s1 === s2;
+            const isPair = r1 === r2;
+
+            const val = r => '23456789TJQKA'.indexOf(r);
+            const v1 = val(r1);
+            const v2 = val(r2);
+            const gap = Math.abs(v1 - v2);
+
+            if (isPair) {
+                if (v1 >= 10) return 'premium pairs';     // QQ+
+                if (v1 >= 7) return 'medium pairs';        // 99-TT-JJ
+                return 'small pairs';                       // 22-88
+            }
+            if (v1 >= 9 && v2 >= 9) return 'broadway';     // Both T+
+            if (suited && gap <= 2) return 'suited connectors';
+            if (suited && (v1 >= 12 || v2 >= 12)) return 'suited aces';
+            if (suited) return 'suited hands';
+            if (gap <= 2 && v1 >= 5 && v2 >= 5) return 'offsuit connectors';
+            return 'offsuit hands';
+        };
+
+        handHistory.forEach(h => {
+            const type = categorize(h.heroCards);
+            if (!typeStats[type]) typeStats[type] = { total: 0, correct: 0, evLoss: 0 };
+            typeStats[type].total++;
+            if (h.classification === 'best' || h.classification === 'correct') typeStats[type].correct++;
+            typeStats[type].evLoss += (h.evLoss || 0);
+        });
+
+        // Convert to sorted array with accuracy
+        return Object.entries(typeStats)
+            .filter(([type]) => type !== 'unknown')
+            .map(([type, stats]) => ({
+                type,
+                total: stats.total,
+                correct: stats.correct,
+                accuracy: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+                evLoss: Math.round(stats.evLoss * 100) / 100,
+            }))
+            .sort((a, b) => a.accuracy - b.accuracy); // Worst first
+    }, [handHistory]);
+
     return {
         // Core metrics
         gtowScore,
@@ -689,6 +748,9 @@ export default function useGTOWScore() {
 
         // Phase 40: Mistake patterns
         mistakePatterns,
+
+        // Phase 59: Hand type performance
+        handTypePerformance,
 
         // Actions
         recordMove,

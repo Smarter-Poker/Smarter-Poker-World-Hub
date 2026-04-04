@@ -800,6 +800,7 @@ function GodModeArenaInner({
         weakestPosition,
         // Phase 40: Mistake patterns
         mistakePatterns,
+        handTypePerformance,
         // Multi-street state
         currentStreet,
         isMultiStreetActive,
@@ -1520,6 +1521,33 @@ function GodModeArenaInner({
                                                     <div style={{ fontSize: 8, fontWeight: 700, color: streetColors[st], marginBottom: 2, textTransform: 'capitalize' }}>{st}</div>
                                                     <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{data.accuracy}%</div>
                                                     <div style={{ fontSize: 7, color: '#475569' }}>{data.correct}/{data.total}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Phase 59: Hand type performance */}
+                            {handTypePerformance && handTypePerformance.length > 0 && (
+                                <div style={{ marginTop: 8 }}>
+                                    <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                                        By Hand Type
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                        {handTypePerformance.slice(0, 6).map(ht => {
+                                            const accColor = ht.accuracy >= 80 ? '#22c55e' : ht.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                                            const isWorst = handTypePerformance[0] === ht && ht.accuracy < 60;
+                                            return (
+                                                <div key={ht.type} style={{
+                                                    flex: '1 1 calc(33% - 4px)', minWidth: 80, textAlign: 'center',
+                                                    padding: '3px 4px', borderRadius: 5,
+                                                    background: isWorst ? `${accColor}12` : 'rgba(255,255,255,0.03)',
+                                                    border: `1px solid ${isWorst ? accColor + '33' : 'rgba(255,255,255,0.06)'}`,
+                                                }}>
+                                                    <div style={{ fontSize: 7, fontWeight: 600, color: '#94a3b8', textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ht.type}</div>
+                                                    <div style={{ fontSize: 11, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace" }}>{ht.accuracy}%</div>
+                                                    <div style={{ fontSize: 7, color: '#475569' }}>{ht.correct}/{ht.total} · -{ht.evLoss}bb</div>
                                                 </div>
                                             );
                                         })}

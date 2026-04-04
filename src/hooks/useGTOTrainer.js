@@ -973,6 +973,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
         // Phase 40: Mistake patterns
         mistakePatterns: gtowScoring.mistakePatterns,
+        // Phase 59: Hand type performance
+        handTypePerformance: gtowScoring.handTypePerformance,
 
         // Multi-street state
         currentStreet,
