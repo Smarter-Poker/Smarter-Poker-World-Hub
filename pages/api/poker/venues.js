@@ -248,28 +248,55 @@ export default async function handler(req, res) {
           let venues = [];
 
           if (id) {
-              // --- Single venue lookup: validate integer ID ---
+              // --- Single venue lookup ---
               const numericId = parseInt(id, 10);
-              if (isNaN(numericId) || numericId < 1) {
-                  return res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: 'Invalid venue id' } });
-              }
+              
+              if (!isNaN(numericId) && numericId >= 1) {
+                  // Numeric ID: standard lookup
+                  try {
+                      const { data, error } = await getSupabase()
+                          .from('poker_venues')
+                          .select('*')
+                          .eq('id', numericId)
+                          .maybeSingle();
 
-              // Try Supabase first (has real-time data)
-              try {
-                  const { data, error } = await getSupabase()
-                      .from('poker_venues')
-                      .select('*')
-                      .eq('id', numericId)
-                      .maybeSingle();
-
-                  if (!error && data) {
-                      venues = [data];
-                  } else {
-                      throw new Error(error?.message || 'Not found in Supabase');
+                      if (!error && data) {
+                          venues = [data];
+                      } else {
+                          throw new Error(error?.message || 'Not found in Supabase');
+                      }
+                  } catch (dbError) {
+                      // Fall back to JSON for single venue
+                      venues = applyFilters(getJsonVenues(), { id });
                   }
-              } catch (dbError) {
-                  // Fall back to JSON for single venue
-                  venues = applyFilters(getJsonVenues(), { id });
+              } else {
+                  // Non-numeric ID (slug): search by slug/bravo_slug in JSON data
+                  const slug = String(id).toLowerCase();
+                  const jsonVenues = getJsonVenues();
+                  const slugMatch = jsonVenues.find(v => 
+                      (v.slug && v.slug.toLowerCase() === slug) || 
+                      (v.bravo_slug && v.bravo_slug.toLowerCase() === slug) ||
+                      (v.name && v.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === slug)
+                  );
+                  if (slugMatch) {
+                      venues = [slugMatch];
+                  } else {
+                      // Try Supabase text search as last resort
+                      try {
+                          const searchName = slug.replace(/-/g, ' ');
+                          const { data } = await getSupabase()
+                              .from('poker_venues')
+                              .select('*')
+                              .ilike('name', `%${searchName}%`)
+                              .limit(1);
+                          if (data && data.length > 0) {
+                              venues = [data[0]];
+                          }
+                      } catch (_) { /* silent */ }
+                      if (venues.length === 0) {
+                          return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Venue not found' } });
+                      }
+                  }
               }
           } else {
               // --- Venue listing: Supabase-first (live 500+ venue dataset) ---

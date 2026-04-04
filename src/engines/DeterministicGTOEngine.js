@@ -1731,11 +1731,13 @@ export class DeterministicGTOEngine {
 
         const suitCounts = {};
         suits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
-        const maxSuitCount = Math.max(...Object.values(suitCounts));
+        const suitVals = Object.values(suitCounts);
+        const maxSuitCount = suitVals.length > 0 ? Math.max(...suitVals) : 0;
 
         const rankCounts = {};
         ranks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
-        const maxRankCount = Math.max(...Object.values(rankCounts));
+        const rankValsArr = Object.values(rankCounts);
+        const maxRankCount = rankValsArr.length > 0 ? Math.max(...rankValsArr) : 0;
 
         const sorted = [...new Set(rankVals)].sort((a, b) => a - b);
         // Phase 72: Enhanced connectivity — count adjacent pairs, gaps, and straight potential
