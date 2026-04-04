@@ -788,6 +788,12 @@ function GodModeArenaInner({
         avgEVLossPerHand,
         avgEVLossPerMistake,
         avgFrequencyDiff,
+        // Phase 37: Enhanced session metrics
+        classificationCounts: gtowClassificationCounts,
+        currentStreak: gtowCurrentStreak,
+        bestGTOWStreak,
+        lastClassification,
+        gtowAccuracy,
         // Multi-street state
         currentStreet,
         isMultiStreetActive,
@@ -2324,6 +2330,12 @@ function GodModeArenaInner({
                                     gtowScore={gtowScore}
                                     totalSessionEVLoss={totalEVLoss}
                                     sessionMistakes={sessionMistakes}
+                                    // Phase 37: Enhanced session metrics
+                                    classificationCounts={gtowClassificationCounts}
+                                    gtowCurrentStreak={gtowCurrentStreak}
+                                    bestGTOWStreak={bestGTOWStreak}
+                                    lastClassification={lastClassification}
+                                    gtowAccuracy={gtowAccuracy}
                                     onNextHand={handleNextQuestion}
                                     isMultiStreetActive={isMultiStreetActive}
                                     currentStreet={currentStreet}
@@ -2387,6 +2399,12 @@ function GodModeArenaInner({
                         gtowScore={gtowScore}
                         totalSessionEVLoss={totalEVLoss}
                         sessionMistakes={sessionMistakes}
+                        // Phase 37: Enhanced session metrics
+                        classificationCounts={gtowClassificationCounts}
+                        gtowCurrentStreak={gtowCurrentStreak}
+                        bestGTOWStreak={bestGTOWStreak}
+                        lastClassification={lastClassification}
+                        gtowAccuracy={gtowAccuracy}
                         onNextHand={nextQuestion}
                         isMultiStreetActive={isMultiStreetActive}
                         currentStreet={currentStreet}

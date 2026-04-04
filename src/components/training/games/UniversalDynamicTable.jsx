@@ -1024,6 +1024,12 @@ function UniversalDynamicTable({
     gtowScore = 100,               // Current session GTOW score
     totalSessionEVLoss = 0,        // Cumulative EV loss
     sessionMistakes = 0,           // Mistake count this session
+    // Phase 37: Enhanced session metrics
+    classificationCounts = null,   // { best, correct, inaccuracy, wrong, blunder }
+    gtowCurrentStreak = 0,         // Current correct/incorrect streak
+    bestGTOWStreak = 0,            // Best correct streak this session
+    lastClassification = null,     // Last move classification
+    gtowAccuracy = 100,            // Session accuracy percentage
     // UI-2: Manual advance callback
     onNextHand = null,             // Called when user clicks "Next Hand"
     // Multi-street props
@@ -2010,17 +2016,35 @@ function UniversalDynamicTable({
                         <div style={{ ...styles.scoreValue, color: scoreColor }}>{gtowScore}%</div>
                         <div style={styles.scoreLabel}>SCORE</div>
                     </div>
-                    {/* Phase 22: Accuracy % — GTO Wizard style */}
+                    {/* Phase 37: Streak indicator — fire emoji for hot streaks */}
+                    {questionNumber > 1 && gtowCurrentStreak !== 0 && (() => {
+                        const isPositive = gtowCurrentStreak > 0;
+                        const absStreak = Math.abs(gtowCurrentStreak);
+                        const streakColor = isPositive
+                            ? (absStreak >= 5 ? '#f97316' : '#22c55e')
+                            : '#ef4444';
+                        const streakIcon = isPositive ? '🔥' : '💀';
+                        return absStreak >= 2 ? (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: 2,
+                                padding: '2px 6px', borderRadius: 6,
+                                background: `${streakColor}11`, border: `1px solid ${streakColor}33`,
+                            }}>
+                                <span style={{ fontSize: 10, lineHeight: 1 }}>{streakIcon}</span>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: streakColor, fontFamily: "'Inter', monospace", lineHeight: 1 }}>{absStreak}</span>
+                            </div>
+                        ) : null;
+                    })()}
+                    {/* Phase 37: Accuracy % — uses real gtowAccuracy from useGTOWScore */}
                     {questionNumber > 1 && (() => {
-                        const acc = questionNumber > 0 ? Math.round(((questionNumber - sessionMistakes) / questionNumber) * 100) : 100;
-                        const accColor = acc >= 80 ? '#22c55e' : acc >= 60 ? '#fbbf24' : '#ef4444';
+                        const accColor = gtowAccuracy >= 80 ? '#22c55e' : gtowAccuracy >= 60 ? '#fbbf24' : '#ef4444';
                         return (
                             <div style={{
                                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                                 padding: '2px 6px', borderRadius: 6,
                                 background: `${accColor}11`, border: `1px solid ${accColor}33`,
                             }}>
-                                <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace", lineHeight: 1 }}>{acc}%</div>
+                                <div style={{ fontSize: 12, fontWeight: 800, color: accColor, fontFamily: "'Inter', monospace", lineHeight: 1 }}>{gtowAccuracy}%</div>
                                 <div style={{ fontSize: 7, fontWeight: 700, color: '#64748b', letterSpacing: 0.8, textTransform: 'uppercase' }}>ACC</div>
                             </div>
                         );
@@ -2056,6 +2080,48 @@ function UniversalDynamicTable({
                     style={styles.progressBarFill}
                 />
             </div>
+
+            {/* Phase 37: Classification mini-bar — shows move quality distribution */}
+            {classificationCounts && questionNumber > 1 && (() => {
+                const total = (classificationCounts.best || 0) + (classificationCounts.correct || 0) +
+                    (classificationCounts.inaccuracy || 0) + (classificationCounts.wrong || 0) + (classificationCounts.blunder || 0);
+                if (total === 0) return null;
+                const segments = [
+                    { key: 'best', color: '#4ade80', count: classificationCounts.best || 0, label: '★' },
+                    { key: 'correct', color: '#22d3ee', count: classificationCounts.correct || 0, label: '✓' },
+                    { key: 'inaccuracy', color: '#fbbf24', count: classificationCounts.inaccuracy || 0, label: '~' },
+                    { key: 'wrong', color: '#f97316', count: classificationCounts.wrong || 0, label: '✗' },
+                    { key: 'blunder', color: '#ef4444', count: classificationCounts.blunder || 0, label: '!!' },
+                ].filter(s => s.count > 0);
+                return (
+                    <div style={{ padding: '0 16px', marginBottom: 2 }}>
+                        <div style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}>
+                            {segments.map(seg => (
+                                <motion.div
+                                    key={seg.key}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${(seg.count / total) * 100}%` }}
+                                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                                    style={{ background: seg.color, height: '100%' }}
+                                    title={`${seg.key}: ${seg.count} (${Math.round((seg.count / total) * 100)}%)`}
+                                />
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 2 }}>
+                            {segments.map(seg => (
+                                <span key={seg.key} style={{ fontSize: 8, color: seg.color, fontWeight: 700, fontFamily: "'Inter', monospace" }}>
+                                    {seg.label}{seg.count}
+                                </span>
+                            ))}
+                            {bestGTOWStreak > 0 && (
+                                <span style={{ fontSize: 8, color: '#94a3b8', fontWeight: 600 }}>
+                                    best: {bestGTOWStreak}🔥
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Phase 3: RNG / Study Mode Toggles */}
             <div style={{ display: 'flex', gap: 6, padding: '0 16px 4px', justifyContent: 'flex-end' }}>

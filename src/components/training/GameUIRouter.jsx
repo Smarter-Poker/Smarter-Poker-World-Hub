@@ -86,6 +86,12 @@ export default function GameUIRouter({
     gtowScore = 100,
     totalSessionEVLoss = 0,
     sessionMistakes = 0,
+    // Phase 37: Enhanced session metrics
+    classificationCounts = null,
+    gtowCurrentStreak = 0,
+    bestGTOWStreak = 0,
+    lastClassification = null,
+    gtowAccuracy = 100,
     // UI-2: Manual advance callback
     onNextHand = null,
     // Multi-street props
@@ -142,6 +148,12 @@ export default function GameUIRouter({
             gtowScore={gtowScore}
             totalSessionEVLoss={totalSessionEVLoss}
             sessionMistakes={sessionMistakes}
+            // Phase 37: Enhanced session metrics
+            classificationCounts={classificationCounts}
+            gtowCurrentStreak={gtowCurrentStreak}
+            bestGTOWStreak={bestGTOWStreak}
+            lastClassification={lastClassification}
+            gtowAccuracy={gtowAccuracy}
             // UI-2: Manual advance
             onNextHand={onNextHand}
             // Multi-street props

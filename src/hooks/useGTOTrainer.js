@@ -957,6 +957,13 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         avgEVLossPerMistake: gtowScoring.avgEVLossPerMistake,
         avgFrequencyDiff: gtowScoring.avgFrequencyDiff,
 
+        // Phase 37: Enhanced session metrics from useGTOWScore
+        classificationCounts: gtowScoring.classificationCounts,
+        currentStreak: gtowScoring.currentStreak,
+        bestGTOWStreak: gtowScoring.bestStreak,
+        lastClassification: gtowScoring.lastClassification,
+        gtowAccuracy: gtowScoring.accuracy,
+
         // Multi-street state
         currentStreet,
         isMultiStreetActive,
