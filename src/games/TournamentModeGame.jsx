@@ -190,13 +190,37 @@ const TOURNAMENT_CHALLENGES = [
     },
 ];
 
-// Simulate opponent (for now, single-player simulation)
+// Ghost player pool — simulated opponents that feel like real players
+const GHOST_PLAYERS = [
+    { name: 'GTO_Shark', avatar: '🦈' },
+    { name: 'RangeGuru', avatar: '🧙' },
+    { name: 'PokerWiz', avatar: '🎩' },
+    { name: 'SolverPro', avatar: '🤖' },
+    { name: 'ACE_Hunter', avatar: '🎯' },
+    { name: 'NitQueen', avatar: '👑' },
+    { name: 'BluffMaster', avatar: '🃏' },
+    { name: 'EV_Wizard', avatar: '🧮' },
+    { name: 'RangeSniper', avatar: '🎯' },
+    { name: 'MixedFreqPro', avatar: '🔀' },
+    { name: 'EquityKing', avatar: '📊' },
+    { name: 'OmahaKid', avatar: '🎲' },
+    { name: 'ICM_Lord', avatar: '♟️' },
+    { name: 'StackAttack', avatar: '💰' },
+    { name: 'FinalTablePro', avatar: '🏆' },
+    { name: 'xPolarizedx', avatar: '⚡' },
+    { name: 'NodeLockr', avatar: '🔒' },
+    { name: 'BarrelKing99', avatar: '🛢️' },
+    { name: 'FlopTexturePro', avatar: '🧩' },
+    { name: 'VillainReader', avatar: '👁️' },
+];
+
 const getSimulatedOpponent = (playerElo) => {
     const eloVariance = Math.random() * 300 - 150; // ±150 ELO
+    const ghost = GHOST_PLAYERS[Math.floor(Math.random() * GHOST_PLAYERS.length)];
     return {
-        name: ['GTO_Shark', 'RangeGuru', 'PokerWiz', 'SolverPro', 'ACE_Hunter'][Math.floor(Math.random() * 5)],
+        name: ghost.name,
         elo: Math.round(playerElo + eloVariance),
-        avatar: ['🦈', '🧙‍♂️', '🎩', '🤖', '🎯'][Math.floor(Math.random() * 5)],
+        avatar: ghost.avatar,
     };
 };
 
@@ -270,7 +294,11 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     const [showResult, setShowResult] = useState(false);
     const [roundsPlayed, setRoundsPlayed] = useState(0);
     const [matchHistory, setMatchHistory] = useState([]);
+    const [matchmakingPhase, setMatchmakingPhase] = useState('searching'); // 'searching' | 'found' | 'loading'
+    const [searchTimer, setSearchTimer] = useState(0);
+    const [playersOnline, setPlayersOnline] = useState(0);
     const matchRef = useRef([]);
+    const searchTimerRef = useRef(null);
 
     const ROUNDS_PER_MATCH = 5;
 
@@ -290,12 +318,30 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
         }
     };
 
-    // Start matchmaking
+    // Start matchmaking — simulates searching for real players, then matches a ghost player after ~7s
     const startMatchmaking = () => {
         setMatchState('matching');
+        setMatchmakingPhase('searching');
+        setSearchTimer(0);
+        setPlayersOnline(Math.floor(Math.random() * 80) + 120); // 120-200 "online"
 
-        // Simulate matchmaking delay
+        // Animate the search timer
+        let elapsed = 0;
+        clearInterval(searchTimerRef.current);
+        searchTimerRef.current = setInterval(() => {
+            elapsed += 100;
+            setSearchTimer(elapsed);
+            // Randomly fluctuate players online count for realism
+            if (elapsed % 1500 === 0) {
+                setPlayersOnline(prev => prev + Math.floor(Math.random() * 5) - 2);
+            }
+        }, 100);
+
+        // After ~7 seconds, "find" a ghost player opponent
         setTimeout(() => {
+            clearInterval(searchTimerRef.current);
+            setMatchmakingPhase('found');
+
             const opp = getSimulatedOpponent(playerElo);
             setOpponent(opp);
 
@@ -307,15 +353,24 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             }
             matchRef.current = shuffled.slice(0, ROUNDS_PER_MATCH);
 
+            // Show "opponent found" for 2 seconds then start battle
             setTimeout(() => {
-                setMatchState('battle');
-                setCurrentRound(0);
-                setPlayerScore(0);
-                setOpponentScore(0);
-                setCurrentChallenge(matchRef.current[0]);
-            }, 1500);
-        }, 2000);
+                setMatchmakingPhase('loading');
+                setTimeout(() => {
+                    setMatchState('battle');
+                    setCurrentRound(0);
+                    setPlayerScore(0);
+                    setOpponentScore(0);
+                    setCurrentChallenge(matchRef.current[0]);
+                }, 800);
+            }, 2000);
+        }, 5000 + Math.random() * 4000); // 5-9 seconds (avg ~7s)
     };
+
+    // Cleanup search timer on unmount
+    useEffect(() => {
+        return () => clearInterval(searchTimerRef.current);
+    }, []);
 
     // Handle option selection
     const handleOptionSelect = (option, index) => {
@@ -530,21 +585,136 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     // MATCHMAKING VIEW
     // ═══════════════════════════════════════════════════════════════════════
     if (matchState === 'matching') {
+        const searchSec = (searchTimer / 1000).toFixed(1);
+        const opponentRankPreview = opponent ? getRankTier(opponent.elo) : null;
+
         return (
             <div style={styles.container}>
                 <div style={styles.matchmakingCard}>
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                        style={{ fontSize: 64, marginBottom: 24 }}
-                    >
-                        ⚔️
-                    </motion.div>
-                    <h2 style={styles.matchmakingTitle}>Finding Opponent...</h2>
-                    <p style={styles.matchmakingSubtitle}>Searching For A Worthy Challenger</p>
-                    <div style={styles.eloSearchRange}>
-                        ELO Range: {playerElo - 200} - {playerElo + 200}
-                    </div>
+                    <AnimatePresence mode="wait">
+                        {matchmakingPhase === 'searching' && (
+                            <motion.div
+                                key="searching"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                style={{ textAlign: 'center' }}
+                            >
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                                    style={{ fontSize: 64, marginBottom: 24 }}
+                                >
+                                    ⚔️
+                                </motion.div>
+                                <h2 style={styles.matchmakingTitle}>Finding Opponent...</h2>
+                                <p style={styles.matchmakingSubtitle}>Searching For A Worthy Challenger</p>
+
+                                {/* Search progress bar */}
+                                <div style={{ margin: '20px auto', maxWidth: 300 }}>
+                                    <div style={{ height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', marginBottom: 12 }}>
+                                        <motion.div
+                                            animate={{ x: ['-100%', '100%'] }}
+                                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                                            style={{ height: '100%', width: '40%', background: 'linear-gradient(90deg, transparent, #9333EA, transparent)', borderRadius: 2 }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={styles.eloSearchRange}>
+                                    ELO Range: {playerElo - 200} - {playerElo + 200}
+                                </div>
+
+                                {/* Live search stats */}
+                                <div style={{ display: 'flex', gap: 24, justifyContent: 'center', marginTop: 20 }}>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ color: '#9333EA', fontFamily: 'Orbitron, sans-serif', fontSize: 18, fontWeight: 700 }}>{searchSec}s</div>
+                                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>SEARCH TIME</div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ color: '#00ff88', fontFamily: 'Orbitron, sans-serif', fontSize: 18, fontWeight: 700 }}>{playersOnline}</div>
+                                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>PLAYERS ONLINE</div>
+                                    </div>
+                                </div>
+
+                                {/* Cancel button */}
+                                <button onClick={() => { clearInterval(searchTimerRef.current); setMatchState('lobby'); }} style={{
+                                    marginTop: 24, padding: '10px 32px', background: 'rgba(255,255,255,0.08)',
+                                    border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: 'rgba(255,255,255,0.6)',
+                                    cursor: 'pointer', fontSize: 13
+                                }}>Cancel Search</button>
+                            </motion.div>
+                        )}
+
+                        {matchmakingPhase === 'found' && opponent && (
+                            <motion.div
+                                key="found"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                style={{ textAlign: 'center' }}
+                            >
+                                <div style={{ fontSize: 48, marginBottom: 16, color: '#00ff88' }}>OPPONENT FOUND!</div>
+
+                                {/* VS Card */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, marginTop: 24, marginBottom: 24 }}>
+                                    {/* Player */}
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: 48 }}>{playerRank.icon}</div>
+                                        <div style={{ color: '#fff', fontWeight: 700, marginTop: 8 }}>You</div>
+                                        <div style={{ color: playerRank.color, fontSize: 14, fontWeight: 600 }}>{playerElo} ELO</div>
+                                    </div>
+
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ delay: 0.3, type: 'spring' }}
+                                        style={{ fontSize: 36, color: '#ff4444', fontFamily: 'Orbitron, sans-serif', fontWeight: 900 }}
+                                    >
+                                        VS
+                                    </motion.div>
+
+                                    {/* Ghost Opponent */}
+                                    <motion.div
+                                        initial={{ x: 50, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        transition={{ delay: 0.5 }}
+                                        style={{ textAlign: 'center' }}
+                                    >
+                                        <div style={{ fontSize: 48 }}>{opponent.avatar}</div>
+                                        <div style={{ color: '#fff', fontWeight: 700, marginTop: 8 }}>{opponent.name}</div>
+                                        <div style={{ color: opponentRankPreview?.color || '#fff', fontSize: 14, fontWeight: 600 }}>{opponent.elo} ELO</div>
+                                    </motion.div>
+                                </div>
+
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 1 }}
+                                    style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}
+                                >
+                                    Preparing battle...
+                                </motion.div>
+                            </motion.div>
+                        )}
+
+                        {matchmakingPhase === 'loading' && (
+                            <motion.div
+                                key="loading"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                style={{ textAlign: 'center' }}
+                            >
+                                <motion.div
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 0.5, repeat: Infinity }}
+                                    style={{ fontSize: 64, marginBottom: 16 }}
+                                >
+                                    ⚔️
+                                </motion.div>
+                                <div style={{ color: '#fff', fontSize: 24, fontFamily: 'Orbitron, sans-serif', fontWeight: 700 }}>BATTLE STARTING...</div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         );
@@ -717,7 +887,10 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     if (matchState === 'result') {
         const lastMatch = matchHistory[matchHistory.length - 1];
         const playerWon = lastMatch?.result === 'W';
-        const opponentRank = getRankTier(opponent?.elo || 1200);
+        const totalRounds = playerScore + opponentScore;
+        const accuracy = totalRounds > 0 ? Math.round((playerScore / totalRounds) * 100) : 0;
+        const diamondReward = playerWon ? Math.round((5 + Math.abs(lastMatch?.eloChange || 0) / 10)) : 0;
+        const resultColor = playerWon ? '#00ff88' : '#ff4444';
 
         return (
             <motion.div
@@ -725,54 +898,79 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                 animate={{ opacity: 1, scale: 1 }}
                 style={styles.container}
             >
-                <div style={styles.resultCard}>
-                    <div style={{ fontSize: 72, marginBottom: 16 }}>
-                        {playerWon ? '🏆' : '💀'}
-                    </div>
-                    <h1 style={{
-                        ...styles.resultTitle,
-                        color: playerWon ? '#00ff88' : '#ff4444'
+                <div style={{ maxWidth: 500, margin: '20px auto', textAlign: 'center' }}>
+                    {/* Result Hero Card */}
+                    <div style={{
+                        background: `linear-gradient(135deg, ${resultColor}15, ${resultColor}05)`,
+                        border: `1px solid ${resultColor}40`,
+                        borderRadius: 20, padding: 28, marginBottom: 20
                     }}>
-                        {playerWon ? 'VICTORY!' : 'DEFEAT'}
-                    </h1>
-
-                    <div style={styles.resultScore}>
-                        <span style={{ color: '#00ff88' }}>{playerScore}</span>
-                        <span style={{ color: 'rgba(255,255,255,0.3)' }}> - </span>
-                        <span style={{ color: '#ff4444' }}>{opponentScore}</span>
-                    </div>
-
-                    <div style={styles.eloChange}>
-                        <span style={{ color: 'rgba(255,255,255,0.5)' }}>ELO Change: </span>
-                        <span style={{
-                            color: lastMatch?.eloChange >= 0 ? '#00ff88' : '#ff4444',
-                            fontWeight: 700
-                        }}>
-                            {lastMatch?.eloChange >= 0 ? '+' : ''}{lastMatch?.eloChange}
-                        </span>
-                    </div>
-
-                    <div style={styles.newRankDisplay}>
-                        <div style={{ fontSize: 48 }}>{playerRank.icon}</div>
-                        <div style={{ ...styles.newRankName, color: playerRank.color }}>
-                            {playerRank.name}
+                        <div style={{ fontSize: 14, color: resultColor, fontWeight: 700, marginBottom: 8, letterSpacing: 2 }}>
+                            {playerWon ? 'VICTORY!' : 'DEFEAT'}
                         </div>
-                        <div style={styles.newEloValue}>{playerElo} ELO</div>
+                        <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 48, fontWeight: 900, color: '#fff', lineHeight: 1, marginBottom: 4 }}>
+                            <span style={{ color: '#00ff88' }}>{playerScore}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 8px' }}>-</span>
+                            <span style={{ color: '#ff4444' }}>{opponentScore}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
+                            vs {opponent?.name || 'Opponent'}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 24, fontWeight: 800, color: lastMatch?.eloChange >= 0 ? '#00ff88' : '#ff4444' }}>
+                                    {lastMatch?.eloChange >= 0 ? '+' : ''}{lastMatch?.eloChange}
+                                </div>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>ELO CHANGE</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                <div style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{playerElo}</div>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>NEW ELO</div>
+                            </div>
+                            <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
+                                <div style={{ fontSize: 24, fontWeight: 800 }}>{playerRank.icon}</div>
+                                <div style={{ fontSize: 10, color: playerRank.color, fontWeight: 600 }}>{playerRank.name}</div>
+                            </div>
+                        </div>
                     </div>
 
-                    {playerWon && (
-                        <div style={styles.diamondReward}>
-                            +{Math.round((5 + Math.abs(lastMatch?.eloChange || 0) / 10))} 💎 Earned!
+                    {/* Win Rate Bar */}
+                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
+                            <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ROUND WIN RATE</span>
+                            <span style={{ color: resultColor, fontWeight: 700 }}>{accuracy}%</span>
+                        </div>
+                        <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${accuracy}%`, background: resultColor, borderRadius: 4, transition: 'width 1s ease' }} />
+                        </div>
+                    </div>
+
+                    {/* Diamond Reward */}
+                    {diamondReward > 0 && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(0,255,136,0.12), rgba(0,212,255,0.12))',
+                            border: '1px solid rgba(0,255,136,0.3)',
+                            borderRadius: 12, padding: 16, marginBottom: 20, textAlign: 'center'
+                        }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: '#00ff88' }}>
+                                +{diamondReward} Diamonds Earned!
+                            </div>
                         </div>
                     )}
 
-                    <div style={styles.resultButtons}>
-                        <button onClick={startMatchmaking} style={styles.rematchButton}>
-                            ⚔️ FIND NEXT MATCH
-                        </button>
-                        <button onClick={() => setMatchState('lobby')} style={styles.lobbyButton}>
-                            ← BACK TO LOBBY
-                        </button>
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: 12 }}>
+                        <button onClick={startMatchmaking} style={{
+                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                            background: 'linear-gradient(135deg, #9333EA, #D946EF)', color: '#fff',
+                            border: 'none', borderRadius: 12, cursor: 'pointer'
+                        }}>FIND NEXT MATCH</button>
+                        <button onClick={() => setMatchState('lobby')} style={{
+                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 12, color: '#fff', cursor: 'pointer'
+                        }}>BACK TO LOBBY</button>
                     </div>
                 </div>
             </motion.div>

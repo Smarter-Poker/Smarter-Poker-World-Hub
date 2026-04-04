@@ -59,6 +59,8 @@ export default function MemoryGamesStats() {
     const [stats, setStats] = useState(null);
     const [dailyChallenge, setDailyChallenge] = useState(null);
     const [levelAccuracy, setLevelAccuracy] = useState([]);
+    const [modeBreakdown, setModeBreakdown] = useState([]);
+    const [recentSessions, setRecentSessions] = useState([]);
 
     // Fetch stats on mount
     useEffect(() => {
@@ -128,6 +130,37 @@ export default function MemoryGamesStats() {
                         gamesPlayed: byLevel[i]?.count || 0
                     });
                 }
+
+                // Game mode breakdown
+                const byMode = {};
+                sessions.forEach(s => {
+                    const mode = s.game_mode || 'range';
+                    if (!byMode[mode]) byMode[mode] = { total: 0, count: 0, totalScore: 0 };
+                    byMode[mode].total += s.accuracy || 0;
+                    byMode[mode].count++;
+                    byMode[mode].totalScore += s.score || 0;
+                });
+                const MODE_LABELS = {
+                    range: { label: 'Range Memory', icon: '🎯', color: '#00D4FF' },
+                    speed_drill: { label: 'Speed Drill', icon: '⚡', color: '#FFD700' },
+                    pressure_cooker: { label: 'Pressure Cooker', icon: '💣', color: '#EF4444' },
+                    pattern_recognition: { label: 'Pattern Recognition', icon: '🧩', color: '#3B82F6' },
+                    mixed_strategy: { label: 'Mixed Strategy', icon: '🎰', color: '#A855F7' },
+                    spot_trainer: { label: 'Spot Trainer', icon: '🎯', color: '#10B981' },
+                    tournament: { label: 'Tournament', icon: '⚔️', color: '#9333EA' },
+                };
+                const modeData = Object.entries(byMode).map(([mode, data]) => ({
+                    mode,
+                    ...MODE_LABELS[mode] || { label: mode, icon: '🎮', color: '#fff' },
+                    gamesPlayed: data.count,
+                    avgAccuracy: data.count > 0 ? data.total / data.count : 0,
+                    totalScore: data.totalScore,
+                })).sort((a, b) => b.gamesPlayed - a.gamesPlayed);
+                setModeBreakdown(modeData);
+
+                // Recent sessions (last 10)
+                const sorted = [...sessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                setRecentSessions(sorted.slice(0, 10));
 
                 setStats({
                     gamesPlayed,
@@ -220,7 +253,7 @@ export default function MemoryGamesStats() {
 
 
                         <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#fff', marginBottom: '24px' }}>
-                            📊 My Memory Stats
+                            📊 My Preflop Charts Stats
                         </h1>
 
                         {loading ? (
@@ -310,6 +343,84 @@ export default function MemoryGamesStats() {
                                         />
                                     ))}
                                 </div>
+
+                                {/* Game Mode Breakdown */}
+                                {modeBreakdown.length > 0 && (
+                                    <div style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '16px',
+                                        padding: '24px',
+                                        marginBottom: '24px'
+                                    }}>
+                                        <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>
+                                            🎮 Performance by Game Mode
+                                        </h2>
+                                        <div style={{ display: 'grid', gap: '12px' }}>
+                                            {modeBreakdown.map(mode => (
+                                                <div key={mode.mode} style={{
+                                                    display: 'flex', alignItems: 'center', gap: '16px',
+                                                    padding: '14px 16px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px',
+                                                    borderLeft: `3px solid ${mode.color}`
+                                                }}>
+                                                    <div style={{ fontSize: '28px', minWidth: '36px', textAlign: 'center' }}>{mode.icon}</div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ color: '#fff', fontWeight: 600, fontSize: '15px' }}>{mode.label}</div>
+                                                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
+                                                            {mode.gamesPlayed} games played
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{ color: mode.color, fontWeight: 700, fontSize: '16px' }}>
+                                                            {mode.avgAccuracy.toFixed(1)}%
+                                                        </div>
+                                                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>avg accuracy</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Recent Sessions */}
+                                {recentSessions.length > 0 && (
+                                    <div style={{
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '16px',
+                                        padding: '24px',
+                                        marginBottom: '24px'
+                                    }}>
+                                        <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>
+                                            📋 Recent Sessions
+                                        </h2>
+                                        <div style={{ display: 'grid', gap: '8px' }}>
+                                            {recentSessions.map((session, idx) => {
+                                                const acc = session.accuracy || 0;
+                                                const accColor = acc >= 90 ? '#10b981' : acc >= 70 ? '#fbbf24' : '#ef4444';
+                                                return (
+                                                    <div key={idx} style={{
+                                                        display: 'flex', alignItems: 'center', gap: '12px',
+                                                        padding: '10px 14px', background: 'rgba(0,0,0,0.15)', borderRadius: '8px'
+                                                    }}>
+                                                        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', minWidth: '80px' }}>
+                                                            {session.created_at ? new Date(session.created_at).toLocaleDateString() : '—'}
+                                                        </div>
+                                                        <div style={{ flex: 1, color: '#fff', fontSize: '14px', fontWeight: 500 }}>
+                                                            {session.game_mode || 'range'}
+                                                        </div>
+                                                        <div style={{ color: '#FFD700', fontWeight: 600, fontSize: '14px', minWidth: '60px', textAlign: 'right' }}>
+                                                            {(session.score || 0).toLocaleString()}
+                                                        </div>
+                                                        <div style={{ color: accColor, fontWeight: 600, fontSize: '14px', minWidth: '50px', textAlign: 'right' }}>
+                                                            {acc.toFixed(0)}%
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Weak Spots */}
                                 {weakSpots.length > 0 && (

@@ -371,7 +371,12 @@ export default async function handler(req, res) {
 
                   if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
                   if (city) q = q.ilike('city', `%${city}%`);
-                  if (effectiveType) q = q.eq('venue_type', effectiveType);
+                  if (effectiveType) {
+                      q = q.eq('venue_type', effectiveType);
+                  } else if (!search && !id) {
+                      // Prevent pagination truncation by excluding tours/series from the default venues list
+                      q = q.not('venue_type', 'in', '("tour","series")');
+                  }
                   if (tournaments === 'true') q = q.eq('has_tournaments', true);
                   if (featured === 'true') q = q.eq('is_featured', true);
                   if (search) {
@@ -803,19 +808,9 @@ export default async function handler(req, res) {
               });
           }
 
-          // --- Filter out Tours/Series not active today (Rule: Only display when active for the day) ---
-          const cstOffset = -6 * 3600 * 1000; // Roughly Central Standard Time for comparison
-          const todayDateStr = new Date(new Date().getTime() + cstOffset).toISOString().split('T')[0];
-          venues = venues.filter(v => {
-              if (v.venue_type === 'series' || v.venue_type === 'tour') {
-                  const active = v.tournament_settings?.active_dates;
-                  // If we don't have active dates recorded, or today is strictly outside the range: DROP
-                  if (!active || !active.start_date || !active.end_date) return false;
-                  if (todayDateStr < active.start_date || todayDateStr > active.end_date) return false;
-              }
-              return true;
-          });
-
+          // (Note: Tours/Series active-today post-filter was removed to fix pagination truncation. 
+          // They are now excluded from the default query at the SQL level, and correctly pulled 
+          // when specifically requested by `effectiveType`).
           // --- Filter by games (NLH, PLO, Mixed) ---
           if (hasNLH === 'true') {
               venues = venues.filter(v => v.games_offered && v.games_offered.includes('NLH'));

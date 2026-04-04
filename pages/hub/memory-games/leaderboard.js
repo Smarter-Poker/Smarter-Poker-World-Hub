@@ -14,9 +14,13 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
 
 const GAME_MODES = [
-    { key: 'range', label: 'Range Memory', icon: '🎯' },
-    { key: 'speed', label: 'Speed Drill', icon: '⚡' },
-    { key: 'tournament', label: 'Tournament', icon: '🏆' },
+    { key: 'range', label: 'Range Training', icon: '🎯' },
+    { key: 'speed_drill', label: 'Speed Drill', icon: '⚡' },
+    { key: 'pressure_cooker', label: 'Pressure Cooker', icon: '💣' },
+    { key: 'pattern_recognition', label: 'Pattern Recognition', icon: '🧩' },
+    { key: 'mixed_strategy', label: 'Mixed Strategy', icon: '🎰' },
+    { key: 'spot_trainer', label: 'Spot Trainer', icon: '🎯' },
+    { key: 'tournament', label: 'Tournament', icon: '⚔️' },
 ];
 
 export default function MemoryGamesLeaderboard() {

@@ -1237,7 +1237,7 @@ export default function PokerNearMePage() {
         if (!silent) setVenueLoading(true);
         setFetchError(null);
         try {
-            const params = new URLSearchParams({ limit: '500' });
+            const params = new URLSearchParams({ limit: '1000' });
             if (selectedCity) {
                 params.set('city', selectedCity.name);
                 params.set('state', selectedCity.state);
@@ -2047,6 +2047,24 @@ export default function PokerNearMePage() {
                 <div className="map-sidebar">
                     <div className="sidebar-filters">
                         <h3 className="sidebar-title">Filters</h3>
+
+                        {/* Radius — Map Tab */}
+                        <div className="sidebar-filter-group">
+                            <label className="sidebar-label">Radius</label>
+                            <select
+                                value={filters.radius}
+                                onChange={e => setFilters(p => ({ ...p, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
+                                className="sidebar-select"
+                            >
+                                <option value={25}>25 Mi</option>
+                                <option value={50}>50 Mi</option>
+                                <option value={100}>100 Mi</option>
+                                <option value={200}>200 Mi</option>
+                                <option value={250}>250 Mi</option>
+                                <option value={500}>500 Mi</option>
+                                <option value="Any">Any</option>
+                            </select>
+                        </div>
 
                         {/* Game Type */}
                         <div className="sidebar-filter-group">
