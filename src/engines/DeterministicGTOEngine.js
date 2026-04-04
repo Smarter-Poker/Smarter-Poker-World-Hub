@@ -1666,6 +1666,9 @@ export class DeterministicGTOEngine {
         // ═══ Phase 64: POT ODDS & EQUITY MATH ═══
         const potOddsNote = this._getPotOddsMath(optimalAction, handStrength, street, validActions, ctx.estimatedPot, ctx.nodeType);
 
+        // ═══ Phase 69: SPR AWARENESS ═══
+        const sprNote = this._getSPRContext(optimalAction, handStrength, street, ctx.estimatedPot, ctx.stackDepth);
+
         // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
         const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
 
@@ -1680,7 +1683,7 @@ export class DeterministicGTOEngine {
         const streetExtra = riverEnhancement || turnEnhancement || flopEnhancement;
 
         // Combine optional notes
-        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote].filter(Boolean).map(s => ' ' + s).join('');
+        const extras = [sizingReason, blockerNote, rangeNote, multiStreetNote, potOddsNote, sprNote].filter(Boolean).map(s => ' ' + s).join('');
 
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
@@ -2400,6 +2403,79 @@ export class DeterministicGTOEngine {
      * Phase 45: Enhanced mixed strategy reasoning — GTO Wizard-level depth.
      * Explains indifference points, range balance, and exploitability prevention.
      */
+    /**
+     * Phase 69: SPR (Stack-to-Pot Ratio) awareness — explains how the remaining
+     * stack relative to the pot affects commitment thresholds.
+     * SPR < 1: Committed with almost anything
+     * SPR 1-3: Commit with top pair+
+     * SPR 3-6: Need two pair+ to stack off
+     * SPR 6+: Deep stacked, implied odds matter most
+     */
+    _getSPRContext(action, handStrength, street, pot, stackDepth) {
+        if (!pot || !stackDepth || street === 'preflop') return '';
+
+        const effectiveStack = stackDepth - (pot / 2);
+        const spr = effectiveStack / pot;
+        if (spr < 0 || spr > 20) return ''; // invalid or too deep to matter
+
+        const a = action.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+        const hs = handStrength.toLowerCase();
+
+        // Very low SPR (< 1) — pot-committed
+        if (spr < 1) {
+            if (isFold) {
+                if (hs.includes('air') || hs.includes('no pair')) return `SPR is ${spr.toFixed(1)} — you're nearly committed, but with pure air, even low SPR doesn't justify putting in more chips.`;
+                return `SPR is ${spr.toFixed(1)} — you're essentially pot-committed but the solver still folds this hand, indicating villain's range is extremely strong here.`;
+            }
+            if (isCall || isBet || isRaise) {
+                return `SPR is ${spr.toFixed(1)} — you're pot-committed. With this stack-to-pot ratio, getting it in is automatic with almost any piece of the board.`;
+            }
+        }
+
+        // Low SPR (1-3) — commit with strong pairs+
+        if (spr < 3) {
+            if (isBet || isRaise) {
+                if (hs.includes('top pair') || hs.includes('overpair') || hs.includes('set') || hs.includes('two pair')) {
+                    return `SPR ${spr.toFixed(1)} — low enough to commit with one pair or better. Stack-off thresholds widen at shallow SPR.`;
+                }
+                if (hs.includes('draw')) {
+                    return `SPR ${spr.toFixed(1)} — with a short stack-to-pot ratio, semi-bluff shoving has maximum fold equity and you can't be blown off your equity.`;
+                }
+            }
+            if (isFold && (hs.includes('top pair') || hs.includes('overpair'))) {
+                return `Even at SPR ${spr.toFixed(1)}, villain's aggression indicates a range that beats top pair. Sometimes you must fold despite low SPR.`;
+            }
+        }
+
+        // Medium SPR (3-6) — need two pair+ to comfortably stack off
+        if (spr >= 3 && spr < 6) {
+            if (a === 'allin' || isRaise) {
+                if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
+                    return `SPR ${spr.toFixed(1)} — medium SPR means two pair+ is needed to stack off comfortably. Your hand qualifies.`;
+                }
+                if (hs.includes('top pair')) {
+                    return `SPR ${spr.toFixed(1)} — at medium SPR, stacking off with just top pair is marginal. The solver raises because your specific hand is strong enough.`;
+                }
+            }
+        }
+
+        // High SPR (6+) — deep stacked, implied odds matter
+        if (spr >= 6 && street === 'flop') {
+            if (isCall && (hs.includes('set') || hs.includes('flush draw'))) {
+                return `SPR ${spr.toFixed(1)} — deep stack-to-pot ratio maximizes implied odds. When you hit, you can win a massive pot relative to your investment.`;
+            }
+            if (isFold && (hs.includes('top pair'))) {
+                return `SPR ${spr.toFixed(1)} — deep SPR means one pair is vulnerable. You need to improve to stack off, and the pot-to-stack commitment isn't there yet.`;
+            }
+        }
+
+        return '';
+    }
+
     /**
      * Phase 64: Pot odds and equity math — when facing a bet (call/fold decisions),
      * calculate and display the pot odds, required equity, and how they compare
