@@ -10259,7 +10259,7 @@ export class DeterministicGTOEngine {
         // Flush-completing card
         const flushSuit = Object.entries(suitCounts).find(([, ct]) => ct >= 2);
         if (flushSuit && flushSuit[1] < 3) {
-            scenarios.push({ type: 'flush_completing', desc: `A ${flushSuit[0]} card completes the flush draw`, impact: 'bad_for_non_flush', strategy: 'Check or slow down without a flush — villain's draw got there.' });
+            scenarios.push({ type: 'flush_completing', desc: `A ${flushSuit[0]} card completes the flush draw`, impact: 'bad_for_non_flush', strategy: 'Check or slow down without a flush — villain\'s draw got there.' });
         }
 
         // Overcard (Ace or King)
