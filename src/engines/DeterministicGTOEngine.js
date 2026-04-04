@@ -1597,10 +1597,13 @@ export class DeterministicGTOEngine {
         // ═══ STRATEGIC CONCEPT — What poker concept drives this? ═══
         const concept = this._getStrategicConcept(optimalAction, handStrength, texture, street, freq, validActions, handActions);
 
+        // ═══ Phase 42: RIVER-SPECIFIC ENHANCED REASONING ═══
+        const riverEnhancement = (street === 'river') ? this._getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) : '';
+
         // ═══ BUILD FINAL EXPLANATION ═══
         // Pure strategy — one dominant action
         if (freq >= 0.95) {
-            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}`;
+            return `${heroHand} (${handStrength}): Pure ${label}. ${concept}${sizingReason ? ' ' + sizingReason : ''}${riverEnhancement ? ' ' + riverEnhancement : ''}`;
         }
 
         // Near-pure — one clear best action but some mixing
@@ -1611,7 +1614,7 @@ export class DeterministicGTOEngine {
                 .slice(0, 2)
                 .map(a => `${this.getActionLabelGTOW(a)} ${(handActions[a] * 100).toFixed(0)}%`);
             const mixNote = altActions.length > 0 ? ` Mixes with ${altActions.join(', ')}.` : '';
-            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${mixNote}`;
+            return `${heroHand} (${handStrength}): ${label} ${freqPct}%. ${concept}${sizingReason ? ' ' + sizingReason : ''}${riverEnhancement ? ' ' + riverEnhancement : ''}${mixNote}`;
         }
 
         // True mixed strategy — explain WHY the solver mixes
@@ -1623,7 +1626,7 @@ export class DeterministicGTOEngine {
             .join(', ');
 
         const mixReason = this._getMixingReason(handStrength, texture, street, validActions, handActions);
-        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}`;
+        return `${heroHand} (${handStrength}): Mixed — ${mixedParts}. ${mixReason}${riverEnhancement ? ' ' + riverEnhancement : ''}`;
     }
 
     /**
@@ -1832,6 +1835,104 @@ export class DeterministicGTOEngine {
     /**
      * Phase 25: Explain WHY the solver uses a mixed strategy here.
      */
+    /**
+     * Phase 42: River-specific context enhancement.
+     * GTO Wizard provides detailed river reasoning about:
+     * - Value vs bluff polarity
+     * - Pot odds and bluff-catching math
+     * - River card impact on ranges
+     * - Blocker effects
+     */
+    _getRiverContext(heroHand, board, handStrength, optimalAction, texture, nodeType, freq) {
+        const a = optimalAction.toLowerCase();
+        const isBet = a.startsWith('b') || a === 'allin';
+        const isCheck = a === 'c' || a === 'x';
+        const isFold = a === 'f';
+        const isCall = a === 'call';
+        const isRaise = a.startsWith('r');
+        const hs = handStrength.toLowerCase();
+
+        // River card analysis
+        const riverCard = board.length >= 5 ? board[4] : null;
+        let riverImpact = '';
+        if (riverCard && typeof riverCard === 'string' && riverCard.length >= 2) {
+            const riverRank = riverCard[0].toUpperCase();
+            const riverSuit = riverCard[1]?.toLowerCase();
+            const rankVal = r => '23456789TJQKA'.indexOf(r);
+            const rv = rankVal(riverRank);
+
+            // Check if river completes flush
+            const boardSuits = board.filter(c => c && c.length >= 2).map(c => c[1]?.toLowerCase());
+            const suitCounts = {};
+            boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
+            const flushComplete = Object.values(suitCounts).some(c => c >= 3);
+
+            // Check if river pairs the board
+            const boardRanks = board.filter(c => c && c.length >= 2).map(c => c[0].toUpperCase());
+            const rankCounts = {};
+            boardRanks.forEach(r => { rankCounts[r] = (rankCounts[r] || 0) + 1; });
+            const riverPairsBoard = rankCounts[riverRank] >= 2;
+
+            if (flushComplete && riverSuit) {
+                riverImpact = 'The river completes a possible flush — ranges polarize heavily.';
+            } else if (riverPairsBoard) {
+                riverImpact = 'The river pairs the board — full houses now possible, changing the hand rankings.';
+            } else if (rv >= 12) {
+                riverImpact = 'Ace on the river is a significant scare card — Ax hands improved while bluffs gain credibility.';
+            } else if (rv >= 10) {
+                riverImpact = 'Broadway river card — may have completed straights or improved high-card hands.';
+            } else if (rv <= 4) {
+                riverImpact = 'Low river card — a relative brick that mostly preserves the turn dynamic.';
+            }
+        }
+
+        // Decision-specific river context
+        let decisionContext = '';
+        if (isBet) {
+            const isNutted = hs.includes('straight') || hs.includes('flush') || hs.includes('full house') || hs.includes('quads') || hs.includes('set');
+            const isMissedDraw = hs.includes('no pair') || hs.includes('air') || (hs.includes('draw') && !hs.includes('pair'));
+            const isThinValue = hs.includes('top pair') || hs.includes('overpair') || hs.includes('two pair');
+
+            if (isNutted) {
+                decisionContext = 'On the river, nutted hands always bet — no more cards to come means pure value extraction.';
+            } else if (isMissedDraw) {
+                decisionContext = 'Converting a missed draw into a bluff on the river. With no showdown value, betting is the only way to profit.';
+            } else if (isThinValue) {
+                decisionContext = 'Thin value bet — villain\'s calling range on the river includes enough worse hands to make this profitable.';
+            }
+        } else if (isCall) {
+            const sizeMatch = a.match(/\d+/); // This won't match 'call', need to check what villain bet
+            decisionContext = 'Bluff-catching on the river — you need to call enough to prevent villain from profiting with any two cards as a bluff.';
+            if (hs.includes('top pair') || hs.includes('overpair')) {
+                decisionContext = 'Your hand is strong enough to bluff-catch. On the river, calling with top pair is standard when villain could be bluffing missed draws.';
+            } else if (hs.includes('second pair') || hs.includes('bottom pair')) {
+                decisionContext = 'Marginal bluff-catch — your hand blocks some value combos and catches enough bluffs to justify calling.';
+            }
+        } else if (isFold) {
+            if (hs.includes('pair')) {
+                decisionContext = 'Folding a made hand on the river — facing too much aggression. Villain\'s river betting range is strong enough that your pair is losing more often than not.';
+            } else if (hs.includes('draw')) {
+                decisionContext = 'Draw missed on the river — no showdown value and facing a bet. Folding is the only option.';
+            }
+        } else if (isCheck) {
+            if (hs.includes('set') || hs.includes('two pair') || hs.includes('straight') || hs.includes('flush')) {
+                decisionContext = 'Check-trapping on the river with a strong hand — inducing a bluff or delayed value bet from villain.';
+            } else if (hs.includes('top pair') || hs.includes('overpair')) {
+                decisionContext = 'Checking back on the river for pot control — your hand has showdown value but betting risks being raised off the best hand.';
+            }
+        } else if (isRaise) {
+            if (hs.includes('straight') || hs.includes('flush') || hs.includes('full house') || hs.includes('quads')) {
+                decisionContext = 'River raise for value with the nuts — villain\'s bet indicates strength, and you\'re raising to extract maximum.';
+            } else if (hs.includes('air') || hs.includes('no pair')) {
+                decisionContext = 'River bluff-raise — representing the nuts when you have nothing. This works because villain\'s betting range is often capped.';
+            }
+        }
+
+        // Combine
+        const parts = [riverImpact, decisionContext].filter(Boolean);
+        return parts.length > 0 ? parts.join(' ') : '';
+    }
+
     _getMixingReason(handStrength, texture, street, validActions, handActions) {
         // Find the top two actions
         const sorted = validActions
