@@ -3147,6 +3147,84 @@ function UniversalDynamicTable({
                         </div>
                     )}
 
+                    {/* Phase 32: Stacked GTO Frequency Bar — shows all actions in one visual strip */}
+                    {computedFrequencies && Object.keys(computedFrequencies).length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
+                            style={{
+                                width: '100%', padding: '6px 10px',
+                                background: 'rgba(0,0,0,0.2)', borderRadius: 8,
+                                border: '1px solid rgba(255,255,255,0.04)',
+                            }}
+                        >
+                            <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, marginBottom: 4, textTransform: 'uppercase' }}>
+                                GTO Strategy
+                            </div>
+                            {/* Stacked bar */}
+                            <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', gap: 1, background: 'rgba(0,0,0,0.3)' }}>
+                                {options.filter(o => {
+                                    const f = computedFrequencies[o.id] || computedFrequencies[o.id?.toLowerCase()] || 0;
+                                    return f > 0;
+                                }).sort((a, b) => {
+                                    const fa = computedFrequencies[a.id] || computedFrequencies[a.id?.toLowerCase()] || 0;
+                                    const fb = computedFrequencies[b.id] || computedFrequencies[b.id?.toLowerCase()] || 0;
+                                    return fb - fa;
+                                }).map(opt => {
+                                    const freq = computedFrequencies[opt.id] || computedFrequencies[opt.id?.toLowerCase()] || 0;
+                                    if (freq <= 0) return null;
+                                    const actionType = detectActionType(typeof opt === 'object' ? (opt.text || '') : String(opt));
+                                    const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
+                                    const isOptimal = opt.id === correctAnswer;
+                                    return (
+                                        <motion.div
+                                            key={opt.id}
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${freq}%` }}
+                                            transition={{ duration: 0.5, delay: 0.1 }}
+                                            style={{
+                                                height: '100%',
+                                                background: colors.accent || colors.bg,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: freq >= 15 ? 8 : 6,
+                                                fontWeight: 800,
+                                                color: '#fff',
+                                                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                                                overflow: 'hidden',
+                                                whiteSpace: 'nowrap',
+                                                border: isOptimal ? '1px solid #22c55e' : 'none',
+                                            }}
+                                            title={`${typeof opt === 'object' ? opt.text : opt}: ${freq}%`}
+                                        >
+                                            {freq >= 12 ? `${typeof opt === 'object' ? opt.text : opt} ${freq}%` : freq >= 6 ? `${freq}%` : ''}
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                            {/* Legend for small segments */}
+                            <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {options.filter(o => {
+                                    const f = computedFrequencies[o.id] || computedFrequencies[o.id?.toLowerCase()] || 0;
+                                    return f > 0;
+                                }).map(opt => {
+                                    const freq = computedFrequencies[opt.id] || computedFrequencies[opt.id?.toLowerCase()] || 0;
+                                    const actionType = detectActionType(typeof opt === 'object' ? (opt.text || '') : String(opt));
+                                    const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
+                                    const isOptimal = opt.id === correctAnswer;
+                                    return (
+                                        <span key={opt.id} style={{ fontSize: 8, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                            <span style={{ width: 6, height: 6, borderRadius: 2, background: colors.accent || colors.bg, display: 'inline-block' }} />
+                                            <span style={{ color: isOptimal ? '#22c55e' : '#94a3b8', fontWeight: isOptimal ? 800 : 600 }}>
+                                                {typeof opt === 'object' ? opt.text : opt} {freq}%
+                                            </span>
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    )}
+
                     {/* Per-Action EV Comparison */}
                     {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs).length > 0 && (
                         <motion.div

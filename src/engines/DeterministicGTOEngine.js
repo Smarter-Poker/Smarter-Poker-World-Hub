@@ -2061,14 +2061,16 @@ export class DeterministicGTOEngine {
 
     /**
      * Categorize hand strength relative to board (deterministic, no AI).
-     * GTOW-style: Shows made hand + draw equity context.
-     * Detects: sets, two pair, overpairs, top pair, flush draws, straight draws,
-     * gutshots, overcards, air, and combo draws.
+     * Phase 31: GTO Wizard-level precision — kicker quality, nut draw detection,
+     * backdoor draws, board-relative strength labels.
+     *
+     * Detects: quads, full houses, flushes, straights, sets, trips, two pair,
+     * overpairs, top pair (with kicker quality), second/bottom pair, underpairs,
+     * nut/non-nut flush draws, OESD, gutshots, backdoor draws, overcards, air.
      */
     categorizeHand(heroHand, board) {
         if (!heroHand || heroHand.length < 2) return 'a hand';
         if (!board || board.length === 0) return 'a preflop hand';
-        // Defensive: filter out null/undefined/empty cards
         const validBoard = board.filter(c => c && typeof c === 'string' && c.length >= 2);
         if (validBoard.length === 0) return 'a preflop hand';
 
@@ -2076,62 +2078,73 @@ export class DeterministicGTOEngine {
         const r2 = heroHand[1].toUpperCase();
         const isSuited = heroHand.length >= 3 && heroHand[2] === 's';
         const isPair = r1 === r2;
-        const isHighCard = ['A', 'K', 'Q', 'J'].includes(r1);
         const boardRanks = validBoard.map(c => c[0].toUpperCase());
         const boardSuits = validBoard.map(c => c[1]?.toLowerCase());
 
         const rankVal = r => '23456789TJQKA'.indexOf(r);
+        const RANK_DISPLAY = { 0:'2', 1:'3', 2:'4', 3:'5', 4:'6', 5:'7', 6:'8', 7:'9', 8:'T', 9:'J', 10:'Q', 11:'K', 12:'A' };
         const v1 = rankVal(r1);
         const v2 = rankVal(r2);
+        const heroHigh = Math.max(v1, v2);
+        const heroLow = Math.min(v1, v2);
         const boardVals = boardRanks.map(r => rankVal(r));
         const highestBoardVal = Math.max(...boardVals);
+        const secondHighestBoardVal = [...boardVals].sort((a, b) => b - a)[1] ?? -1;
         const sortedBoardVals = [...boardVals].sort((a, b) => a - b);
 
-        // ═══ FLUSH DRAW DETECTION ═══
+        // ═══ FLUSH / FLUSH DRAW DETECTION ═══
         let hasFlushDraw = false;
         let hasFlush = false;
+        let isNutFlushDraw = false;
+        let hasBackdoorFlush = false;
+
         if (isSuited) {
-            // For suited hands, check if 2+ board cards share the suit
-            // We don't know the exact suits of hero's cards from notation,
-            // but we can check board suit frequency
             const suitCounts = {};
             boardSuits.forEach(s => { if (s) suitCounts[s] = (suitCounts[s] || 0) + 1; });
             const maxBoardSuit = Object.entries(suitCounts).sort((a, b) => b[1] - a[1])[0];
             if (maxBoardSuit) {
-                if (maxBoardSuit[1] >= 3) hasFlush = true;  // 3 on board + 2 in hand = flush possible
-                if (maxBoardSuit[1] >= 2) hasFlushDraw = true;
+                if (maxBoardSuit[1] >= 3) hasFlush = true;
+                else if (maxBoardSuit[1] >= 2) hasFlushDraw = true;
+                else if (maxBoardSuit[1] === 1 && validBoard.length === 3) hasBackdoorFlush = true;
+            }
+            // Nut flush draw: hero has the ace of the flush suit
+            if (hasFlushDraw && (r1 === 'A' || r2 === 'A')) {
+                isNutFlushDraw = true;
             }
         }
 
         // ═══ STRAIGHT DRAW DETECTION ═══
-        // Check if hero cards + board cards create straight potential
         const allValsSet = new Set([v1, v2, ...boardVals]);
-        const allVals = [...allValsSet].sort((a, b) => a - b);
-
         let straightOuts = 0;
         let hasMadeStraight = false;
+        let isNutStraight = false;
         let hasOESD = false;
         let hasGutshot = false;
+        let hasBackdoorStraight = false;
 
-        // Check standard windows (2-3-4-5-6 through T-J-Q-K-A)
+        // Check standard windows
+        let bestStraightTop = -1;
         for (let start = 0; start <= 8; start++) {
             const window = [start, start + 1, start + 2, start + 3, start + 4];
             const have = window.filter(v => allValsSet.has(v)).length;
             const heroContributes = window.includes(v1) || window.includes(v2);
             if (have === 5 && heroContributes) {
                 hasMadeStraight = true;
+                if (start + 4 > bestStraightTop) bestStraightTop = start + 4;
             } else if (have === 4 && heroContributes) {
                 straightOuts++;
+            } else if (have === 3 && heroContributes && validBoard.length === 3 && !hasMadeStraight) {
+                hasBackdoorStraight = true;
             }
         }
 
-        // Special case: wheel straight (A-2-3-4-5) — Ace plays low
-        // Ranks: A=12, 2=0, 3=1, 4=2, 5=3
+        // Wheel check
         const wheelRanks = [12, 0, 1, 2, 3];
         const wheelHave = wheelRanks.filter(v => allValsSet.has(v)).length;
         const wheelHeroContributes = wheelRanks.includes(v1) || wheelRanks.includes(v2);
         if (wheelHave === 5 && wheelHeroContributes) {
             hasMadeStraight = true;
+            if (3 > bestStraightTop) bestStraightTop = 3; // 5-high straight
         } else if (wheelHave === 4 && wheelHeroContributes && !hasMadeStraight) {
             straightOuts++;
         }
@@ -2141,68 +2154,91 @@ export class DeterministicGTOEngine {
             else if (straightOuts === 1) hasGutshot = true;
         }
 
+        // Check if it's the nut straight (highest possible straight using the board)
+        if (hasMadeStraight && bestStraightTop === 12) isNutStraight = true;
+
         // ═══ MADE HAND CLASSIFICATION ═══
         let madeHand = '';
         const r1BoardCount = boardRanks.filter(r => r === r1).length;
         const r2BoardCount = boardRanks.filter(r => r === r2).length;
+        const boardRankCounts = {};
+        boardRanks.forEach(r => { boardRankCounts[r] = (boardRankCounts[r] || 0) + 1; });
 
-        // Check for straights first (highest non-paired hand)
-        if (hasMadeStraight) {
-            madeHand = 'a straight';
-        } else if (isPair) {
-            // Board rank frequency for full house detection
-            const boardRankCounts = {};
-            boardRanks.forEach(r => { boardRankCounts[r] = (boardRankCounts[r] || 0) + 1; });
-
+        // Flush first (beats straight in display priority for made hands)
+        if (hasFlush) {
+            // Check if it's the nut flush
+            if (r1 === 'A' || r2 === 'A') madeHand = 'the nut flush';
+            else if (heroHigh >= 11) madeHand = 'a strong flush';
+            else madeHand = 'a flush';
+        }
+        // Straight
+        else if (hasMadeStraight) {
+            madeHand = isNutStraight ? 'the nut straight' : 'a straight';
+        }
+        // Pair-based hands
+        else if (isPair) {
             if (boardRanks.includes(r1)) {
-                // Hero pair + board match: set, quads, or full house
                 if (r1BoardCount >= 2) madeHand = 'quads';
                 else {
-                    // Set — but check if board has another pair (→ full house)
                     const boardHasOtherPair = Object.entries(boardRankCounts)
                         .some(([r, c]) => r !== r1 && c >= 2);
                     madeHand = boardHasOtherPair ? 'a full house' : 'a set';
                 }
             } else {
-                // Hero pair NOT on board — check if board has trips (→ full house)
                 const boardHasTrips = Object.values(boardRankCounts).some(c => c >= 3);
                 if (boardHasTrips) {
                     madeHand = 'a full house';
+                } else if (v1 > highestBoardVal) {
+                    // Overpair quality
+                    if (v1 >= 12) madeHand = 'aces (overpair)';
+                    else if (v1 >= 11) madeHand = 'kings (overpair)';
+                    else madeHand = 'an overpair';
+                } else if (v1 >= highestBoardVal - 1) {
+                    madeHand = 'second pair (pocket)';
                 } else {
-                    if (v1 > highestBoardVal) madeHand = 'an overpair';
-                    else if (v1 === highestBoardVal - 1) madeHand = 'second pair (pocket)';
-                    else madeHand = 'an underpair';
+                    madeHand = 'an underpair';
                 }
             }
         } else {
-            // Non-pair hands: check for trips, full house, two pair, one pair
+            // Non-pair hands
             const r1OnBoard = r1BoardCount > 0;
             const r2OnBoard = r2BoardCount > 0;
 
-            // Full house: hero matches one paired rank + another paired rank on board
             if (r1OnBoard && r2OnBoard && (r1BoardCount >= 2 || r2BoardCount >= 2)) {
                 madeHand = 'a full house';
             } else if (r1OnBoard && r1BoardCount >= 2) {
-                // Hero has one card matching 2+ board cards = trips
-                madeHand = 'trips';
+                madeHand = v2 >= 12 ? 'trips, top kicker' : 'trips';
             } else if (r2OnBoard && r2BoardCount >= 2) {
-                madeHand = 'trips';
+                madeHand = v1 >= 12 ? 'trips, top kicker' : 'trips';
             } else if (r1OnBoard && r2OnBoard) {
-                madeHand = 'two pair';
+                // Two pair — specify which
+                if (v1 === highestBoardVal || v2 === highestBoardVal) {
+                    madeHand = 'top two pair';
+                } else {
+                    madeHand = 'two pair';
+                }
             } else if (r1OnBoard) {
-                // Which pair is it?
+                // r1 hit the board — kicker is r2
                 if (v1 === highestBoardVal) {
-                    madeHand = isHighCard ? 'top pair, strong kicker' : 'top pair';
-                } else if (sortedBoardVals.length >= 2 && v1 === sortedBoardVals[sortedBoardVals.length - 2]) {
-                    madeHand = 'second pair';
+                    // Top pair — kicker quality matters
+                    if (v2 >= 12) madeHand = 'top pair, top kicker';
+                    else if (v2 >= 10) madeHand = 'top pair, strong kicker';
+                    else if (v2 >= 7) madeHand = 'top pair, medium kicker';
+                    else madeHand = 'top pair, weak kicker';
+                } else if (v1 === secondHighestBoardVal) {
+                    madeHand = v2 >= 12 ? 'second pair, top kicker' : 'second pair';
                 } else {
                     madeHand = 'bottom pair';
                 }
             } else if (r2OnBoard) {
+                // r2 hit the board — kicker is r1
                 if (v2 === highestBoardVal) {
-                    madeHand = 'top pair, weak kicker';
-                } else if (sortedBoardVals.length >= 2 && v2 === sortedBoardVals[sortedBoardVals.length - 2]) {
-                    madeHand = 'second pair';
+                    if (v1 >= 12) madeHand = 'top pair, top kicker';
+                    else if (v1 >= 10) madeHand = 'top pair, strong kicker';
+                    else if (v1 >= 7) madeHand = 'top pair, medium kicker';
+                    else madeHand = 'top pair, weak kicker';
+                } else if (v2 === secondHighestBoardVal) {
+                    madeHand = v1 >= 12 ? 'second pair, top kicker' : 'second pair';
                 } else {
                     madeHand = 'bottom pair';
                 }
@@ -2211,10 +2247,38 @@ export class DeterministicGTOEngine {
 
         // ═══ COMBINE: Made hand + draw equity ═══
         const draws = [];
-        if (hasFlush) draws.push('flush');
-        else if (hasFlushDraw) draws.push('flush draw');
-        if (hasOESD) draws.push('OESD');
-        else if (hasGutshot) draws.push('gutshot');
+        if (hasFlush) {
+            // Already classified as flush in madeHand — skip flush draw
+        } else if (isNutFlushDraw) {
+            draws.push('nut flush draw');
+        } else if (hasFlushDraw) {
+            draws.push('flush draw');
+        }
+
+        if (hasMadeStraight) {
+            // Already classified
+        } else if (hasOESD) {
+            draws.push('OESD');
+        } else if (hasGutshot) {
+            draws.push('gutshot');
+        }
+
+        // Backdoor draws on flop only (not shown on turn/river)
+        if (validBoard.length === 3 && !madeHand && draws.length === 0) {
+            const bdDraws = [];
+            if (hasBackdoorFlush) bdDraws.push('backdoor flush draw');
+            if (hasBackdoorStraight) bdDraws.push('backdoor straight draw');
+            if (bdDraws.length > 0) {
+                // With overcards, backdoor draws add playability
+                if (heroHigh > highestBoardVal && heroLow > highestBoardVal) {
+                    return `two overcards + ${bdDraws.join(' + ')}`;
+                }
+                if (heroHigh > highestBoardVal) {
+                    return `one overcard + ${bdDraws.join(' + ')}`;
+                }
+                return bdDraws.join(' + ');
+            }
+        }
 
         if (madeHand && draws.length > 0) {
             return `${madeHand} + ${draws.join(' + ')}`;
@@ -2226,9 +2290,9 @@ export class DeterministicGTOEngine {
         }
 
         // No made hand, no draw
-        if (v1 > highestBoardVal && v2 > highestBoardVal) return 'two overcards';
-        if (v1 > highestBoardVal || v2 > highestBoardVal) return 'one overcard';
-        return isHighCard ? 'high cards, no pair' : 'air';
+        if (heroHigh > highestBoardVal && heroLow > highestBoardVal) return 'two overcards';
+        if (heroHigh > highestBoardVal) return 'one overcard';
+        return heroHigh >= 9 ? 'high cards, no pair' : 'air';
     }
 
     getStreetForLevel(level) {
