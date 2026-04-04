@@ -843,6 +843,14 @@ function GodModeArenaInner({
         getMixedFrequencyDrillData,
         getHandCategoryBreakdown,
         getSessionComparison,
+        // ═══ PHASE 281-290: Advanced analytics + coaching ═══
+        getRunningActionFrequencies,
+        getMistakeClusters,
+        getBoardCoverageAnalysis,
+        getBluffToValueRatio,
+        getEVLossHeatmap,
+        getPositionLeaderboard,
+        generateCoachingSummary,
     } = useGTOTrainer(gameId, engineType, level, trainerConfig);
 
     // ═══ PHASE 15: Spaced Repetition (cross-session review) ═══
@@ -2372,6 +2380,100 @@ function GodModeArenaInner({
                                         <div key={'reg-' + i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 10 }}>
                                             <span style={{ color: '#94a3b8' }}>{reg.metric}</span>
                                             <span style={{ color: '#ef4444', fontWeight: 700 }}>{reg.delta}</span>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 290: AI Coaching Summary ═══ */}
+                        {(() => {
+                            try {
+                                const coaching = generateCoachingSummary();
+                                if (!coaching || !coaching.summary) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(168,85,247,0.06) 100%)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>AI Coach</div>
+                                    <div style={{ fontSize: 11, color: '#e2e8f0', lineHeight: 1.6, marginBottom: coaching.tips?.length > 0 ? 8 : 0 }}>{coaching.summary}</div>
+                                    {coaching.tips?.length > 0 && coaching.tips.map((tip, i) => (
+                                        <div key={i} style={{ fontSize: 10, color: '#4ade80', padding: '3px 8px', marginTop: 4, background: 'rgba(34,197,94,0.06)', borderRadius: 6, border: '1px solid rgba(34,197,94,0.1)', lineHeight: 1.5 }}>{tip}</div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 283: Mistake Clusters ═══ */}
+                        {(() => {
+                            try {
+                                const clusters = getMistakeClusters();
+                                if (!clusters || clusters.clusters.length === 0) return null;
+                                const sevColors = { critical: '#ef4444', high: '#f97316', medium: '#fbbf24' };
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(239,68,68,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Mistake Patterns ({clusters.totalMistakes} total)</div>
+                                    {clusters.clusters.slice(0, 5).map((c, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0', flex: 1 }}>{c.description}</span>
+                                            <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: `${sevColors[c.severity] || '#fbbf24'}15`, color: sevColors[c.severity] || '#fbbf24', fontWeight: 700, textTransform: 'uppercase' }}>{c.severity}</span>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 285: Bluff-to-Value Ratio ═══ */}
+                        {(() => {
+                            try {
+                                const bvr = getBluffToValueRatio();
+                                if (!bvr) return null;
+                                const bvrColor = bvr.assessment === 'balanced' ? '#4ade80' : bvr.assessment === 'over_bluffing' ? '#ef4444' : '#fbbf24';
+                                return (<div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10, border: `1px solid ${bvrColor}22` }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: bvrColor }}>Bluff:Value Ratio</span>
+                                        <span style={{ fontSize: 10, fontFamily: "'Orbitron', monospace", color: '#e2e8f0' }}>{bvr.userBluffPct}% bluffs (solver: {bvr.solverBluffPct}%)</span>
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5 }}>{bvr.message}</div>
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 282: Running Action Frequencies ═══ */}
+                        {(() => {
+                            try {
+                                const freqs = getRunningActionFrequencies();
+                                if (!freqs || freqs.frequencies.length === 0) return null;
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(0,212,255,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Action Frequency vs Solver</div>
+                                    {freqs.frequencies.map((f, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0' }}>
+                                            <span style={{ fontSize: 10, color: '#e2e8f0', fontWeight: 600, minWidth: 50 }}>{f.action}</span>
+                                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                                                <span style={{ fontSize: 9, color: '#94a3b8' }}>You: {f.userFreq}%</span>
+                                                <span style={{ fontSize: 9, color: '#64748b' }}>GTO: {f.solverFreq}%</span>
+                                                <span style={{ fontSize: 9, fontWeight: 700, color: Math.abs(f.deviation) > 15 ? '#ef4444' : Math.abs(f.deviation) > 8 ? '#fbbf24' : '#4ade80' }}>({f.deviation > 0 ? '+' : ''}{f.deviation}%)</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>);
+                            } catch (_) { return null; }
+                        })()}
+
+                        {/* ═══ PHASE 289: Position Leaderboard ═══ */}
+                        {(() => {
+                            try {
+                                const posLB = getPositionLeaderboard();
+                                if (!posLB || posLB.leaderboard.length === 0) return null;
+                                const gradeColors = { A: '#22c55e', B: '#4ade80', C: '#fbbf24', D: '#ef4444' };
+                                return (<div style={{ marginBottom: 16, padding: '14px 16px', background: 'rgba(0,0,0,0.3)', borderRadius: 12, border: '1px solid rgba(34,197,94,0.15)' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Position Leaderboard</div>
+                                    {posLB.leaderboard.map((p, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <span style={{ fontSize: 12, fontWeight: 800, color: gradeColors[p.grade] || '#94a3b8', fontFamily: "'Orbitron', monospace", minWidth: 18 }}>{p.grade}</span>
+                                                <span style={{ fontSize: 10, color: '#e2e8f0', fontWeight: 600 }}>{p.position}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <span style={{ fontSize: 10, color: gradeColors[p.grade], fontWeight: 700, fontFamily: "'Orbitron', monospace" }}>{p.accuracy}%</span>
+                                                <span style={{ fontSize: 9, color: '#64748b' }}>({p.total}h)</span>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>);

@@ -1562,6 +1562,37 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         getSessionComparison: (previousSessionData) => {
             try { return deterministicEngine.getSessionComparison(previousSessionData); } catch (e) { return null; }
         },
+        // ═══ PHASE 281-290: Advanced analytics + coaching ═══
+        getPreDecisionPreview: (handCategory, street, nodeType, heroPosition, frequencies) => {
+            try { return deterministicEngine.getPreDecisionPreview(handCategory, street, nodeType, heroPosition, frequencies); } catch (e) { return null; }
+        },
+        getRunningActionFrequencies: () => {
+            try { return deterministicEngine.getRunningActionFrequencies(); } catch (e) { return null; }
+        },
+        getMistakeClusters: () => {
+            try { return deterministicEngine.getMistakeClusters(); } catch (e) { return { clusters: [], totalMistakes: 0 }; }
+        },
+        getBoardCoverageAnalysis: () => {
+            try { return deterministicEngine.getBoardCoverageAnalysis(); } catch (e) { return null; }
+        },
+        getBluffToValueRatio: () => {
+            try { return deterministicEngine.getBluffToValueRatio(); } catch (e) { return null; }
+        },
+        getEVLossHeatmap: () => {
+            try { return deterministicEngine.getEVLossHeatmap(); } catch (e) { return null; }
+        },
+        getQuickFireReviewCards: () => {
+            try { return deterministicEngine.getQuickFireReviewCards(); } catch (e) { return []; }
+        },
+        generateFrequencyQuizQuestion: () => {
+            try { return deterministicEngine.generateFrequencyQuizQuestion(); } catch (e) { return null; }
+        },
+        getPositionLeaderboard: () => {
+            try { return deterministicEngine.getPositionLeaderboard(); } catch (e) { return null; }
+        },
+        generateCoachingSummary: () => {
+            try { return deterministicEngine.generateCoachingSummary(); } catch (e) { return { summary: '', tips: [] }; }
+        },
 
         // Actions
         submitAnswer,

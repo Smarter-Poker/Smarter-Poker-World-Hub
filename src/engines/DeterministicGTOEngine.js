@@ -6102,8 +6102,8 @@ export class DeterministicGTOEngine {
      */
     getEngineStats() {
         return {
-            version: '3.5.0-phase280',
-            phasesImplemented: 280,
+            version: '3.6.0-phase290',
+            phasesImplemented: 290,
             explanationModules: {
                 core: ['strategicConcept', 'sizingReason', 'mixingReason'],
                 phase25_34: ['boardTexture', 'sizingReason'],
@@ -6151,6 +6151,8 @@ export class DeterministicGTOEngine {
                 phase266_270: ['multiStreetPlanning', 'freqSelfCorrect', 'tiltRecovery', 'sessionPacing', 'granularDifficulty'],
                 phase271_275: ['handStrengthClassifier', 'equityVsRange', 'actionEVComparison', 'solverLineComparison', 'conceptMastery'],
                 phase276_280: ['adaptiveHints', 'runoutImpactPreview', 'mixedFreqDrills', 'handCategoryBreakdown', 'sessionComparison'],
+                phase281_285: ['preDecisionPreview', 'runningFreqTracker', 'mistakeClustering', 'boardCoverage', 'bluffValueRatio'],
+                phase286_290: ['evLossHeatmap', 'quickFireReview', 'freqQuiz', 'positionLeaderboard', 'coachingSummary'],
             },
             totalExplanationNotes: 95, // Number of notes in allNotes pipeline
             smartNoteSelection: { concise: 1, standard: 3, verbose: 5, method: 'relevance-scored' },
@@ -11829,6 +11831,290 @@ export class DeterministicGTOEngine {
         if (current.total > 0 && current.evLoss / current.total < baseline.evLoss / baseline.total) improvements.push({ metric: 'EV Loss/Hand', current: (current.evLoss / current.total).toFixed(2) + ' BB', baseline: (baseline.evLoss / baseline.total).toFixed(2) + ' BB', delta: 'Better' });
         else if (current.total > 0) regressions.push({ metric: 'EV Loss/Hand', current: (current.evLoss / current.total).toFixed(2) + ' BB', baseline: (baseline.evLoss / baseline.total).toFixed(2) + ' BB', delta: 'Worse' });
         return { current, baseline, improvements, regressions };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 281: PRE-DECISION HAND PREVIEW
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getPreDecisionPreview(handCategory, street, nodeType, heroPosition, frequencies) {
+        const strength = this.classifyHandStrength(handCategory, null, street);
+        const equity = this.estimateEquityVsRange(handCategory, street, nodeType, heroPosition, '');
+        let spotType = 'standard';
+        if (frequencies) {
+            const vals = Object.values(frequencies);
+            const maxF = Math.max(...vals);
+            if (maxF > 80) spotType = 'clear';
+            else if (maxF < 40) spotType = 'complex_mix';
+            else spotType = 'moderate_mix';
+        }
+        return { handStrength: strength, equity, spotType, spotTypeLabel: spotType === 'clear' ? 'Clear Decision' : spotType === 'complex_mix' ? 'Complex Mixed Spot' : 'Moderate Mix' };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 282: RUNNING ACTION FREQUENCY TRACKER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getRunningActionFrequencies() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 2) return null;
+        const actionCounts = {};
+        const solverCounts = {};
+        let total = 0;
+        this._sessionStats.history.forEach(h => {
+            const userAct = this._normalizeActionCategory(h.action || h.selectedAction || '');
+            const solverAct = this._normalizeActionCategory(h.correctAction || '');
+            if (!userAct) return;
+            total++;
+            actionCounts[userAct] = (actionCounts[userAct] || 0) + 1;
+            if (solverAct) solverCounts[solverAct] = (solverCounts[solverAct] || 0) + 1;
+        });
+        if (total < 2) return null;
+        const allActions = [...new Set([...Object.keys(actionCounts), ...Object.keys(solverCounts)])];
+        const frequencies = allActions.map(action => ({
+            action, userFreq: Math.round(((actionCounts[action] || 0) / total) * 100), solverFreq: Math.round(((solverCounts[action] || 0) / total) * 100),
+            deviation: Math.round(((actionCounts[action] || 0) / total - (solverCounts[action] || 0) / total) * 100),
+        }));
+        frequencies.sort((a, b) => Math.abs(b.deviation) - Math.abs(a.deviation));
+        return { frequencies, totalHands: total, biggestLeak: frequencies[0] || null };
+    }
+
+    _normalizeActionCategory(action) {
+        const a = (action || '').toLowerCase();
+        if (a.includes('fold')) return 'Fold';
+        if (a.includes('check')) return 'Check';
+        if (a.includes('call')) return 'Call';
+        if (a.includes('raise') || a.includes('3-bet') || a.includes('4-bet')) return 'Raise';
+        if (a.includes('bet') || a.includes('pot') || a.includes('overbet')) return 'Bet';
+        if (a.includes('all-in') || a.includes('push') || a.includes('allin')) return 'All-In';
+        return a ? 'Other' : '';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 283: MISTAKE CLUSTERING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getMistakeClusters() {
+        if (!this._sessionStats?.history) return { clusters: [], totalMistakes: 0 };
+        const mistakes = this._sessionStats.history.filter(h => !h.correct);
+        if (mistakes.length < 2) return { clusters: [], totalMistakes: mistakes.length };
+        const clusterMap = {};
+        mistakes.forEach(m => {
+            const street = (m.street || 'unknown').toLowerCase();
+            const node = (m.nodeType || 'general').toLowerCase();
+            const userAct = this._normalizeActionCategory(m.action || m.selectedAction || '');
+            const solverAct = this._normalizeActionCategory(m.correctAction || '');
+            const key = `${street}_${userAct}_instead_of_${solverAct}`;
+            if (!clusterMap[key]) clusterMap[key] = { street, userAction: userAct, solverAction: solverAct, count: 0, nodeTypes: [], evLoss: 0 };
+            clusterMap[key].count++;
+            clusterMap[key].evLoss += (m.evLoss || 0);
+            if (!clusterMap[key].nodeTypes.includes(node)) clusterMap[key].nodeTypes.push(node);
+        });
+        const clusters = Object.values(clusterMap).map(c => ({
+            ...c, evLoss: Math.round(c.evLoss * 100) / 100,
+            description: `${c.street}: You ${c.userAction.toLowerCase()} instead of ${c.solverAction.toLowerCase()} (${c.count}x, -${c.evLoss.toFixed(2)} BB)`,
+            severity: c.count >= 3 ? 'critical' : c.count >= 2 ? 'high' : 'medium',
+        }));
+        clusters.sort((a, b) => b.count - a.count);
+        return { clusters: clusters.slice(0, 8), totalMistakes: mistakes.length };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 284: BOARD COVERAGE ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getBoardCoverageAnalysis() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const textureMap = { dry: { total: 0, correct: 0 }, wet: { total: 0, correct: 0 }, monotone: { total: 0, correct: 0 }, paired: { total: 0, correct: 0 }, disconnected: { total: 0, correct: 0 }, connected: { total: 0, correct: 0 } };
+        this._sessionStats.history.forEach(h => {
+            const tex = (h.texture || h.boardTexture || '').toLowerCase();
+            if (tex.includes('dry') || tex.includes('rainbow')) { textureMap.dry.total++; if (h.correct) textureMap.dry.correct++; }
+            if (tex.includes('wet') || tex.includes('draw')) { textureMap.wet.total++; if (h.correct) textureMap.wet.correct++; }
+            if (tex.includes('monotone') || tex.includes('flush')) { textureMap.monotone.total++; if (h.correct) textureMap.monotone.correct++; }
+            if (tex.includes('paired') || tex.includes('pair')) { textureMap.paired.total++; if (h.correct) textureMap.paired.correct++; }
+            if (tex.includes('connected') || tex.includes('straight')) { textureMap.connected.total++; if (h.correct) textureMap.connected.correct++; }
+            if (tex.includes('disconnected') || tex.includes('rainbow')) { textureMap.disconnected.total++; if (h.correct) textureMap.disconnected.correct++; }
+        });
+        const textures = Object.entries(textureMap).filter(([_, d]) => d.total > 0).map(([name, data]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1), total: data.total, correct: data.correct,
+            accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+        }));
+        textures.sort((a, b) => a.accuracy - b.accuracy);
+        return { textures, weakestTexture: textures[0] || null, strongestTexture: textures[textures.length - 1] || null };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 285: BLUFF-TO-VALUE RATIO
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getBluffToValueRatio() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        let userBluffs = 0, userValue = 0, solverBluffs = 0, solverValue = 0;
+        this._sessionStats.history.forEach(h => {
+            const cat = (h.handCategory || '').toLowerCase();
+            const userAct = (h.action || h.selectedAction || '').toLowerCase();
+            const solverAct = (h.correctAction || '').toLowerCase();
+            const isAggressive = a => a.includes('bet') || a.includes('raise') || a.includes('all-in');
+            const isBluffHand = cat.includes('air') || cat.includes('no pair') || cat.includes('missed') || cat.includes('gutshot') || cat.includes('backdoor');
+            if (isAggressive(userAct)) { if (isBluffHand) userBluffs++; else userValue++; }
+            if (isAggressive(solverAct)) { if (isBluffHand) solverBluffs++; else solverValue++; }
+        });
+        const userTotal = userBluffs + userValue;
+        const solverTotal = solverBluffs + solverValue;
+        const userRatio = userTotal > 0 ? Math.round((userBluffs / userTotal) * 100) : 0;
+        const solverRatio = solverTotal > 0 ? Math.round((solverBluffs / solverTotal) * 100) : 0;
+        let assessment = 'balanced';
+        if (userRatio > solverRatio + 15) assessment = 'over_bluffing';
+        else if (userRatio < solverRatio - 15) assessment = 'under_bluffing';
+        return { userBluffPct: userRatio, solverBluffPct: solverRatio, userBluffs, userValue, solverBluffs, solverValue, assessment,
+            message: assessment === 'over_bluffing' ? 'You\'re bluffing too often — tighten your aggression range.' : assessment === 'under_bluffing' ? 'You\'re not bluffing enough — add more semi-bluffs to stay balanced.' : 'Your bluff-to-value ratio is well-balanced.' };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 286: EV LOSS HEATMAP DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getEVLossHeatmap() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 3) return null;
+        const grid = {};
+        const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+        const streets = ['preflop', 'flop', 'turn', 'river'];
+        positions.forEach(p => { grid[p] = {}; streets.forEach(s => { grid[p][s] = { evLoss: 0, hands: 0 }; }); });
+        this._sessionStats.history.forEach(h => {
+            const pos = (h.heroPosition || h.position || 'MP').toUpperCase();
+            const st = (h.street || 'flop').toLowerCase();
+            const normPos = positions.includes(pos) ? pos : 'MP';
+            const normSt = streets.includes(st) ? st : 'flop';
+            grid[normPos][normSt].evLoss += (h.evLoss || 0);
+            grid[normPos][normSt].hands++;
+        });
+        const cells = [];
+        let maxLoss = 0;
+        positions.forEach(p => { streets.forEach(s => {
+            const cell = grid[p][s];
+            const avg = cell.hands > 0 ? cell.evLoss / cell.hands : 0;
+            if (avg > maxLoss) maxLoss = avg;
+            cells.push({ position: p, street: s, totalEVLoss: Math.round(cell.evLoss * 100) / 100, hands: cell.hands, avgEVLoss: Math.round(avg * 100) / 100 });
+        }); });
+        cells.forEach(c => { c.intensity = maxLoss > 0 ? Math.min(1, c.avgEVLoss / maxLoss) : 0; });
+        return { cells, positions, streets, maxLoss: Math.round(maxLoss * 100) / 100 };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 287: QUICK-FIRE REVIEW MODE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getQuickFireReviewCards() {
+        if (!this._sessionStats?.history) return [];
+        const mistakes = this._sessionStats.history.filter(h => !h.correct);
+        return mistakes.map((m, i) => ({
+            index: i + 1,
+            street: m.street || 'flop',
+            position: m.heroPosition || m.position || '?',
+            handCategory: m.handCategory || 'Unknown',
+            userAction: m.action || m.selectedAction || '?',
+            solverAction: m.correctAction || '?',
+            evLoss: Math.round((m.evLoss || 0) * 100) / 100,
+            keyTakeaway: m.takeaway || `Should have ${(m.correctAction || '').toLowerCase()} instead of ${(m.action || m.selectedAction || '').toLowerCase()}.`,
+            nodeType: m.nodeType || '',
+        }));
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 288: SOLVER FREQUENCY QUIZ DATA
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    generateFrequencyQuizQuestion() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 5) return null;
+        const handsWithFreqs = this._sessionStats.history.filter(h => h.frequencies && Object.keys(h.frequencies).length >= 2);
+        if (handsWithFreqs.length === 0) return null;
+        const hand = handsWithFreqs[Math.floor(Math.random() * handsWithFreqs.length)];
+        const entries = Object.entries(hand.frequencies).sort((a, b) => b[1] - a[1]);
+        const topAction = entries[0][0];
+        const topFreq = entries[0][1];
+        return {
+            question: `In this ${(hand.street || 'flop')} spot (${hand.nodeType || 'standard'}), what % does the solver ${topAction}?`,
+            correctAnswer: Math.round(topFreq),
+            tolerance: 10,
+            handCategory: hand.handCategory || 'Unknown',
+            street: hand.street || 'flop',
+            allFrequencies: hand.frequencies,
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 289: POSITION LEADERBOARD
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    getPositionLeaderboard() {
+        if (!this._sessionStats?.history || this._sessionStats.history.length < 3) return null;
+        const posMap = {};
+        this._sessionStats.history.forEach(h => {
+            const pos = (h.heroPosition || h.position || 'MP').toUpperCase();
+            if (!posMap[pos]) posMap[pos] = { correct: 0, total: 0, evLoss: 0 };
+            posMap[pos].total++;
+            if (h.correct) posMap[pos].correct++;
+            posMap[pos].evLoss += (h.evLoss || 0);
+        });
+        const leaderboard = Object.entries(posMap).map(([pos, data]) => ({
+            position: pos, total: data.total, correct: data.correct,
+            accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+            evLoss: Math.round(data.evLoss * 100) / 100,
+            grade: data.total >= 3 && data.correct / data.total >= 0.8 ? 'A' : data.correct / data.total >= 0.6 ? 'B' : data.correct / data.total >= 0.4 ? 'C' : 'D',
+        }));
+        leaderboard.sort((a, b) => b.accuracy - a.accuracy);
+        return { leaderboard, bestPosition: leaderboard[0] || null, worstPosition: leaderboard[leaderboard.length - 1] || null };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PHASE 290: COACHING SUMMARY GENERATOR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    generateCoachingSummary() {
+        const stats = this._sessionStats;
+        if (!stats || stats.total < 5) return { summary: 'Complete more hands for a coaching summary.', tips: [] };
+        const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+        const tips = [];
+        const parts = [];
+        // Overall assessment
+        if (accuracy >= 80) parts.push(`Excellent session — ${accuracy}% accuracy shows strong GTO understanding.`);
+        else if (accuracy >= 65) parts.push(`Solid session at ${accuracy}% accuracy. A few key spots to review.`);
+        else if (accuracy >= 50) parts.push(`Average session at ${accuracy}% accuracy. Multiple areas need work.`);
+        else parts.push(`Tough session at ${accuracy}% accuracy. Focus on fundamentals.`);
+        // Leak analysis
+        try {
+            const leaks = this.generateLeakReport();
+            if (leaks?.leaks?.length > 0) {
+                const topLeak = leaks.leaks[0];
+                parts.push(`Biggest leak: ${topLeak.title} (${topLeak.severity}).`);
+                tips.push(topLeak.fix);
+            }
+        } catch (_) {}
+        // Position insight
+        try {
+            const posLB = this.getPositionLeaderboard();
+            if (posLB?.worstPosition && posLB.worstPosition.accuracy < 50) {
+                parts.push(`Weakest position: ${posLB.worstPosition.position} at ${posLB.worstPosition.accuracy}%.`);
+                tips.push(`Focus on ${posLB.worstPosition.position} strategy — study solver ranges for this seat.`);
+            }
+        } catch (_) {}
+        // Bluff ratio
+        try {
+            const bvr = this.getBluffToValueRatio();
+            if (bvr && bvr.assessment !== 'balanced') {
+                parts.push(bvr.message);
+                if (bvr.assessment === 'over_bluffing') tips.push('Cut marginal bluffs — focus on hands with good blockers.');
+                else tips.push('Add more semi-bluffs with draws and backdoor equity.');
+            }
+        } catch (_) {}
+        // Improvement velocity
+        try {
+            const vel = this.getImprovementVelocity();
+            if (vel && vel.trend !== 'INSUFFICIENT_DATA') {
+                if (vel.trend.includes('IMPROV')) parts.push('Your accuracy improved as the session went on — good mental stamina.');
+                else if (vel.trend.includes('DECLIN')) { parts.push('Accuracy declined later in the session — consider shorter sessions.'); tips.push('Try 15-hand sessions to stay sharp.'); }
+            }
+        } catch (_) {}
+        return { summary: parts.join(' '), tips: tips.slice(0, 5), accuracy, totalHands: stats.total };
     }
 }
 
