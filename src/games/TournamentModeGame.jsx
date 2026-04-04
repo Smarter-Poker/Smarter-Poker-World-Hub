@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { SoundEngine } from './GameEngine';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -436,9 +437,11 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
 
         if (isCorrect) {
             setPlayerScore(prev => prev + 1);
+            SoundEngine.play('correct');
         } else {
             // Opponent "wins" this round
             setOpponentScore(prev => prev + 1);
+            SoundEngine.play('wrong');
         }
     };
 
@@ -475,6 +478,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             }
 
             if (playerWon) {
+                SoundEngine.play('levelUp');
                 fireConfetti({
                     particleCount: 100,
                     spread: 70,

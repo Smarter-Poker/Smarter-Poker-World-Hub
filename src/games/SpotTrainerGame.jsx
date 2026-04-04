@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SoundEngine } from './GameEngine';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {

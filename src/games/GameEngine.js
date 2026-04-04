@@ -7,47 +7,130 @@
 // 🎵 SOUND ENGINE — Audio feedback for all actions
 // ═══════════════════════════════════════════════════════════════════════════
 export const SoundEngine = {
-    _sounds: {},
+    _ctx: null,
     _enabled: true,
 
-    // Sound URLs (will use base64 or CDN in production)
-    SOUNDS: {
-        correct: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==',
-        wrong: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==',
-        combo: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==',
-        levelUp: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==',
-        tick: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==',
-        gameOver: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==',
-        diamond: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==',
+    _getCtx() {
+        if (!this._ctx && typeof window !== 'undefined') {
+            try {
+                this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (_) { /* audio unavailable */ }
+        }
+        if (this._ctx && this._ctx.state === 'suspended') {
+            this._ctx.resume().catch(() => {});
+        }
+        return this._ctx;
+    },
+
+    // Play a single oscillator note with envelope
+    _note(ctx, freq, type, startTime, duration, vol, dest) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(vol, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(dest || ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.05);
+    },
+
+    // Sound design definitions — each is a multi-note synthesized sound
+    _sounds: {
+        correct(ctx, t) {
+            // Bright rising major third (C5 → E5) with shimmer
+            const SE = SoundEngine;
+            SE._note(ctx, 523, 'sine', t, 0.12, 0.12, null);
+            SE._note(ctx, 659, 'sine', t + 0.06, 0.15, 0.14, null);
+            SE._note(ctx, 784, 'triangle', t + 0.06, 0.1, 0.04, null); // shimmer harmonic
+        },
+        wrong(ctx, t) {
+            // Dissonant descending buzz (Eb3 → D3) with grit
+            const SE = SoundEngine;
+            SE._note(ctx, 311, 'sawtooth', t, 0.15, 0.08, null);
+            SE._note(ctx, 293, 'sawtooth', t + 0.08, 0.2, 0.06, null);
+            SE._note(ctx, 147, 'square', t, 0.1, 0.03, null); // low rumble
+        },
+        combo(ctx, t) {
+            // Triumphant ascending arpeggio (C5 → E5 → G5 → C6)
+            const SE = SoundEngine;
+            const notes = [523, 659, 784, 1047];
+            notes.forEach((f, i) => {
+                SE._note(ctx, f, 'sine', t + i * 0.07, 0.2 - i * 0.03, 0.12, null);
+                SE._note(ctx, f * 2, 'triangle', t + i * 0.07, 0.12, 0.03, null);
+            });
+        },
+        levelUp(ctx, t) {
+            // Fanfare: quick ascending power chord sweep
+            const SE = SoundEngine;
+            const sweep = [392, 494, 587, 659, 784, 988, 1175];
+            sweep.forEach((f, i) => {
+                SE._note(ctx, f, 'sine', t + i * 0.05, 0.3 - i * 0.03, 0.1, null);
+            });
+            // Final sustain chord (G5 + B5 + D6)
+            SE._note(ctx, 784, 'sine', t + 0.35, 0.4, 0.08, null);
+            SE._note(ctx, 988, 'sine', t + 0.35, 0.4, 0.06, null);
+            SE._note(ctx, 1175, 'triangle', t + 0.35, 0.35, 0.04, null);
+        },
+        tick(ctx, t) {
+            // Subtle click — short burst of high-freq noise-like pulse
+            const SE = SoundEngine;
+            SE._note(ctx, 1200, 'sine', t, 0.03, 0.06, null);
+        },
+        gameOver(ctx, t) {
+            // Descending minor triad fade (Am → dim)
+            const SE = SoundEngine;
+            SE._note(ctx, 440, 'sine', t, 0.4, 0.1, null);
+            SE._note(ctx, 523, 'sine', t, 0.35, 0.07, null);
+            SE._note(ctx, 330, 'sawtooth', t + 0.15, 0.5, 0.05, null);
+            SE._note(ctx, 262, 'sine', t + 0.3, 0.6, 0.06, null);
+            SE._note(ctx, 247, 'sine', t + 0.45, 0.5, 0.04, null); // final low resolve
+        },
+        diamond(ctx, t) {
+            // Sparkling chime — high bell-like tones with octave shimmer
+            const SE = SoundEngine;
+            SE._note(ctx, 1319, 'sine', t, 0.2, 0.1, null);
+            SE._note(ctx, 1568, 'sine', t + 0.05, 0.25, 0.08, null);
+            SE._note(ctx, 2093, 'triangle', t + 0.1, 0.3, 0.06, null);
+            SE._note(ctx, 2637, 'sine', t + 0.15, 0.2, 0.04, null); // high sparkle
+        },
+        streak(ctx, t) {
+            // Quick ascending power burst (for streaks)
+            const SE = SoundEngine;
+            SE._note(ctx, 660, 'sine', t, 0.1, 0.1, null);
+            SE._note(ctx, 880, 'sine', t + 0.05, 0.12, 0.1, null);
+            SE._note(ctx, 1100, 'triangle', t + 0.1, 0.15, 0.06, null);
+        },
+        countdown(ctx, t) {
+            // Urgent descending pulse
+            const SE = SoundEngine;
+            SE._note(ctx, 880, 'square', t, 0.08, 0.06, null);
+            SE._note(ctx, 660, 'square', t + 0.1, 0.08, 0.04, null);
+        },
+        matchFound(ctx, t) {
+            // VS screen opponent found — dramatic reveal chord
+            const SE = SoundEngine;
+            SE._note(ctx, 330, 'sine', t, 0.5, 0.1, null);
+            SE._note(ctx, 415, 'sine', t, 0.5, 0.08, null);
+            SE._note(ctx, 523, 'sine', t + 0.1, 0.5, 0.1, null);
+            SE._note(ctx, 660, 'triangle', t + 0.2, 0.4, 0.08, null);
+            SE._note(ctx, 880, 'sine', t + 0.3, 0.3, 0.06, null);
+        },
     },
 
     play(soundName) {
         if (!this._enabled || typeof window === 'undefined') return;
         try {
-            // For now, use browser beeps (will integrate Howler.js later)
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            const frequencies = {
-                correct: 880,
-                wrong: 220,
-                combo: 1200,
-                levelUp: 660,
-                tick: 440,
-                gameOver: 110,
-                diamond: 1400,
-            };
-
-            osc.frequency.value = frequencies[soundName] || 440;
-            osc.type = soundName === 'wrong' ? 'sawtooth' : 'sine';
-            gain.gain.value = 0.1;
-
-            osc.start();
-            osc.stop(ctx.currentTime + (soundName === 'levelUp' ? 0.3 : 0.1));
+            const ctx = this._getCtx();
+            if (!ctx) return;
+            const soundFn = this._sounds[soundName];
+            if (typeof soundFn === 'function') {
+                soundFn(ctx, ctx.currentTime);
+            } else {
+                // Fallback: basic beep for unknown sounds
+                this._note(ctx, 440, 'sine', ctx.currentTime, 0.1, 0.08, null);
+            }
         } catch (e) {
             // Silently fail if audio context unavailable
         }
