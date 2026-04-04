@@ -740,6 +740,7 @@ export default function PokerNearMeLobby() {
     return () => {
       if (locationToastTimeoutRef.current) clearTimeout(locationToastTimeoutRef.current);
       if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
   }, []);
 
