@@ -1082,12 +1082,6 @@ function UniversalDynamicTable({
     getSolverLineComparison = null,
     generateHints = null,
     getRunoutImpactPreview = null,
-    // Phase 291-300 coaching callbacks
-    getRangeConstructionDrill = null,
-    getHandReadingDrill = null,
-    getExploitativeAdjustments = null,
-    getVarianceSimulator = null,
-    getOptimalLineNarration = null,
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -4160,45 +4154,6 @@ function UniversalDynamicTable({
                                     const eqColor = eq.equity >= 60 ? '#4ade80' : eq.equity >= 40 ? '#fbbf24' : '#ef4444';
                                     return (<div style={{ padding: '5px 10px', marginTop: 4, background: `${eqColor}06`, borderRadius: 8, border: `1px solid ${eqColor}15`, fontSize: 9, lineHeight: 1.5, color: eqColor }}>
                                         <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>EQUITY: </span><span style={{ fontFamily: "'Orbitron', monospace" }}>{eq.equity}%</span> — {eq.rangeDescription}
-                                    </div>);
-                                } catch (_) { return null; }
-                            })()}
-
-                            {/* Phase 293: Range Construction Tip */}
-                            {(() => {
-                                try {
-                                    if (!getRangeConstructionDrill) return null;
-                                    const sc = question?.scenario || {};
-                                    const drill = getRangeConstructionDrill(sc.heroPosition || 'CO', sc.nodeType?.includes('3bet') ? '3bet' : 'open');
-                                    if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(168,85,247,0.06)', borderRadius: 8, border: '1px solid rgba(168,85,247,0.15)', fontSize: 9, lineHeight: 1.5, color: '#c084fc' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>RANGE TIP: </span>{drill.tip}
-                                    </div>);
-                                } catch (_) { return null; }
-                            })()}
-
-                            {/* Phase 298: Hand Reading Insight */}
-                            {(() => {
-                                try {
-                                    if (!getHandReadingDrill) return null;
-                                    const sc = question?.scenario || {};
-                                    const drill = getHandReadingDrill(sc.street || 'flop');
-                                    if (!drill) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(245,158,11,0.06)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.15)', fontSize: 9, lineHeight: 1.5, color: '#fbbf24' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5 }}>HAND READING: </span>{drill.keyPrinciple}
-                                    </div>);
-                                } catch (_) { return null; }
-                            })()}
-
-                            {/* Phase 301: Optimal Line Narration */}
-                            {(() => {
-                                try {
-                                    if (!getOptimalLineNarration || !structuredExplanation?.isCorrect === undefined) return null;
-                                    const sc = question?.scenario || {};
-                                    const narr = getOptimalLineNarration(structuredExplanation?.primary || '', gtoFrequencies || {}, sc.street || 'flop', sc.nodeType || '', sc.heroPosition || '', question?.handCategory || '');
-                                    if (!narr) return null;
-                                    return (<div style={{ padding: '5px 10px', marginTop: 4, background: 'rgba(34,197,94,0.06)', borderRadius: 8, border: '1px solid rgba(34,197,94,0.15)', fontSize: 9, lineHeight: 1.5, color: '#86efac' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 8, letterSpacing: 0.5, color: '#4ade80' }}>SOLVER LINE: </span>{narr.narration}
                                     </div>);
                                 } catch (_) { return null; }
                             })()}

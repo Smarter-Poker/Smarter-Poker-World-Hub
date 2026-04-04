@@ -127,12 +127,6 @@ export default function GameUIRouter({
     getSolverLineComparison = null,
     generateHints = null,
     getRunoutImpactPreview = null,
-    // Phase 291-300 coaching callbacks
-    getRangeConstructionDrill = null,
-    getHandReadingDrill = null,
-    getExploitativeAdjustments = null,
-    getVarianceSimulator = null,
-    getOptimalLineNarration = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -216,11 +210,6 @@ export default function GameUIRouter({
             getSolverLineComparison={getSolverLineComparison}
             generateHints={generateHints}
             getRunoutImpactPreview={getRunoutImpactPreview}
-            getRangeConstructionDrill={getRangeConstructionDrill}
-            getHandReadingDrill={getHandReadingDrill}
-            getExploitativeAdjustments={getExploitativeAdjustments}
-            getVarianceSimulator={getVarianceSimulator}
-            getOptimalLineNarration={getOptimalLineNarration}
         />
     );
 }
