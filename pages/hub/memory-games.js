@@ -2153,6 +2153,7 @@ export default function MemoryGamesPage() {
                             })()}
 
                             {/* ── Mode Launch Cards ── */}
+                            <AnimatePresence mode="wait">
                             {(() => {
                                 const MODE_CARDS = {
                                     speed: {
@@ -2203,17 +2204,23 @@ export default function MemoryGamesPage() {
                                 if (!card) return null;
 
                                 return (
-                                    <div style={{
-                                        background: `linear-gradient(135deg, ${card.color}11, ${card.color}08)`,
-                                        border: `2px solid ${card.color}4D`,
-                                        borderRadius: 20,
-                                        padding: '32px 28px',
-                                        textAlign: 'center',
-                                        maxWidth: 520,
-                                        margin: '0 auto',
-                                        position: 'relative',
-                                        overflow: 'hidden',
-                                    }}>
+                                    <motion.div
+                                        key={gameType}
+                                        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: -15, scale: 0.97 }}
+                                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                                        style={{
+                                            background: `linear-gradient(135deg, ${card.color}11, ${card.color}08)`,
+                                            border: `2px solid ${card.color}4D`,
+                                            borderRadius: 20,
+                                            padding: '32px 28px',
+                                            textAlign: 'center',
+                                            maxWidth: 520,
+                                            margin: '0 auto',
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                        }}>
                                         {/* Difficulty Badge */}
                                         <div style={{
                                             position: 'absolute',
@@ -2301,9 +2308,10 @@ export default function MemoryGamesPage() {
                                         >
                                             {card.btn}
                                         </button>
-                                    </div>
+                                    </motion.div>
                                 );
                             })()}
+                            </AnimatePresence>
 
                             {/* Leaderboard Section */}
                             {gameType === 'leaderboard' && (
