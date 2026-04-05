@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { SoundEngine } from './GameEngine';
-import { shareResult, savePersonalBest } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -345,6 +345,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     const [horses, setHorses] = useState(null);
     const matchRef = useRef([]);
     const searchTimerRef = useRef(null);
+    const mistakesRef = useRef([]);
 
     // Load horses from Supabase on mount
     useEffect(() => {
@@ -416,6 +417,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     setPlayerScore(0);
                     setOpponentScore(0);
                     setCurrentChallenge(matchRef.current[0]);
+                    mistakesRef.current = [];
                 }, 800);
             }, 2000);
         }, 5000 + Math.random() * 4000); // 5-9 seconds (avg ~7s)
@@ -444,6 +446,13 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             // Opponent "wins" this round
             setOpponentScore(prev => prev + 1);
             SoundEngine.play('wrong');
+            const correctOpt = currentChallenge.options.find(o => o.correct !== undefined ? o.correct : o.ev === Math.max(...currentChallenge.options.map(x => x.ev || 0)));
+            mistakesRef.current.push({
+                title: currentChallenge.title,
+                type: currentChallenge.type,
+                correct: correctOpt?.action || correctOpt?.hands || '?',
+                picked: option.action || option.hands || '?',
+            });
         }
     };
 
@@ -1020,17 +1029,46 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                         </div>
                     )}
 
+                    {/* Weakness Detection */}
+                    {mistakesRef.current.length > 0 && (
+                        <div style={{
+                            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                            borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'left'
+                        }}>
+                            <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, marginBottom: 10, letterSpacing: 1, textAlign: 'center' }}>
+                                {'\u26A0\uFE0F'} ROUNDS LOST
+                            </div>
+                            {mistakesRef.current.map((m, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '8px 10px', background: 'rgba(0,0,0,0.25)', borderRadius: 8,
+                                    marginBottom: i < mistakesRef.current.length - 1 ? 6 : 0
+                                }}>
+                                    <div>
+                                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600 }}>{m.title}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, marginLeft: 6 }}>{m.type.replace('-', ' ')}</span>
+                                    </div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                                        <span style={{ color: '#EF4444' }}>{typeof m.picked === 'string' && m.picked.length > 20 ? m.picked.slice(0, 20) + '...' : m.picked}</span>
+                                        <span style={{ margin: '0 4px' }}>{'\u2192'}</span>
+                                        <span style={{ color: '#00ff88' }}>{typeof m.correct === 'string' && m.correct.length > 20 ? m.correct.slice(0, 20) + '...' : m.correct}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: 12 }}>
                         <button onClick={startMatchmaking} style={{
-                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                            flex: '1 1 80px', minHeight: 52, padding: '14px 0', fontSize: 14, fontWeight: 700,
                             background: 'linear-gradient(135deg, #9333EA, #D946EF)', color: '#fff',
-                            border: 'none', borderRadius: 12, cursor: 'pointer'
+                            border: 'none', borderRadius: 12, cursor: 'pointer', touchAction: 'manipulation'
                         }}>FIND NEXT MATCH</button>
                         <button onClick={() => setMatchState('lobby')} style={{
-                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                            flex: '1 1 80px', minHeight: 52, padding: '14px 0', fontSize: 14, fontWeight: 600,
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                            borderRadius: 12, color: '#fff', cursor: 'pointer'
+                            borderRadius: 12, color: '#fff', cursor: 'pointer', touchAction: 'manipulation'
                         }}>BACK TO LOBBY</button>
                     </div>
 
@@ -1052,6 +1090,19 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                         borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
                     }}>{'\uD83D\uDCF4'} Share Result</button>
+
+                    {/* Coach Tip */}
+                    <div style={{
+                        background: 'rgba(147,51,234,0.08)', border: '1px solid rgba(147,51,234,0.2)',
+                        borderRadius: 10, padding: 14, marginTop: 12, textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: 10, color: '#9333EA', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>
+                            {'\u2694\uFE0F'} COACH TIP
+                        </div>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
+                            {getCoachingTip(playerWon ? 'A' : 'C')}
+                        </div>
+                    </div>
                 </div>
             </motion.div>
         );

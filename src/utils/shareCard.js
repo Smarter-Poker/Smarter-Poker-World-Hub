@@ -238,3 +238,41 @@ export function getCoachingTip(grade) {
     const tips = COACHING_TIPS[grade] || COACHING_TIPS.C;
     return tips[Math.floor(Math.random() * tips.length)];
 }
+
+/**
+ * Suggest the next game based on current mode and performance grade
+ * Returns { mode, title, reason, color, icon }
+ */
+const GAME_SUGGESTIONS = {
+    'speed-drill': {
+        high: { mode: 'pressure-cooker', title: 'Pressure Cooker', reason: 'Test your speed under bomb-defusal pressure', color: '#ff6b00', icon: '\uD83D\uDCA3' },
+        low: { mode: 'pattern-recognition', title: 'Pattern Recognition', reason: 'Build pattern awareness before speed training', color: '#3B82F6', icon: '\uD83E\uDDE9' },
+    },
+    'pressure-cooker': {
+        high: { mode: 'mixed-strategy', title: 'Mixed Strategy', reason: 'Master frequency-based decisions next', color: '#A78BFA', icon: '\uD83C\uDFB0' },
+        low: { mode: 'speed-drill', title: 'Speed Drill', reason: 'Build accuracy at your own pace first', color: '#00D4FF', icon: '\u26A1' },
+    },
+    'pattern-recognition': {
+        high: { mode: 'spot-trainer', title: 'Spot Trainer', reason: 'Apply patterns to full hand trees', color: '#00ff88', icon: '\uD83C\uDFAF' },
+        low: { mode: 'speed-drill', title: 'Speed Drill', reason: 'Sharpen core range recall speed', color: '#00D4FF', icon: '\u26A1' },
+    },
+    'mixed-strategy': {
+        high: { mode: 'tournament', title: 'VS Ranked', reason: 'Challenge ranked opponents with your skills', color: '#9333EA', icon: '\u2694\uFE0F' },
+        low: { mode: 'pattern-recognition', title: 'Pattern Recognition', reason: 'Strengthen core patterns before mixed spots', color: '#3B82F6', icon: '\uD83E\uDDE9' },
+    },
+    'spot-trainer': {
+        high: { mode: 'tournament', title: 'VS Ranked', reason: 'Put it all together in ranked battles', color: '#9333EA', icon: '\u2694\uFE0F' },
+        low: { mode: 'mixed-strategy', title: 'Mixed Strategy', reason: 'Practice frequency precision for hand trees', color: '#A78BFA', icon: '\uD83C\uDFB0' },
+    },
+    'tournament': {
+        high: { mode: 'spot-trainer', title: 'Spot Trainer', reason: 'Deepen your multi-street decision making', color: '#00ff88', icon: '\uD83C\uDFAF' },
+        low: { mode: 'pressure-cooker', title: 'Pressure Cooker', reason: 'Sharpen under-pressure decisions', color: '#ff6b00', icon: '\uD83D\uDCA3' },
+    },
+};
+
+export function getNextGameSuggestion(currentMode, grade) {
+    const suggestions = GAME_SUGGESTIONS[currentMode];
+    if (!suggestions) return null;
+    const isHigh = grade === 'S' || grade === 'A' || grade === 'B';
+    return isHigh ? suggestions.high : suggestions.low;
+}

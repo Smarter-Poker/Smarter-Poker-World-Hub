@@ -56,7 +56,7 @@ export default function FilterPanel({
         gameType: savedFilters.gameType || 'all',
         stakes: savedFilters.stakes || 'all',
         venueType: savedFilters.venueType || 'all',
-        radius: savedFilters.radius || 50,
+        radius: 50, // Hard rule: always default to 50 miles, ignore saved radius
         hasLiveGames: savedFilters.hasLiveGames || false,
         hasTournaments: savedFilters.hasTournaments || false
     });

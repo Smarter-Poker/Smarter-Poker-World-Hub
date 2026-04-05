@@ -808,6 +808,86 @@ export default async function handler(req, res) {
               });
           }
 
+          // --- USER RULE: STRICT SERIES DEDUPLICATION & "RUNNING TODAY" ENFORCEMENT ---
+          // "poker series should ONLY BE DISPLAYED. IF THEY ARE RUNNING THAT DAY."
+          // "even when that does happen, the tournament series should pop up, not the venue."
+          // "REMOVE ANY AND ALL DUPLICATES... SHOWS RIVERS CASINO TWICE"
+          
+          if (venues.length > 0) {
+              const todayIdx = new Date().getDay();
+              const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+              const todayKey = DAYS_ORDER[todayIdx];
+              let activeSeriesIds = new Set();
+              
+              try {
+                  const seriesResultIds = venues.filter(v => ['series', 'tour'].includes(v.venue_type || '')).map(v => v.id);
+                  if (seriesResultIds.length > 0) {
+                      // We consider a series "running today" if it has an entry for today in venue_daily_tournaments
+                      const { data: todaySeriesTournaments } = await getSupabase()
+                          .from('venue_daily_tournaments')
+                          .select('venue_id')
+                          .in('venue_id', seriesResultIds)
+                          .eq('day_of_week', todayKey)
+                          .eq('is_active', true);
+                          
+                      if (todaySeriesTournaments) {
+                          todaySeriesTournaments.forEach(t => activeSeriesIds.add(t.venue_id));
+                      }
+                  }
+              } catch (e) {
+                  // Fallback: If DB query fails, assume no series are running today to be safe
+              }
+
+              const stateGroups = {};
+              for (const v of venues) {
+                  const st = (v.state || '').toLowerCase();
+                  if (!stateGroups[st]) stateGroups[st] = [];
+                  stateGroups[st].push(v);
+              }
+              
+              let finalVenues = [];
+              for (const st in stateGroups) {
+                  const group = stateGroups[st];
+                  const seriesElements = group.filter(v => ['series', 'tour'].includes(v.venue_type || ''));
+                  const validVenues = new Set(group);
+                  
+                  if (seriesElements.length > 0) {
+                      for (const series of seriesElements) {
+                          const isRunningToday = activeSeriesIds.has(series.id);
+                          
+                          if (!isRunningToday) {
+                              // Rule 1: Series ONLY shown if running that day.
+                              validVenues.delete(series);
+                              continue;
+                          }
+
+                          // Rule 2: If running, SERIES pops up, NOT the venue.
+                          // Identify the base venue to suppress.
+                          let coreName = (series.name || '').toLowerCase()
+                              .replace(/poker/g, '').replace(/series/g, '').replace(/championship/g, '')
+                              .replace(/classic/g, '').replace(/casino/g, '').replace(/resort/g, '')
+                              .replace(/hotel/g, '').replace(/room/g, '').trim();
+                              
+                          if (coreName.length >= 3) {
+                              for (const v of group) {
+                                  if (v !== series && !['series', 'tour'].includes(v.venue_type || '')) {
+                                      let vCore = (v.name || '').toLowerCase()
+                                          .replace(/poker/g, '').replace(/casino/g, '').replace(/resort/g, '')
+                                          .replace(/hotel/g, '').replace(/room/g, '').replace(/club/g, '').trim();
+                                          
+                                      if (vCore && coreName && (vCore.includes(coreName) || coreName.includes(vCore))) {
+                                          validVenues.delete(v); // Suppress the casino/base venue
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+                  finalVenues.push(...validVenues);
+              }
+              venues = finalVenues;
+          }
+
           // (Note: Tours/Series active-today post-filter was removed to fix pagination truncation. 
           // They are now excluded from the default query at the SQL level, and correctly pulled 
           // when specifically requested by `effectiveType`).

@@ -440,7 +440,10 @@ export default function PokerNearMePage() {
         if (typeof window !== 'undefined') {
             try {
                 const saved = localStorage.getItem('poker-near-me-search-filters');
-                if (saved) return JSON.parse(saved);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    return { ...parsed, radius: 50 }; // Hard rule: always default to 50 miles
+                }
             } catch (e) { console.error(e); }
         }
         return {

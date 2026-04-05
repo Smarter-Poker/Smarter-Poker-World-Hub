@@ -3,10 +3,10 @@
    Multi-street decision scenarios with EV comparison
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
-import { shareResult, savePersonalBest } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -447,6 +447,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
     const [gameOver, setGameOver] = useState(false);
     const [streakCount, setStreakCount] = useState(0);
     const [maxStreak, setMaxStreak] = useState(0);
+    const mistakesRef = useRef([]);
 
     const currentSpot = SPOT_SCENARIOS[currentSpotIndex];
     const currentStreet = currentSpot?.streets[currentStreetIndex];
@@ -468,6 +469,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
             setCorrectAnswers(prev => prev + 1);
             setStreakCount(prev => prev + 1);
             setMaxStreak(prev => Math.max(prev, streakCount + 1));
+            SoundEngine.play(streakCount >= 2 ? 'combo' : 'correct');
 
             if (streakCount >= 4) {
                 fireConfetti({
@@ -477,7 +479,16 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                 });
             }
         } else {
+            SoundEngine.play('wrong');
             setStreakCount(0);
+            const correctOption = currentStreet.options.find(o => o.correct);
+            mistakesRef.current.push({
+                spot: currentSpot.title,
+                street: currentStreet.street,
+                correct: correctOption?.action || '?',
+                picked: option.action,
+                ev: option.ev,
+            });
         }
     };
 
@@ -663,6 +674,35 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                         </div>
                     )}
 
+                    {/* Weakness Detection */}
+                    {mistakesRef.current.length > 0 && (
+                        <div style={{
+                            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                            borderRadius: 12, padding: 16, marginBottom: 16, textAlign: 'left'
+                        }}>
+                            <div style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, marginBottom: 10, letterSpacing: 1, textAlign: 'center' }}>
+                                {'\u26A0\uFE0F'} WEAK SPOTS
+                            </div>
+                            {mistakesRef.current.slice(0, 4).map((m, i) => (
+                                <div key={i} style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    padding: '8px 10px', background: 'rgba(0,0,0,0.25)', borderRadius: 8,
+                                    marginBottom: i < Math.min(mistakesRef.current.length, 4) - 1 ? 6 : 0
+                                }}>
+                                    <div>
+                                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600 }}>{m.spot}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginLeft: 6 }}>{m.street}</span>
+                                    </div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                                        <span style={{ color: '#EF4444' }}>{m.picked}</span>
+                                        <span style={{ margin: '0 4px' }}>{'\u2192'}</span>
+                                        <span style={{ color: '#00ff88' }}>{m.correct}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     {/* Actions */}
                     <div style={{ display: 'flex', gap: 12 }}>
                         <button onClick={() => {
@@ -674,15 +714,16 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                             setStreakCount(0);
                             setMaxStreak(0);
                             setGameOver(false);
+                            mistakesRef.current = [];
                         }} style={{
-                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 700,
+                            flex: '1 1 80px', minHeight: 52, padding: '14px 0', fontSize: 14, fontWeight: 700,
                             background: 'linear-gradient(135deg, #00ff88, #00D4FF)', color: '#000',
-                            border: 'none', borderRadius: 12, cursor: 'pointer'
+                            border: 'none', borderRadius: 12, cursor: 'pointer', touchAction: 'manipulation'
                         }}>PLAY AGAIN</button>
                         <button onClick={onExit} style={{
-                            flex: 1, padding: '14px 0', fontSize: 14, fontWeight: 600,
+                            flex: '1 1 80px', minHeight: 52, padding: '14px 0', fontSize: 14, fontWeight: 600,
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                            borderRadius: 12, color: '#fff', cursor: 'pointer'
+                            borderRadius: 12, color: '#fff', cursor: 'pointer', touchAction: 'manipulation'
                         }}>BACK TO MENU</button>
                     </div>
 
@@ -704,6 +745,19 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                         borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
                     }}>{'\uD83D\uDCF4'} Share Result</button>
+
+                    {/* Coach Tip */}
+                    <div style={{
+                        background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.18)',
+                        borderRadius: 10, padding: 14, marginTop: 12, textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: 10, color: '#00D4FF', fontWeight: 700, marginBottom: 6, letterSpacing: 1 }}>
+                            {'\uD83C\uDFAF'} COACH TIP
+                        </div>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
+                            {getCoachingTip(grade)}
+                        </div>
+                    </div>
                 </div>
             </motion.div>
         );
