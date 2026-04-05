@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T08:44:57.379Z",
+  "updated_at": "2026-04-05T08:48:40.442Z",
   "total": 677,
   "venues": [
     {
@@ -9979,35 +9979,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2147.png"
-    },
-    {
-      "id": 2146,
-      "name": "Fremont",
-      "slug": null,
-      "website": "https://www.fremont.com",
-      "address": "3000 S. Las Vegas Blvd.",
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": "(702) 676-7680",
-      "venue_type": "casino",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
-      "hours": null,
-      "latitude": 36.13504,
-      "longitude": -115.1671655,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": [
-        "$1/$2"
-      ],
-      "poker_tables": 4,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2146.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2147.jpg"
     },
     {
       "id": 2144,
@@ -10120,7 +10092,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2138.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2138.jpg"
     },
     {
       "id": 2737,
@@ -10146,7 +10118,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2737.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2737.jpg"
     },
     {
       "id": 2143,
