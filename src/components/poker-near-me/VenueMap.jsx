@@ -725,7 +725,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const zoom = map.getZoom();
       const container = mapContainerRef.current;
       if (!container) return;
-      if (zoom >= 7) {
+      if (zoom >= 8) {
         container.classList.remove('venue-labels-hidden');
       } else {
         container.classList.add('venue-labels-hidden');
@@ -787,7 +787,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const isTourStop = venue.venue_type === 'tour_stop' && venue.tour_code;
       const venueIcon = isTourStop
         ? createTourLogoIcon(L, venue)
-        : createVenueIcon(L, venue.venue_type, uniformColor || null, venue);
+        : createVenueIcon(L, venue, uniformColor || null);
       const popupHtml = isTourStop
         ? buildTourPopupHtml(venue)
         : buildPopupHtml(venue);
