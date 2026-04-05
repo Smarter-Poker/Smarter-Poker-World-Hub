@@ -219,6 +219,20 @@ export default function PokerToursPage() {
         'welch, mn': { lat: 44.5669, lng: -92.7233 },
         'charleston, wv': { lat: 38.3498, lng: -81.6326 },
         'temecula, ca': { lat: 33.4936, lng: -117.1484 },
+        'west palm beach, fl': { lat: 26.7153, lng: -80.0534 },
+        'jacksonville, fl': { lat: 30.3322, lng: -81.6557 },
+        'austin, tx': { lat: 30.2672, lng: -97.7431 },
+        'round rock, tx': { lat: 30.5083, lng: -97.6789 },
+        'houston, tx': { lat: 29.7604, lng: -95.3698 },
+        'san jose, ca': { lat: 37.3382, lng: -121.8863 },
+        'commerce, ca': { lat: 33.9975, lng: -118.1597 },
+        'bossier city, la': { lat: 32.5160, lng: -93.7321 },
+        'fort yates, nd': { lat: 46.0886, lng: -100.6301 },
+        'mandan, nd': { lat: 46.8267, lng: -100.8891 },
+        'dickinson, nd': { lat: 46.8792, lng: -102.7896 },
+        'belcourt, nd': { lat: 48.8411, lng: -99.7457 },
+        'philadelphia, pa': { lat: 39.9526, lng: -75.1652 },
+        'choctaw, ms': { lat: 32.7693, lng: -89.1170 },
     };
 
     // ─── Find venue coordinates by fuzzy name + city fallback ───
@@ -368,10 +382,13 @@ export default function PokerToursPage() {
                     'elgin, il': { lat: 42.0354, lng: -88.2826 },
                     'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
                     'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
-                    'houston, tx': { lat: 29.7604, lng: -95.3698 }, // common fallback
+                    'houston, tx': { lat: 29.7604, lng: -95.3698 },
                     'fargo, nd': { lat: 46.8772, lng: -96.7898 },
                     'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
-                    'los angeles, ca': { lat: 34.0522, lng: -118.2437 }
+                    'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
+                    'west palm beach, fl': { lat: 26.7153, lng: -80.0534 },
+                    'north dakota': { lat: 47.5515, lng: -101.0020 },
+                    'various': { lat: 36.1699, lng: -115.1398 },
                 }[hqKey] || { lat: 39.8283, lng: -98.5795 };
                 
                 venueMatch = {
