@@ -50,6 +50,10 @@ import FrequencyTrainer from './FrequencyTrainer';
 import SolverComparisonReplay from './SolverComparisonReplay';
 import RangeEquityVisualizer from './RangeEquityVisualizer';
 import CrossSessionAnalytics from './CrossSessionAnalytics';
+import MultiStreetNavigator from './MultiStreetNavigator';
+import ICMTournamentPanel from './ICMTournamentPanel';
+import BoardExplorer from './BoardExplorer';
+import RangeBuilder from './RangeBuilder';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
@@ -2217,7 +2221,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -2999,6 +3003,9 @@ function GodModeArenaInner({
 
                     {/* ═══ TAB: SOLVER COMPARISON ═══ */}
                     {reviewTab === 'solver' && (<>
+                        <div style={{ marginBottom: 16 }}>
+                            <MultiStreetNavigator handHistory={handHistory} />
+                        </div>
                         <div style={{ marginBottom: 16 }}>
                             <SolverComparisonReplay handHistory={handHistory} />
                         </div>
@@ -4446,6 +4453,21 @@ function GodModeArenaInner({
                     {/* ═══ TAB: ANALYTICS — Cross-Session Dashboard ═══ */}
                     {reviewTab === 'analytics' && (<>
                         <CrossSessionAnalytics sessionHistory={[]} />
+                    </>)}
+
+                    {/* ═══ TAB: RANGE BUILDER ═══ */}
+                    {reviewTab === 'builder' && (<>
+                        <RangeBuilder />
+                    </>)}
+
+                    {/* ═══ TAB: BOARD EXPLORER ═══ */}
+                    {reviewTab === 'boards' && (<>
+                        <BoardExplorer />
+                    </>)}
+
+                    {/* ═══ TAB: ICM CALCULATOR ═══ */}
+                    {reviewTab === 'icm' && (<>
+                        <ICMTournamentPanel />
                     </>)}
 
                     {/* ACTION BUTTONS */}
