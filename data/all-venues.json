@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T06:46:09.416Z",
+  "updated_at": "2026-04-05T06:50:34.921Z",
   "total": 677,
   "venues": [
     {
@@ -1836,7 +1836,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2631.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2631.jpg"
     },
     {
       "id": 1940,
@@ -1888,7 +1888,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2714.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2714.jpg"
     },
     {
       "id": 1865,
@@ -1914,7 +1914,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1865.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1865.jpg"
     },
     {
       "id": 2864,
@@ -1966,7 +1966,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2606.webp"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2606.png"
     },
     {
       "id": 2882,
@@ -1992,7 +1992,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2882.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2882.jpg"
     },
     {
       "id": 2869,

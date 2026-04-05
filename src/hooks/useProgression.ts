@@ -5,7 +5,7 @@
  * Uses optimistic UI updates for instant feedback.
  * 
  * Key Features:
- * - XP & Currency calculations with streak bonuses
+ * - Diamond currency calculations with streak bonuses
  * - Leak detection from hand history patterns
  * - Optimistic saves with background sync
  * - Daily streak tracking
@@ -23,7 +23,6 @@ export interface HandResult {
     userAction: 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN';
     correctAction: 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN';
     result: 'win' | 'loss';
-    xpEarned: number;
     diamondsEarned: number;
     difficulty: 'easy' | 'medium' | 'hard';
 }
@@ -56,7 +55,6 @@ export interface StreakData {
 
 export interface ProgressionState {
     // Currency
-    totalXP: number;
     totalDiamonds: number;
     level: number;
 
@@ -76,12 +74,9 @@ export interface ProgressionState {
 }
 
 export interface RewardBreakdown {
-    baseXP: number;
+    baseDiamonds: number;
     difficultyBonus: number;
     streakBonus: number;
-    totalXP: number;
-    baseDiamonds: number;
-    streakDiamondBonus: number;
     totalDiamonds: number;
     displayText: string;
 }
@@ -96,19 +91,16 @@ export function calculateReward(
 ): RewardBreakdown {
     if (!isCorrect) {
         return {
-            baseXP: 0,
+            baseDiamonds: 0,
             difficultyBonus: 0,
             streakBonus: 0,
-            totalXP: 0,
-            baseDiamonds: 0,
-            streakDiamondBonus: 0,
             totalDiamonds: 0,
             displayText: ''
         };
     }
 
-    // Base XP
-    const baseXP = 100;
+    // Base diamonds
+    const baseDiamonds = 5;
 
     // Difficulty multiplier
     const difficultyMultipliers: Record<string, number> = {
@@ -117,22 +109,17 @@ export function calculateReward(
         hard: 1.5
     };
     const difficultyMultiplier = difficultyMultipliers[difficulty] || 1.0;
-    const difficultyBonus = Math.round(baseXP * (difficultyMultiplier - 1));
+    const difficultyBonus = Math.round(baseDiamonds * (difficultyMultiplier - 1));
 
     // Streak bonus (10% per streak day)
     const streakMultiplier = Math.max(1, 1 + (currentStreak * 0.1));
-    const streakBonus = Math.round(baseXP * (streakMultiplier - 1));
+    const streakBonus = Math.round(baseDiamonds * (streakMultiplier - 1));
 
-    // Total XP
-    const totalXP = baseXP + difficultyBonus + streakBonus;
-
-    // Diamonds
-    const baseDiamonds = 5;
-    const streakDiamondBonus = Math.floor(currentStreak * 0.1 * baseDiamonds);
-    const totalDiamonds = baseDiamonds + streakDiamondBonus;
+    // Total diamonds
+    const totalDiamonds = baseDiamonds + difficultyBonus + streakBonus;
 
     // Build display text
-    let displayText = `+${baseXP} XP`;
+    let displayText = `+${baseDiamonds} 💎`;
     if (difficultyBonus > 0) {
         displayText += ` +${difficultyBonus} Hard Bonus`;
     }
@@ -141,12 +128,9 @@ export function calculateReward(
     }
 
     return {
-        baseXP,
+        baseDiamonds,
         difficultyBonus,
         streakBonus,
-        totalXP,
-        baseDiamonds,
-        streakDiamondBonus,
         totalDiamonds,
         displayText
     };
@@ -270,25 +254,25 @@ export function updateStreak(lastPlayedDate: string | null): {
 // ═══════════════════════════════════════════════════════════════════════════
 // LEVEL CALCULATOR
 // ═══════════════════════════════════════════════════════════════════════════
-export function calculateLevel(totalXP: number): { level: number; xpToNext: number; progress: number } {
-    // XP required per level: 1000 * level^1.5
+export function calculateLevel(totalDiamonds: number): { level: number; diamondsToNext: number; progress: number } {
+    // Diamonds required per level: 500 * level^1.2
     let level = 1;
-    let xpRequired = 0;
-    let previousXP = 0;
+    let diamondsRequired = 0;
+    let previousDiamonds = 0;
 
-    while (xpRequired <= totalXP) {
-        previousXP = xpRequired;
+    while (diamondsRequired <= totalDiamonds) {
+        previousDiamonds = diamondsRequired;
         level++;
-        xpRequired += Math.floor(1000 * Math.pow(level, 1.2));
+        diamondsRequired += Math.floor(500 * Math.pow(level, 1.2));
     }
 
     level--; // We went one too far
-    const xpToNext = xpRequired - totalXP;
-    const xpForThisLevel = xpRequired - previousXP;
-    const xpIntoLevel = totalXP - previousXP;
-    const progress = xpForThisLevel > 0 ? (xpIntoLevel / xpForThisLevel) * 100 : 0;
+    const diamondsToNext = diamondsRequired - totalDiamonds;
+    const diamondsForThisLevel = diamondsRequired - previousDiamonds;
+    const diamondsIntoLevel = totalDiamonds - previousDiamonds;
+    const progress = diamondsForThisLevel > 0 ? (diamondsIntoLevel / diamondsForThisLevel) * 100 : 0;
 
-    return { level: Math.max(1, level), xpToNext, progress };
+    return { level: Math.max(1, level), diamondsToNext, progress };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -296,7 +280,6 @@ export function calculateLevel(totalXP: number): { level: number; xpToNext: numb
 // ═══════════════════════════════════════════════════════════════════════════
 interface SavePayload {
     handResult: HandResult;
-    newTotalXP: number;
     newTotalDiamonds: number;
     newStreak: StreakData;
 }
@@ -386,7 +369,6 @@ function saveProgressionToStorage(state: ProgressionState): void {
     try {
         // Only save essential data, not full hand history
         const toSave = {
-            totalXP: state.totalXP,
             totalDiamonds: state.totalDiamonds,
             level: state.level,
             streak: state.streak,
@@ -408,7 +390,7 @@ interface UseProgressionReturn {
 
     // Computed
     level: number;
-    xpToNextLevel: number;
+    diamondsToNextLevel: number;
     levelProgress: number;
     winRate: number;
 
@@ -430,7 +412,6 @@ export function useProgression(): UseProgressionReturn {
         const stored = loadProgressionFromStorage();
 
         return {
-            totalXP: stored?.totalXP || 0,
             totalDiamonds: stored?.totalDiamonds || 0,
             level: stored?.level || 1,
             streak: stored?.streak || {
@@ -477,7 +458,6 @@ export function useProgression(): UseProgressionReturn {
             userAction: params.userAction,
             correctAction: params.correctAction,
             result: isCorrect ? 'win' : 'loss',
-            xpEarned: reward.totalXP,
             diamondsEarned: reward.totalDiamonds,
             difficulty: params.difficulty
         };
@@ -488,7 +468,7 @@ export function useProgression(): UseProgressionReturn {
 
         // OPTIMISTIC UPDATE - instant UI feedback
         setState(prev => {
-            const newTotalXP = prev.totalXP + reward.totalXP;
+            const newTotalDiamonds = prev.totalDiamonds + reward.totalDiamonds;
             const newHistory = [...prev.handHistory, handResult].slice(-50);
             const newLeaks = detectLeaks(newHistory);
 
@@ -505,12 +485,11 @@ export function useProgression(): UseProgressionReturn {
             newStreak.lastPlayedDate = today;
             newStreak.longestStreak = Math.max(newStreak.longestStreak, newStreak.currentStreak);
 
-            const { level } = calculateLevel(newTotalXP);
+            const { level } = calculateLevel(newTotalDiamonds);
 
             return {
                 ...prev,
-                totalXP: newTotalXP,
-                totalDiamonds: prev.totalDiamonds + reward.totalDiamonds,
+                totalDiamonds: newTotalDiamonds,
                 level,
                 streak: newStreak,
                 sessionCorrect: prev.sessionCorrect + (isCorrect ? 1 : 0),

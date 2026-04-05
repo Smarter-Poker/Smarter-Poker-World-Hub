@@ -40,7 +40,7 @@ DO $$ BEGIN
                 SELECT CASE
                     WHEN user_id = auth.uid() THEN friend_id
                     ELSE user_id
-                END FROM friends
+                END FROM friendships
                 WHERE status = 'accepted'
                 AND (user_id = auth.uid() OR friend_id = auth.uid())
             ))
