@@ -17,6 +17,9 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import GTODeviationHeatmap from '../../../src/components/training/GTODeviationHeatmap';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+// ── Phase 3+5 Engines: Session trends + leak detection for reports ──────
+import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
+import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG
@@ -204,7 +207,28 @@ export default function GTOReports() {
       const res = await authedFetch(`/api/training/gto-reports?userId=${userId}&period=${period}`);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
       const data = await res.json();
-      if (data.success) setReport(data.report);
+      if (data.success) {
+        // Engine enrichment: add trends + leak detection to report
+        let enrichedReport = data.report;
+        try {
+          if (data.report?.sessions && Array.isArray(data.report.sessions)) {
+            const trends = calculateTrends(data.report.sessions);
+            const leaks = identifyLeaks(data.report.sessions);
+            const engineLeaks = detectLeaks(data.report);
+            const drills = generateDrillRecommendations(engineLeaks || []);
+            enrichedReport = {
+              ...data.report,
+              _engineTrends: trends,
+              _engineLeaks: leaks,
+              _detectedLeaks: engineLeaks,
+              _drillRecommendations: drills,
+            };
+          }
+        } catch (e) {
+          console.warn('[Reports] Engine enrichment failed:', e.message);
+        }
+        setReport(enrichedReport);
+      }
     } catch (err) {
       console.error('[Reports] Fetch error:', err);
       setFetchError('Unable to load GTO reports. Please try again.');

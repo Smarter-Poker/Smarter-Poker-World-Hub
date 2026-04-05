@@ -15,6 +15,9 @@ import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authU
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+// ── Phase 3 Engines: Session trends + scoring for GTO proximity report ──
+import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
+import { getScoreGrade, getScoreColor } from '../../../src/engines/GTOScoreEngine';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO BASELINE FREQUENCIES (6-Max Cash 100BB)
@@ -432,6 +435,21 @@ export default function GTOReportsPage() {
   );
   const proximityColor =
     gtoProximity >= 80 ? '#22c55e' : gtoProximity >= 60 ? '#fbbf24' : '#ef4444';
+
+  // Engine enrichment: trends + leaks + letter grade
+  const engineData = useMemo(() => {
+    if (sessions.length === 0) return null;
+    try {
+      const trends = calculateTrends(sessions);
+      const leaks = identifyLeaks(sessions);
+      const grade = getScoreGrade(gtoProximity);
+      const gradeColor = getScoreColor(gtoProximity);
+      return { trends, leaks, grade, gradeColor };
+    } catch (e) {
+      console.warn('[GTOReports] Engine enrichment failed:', e.message);
+      return null;
+    }
+  }, [sessions, gtoProximity]);
 
   return (
     <>

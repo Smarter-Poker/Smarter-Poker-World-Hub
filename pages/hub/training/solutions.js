@@ -432,9 +432,34 @@ function SolutionsBrowserInner({ setError }) {
     Connected: '#ef4444',
   };
 
-  // Board texture classifier
+  // Board texture classifier — uses Phase 1 BoardTextureEngine for rich analysis
   function classifyBoardTexture(boardCards) {
     if (!boardCards || boardCards.length < 3) return [];
+
+    // Try engine first for comprehensive texture analysis
+    try {
+      const engineResult = analyzeBoard(boardCards);
+      if (engineResult) {
+        const tags = [];
+        // Flush texture
+        if (engineResult.flushTexture === 'monotone') tags.push('Monotone');
+        else if (engineResult.flushTexture === 'two-tone') tags.push('Two-Tone');
+        else tags.push('Rainbow');
+        // Pairing
+        if (engineResult.paired) tags.push('Paired');
+        // Connectivity
+        if (engineResult.connectivity === 'connected' || engineResult.straightPossible) tags.push('Connected');
+        // Engine extras for advanced filtering
+        if (engineResult.wetness >= 0.7) tags.push('Wet');
+        if (engineResult.wetness <= 0.3) tags.push('Dry');
+        if (engineResult.highCard) tags.push(engineResult.highCard >= 12 ? 'High' : 'Low');
+        return tags;
+      }
+    } catch (e) {
+      // Fallback to inline
+    }
+
+    // Inline fallback
     const suits = boardCards.slice(0, 3).map((c) => (typeof c === 'string' ? c[c.length - 1] : ''));
     const ranks = boardCards.slice(0, 3).map((c) => {
       if (typeof c !== 'string') return 0;

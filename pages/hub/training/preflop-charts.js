@@ -18,6 +18,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { authedFetch } from '../../../src/lib/authUtils';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+// ── Phase 2 Engine: Difficulty modes for chart simplification ───────────
+import { simplifyActions, DIFFICULTY } from '../../../src/engines/DifficultyEngine';
+import { calculatePreflopEV } from '../../../src/engines/EVCalculator';
 
 function saveSession(payload) {
   authedFetch('/api/training/save-session', {

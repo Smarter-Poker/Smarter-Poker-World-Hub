@@ -18,6 +18,9 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+// ── Phase 3+5 Engines: EV analysis + move classification for replay ─────
+import { calculateEVLoss, calculateActionEVs } from '../../../src/engines/EVCalculator';
+import { classifyMove } from '../../../src/engines/GTOScoreEngine';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MISTAKE RECONSTRUCTION
@@ -49,6 +52,14 @@ function reconstructMistakes(sessions) {
       const correctAction = ACTION_LABELS[(seed + 2) % 4];
       if (yourAction === correctAction) continue;
 
+      // Engine enrichment: classify severity and compute EV loss
+      const rawEVLoss = parseFloat(((s.total_ev_loss || 0) / Math.max(mistakeCount, 1)).toFixed(2));
+      let classification = 'mistake';
+      try {
+        const moveResult = classifyMove(rawEVLoss);
+        classification = moveResult?.classification || moveResult || 'mistake';
+      } catch { /* use default */ }
+
       mistakes.push({
         id: `${s.id || sIdx}-${i}`,
         gameId: s.game_id || 'unknown',
@@ -57,7 +68,8 @@ function reconstructMistakes(sessions) {
         street: street,
         yourAction,
         correctAction,
-        evLoss: parseFloat(((s.total_ev_loss || 0) / Math.max(mistakeCount, 1)).toFixed(2)),
+        evLoss: rawEVLoss,
+        classification,
         timestamp: ts,
         sessionId: s.id,
       });
