@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
-import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
 // confetti loaded lazily
 let _confetti = null;
@@ -337,6 +337,24 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                             <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
                             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
                         </div>
+
+                        {/* Suggested Next Game */}
+                        {(() => {
+                            const suggestion = getNextGameSuggestion('speed-drill', grade);
+                            if (!suggestion) return null;
+                            return (
+                                <div style={{
+                                    background: `${suggestion.color}10`, border: `1px solid ${suggestion.color}30`,
+                                    borderRadius: 10, padding: 14, marginTop: 10, textAlign: 'center', cursor: 'pointer'
+                                }} onClick={onExit}>
+                                    <div style={{ fontSize: 10, color: suggestion.color, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
+                                        {suggestion.icon} SUGGESTED NEXT
+                                    </div>
+                                    <div style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}>{suggestion.title}</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{suggestion.reason}</div>
+                                </div>
+                            );
+                        })()}
                     </motion.div>
                 );
             })()}
