@@ -1358,14 +1358,19 @@ export default function VenueDetailPage() {
             {/* ============================================ */}
             {/* BRAVO LIVE GAMES BANNER (top of page)        */}
             {/* ============================================ */}
-            {bravoLiveTables && bravoLiveTables.games && bravoLiveTables.games.length > 0 && (
+            {bravoLiveTables && bravoLiveTables.games && bravoLiveTables.games.length > 0 && (function () {
+              var runningGames = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) > 0; });
+              var waitlistOnly = bravoLiveTables.games.filter(function (g) { return (g.tables_running || 0) === 0 && (g.players_waiting || 0) > 0; });
+              var totalTablesRunning = runningGames.reduce(function (sum, g) { return sum + (g.tables_running || 0); }, 0);
+              if (runningGames.length === 0 && waitlistOnly.length === 0) return null;
+              return (
               <section className="bravo-live-banner">
                 <div className="bravo-live-header">
                   <div className="bravo-live-title-row">
                     <span className="bravo-live-pulse" />
                     <h2 className="bravo-live-title">Live Games Right Now</h2>
                     <span className="bravo-live-count">
-                      {bravoLiveTables.games.reduce(function (sum, g) { return sum + (g.tables_running || 0); }, 0)} Tables Running
+                      {totalTablesRunning} {totalTablesRunning === 1 ? 'Table' : 'Tables'} Running
                     </span>
                   </div>
                   {bravoLiveTables.last_updated && (
@@ -1375,7 +1380,7 @@ export default function VenueDetailPage() {
                   )}
                 </div>
                 <div className="bravo-live-games-grid">
-                  {bravoLiveTables.games.map(function (g, idx) {
+                  {runningGames.map(function (g, idx) {
                     var totalTables = g.tables_running || 0;
                     var waiting = g.players_waiting || 0;
                     return (
@@ -1403,6 +1408,29 @@ export default function VenueDetailPage() {
                     );
                   })}
                 </div>
+                {waitlistOnly.length > 0 && (
+                  <div style={{ padding: '8px 16px 4px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(245,158,11,0.7)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Waitlist Only</div>
+                    <div className="bravo-live-games-grid">
+                      {waitlistOnly.map(function (g, idx) {
+                        return (
+                          <div key={'wl-' + idx} className="bravo-live-game-card" style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
+                            <div className="bravo-game-name">{g.game}</div>
+                            <div className="bravo-game-stats">
+                              <span className="bravo-game-waiting">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                {g.players_waiting} Waiting
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 <div className="bravo-live-footer">
                   <span className="bravo-live-source">Data From Bravo Poker Live</span>
                   <button
@@ -1419,7 +1447,8 @@ export default function VenueDetailPage() {
                   </button>
                 </div>
               </section>
-            )}
+              );
+            })()}
 
             {/* Loading state for Bravo data */}
             {bravoLiveLoading && (

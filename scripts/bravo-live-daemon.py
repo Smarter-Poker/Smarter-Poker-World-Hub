@@ -256,10 +256,42 @@ def extract_live_data(html, venue_slug):
     if phone:
         result['phone'] = phone.group(1).strip()
 
-    # Current Live Games table
-    live_table = re.search(r'Current Live Games.*?<table[^>]*>(.*?)</table>', html, re.DOTALL)
-    if live_table:
-        rows = re.findall(r'<tr>(.*?)</tr>', live_table.group(1), re.DOTALL)
+    # ── Parse live games and waitlist tables ──
+    # Bravo uses two patterns:
+    #   OLD: Header text ("Current Live Games") appears BEFORE the <table>
+    #   NEW: Header text appears INSIDE the <table> as a <th> element
+    # The old regex `Current Live Games.*?<table>` broke on the new format
+    # because it skipped past the table containing the header and captured
+    # the NEXT table (the waitlist), inflating table counts across all venues.
+    #
+    # FIX: Find ALL <table> elements, check which CONTAINS each header.
+    # Fallback to old regex if no table contains the header text.
+
+    all_tables = re.findall(r'<table[^>]*>(.*?)</table>', html, re.DOTALL | re.IGNORECASE)
+
+    live_table_content = None
+    wait_table_content = None
+
+    for tbl in all_tables:
+        if re.search(r'Current\s+Live\s+Games', tbl, re.IGNORECASE):
+            live_table_content = tbl
+        elif re.search(r'Current\s+Waiting\s+List', tbl, re.IGNORECASE):
+            wait_table_content = tbl
+
+    # Fallback: old Bravo format where header text is OUTSIDE/BEFORE the <table>
+    if live_table_content is None:
+        m = re.search(r'Current\s+Live\s+Games.*?<table[^>]*>(.*?)</table>', html, re.DOTALL | re.IGNORECASE)
+        if m:
+            live_table_content = m.group(1)
+
+    if wait_table_content is None:
+        m = re.search(r'Current\s+Waiting\s+List.*?<table[^>]*>(.*?)</table>', html, re.DOTALL | re.IGNORECASE)
+        if m:
+            wait_table_content = m.group(1)
+
+    # Extract live games
+    if live_table_content:
+        rows = re.findall(r'<tr>(.*?)</tr>', live_table_content, re.DOTALL)
         for row in rows:
             cells = re.findall(r'<td[^>]*>\s*(.*?)\s*</td>', row, re.DOTALL)
             if len(cells) >= 2:
@@ -268,10 +300,9 @@ def extract_live_data(html, venue_slug):
                 if game_name and table_count.isdigit():
                     result['live_games'].append({'game': game_name, 'tables': int(table_count)})
 
-    # Current Waiting List table
-    wait_table = re.search(r'Current Waiting List.*?<table[^>]*>(.*?)</table>', html, re.DOTALL)
-    if wait_table:
-        rows = re.findall(r'<tr>(.*?)</tr>', wait_table.group(1), re.DOTALL)
+    # Extract waitlist
+    if wait_table_content:
+        rows = re.findall(r'<tr>(.*?)</tr>', wait_table_content, re.DOTALL)
         for row in rows:
             cells = re.findall(r'<td[^>]*>\s*(.*?)\s*</td>', row, re.DOTALL)
             if len(cells) >= 2:
