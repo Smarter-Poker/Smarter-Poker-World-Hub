@@ -10,6 +10,10 @@ import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } 
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import CircularTimer from '../components/training/CircularTimer';
+import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
+import { recordSessionWeakness } from '../utils/weaknessTracker';
+import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
+import PowerUpBar from '../components/training/PowerUpBar';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -28,6 +32,10 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
     const [correctCount, setCorrectCount] = useState(0);
     const timerRef = useRef(null);
     const mistakesRef = useRef([]);
+    const [usedPowerUps, setUsedPowerUps] = useState(new Set());
+    const [activePowerUp, setActivePowerUp] = useState(null);
+    const [streakFreezeAvailable, setStreakFreezeAvailable] = useState(false);
+    const availablePowerUps = getGamePowerUps('pressure-cooker');
 
     const TIME_BONUS = 3000;
     const TIME_PENALTY = 5000;
@@ -48,6 +56,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         setCurrentHand(hand); setGameState('playing'); setTimeRemaining(INITIAL_TIME);
         setScore(0); setHandsCompleted(0); setStreak(0); setMaxStreak(0); setCorrectCount(0); setUserAnswer(null);
         mistakesRef.current = [];
+        setUsedPowerUps(new Set()); setActivePowerUp(null); setStreakFreezeAvailable(false);
         SoundEngine.play('levelUp');
     }, [getRandomHand]);
 
@@ -71,9 +80,14 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
             setTimeRemaining(prev => Math.min(prev + TIME_BONUS, 60000));
             SoundEngine.play(streak >= 2 ? 'combo' : 'correct');
         } else {
-            setStreak(0);
-            setTimeRemaining(prev => Math.max(prev - TIME_PENALTY, 0));
-            SoundEngine.play('wrong');
+            if (streakFreezeAvailable) {
+                setStreakFreezeAvailable(false);
+                SoundEngine.play('correct'); // Saved by freeze — no penalty
+            } else {
+                setStreak(0);
+                setTimeRemaining(prev => Math.max(prev - TIME_PENALTY, 0));
+                SoundEngine.play('wrong');
+            }
             mistakesRef.current.push({ position: currentHand.scenario?.title || 'Unknown', hand: currentHand.hand, correct: currentHand.correctAction, picked: action });
             busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentHand.correctAction, scenario: currentHand.scenario });
         }
@@ -88,6 +102,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                 const diamondReward = Math.floor(score / 50) + 10;
                 if (DiamondEngine) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
                 { const acc = newHandsCompleted > 0 ? Math.round(((correctCount + 1) / newHandsCompleted) * 100) : 0; const g = acc >= 95 ? 'S' : acc >= 85 ? 'A' : acc >= 70 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pressure-cooker', score, g); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
+                recordSessionWeakness('pressure-cooker', mistakesRef.current, newHandsCompleted);
                 if (userId) {
                     const accuracy = Math.round((score / (newHandsCompleted * 100)) * 100);
                     gameSessionService.recordSession(userId, {
@@ -118,7 +133,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         if (gameState === 'playing' || gameState === 'revealed') {
             timerRef.current = setInterval(() => {
                 setTimeRemaining(prev => {
-                    if (prev <= 100) { clearInterval(timerRef.current); setGameState('failed'); SoundEngine.play('gameOver'); return 0; }
+                    if (prev <= 100) { clearInterval(timerRef.current); setGameState('failed'); SoundEngine.play('gameOver'); recordSessionWeakness('pressure-cooker', mistakesRef.current, handsCompleted); return 0; }
                     return prev - 100;
                 });
             }, 100);
@@ -139,6 +154,24 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     }, [gameState, handleAnswer, startGame, onExit]);
+
+    const handlePowerUp = useCallback((powerUp) => {
+        if (!DiamondEngine || usedPowerUps.has(powerUp.id)) return;
+        if (!purchasePowerUp(powerUp, DiamondEngine)) return;
+        setUsedPowerUps(prev => new Set([...prev, powerUp.id]));
+        onScoreUpdate?.(DiamondEngine.getBalance());
+
+        if (powerUp.id === 'TIME_BOOST') {
+            setTimeRemaining(prev => Math.min(prev + 10000, 60000));
+            setActivePowerUp(null);
+        } else if (powerUp.id === 'STREAK_FREEZE') {
+            setStreakFreezeAvailable(true);
+            setActivePowerUp('STREAK_FREEZE');
+        } else if (powerUp.id === 'HINT_REVEAL') {
+            setActivePowerUp(null);
+        }
+        SoundEngine.play('levelUp');
+    }, [DiamondEngine, usedPowerUps, onScoreUpdate]);
 
     const timerSec = (timeRemaining / 1000).toFixed(1);
     const timerColor = timeRemaining > 15000 ? '#00ff88' : timeRemaining > 7000 ? '#ffaa00' : '#ff4444';
@@ -169,6 +202,14 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
 
             {(gameState === 'playing' || gameState === 'revealed') && currentHand && (
                 <>
+                    <PowerUpBar
+                        powerUps={availablePowerUps}
+                        usedPowerUps={usedPowerUps}
+                        activePowerUp={activePowerUp}
+                        onActivate={handlePowerUp}
+                        diamondBalance={DiamondEngine?.getBalance() || 0}
+                        compact
+                    />
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>{currentHand.scenario.title}</div>
                     <CircularTimer
                         percent={(timeRemaining / 30000) * 100}
@@ -236,7 +277,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
                                     <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>
+                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>{'SCORE'}</div>
                                 </div>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12 }}>
                                     <div style={{ fontFamily: 'Orbitron', fontSize: 20, fontWeight: 800, color: '#00ff88' }}>{timerSec}s</div>
@@ -253,16 +294,8 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             </div>
                         </div>
 
-                        {/* Accuracy Bar */}
-                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
-                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
-                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
-                            </div>
-                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
-                            </div>
-                        </div>
+                        {/* Animated Accuracy Bar */}
+                        <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
 
                         {/* Position Weakness Heatmap */}
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsCompleted} />
@@ -390,16 +423,8 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                             </div>
                         </div>
 
-                        {/* Accuracy Bar */}
-                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
-                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
-                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
-                            </div>
-                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
-                            </div>
-                        </div>
+                        {/* Animated Accuracy Bar */}
+                        <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
 
                         {/* Position Weakness Heatmap */}
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsCompleted} />

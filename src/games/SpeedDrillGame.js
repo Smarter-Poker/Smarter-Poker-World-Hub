@@ -10,6 +10,10 @@ import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } 
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import CircularTimer from '../components/training/CircularTimer';
+import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
+import { recordSessionWeakness } from '../utils/weaknessTracker';
+import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
+import PowerUpBar from '../components/training/PowerUpBar';
 import gameSessionService from '../services/GameSessionService';
 // confetti loaded lazily
 let _confetti = null;
@@ -29,6 +33,11 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
     const [handsPlayed, setHandsPlayed] = useState(0);
     const timerRef = useRef(null);
     const mistakesRef = useRef([]);
+    const [usedPowerUps, setUsedPowerUps] = useState(new Set());
+    const [activePowerUp, setActivePowerUp] = useState(null);
+    const [streakFreezeAvailable, setStreakFreezeAvailable] = useState(false);
+    const [doublePointsActive, setDoublePointsActive] = useState(false);
+    const availablePowerUps = getGamePowerUps('speed-drill');
 
     const INITIAL_TIME = 3000;
     const MIN_TIME = 1000;
@@ -57,6 +66,10 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         setUserAnswer(null);
         setHandsPlayed(0);
         mistakesRef.current = [];
+        setUsedPowerUps(new Set());
+        setActivePowerUp(null);
+        setStreakFreezeAvailable(false);
+        setDoublePointsActive(false);
         SoundEngine.play('levelUp');
     }, [getRandomHand]);
 
@@ -80,26 +93,37 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         const isCorrect = action === currentHand.correctAction;
 
         if (isCorrect) {
-            const pointsEarned = 100 + (streak * 10);
+            const multiplier = doublePointsActive ? 2 : 1;
+            const pointsEarned = (100 + (streak * 10)) * multiplier;
             setScore(prev => prev + pointsEarned);
             setStreak(prev => prev + 1);
             setMaxStreak(prev => Math.max(prev, streak + 1));
             SoundEngine.play(streak >= 2 ? 'combo' : 'correct');
+            if (doublePointsActive) setDoublePointsActive(false);
         } else {
-            setStreak(0);
-            setLives(prev => prev - 1);
-            SoundEngine.play('wrong');
+            // Check for streak freeze
+            if (streakFreezeAvailable) {
+                setStreakFreezeAvailable(false);
+                SoundEngine.play('correct'); // Softer sound — saved!
+                // Don't lose life or streak
+            } else {
+                setStreak(0);
+                setLives(prev => prev - 1);
+                SoundEngine.play('wrong');
+            }
             mistakesRef.current.push({ position: currentHand.scenario?.title || 'Unknown', hand: currentHand.hand, correct: currentHand.correctAction, picked: action });
             busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentHand.correctAction, scenario: currentHand.scenario });
         }
 
         setGameState('revealed');
 
+        const freezeSaved = !isCorrect && streakFreezeAvailable;
         setTimeout(() => {
-            if (lives - (isCorrect ? 0 : 1) <= 0) {
+            if (!isCorrect && !freezeSaved && lives - 1 <= 0) {
                 setGameState('gameover');
                 SoundEngine.play('gameOver');
                 { const acc = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 75 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('speed-drill', score, g); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
+                recordSessionWeakness('speed-drill', mistakesRef.current, handsPlayed + 1);
                 const diamondReward = Math.floor(score / 100);
                 if (diamondReward > 0 && DiamondEngine) {
                     const newBalance = DiamondEngine.award(diamondReward);
@@ -123,7 +147,25 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                 nextHand();
             }
         }, 800);
-    }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate, userId, handsPlayed, level, maxStreak]);
+    }, [gameState, currentHand, streak, lives, score, nextHand, DiamondEngine, onScoreUpdate, userId, handsPlayed, level, maxStreak, streakFreezeAvailable, doublePointsActive]);
+
+    const handlePowerUp = useCallback((powerUp) => {
+        if (!DiamondEngine || usedPowerUps.has(powerUp.id)) return;
+        if (!purchasePowerUp(powerUp, DiamondEngine)) return;
+        setUsedPowerUps(prev => new Set([...prev, powerUp.id]));
+        onScoreUpdate?.(DiamondEngine.getBalance());
+
+        if (powerUp.id === 'STREAK_FREEZE') {
+            setStreakFreezeAvailable(true);
+            setActivePowerUp('STREAK_FREEZE');
+        } else if (powerUp.id === 'DOUBLE_POINTS') {
+            setDoublePointsActive(true);
+            setActivePowerUp('DOUBLE_POINTS');
+        } else if (powerUp.id === 'HINT_REVEAL') {
+            setActivePowerUp(null); // Hint is instant — handled in UI
+        }
+        SoundEngine.play('levelUp');
+    }, [DiamondEngine, usedPowerUps, onScoreUpdate]);
 
     useEffect(() => {
         if (gameState === 'playing') {
@@ -181,9 +223,17 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
 
             {(gameState === 'playing' || gameState === 'revealed') && currentHand && (
                 <>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
-                        {[0, 1, 2].map(i => (<span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}></span>))}
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 8 }}>
+                        {[0, 1, 2].map(i => (<span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}>{i < lives && streakFreezeAvailable && i === lives - 1 ? '🛡️' : '❤️'}</span>))}
                     </div>
+                    <PowerUpBar
+                        powerUps={availablePowerUps}
+                        usedPowerUps={usedPowerUps}
+                        activePowerUp={activePowerUp}
+                        onActivate={handlePowerUp}
+                        diamondBalance={DiamondEngine?.getBalance() || 0}
+                        compact
+                    />
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>{currentHand.scenario.title}</div>
                     <CircularTimer
                         percent={timerPercent}
@@ -262,16 +312,8 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                             </div>
                         </div>
 
-                        {/* Accuracy Bar */}
-                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
-                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
-                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
-                            </div>
-                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
-                            </div>
-                        </div>
+                        {/* Animated Accuracy Bar */}
+                        <AnimatedAccuracyBar accuracy={accuracy} grade={grade} personalBest={(() => { try { const pb = JSON.parse(localStorage.getItem('pb_speed-drill') || 'null'); return pb?.score ? Math.round((pb.score / (handsPlayed * 110)) * 100) : null; } catch { return null; } })()} />
 
                         {/* Position Weakness Heatmap */}
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsPlayed} />

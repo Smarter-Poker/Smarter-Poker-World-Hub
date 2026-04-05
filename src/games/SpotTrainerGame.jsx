@@ -9,6 +9,8 @@ import { SoundEngine } from './GameEngine';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
+import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
+import { recordSessionWeakness } from '../utils/weaknessTracker';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -513,6 +515,7 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
             setGameOver(true);
             const accuracy = (correctAnswers / totalAnswers) * 100;
             { const g = accuracy >= 95 ? 'S' : accuracy >= 85 ? 'A' : accuracy >= 70 ? 'B' : accuracy >= 55 ? 'C' : 'D'; savePersonalBest('spot-trainer', score, g); }
+            recordSessionWeakness('spot-trainer', mistakesRef.current, totalAnswers);
             SoundEngine.play(accuracy >= 70 ? 'levelUp' : 'gameOver');
 
             // Award diamonds based on performance
@@ -653,16 +656,8 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                         </div>
                     </div>
 
-                    {/* Accuracy Bar */}
-                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
-                            <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ACCURACY</span>
-                            <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
-                        </div>
-                        <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
-                        </div>
-                    </div>
+                    {/* Animated Accuracy Bar */}
+                    <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
 
                     {/* Diamond Reward */}
                     {diamondsEarned > 0 && (

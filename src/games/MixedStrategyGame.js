@@ -9,6 +9,8 @@ import { MIXED_SCENARIOS } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
+import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
+import { recordSessionWeakness } from '../utils/weaknessTracker';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -56,6 +58,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         if (roundsPlayed >= maxRounds) {
             setGameState('gameover');
             { const acc = maxRounds > 0 ? Math.round((closeCount / maxRounds) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('mixed-strategy', score, g); SoundEngine.play(acc >= 60 ? 'levelUp' : 'gameOver'); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
+            recordSessionWeakness('mixed-strategy', mistakesRef.current, maxRounds);
             const diamondReward = Math.floor(score / 500) + (score >= 4000 ? 20 : 0);
             if (DiamondEngine && diamondReward > 0) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
             if (userId) {
@@ -182,16 +185,8 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                             </div>
                         </div>
 
-                        {/* Accuracy Bar */}
-                        <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
-                                <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>PRECISION</span>
-                                <span style={{ color: gradeColor, fontWeight: 700 }}>{accuracy}%</span>
-                            </div>
-                            <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
-                            </div>
-                        </div>
+                        {/* Animated Accuracy Bar */}
+                        <AnimatedAccuracyBar accuracy={accuracy} grade={grade} label="PRECISION" />
 
                         {/* Position Weakness Heatmap */}
                         <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={totalRounds} />

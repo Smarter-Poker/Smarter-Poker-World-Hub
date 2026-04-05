@@ -10,6 +10,8 @@ import { SoundEngine } from './GameEngine';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
+import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
+import { recordSessionWeakness } from '../utils/weaknessTracker';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -571,6 +573,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             }
 
             setMatchState('result');
+            recordSessionWeakness('tournament', mistakesRef.current, roundsPlayed);
         }
     };
 
@@ -1008,16 +1011,8 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                         </div>
                     </div>
 
-                    {/* Win Rate Bar */}
-                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 12 }}>
-                            <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>ROUND WIN RATE</span>
-                            <span style={{ color: resultColor, fontWeight: 700 }}>{accuracy}%</span>
-                        </div>
-                        <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${accuracy}%`, background: resultColor, borderRadius: 4, transition: 'width 1s ease' }} />
-                        </div>
-                    </div>
+                    {/* Animated Win Rate Bar */}
+                    <AnimatedAccuracyBar accuracy={accuracy} grade={playerWon ? 'A' : 'D'} label="ROUND WIN RATE" />
 
                     {/* Diamond Reward */}
                     {diamondReward > 0 && (
