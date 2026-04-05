@@ -27,7 +27,8 @@ function getSupabase() {
 // Get current day of week
 function getCurrentDay() {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return days[new Date().getDay()];
+    const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    return days[new Date(localCurrentTime).getDay()];
 }
 
 // Parse time string to sortable number

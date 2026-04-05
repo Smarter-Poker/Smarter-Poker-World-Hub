@@ -2280,7 +2280,7 @@
       "headquarters": "Las Vegas, NV",
       "established": 2013,
       "notes": "Card Player Magazine sponsored tour.",
-      "is_active": false
+      "is_active": true
     },
     "APT": {
       "tour_code": "APT",

@@ -214,7 +214,7 @@ export default function LiveGamesFeed({
     
     const [filterState, setFilterState] = useState(savedFilters.filterState || 'all');
     const [filterRadius, setFilterRadius] = useState(!savedFilters.filterRadius || savedFilters.filterRadius === 'any' ? '50' : savedFilters.filterRadius);
-    const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'tables');
+    const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'distance');
     const [filterGameType, setFilterGameType] = useState(savedFilters.filterGameType || 'all');
     const [filterStakes, setFilterStakes] = useState(savedFilters.filterStakes || 'any');
 

@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { saveFilters, loadFilters } from './pnm-utils';
+import { eventBus } from '../../engine/EventBus';
 
 const GAME_TYPES = [
     { value: 'all', label: 'All Games' },
@@ -79,6 +80,9 @@ export default function FilterPanel({
         if (onFilterChange) {
             onFilterChange(newFilters);
         }
+        if (eventBus && eventBus.emit) {
+            eventBus.emit('PNM_FILTERS_UPDATED', newFilters);
+        }
     };
 
     const activeFilterCount = [
@@ -101,6 +105,9 @@ export default function FilterPanel({
         setLocalFilters(clearedFilters);
         if (onFilterChange) {
             onFilterChange(clearedFilters);
+        }
+        if (eventBus && eventBus.emit) {
+            eventBus.emit('PNM_FILTERS_UPDATED', clearedFilters);
         }
     };
 

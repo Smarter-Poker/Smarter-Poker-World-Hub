@@ -43,7 +43,7 @@ const TOUR_LOGOS = {
     LIPS: '/images/tours/lips.png',
     PAT: '/images/tours/pat.jpg',
     GCPT: '/images/tours/gcpt.jpg',
-    CPPT: '/images/tours/cppt.png',
+    CPPT: '/images/tours/cppt.jpg',
     // Stationary venue series
     VENETIAN: '/images/tours/venetian.png',
     WYNN: '/images/tours/wynn.png',

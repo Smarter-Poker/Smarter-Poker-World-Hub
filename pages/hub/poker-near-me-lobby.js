@@ -158,12 +158,15 @@ export default function PokerNearMeLobby() {
     // --- Semantic Entry Reset ---
     // When hitting the lobby natively, enforce the default 50-mile radius to meet user requirements
     try {
-        const savedStr = localStorage.getItem('poker-near-me-search-filters');
-        let parsed = savedStr ? JSON.parse(savedStr) : {};
-        parsed.radius = 50;
-        localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
-        // Force Lobby's default pod memory to 50 immediately
-        setFilters(prev => ({ ...prev, nmRadius: '50' }));
+        if (!sessionStorage.getItem('pnm-radius-set-this-session')) {
+            const savedStr = localStorage.getItem('poker-near-me-search-filters');
+            let parsed = savedStr ? JSON.parse(savedStr) : {};
+            parsed.radius = 50;
+            localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
+            // Force Lobby's default pod memory to 50 immediately
+            setFilters(prev => ({ ...prev, nmRadius: '50' }));
+            sessionStorage.setItem('pnm-radius-set-this-session', 'true');
+        }
     } catch (e) {
         console.warn('Failed to reset radius on entry');
     }
@@ -2343,8 +2346,8 @@ export default function PokerNearMeLobby() {
   return (
     <>
       <SEOHead
-        title="Live Cash Games — Find Live Poker Rooms & Casinos Near You"
-        description="Discover Live Cash Games, Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
+        title="Poker Near Me — Find Live Poker Rooms & Casinos"
+        description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps."
         canonical="/hub/poker-near-me-lobby"
       />
 

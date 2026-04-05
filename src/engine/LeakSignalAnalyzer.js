@@ -50,6 +50,8 @@ class LeakSignalAnalyzer {
 
         this.activeLeaks = new Set(); // IDs of currently active leaks
         this.userId = null; // Set by the game component
+        this._started = false; // Guard against double-start
+        this._unsub = null; // Unsubscribe handle from eventBus.on
     }
 
     /**
@@ -65,10 +67,10 @@ class LeakSignalAnalyzer {
         console.log('🕵️ Leak Signal Analyzer: Online');
     }
 
-    handleIncorrectDecision(payload) {
-        // We expect payload to containing detailed decision info
-        // Note: The UI must pass this info to the EventBus!
-        const { userAction, bestAction, scenario } = payload;
+    handleIncorrectDecision(event) {
+        // EventBus passes { type, payload, timestamp, source }
+        // The actual decision data lives inside event.payload
+        const { userAction, bestAction, scenario } = event?.payload || {};
 
         if (!userAction || !bestAction) return;
 
