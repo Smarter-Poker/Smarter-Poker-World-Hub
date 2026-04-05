@@ -1,8 +1,8 @@
 {
   "batch_id": "d06645bc-d567-4846-98c3-cd8c6372056e",
-  "timestamp": "2026-04-05T04:45:52.948760+00:00",
-  "total_processed": 40,
-  "uploaded": 39,
+  "timestamp": "2026-04-05T04:52:27.503265+00:00",
+  "total_processed": 60,
+  "uploaded": 59,
   "not_found": 0,
   "results": [
     {
@@ -364,6 +364,186 @@
       "image_hash": "0088e77ba1c5e79be4f386e45429bdee92b2e7c528c9708087c8e5ac60bd38d4",
       "image_size": 1181821,
       "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2276.png"
+    },
+    {
+      "venue_id": 2270,
+      "venue_name": "Champions Poker",
+      "status": "uploaded",
+      "source_url": "https://pgt.pokergomedia.com/cdn-cgi/image/fit=contain,width=1280/TPOlogo71f44853886a4d70920a75edee6ff7eb.png",
+      "image_hash": "59c877016bcf890f2c2c0ed0e1f4ffb19416266b3b907da926b9af523b6f4b35",
+      "image_size": 114744,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2270.png"
+    },
+    {
+      "venue_id": 2417,
+      "venue_name": "Offsuit Poker Lounge",
+      "status": "uploaded",
+      "source_url": "http://static1.squarespace.com/static/614f6dfce491d90282bb1dca/t/62a0cdedecdfbc48c51041b9/1654705646005/Offsuit+Logo.png?format=1500w",
+      "image_hash": "80200f92a3a5d9a6cbbc3d9d99207491b7aa014a6f25f7b4c626f294733299dc",
+      "image_size": 281512,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2417.png"
+    },
+    {
+      "venue_id": 2418,
+      "venue_name": "Paramount Social Club",
+      "status": "uploaded",
+      "source_url": "https://theatrearlington.org/wp-content/uploads/2025/09/GATM-Logo-2-1024x1024.png",
+      "image_hash": "3ec7a20e6172835eba5922f13611442372bda789357036de60d35cd821bde263",
+      "image_size": 153264,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2418.png"
+    },
+    {
+      "venue_id": 2750,
+      "venue_name": "Prime Social Poker Series",
+      "status": "uploaded",
+      "source_url": "https://images.squarespace-cdn.com/content/v1/68a101bf6c2dd5190ef76800/d7178f65-8b04-4850-8d55-b6b3d44711fe/Prime+Logo+transparent.PNG",
+      "image_hash": "8163acc0929623b78902a9a2c1c24759a8753b5e5e8c195ccd42b9c41d20089d",
+      "image_size": 144136,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2750.png"
+    },
+    {
+      "venue_id": 2419,
+      "venue_name": "River Room Social Club",
+      "status": "uploaded",
+      "source_url": "https://cdn01.s4shops.com/skytabweb/uploads/d1b4e350-6f8e-f011-b482-6045bd7b34ae/9bc69ed2-f29a-f011-b485-6045bd80d9e3.png",
+      "image_hash": "693ca09d420957411abe546ad7f12bcdc6d11fa1a23060957c07c46d1217b91c",
+      "image_size": 1718311,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2419.png"
+    },
+    {
+      "venue_id": 1925,
+      "venue_name": "The Hangar Poker House",
+      "status": "uploaded",
+      "source_url": "https://doghousepokerclub.com/wp-content/uploads/2024/05/FAVICON-LOGO-1.png",
+      "image_hash": "a0d8208c2058de5c8e8f296464d3a895c29dba524d37f8504098c5046669fc6c",
+      "image_size": 249899,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1925.png"
+    },
+    {
+      "venue_id": 1899,
+      "venue_name": "101 Poker Club",
+      "status": "uploaded",
+      "source_url": "https://i.imgur.com/824jDjG.jpg",
+      "image_hash": "a17582acb173d6a1d9030e2fc96f306e5718203823a87f7867d62e3c5f65c868",
+      "image_size": 1840579,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1899.png"
+    },
+    {
+      "venue_id": 2950,
+      "venue_name": "West Texas Card House",
+      "status": "uploaded",
+      "source_url": "https://events.texascardhouse.com/hs-fs/hubfs/Spring%20Stop.png?width=1080&height=1080&name=Spring%20Stop.png",
+      "image_hash": "4a329867fd00d84d79bc36119067594edc1171937770c35834002b382a1a192e",
+      "image_size": 873274,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2950.png"
+    },
+    {
+      "venue_id": 1828,
+      "venue_name": "Lodge Poker Club",
+      "status": "uploaded",
+      "source_url": "https://pbs.twimg.com/media/HDMLrtvbQAAcjDv.jpg",
+      "image_hash": "d6d79226d63ec724c60ecfbc8d25859f36013a35118284671d207980f97cbe89",
+      "image_size": 1055758,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1828.png"
+    },
+    {
+      "venue_id": 2633,
+      "venue_name": "Lodge Poker Series",
+      "status": "uploaded",
+      "source_url": "https://thelodgepokerclub.com/wp-content/uploads/2025/10/1080x1080_1.png",
+      "image_hash": "786aa7e00d22cc31635ee4fb221427b16310af9984504a91326ce7bd60537a32",
+      "image_size": 1170912,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2633.png"
+    },
+    {
+      "venue_id": 2281,
+      "venue_name": "SA Poker Club",
+      "status": "uploaded",
+      "source_url": "http://leaguelab-prod.s3.amazonaws.com/userimages/logos/org_731-3.png",
+      "image_hash": "db0d01c0a6ba7be621d6a4986dde64566b5bae108200a0fd993c47b28a77bcb8",
+      "image_size": 1963947,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2281.png"
+    },
+    {
+      "venue_id": 2944,
+      "venue_name": "The Royal Card House of San Antonio",
+      "status": "uploaded",
+      "source_url": "https://pokeratlas-images-production.s3.amazonaws.com/venue_announcements/images/aE82C4P4zPLpEv-6d4-lwA",
+      "image_hash": "a32f7eab350367d0c63372dd6430c9d221e5442f590352ed81b927ed4e6d6325",
+      "image_size": 849980,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2944.png"
+    },
+    {
+      "venue_id": 1918,
+      "venue_name": "Spades Poker House",
+      "status": "uploaded",
+      "source_url": "https://images.scalebranding.com/poker-spade-skull-bones-logo-d5265d82-1ac8-4b5b-9b64-9838445e3c92.png",
+      "image_hash": "137d638e88a84c105e3e3062389bccbb00d8b4441b89639457c4af6efdd60b62",
+      "image_size": 37964,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1918.png"
+    },
+    {
+      "venue_id": 2904,
+      "venue_name": "Alpha Social Card Club",
+      "status": "uploaded",
+      "source_url": "https://www.ragan.com/wp-content/uploads/2025/11/Logo-15.png",
+      "image_hash": "8b147fdb4c6dde297bfa869dab8d4f457355247d60b1137875d9f8bd744d6a30",
+      "image_size": 439793,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2904.png"
+    },
+    {
+      "venue_id": 2919,
+      "venue_name": "Johny's Social Card Club",
+      "status": "uploaded",
+      "source_url": "https://media-cdn.tripadvisor.com/media/photo-m/1280/21/a4/ff/94/front-door-logo.jpg",
+      "image_hash": "6d0be92f782cebbc184d383ad83b3d35fee864e7bea7a13a96bc22eec760254b",
+      "image_size": 857596,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2919.png"
+    },
+    {
+      "venue_id": 2942,
+      "venue_name": "The Rose Social Club",
+      "status": "uploaded",
+      "source_url": "https://images.squarespace-cdn.com/content/v1/655e40fe0b80f547bd81f98d/58c697b3-c6e9-4b94-941d-655aa9e806ec/TLFC+Logo",
+      "image_hash": "5c0d5f2d0170a560cd783ed9ec11ff8597386a6a0728e18f4e0c62e2d2c134a5",
+      "image_size": 571284,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2942.png"
+    },
+    {
+      "venue_id": 2038,
+      "venue_name": "Caesars Virginia",
+      "status": "uploaded",
+      "source_url": "https://img.p.mapq.st/?url=https%3A%2F%2Fa.mktgcdn.com%2Fp%2FsilTUqtDWvgnOLVVLr3lMOCoCAY7AI1sTHgl5FZFdVI%2F1280x1280.png&w=3840&q=75",
+      "image_hash": "827563f1b6389d0a4f77e3919d7ee8634cd1579201d9c7aae0329bc8d4c3e84d",
+      "image_size": 227800,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2038.png"
+    },
+    {
+      "venue_id": 2760,
+      "venue_name": "Wisconsin State Poker Championship",
+      "status": "uploaded",
+      "source_url": "https://s3-media0.fl.yelpcdn.com/bphoto/X5UT8DhYFzW-YH_WlG6ofg/1000s.jpg",
+      "image_hash": "ff4d971cec9a998180a729dc3265909925f2c04e9f690106a6fda84df409dfc9",
+      "image_size": 1317127,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2760.png"
+    },
+    {
+      "venue_id": 3047,
+      "venue_name": "Hollywood Casino at Charles Town Races",
+      "status": "uploaded",
+      "source_url": "https://spinettisgaming.com/cdn/shop/products/HollywoodCharlesTown_1_2.jpg?v=1644279825&width=1880",
+      "image_hash": "9a19f8c88d0fa186f0d5af85cce9695592ef6cd81b35d3f071258fc4490c9b9e",
+      "image_size": 3202016,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3047.png"
+    },
+    {
+      "venue_id": "napt-poker-tour",
+      "venue_name": "NAPT Poker Tour",
+      "status": "uploaded",
+      "source_url": "https://cdn.cardplayerlifestyle.com/wp-content/uploads/2024/10/IMG_4581-1024x1024.jpeg",
+      "image_hash": "dc21404323636802ec80072186518f682363db047574582d0212c0da1419bab1",
+      "image_size": 1553139,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/napt-poker-tour.png"
     }
   ]
 }
