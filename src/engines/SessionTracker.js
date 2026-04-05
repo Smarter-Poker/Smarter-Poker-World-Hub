@@ -98,7 +98,7 @@ export async function saveSession(supabase, sessionRecord, moveRecords = []) {
             .from('training_sessions')
             .insert(sessionRecord)
             .select('id')
-            .single();
+            .maybeSingle();
 
         if (sessionError) throw sessionError;
 
