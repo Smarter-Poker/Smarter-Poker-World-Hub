@@ -62,9 +62,17 @@ class LeakSignalAnalyzer {
     }
 
     start() {
-        // Listen to events
-        eventBus.on(EventType.DECISION_INCORRECT, (payload) => this.handleIncorrectDecision(payload));
+        // Guard against duplicate listener registration
+        if (this._started) return;
+        this._started = true;
+        this._unsub = eventBus.on(EventType.DECISION_INCORRECT, (event) => this.handleIncorrectDecision(event));
         console.log('🕵️ Leak Signal Analyzer: Online');
+    }
+
+    stop() {
+        if (this._unsub) this._unsub();
+        this._unsub = null;
+        this._started = false;
     }
 
     handleIncorrectDecision(event) {
