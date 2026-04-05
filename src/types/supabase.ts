@@ -2185,6 +2185,402 @@ export type Database = {
         }
         Relationships: []
       }
+      bankroll_ledger: {
+        Row: {
+          id: string
+          user_id: string
+          category: string
+          location_id: string | null
+          trip_id: string | null
+          entry_date: string
+          start_time: string | null
+          end_time: string | null
+          gross_in: number
+          gross_out: number
+          net_result: number
+          notes: string | null
+          media_urls: string[] | null
+          emotional_tag: string | null
+          stakes: string | null
+          game_type: string | null
+          tournament_name: string | null
+          tournament_type: string | null
+          buy_in_amount: number | null
+          finish_position: number | null
+          field_size: number | null
+          reentry_count: number | null
+          add_on_amount: number | null
+          bounties_collected: number | null
+          casino_game: string | null
+          slot_machine: string | null
+          sport: string | null
+          bet_type: string | null
+          odds: string | null
+          bet_result: string | null
+          expense_type: string | null
+          duration_hours: number | null
+          is_revision: boolean
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_locations: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          venue_type: string | null
+          latitude: number | null
+          longitude: number | null
+          poker_venue_id: string | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_trips: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          location_id: string | null
+          start_date: string
+          end_date: string | null
+          purpose: string | null
+          notes: string | null
+          status: string
+          trip_type: string | null
+          mileage: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_rules: {
+        Row: {
+          id: string
+          user_id: string
+          rule_type: string
+          value: number
+          is_strict: boolean
+          is_active: boolean
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_rule_violations: {
+        Row: {
+          id: string
+          user_id: string
+          rule_id: string
+          violation_type: string
+          actual_value: number | null
+          threshold_value: number | null
+          is_dismissed: boolean
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_alerts: {
+        Row: {
+          id: string
+          user_id: string
+          alert_type: string
+          severity: number
+          title: string
+          message: string
+          data: Record<string, unknown> | null
+          is_read: boolean
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_segments: {
+        Row: {
+          id: string
+          user_id: string
+          segment_type: string
+          initial_deposit: number
+          current_balance: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_transfers: {
+        Row: {
+          id: string
+          user_id: string
+          from_segment_id: string | null
+          to_segment_id: string | null
+          amount: number
+          notes: string | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      bankroll_assistant_memory: {
+        Row: {
+          id: string
+          user_id: string
+          memory_type: string
+          content: string
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      dealer_calendar_events: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          venue_name: string | null
+          venue_address: string | null
+          event_date: string
+          notes: string | null
+          alert_enabled: boolean
+          notification_sent: boolean
+          share_token: string
+          hourly_rate: number | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      staking_arrangements: {
+        Row: {
+          id: string
+          user_id: string
+          backer_name: string
+          backer_email: string | null
+          backer_phone: string | null
+          split_percentage: number
+          markup_percentage: number
+          starting_makeup: number
+          current_makeup: number
+          start_date: string
+          end_date: string | null
+          is_active: boolean
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      staking_sessions: {
+        Row: {
+          id: string
+          arrangement_id: string
+          ledger_entry_id: string
+          gross_result: number
+          player_share: number
+          backer_share: number
+          makeup_before: number
+          makeup_after: number
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      toke_gigs: {
+        Row: {
+          id: string
+          user_id: string
+          venue_name: string
+          venue_address: string | null
+          location_id: string | null
+          venue_type: string | null
+          poker_venue_id: string | null
+          latitude: number | null
+          longitude: number | null
+          start_date: string
+          end_date: string | null
+          hourly_rate: number
+          mileage: number | null
+          status: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      toke_gig_days: {
+        Row: {
+          id: string
+          gig_id: string
+          user_id: string
+          day_number: number
+          date: string
+          started_at: string
+          ended_at: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      toke_downs: {
+        Row: {
+          id: string
+          gig_id: string
+          day_id: string
+          user_id: string
+          down_type: string
+          game_type: string | null
+          tournament_name: string | null
+          table_number: string | null
+          tournament_buyin: number | null
+          cash_stakes: string | null
+          cash_variant: string | null
+          started_at: string
+          ended_at: string | null
+          toke_amount: number
+          is_double_down: boolean
+          down_multiplier: number
+          notes: string | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      toke_expenses: {
+        Row: {
+          id: string
+          user_id: string
+          gig_id: string
+          day_id: string
+          category: string
+          amount: number
+          description: string | null
+          receipt_url: string | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      memory_charts_gold: {
+        Row: {
+          id: string
+          chart_id: string
+          hero_position: string
+          position: string | null
+          game_type: string | null
+          stack_depth: number | null
+          villain_position: string | null
+          action: string | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      training_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          game_id: string
+          score: number
+          completed_at: string
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      user_leaks: {
+        Row: {
+          id: string
+          user_id: string
+          leak_category: string
+          leak_name: string
+          error_rate: number
+          confidence: number
+          total_samples: number
+          mistake_count: number
+          clinic_id: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      user_level_progress: {
+        Row: {
+          id: string
+          user_id: string
+          chart_id: string
+          best_accuracy: number
+          is_unlocked: boolean
+          times_played: number
+          last_played_at: string | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      player_stats: {
+        Row: {
+          id: string
+          user_id: string
+          hands_played: number | null
+          win_rate: number | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
+      xp_logs: {
+        Row: {
+          id: string
+          user_id: string
+          game_id: string
+          session_type: string
+          xp_awarded: number
+          base_xp: number
+          streak_multiplier: number
+          speed_multiplier: number
+          remediation_multiplier: number
+          streak_count: number
+          is_correct: boolean
+          question_number: number
+          time_taken_ms: number | null
+          metadata: Record<string, unknown> | null
+          created_at: string
+        }
+        Insert: Record<string, unknown>
+        Update: Record<string, unknown>
+        Relationships: []
+      }
       xp_vault: {
         Row: {
           created_at: string

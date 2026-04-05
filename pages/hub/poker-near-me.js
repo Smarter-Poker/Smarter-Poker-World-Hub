@@ -316,6 +316,27 @@ export default function PokerNearMePage() {
         return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
     }, []);
 
+    // ─── Batch fetch venue predictions for "Best Time to Go" card badges ───
+    const [venuePredictionsMap, setVenuePredictionsMap] = useState({});
+    const venuePredictionsRef = useRef(venuePredictionsMap);
+    venuePredictionsRef.current = venuePredictionsMap;
+    useEffect(() => {
+        if (venues.length === 0) return;
+        const newIds = venues
+            .map(v => v.id)
+            .filter(id => id && !venuePredictionsRef.current[String(id)])
+            .slice(0, 50);
+        if (newIds.length === 0) return;
+        fetch('/api/poker/venue-predictions-batch?venue_ids=' + newIds.join(','))
+            .then(r => r.json())
+            .then(j => {
+                if (j.success && j.predictions) {
+                    setVenuePredictionsMap(prev => ({ ...prev, ...j.predictions }));
+                }
+            })
+            .catch(() => { /* silent */ });
+    }, [venues]);
+
     // Review panel state (Feature #9)
     const [reviewVenue, setReviewVenue] = useState(null);
 
@@ -1797,6 +1818,7 @@ export default function PokerNearMePage() {
                                 onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                 onNavigate={(path) => router.push(path)}
                                 reviewStats={pnmReviewStatsMap[String(venue.id)]}
+                                predictionData={venuePredictionsMap[String(venue.id)]}
                             />
                         );
                     })}
@@ -1864,6 +1886,8 @@ export default function PokerNearMePage() {
     );
 
     // Render content based on active tab
+
+    
     const renderContent = () => {
         if (activeTab === 'map') return renderMap();
         if (activeTab === 'live') return (
@@ -2340,6 +2364,7 @@ export default function PokerNearMePage() {
                                     onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                     onNavigate={(path) => router.push(path)}
                                     reviewStats={pnmReviewStatsMap[String(venue.id)]}
+                                    predictionData={venuePredictionsMap[String(venue.id)]}
                                 />
                                 </div>
                             );
