@@ -98,6 +98,11 @@ import ChipEVCalculator from './ChipEVCalculator';
 import FlopCategoryBrowser from './FlopCategoryBrowser';
 import PotOddsCalculator from './PotOddsCalculator';
 import StackDepthAdvisor from './StackDepthAdvisor';
+// ═══ PHASE 14: Bluff Catcher, Tilt Tracker, Odds Oracle, Win Rate Projector ═══
+import BluffCatcherAnalyzer from './BluffCatcherAnalyzer';
+import TiltTrackerPanel from './TiltTrackerPanel';
+import OddsOracleWidget from './OddsOracleWidget';
+import WinRateProjector from './WinRateProjector';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
@@ -2265,7 +2270,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'solutions', label: 'Solutions' }, { id: 'drills', label: 'Drills' }, { id: 'import', label: 'Import' }, { id: 'tournament', label: 'MTT' }, { id: 'postflop', label: 'Postflop' }, { id: 'sizing', label: 'Sizing' }, { id: 'curriculum', label: 'Study Plan' }, { id: 'reports', label: 'Reports' }, { id: 'equity', label: 'Equity' }, { id: 'nodelock', label: 'Node Lock' }, { id: 'quiz', label: 'Quiz' }, { id: 'compare', label: 'Compare' }, { id: 'rvr', label: 'RvR' }, { id: 'evtree', label: 'EV Tree' }, { id: 'bankroll', label: 'Bankroll' }, { id: 'spotfilter', label: 'Spot Filter' }, { id: 'hud', label: 'HUD' }, { id: 'notes', label: 'Notes' }, { id: 'leaks', label: 'Leaks' }, { id: 'dynamics', label: 'Dynamics' }, { id: 'runouts', label: 'Runouts' }, { id: 'mastery', label: 'Mastery' }, { id: 'mixed', label: 'Mixed' }, { id: 'replay', label: 'Replay' }, { id: 'textures', label: 'Textures' }, { id: 'charts', label: 'Charts' }, { id: 'strength', label: 'Strength' }, { id: 'exploits', label: 'Exploits' }, { id: 'chipev', label: 'ChipEV' }, { id: 'flopcat', label: 'Flop Cat' }, { id: 'potodds', label: 'Pot Odds' }, { id: 'stacks', label: 'Stacks' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'solutions', label: 'Solutions' }, { id: 'drills', label: 'Drills' }, { id: 'import', label: 'Import' }, { id: 'tournament', label: 'MTT' }, { id: 'postflop', label: 'Postflop' }, { id: 'sizing', label: 'Sizing' }, { id: 'curriculum', label: 'Study Plan' }, { id: 'reports', label: 'Reports' }, { id: 'equity', label: 'Equity' }, { id: 'nodelock', label: 'Node Lock' }, { id: 'quiz', label: 'Quiz' }, { id: 'compare', label: 'Compare' }, { id: 'rvr', label: 'RvR' }, { id: 'evtree', label: 'EV Tree' }, { id: 'bankroll', label: 'Bankroll' }, { id: 'spotfilter', label: 'Spot Filter' }, { id: 'hud', label: 'HUD' }, { id: 'notes', label: 'Notes' }, { id: 'leaks', label: 'Leaks' }, { id: 'dynamics', label: 'Dynamics' }, { id: 'runouts', label: 'Runouts' }, { id: 'mastery', label: 'Mastery' }, { id: 'mixed', label: 'Mixed' }, { id: 'replay', label: 'Replay' }, { id: 'textures', label: 'Textures' }, { id: 'charts', label: 'Charts' }, { id: 'strength', label: 'Strength' }, { id: 'exploits', label: 'Exploits' }, { id: 'chipev', label: 'ChipEV' }, { id: 'flopcat', label: 'Flop Cat' }, { id: 'potodds', label: 'Pot Odds' }, { id: 'stacks', label: 'Stacks' }, { id: 'bluffcat', label: 'Bluff Cat' }, { id: 'tilt', label: 'Tilt' }, { id: 'oracle', label: 'Oracle' }, { id: 'winrate', label: 'Win Rate' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -4687,6 +4692,26 @@ function GodModeArenaInner({
                     {/* ═══ TAB: STACK DEPTH ADVISOR ═══ */}
                     {reviewTab === 'stacks' && (<>
                         <StackDepthAdvisor />
+                    </>)}
+
+                    {/* ═══ TAB: BLUFF CATCHER ANALYZER ═══ */}
+                    {reviewTab === 'bluffcat' && (<>
+                        <BluffCatcherAnalyzer />
+                    </>)}
+
+                    {/* ═══ TAB: TILT TRACKER ═══ */}
+                    {reviewTab === 'tilt' && (<>
+                        <TiltTrackerPanel />
+                    </>)}
+
+                    {/* ═══ TAB: ODDS ORACLE ═══ */}
+                    {reviewTab === 'oracle' && (<>
+                        <OddsOracleWidget />
+                    </>)}
+
+                    {/* ═══ TAB: WIN RATE PROJECTOR ═══ */}
+                    {reviewTab === 'winrate' && (<>
+                        <WinRateProjector />
                     </>)}
 
                     {/* ACTION BUTTONS */}
