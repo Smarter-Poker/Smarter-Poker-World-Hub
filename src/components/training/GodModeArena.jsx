@@ -45,6 +45,8 @@ import GhostReplayEngine from './GhostReplayEngine';
 // ═══ PHASE 356: Solver Tree Viewer ═══
 import SolverTreeViewer from './SolverTreeViewer';
 import PostflopRangeViewer from './PostflopRangeViewer';
+import RunoutStrategyMatrix from './RunoutStrategyMatrix';
+import FrequencyTrainer from './FrequencyTrainer';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
@@ -2995,6 +2997,11 @@ function GodModeArenaInner({
                     {/* ═══ TAB: ANALYSIS ═══ */}
                     {reviewTab === 'analysis' && (<>
 
+                        {/* ═══ FREQUENCY ADHERENCE TRACKER ═══ */}
+                        <div style={{ marginBottom: 16 }}>
+                            <FrequencyTrainer handHistory={handHistory} />
+                        </div>
+
                         {/* ═══════════════════════════════════════════════════════════════
                             GROUPED ANALYSIS — Collapsible sections for organized insights
                             ═══════════════════════════════════════════════════════════════ */}
@@ -4363,6 +4370,25 @@ function GodModeArenaInner({
                                         width={Math.min(600, typeof window !== 'undefined' ? window.innerWidth - 48 : 520)}
                                         height={350}
                                     />
+
+                                    {/* Runout Strategy Matrix */}
+                                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <RunoutStrategyMatrix
+                                            holeCards={(() => {
+                                                const h = gameTreeData || handHistory[0]?.handData || handHistory[0];
+                                                return h?.heroHand ? (typeof h.heroHand === 'string' ? [h.heroHand.slice(0,2), h.heroHand.slice(2,4)] : h.heroHand) : ['Ah', 'Kh'];
+                                            })()}
+                                            flopBoard={(() => {
+                                                const h = gameTreeData || handHistory[0]?.handData || handHistory[0];
+                                                return h?.board?.slice(0, 3) || ['Qd', '7c', '2s'];
+                                            })()}
+                                            position={(() => {
+                                                const h = gameTreeData || handHistory[0]?.handData || handHistory[0];
+                                                return h?.heroPosition === 'BB' || h?.heroPosition === 'SB' ? 'OOP' : 'IP';
+                                            })()}
+                                            street="turn"
+                                        />
+                                    </div>
                                 </div>
                             ) : (
                                 <div style={{ textAlign: 'center', padding: 24, color: '#475569', fontSize: 12 }}>
