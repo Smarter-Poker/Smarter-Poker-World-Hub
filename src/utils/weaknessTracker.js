@@ -16,6 +16,7 @@
 
 const STORAGE_KEY = 'sp_weakness_data';
 const POSITIONS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+const SPOT_TYPES = ['rfi', 'vs3bet', 'bb_defense', '4bet', 'cold_call', 'squeeze'];
 
 function extractPosition(title) {
     if (!title || typeof title !== 'string') return null;
@@ -155,4 +156,157 @@ export function resetWeaknessData() {
     try {
         localStorage.removeItem(STORAGE_KEY);
     } catch { /* ignore */ }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SPOT-TYPE WEAKNESS TRACKING — Feeds into adaptive difficulty system
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SPOT_WEAKNESS_KEY = 'sp_spot_weakness';
+
+/**
+ * Extract the spot type from a scenario or mistake object.
+ * Checks spotType field first, then falls back to title/context matching.
+ */
+function extractSpotType(obj) {
+    if (!obj) return null;
+    if (obj.spotType && SPOT_TYPES.includes(obj.spotType)) return obj.spotType;
+
+    const title = (obj.title || obj.position || obj.context || '').toLowerCase();
+    if (title.includes('squeeze') || title.includes('sqz')) return 'squeeze';
+    if (title.includes('4-bet') || title.includes('4bet')) return '4bet';
+    if (title.includes('cold call') || title.includes('cold-call') || title.includes('flat')) return 'cold_call';
+    if (title.includes('bb defense') || title.includes('bb def')) return 'bb_defense';
+    if (title.includes('3-bet') || title.includes('3bet') || title.includes('vs3bet')) return 'vs3bet';
+    if (title.includes('open') || title.includes('rfi')) return 'rfi';
+    return null;
+}
+
+/**
+ * Record a single hand result with full spot metadata.
+ * Called after each hand in training games for granular tracking.
+ *
+ * @param {object} params
+ * @param {string} params.position - Hero position (UTG, CO, BTN, etc.)
+ * @param {string} params.spotType - Spot type (rfi, vs3bet, bb_defense, etc.)
+ * @param {string} params.hand - Hand notation (AKs, 77, etc.)
+ * @param {boolean} params.isCorrect - Whether the user got it right
+ * @param {string} params.userAction - What the user chose
+ * @param {string} params.correctAction - What the correct action was
+ */
+export function recordHandResult({ position, spotType, hand, isCorrect, userAction, correctAction }) {
+    if (typeof window === 'undefined') return;
+    try {
+        const raw = localStorage.getItem(SPOT_WEAKNESS_KEY);
+        const data = raw ? JSON.parse(raw) : { spots: {}, hands: {}, updated: 0 };
+
+        // Track by position × spotType
+        const spotKey = `${position || 'UNK'}_${spotType || 'unknown'}`;
+        if (!data.spots[spotKey]) data.spots[spotKey] = { correct: 0, total: 0, mistakes: [] };
+        data.spots[spotKey].total += 1;
+        if (isCorrect) {
+            data.spots[spotKey].correct += 1;
+        } else {
+            // Keep last 20 mistakes per spot for analysis
+            data.spots[spotKey].mistakes.push({ hand, userAction, correctAction, ts: Date.now() });
+            if (data.spots[spotKey].mistakes.length > 20) {
+                data.spots[spotKey].mistakes = data.spots[spotKey].mistakes.slice(-20);
+            }
+        }
+
+        // Track by hand category (which hands does the user struggle with?)
+        if (!isCorrect && hand) {
+            if (!data.hands[hand]) data.hands[hand] = { wrong: 0, total: 0 };
+            data.hands[hand].wrong += 1;
+            data.hands[hand].total += 1;
+        } else if (hand) {
+            if (!data.hands[hand]) data.hands[hand] = { wrong: 0, total: 0 };
+            data.hands[hand].total += 1;
+        }
+
+        data.updated = Date.now();
+        localStorage.setItem(SPOT_WEAKNESS_KEY, JSON.stringify(data));
+    } catch (e) {
+        console.warn('[SpotWeakness] Save failed:', e);
+    }
+}
+
+/**
+ * Get the user's weakest spots, sorted by error rate (descending).
+ * Returns array of { position, spotType, accuracy, total, mistakes }
+ *
+ * Used by DeterministicGTOEngine to bias training toward weak areas.
+ */
+export function getWeakestSpots(minTotal = 5) {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = localStorage.getItem(SPOT_WEAKNESS_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        if (!data.spots) return [];
+
+        return Object.entries(data.spots)
+            .filter(([, v]) => v.total >= minTotal)
+            .map(([key, v]) => {
+                const [position, spotType] = key.split('_');
+                return {
+                    position,
+                    spotType,
+                    accuracy: v.total > 0 ? Math.round(v.correct / v.total * 100) : 0,
+                    total: v.total,
+                    mistakes: v.mistakes || [],
+                };
+            })
+            .sort((a, b) => a.accuracy - b.accuracy); // Weakest first
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Get the user's most-missed hands, sorted by error rate (descending).
+ * Returns array of { hand, errorRate, wrong, total }
+ */
+export function getWeakestHands(minTotal = 3) {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = localStorage.getItem(SPOT_WEAKNESS_KEY);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        if (!data.hands) return [];
+
+        return Object.entries(data.hands)
+            .filter(([, v]) => v.total >= minTotal)
+            .map(([hand, v]) => ({
+                hand,
+                errorRate: v.total > 0 ? Math.round(v.wrong / v.total * 100) : 0,
+                wrong: v.wrong,
+                total: v.total,
+            }))
+            .sort((a, b) => b.errorRate - a.errorRate); // Most errors first
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Check if the user has a specific weakness that should influence spot selection.
+ * Returns the spot type the user should practice more, or null.
+ */
+export function getAdaptiveSpotBias() {
+    const weakest = getWeakestSpots(5);
+    if (weakest.length === 0) return null;
+
+    // If any spot has <60% accuracy with enough data, bias toward it
+    const veryWeak = weakest.filter(s => s.accuracy < 60);
+    if (veryWeak.length > 0) {
+        // Return the weakest spot's type
+        return {
+            spotType: veryWeak[0].spotType,
+            position: veryWeak[0].position,
+            accuracy: veryWeak[0].accuracy,
+        };
+    }
+
+    return null;
 }

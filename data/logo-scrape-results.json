@@ -1,99 +1,369 @@
 {
-  "batch_id": "81d0fa18-042f-4e1e-b7ca-31f99f578745",
-  "timestamp": "2026-04-05T04:20:22.848059+00:00",
-  "total_processed": 10,
-  "uploaded": 10,
+  "batch_id": "d06645bc-d567-4846-98c3-cd8c6372056e",
+  "timestamp": "2026-04-05T04:45:52.948760+00:00",
+  "total_processed": 40,
+  "uploaded": 39,
   "not_found": 0,
   "results": [
     {
-      "venue_id": 2186,
-      "venue_name": "Gardens Casino",
+      "venue_id": 2165,
+      "venue_name": "Arizona Charlies Boulder",
       "status": "uploaded",
-      "source_url": "https://spinettisgaming.com/cdn/shop/products/HawaiianGardens_2_2.jpg?v=1658865575&width=1038",
-      "image_hash": "2d3cd94fb9ab224118d5a6de77521baa8048efbe4fffb79d5670104bc7bebb5d",
-      "image_size": 1036953,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2186.png"
+      "source_url": "https://spinettisgaming.com/cdn/shop/products/ArizonaCharlie_sEast_5GO_1.jpg?v=1650930986&width=1027",
+      "image_hash": "de907da45cc53d82864c174d50f912293c54409424f8c8049167191a1be63876",
+      "image_size": 1307069,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2165.png"
     },
     {
-      "venue_id": 2679,
-      "venue_name": "Hawaiian Gardens Poker Series",
+      "venue_id": 2145,
+      "venue_name": "Binions",
       "status": "uploaded",
-      "source_url": "https://www.presstelegram.com/wp-content/uploads/migration/2017/201701/NEWS_170109821_AR_0_QKIMYUVIQJUP.jpg?w=1800&resize=1800,1800",
-      "image_hash": "82369bd18457aae96f4848a704d1d387129e512f80a7eeb374b9abb78ec40dd3",
-      "image_size": 4373573,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2679.png"
+      "source_url": "https://metroscap.com/framed-prints/framed-las-vegas-skyline-black-white-square-186-1360.webp",
+      "image_hash": "b6d4b297e218d6b64d02c16126e869ccbd939a9c28f6e71383a7d3b8273d6c9d",
+      "image_size": 1383716,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2145.png"
     },
     {
-      "venue_id": 2714,
-      "venue_name": "Livermore Poker Room Series",
+      "venue_id": 2147,
+      "venue_name": "Four Queens",
       "status": "uploaded",
-      "source_url": "https://www.turlockpoker.com/wp-content/uploads/2021/05/logo-1-1024x1024.png",
-      "image_hash": "73aad5faa94d0acb4261fd099516e518c2315585cd14e59dcebe822d0ae7ff23",
-      "image_size": 360270,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2714.png"
+      "source_url": "https://spinettisgaming.com/cdn/shop/products/FourQueens_25Goodman_2.jpg?v=1645838012&width=1982",
+      "image_hash": "031ab18da258aad6b8db2c957153240ac485390c5375e3fc6459356f42790c17",
+      "image_size": 5315011,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2147.png"
     },
     {
-      "venue_id": 1865,
-      "venue_name": "Parkwest Casino Lodi",
-      "status": "uploaded",
-      "source_url": "https://warnfirehose.com/logo.png",
-      "image_hash": "0e525fbdae8ff3f58a2fdeebd65309a60d222c1d02bf48d8694cc50b4997a34e",
-      "image_size": 186914,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1865.png"
+      "venue_id": 2737,
+      "venue_name": "Macau Poker Open",
+      "status": "upload_failed",
+      "source_url": "https://thelibrary.mgmresorts.com/transform/sqvGwA2gSW02AbbC/mgm-grand-casino-poker-room-logo.jpg",
+      "image_hash": "1a340b5068e132d316d56f135143988b301a1c46445d7ff747880c57d9d584d7",
+      "image_size": 278472,
+      "cdn_url": null
     },
     {
-      "venue_id": 2869,
-      "venue_name": "Casino Monterey - The Marina Club Casino",
+      "venue_id": 2674,
+      "venue_name": "Red Rock Poker Series",
       "status": "uploaded",
-      "source_url": "https://images.getbento.com/accounts/29b78158c5ec0174f47134f781986c9b/media/images/16256logo-2_marina.png",
-      "image_hash": "876fceb1d2b90a34bb06065a0d901f0e344fc7b5020b5a34b5b1315ad58666ad",
-      "image_size": 41166,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2869.png"
+      "source_url": "https://www.redrockdemocrats.org/os/resources/media/RRDC_Logo_Wht_Background.png",
+      "image_hash": "1764323584e24520b61448beff8c7530dd4310be48e38c1f5fb6dbf334f77b23",
+      "image_size": 186194,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2674.png"
     },
     {
-      "venue_id": 1934,
-      "venue_name": "Parkwest Casino Cordova",
+      "venue_id": 2141,
+      "venue_name": "Treasure Island",
       "status": "uploaded",
-      "source_url": "http://parkwestcasinocordova.com/wp-content/uploads/2022/09/COR_WebsiteBanner_PokerPyramid_AllSize_0922-02-1024x1024.jpg",
-      "image_hash": "1b5815478618c9fcd09c9559e30502bbb888c65fd4b979400a1970e954f89c0b",
-      "image_size": 742452,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1934.png"
+      "source_url": "https://toppng.com/uploads/preview/rewards-card-tier-you-qualify-for-one-of-the-following-treasure-island-hotel-logo-11562900648lwkgpiykr0.png",
+      "image_hash": "2300445d9690fae86754f197009cbc834a238941898d3cbd624026c1ce9c46f8",
+      "image_size": 114182,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2141.png"
     },
     {
-      "venue_id": 2874,
-      "venue_name": "Graton Resort & Casino Casino",
+      "venue_id": 2849,
+      "venue_name": "Caesars Republic Lake Tahoe",
       "status": "uploaded",
-      "source_url": "https://i.ebayimg.com/00/s/MTYwMFgxNjAw/z/hGsAAOSwoRtnom2f/$_57.JPG?set_id=880000500F",
-      "image_hash": "20e6a22ec9e46b75d9c54eea31e41000c4f85dc5d34c38068e27cc744879aab8",
-      "image_size": 3956734,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2874.png"
+      "source_url": "https://a.mktgcdn.com/p/qQSRT7TDkgUZ9e5rzYkHvzZc7VdroTll6bxf7hroDTI/1920x1920.png",
+      "image_hash": "a904914fb4c3920519f5ee6bcd8907bf365ced576ba13965e9bc5fee1ae80d32",
+      "image_size": 1113888,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2849.png"
     },
     {
-      "venue_id": 1935,
-      "venue_name": "Parkwest Casino Lotus",
+      "venue_id": 2855,
+      "venue_name": "Peppermill Poker Room",
       "status": "uploaded",
-      "source_url": "https://media.bizj.us/view/img/11689629/20200701185011*1200xx6897-6897-1176-0.jpg",
-      "image_hash": "e225b0c647bdfcc98b4a630866414f962676df5ca88fc39ede36511218c8eca2",
-      "image_size": 2453046,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1935.png"
+      "source_url": "https://s3-media0.fl.yelpcdn.com/bphoto/_l41kmwBVqBqUaAguQ4j4w/1000s.jpg",
+      "image_hash": "1bb4b53e9b9224034714f44735c72cc8eaf26138ca4ac16c4bb0f0dd8c5ec008",
+      "image_size": 596680,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2855.png"
     },
     {
-      "venue_id": 2879,
-      "venue_name": "Oceanview Casino Casino",
+      "venue_id": 2469,
+      "venue_name": "Seneca Niagara",
       "status": "uploaded",
-      "source_url": "https://i.ebayimg.com/images/g/Q98AAOSw3qxkxuZw/s-l1200.jpg",
-      "image_hash": "6210c6ff775f9600e2eb4ab3e9fa3070fc2cfbc218afddbf3ab39b7f8e530afe",
-      "image_size": 2096560,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2879.png"
+      "source_url": "https://e7.pngegg.com/pngimages/916/835/png-clipart-seneca-niagara-resort-casino-seneca-allegany-resort-casino-casino-niagara-seneca-buffalo-creek-casino-fallsview-casino-resort-golf-stick-text-logo.png",
+      "image_hash": "f78ef1b8c48a2a4d54ff8df54e2f2c038f17aafcab283797b465a471aa8f59cf",
+      "image_size": 27586,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2469.png"
     },
     {
-      "venue_id": 2222,
-      "venue_name": "Black Oak Casino",
+      "venue_id": 2956,
+      "venue_name": "Seneca Salamanca Casino Casino",
       "status": "uploaded",
-      "source_url": "https://www.blackoakcasino.com/media/Promo_Fireworks25_Social_1080x1080_0d0cc2490a.jpg",
-      "image_hash": "0863b1b1dea51a03f1cecc2947c3cdd670a1e22a98d8cc71cf6738b244b5367e",
-      "image_size": 1363037,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2222.png"
+      "source_url": "https://spinettisgaming.com/cdn/shop/products/SenecaAllegancy_1_1.jpg?v=1601406855&width=1228",
+      "image_hash": "8b8d77d732cbafb21779757ec4ffc6b3bbb140a083ca967c3568819c62b17a4e",
+      "image_size": 1427556,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2956.png"
+    },
+    {
+      "venue_id": 1877,
+      "venue_name": "Rivers Casino Schenectady",
+      "status": "uploaded",
+      "source_url": "https://www.news10.com/wp-content/uploads/sites/64/2016/11/cxamnmevqaap6tr_36769233_ver1.0.jpg?w=1280",
+      "image_hash": "1d39490df903a5100367af97695456d1432c9912e0143490e1e67c88a8a45e93",
+      "image_size": 1471886,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1877.png"
+    },
+    {
+      "venue_id": 2696,
+      "venue_name": "Jack Casino Cincinnati Poker Series",
+      "status": "uploaded",
+      "source_url": "https://spinettisgaming.com/cdn/shop/products/JACKCleveland_1_1.jpg?v=1640652035&width=1970",
+      "image_hash": "aab924a79e7ba1fd8b6b388f1351d8f1e58bad1b3d2c4b3f25c3e108d255b704",
+      "image_size": 2366052,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2696.png"
+    },
+    {
+      "venue_id": 2695,
+      "venue_name": "Jack Casino Cleveland Poker Series",
+      "status": "uploaded",
+      "source_url": "https://images.sellbrite.com/production/302737/JACKCleveland1/17901dee-d272-5229-bd10-d7fcb92309de.jpg",
+      "image_hash": "aab924a79e7ba1fd8b6b388f1351d8f1e58bad1b3d2c4b3f25c3e108d255b704",
+      "image_size": 2366052,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2695.png"
+    },
+    {
+      "venue_id": 2806,
+      "venue_name": "Shark Tank Poker Club",
+      "status": "uploaded",
+      "source_url": "https://shipitpoker-oh.com/_next/image?url=https%3A%2F%2Fletspoker.s3.eu-central-1.amazonaws.com%2Fuploads%2FLogo%2Fshipit-oh%2F37a68d49a9220764%2F83ecbb6487ccd82f.jpg&w=3840&q=90",
+      "image_hash": "0036f1c17424aa82f7eaffed30b370449405f74b7d47eb84992807f17cf31537",
+      "image_size": 1005494,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2806.png"
+    },
+    {
+      "venue_id": 2807,
+      "venue_name": "The Reserve Poker Club",
+      "status": "uploaded",
+      "source_url": "https://ucarecdn.com/2d8c9d38-94a1-4989-9c4d-1572cdb94226/-/crop/1465x1466/497,0/-/preview/",
+      "image_hash": "1cd5b835c96ef38d5d1a25c3c62bccd9304ee8f8ba3a9b366dc5bbabecfc5ac7",
+      "image_size": 1796939,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2807.png"
+    },
+    {
+      "venue_id": 2765,
+      "venue_name": "Chickasaw Poker Series",
+      "status": "uploaded",
+      "source_url": "https://photos.prnewswire.com/prnfull/20160913/407086LOGO",
+      "image_hash": "563dae7212ee59fdcb37a4e0159b5ce49155f6a279f5890214110f0866c2f94a",
+      "image_size": 2928484,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2765.png"
+    },
+    {
+      "venue_id": 2628,
+      "venue_name": "WinStar Poker Series",
+      "status": "uploaded",
+      "source_url": "https://c8.alamy.com/comp/2T5TKJN/thackerville-oklahoma-october-25th-2023-the-winstar-world-casino-main-entrance-with-globe-and-logo-2T5TKJN.jpg",
+      "image_hash": "0a505a68d25b3e9a81a5e2dfcf87373d245f6d161b6eadfa617e7070411c1804",
+      "image_size": 1405268,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2628.png"
+    },
+    {
+      "venue_id": 1842,
+      "venue_name": "WinStar World Casino",
+      "status": "uploaded",
+      "source_url": "https://photos.prnewswire.com/prnfull/20160913/407086LOGO",
+      "image_hash": "563dae7212ee59fdcb37a4e0159b5ce49155f6a279f5890214110f0866c2f94a",
+      "image_size": 2928484,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1842.png"
+    },
+    {
+      "venue_id": 1882,
+      "venue_name": "River Spirit Casino",
+      "status": "uploaded",
+      "source_url": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/12/1f/01/b3/river-spirit-casino-resort.jpg?w=1200&h=1200&s=1",
+      "image_hash": "8716c23f6260d3c8c04113ce35906fb49c655f4fe36f5cbbe2da2b0047eb9209",
+      "image_size": 2193548,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1882.png"
+    },
+    {
+      "venue_id": 2610,
+      "venue_name": "RunGood Poker Series (RGPS)",
+      "status": "uploaded",
+      "source_url": "https://thundervalleyresort.com/media/screenshot-2025-05-20-at-1-47-29-pm-png",
+      "image_hash": "a4d8f0505edfca440f5d4da32c778fc276669d4ef56b820bce99bc55bf606bb2",
+      "image_size": 149043,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2610.png"
+    },
+    {
+      "venue_id": 3044,
+      "venue_name": "Indigo Sky Casino",
+      "status": "uploaded",
+      "source_url": "https://res.cloudinary.com/micronetonline/image/upload/c_crop,h_1058,w_1058,x_0,y_0/f_auto/q_auto/v1724098116/tenants/b8a19e34-671e-4524-82a5-655ce1fc0dfc/8b6cbac0d23c4a0fa9c65399ed6aad62/GACC-Logo.jpg",
+      "image_hash": "a1a71906dd69053e0e2654f2ebfc10637aefeb745b5319e021b6cbe01a72810d",
+      "image_size": 313970,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3044.png"
+    },
+    {
+      "venue_id": 1885,
+      "venue_name": "Seven Feathers Casino Resort",
+      "status": "uploaded",
+      "source_url": "https://images.squarespace-cdn.com/content/v1/6510b74bf86907326d303b6c/2b6b8bc3-b2c2-483e-8333-802527d9dfbc/visiting+seven+feathers+casino+resort+with+kids+seven+freathers+rv+resort+with+kids+yurt+cabin+creekside+hotel+suites+canyonville+oregon+family+friendly+places+to+stay+in+southern+oregon+hotels+ne.png",
+      "image_hash": "139926e179d66ed1e65c1c55450037586976e677c381a1dbe83fa8c9cdcd5a92",
+      "image_size": 1435036,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1885.png"
+    },
+    {
+      "venue_id": 2982,
+      "venue_name": "Legends Poker Lounge & Social Club",
+      "status": "uploaded",
+      "source_url": "https://bluewater-casino-resort.com/wp-content/uploads/2025/06/Ginuwine-Montell-Jordan-social-.jpg",
+      "image_hash": "47aa8a4ac4638529a247f3787b79f7685d5d1ef1b36ca9e70557b29f719e81ba",
+      "image_size": 1200544,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2982.png"
+    },
+    {
+      "venue_id": 1957,
+      "venue_name": "Medford Social Club Poker Room",
+      "status": "uploaded",
+      "source_url": "https://ktvl.com/resources/media/8e6c166a-a44a-4abd-b8f0-2933cf61aedf-jumbo1x1_GPpoker.jpg?1478489420389",
+      "image_hash": "92a13e89ea5b51d24742c1cdc7d712b49499da96488fc455db967ffbd03ee38f",
+      "image_size": 2628236,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1957.png"
+    },
+    {
+      "venue_id": 1958,
+      "venue_name": "Oregon Poker Club - Kit Kat Club",
+      "status": "uploaded",
+      "source_url": "https://res.cloudinary.com/micronetonline/image/upload/c_crop,h_1143,w_1389,x_0,y_0/f_auto/q_auto/v1728311091/tenants/25a40ab8-da15-45b0-a78a-24fb18028278/0272273e60ae4c6daa63c9f17bba979c/OSSA-NewLogo.jpg",
+      "image_hash": "ba25074b105a43713f5da6d9f79acf3b319e1360160a091cd09ee6c13fddb264",
+      "image_size": 660525,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1958.png"
+    },
+    {
+      "venue_id": 1960,
+      "venue_name": "Oregon Poker Club - Stadiums Sports Bar",
+      "status": "uploaded",
+      "source_url": "https://pitstopbbqgrill.com/wp-content/uploads/2026/02/Copy-of-Sports.png",
+      "image_hash": "5e2f0dccd130573abd3e7efc181a166f592a1403e3a99bc39d0f3677d45ce82c",
+      "image_size": 1552462,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1960.png"
+    },
+    {
+      "venue_id": 1961,
+      "venue_name": "The Game",
+      "status": "uploaded",
+      "source_url": "https://radioimg.audacy.com/aud-opsconsole-media-images-prod-prod/logos/KXTG-AM_Logo.jpg",
+      "image_hash": "5f9c9c11880a258d7553a992deea1128a0053108fa37062562a51833c1a0a69b",
+      "image_size": 178341,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1961.png"
+    },
+    {
+      "venue_id": 2955,
+      "venue_name": "Rivers Casino",
+      "status": "uploaded",
+      "source_url": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/28/fa/b6/6e/caption.jpg?w=1100&h=1100&s=1",
+      "image_hash": "072f53a675b8f64d8834d3ea27f95fc85a5245b1676f8435403d2ed3d126395b",
+      "image_size": 1212014,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2955.png"
+    },
+    {
+      "venue_id": 2302,
+      "venue_name": "SugarHouse Philadelphia",
+      "status": "uploaded",
+      "source_url": "https://www.fullerssugarhouse.com/wp-content/uploads/2023/02/FSH-50thAnniversary-Logo.png",
+      "image_hash": "a79e1164b24553e833ddf6e7c281d9f6e095f0fc411bc9db83bbf260da4861cc",
+      "image_size": 49636,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2302.png"
+    },
+    {
+      "venue_id": 2300,
+      "venue_name": "Rivers Pittsburgh",
+      "status": "uploaded",
+      "source_url": "https://pavma.org/wp-content/uploads/2025/01/CHRIS-3-RVS-T-25-logo.png",
+      "image_hash": "ee9e26b99f1a0724a583718423bee1758c01f40de7b41ef4d5c6c837bdd98245",
+      "image_size": 201218,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2300.png"
+    },
+    {
+      "venue_id": 2912,
+      "venue_name": "Club Montmartre",
+      "status": "uploaded",
+      "source_url": "https://c8.alamy.com/comp/RA35TF/paris-france-22nd-dec-2018-moulin-rouge-logo-seen-in-paris-the-legendary-moulin-rouge-is-a-night-club-in-montmartre-paris-credit-keith-mayhewsopa-imageszuma-wirealamy-live-news-RA35TF.jpg",
+      "image_hash": "8add6496b309b04f7b701379dde170c7023102e99715d335ba9845cbea872539",
+      "image_size": 2035178,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2912.png"
+    },
+    {
+      "venue_id": 2274,
+      "venue_name": "Dallas Poker Room",
+      "status": "uploaded",
+      "source_url": "https://s3-media0.fl.yelpcdn.com/bphoto/MxoKOiOS1PkAhXYBCssx5g/1000s.jpg",
+      "image_hash": "6fb67db8675713b994aea7e89983f77dbba04af1bafb14b23ba231080852bebb",
+      "image_size": 366940,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2274.png"
+    },
+    {
+      "venue_id": 2430,
+      "venue_name": "Red Star Social",
+      "status": "uploaded",
+      "source_url": "https://redstarcaucus.org/content/images/2025/10/logo-2.png",
+      "image_hash": "8f669b365dfff1463a010b6465e8b7d3311debfcee37cdcd124beda4c000bb8e",
+      "image_size": 75699,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2430.png"
+    },
+    {
+      "venue_id": 1919,
+      "venue_name": "Spades Poker House Baytown",
+      "status": "uploaded",
+      "source_url": "https://images.scalebranding.com/poker-spade-skull-bones-logo-ef7b8a49-565f-4118-8299-642de93046ca.png",
+      "image_hash": "3161fb1c0a6782b4b0b18a72296b327225ae5ff2d86610590428767ba7fe98c2",
+      "image_size": 35744,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1919.png"
+    },
+    {
+      "venue_id": 1911,
+      "venue_name": "Lone Star Social",
+      "status": "uploaded",
+      "source_url": "https://www.lonestarcourt.com/files/6778/lone_star_court_logo.png",
+      "image_hash": "af6f079259791c6d05c494a94ca0d2f4c58c0476e96b879be7960c26e3f4c9eb",
+      "image_size": 49539,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1911.png"
+    },
+    {
+      "venue_id": 1901,
+      "venue_name": "Aggieland Poker Club",
+      "status": "uploaded",
+      "source_url": "https://challenge.ottosport.ai/_files/about-us/AGGIELAND%20LOGO%202026.png",
+      "image_hash": "2f0c2f20793c69fe491b4e49e3d14ec827bf3919f88844a699f82a249cb3073b",
+      "image_size": 1118416,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1901.png"
+    },
+    {
+      "venue_id": 2286,
+      "venue_name": "Corpus Christi Poker",
+      "status": "uploaded",
+      "source_url": "https://www.tamucc.edu/marketing-and-communications/style-guide/assets/images/logos/png/tamucc-islanders.png",
+      "image_hash": "095b9962c1aa0f865493baa703c80701212d8e426a838eb8669c26a7dc50b009",
+      "image_size": 708895,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2286.png"
+    },
+    {
+      "venue_id": 2715,
+      "venue_name": "Poker House Dallas Tournament Series",
+      "status": "uploaded",
+      "source_url": "https://events.texascardhouse.com/hubfs/PA%20Tour%20%20LC%20%26%20Dallas%20%20Aug2024%201080x.webp",
+      "image_hash": "a93f425f6941b158548652768f06481bce57fb0eea05e82e72ebaeba0b33fc7e",
+      "image_size": 746708,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2715.png"
+    },
+    {
+      "venue_id": 2933,
+      "venue_name": "Sun City Card Club",
+      "status": "uploaded",
+      "source_url": "https://sportspassports.com/wp-content/uploads/org-logos/sun-city-flames-basketball-club_7521.png",
+      "image_hash": "461910553eff6aa90b7eb17b412d8b412d943d3de35c92f838ae84198e61a30d",
+      "image_size": 1153376,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2933.png"
+    },
+    {
+      "venue_id": 2276,
+      "venue_name": "Fort Worth Poker Club",
+      "status": "uploaded",
+      "source_url": "https://s3-media0.fl.yelpcdn.com/bphoto/m-A784KJHwVQqioaLv9z3Q/1000s.jpg",
+      "image_hash": "0088e77ba1c5e79be4f386e45429bdee92b2e7c528c9708087c8e5ac60bd38d4",
+      "image_size": 1181821,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2276.png"
     }
   ]
 }

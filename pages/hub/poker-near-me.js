@@ -1882,6 +1882,7 @@ export default function PokerNearMePage() {
                 toggleFavorite={toggleFavorite}
                 venueMaxGtd={venueMaxGtd}
                 pnmReviewStatsMap={pnmReviewStatsMap}
+                venuePredictionsMap={venuePredictionsMap}
                 setActiveTab={setActiveTab}
                 router={router}
             />
@@ -1911,6 +1912,7 @@ export default function PokerNearMePage() {
                 filters={filters}
                 clearFilters={clearFilters}
                 pnmReviewStatsMap={pnmReviewStatsMap}
+                venuePredictionsMap={venuePredictionsMap}
                 router={router}
                 onMapVenueClick={onMapVenueClick}
                 iframeModal={iframeModal}
@@ -1948,6 +1950,7 @@ export default function PokerNearMePage() {
                         filters={filters}
                         clearFilters={clearFilters}
                         pnmReviewStatsMap={pnmReviewStatsMap}
+                        venuePredictionsMap={venuePredictionsMap}
                         router={router}
                         onMapVenueClick={onMapVenueClick}
                         iframeModal={iframeModal}
@@ -2041,6 +2044,7 @@ export default function PokerNearMePage() {
                         filters={filters}
                         clearFilters={clearFilters}
                         pnmReviewStatsMap={pnmReviewStatsMap}
+                        venuePredictionsMap={venuePredictionsMap}
                         router={router}
                         onMapVenueClick={onMapVenueClick}
                         iframeModal={iframeModal}

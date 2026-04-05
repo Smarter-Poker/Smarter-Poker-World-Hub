@@ -5,13 +5,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
-import { getRandomScenario, getRandomEnrichedScenario } from './ScenarioDatabase';
+import { getRandomScenario, getRandomEnrichedScenario, pickWeightedHandFromScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import CircularTimer from '../components/training/CircularTimer';
 import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
-import { recordSessionWeakness } from '../utils/weaknessTracker';
+import { recordSessionWeakness, recordHandResult } from '../utils/weaknessTracker';
 import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
 import PowerUpBar from '../components/training/PowerUpBar';
 import gameSessionService from '../services/GameSessionService';
@@ -47,17 +47,8 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
     const getRandomHand = useCallback(() => {
         const scenario = getRandomEnrichedScenario(level);
         if (!scenario) return null;
-        const hands = Object.entries(scenario.solution);
-        if (hands.length === 0) return null;
-        const [hand, correctAction] = hands[Math.floor(Math.random() * hands.length)];
-        // If solver frequencies are available, attach them for smarter grading
-        const enrichedEntry = scenario.enrichedSolution?.[hand];
-        return {
-            hand,
-            correctAction,
-            scenario,
-            frequencies: enrichedEntry || null,
-        };
+        // Weighted hand selection: 50% in-range, 30% boundary, 20% any (including folds)
+        return pickWeightedHandFromScenario(scenario);
     }, [level]);
 
     const startGame = useCallback(() => {
@@ -132,6 +123,16 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
             mistakesRef.current.push({ position: currentHand.scenario?.title || 'Unknown', hand: currentHand.hand, correct: currentHand.correctAction, picked: action });
             busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentHand.correctAction, scenario: currentHand.scenario });
         }
+
+        // Record granular spot-type weakness data
+        recordHandResult({
+            position: currentHand.scenario?.position || 'UNK',
+            spotType: currentHand.scenario?.spotType || 'rfi',
+            hand: currentHand.hand,
+            isCorrect,
+            userAction: action,
+            correctAction: currentHand.correctAction,
+        });
 
         setGameState('revealed');
 

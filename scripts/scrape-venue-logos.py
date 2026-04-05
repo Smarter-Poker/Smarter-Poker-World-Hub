@@ -52,11 +52,29 @@ def _network_available():
             return False
 
 # ─── Load Venues ───
-def load_venues_without_logos():
+def get_uploaded_ids():
+    """Get venue IDs that already have successful evidence files."""
+    import glob
+    uploaded = set()
+    for f in glob.glob(str(EVIDENCE_DIR / 'logo_*.json')):
+        try:
+            with open(f) as fh:
+                d = json.load(fh)
+                if d.get('data_quality') == 'scraped_verified':
+                    uploaded.add(str(d['venue_id']))
+        except: pass
+    return uploaded
+
+def load_venues_without_logos(skip_uploaded=False):
     with open(PROJECT_ROOT / 'public' / 'data' / 'all-venues.json') as f:
         data = json.load(f)
     venues = data.get('venues', [])
-    return [v for v in venues if not v.get('logo_url')]
+    missing = [v for v in venues if not v.get('logo_url')]
+    if skip_uploaded:
+        uploaded = get_uploaded_ids()
+        missing = [v for v in missing if str(v['id']) not in uploaded]
+        print(f"  Skipping {len(uploaded)} already-uploaded venues")
+    return missing
 
 # ─── Google Images Search (Browser-Based) ───
 def search_google_images(page, venue_name, city, state):
@@ -247,12 +265,12 @@ def save_evidence(venue_id, venue_name, source_url, image_hash, image_size, succ
     return evidence
 
 # ─── Main Processing Loop ───
-def process_venues(start_index=0, max_count=None):
+def process_venues(start_index=0, max_count=None, resume=False):
     if not _network_available():
         print("❌ Network unavailable. Aborting.")
         sys.exit(1)
     
-    venues = load_venues_without_logos()
+    venues = load_venues_without_logos(skip_uploaded=resume)
     total = len(venues)
     
     # Apply slice
@@ -408,5 +426,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scrape venue logos from Google Images')
     parser.add_argument('--start', type=int, default=0, help='Start index')
     parser.add_argument('--count', type=int, default=None, help='Max venues to process')
+    parser.add_argument('--resume', action='store_true', help='Skip already-uploaded venues')
     args = parser.parse_args()
-    process_venues(start_index=args.start, max_count=args.count)
+    process_venues(start_index=args.start, max_count=args.count, resume=args.resume)

@@ -5,7 +5,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SoundEngine, EffectsEngine } from './GameEngine';
-import { getRandomScenario, getRandomEnrichedScenario } from './ScenarioDatabase';
+import { getRandomScenario, getRandomEnrichedScenario, pickWeightedHandFromScenario } from './ScenarioDatabase';
+import { recordHandResult } from '../utils/weaknessTracker';
 
 // Game constants
 const INITIAL_TIME = 3000; // 3 seconds per hand
@@ -15,16 +16,9 @@ const MAX_LIVES = 3;
 const POINTS_PER_CORRECT = 100;
 const STREAK_BONUS_MULTIPLIER = 10;
 
-// Generate random hand from scenario (enriched with solver frequencies)
+// Weighted hand selection: 50% in-range, 30% boundary/mixed, 20% any (including folds)
 function getRandomHandFromScenario(scenario) {
-    const hands = Object.entries(scenario.solution);
-    if (hands.length === 0) return null;
-
-    const randomIndex = Math.floor(Math.random() * hands.length);
-    const [hand, correctAction] = hands[randomIndex];
-    const enrichedEntry = scenario.enrichedSolution?.[hand];
-
-    return { hand, correctAction, scenario, frequencies: enrichedEntry || null };
+    return pickWeightedHandFromScenario(scenario);
 }
 
 // Hand display component
@@ -208,6 +202,16 @@ export default function SpeedDrill({ level = 1, onExit, onComplete }) {
                 EffectsEngine.shake(containerRef.current, 8);
             }
         }
+
+        // Record granular spot-type weakness data
+        recordHandResult({
+            position: currentHand.scenario?.position || 'UNK',
+            spotType: currentHand.scenario?.spotType || 'rfi',
+            hand: currentHand.hand,
+            isCorrect,
+            userAction: action,
+            correctAction: currentHand.correctAction,
+        });
 
         setGameState('revealed');
 

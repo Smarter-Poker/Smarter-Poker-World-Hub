@@ -33,6 +33,7 @@ export default function VenuesTabPanel({
     filters,
     clearFilters,
     pnmReviewStatsMap,
+    venuePredictionsMap = {},
     router,
     onMapVenueClick,
     iframeModal,
@@ -137,6 +138,7 @@ export default function VenuesTabPanel({
                                 onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                 onNavigate={(path) => router.push(path)}
                                 reviewStats={pnmReviewStatsMap[String(venue.id)]}
+                                predictionData={venuePredictionsMap[String(venue.id)]}
                             />
                             </div>
                         );

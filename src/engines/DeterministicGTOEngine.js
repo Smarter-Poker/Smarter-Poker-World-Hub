@@ -25,7 +25,6 @@ import {
     ALL_HANDS as SOLVER_ALL_HANDS,
     getHandFrequencies as solverGetFreqs,
     getRFIByDepth,
-    getRangePercentage,
 } from '../config/solverRanges';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -407,12 +406,25 @@ export class DeterministicGTOEngine {
         try {
             const stackDepth = gameConfig.pioStackDepth || 100;
 
+            // ═══ ADAPTIVE DIFFICULTY ═══
+            // Use session performance to adjust effective level for spot selection.
+            // If the player is crushing it (>85% recent accuracy), bump up the
+            // effective level to expose them to harder spots (3bet, 4bet, squeeze).
+            // If struggling (<35%), keep them on simpler spots (RFI only).
+            let effectiveLevel = level;
+            try {
+                const autoDifficulty = this.getAutoAdjustedDifficulty();
+                if (autoDifficulty === 'expert' && level < 5) effectiveLevel = Math.max(level, 5);
+                else if (autoDifficulty === 'advanced' && level < 4) effectiveLevel = Math.max(level, 4);
+                else if (autoDifficulty === 'beginner' && level > 2) effectiveLevel = Math.min(level, 2);
+            } catch (e) { /* non-critical — use base level */ }
+
             // Build pool of available spots, weighted by difficulty level
-            const spotPool = this._buildPreflopSpotPool(level, stackDepth);
+            const spotPool = this._buildPreflopSpotPool(effectiveLevel, stackDepth);
             if (spotPool.length === 0) return null;
 
-            // Pick random spot
-            const spot = spotPool[Math.floor(Math.random() * spotPool.length)];
+            // Pick random spot — bias toward harder spot types at higher effective levels
+            const spot = this._pickAdaptiveSpot(spotPool, effectiveLevel);
             const { spotData, heroPos, villainPos, spotType, nodeType, actionLabels, contextText, questionText } = spot;
 
             // Pick a hand with intelligent weighting:
@@ -463,6 +475,25 @@ export class DeterministicGTOEngine {
                 .map(a => `${a.label} ${Math.round(freqs[a.solver] * 100)}%`);
             const explanation = `${contextText}: ${hand} — ${freqParts.join(', ')}.`;
 
+            // ═══ EV LOSS ESTIMATION ═══
+            // Approximate EV loss for each action based on frequency deviation.
+            // The EV of a pure strategy action vs the mixed strategy optimal:
+            // - Correct action (highest freq): 0 EV loss
+            // - Suboptimal action: EV loss proportional to (optimalFreq - thisFreq) * potSize
+            // This models "how much worse is taking this action vs optimal?"
+            const potSize = spotType === 'rfi' ? 1.5 : spotType === 'squeeze' ? 8.5 : 4.5;
+            const actionEVs = {};
+            for (const { solver, id } of actionLabels) {
+                const freq = freqs[solver] || 0;
+                // EV approximation: correct action = 0 loss, wrong action = cost
+                // proportional to frequency difference × pot
+                const evLoss = (maxFreq - freq) * potSize;
+                actionEVs[id] = -Math.round(evLoss * 100) / 100;
+            }
+
+            // Estimate pot for EV reporting
+            const estimatedPot = potSize;
+
             return {
                 id: `local_solver_${spotType}_${heroPos}_${hand}_${Date.now()}`,
                 source: 'local_solver_ranges',
@@ -473,7 +504,7 @@ export class DeterministicGTOEngine {
                     street: 'preflop',
                     board: '',
                     boardCards: [],
-                    pot: spotType === 'rfi' ? 1.5 : spotType === 'squeeze' ? 8.5 : 4.5,
+                    pot: potSize,
                     heroPosition: heroPos,
                     villainPosition: villainPos,
                     heroStack: stackDepth,
@@ -492,9 +523,16 @@ export class DeterministicGTOEngine {
                 frequencies: actions,
                 gtoFrequencies,
                 rawFrequencies,
-                evData: null,
+                actionEVs,
+                estimatedPot,
+                evData: {
+                    correctEV: 0,
+                    worstEV: -Math.round(maxFreq * potSize * 100) / 100,
+                    potSize: estimatedPot,
+                },
                 explanation,
-                difficulty: level,
+                difficulty: effectiveLevel,
+                handCategory: this._classifyPreflopHand(hand),
             };
         } catch (err) {
             console.error('[DeterministicEngine] Local solver ranges fallback error:', err.message);
@@ -636,6 +674,61 @@ export class DeterministicGTOEngine {
         }
 
         return pool;
+    }
+
+    /**
+     * Adaptively pick a spot from the pool.
+     * At higher effective levels, bias toward more complex spot types.
+     * Expert: 60% advanced spots (4bet/squeeze/cold_call), 40% standard
+     * Standard: uniform random
+     */
+    _pickAdaptiveSpot(spotPool, effectiveLevel) {
+        if (effectiveLevel >= 5 && spotPool.length > 1) {
+            const advancedTypes = ['4bet', 'squeeze', 'cold_call'];
+            const advanced = spotPool.filter(s => advancedTypes.includes(s.spotType));
+            const standard = spotPool.filter(s => !advancedTypes.includes(s.spotType));
+
+            // 60% chance to pick from advanced pool when available
+            if (advanced.length > 0 && Math.random() < 0.6) {
+                return advanced[Math.floor(Math.random() * advanced.length)];
+            }
+            if (standard.length > 0) {
+                return standard[Math.floor(Math.random() * standard.length)];
+            }
+        }
+        return spotPool[Math.floor(Math.random() * spotPool.length)];
+    }
+
+    /**
+     * Classify a preflop hand into a category for coaching/tracking.
+     * Returns: 'premium_pair', 'medium_pair', 'small_pair', 'broadway_suited',
+     *          'broadway_offsuit', 'suited_connector', 'suited_ace', 'offsuit_trash', etc.
+     */
+    _classifyPreflopHand(hand) {
+        if (!hand) return 'unknown';
+        const ranks = 'AKQJT98765432';
+
+        if (hand.length === 2) {
+            // Pair
+            const idx = ranks.indexOf(hand[0]);
+            if (idx <= 3) return 'premium_pair';      // AA-JJ
+            if (idx <= 6) return 'medium_pair';        // TT-88
+            return 'small_pair';                       // 77-22
+        }
+
+        const r1 = ranks.indexOf(hand[0]);
+        const r2 = ranks.indexOf(hand[1]);
+        const isSuited = hand.endsWith('s');
+        const gap = r2 - r1;
+
+        if (r1 <= 4 && r2 <= 4) {
+            return isSuited ? 'broadway_suited' : 'broadway_offsuit';
+        }
+        if (hand[0] === 'A' && isSuited) return 'suited_ace';
+        if (isSuited && gap <= 2 && r1 >= 5) return 'suited_connector';
+        if (isSuited) return 'suited_gapper';
+        if (hand[0] === 'A') return 'offsuit_ace';
+        return 'offsuit_other';
     }
 
     /**
