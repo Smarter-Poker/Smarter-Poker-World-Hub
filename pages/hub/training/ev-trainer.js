@@ -21,6 +21,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken, authedFetch } from '../../../src/lib/authUtils';
+// ── Phase 3 Engine: EV calculation for verification + advanced drills ───
+import { calculateActionEVs, calculateEVLoss, calculatePreflopEV } from '../../../src/engines/EVCalculator';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BUS EMITTER (SSR-safe)
@@ -132,6 +134,31 @@ function generateQuestion() {
     answer,
     unit: '%',
   };
+}
+
+/**
+ * Engine-verified EV: cross-check inline answer with EVCalculator engine.
+ * Returns the engine's EV for the call action, or null if unavailable.
+ */
+function verifyWithEngine(question) {
+  if (!question || question.type !== 'ev_call') return null;
+  try {
+    // Extract params from the question text
+    const potMatch = question.question.match(/Pot:\s*\*\*(\d+)\*\*/);
+    const betMatch = question.question.match(/bets\s*\*\*(\d+)\*\*/);
+    const eqMatch = question.question.match(/(\d+)%\s*equity/);
+    if (!potMatch || !betMatch || !eqMatch) return null;
+
+    const actionEVs = calculateActionEVs({
+      gtoStrategy: { call: 1.0, fold: 0.0 },
+      potSize: parseInt(potMatch[1]),
+      betSize: parseInt(betMatch[1]),
+      equity: parseInt(eqMatch[1]) / 100,
+    });
+    return actionEVs?.call != null ? Math.round(actionEVs.call) : null;
+  } catch {
+    return null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

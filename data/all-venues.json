@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T08:38:38.053Z",
+  "updated_at": "2026-04-05T08:44:57.379Z",
   "total": 677,
   "venues": [
     {
@@ -9534,15 +9534,15 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2165.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2165.jpg"
     },
     {
       "id": 1992,
       "name": "Atlantis Casino Resort",
       "slug": "atlantis-casino-resort-las-vegas",
       "website": "https://www.atlantiscasino.com",
-      "address": "3000 S. Las Vegas Blvd.",
-      "city": "Las Vegas",
+      "address": "3000 S. Reno Blvd.",
+      "city": "Reno",
       "state": "NV",
       "phone": "(702) 676-7680",
       "venue_type": "casino",
@@ -9563,7 +9563,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1992.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1992.jpg"
     },
     {
       "id": 2673,
@@ -9650,7 +9650,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2145.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2145.jpg"
     },
     {
       "id": 2157,
@@ -9819,32 +9819,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2834.png"
     },
     {
-      "id": 2756,
-      "name": "Circa Poker Series",
-      "slug": null,
-      "website": "https://www.circalasvegas.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "series",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2756.png"
-    },
-    {
       "id": 2723,
       "name": "Deep Stack Poker Tour",
       "slug": null,
@@ -9868,7 +9842,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2723.svg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2723.png"
     },
     {
       "id": 2736,

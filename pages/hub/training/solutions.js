@@ -32,6 +32,9 @@ import Card from '../../../src/components/training/Card';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import { SkeletonBox } from '../../../src/components/ui/SkeletonLoader';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+// ── Phase 1 Engines: Board texture + hand strength for solution browsing ─
+import { analyzeBoard } from '../../../src/engines/BoardTextureEngine';
+import { classifyMadeHand, classifyDraws } from '../../../src/engines/HandStrengthEngine';
 
 // Dynamic imports for new Phase 34 components (avoid SSR issues)
 const BlockerScorePanel = dynamic(
