@@ -1,8 +1,8 @@
 {
   "batch_id": "d06645bc-d567-4846-98c3-cd8c6372056e",
-  "timestamp": "2026-04-05T04:52:27.503265+00:00",
-  "total_processed": 60,
-  "uploaded": 59,
+  "timestamp": "2026-04-05T04:52:58.493991+00:00",
+  "total_processed": 61,
+  "uploaded": 60,
   "not_found": 0,
   "results": [
     {
@@ -544,6 +544,15 @@
       "image_hash": "dc21404323636802ec80072186518f682363db047574582d0212c0da1419bab1",
       "image_size": 1553139,
       "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/napt-poker-tour.png"
+    },
+    {
+      "venue_id": "rough-riders-poker-tour",
+      "venue_name": "Rough Riders Poker Tour",
+      "status": "uploaded",
+      "source_url": "http://www.caddyprogolfproducts.com/cdn/shop/files/A2packPokerChip.png?v=1741109106",
+      "image_hash": "25647f72d4b0bb155a34f9645df71ccdfdd302d3432a54b4c95dbc9ada439dfb",
+      "image_size": 1712910,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/rough-riders-poker-tour.png"
     }
   ]
 }
