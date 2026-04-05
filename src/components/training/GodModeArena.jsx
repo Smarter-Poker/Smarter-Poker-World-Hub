@@ -47,6 +47,9 @@ import SolverTreeViewer from './SolverTreeViewer';
 import PostflopRangeViewer from './PostflopRangeViewer';
 import RunoutStrategyMatrix from './RunoutStrategyMatrix';
 import FrequencyTrainer from './FrequencyTrainer';
+import SolverComparisonReplay from './SolverComparisonReplay';
+import RangeEquityVisualizer from './RangeEquityVisualizer';
+import CrossSessionAnalytics from './CrossSessionAnalytics';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
@@ -2214,7 +2217,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -2992,6 +2995,25 @@ function GodModeArenaInner({
                                     : handHistory
                             } />
                         </div>
+                    </>)}
+
+                    {/* ═══ TAB: SOLVER COMPARISON ═══ */}
+                    {reviewTab === 'solver' && (<>
+                        <div style={{ marginBottom: 16 }}>
+                            <SolverComparisonReplay handHistory={handHistory} />
+                        </div>
+                        {/* Range vs Range Equity for last hand's board */}
+                        {handHistory.length > 0 && (() => {
+                            const lastHand = handHistory[handHistory.length - 1];
+                            const hd = lastHand?.handData || lastHand || {};
+                            const board = hd.board;
+                            if (!board) return null;
+                            return (
+                                <div style={{ marginTop: 8 }}>
+                                    <RangeEquityVisualizer board={board} />
+                                </div>
+                            );
+                        })()}
                     </>)}
 
                     {/* ═══ TAB: ANALYSIS ═══ */}
@@ -4419,6 +4441,11 @@ function GodModeArenaInner({
                                 initialPosition="IP"
                             />
                         </div>
+                    </>)}
+
+                    {/* ═══ TAB: ANALYTICS — Cross-Session Dashboard ═══ */}
+                    {reviewTab === 'analytics' && (<>
+                        <CrossSessionAnalytics sessionHistory={[]} />
                     </>)}
 
                     {/* ACTION BUTTONS */}
