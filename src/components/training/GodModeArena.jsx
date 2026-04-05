@@ -43,6 +43,7 @@ import { StudyStreakMapAuto } from './StudyStreakMap';
 import GhostReplayEngine from './GhostReplayEngine';
 // ═══ PHASE 356: Solver Tree Viewer ═══
 import SolverTreeViewer from './SolverTreeViewer';
+import PostflopRangeViewer from './PostflopRangeViewer';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
@@ -2210,7 +2211,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -4367,6 +4368,29 @@ function GodModeArenaInner({
                                     Play some hands first to see the solver decision tree here.
                                 </div>
                             )}
+                        </div>
+                    </>)}
+
+                    {/* ═══ TAB: RANGES — Postflop Range Viewer ═══ */}
+                    {reviewTab === 'ranges' && (<>
+                        <div style={{
+                            background: 'linear-gradient(135deg, rgba(15,15,30,0.95), rgba(20,20,40,0.95))',
+                            borderRadius: 16, padding: 16,
+                            border: '1px solid rgba(0,212,255,0.1)',
+                        }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', marginBottom: 12, fontFamily: "'Orbitron', monospace", textAlign: 'center' }}>
+                                Postflop Range Explorer
+                            </div>
+                            <PostflopRangeViewer
+                                initialBoard={(() => {
+                                    // Try to use the board from the most recent hand
+                                    const lastHand = handHistory[handHistory.length - 1]?.handData || handHistory[handHistory.length - 1];
+                                    if (lastHand?.board && lastHand.board.length >= 3) return lastHand.board;
+                                    return ['Ah', 'Kd', '7c'];
+                                })()}
+                                initialSpot="cbet"
+                                initialPosition="IP"
+                            />
                         </div>
                     </>)}
 

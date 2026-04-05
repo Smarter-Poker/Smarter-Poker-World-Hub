@@ -76,6 +76,8 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     const [difficultyMode, setDifficultyMode] = useState('standard');
     const [timerEnabled, setTimerEnabled] = useState(false);
     const [timerSeconds, setTimerSeconds] = useState(30);
+    const [spotType, setSpotType] = useState('any');
+    const [boardTexture, setBoardTexture] = useState('any');
 
     // Available positions for selected game type
     const availablePositions = useMemo(() => POSITIONS[gameType] || POSITIONS.cash, [gameType]);
@@ -112,6 +114,8 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
             actionScenario !== 'any' ? actionScenario : null,
             `${stackDepth}BB`,
             street === 'all' ? 'All Streets' : street.charAt(0).toUpperCase() + street.slice(1),
+            spotType !== 'any' ? spotType : null,
+            boardTexture !== 'any' ? boardTexture : null,
             handClass === 'all' ? null : handClass
         ].filter(Boolean).join(' | ');
 
@@ -122,6 +126,8 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
             actionScenario: actionScenario === 'any' ? null : actionScenario,
             stackDepth,
             street: street === 'all' ? null : street,
+            spotType: spotType === 'any' ? null : spotType,
+            boardTexture: boardTexture === 'any' ? null : boardTexture,
             handClass: handClass === 'all' ? null : handClass,
             questionsCount,
             difficultyMode, // GTO Wizard-style: simple | grouped | standard
@@ -348,6 +354,67 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                 ))}
                             </div>
                         </div>
+
+                        {/* SECTION: Spot Type (Postflop) */}
+                        {(street === 'flop' || street === 'turn' || street === 'river') && (
+                            <div style={styles.section}>
+                                <div style={styles.sectionLabel}>SPOT TYPE</div>
+                                <div style={styles.chipRow}>
+                                    {[
+                                        { id: 'any', label: 'Any Spot' },
+                                        { id: 'cbet', label: 'C-Bet' },
+                                        { id: 'checkraise', label: 'Check-Raise' },
+                                        { id: 'facing_bet', label: 'Facing Bet' },
+                                        { id: 'probe', label: 'Probe Bet' },
+                                        { id: 'donk', label: 'Donk Bet' },
+                                    ].map(s => (
+                                        <motion.button
+                                            key={s.id}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setSpotType(s.id)}
+                                            style={{
+                                                ...styles.chip,
+                                                ...(spotType === s.id ? styles.chipActive : {}),
+                                            }}
+                                        >
+                                            {s.label}
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SECTION: Board Texture */}
+                        {(street === 'flop' || street === 'turn' || street === 'river') && (
+                            <div style={styles.section}>
+                                <div style={styles.sectionLabel}>BOARD TEXTURE</div>
+                                <div style={styles.chipRow}>
+                                    {[
+                                        { id: 'any', label: 'Any Board' },
+                                        { id: 'dry_rainbow', label: 'Dry Rainbow' },
+                                        { id: 'monotone', label: 'Monotone' },
+                                        { id: 'two_tone', label: 'Two-Tone' },
+                                        { id: 'paired', label: 'Paired' },
+                                        { id: 'connected', label: 'Connected' },
+                                        { id: 'broadway', label: 'Broadway' },
+                                    ].map(b => (
+                                        <motion.button
+                                            key={b.id}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setBoardTexture(b.id)}
+                                            style={{
+                                                ...styles.chip,
+                                                ...(boardTexture === b.id ? styles.chipActive : {}),
+                                            }}
+                                        >
+                                            {b.label}
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* SECTION 5: Questions Count */}
                         <div style={styles.section}>
