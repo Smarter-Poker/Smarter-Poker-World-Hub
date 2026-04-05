@@ -65,7 +65,7 @@ RESULTS_FILE = PROJECT_ROOT / 'data' / 'logo-scrape-v2-results.json'
 # ─── Helpers ───
 def _network_available():
     try:
-        socket.create_connection(("8.8.8.8", 53), timeout=5)
+        socket.getaddrinfo("google.com", 443)
         return True
     except Exception:
         return False

@@ -1,0 +1,14 @@
+{
+  "venue_id": 3029,
+  "venue_name": "Gila River Casino",
+  "source_website": "https://playatgila.com/wp-content/uploads/2021/10/cropped-favicon-180x180.jpg",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "176ec48096726a6689f67faf2ceace2089d01aa7471a889d3760b23c4d1becf6",
+  "image_bytes": 9892,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:22:12.086209+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3029.png"
+}

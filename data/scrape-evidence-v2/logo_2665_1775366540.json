@@ -1,0 +1,14 @@
+{
+  "venue_id": 2665,
+  "venue_name": "Fort McDowell Poker Series",
+  "source_website": "https://static.wixstatic.com/media/095d5b_da50ab269aba4630b1e922975ddde778%7Emv2.jpg/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/095d5b_da50ab269aba4630b1e922975ddde778%7Emv2.jpg",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "e0d51d7e5d2e1b86e248f7c6c3f58cdd0b9bf50ae201498b1d225a458ac502d1",
+  "image_bytes": 36230,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:22:20.539931+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2665.png"
+}
