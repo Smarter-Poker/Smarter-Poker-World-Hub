@@ -685,7 +685,18 @@ export default function SessionDashboard() {
     );
     const totalEV = filteredSessions.reduce((s, ses) => s + Math.abs(Number(ses.total_ev_loss || ses.totalEVLoss) || 0), 0);
     const wins = filteredSessions.filter((s) => (Number(s.accuracy || s.gtow_score || s.gtowScore) || 0) >= 60).length;
-    return { totalHands, avgAccuracy, totalEV, sessions: filteredSessions.length, wins };
+
+    // Engine enrichment: trend analysis + leak identification
+    let trends = null;
+    let leaks = [];
+    try {
+      trends = calculateTrends(filteredSessions);
+      leaks = identifyLeaks(filteredSessions);
+    } catch (e) {
+      console.warn('[Dashboard] Engine trend calculation failed:', e.message);
+    }
+
+    return { totalHands, avgAccuracy, totalEV, sessions: filteredSessions.length, wins, trends, leaks };
   }, [filteredSessions]);
 
   return (

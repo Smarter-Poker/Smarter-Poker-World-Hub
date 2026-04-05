@@ -43,6 +43,8 @@ import { StudyStreakMapAuto } from './StudyStreakMap';
 import GhostReplayEngine from './GhostReplayEngine';
 // ═══ PHASE 356: Solver Tree Viewer ═══
 import SolverTreeViewer from './SolverTreeViewer';
+// ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
+import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
 // DYNAMIC IMPORTS — breaks circular dependency (page files importing from src/)
 // These page-level components are only used for specific gameIds, so lazy-loading is fine
@@ -1842,23 +1844,37 @@ function GodModeArenaInner({
     useEffect(() => {
         if (gameComplete && gamePhase === 'playing') {
             setGamePhase('review');
-            // Phase 2: Emit session-complete bus event
+            // Phase 2: Emit session-complete bus event with engine scoring
             try {
-                eventBus.emit(EventType.SESSION_END, {
+                // Engine: Calculate diamond rewards + grade from GTOScoreEngine
+                let engineGrade = null;
+                let diamondReward = 0;
+                try {
+                    engineGrade = getScoreGrade(Number(gtowScore));
+                    const sessionSummary = {
+                        score: Number(gtowScore),
+                        totalMoves: totalQuestions,
+                        correctMoves: correctCount,
+                        bestStreak: bestStreak,
+                    };
+                    diamondReward = calculateSessionDiamonds(sessionSummary, currentLevel || 1);
+                } catch (e) {
+                    console.warn('[GodModeArena] Engine scoring failed:', e.message);
+                }
+
+                const sessionPayload = {
                     gameId: String(gameId),
                     score: Number(gtowScore),
                     totalHands: totalQuestions,
                     durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
-                    perfectActionCount: correctCount
-                }, 'GodModeArena');
+                    perfectActionCount: correctCount,
+                    engineGrade,
+                    diamondReward,
+                };
+
+                eventBus.emit(EventType.SESSION_END, sessionPayload, 'GodModeArena');
                 // Also emit training:session-complete for dual-subscription dashboards
-                eventBus.emit('training:session-complete', {
-                    gameId: String(gameId),
-                    score: Number(gtowScore),
-                    totalHands: totalQuestions,
-                    durationSeconds: Math.round((Date.now() - sessionStartRef.current) / 1000),
-                    perfectActionCount: correctCount
-                }, 'GodModeArena');
+                eventBus.emit('training:session-complete', sessionPayload, 'GodModeArena');
             } catch (e) {
                 console.warn('[GodModeArena] Bus emit failed:', e);
             }
