@@ -1,0 +1,14 @@
+{
+  "venue_id": 2860,
+  "venue_name": "19th Hole Casino Casino",
+  "source_website": "https://www.19thholeantioch.com/wp-content/uploads/2023/11/19thhole-logo.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "df983d49e290a02239ed9a6d2d80de2455f10a483f2693f51de0c443a2e7e48b",
+  "image_bytes": 30980,
+  "image_dims": "400x349",
+  "timestamp": "2026-04-05T05:23:54.962001+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2860.png"
+}

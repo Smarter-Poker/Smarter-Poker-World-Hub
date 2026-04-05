@@ -1,0 +1,14 @@
+{
+  "venue_id": 2866,
+  "venue_name": "Casino Chico Casino",
+  "source_website": "https://i0.wp.com/casinochico.com/wp-content/uploads/2018/10/cropped-Casino-Chico-WB-Logo-Small.jpg?fit=180%2C180",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "aebea98e95d093833d1c9c2e9da9d8dde40d01b22ea8dae458c84815f76c9689",
+  "image_bytes": 17271,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:29:27.020447+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2866.png"
+}

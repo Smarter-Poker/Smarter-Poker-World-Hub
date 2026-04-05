@@ -1,0 +1,14 @@
+{
+  "venue_id": 2619,
+  "venue_name": "Bike Series (The Bicycle Casino)",
+  "source_website": "https://static.hugedomains.com/images/hdv3-img/hd-header-logo-v3.svg",
+  "extraction_method": "img-logo-attr",
+  "image_hash": "bc24465077acb6e65d1609a1a09479011665a5da6f8174daa017c91a6377feb6",
+  "image_bytes": 21936,
+  "image_dims": "256x256",
+  "timestamp": "2026-04-05T05:24:33.844693+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2619.png"
+}

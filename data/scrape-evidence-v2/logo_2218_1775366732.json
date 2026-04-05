@@ -1,0 +1,14 @@
+{
+  "venue_id": 2218,
+  "venue_name": "Cache Creek",
+  "source_website": "https://www.cachecreek.com/resourcefiles/otherimages/49ers-logo.png",
+  "extraction_method": "img-logo-attr",
+  "image_hash": "1fe1e9169c78e810fb527d4739daef1a091aebeb0f75ba508d327ca3c3737235",
+  "image_bytes": 36504,
+  "image_dims": "200x117",
+  "timestamp": "2026-04-05T05:25:32.935993+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2218.png"
+}

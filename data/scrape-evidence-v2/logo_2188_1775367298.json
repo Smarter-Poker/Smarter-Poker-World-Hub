@@ -1,0 +1,14 @@
+{
+  "venue_id": 2188,
+  "venue_name": "Normandie Casino",
+  "source_website": "https://luckyladyla.com/wp-content/uploads/2020/04/cropped-Icon2-01-180x180.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "e6fa8b111648248b5a58cbdc70e7568ab2e898e492ddd73a1540a01ed20e99de",
+  "image_bytes": 13681,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:34:58.050956+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2188.png"
+}

@@ -1,0 +1,14 @@
+{
+  "venue_id": 1936,
+  "venue_name": "Casino 99",
+  "source_website": "https://casino99chico.com/wp-content/uploads/2018/07/Casino-99-site-icon-300x300.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "b442faf6b4452898ce61ac37ce767d845b70a24f5afbd228345a38d89de1ebfb",
+  "image_bytes": 106004,
+  "image_dims": "300x300",
+  "timestamp": "2026-04-05T05:29:16.936108+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1936.png"
+}

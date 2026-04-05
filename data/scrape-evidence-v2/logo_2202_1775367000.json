@@ -1,0 +1,14 @@
+{
+  "venue_id": 2202,
+  "venue_name": "Spotlight 29",
+  "source_website": "https://spotlight29.com/wp-content/uploads/sites/6/2024/11/cropped-Spotlight29Logo-180x180.webp",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "6a6b65deae0fc5306cfe786c97ae21200e58afd1e11b131502c4e833d0ab40fd",
+  "image_bytes": 36951,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:30:00.495903+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2202.png"
+}

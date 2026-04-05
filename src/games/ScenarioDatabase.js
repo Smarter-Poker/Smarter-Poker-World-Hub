@@ -28,345 +28,13 @@ export const LEVEL_CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LEVEL 1: NEURAL BOOT - Simple UTG/MP Opens (Tight ranges, easy to learn)
+// LEVEL 1: NEURAL BOOT — EP Opens (UTG, MP, HJ) + Stack Depth Variants
+// NOW SOLVER-GENERATED from SolverScenarioGenerator.js generateLevel1()
+// Old hardcoded scenarios removed — LEVEL_1_SCENARIOS populated below
+// from the solver generator alongside L2-7.
 // ═══════════════════════════════════════════════════════════════════════════
-export const LEVEL_1_SCENARIOS = [
-    {
-        id: 'l1-utg-100BB', level: 1, title: 'UTG Open (100BB)', position: 'UTG', stackDepth: 100,
-        description: 'The Tightest Opening Range. Only Premium Hands.',
-        tip: 'Focus On Pairs TT+, Broadway Suited, And Strong Offsuit Broadways.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
-            'A5s': 'raise', 'A4s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise', 'JTs': 'raise',
-            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise',
-        }
-    },
-    {
-        id: 'l1-mp-100BB', level: 1, title: 'MP Open (100BB)', position: 'MP', stackDepth: 100,
-        description: 'Slightly Wider Than UTG. Add Some Suited Connectors.',
-        tip: 'Include 66, More Suited Ax, And K9s+.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise', 'J9s': 'raise',
-            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise', '54s': 'raise',
-        }
-    },
-    {
-        id: 'l1-hj-100BB', level: 1, title: 'HJ Open (100BB)', position: 'HJ', stackDepth: 100,
-        description: 'The Widest Early Position. Transition to Late Position Opens.',
-        tip: 'Add 55, 44, More Offsuit Broadways, And Suited Gappers.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise', '44': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'QJo': 'raise',
-            'JTs': 'raise', 'J9s': 'raise', 'JTo': 'raise',
-            'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise',
-            '87s': 'raise', '86s': 'raise', '76s': 'raise', '75s': 'raise',
-            '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise',
-        }
-    },
-    {
-        id: 'l1-utg-50BB', level: 1, title: 'UTG Open (50BB)', position: 'UTG', stackDepth: 50,
-        description: 'Shorter Stack UTG Range. Tighter Than 100BB.',
-        tip: 'Cut Some Suited Connectors, Focus On High Card Strength.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
-            'A5s': 'raise', 'A4s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise', 'JTs': 'raise',
-            'T9s': 'raise', '98s': 'raise',
-        }
-    },
-    {
-        id: 'l1-utg-200BB', level: 1, title: 'UTG Open (200BB)', position: 'UTG', stackDepth: 200,
-        description: 'Deep Stack UTG. Can Add More Speculative Hands.',
-        tip: 'Add Small Pairs And More Suited Connectors For Implied Odds.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'QJs': 'raise', 'QTs': 'raise',
-            'JTs': 'raise', 'J9s': 'raise', 'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise', '54s': 'raise',
-        }
-    },
-    {
-        id: 'l1-mp-50BB', level: 1, title: 'MP Open (50BB)', position: 'MP', stackDepth: 50,
-        description: 'Middle Position with Shorter Stack.',
-        tip: 'Slightly Wider Than UTG 50BB, But Still Tight.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'KQo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise',
-            'T9s': 'raise', '98s': 'raise', '87s': 'raise',
-        }
-    },
-    {
-        id: 'l1-mp-200BB', level: 1, title: 'MP Open (200BB)', position: 'MP', stackDepth: 200,
-        description: 'Deep Stack Middle Position.',
-        tip: 'Add More Suited Hands And Small Pairs.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise', '44': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'JTs': 'raise', 'J9s': 'raise',
-            'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise', '87s': 'raise', '86s': 'raise',
-            '76s': 'raise', '75s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise',
-        }
-    },
-    {
-        id: 'l1-hj-50BB', level: 1, title: 'HJ Open (50BB)', position: 'HJ', stackDepth: 50,
-        description: 'Hijack with Shorter Stack.',
-        tip: 'Wider Than MP, But Not As Wide As 100BB HJ.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'QJo': 'raise',
-            'JTs': 'raise', 'J9s': 'raise', 'T9s': 'raise', 'T8s': 'raise',
-            '98s': 'raise', '97s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise',
-        }
-    },
-    {
-        id: 'l1-hj-200BB', level: 1, title: 'HJ Open (200BB)', position: 'HJ', stackDepth: 200,
-        description: 'Deep Stack Hijack.',
-        tip: 'Very Wide Range With Deep Stacks.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise', '44': 'raise', '33': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise', 'A7s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise', 'A8o': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'K7s': 'raise', 'KQo': 'raise', 'KJo': 'raise', 'KTo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'Q8s': 'raise', 'QJo': 'raise', 'QTo': 'raise',
-            'JTs': 'raise', 'J9s': 'raise', 'J8s': 'raise', 'JTo': 'raise',
-            'T9s': 'raise', 'T8s': 'raise', 'T7s': 'raise', 'T9o': 'raise',
-            '98s': 'raise', '97s': 'raise', '96s': 'raise', '87s': 'raise', '86s': 'raise', '85s': 'raise',
-            '76s': 'raise', '75s': 'raise', '74s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise', '43s': 'raise',
-        }
-    },
-    // Additional UTG variations
-    {
-        id: 'l1-utg-30BB', level: 1, title: 'UTG Open (30BB)', position: 'UTG', stackDepth: 30,
-        description: 'Short Stack UTG. Very Tight Range.',
-        tip: 'Premium Hands Only. No Speculative Plays.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise',
-        }
-    },
-    {
-        id: 'l1-mp-30BB', level: 1, title: 'MP Open (30BB)', position: 'MP', stackDepth: 30,
-        description: 'Short Stack Middle Position.',
-        tip: 'Slightly Wider Than UTG 30BB.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'KQo': 'raise',
-            'QJs': 'raise', 'JTs': 'raise',
-        }
-    },
-    {
-        id: 'l1-hj-30BB', level: 1, title: 'HJ Open (30BB)', position: 'HJ', stackDepth: 30,
-        description: 'Short Stack Hijack.',
-        tip: 'Wider Than MP 30BB, But Still Relatively Tight.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise',
-            'T9s': 'raise', '98s': 'raise',
-        }
-    },
-    // UTG+1 scenarios
-    {
-        id: 'l1-utg1-100BB', level: 1, title: 'UTG+1 Open (100BB)', position: 'UTG+1', stackDepth: 100,
-        description: 'One Seat After UTG. Slightly Wider.',
-        tip: 'Add A Few More Suited Hands Than UTG.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise', 'J9s': 'raise',
-            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise',
-        }
-    },
-    {
-        id: 'l1-utg1-50BB', level: 1, title: 'UTG+1 Open (50BB)', position: 'UTG+1', stackDepth: 50,
-        description: 'UTG+1 with Shorter Stack.',
-        tip: 'Tighter Than 100BB, But Wider Than UTG 50BB.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
-            'A5s': 'raise', 'A4s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise', 'JTs': 'raise',
-            'T9s': 'raise', '98s': 'raise', '87s': 'raise',
-        }
-    },
-    {
-        id: 'l1-lj-100BB', level: 1, title: 'LJ Open (100BB)', position: 'LJ', stackDepth: 100,
-        description: 'Lojack (MP2). Between MP and HJ.',
-        tip: 'Wider Than MP, Narrower Than HJ.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'QJo': 'raise',
-            'JTs': 'raise', 'J9s': 'raise', 'JTo': 'raise',
-            'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise',
-            '87s': 'raise', '86s': 'raise', '76s': 'raise', '75s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise',
-        }
-    },
-    // Ante vs No Ante scenarios
-    {
-        id: 'l1-utg-100BB-ante', level: 1, title: 'UTG Open (100BB, Ante)', position: 'UTG', stackDepth: 100,
-        description: 'UTG with Big-Blind Ante. Slightly Wider.',
-        tip: 'Ante Makes Stealing More Profitable. Add A Few More Hands.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise', 'J9s': 'raise',
-            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise', '54s': 'raise',
-        }
-    },
-    {
-        id: 'l1-mp-100BB-ante', level: 1, title: 'MP Open (100BB, Ante)', position: 'MP', stackDepth: 100,
-        description: 'Middle Position with Ante.',
-        tip: 'Ante Increases Pot Odds. Open Wider.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'JTs': 'raise', 'J9s': 'raise',
-            'T9s': 'raise', 'T8s': 'raise', '98s': 'raise', '97s': 'raise', '87s': 'raise', '86s': 'raise',
-            '76s': 'raise', '75s': 'raise', '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise',
-        }
-    },
-    // 6-max vs 9-max
-    {
-        id: 'l1-utg-6max', level: 1, title: 'UTG Open (6-Max)', position: 'UTG', stackDepth: 100,
-        description: 'UTG in 6-max. Wider Than 9-max UTG.',
-        tip: '6-max UTG Is Like 9-max MP. Open Wider.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'KQo': 'raise', 'KJo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'JTs': 'raise', 'J9s': 'raise',
-            'T9s': 'raise', '98s': 'raise', '87s': 'raise', '76s': 'raise', '65s': 'raise', '54s': 'raise',
-        }
-    },
-    {
-        id: 'l1-mp-6max', level: 1, title: 'MP Open (6-Max)', position: 'MP', stackDepth: 100,
-        description: 'MP in 6-max. Very Wide.',
-        tip: '6-max MP Is Like 9-max HJ. Open Very Wide.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise', '55': 'raise', '44': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise', 'A8s': 'raise', 'A7s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise', 'A2s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise', 'A9o': 'raise', 'A8o': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'K9s': 'raise', 'K8s': 'raise', 'KQo': 'raise', 'KJo': 'raise', 'KTo': 'raise',
-            'QJs': 'raise', 'QTs': 'raise', 'Q9s': 'raise', 'Q8s': 'raise', 'QJo': 'raise', 'QTo': 'raise',
-            'JTs': 'raise', 'J9s': 'raise', 'J8s': 'raise', 'JTo': 'raise',
-            'T9s': 'raise', 'T8s': 'raise', 'T7s': 'raise', '98s': 'raise', '97s': 'raise', '96s': 'raise',
-            '87s': 'raise', '86s': 'raise', '85s': 'raise', '76s': 'raise', '75s': 'raise', '74s': 'raise',
-            '65s': 'raise', '64s': 'raise', '54s': 'raise', '53s': 'raise', '43s': 'raise',
-        }
-    },
-    // Tournament vs Cash
-    {
-        id: 'l1-utg-mtt-20BB', level: 1, title: 'UTG Open (MTT, 20BB)', position: 'UTG', stackDepth: 20,
-        description: 'Tournament UTG with 20BB. Push/fold Territory.',
-        tip: 'Very Tight. Only Premium Hands.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise',
-            'AKo': 'raise', 'AQo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise',
-        }
-    },
-    {
-        id: 'l1-mp-mtt-20BB', level: 1, title: 'MP Open (MTT, 20BB)', position: 'MP', stackDepth: 20,
-        description: 'Tournament MP with 20BB.',
-        tip: 'Slightly Wider Than UTG 20BB.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise',
-            'A5s': 'raise', 'A4s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'QJs': 'raise',
-        }
-    },
-    {
-        id: 'l1-hj-mtt-20BB', level: 1, title: 'HJ Open (MTT, 20BB)', position: 'HJ', stackDepth: 20,
-        description: 'Tournament HJ with 20BB.',
-        tip: 'Wider Than MP, But Still Relatively Tight.',
-        solution: {
-            'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
-            '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
-            'AKs': 'raise', 'AQs': 'raise', 'AJs': 'raise', 'ATs': 'raise', 'A9s': 'raise',
-            'A5s': 'raise', 'A4s': 'raise', 'A3s': 'raise',
-            'AKo': 'raise', 'AQo': 'raise', 'AJo': 'raise', 'ATo': 'raise',
-            'KQs': 'raise', 'KJs': 'raise', 'KTs': 'raise', 'KQo': 'raise',
-            'QJs': 'raise', 'JTs': 'raise', 'T9s': 'raise',
-        }
-    },
-];
+// [REMOVED] ~340 lines of hand-typed Level 1 scenarios without mixed frequencies.
+// Replaced by solver-accurate scenarios generated from solverRanges.js.
 
 
 export const LEVEL_10_SCENARIOS = [
@@ -545,13 +213,11 @@ export const SPOT_SCENARIOS = [
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SOLVER-GENERATED SCENARIOS (Levels 2-7)
+// SOLVER-GENERATED SCENARIOS (Levels 1-7)
 // ═══════════════════════════════════════════════════════════════════════════
-// Previously this section contained 17,000+ lines of stale AI-generated
-// scenarios that did NOT match actual solver data. They have been replaced
-// with dynamically generated scenarios built directly from solverRanges.js.
-//
-// See: SolverScenarioGenerator.js for the generation logic.
+// All preflop training scenarios are now generated deterministically from
+// PioSolver GTO data via SolverScenarioGenerator.js + solverRanges.js.
+// Level 1 (EP opens) through Level 7 (squeeze) are fully solver-accurate.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import {
@@ -576,9 +242,10 @@ import {
 const _solverScenarios = generateAllSolverScenarios();
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPATIBILITY EXPORTS — LEVEL_2 through LEVEL_9 for memory-games.js
-// These map to the solver-generated scenarios instead of the old hardcoded arrays
+// COMPATIBILITY EXPORTS — LEVEL_1 through LEVEL_9 for memory-games.js
+// All levels now map to solver-generated scenarios from solverRanges.js
 // ═══════════════════════════════════════════════════════════════════════════
+export const LEVEL_1_SCENARIOS = _solverScenarios[1] || [];
 export const LEVEL_2_SCENARIOS = _solverScenarios[2] || [];
 export const LEVEL_3_SCENARIOS = _solverScenarios[3] || [];
 export const LEVEL_4_SCENARIOS = _solverScenarios[4] || [];
@@ -589,11 +256,11 @@ export const LEVEL_8_SCENARIOS = _solverScenarios[7] || []; // L8 falls back to 
 export const LEVEL_9_SCENARIOS = _solverScenarios[7] || []; // L9 falls back to L7
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ALL SCENARIOS — Combines hand-curated L1 + solver-generated L2-7 + L10
+// ALL SCENARIOS — Solver-generated L1-7 + L10
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const ALL_SCENARIOS = [
-    ...LEVEL_1_SCENARIOS,
+    ...(_solverScenarios[1] || []),
     ...(_solverScenarios[2] || []),
     ...(_solverScenarios[3] || []),
     ...(_solverScenarios[4] || []),
@@ -605,10 +272,10 @@ export const ALL_SCENARIOS = [
 
 /**
  * Get scenarios for a specific level.
- * Levels 2-7 come from the solver generator; levels 1, 10 from hardcoded.
+ * Levels 1-7 come from the solver generator; level 10 from hardcoded.
  */
 export function getScenariosByLevel(level) {
-    if (level >= 2 && level <= 7) {
+    if (level >= 1 && level <= 7) {
         return getSolverScenariosForLevel(level);
     }
     // Level 8-9: fall back to level 7 (squeeze) content
@@ -622,8 +289,8 @@ export function getScenariosByLevel(level) {
  * Get a random scenario for a level.
  */
 export function getRandomScenario(level) {
-    // Solver-generated levels
-    if (level >= 2 && level <= 7) {
+    // Solver-generated levels (1-7)
+    if (level >= 1 && level <= 7) {
         return getRandomSolverScenario(level);
     }
     // Levels 8-9: fall back to level 7
@@ -641,9 +308,9 @@ export function getLevelConfig(level) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SOLVER-ENRICHED SCENARIO BRIDGE
-// For Level 1 hand-curated scenarios: enriches binary solutions with
-// solver frequencies. Solver-generated scenarios (L2-7) already have
-// enriched data built in.
+// All solver-generated scenarios (L1-7) already have enriched data built in.
+// This bridge exists for any legacy scenarios (L10) that may still use
+// binary solutions without mixed frequencies.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**

@@ -1,0 +1,14 @@
+{
+  "venue_id": 1938,
+  "venue_name": "Garlic City Casino",
+  "source_website": "https://images.squarespace-cdn.com/content/v1/5e66b3ac88c0cc7cf42e77fb/0e88d863-9eb5-4964-975d-f5800102b4c5/GCC-Logo-WHT.png?format=1500w",
+  "extraction_method": "img-src-has-logo",
+  "image_hash": "a1d1620cf8e595fbff135d3e62a1bbce1a660c8433d9a339c29731c52c65830e",
+  "image_bytes": 67492,
+  "image_dims": "686x303",
+  "timestamp": "2026-04-05T05:35:03.502287+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1938.png"
+}

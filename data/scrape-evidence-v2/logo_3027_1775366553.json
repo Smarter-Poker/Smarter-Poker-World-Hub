@@ -1,0 +1,14 @@
+{
+  "venue_id": 3027,
+  "venue_name": "Desert Diamond Casino",
+  "source_website": "https://cdn.craft.cloud/019b2276-6522-734a-86c7-3973940727f7/builds/a15513bd-22d8-432a-bdda-81d985fd0b4f/artifacts/assets-site/img/desert-diamond-casino-logo.svg",
+  "extraction_method": "img-logo-attr",
+  "image_hash": "2f0e0499bfaf6751a1c19a6b81bae83b512a66406e70529d5e99108410173398",
+  "image_bytes": 29196,
+  "image_dims": "256x256",
+  "timestamp": "2026-04-05T05:22:33.736609+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3027.png"
+}

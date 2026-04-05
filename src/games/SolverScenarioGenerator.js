@@ -8,6 +8,7 @@
  * from solverRanges.js.
  *
  * Level → Spot Type Mapping:
+ *   Level 1: RFI from early positions (UTG, MP, HJ) + stack depth variants
  *   Level 2: RFI from late positions (CO, BTN, SB) + stack depth variants
  *   Level 3: BB Defense (vs UTG, vs CO, vs BTN, vs SB)
  *   Level 4: 3-Bet ranges (BTN/SB/BB vs various openers)
@@ -93,6 +94,67 @@ function makeScenario({ id, level, title, description, tip, position, vsPosition
         hasMixedFrequencies: true,
         solverGenerated: true,  // Flag: this came from solver data, not hardcoded
     };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEVEL 1: RFI from Early Positions (UTG, MP/HJ) — Foundations
+// ═══════════════════════════════════════════════════════════════════════════
+// Previously hardcoded in ScenarioDatabase.js. Now generated from solver data
+// so L1 has the same mixed-frequency enrichedSolution as every other level.
+
+function generateLevel1() {
+    const scenarios = [];
+
+    // Core EP opens at 100BB — the tightest ranges, perfect for beginners
+    const earlyPositions = [
+        { pos: 'UTG', label: 'Under The Gun', desc: 'The Tightest Opening Range. Only Premium Hands.', tip: 'Focus On Pairs TT+, Broadway Suited, And Strong Offsuit Broadways.' },
+        { pos: 'MP', label: 'Middle Position', desc: 'Slightly Wider Than UTG. Add Some Suited Connectors.', tip: 'Include 66+, More Suited Ax, And K9s+.' },
+        { pos: 'HJ', label: 'Hijack', desc: 'The Widest Early Position. Transition to Late Position Opens.', tip: 'Add 55, 44, More Offsuit Broadways, And Suited Gappers.' },
+    ];
+
+    for (const { pos, label, desc, tip } of earlyPositions) {
+        const spotData = RFI[pos];
+        if (!spotData) continue;
+        scenarios.push(makeScenario({
+            id: `l1-rfi-${pos.toLowerCase()}-100bb`, level: 1,
+            title: `${label} (${pos}) Open — 100BB`,
+            description: desc, tip,
+            position: pos, stackDepth: 100, spotData, spotType: 'rfi',
+        }));
+    }
+
+    // Stack depth variants for EP — teaches that ranges change with stack depth
+    const depthVariants = [
+        { depth: 50, data: RFI_50BB, label: '50BB', desc: 'Shorter Stack Range. Tighter Than 100BB — Cut Speculative Hands.', tip: 'Cut Some Suited Connectors, Focus On High Card Strength.' },
+        { depth: 200, data: RFI_200BB, label: '200BB', desc: 'Deep Stack Range. Can Add More Speculative Hands For Implied Odds.', tip: 'Add Small Pairs And More Suited Connectors For Set-Mining And Straight Potential.' },
+    ];
+
+    for (const { depth, data, label, desc, tip } of depthVariants) {
+        for (const pos of ['UTG', 'MP']) {
+            const spotData = data?.[pos] || data?.['UTG'];
+            if (!spotData) continue;
+            scenarios.push(makeScenario({
+                id: `l1-rfi-${pos.toLowerCase()}-${depth}bb`, level: 1,
+                title: `${pos} Open — ${label}`,
+                description: `${pos} opening range at ${label} effective stacks. ${desc}`,
+                tip, position: pos, stackDepth: depth, spotData, spotType: 'rfi',
+            }));
+        }
+    }
+
+    // 20BB short-stack for UTG — crucial for tournament foundations
+    const shortStackData = RFI_20BB?.['UTG'];
+    if (shortStackData) {
+        scenarios.push(makeScenario({
+            id: 'l1-rfi-utg-20bb', level: 1,
+            title: 'UTG Open — 20BB (Short Stack)',
+            description: 'Short stack UTG range. Very tight — no implied odds for speculative hands.',
+            tip: 'At 20BB, open-shove range diverges from raise range. Focus on high-equity hands.',
+            position: 'UTG', stackDepth: 20, spotData: shortStackData, spotType: 'rfi',
+        }));
+    }
+
+    return scenarios;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -327,7 +389,7 @@ function generateLevel7() {
 let _cachedScenarios = null;
 
 /**
- * Generate all solver-accurate scenarios for levels 2-7.
+ * Generate all solver-accurate scenarios for levels 1-7.
  * Results are cached after first call.
  *
  * @returns {{ [level: number]: Array<Scenario> }}
@@ -336,6 +398,7 @@ export function generateAllSolverScenarios() {
     if (_cachedScenarios) return _cachedScenarios;
 
     _cachedScenarios = {
+        1: generateLevel1(),
         2: generateLevel2(),
         3: generateLevel3(),
         4: generateLevel4(),

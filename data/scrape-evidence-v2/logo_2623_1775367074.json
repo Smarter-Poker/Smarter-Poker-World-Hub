@@ -1,0 +1,14 @@
+{
+  "venue_id": 2623,
+  "venue_name": "Chukchansi Gold Poker Series",
+  "source_website": "https://chukchansigold.com/wp-content/uploads/2025/07/cropped-chukchansi-gold-resort-and-casino-180x180.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "6ffd441d5a7e042aef313fc2df957f0f62365c169b2c15b6896fc768cc1b99b2",
+  "image_bytes": 8738,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:31:14.672005+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "failed",
+  "cdn_url": null
+}

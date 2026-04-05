@@ -1,0 +1,14 @@
+{
+  "venue_id": 2865,
+  "venue_name": "Blue Lake Casino Casino",
+  "source_website": "https://www.bluelakecasino.com/wp-content/uploads/2023/07/cropped-blc-siteIcon-180x180.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "19814d2eb6a9851280e87e52d8962f53e0be87dcd952d9216fbc4ca2528e56f5",
+  "image_bytes": 11743,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:25:24.707272+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2865.png"
+}

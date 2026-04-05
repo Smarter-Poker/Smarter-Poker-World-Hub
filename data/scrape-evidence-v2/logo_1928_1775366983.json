@@ -1,0 +1,14 @@
+{
+  "venue_id": 1928,
+  "venue_name": "Stones Gambling Hall",
+  "source_website": "https://www.stonesgamblinghall.com/wp-content/uploads/2023/03/apple-touch-icon.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "f022aea1be908de9d85c96a95e74ec5d5510c39188e5a166ac834a92dff47a25",
+  "image_bytes": 12129,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:29:43.205851+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1928.png"
+}

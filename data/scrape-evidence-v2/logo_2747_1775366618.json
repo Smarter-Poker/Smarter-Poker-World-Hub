@@ -1,0 +1,14 @@
+{
+  "venue_id": 2747,
+  "venue_name": "Viejas Casino Poker Series",
+  "source_website": "https://viejas.com/wp-content/uploads/elementor/thumbs/MyViejas-logo-qzs2su82t2chk5t9calp0v9dsra6s61vpliwxgiooy.png",
+  "extraction_method": "img-logo-attr",
+  "image_hash": "44c53b79914d07832e9bd0c326a54a36da6c4893e62c65aa758473c6598e387e",
+  "image_bytes": 5386,
+  "image_dims": "170x77",
+  "timestamp": "2026-04-05T05:23:38.560805+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2747.png"
+}

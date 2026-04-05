@@ -1,0 +1,14 @@
+{
+  "venue_id": 2682,
+  "venue_name": "Morongo Poker Series",
+  "source_website": "https://www.morongocasinoresort.com/skins/skin-morongocasinoresortdev/assets/desktop/images/morongo-spa-resort-logo.svg",
+  "extraction_method": "img-logo-attr",
+  "image_hash": "d898bfcfc1cba84dc695f0a9ca89ea46fbf562ef711b33c6c46c377c52b6fa4d",
+  "image_bytes": 28527,
+  "image_dims": "256x256",
+  "timestamp": "2026-04-05T05:25:48.182817+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2682.png"
+}

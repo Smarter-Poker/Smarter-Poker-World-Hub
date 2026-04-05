@@ -1,0 +1,14 @@
+{
+  "venue_id": 2885,
+  "venue_name": "Seven Mile Casino Casino",
+  "source_website": "https://sevenmilecasino.com/wp-content/uploads/2020/09/cropped-SM_StarFavicon-180x180.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "0cb3990a67ca5592498158f2a5967692ffe87bb6b38bd0d8296b95b1b027bef2",
+  "image_bytes": 10523,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:29:35.071125+00:00",
+  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2885.png"
+}

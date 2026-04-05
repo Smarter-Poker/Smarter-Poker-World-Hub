@@ -37,6 +37,8 @@ import ViralGrowthModule from '../../../src/components/social/ViralGrowthModule'
 import CrewDashboard from '../../../src/components/social/CrewDashboard';
 
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), { ssr: false });
+const LiveSessionToggle = dynamic(() => import('../../../src/components/social/LiveSessionToggle'), { ssr: false });
+const LiveActivityFeed = dynamic(() => import('../../../src/components/social/LiveActivityFeed'), { ssr: false });
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -2052,6 +2054,20 @@ export default function UserProfilePage() {
                             {!isOwnProfile && currentUser && profile && (
                                 <div style={{ marginBottom: 16 }}>
                                     <PlayerNotes targetPlayerId={profile.id} targetPlayerName={profile.username} />
+                                </div>
+                            )}
+
+                            {/* Live Session Toggle (Own Profile Only) */}
+                            {isOwnProfile && currentUser && (
+                                <div style={{ marginBottom: 16 }}>
+                                    <LiveSessionToggle currentUser={currentUser} />
+                                </div>
+                            )}
+
+                            {/* Live Activity Feed — Friends Currently Playing */}
+                            {currentUser && (
+                                <div style={{ marginBottom: 16 }}>
+                                    <LiveActivityFeed currentUser={currentUser} />
                                 </div>
                             )}
 

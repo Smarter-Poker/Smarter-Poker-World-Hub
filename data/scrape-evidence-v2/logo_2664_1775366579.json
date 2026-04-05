@@ -1,0 +1,14 @@
+{
+  "venue_id": 2664,
+  "venue_name": "Talking Stick Poker Series",
+  "source_website": "https://www.talkingstickresort.com/media/553ooi3k/tsr-152_152.png?anchor=center&amp;mode=crop&amp;width=152&amp;height=152",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "bf08410c461adb1c1448cbf22877ae2dd56df455d24d545392ddbab8513731f5",
+  "image_bytes": 27343,
+  "image_dims": "152x152",
+  "timestamp": "2026-04-05T05:22:59.435914+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2664.png"
+}

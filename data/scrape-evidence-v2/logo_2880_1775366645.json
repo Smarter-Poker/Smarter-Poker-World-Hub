@@ -1,0 +1,14 @@
+{
+  "venue_id": 2880,
+  "venue_name": "Outlaws Card Parlour",
+  "source_website": "https://static.wixstatic.com/media/56aa7b_3129aa9da2134063adfd3a7fc4043e2f%7Emv2.png/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/56aa7b_3129aa9da2134063adfd3a7fc4043e2f%7Emv2.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "e1af6891a4af812297eafda0fbca83b285a0a4a31f01b806ccf45d7df952d872",
+  "image_bytes": 47624,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-05T05:24:05.539353+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2880.png"
+}

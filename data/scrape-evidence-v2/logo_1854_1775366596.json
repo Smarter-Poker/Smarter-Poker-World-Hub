@@ -1,0 +1,14 @@
+{
+  "venue_id": 1854,
+  "venue_name": "Casino Del Sol",
+  "source_website": "https://www.casinodelsol.com/themes/custom/casinodelsol/images/logo-sticky.gif",
+  "extraction_method": "img-logo-attr",
+  "image_hash": "5934aa412f36564916c64239a45684b10974d402965fc50a2765622f07919393",
+  "image_bytes": 97261,
+  "image_dims": "689x327",
+  "timestamp": "2026-04-05T05:23:16.603730+00:00",
+  "batch_id": "eb96e15a-1a17-4bd0-b3c0-be8a45be869c",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1854.png"
+}
