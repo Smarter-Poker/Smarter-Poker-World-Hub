@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T08:22:07.702Z",
+  "updated_at": "2026-04-05T08:25:35.891Z",
   "total": 677,
   "venues": [
     {
@@ -7876,7 +7876,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2347.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2347.jpg"
     },
     {
       "id": 2345,
@@ -8096,7 +8096,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3060.jpg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3060.png"
     },
     {
       "id": 3061,
