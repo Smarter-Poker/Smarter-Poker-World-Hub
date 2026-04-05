@@ -137,7 +137,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
             pioStackDepth: stackDepth,
             label: filters,
         });
-    }, [gameType, position, villainPosition, actionScenario, stackDepth, street, handClass, questionsCount, difficultyMode, timerEnabled, timerSeconds, onStart]);
+    }, [gameType, position, villainPosition, actionScenario, stackDepth, street, spotType, boardTexture, handClass, questionsCount, difficultyMode, timerEnabled, timerSeconds, onStart]);
 
     if (!isOpen) return null;
 
@@ -485,6 +485,12 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             </span>
                             {actionScenario !== 'any' && (
                                 <span style={styles.summaryBadge}>{actionScenario}</span>
+                            )}
+                            {spotType !== 'any' && (
+                                <span style={styles.summaryBadge}>{spotType}</span>
+                            )}
+                            {boardTexture !== 'any' && (
+                                <span style={styles.summaryBadge}>{boardTexture}</span>
                             )}
                             <span style={styles.summaryBadge}>
                                 {stackDepth} BB

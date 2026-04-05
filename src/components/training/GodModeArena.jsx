@@ -37,6 +37,7 @@ import AchievementToast from './AchievementToast';
 import { checkAllAchievements } from './utils/achievementChecker';
 // ═══ PHASE 20: EV Graph + GTO Deviation Heatmap ═══
 import EVGraph from './EVGraph';
+import EVLossTracker from './EVLossTracker';
 import GTODeviationHeatmap from './GTODeviationHeatmap';
 // ═══ PHASE 21: Study Streak Map + Ghost Replay ═══
 import { StudyStreakMapAuto } from './StudyStreakMap';
@@ -2681,8 +2682,8 @@ function GodModeArenaInner({
                         {/* F14: ACCURACY BY POSITION CHART */}
                         <AccuracyByPositionChart handHistory={handHistory} />
 
-                        {/* F4: EV LOSS GRAPH */}
-                        <EVLossGraph handHistory={handHistory} />
+                        {/* F4: EV LOSS TRACKER — Comprehensive EV analysis */}
+                        <EVLossTracker handHistory={handHistory} />
 
                         {/* F5: MIXED STRATEGY ADHERENCE */}
                         {mixedStrategyScore !== null && (
