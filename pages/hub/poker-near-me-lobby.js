@@ -2354,7 +2354,7 @@ export default function PokerNearMeLobby() {
       <div className="pnm-lobby-page">
         {/* Universal header */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}>
-          <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onSettingsClick={() => setMenuOpen(true)} />
+          <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
         </div>
 
         {/* Hamburger menu */}
