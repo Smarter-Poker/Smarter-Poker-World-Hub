@@ -1807,49 +1807,6 @@
       ],
       "series_2026": []
     },
-    "BPO": {
-      "tour_code": "BPO",
-      "tour_name": "Bar Poker Open",
-      "tour_type": "grassroots",
-      "priority": 3,
-      "official_website": "https://barpokeropen.com",
-      "source_urls": {
-        "primary": "https://barpokeropen.com/events/",
-        "championship": "https://barpokeropen.com/championship/"
-      },
-      "scrape_config": {
-        "method": "puppeteer"
-      },
-      "refresh_interval_days": 7,
-      "typical_buyins": {
-        "min": 0,
-        "max": 500,
-        "main_event": 0
-      },
-      "regions": [
-        "US"
-      ],
-      "headquarters": "Las Vegas, NV",
-      "established": 2006,
-      "notes": "Free-to-qualify league. Players earn seats through local bar poker leagues across the US. $400K+ prize pool at Vegas Championship.",
-      "stops_2026": [
-        {
-          "name": "BPO Florida World Championship",
-          "venue": "The Poker Room at PBKC",
-          "location": "West Palm Beach, FL",
-          "dates": "Mar 6 - Mar 9",
-          "buyin": 0
-        },
-        {
-          "name": "BPO Vegas World Championship",
-          "venue": "Golden Nugget",
-          "location": "Las Vegas, NV",
-          "dates": "Jun 7 - Jun 12",
-          "buyin": 0
-        }
-      ],
-      "series_2026": []
-    },
     "FPN": {
       "tour_code": "FPN",
       "tour_name": "Free Poker Network",
@@ -2058,7 +2015,7 @@
       "headquarters": "Miami, FL",
       "established": 1990,
       "notes": "Card Player Poker Tour. Previously known as Card Player Cruises.",
-      "is_active": false
+      "is_active": true
     },
     "EPT": {
       "tour_code": "EPT",
@@ -2085,7 +2042,7 @@
       ],
       "headquarters": "Isle of Man",
       "established": 2004,
-      "notes": "REMOVED — Non-US tour. PokerStars owned. Premier European tour."
+      "notes": "REMOVED \u2014 Non-US tour. PokerStars owned. Premier European tour."
     },
     "NAPT": {
       "tour_code": "NAPT",
@@ -2350,7 +2307,7 @@
       ],
       "headquarters": "Manila, Philippines",
       "established": 2008,
-      "notes": "REMOVED — Non-US tour. Asian circuit. Manila, Macau, Korea, Vietnam stops."
+      "notes": "REMOVED \u2014 Non-US tour. Asian circuit. Manila, Macau, Korea, Vietnam stops."
     },
     "HPT": {
       "tour_code": "HPT",

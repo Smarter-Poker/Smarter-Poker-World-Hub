@@ -224,7 +224,7 @@ export default function PokerNearMePage() {
         activeTab: 'venues',
         activeEventTab: 'daily',
         activeMoreTab: 'overview',
-        sortBy: 'default',
+        sortBy: 'distance',
         seriesViewMode: 'grid',
         venueViewMode: 'list'
     });
@@ -442,7 +442,9 @@ export default function PokerNearMePage() {
                 const saved = localStorage.getItem('poker-near-me-search-filters');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    return { ...parsed, radius: 50 }; // Hard rule: always default to 50 miles
+                    // Reverted: We do not maliciously override radius here because it breaks Back-Button persistence.
+                    // The 50-mile enforcement on entry is now handled upstream via Lobby initialization.
+                    return { ...parsed };
                 }
             } catch (e) { console.error(e); }
         }
@@ -469,8 +471,10 @@ export default function PokerNearMePage() {
         if (typeof window !== 'undefined') {
             localStorage.setItem('poker-near-me-search-filters', JSON.stringify(filters));
             window.dispatchEvent(new CustomEvent('poker-near-me-filters-sync', { detail: filters }));
+            // Fulfill hard rule: Wire Real-Time pushes to the Global Event Bus 
+            if (bus && bus.emit) bus.emit('PNM_FILTERS_UPDATED', filters);
         }
-    }, [filters]);
+    }, [filters, bus]);
 
     const filtersRef = useRef(filters);
     filtersRef.current = filters;

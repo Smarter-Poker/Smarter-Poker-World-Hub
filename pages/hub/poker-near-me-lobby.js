@@ -155,10 +155,34 @@ export default function PokerNearMeLobby() {
   // NOTE: useTrainingBus returns emit-only helpers — it does NOT support .on() subscriptions.
   //       All listeners MUST use eventBus.on() directly.
   useEffect(() => {
+    // --- Semantic Entry Reset ---
+    // When hitting the lobby natively, enforce the default 50-mile radius to meet user requirements
+    try {
+        const savedStr = localStorage.getItem('poker-near-me-search-filters');
+        let parsed = savedStr ? JSON.parse(savedStr) : {};
+        parsed.radius = 50;
+        localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
+        // Force Lobby's default pod memory to 50 immediately
+        setFilters(prev => ({ ...prev, nmRadius: '50' }));
+    } catch (e) {
+        console.warn('Failed to reset radius on entry');
+    }
+
     const unsubFav = eventBus.on('venue:favorite', (event) => {
       const venueId = event?.payload?.venueId || event?.venueId;
       if (venueId) setFavorites(prev => ({ ...prev, [venueId]: true }));
     });
+    
+    const unsubFilters = eventBus.on('PNM_FILTERS_UPDATED', (event) => {
+      const activeFilters = event?.payload || event;
+      if (activeFilters && activeFilters.radius) {
+         setFilters(prev => ({ 
+             ...prev, 
+             nmRadius: String(activeFilters.radius) === 'any' ? 'any' : String(activeFilters.radius)
+         }));
+      }
+    });
+
     const unsubUnfav = eventBus.on('venue:unfavorite', (event) => {
       const venueId = event?.payload?.venueId || event?.venueId;
       if (venueId) {
@@ -172,6 +196,7 @@ export default function PokerNearMeLobby() {
     return () => {
       if (typeof unsubFav === 'function') unsubFav();
       if (typeof unsubUnfav === 'function') unsubUnfav();
+      if (typeof unsubFilters === 'function') unsubFilters();
     };
   }, []);
 
@@ -211,7 +236,7 @@ export default function PokerNearMeLobby() {
   const [showPanel, setShowPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [sortBy, setSortBy] = useState('trust');
+  const [sortBy, setSortBy] = useState('distance');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({});
   const [citySuggestions, setCitySuggestions] = useState([]);

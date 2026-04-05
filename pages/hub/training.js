@@ -84,6 +84,8 @@ import { trainingSounds } from '../../src/utils/trainingSounds';
 import GamificationService from '../../services/GamificationService';
 import AchievementToast from '../../src/components/training/AchievementToast';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
+import { getCoachingTip, shareResult } from '../../src/utils/shareCard';
+import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
 // DailyBonusWidget removed per UI overhaul
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
@@ -680,6 +682,12 @@ export default function TrainingPage() {
     // User ID for authenticated features
     const [userId, setUserId] = useState(null);
     const [sessionHistory, setSessionHistory] = useState([]);
+
+    // Start leak analyzer for Jarvis integration
+    useEffect(() => {
+        leakAnalyzer.start();
+        if (userId) leakAnalyzer.setUserId(userId);
+    }, [userId]);
 
     // Real-time notifications for achievements/leaderboard changes
     const {
@@ -1462,6 +1470,32 @@ export default function TrainingPage() {
                                                         })}
                                                     </div>
                                                 )}
+                                                {/* Coaching Tip */}
+                                                <div style={{
+                                                    background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)',
+                                                    borderRadius: 10, padding: '12px 14px', marginBottom: 12, textAlign: 'left'
+                                                }}>
+                                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
+                                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
+                                                </div>
+
+                                                {/* Share Result */}
+                                                <button onClick={() => shareResult({
+                                                    gameTitle: 'GTO TRAINING',
+                                                    grade,
+                                                    score: recent.length,
+                                                    scoreLabel: 'HANDS',
+                                                    stats: [
+                                                        { label: 'Accuracy', value: accuracy + '%' },
+                                                        { label: 'Mistakes', value: mistakes.length },
+                                                        { label: 'EV Loss', value: totalEV > 0 ? `-${totalEV.toFixed(1)}bb` : '0.0bb' },
+                                                    ],
+                                                    color: '#22C55E',
+                                                })} style={{
+                                                    width: '100%', padding: '10px 0', fontSize: 12, fontWeight: 600,
+                                                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                                                    borderRadius: 8, color: 'rgba(255,255,255,0.4)', cursor: 'pointer', marginBottom: 12
+                                                }}>{'\uD83D\uDCF4'} Share Session</button>
                                             </>
                                         );
                                     })()}

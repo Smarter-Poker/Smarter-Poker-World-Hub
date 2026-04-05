@@ -213,7 +213,7 @@ export default function LiveGamesFeed({
     const effectiveLocation = userLocation || restoredLocation;
     
     const [filterState, setFilterState] = useState(savedFilters.filterState || 'all');
-    const [filterRadius, setFilterRadius] = useState(savedFilters.filterRadius || '50');
+    const [filterRadius, setFilterRadius] = useState(!savedFilters.filterRadius || savedFilters.filterRadius === 'any' ? '50' : savedFilters.filterRadius);
     const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'tables');
     const [filterGameType, setFilterGameType] = useState(savedFilters.filterGameType || 'all');
     const [filterStakes, setFilterStakes] = useState(savedFilters.filterStakes || 'any');
@@ -523,7 +523,7 @@ export default function LiveGamesFeed({
     };
 
     const handleResetFilters = () => {
-        setFilterRadius('any');
+        setFilterRadius('50');
         setFilterState('all');
         setFilterGameType('all');
         setFilterStakes('any');
@@ -757,7 +757,15 @@ export default function LiveGamesFeed({
 
                     {/* Game Breakdown — COLLAPSIBLE (flex-grow pushes rest to bottom) */}
                     <div style={{ flex: 1 }}>
-                        {renderTableBreakdown(v.bravo_slug || v.id || `venue-${index}`, v.games)}
+                        {(!v.games || v.games.length === 0) ? (
+                            <div style={{ padding: '8px 0', marginTop: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(212,168,83,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    STAKES PLAYED $1/$2 $2/$5
+                                </span>
+                            </div>
+                        ) : (
+                            renderTableBreakdown(v.bravo_slug || v.id || `venue-${index}`, v.games)
+                        )}
                     </div>
 
                     {/* === ACTION BAR === */}

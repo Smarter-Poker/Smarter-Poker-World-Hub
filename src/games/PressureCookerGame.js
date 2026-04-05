@@ -8,6 +8,8 @@ import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
+import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
+import CircularTimer from '../components/training/CircularTimer';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -167,21 +169,27 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
 
             {(gameState === 'playing' || gameState === 'revealed') && currentHand && (
                 <>
-                    <div style={{ fontSize: 72, fontFamily: 'Orbitron', fontWeight: 900, color: timerColor, textShadow: isLowTime ? '0 0 30px rgba(255,68,68,0.8)' : 'none', animation: isLowTime ? 'pulse 0.5s infinite' : 'none', marginBottom: 20 }}>{timerSec}s</div>
-                    <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, marginBottom: 20, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${(handsCompleted / handsRequired) * 100}%`, background: '#00ff88', transition: 'width 0.3s ease' }} />
-                    </div>
-                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>{currentHand.scenario.title}</div>
-                    <div style={{
-                        width: 180, height: 120,
-                        background: isLowTime ? 'linear-gradient(145deg, #3a1a1a, #2e1616)' : 'linear-gradient(145deg, #1a1a2e, #16213e)',
-                        border: `3px solid ${gameState === 'revealed' ? (userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444') : timerColor}`,
-                        borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        margin: '0 auto 20px', boxShadow: isLowTime ? '0 0 40px rgba(255,68,68,0.4)' : '0 10px 40px rgba(0,0,0,0.5)',
-                    }}>
-                        <div style={{ fontSize: 42, fontFamily: 'Orbitron', fontWeight: 900, color: '#fff' }}>{currentHand.hand}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{currentHand.hand.length === 2 ? 'Pair' : currentHand.hand.endsWith('s') ? 'Suited' : 'Offsuit'}</div>
-                    </div>
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>{currentHand.scenario.title}</div>
+                    <CircularTimer
+                        percent={(timeRemaining / 30000) * 100}
+                        color={timerColor}
+                        size={220}
+                        thickness={7}
+                        isLow={isLowTime}
+                    >
+                        <div style={{ fontSize: 14, fontFamily: 'Orbitron', fontWeight: 700, color: timerColor, marginBottom: 4 }}>{timerSec}s</div>
+                        <div style={{
+                            width: 140, height: 90,
+                            background: isLowTime ? 'linear-gradient(145deg, #3a1a1a, #2e1616)' : 'linear-gradient(145deg, #1a1a2e, #16213e)',
+                            border: `3px solid ${gameState === 'revealed' ? (userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444') : timerColor}`,
+                            borderRadius: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: isLowTime ? '0 0 40px rgba(255,68,68,0.4)' : '0 10px 40px rgba(0,0,0,0.5)',
+                        }}>
+                            <div style={{ fontSize: 36, fontFamily: 'Orbitron', fontWeight: 900, color: '#fff' }}>{currentHand.hand}</div>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{currentHand.hand.length === 2 ? 'Pair' : currentHand.hand.endsWith('s') ? 'Suited' : 'Offsuit'}</div>
+                        </div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{handsCompleted}/{handsRequired} hands</div>
+                    </CircularTimer>
                     {gameState === 'revealed' && (
                         <div style={{ marginBottom: 16 }}>
                             <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
@@ -255,6 +263,9 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                                 <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
                             </div>
                         </div>
+
+                        {/* Position Weakness Heatmap */}
+                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsCompleted} />
 
                         {/* Weakness Analysis */}
                         {mistakesRef.current.length > 0 && (() => {
@@ -389,6 +400,9 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                                 <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
                             </div>
                         </div>
+
+                        {/* Position Weakness Heatmap */}
+                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsCompleted} />
 
                         {/* Weakness Analysis */}
                         {mistakesRef.current.length > 0 && (() => {

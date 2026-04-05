@@ -56,10 +56,17 @@ export default function FilterPanel({
         gameType: savedFilters.gameType || 'all',
         stakes: savedFilters.stakes || 'all',
         venueType: savedFilters.venueType || 'all',
-        radius: 50, // Hard rule: always default to 50 miles, ignore saved radius
+        radius: savedFilters.radius || 50,
         hasLiveGames: savedFilters.hasLiveGames || false,
         hasTournaments: savedFilters.hasTournaments || false
     });
+
+    // Sync from parent if modified externally (e.g., via EventBus)
+    useEffect(() => {
+        if (filters && JSON.stringify(filters) !== JSON.stringify(localFilters)) {
+            setLocalFilters(filters);
+        }
+    }, [filters]);
 
     // Persist filters on change
     useEffect(() => {

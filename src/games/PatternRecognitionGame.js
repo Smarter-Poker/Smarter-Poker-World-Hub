@@ -8,6 +8,7 @@ import { SoundEngine } from './GameEngine';
 import { getRandomScenario, RANKS } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
+import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -201,6 +202,9 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                                 <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
                             </div>
                         </div>
+
+                        {/* Position Weakness Heatmap */}
+                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={totalRounds} />
 
                         {/* Weakness Analysis */}
                         {mistakesRef.current.length > 0 && (() => {

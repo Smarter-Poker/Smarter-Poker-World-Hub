@@ -38,12 +38,12 @@ const TOUR_LOGOS = {
     RGPS: '/images/tours/rgps.png',
     PGT: '/images/tours/pgt.jpg',
     NAPT: '/images/tours/napt.png',
-    BPO: '/images/tours/bpo.png',
     ROUGHRIDER: '/images/tours/roughrider.png',
     FPN: '/images/tours/fpn.png',
     LIPS: '/images/tours/lips.png',
     PAT: '/images/tours/pat.jpg',
     GCPT: '/images/tours/gcpt.jpg',
+    CPPT: '/images/tours/cppt.png',
     // Stationary venue series
     VENETIAN: '/images/tours/venetian.png',
     WYNN: '/images/tours/wynn.png',

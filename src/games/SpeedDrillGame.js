@@ -9,6 +9,7 @@ import { getRandomScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
+import CircularTimer from '../components/training/CircularTimer';
 import gameSessionService from '../services/GameSessionService';
 // confetti loaded lazily
 let _confetti = null;
@@ -183,21 +184,26 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16 }}>
                         {[0, 1, 2].map(i => (<span key={i} style={{ fontSize: 24, opacity: i < lives ? 1 : 0.3 }}></span>))}
                     </div>
-                    <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4, marginBottom: 20, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${timerPercent}%`, background: timerColor, transition: 'width 0.05s linear' }} />
-                    </div>
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>{currentHand.scenario.title}</div>
+                    <CircularTimer
+                        percent={timerPercent}
+                        color={timerColor}
+                        size={200}
+                        thickness={6}
+                        isLow={timerPercent < 25}
+                    >
                     <div style={{
-                        width: 180, height: 120, background: 'linear-gradient(145deg, #1a1a2e, #16213e)',
+                        width: 140, height: 100, background: 'linear-gradient(145deg, #1a1a2e, #16213e)',
                         border: `3px solid ${gameState === 'revealed' ? (userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444') : '#00D4FF'}`,
                         borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        margin: '0 auto 20px', boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
                     }}>
                         <div style={{ fontSize: 42, fontFamily: 'Orbitron', fontWeight: 900, color: '#fff' }}>{currentHand.hand}</div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
                             {currentHand.hand.length === 2 ? 'Pair' : currentHand.hand.endsWith('s') ? 'Suited' : 'Offsuit'}
                         </div>
                     </div>
+                    </CircularTimer>
                     {gameState === 'revealed' && (
                         <div style={{ marginBottom: 16 }}>
                             <div style={{ fontSize: 18, fontWeight: 700, color: userAnswer === currentHand.correctAction ? '#00ff88' : '#ff4444', marginBottom: 12 }}>
@@ -266,6 +272,9 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                                 <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
                             </div>
                         </div>
+
+                        {/* Position Weakness Heatmap */}
+                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={handsPlayed} />
 
                         {/* Weakness Analysis */}
                         {mistakesRef.current.length > 0 && (() => {

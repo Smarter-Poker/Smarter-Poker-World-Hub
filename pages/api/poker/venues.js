@@ -455,7 +455,9 @@ export default async function handler(req, res) {
                       const { data: socialPages } = await spQuery.limit(200);
                       if (socialPages && socialPages.length > 0) {
                           const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                          const todayIdx = new Date().getDay();
+                          // Extract day in US Eastern Time to prevent Vercel UTC drift
+                          const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+                          const todayIdx = new Date(localCurrentTime).getDay();
                           const todayKey = DAYS_ORDER[todayIdx];
 
                           // --- Batch tournament detection ---
@@ -814,7 +816,9 @@ export default async function handler(req, res) {
           // "REMOVE ANY AND ALL DUPLICATES... SHOWS RIVERS CASINO TWICE"
           
           if (venues.length > 0) {
-              const todayIdx = new Date().getDay();
+              // Decouple node execution time from UTC to standardize "running today" on US timelines
+              const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+              const todayIdx = new Date(localCurrentTime).getDay();
               const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
               const todayKey = DAYS_ORDER[todayIdx];
               let activeSeriesIds = new Set();
