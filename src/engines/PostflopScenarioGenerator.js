@@ -30,6 +30,12 @@ import {
     getRiverStrategy,
     getFacingBetStrategy,
     getPostflopStrategy,
+    getEnhancedCbetStrategy,
+    getEnhancedTurnStrategy,
+    getEnhancedRiverStrategy,
+    getEnhancedFacingBetStrategy,
+    classifyHandClass,
+    classifyBoardTexture,
     BET_SIZES,
     ACTIONS,
 } from './PostflopStrategyEngine';
@@ -144,14 +150,16 @@ export function generateLevel8() {
             const madeHand = classifyMadeHand(heroCards, board);
             const draws = classifyDraws(heroCards, board);
 
-            // Get GTO strategy
+            // Get GTO strategy — use ENHANCED solver-data lookup
             let strategy;
             if (matchup.isPFR) {
-                strategy = getCbetStrategy(board, matchup.posContext, heroCards);
+                strategy = getEnhancedCbetStrategy(board, matchup.posContext, heroCards);
             } else {
                 // As defender, the primary decision is check-raise vs call vs fold
                 strategy = getCheckRaiseStrategy(board, heroCards, 0.33);
             }
+            // Enrich with hand class for granular training
+            const handClass = classifyHandClass(heroCards, board);
 
             // Build the options the player will see
             const options = buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards);
@@ -178,13 +186,17 @@ export function generateLevel8() {
                 stackDepth: 100,
                 spotType: matchup.isPFR ? 'cbet' : 'check_raise',
                 boardTexture: boardAnalysis,
+                boardTextureKey: strategy.boardTexture || classifyBoardTexture(boardAnalysis),
+                handClass,
                 madeHand,
                 draws,
                 options,
                 correctAction,
                 strategy,
+                sizeDistribution: strategy.sizeDistribution || null,
                 solverGenerated: true,
                 hasMixedFrequencies: true,
+                isEnhanced: strategy.isEnhanced || false,
             });
 
             id++;
@@ -295,7 +307,9 @@ export function generateLevel9() {
             const draws = classifyDraws(heroCards, board);
 
             // Assume hero c-bet flop (most common turn barrel scenario)
-            const strategy = getTurnStrategy(heroCards, board, 'bet', matchup.posContext);
+            // Use ENHANCED solver-data lookup for turn barrel
+            const strategy = getEnhancedTurnStrategy(heroCards, board, 'bet', matchup.posContext);
+            const handClass = classifyHandClass(heroCards, board);
 
             const options = [
                 {
@@ -338,14 +352,17 @@ export function generateLevel9() {
                 stackDepth: 100,
                 spotType: 'turn_barrel',
                 boardTexture: boardAnalysis,
+                handClass,
                 madeHand,
                 draws,
                 options,
                 correctAction: strategy.action,
                 strategy,
+                sizeDistribution: strategy.sizeDistribution || null,
                 flopAction: 'bet',
                 solverGenerated: true,
                 hasMixedFrequencies: true,
+                isEnhanced: strategy.isEnhanced || false,
             });
 
             id++;
@@ -387,7 +404,9 @@ export function generateLevel10() {
             // Mix of scenarios: some where hero was aggressor, some where hero checked
             const prevAction = id % 3 === 0 ? 'check' : 'bet';
 
-            const strategy = getRiverStrategy(heroCards, board, matchup.posContext, prevAction);
+            // Use ENHANCED solver-data lookup for river
+            const strategy = getEnhancedRiverStrategy(heroCards, board, matchup.posContext, prevAction);
+            const handClass = classifyHandClass(heroCards, board);
 
             const options = buildRiverOptions(strategy, madeHand, prevAction);
 
@@ -408,13 +427,17 @@ export function generateLevel10() {
                 stackDepth: 100,
                 spotType: `river_${strategy.category}`,
                 boardTexture: boardAnalysis,
+                boardState: strategy.boardState || null,
+                handClass,
                 madeHand,
                 options,
                 correctAction: strategy.action,
                 strategy,
+                sizeDistribution: strategy.sizeDistribution || null,
                 prevAction,
                 solverGenerated: true,
                 hasMixedFrequencies: true,
+                isEnhanced: strategy.isEnhanced || false,
             });
 
             id++;
