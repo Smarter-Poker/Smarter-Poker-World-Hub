@@ -326,6 +326,14 @@ export default function VenueDetailPage() {
   const [waitlistData, setWaitlistData] = useState([]);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
 
+  // Game Schedule state (per-day cash game listings)
+  const [gameSchedule, setGameSchedule] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [showScheduleEditor, setShowScheduleEditor] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({ day_of_week: 'monday', game_name: '', start_time: '', end_time: '', notes: '' });
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleDeleting, setScheduleDeleting] = useState(null);
+
   // Get or create anonymous user ID for tracking
   function getAnonymousUserId() {
     try {
@@ -570,6 +578,76 @@ export default function VenueDetailPage() {
     if (!id) return;
     fetchClaimStatus();
   }, [id]);
+
+  // Fetch game schedules
+  var fetchGameSchedule = async function () {
+    setScheduleLoading(true);
+    try {
+      var res = await fetch('/api/poker/venue-schedules?venue_id=' + id);
+      if (res.ok) {
+        var json = await res.json();
+        if (json.success && json.total_entries > 0) {
+          setGameSchedule(json.schedule);
+        } else {
+          setGameSchedule(null);
+        }
+      }
+    } catch (e) { /* silent */ }
+    setScheduleLoading(false);
+  };
+
+  useEffect(function () {
+    if (!id) return;
+    fetchGameSchedule();
+  }, [id]);
+
+  var handleAddScheduleEntry = async function (e) {
+    e.preventDefault();
+    if (!scheduleForm.game_name.trim()) return;
+    setScheduleSaving(true);
+    try {
+      var authUser = getAuthUser();
+      var token = null;
+      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch {}
+      if (!token) { setScheduleSaving(false); return; }
+      var res = await fetch('/api/poker/venue-schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+          venue_id: parseInt(id, 10),
+          day_of_week: scheduleForm.day_of_week,
+          game_name: scheduleForm.game_name.trim(),
+          start_time: scheduleForm.start_time.trim() || null,
+          end_time: scheduleForm.end_time.trim() || null,
+          notes: scheduleForm.notes.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        setScheduleForm({ day_of_week: scheduleForm.day_of_week, game_name: '', start_time: '', end_time: '', notes: '' });
+        await fetchGameSchedule();
+      }
+    } catch (err) { /* silent */ }
+    setScheduleSaving(false);
+  };
+
+  var handleDeleteScheduleEntry = async function (entryId) {
+    setScheduleDeleting(entryId);
+    try {
+      var token = null;
+      try { token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token; } catch {}
+      if (!token) { setScheduleDeleting(null); return; }
+      await fetch('/api/poker/venue-schedules?id=' + entryId + '&venue_id=' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+      await fetchGameSchedule();
+    } catch (err) { /* silent */ }
+    setScheduleDeleting(null);
+  };
+
+  var SCHEDULE_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  var SCHEDULE_DAY_LABELS = { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' };
+  var todayScheduleKey = SCHEDULE_DAYS[(new Date().getDay() + 6) % 7];
 
   // Fetch venue promotions
   useEffect(function () {
@@ -1472,6 +1550,164 @@ export default function VenueDetailPage() {
                 </div>
               </div>
             </section>
+
+            {/* ============================================ */}
+            {/* CASH GAME SCHEDULE SECTION                  */}
+            {/* ============================================ */}
+            {(gameSchedule || claimStatus === 'approved') && (
+              <section className="cash-game-schedule-section">
+                <div className="section-header-row">
+                  <h2 className="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    Cash Game Schedule
+                  </h2>
+                  {claimStatus === 'approved' && (
+                    <button
+                      className="section-action-btn"
+                      onClick={function () { setShowScheduleEditor(!showScheduleEditor); }}
+                    >
+                      {showScheduleEditor ? 'Done Editing' : 'Manage Schedule'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Schedule Display (Read-Only) */}
+                {gameSchedule && (
+                  <div className="game-schedule-grid">
+                    {SCHEDULE_DAYS.map(function (day) {
+                      var entries = gameSchedule[day] || [];
+                      if (entries.length === 0 && !showScheduleEditor) return null;
+                      var isToday = day === todayScheduleKey;
+                      return (
+                        <div key={day} className={'game-schedule-day' + (isToday ? ' today' : '') + (entries.length === 0 ? ' empty' : '')}>
+                          <div className="game-schedule-day-header">
+                            <h3 className="game-schedule-day-name">{SCHEDULE_DAY_LABELS[day]}</h3>
+                            {isToday && <span className="today-badge">Today</span>}
+                            {entries.length > 0 && <span className="game-schedule-day-count">{entries.length} game{entries.length !== 1 ? 's' : ''}</span>}
+                          </div>
+                          {entries.length > 0 ? (
+                            <div className="game-schedule-entries">
+                              {entries.map(function (entry) {
+                                return (
+                                  <div key={entry.id} className="game-schedule-entry">
+                                    <div className="game-schedule-entry-main">
+                                      <span className="game-schedule-game-name">{entry.game_name}</span>
+                                      {(entry.start_time || entry.end_time) && (
+                                        <span className="game-schedule-time">
+                                          {entry.start_time}{entry.start_time && entry.end_time ? ' - ' : ''}{entry.end_time}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {entry.notes && <span className="game-schedule-notes">{entry.notes}</span>}
+                                    {showScheduleEditor && claimStatus === 'approved' && (
+                                      <button
+                                        className="game-schedule-delete-btn"
+                                        onClick={function () { handleDeleteScheduleEntry(entry.id); }}
+                                        disabled={scheduleDeleting === entry.id}
+                                      >
+                                        {scheduleDeleting === entry.id ? '...' : 'Remove'}
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="game-schedule-no-games">No games scheduled</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* No schedule yet — empty state */}
+                {!gameSchedule && !showScheduleEditor && (
+                  <div className="game-schedule-empty">
+                    <p>No Cash Game Schedule Has Been Set For This Venue Yet.</p>
+                    {claimStatus === 'approved' && (
+                      <button className="section-action-btn" onClick={function () { setShowScheduleEditor(true); }}>
+                        Add Your First Game
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Schedule Editor (for claimed venue owners) */}
+                {showScheduleEditor && claimStatus === 'approved' && (
+                  <form className="game-schedule-editor" onSubmit={handleAddScheduleEntry}>
+                    <h4 className="editor-subtitle">Add Game To Schedule</h4>
+                    <div className="editor-row">
+                      <div className="form-group">
+                        <label className="form-label">Day</label>
+                        <select
+                          className="form-select"
+                          value={scheduleForm.day_of_week}
+                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { day_of_week: e.target.value }); }); }}
+                        >
+                          {SCHEDULE_DAYS.map(function (d) { return <option key={d} value={d}>{SCHEDULE_DAY_LABELS[d]}</option>; })}
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ flex: 2 }}>
+                        <label className="form-label">Game</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={scheduleForm.game_name}
+                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { game_name: e.target.value }); }); }}
+                          placeholder="e.g. 1/2 NLH, 2/5 PLO, 5/10 Mixed"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="editor-row">
+                      <div className="form-group">
+                        <label className="form-label">Start Time</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={scheduleForm.start_time}
+                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { start_time: e.target.value }); }); }}
+                          placeholder="e.g. 10:00 AM"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">End Time</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={scheduleForm.end_time}
+                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { end_time: e.target.value }); }); }}
+                          placeholder="e.g. Close"
+                        />
+                      </div>
+                      <div className="form-group" style={{ flex: 2 }}>
+                        <label className="form-label">Notes</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={scheduleForm.notes}
+                          onChange={function (e) { setScheduleForm(function (prev) { return Object.assign({}, prev, { notes: e.target.value }); }); }}
+                          placeholder="e.g. Must-move, runs if 6+ interested"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="schedule-add-btn"
+                      disabled={scheduleSaving || !scheduleForm.game_name.trim()}
+                    >
+                      {scheduleSaving ? 'Adding...' : 'Add To Schedule'}
+                    </button>
+                  </form>
+                )}
+              </section>
+            )}
 
             {/* ============================================ */}
             {/* MAP & DIRECTIONS SECTION                     */}
@@ -2463,6 +2699,166 @@ export default function VenueDetailPage() {
           --neon-cyan-glow: rgba(0, 212, 255, 0.6);
           --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
           --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+        }
+
+        /* ═══ CASH GAME SCHEDULE ═══ */
+        .cash-game-schedule-section {
+          background: var(--metal-bg, #0d1117);
+          border: 1px solid rgba(0, 212, 255, 0.12);
+          border-radius: 16px;
+          padding: 20px;
+          margin: 0 16px 20px;
+        }
+        .game-schedule-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+        }
+        .game-schedule-day {
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 12px;
+          padding: 12px 16px;
+          transition: all 0.2s;
+        }
+        .game-schedule-day.today {
+          border-color: rgba(0, 212, 255, 0.3);
+          background: rgba(0, 212, 255, 0.04);
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.06);
+        }
+        .game-schedule-day.empty {
+          opacity: 0.4;
+        }
+        .game-schedule-day-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        .game-schedule-day-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #e4e8f0;
+          margin: 0;
+          text-transform: capitalize;
+        }
+        .game-schedule-day-count {
+          font-size: 11px;
+          color: rgba(200, 214, 229, 0.5);
+          font-weight: 600;
+          margin-left: auto;
+        }
+        .game-schedule-entries {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .game-schedule-entry {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          flex-wrap: wrap;
+        }
+        .game-schedule-entry-main {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex: 1;
+          min-width: 0;
+        }
+        .game-schedule-game-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #d4a853;
+          white-space: nowrap;
+        }
+        .game-schedule-time {
+          font-size: 12px;
+          color: rgba(200, 214, 229, 0.6);
+          white-space: nowrap;
+        }
+        .game-schedule-notes {
+          font-size: 11px;
+          color: rgba(200, 214, 229, 0.45);
+          font-style: italic;
+        }
+        .game-schedule-no-games {
+          font-size: 12px;
+          color: rgba(200, 214, 229, 0.3);
+          font-style: italic;
+        }
+        .game-schedule-empty {
+          text-align: center;
+          padding: 24px 16px;
+          color: rgba(200, 214, 229, 0.5);
+          font-size: 14px;
+        }
+        .game-schedule-empty p { margin: 0 0 12px; }
+        .game-schedule-delete-btn {
+          padding: 4px 10px;
+          border-radius: 6px;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.15s;
+          flex-shrink: 0;
+        }
+        .game-schedule-delete-btn:hover {
+          background: rgba(239, 68, 68, 0.2);
+          border-color: rgba(239, 68, 68, 0.5);
+        }
+        .game-schedule-editor {
+          margin-top: 16px;
+          padding: 16px;
+          background: rgba(0, 212, 255, 0.04);
+          border: 1px solid rgba(0, 212, 255, 0.15);
+          border-radius: 12px;
+        }
+        .editor-subtitle {
+          font-size: 14px;
+          font-weight: 700;
+          color: #00D4FF;
+          margin: 0 0 12px;
+        }
+        .editor-row {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 10px;
+          flex-wrap: wrap;
+        }
+        .editor-row .form-group {
+          flex: 1;
+          min-width: 120px;
+        }
+        .schedule-add-btn {
+          padding: 10px 24px;
+          border-radius: 10px;
+          border: 1px solid rgba(0, 212, 255, 0.3);
+          background: rgba(0, 212, 255, 0.12);
+          color: #00D4FF;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          width: 100%;
+        }
+        .schedule-add-btn:hover:not(:disabled) {
+          background: rgba(0, 212, 255, 0.2);
+          box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+        }
+        .schedule-add-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .venue-page {

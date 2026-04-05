@@ -21,6 +21,7 @@ import {
     BB_DEFENSE as SOLVER_BB_DEF,
     FOUR_BET as SOLVER_4BET,
     COLD_CALL as SOLVER_CC,
+    SQUEEZE as SOLVER_SQZ,
     ALL_HANDS as SOLVER_ALL_HANDS,
     getHandFrequencies as solverGetFreqs,
     getRFIByDepth,
@@ -399,47 +400,68 @@ export class DeterministicGTOEngine {
     /**
      * Generate a preflop question from local solverRanges.js data.
      * Used as fallback when PIO database has no preflop spots for this config.
+     * Covers ALL spot types: RFI, 3-Bet, BB Defense, 4-Bet, Cold Call, Squeeze.
+     * Higher levels get more complex spots (3bet, 4bet, squeeze).
      */
     generateFromLocalSolverRanges(gameConfig, level) {
         try {
-            const positions = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
-            const heroPos = positions[Math.floor(Math.random() * positions.length)];
             const stackDepth = gameConfig.pioStackDepth || 100;
 
-            // Get the appropriate range data
-            const spotData = getRFIByDepth(stackDepth, heroPos);
-            if (!spotData) return null;
+            // Build pool of available spots, weighted by difficulty level
+            const spotPool = this._buildPreflopSpotPool(level, stackDepth);
+            if (spotPool.length === 0) return null;
 
-            // Pick a random hand from ALL_HANDS
+            // Pick random spot
+            const spot = spotPool[Math.floor(Math.random() * spotPool.length)];
+            const { spotData, heroPos, villainPos, spotType, nodeType, actionLabels, contextText, questionText } = spot;
+
+            // Pick a random hand
             const hand = SOLVER_ALL_HANDS[Math.floor(Math.random() * SOLVER_ALL_HANDS.length)];
             const freqs = solverGetFreqs(spotData, hand);
 
             // Build action frequencies in engine format
+            // actionLabels maps solver keys → engine action IDs: [{ solver: 'raise', id: 'r', label: 'Raise' }, ...]
             const actions = {};
-            if (freqs.raise > 0.01) actions['r'] = freqs.raise;
-            if (freqs.fold > 0.01) actions['f'] = freqs.fold;
-
-            // Determine correct action
-            const correctAction = freqs.raise >= freqs.fold ? 'r' : 'f';
             const gtoFrequencies = {};
-            if (actions['r']) gtoFrequencies['r'] = Math.round(freqs.raise * 100);
-            if (actions['f']) gtoFrequencies['f'] = Math.round(freqs.fold * 100);
+            const options = [];
+            let correctAction = null;
+            let correctLabel = '';
+            let maxFreq = 0;
 
-            // Build rawFrequencies (per-hand matrix for range grid)
-            const rawFrequencies = {};
-            rawFrequencies['r'] = {};
-            rawFrequencies['f'] = {};
-            for (const h of SOLVER_ALL_HANDS) {
-                const hf = solverGetFreqs(spotData, h);
-                if (hf.raise > 0.01) rawFrequencies['r'][h] = hf.raise;
-                if (hf.fold > 0.01) rawFrequencies['f'][h] = hf.fold;
+            for (const { solver, id, label } of actionLabels) {
+                const freq = freqs[solver] || 0;
+                if (freq > 0.005) {
+                    actions[id] = freq;
+                    gtoFrequencies[id] = Math.round(freq * 100);
+                }
+                options.push({ id, label, frequency: Math.round(freq * 100) });
+                if (freq > maxFreq) { maxFreq = freq; correctAction = id; correctLabel = label; }
             }
 
-            // Parse hand to cards
+            // Build rawFrequencies for per-hand range grid rendering
+            const rawFrequencies = {};
+            for (const { solver, id } of actionLabels) rawFrequencies[id] = {};
+            for (const h of SOLVER_ALL_HANDS) {
+                const hf = solverGetFreqs(spotData, h);
+                for (const { solver, id } of actionLabels) {
+                    if ((hf[solver] || 0) > 0.01) rawFrequencies[id][h] = hf[solver];
+                }
+            }
+
             const heroCards = this._handNotationToCards(hand);
+            const isMixed = actionLabels.some(a => {
+                const f = freqs[a.solver] || 0;
+                return f > 0.05 && f < 0.95;
+            });
+
+            // Build explanation with all action frequencies
+            const freqParts = actionLabels
+                .filter(a => (freqs[a.solver] || 0) > 0.01)
+                .map(a => `${a.label} ${Math.round(freqs[a.solver] * 100)}%`);
+            const explanation = `${contextText}: ${hand} — ${freqParts.join(', ')}.`;
 
             return {
-                id: `local_solver_${heroPos}_${hand}_${Date.now()}`,
+                id: `local_solver_${spotType}_${heroPos}_${hand}_${Date.now()}`,
                 source: 'local_solver_ranges',
                 heroHand: hand,
                 heroCards,
@@ -448,35 +470,169 @@ export class DeterministicGTOEngine {
                     street: 'preflop',
                     board: '',
                     boardCards: [],
-                    pot: 1.5,
+                    pot: spotType === 'rfi' ? 1.5 : spotType === 'squeeze' ? 8.5 : 4.5,
                     heroPosition: heroPos,
-                    villainPosition: 'BB',
+                    villainPosition: villainPos,
                     heroStack: stackDepth,
                     villainStack: stackDepth,
                     stackDepth,
                     gameType: 'cash_6max',
-                    nodeType: 'preflop_open',
-                    context: `${heroPos} RFI (${stackDepth}BB)`,
-                    isMixedStrategy: freqs.raise > 0.05 && freqs.raise < 0.95,
+                    nodeType,
+                    context: contextText,
+                    isMixedStrategy: isMixed,
+                    spotType,
                 },
-                question: `You are in ${heroPos} with ${hand}. Action folds to you. What do you do?`,
-                options: [
-                    { id: 'r', label: 'Raise', frequency: Math.round(freqs.raise * 100) },
-                    { id: 'f', label: 'Fold', frequency: Math.round(freqs.fold * 100) },
-                ],
+                question: questionText(hand),
+                options,
                 correctAnswer: correctAction,
-                correctAnswerText: correctAction === 'r' ? 'Raise' : 'Fold',
+                correctAnswerText: correctLabel,
                 frequencies: actions,
                 gtoFrequencies,
                 rawFrequencies,
                 evData: null,
-                explanation: `${heroPos} opens ${hand} ${Math.round(freqs.raise * 100)}% of the time at ${stackDepth}BB.`,
+                explanation,
                 difficulty: level,
             };
         } catch (err) {
             console.error('[DeterministicEngine] Local solver ranges fallback error:', err.message);
             return null;
         }
+    }
+
+    /**
+     * Build a pool of preflop spots appropriate for the difficulty level.
+     * Level 1-2: RFI only
+     * Level 3-4: RFI + 3-Bet + BB Defense
+     * Level 5+:  All spots (+ 4-Bet, Cold Call, Squeeze)
+     */
+    _buildPreflopSpotPool(level, stackDepth) {
+        const pool = [];
+        const rfiPositions = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
+
+        // ─── RFI (all levels) ────────────────────────────────────────
+        for (const pos of rfiPositions) {
+            const spotData = getRFIByDepth(stackDepth, pos);
+            if (!spotData) continue;
+            pool.push({
+                spotData,
+                heroPos: pos,
+                villainPos: 'BB',
+                spotType: 'rfi',
+                nodeType: 'preflop_open',
+                actionLabels: [
+                    { solver: 'raise', id: 'r', label: 'Raise' },
+                    { solver: 'fold', id: 'f', label: 'Fold' },
+                ],
+                contextText: `${pos} RFI (${stackDepth}BB)`,
+                questionText: (hand) => `You are in ${pos} with ${hand}. Action folds to you. What do you do?`,
+            });
+        }
+
+        if (level < 3) return pool;
+
+        // ─── 3-Bet (level 3+) ────────────────────────────────────────
+        for (const [key, data] of Object.entries(SOLVER_3BET)) {
+            const parts = key.split('_vs_');
+            const pos = parts[0];
+            const villain = parts[1] || 'opener';
+            pool.push({
+                spotData: data,
+                heroPos: pos,
+                villainPos: villain,
+                spotType: '3bet',
+                nodeType: 'preflop_3bet',
+                actionLabels: [
+                    { solver: 'raise', id: 'r', label: '3-Bet' },
+                    { solver: 'call', id: 'c', label: 'Call' },
+                    { solver: 'fold', id: 'f', label: 'Fold' },
+                ],
+                contextText: `${pos} 3-Bet vs ${villain}`,
+                questionText: (hand) => `${villain} opens. You are in ${pos} with ${hand}. What do you do?`,
+            });
+        }
+
+        // ─── BB Defense (level 3+) ───────────────────────────────────
+        for (const [key, data] of Object.entries(SOLVER_BB_DEF)) {
+            const villain = key.replace('vs_', '');
+            pool.push({
+                spotData: data,
+                heroPos: 'BB',
+                villainPos: villain,
+                spotType: 'bb_defense',
+                nodeType: 'preflop_bb_defense',
+                actionLabels: [
+                    { solver: 'raise', id: 'r', label: '3-Bet' },
+                    { solver: 'call', id: 'c', label: 'Call' },
+                    { solver: 'fold', id: 'f', label: 'Fold' },
+                ],
+                contextText: `BB Defense vs ${villain}`,
+                questionText: (hand) => `${villain} opens. You are in BB with ${hand}. What do you do?`,
+            });
+        }
+
+        if (level < 5) return pool;
+
+        // ─── 4-Bet (level 5+) ────────────────────────────────────────
+        for (const [key, data] of Object.entries(SOLVER_4BET)) {
+            const parts = key.split('_vs_');
+            const pos = parts[0];
+            pool.push({
+                spotData: data,
+                heroPos: pos,
+                villainPos: '3bettor',
+                spotType: '4bet',
+                nodeType: 'preflop_4bet',
+                actionLabels: [
+                    { solver: 'raise', id: 'r', label: '4-Bet' },
+                    { solver: 'call', id: 'c', label: 'Call' },
+                    { solver: 'fold', id: 'f', label: 'Fold' },
+                ],
+                contextText: `${pos} vs 3-Bet (4-Bet decision)`,
+                questionText: (hand) => `You opened from ${pos} with ${hand} and face a 3-Bet. What do you do?`,
+            });
+        }
+
+        // ─── Cold Call (level 5+) ────────────────────────────────────
+        for (const [key, data] of Object.entries(SOLVER_CC)) {
+            const parts = key.split('_vs_');
+            const pos = parts[0];
+            const villain = parts[1] || 'opener';
+            pool.push({
+                spotData: data,
+                heroPos: pos,
+                villainPos: villain,
+                spotType: 'cold_call',
+                nodeType: 'preflop_cold_call',
+                actionLabels: [
+                    { solver: 'call', id: 'c', label: 'Call' },
+                    { solver: 'fold', id: 'f', label: 'Fold' },
+                ],
+                contextText: `${pos} Cold Call vs ${villain}`,
+                questionText: (hand) => `${villain} opens. You are in ${pos} with ${hand}. Call or fold?`,
+            });
+        }
+
+        // ─── Squeeze (level 5+) ──────────────────────────────────────
+        for (const [key, data] of Object.entries(SOLVER_SQZ)) {
+            const readable = key.replace(/_/g, ' ').replace('vs', 'vs').replace('open', 'open,');
+            const parts = key.split('_vs_');
+            const pos = parts[0];
+            pool.push({
+                spotData: data,
+                heroPos: pos,
+                villainPos: 'multiway',
+                spotType: 'squeeze',
+                nodeType: 'preflop_squeeze',
+                actionLabels: [
+                    { solver: 'raise', id: 'r', label: 'Squeeze' },
+                    { solver: 'fold', id: 'f', label: 'Fold' },
+                ],
+                contextText: `Squeeze: ${readable}`,
+                questionText: (hand) => `There's an open and a call. You are in ${pos} with ${hand}. Squeeze or fold?`,
+            });
+        }
+
+        return pool;
     }
 
     /**

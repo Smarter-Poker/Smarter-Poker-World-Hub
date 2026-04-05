@@ -1778,52 +1778,7 @@ export default function PokerNearMePage() {
         }
     }, []);
 
-    // ═══ FAVORITES TAB RENDERER ═══
-    const renderFavorites = () => {
-        const favVenues = (allVenuesForMap.length > 0 ? allVenuesForMap : venues).filter(v => isFavorited('venue', v.id));
-        const favCount = Object.keys(favorites).filter(k => favorites[k]).length;
 
-        if (favCount === 0) {
-            return (
-                <div className="empty-state" style={{ padding: '60px 20px', background: 'radial-gradient(circle at center, rgba(239,68,68,0.05) 0%, transparent 70%)' }}>
-                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
-                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                        </svg>
-                    </div>
-                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Your Saved Venues</h3>
-                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', maxWidth: 320, lineHeight: 1.5, margin: '0 auto 24px' }}>Keep Track Of Your Favorite Card Rooms, Local Games, And Regular Stops. Tap The Heart Icon On Any Venue Card To Save It Here.</p>
-                    <button onClick={() => setActiveTab('venues')} className="primary-btn" style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(239,68,68,0.3)' }}>Explore Venues</button>
-                </div>
-            );
-        }
-
-        return (
-            <>
-                <div className="results-bar">
-                    <span className="results-count">{favVenues.length} saved venue{favVenues.length !== 1 ? 's' : ''}</span>
-                </div>
-                <div className="card-grid">
-                    {favVenues.map((venue, i) => {
-                        const maxGtd = venueMaxGtd[String(venue.id)] || 0;
-                        return (
-                            <VenueCard
-                                key={venue.id || i}
-                                venue={{ ...venue, max_gtd: maxGtd }}
-                                index={i}
-                                isFavorited={true}
-
-                                onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                                onNavigate={(path) => router.push(path)}
-                                reviewStats={pnmReviewStatsMap[String(venue.id)]}
-                                predictionData={venuePredictionsMap[String(venue.id)]}
-                            />
-                        );
-                    })}
-                </div>
-            </>
-        );
-    };
 
     const clearFilters = () => {
         setSelectedCity(null);
@@ -1887,7 +1842,26 @@ export default function PokerNearMePage() {
 
     
     const renderContent = () => {
-        if (activeTab === 'map') return renderMap();
+        if (activeTab === 'map') return (
+            <MapTabPanel
+                allVenuesForMap={allVenuesForMap}
+                mapFilters={mapFilters}
+                setMapFilters={setMapFilters}
+                filters={filters}
+                setFilters={setFilters}
+                userLocation={userLocation}
+                mapCenter={mapCenter}
+                liveTableCount={liveTableCount}
+                dailyTournaments={dailyTournaments}
+                onMapVenueClick={onMapVenueClick}
+                requestGpsLocation={requestGpsLocation}
+                selectedRoom={selectedRoom}
+                setSelectedRoom={setSelectedRoom}
+                setHasSearched={setHasSearched}
+                fetchAllData={fetchAllData}
+                router={router}
+            />
+        );
         if (activeTab === 'live') return (
             <LiveGamesFeed
                 venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues}
@@ -1899,10 +1873,50 @@ export default function PokerNearMePage() {
                 user={user}
             />
         );
-        if (activeTab === 'saved') return renderFavorites();
+        if (activeTab === 'saved') return (
+            <FavoritesTabPanel
+                allVenuesForMap={allVenuesForMap}
+                venues={venues}
+                isFavorited={isFavorited}
+                favorites={favorites}
+                toggleFavorite={toggleFavorite}
+                venueMaxGtd={venueMaxGtd}
+                pnmReviewStatsMap={pnmReviewStatsMap}
+                setActiveTab={setActiveTab}
+                router={router}
+            />
+        );
 
         // For venues tab: show search landing if no search yet, skip skeleton
-        if (activeTab === 'venues' && !hasSearched) return renderVenues();
+        if (activeTab === 'venues' && !hasSearched) return (
+            <VenuesTabPanel
+                venues={venues}
+                venueLoading={venueLoading}
+                loading={loading}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                getSortedVenues={getSortedVenues}
+                displayCount={displayCount}
+                loadMore={loadMore}
+                mapFullscreen={mapFullscreen}
+                setMapFullscreen={setMapFullscreen}
+                mapCenter={mapCenter}
+                userLocation={userLocation}
+                isFavorited={isFavorited}
+                toggleFavorite={toggleFavorite}
+                venueMaxGtd={venueMaxGtd}
+                promotionVenueIds={promotionVenueIds}
+                highlightedVenueId={highlightedVenueId}
+                nearestDistance={nearestDistance}
+                filters={filters}
+                clearFilters={clearFilters}
+                pnmReviewStatsMap={pnmReviewStatsMap}
+                router={router}
+                onMapVenueClick={onMapVenueClick}
+                iframeModal={iframeModal}
+                setIframeModal={setIframeModal}
+            />
+        );
 
         // Show loading — skeletons for all data-driven tabs
         if ((activeTab === 'venues' && venueLoading) || loading) {
@@ -1911,1003 +1925,129 @@ export default function PokerNearMePage() {
 
         switch (activeTab) {
             case 'venues':
-                return renderVenues();
+                return (
+                    <VenuesTabPanel
+                        venues={venues}
+                        venueLoading={venueLoading}
+                        loading={loading}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                        getSortedVenues={getSortedVenues}
+                        displayCount={displayCount}
+                        loadMore={loadMore}
+                        mapFullscreen={mapFullscreen}
+                        setMapFullscreen={setMapFullscreen}
+                        mapCenter={mapCenter}
+                        userLocation={userLocation}
+                        isFavorited={isFavorited}
+                        toggleFavorite={toggleFavorite}
+                        venueMaxGtd={venueMaxGtd}
+                        promotionVenueIds={promotionVenueIds}
+                        highlightedVenueId={highlightedVenueId}
+                        nearestDistance={nearestDistance}
+                        filters={filters}
+                        clearFilters={clearFilters}
+                        pnmReviewStatsMap={pnmReviewStatsMap}
+                        router={router}
+                        onMapVenueClick={onMapVenueClick}
+                        iframeModal={iframeModal}
+                        setIframeModal={setIframeModal}
+                    />
+                );
             case 'events':
                 switch (activeEventTab) {
-                    case 'tours': return renderTours();
-                    case 'series': return renderSeries();
+                    case 'tours': return (
+                        <ToursTabPanel
+                            tours={tours}
+                            filters={filters}
+                            setFilters={setFilters}
+                            displayCount={displayCount}
+                            loadMore={loadMore}
+                            isFavorited={isFavorited}
+                            toggleFavorite={toggleFavorite}
+                            router={router}
+                        />
+                    );
+                    case 'series': return (
+                        <SeriesTabPanel
+                            series={series}
+                            filters={filters}
+                            setFilters={setFilters}
+                            displayCount={displayCount}
+                            loadMore={loadMore}
+                            seriesViewMode={seriesViewMode}
+                            setSeriesViewMode={setSeriesViewMode}
+                            isFavorited={isFavorited}
+                            toggleFavorite={toggleFavorite}
+                            router={router}
+                        />
+                    );
                     case 'calendar': return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
                     case 'daily':
                     default:
-                        return renderDailyTournaments();
+                        return (
+                            <DailyTournamentsTabPanel
+                                dailyTournaments={dailyTournaments}
+                                filters={filters}
+                                setFilters={setFilters}
+                                fetchDailyTournaments={fetchDailyTournaments}
+                            />
+                        );
                 }
             case 'more':
                 return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '20px 0', width: '100%' }}>
-                        {/* ── TOOLS OVERVIEW LANDING ── */}
-                        {activeMoreTab === 'overview' && (
-                            <div className="more-tools-overview">
-                                <div className="more-tools-header">
-                                    <h2 className="more-tools-title">More Tools</h2>
-                                    <p className="more-tools-desc">Advanced Features To Enhance Your Poker Experience</p>
-                                </div>
-                                <div className="more-tools-grid">
-                                    {[
-                                        { id: 'roadtrip', title: 'Road Trip Planner', desc: 'Plan Multi-Stop Poker Road Trips Along Your Travel Route', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="1.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z" /><circle cx="12" cy="10" r="3" /><path d="M16 18l2 2 4-4" stroke="#22c55e" strokeWidth="2" /></svg> },
-                                        { id: 'social', title: 'Social Feed', desc: 'Connect With Players At Nearby Venues And Share Updates', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg> },
-                                        { id: 'alerts', title: 'Game Alerts', desc: 'Get Notified When Your Favorite Games And Stakes Go Live', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /><circle cx="18" cy="4" r="3" fill="#ef4444" stroke="none" /></svg> },
-                                        { id: 'nearmenow', title: 'Near Me Now', desc: 'Instantly Find The Closest Poker Rooms To Your Location', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="1.5"><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="8" stroke="rgba(34,197,94,0.3)" /></svg> },
-                                        { id: 'tripcost', title: 'Trip Cost Calculator', desc: 'Estimate Gas, Hotel, And Total Trip Expenses Before You Go', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5"><rect x="2" y="3" width="20" height="18" rx="2" /><path d="M2 9h20" /><path d="M9 21V9" /><circle cx="15.5" cy="15" r="2" /></svg> },
-                                    ].map(tool => (
-                                        <button
-                                            key={tool.id}
-                                            className="more-tool-card"
-                                            onClick={() => setActiveMoreTab(tool.id)}
-                                        >
-                                            <div className="more-tool-icon">{tool.icon}</div>
-                                            <div className="more-tool-info">
-                                                <h3 className="more-tool-name">{tool.title}</h3>
-                                                <p className="more-tool-desc">{tool.desc}</p>
-                                            </div>
-                                            <svg className="more-tool-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {activeMoreTab === 'roadtrip' && (
-                            <div onClickCapture={(e) => {
-                                if (!guardAction(() => {})) {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                }
-                            }}>
-                                <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} locationCity={gpsLocationLabel ? gpsLocationLabel.split(',')[0]?.trim() : ''} locationState={gpsLocationLabel ? gpsLocationLabel.split(',')[1]?.trim() : ''} />
-                            </div>
-                        )}
-                        {activeMoreTab === 'social' && (
-                            <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />
-                        )}
-                        
-                        {/* ── ALERTS & NOTIFICATIONS ── */}
-                        {activeMoreTab === 'alerts' && (
-                            <>
-                                {geofenceStatus === 'denied' && (
-                                    <div className="geofence-notice denied" style={{ marginBottom: -10 }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-                                        </svg>
-                                        <span>Notifications Blocked - Venue Alerts Will Show In-App Only</span>
-                                    </div>
-                                )}
-                                {pushPermission === 'default' && userLocation && (
-                                    <div className="push-optin-banner" style={{ marginBottom: -10 }}>
-                                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: -2, marginRight: 4 }}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg> Enable push notifications for venue proximity alerts?</span>
-                                        <button onClick={requestPushPermission}>Enable</button>
-                                        <button onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}>Dismiss</button>
-                                    </div>
-                                )}
-                                <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />
-                            </>
-                        )}
-
-                        {activeMoreTab === 'nearmenow' && (
-                            <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} onRequestGPS={requestGpsLocation} onSwitchTab={setActiveTab} onNavigateVenue={(venueId) => { if (typeof window !== 'undefined') window.location.href = `/hub/venues/${venueId}`; }} />
-                        )}
-                        {activeMoreTab === 'tripcost' && (
-                            <div onClickCapture={(e) => {
-                                if (!guardAction(() => {})) {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                }
-                            }}>
-                                <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />
-                            </div>
-                        )}
-                    </div>
+                    <MoreTabPanel
+                        activeMoreTab={activeMoreTab}
+                        setActiveMoreTab={setActiveMoreTab}
+                        allVenuesForMap={allVenuesForMap}
+                        venues={venues}
+                        userLocation={userLocation}
+                        userId={userId}
+                        user={user}
+                        dailyTournaments={dailyTournaments}
+                        series={series}
+                        gpsLocationLabel={gpsLocationLabel}
+                        geofenceStatus={geofenceStatus}
+                        pushPermission={pushPermission}
+                        requestPushPermission={requestPushPermission}
+                        setPushPermission={setPushPermission}
+                        guardAction={guardAction}
+                        requestGpsLocation={requestGpsLocation}
+                        setActiveTab={setActiveTab}
+                        router={router}
+                    />
                 );
             default:
-                return renderVenues();
+                return (
+                    <VenuesTabPanel
+                        venues={venues}
+                        venueLoading={venueLoading}
+                        loading={loading}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                        getSortedVenues={getSortedVenues}
+                        displayCount={displayCount}
+                        loadMore={loadMore}
+                        mapFullscreen={mapFullscreen}
+                        setMapFullscreen={setMapFullscreen}
+                        mapCenter={mapCenter}
+                        userLocation={userLocation}
+                        isFavorited={isFavorited}
+                        toggleFavorite={toggleFavorite}
+                        venueMaxGtd={venueMaxGtd}
+                        promotionVenueIds={promotionVenueIds}
+                        highlightedVenueId={highlightedVenueId}
+                        nearestDistance={nearestDistance}
+                        filters={filters}
+                        clearFilters={clearFilters}
+                        pnmReviewStatsMap={pnmReviewStatsMap}
+                        router={router}
+                        onMapVenueClick={onMapVenueClick}
+                        iframeModal={iframeModal}
+                        setIframeModal={setIframeModal}
+                    />
+                );
         }
-    };
-
-    const renderMap = () => {
-        // Always show ALL venues on the map — full overview by default
-        let baseVenues = allVenuesForMap;
-        let filteredVenues = baseVenues;
-        if (mapFilters.cashGames) {
-            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
-        }
-        if (mapFilters.tournaments) {
-            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
-        }
-        if (mapFilters.is24Hours) {
-            filteredVenues = filteredVenues.filter(v => !['charity', 'home_game'].includes(v.venue_type) && (v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24'))));
-        }
-        if (mapFilters.lowStakes) {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
-                const match = s.match(/\$?(\d+)/);
-                return match && parseInt(match[1]) <= 2;
-            }));
-        }
-        if (mapFilters.topRated) {
-            filteredVenues = filteredVenues.filter(v => (v.trust_score || 0) >= 4.0);
-        }
-
-        // Apply sidebar filters
-        if (filters.gameType === 'cash') {
-            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
-        } else if (filters.gameType === 'mtt') {
-            filteredVenues = filteredVenues.filter(v => v.has_tournaments);
-        } else if (filters.gameType === 'mixed') {
-            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.some(g => /mixed|horse|8-game/i.test(g)));
-        }
-
-        if (filters.stakes === '$1/2') {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3')));
-        } else if (filters.stakes === '$2/5') {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')));
-        } else if (filters.stakes === '$5/10+') {
-            filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('5/10') || s.includes('10/20') || s.includes('25/50')));
-        }
-
-        const toggleMapFilter = (key) => {
-            setMapFilters(prev => ({ ...prev, [key]: !prev[key] }));
-        };
-
-        return (
-            <div className="map-desktop-layout">
-                {/* LEFT COLUMN: Map Section */}
-                <div className="map-main-section">
-                    {/* Header Row */}
-                    <div className="map-header-row">
-                        <h2 className="map-title">Explore All Poker Rooms</h2>
-                        <span className="map-stats">{filteredVenues.length} rooms • {liveTableCount.toLocaleString()} active tables • {dailyTournaments.length} tournaments today</span>
-                    </div>
-
-                    {/* Quick Filter Chips */}
-                    <div className="map-filter-chips">
-                        <button className={'filter-chip' + (mapFilters.cashGames ? ' active' : '')} onClick={() => toggleMapFilter('cashGames')}>
-                            <span className="chip-dot cash"></span> Cash Games
-                        </button>
-                        <button className={'filter-chip' + (mapFilters.tournaments ? ' active' : '')} onClick={() => toggleMapFilter('tournaments')}>
-                            <span className="chip-dot mtt"></span> Tournaments
-                        </button>
-                        <button className={'filter-chip' + (mapFilters.is24Hours ? ' active' : '')} onClick={() => toggleMapFilter('is24Hours')}>
-                            <span className="chip-dot live"></span> 24/7 Open
-                        </button>
-                        <button className={'filter-chip' + (mapFilters.lowStakes ? ' active' : '')} onClick={() => toggleMapFilter('lowStakes')}>
-                            <span className="chip-dot stakes"></span> Low Stakes
-                        </button>
-                        <button className={'filter-chip' + (mapFilters.topRated ? ' active' : '')} onClick={() => toggleMapFilter('topRated')}>
-                            <span className="chip-dot rated"></span> Top Rated
-                        </button>
-                    </div>
-
-                    {/* Map Container - wrapped in Error Boundary */}
-                    <div className="map-tab-container" style={{ position: 'relative' }}>
-                        {/* ═══ FLOATING RADIUS CONTROL (Top Right) ═══ */}
-                        <div style={{
-                            position: 'absolute',
-                            top: '16px',
-                            right: '16px',
-                            zIndex: 1000,
-                            background: 'rgba(10, 10, 21, 0.9)',
-                            backdropFilter: 'blur(8px)',
-                            border: '1px solid rgba(212, 168, 83, 0.4)',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            pointerEvents: 'auto'
-                        }}>
-                            <span style={{ color: '#d4a853', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Radius:</span>
-                            <select
-                                value={filters.radius}
-                                onChange={e => setFilters(p => ({ ...p, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
-                                style={{
-                                    background: 'transparent',
-                                    color: '#fff',
-                                    border: 'none',
-                                    fontSize: '13px',
-                                    fontWeight: 600,
-                                    outline: 'none',
-                                    cursor: 'pointer',
-                                    WebkitAppearance: 'none',
-                                    paddingRight: '14px'
-                                }}
-                            >
-                                <option value={25} style={{ background: '#0a0a15' }}>25 Mi</option>
-                                <option value={50} style={{ background: '#0a0a15' }}>50 Mi</option>
-                                <option value={100} style={{ background: '#0a0a15' }}>100 Mi</option>
-                                <option value={200} style={{ background: '#0a0a15' }}>200 Mi</option>
-                                <option value={250} style={{ background: '#0a0a15' }}>250 Mi</option>
-                                <option value={500} style={{ background: '#0a0a15' }}>500 Mi</option>
-                                <option value="Any" style={{ background: '#0a0a15' }}>Any</option>
-                            </select>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ position: 'absolute', right: '12px', pointerEvents: 'none' }}>
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </div>
-                    <MapErrorBoundary>
-                        <VenueMap
-                            key="map-tab-main"
-                            venues={filteredVenues}
-                            userLocation={userLocation}
-                            centerLocation={mapCenter}
-                            fullHeight
-                            onVenueClick={onMapVenueClick}
-                            radiusMiles={filters.radius}
-                        />
-                    </MapErrorBoundary>
-                    </div>
-
-                    {/* Recenter Button */}
-                    {userLocation && (
-                        <button className="map-recenter-btn" onClick={requestGpsLocation} aria-label="Recenter on my location">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                            </svg>
-                            My Location
-                        </button>
-                    )}
-                </div>
-
-                {/* RIGHT COLUMN: Sidebar Filters + Room Detail */}
-                <div className="map-sidebar">
-                    <div className="sidebar-filters">
-                        <h3 className="sidebar-title">Filters</h3>
-
-                        {/* Radius — Map Tab */}
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Radius</label>
-                            <select
-                                value={filters.radius}
-                                onChange={e => setFilters(p => ({ ...p, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
-                                className="sidebar-select"
-                            >
-                                <option value={25}>25 Mi</option>
-                                <option value={50}>50 Mi</option>
-                                <option value={100}>100 Mi</option>
-                                <option value={200}>200 Mi</option>
-                                <option value={250}>250 Mi</option>
-                                <option value={500}>500 Mi</option>
-                                <option value="Any">Any</option>
-                            </select>
-                        </div>
-
-                        {/* Game Type */}
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Game Type</label>
-                            <select
-                                value={filters.gameType}
-                                onChange={e => setFilters(p => ({ ...p, gameType: e.target.value }))}
-                                className="sidebar-select"
-                            >
-                                <option value="all">All</option>
-                                <option value="cash">Cash</option>
-                                <option value="mtt">MTT</option>
-                                <option value="mixed">Mixed</option>
-                            </select>
-                        </div>
-
-                        {/* Stakes */}
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Stakes</label>
-                            <select
-                                value={filters.stakes}
-                                onChange={e => setFilters(p => ({ ...p, stakes: e.target.value }))}
-                                className="sidebar-select"
-                            >
-                                <option value="all">All</option>
-                                <option value="$1/2">$1/2</option>
-                                <option value="$2/5">$2/5</option>
-                                <option value="$5/10+">$5/10+</option>
-                            </select>
-                        </div>
-
-                        {/* Buy-in Range */}
-                        <div className="sidebar-filter-group">
-                            <label className="sidebar-label">Buy-In Range</label>
-                            <div className="sidebar-range-inputs">
-                                <input
-                                    type="number"
-                                    placeholder="Min"
-                                    className="sidebar-input"
-                                    value={filters.minBuyin}
-                                    onChange={e => setFilters(p => ({ ...p, minBuyin: e.target.value }))}
-                                />
-                                <span className="range-divider">—</span>
-                                <input
-                                    type="number"
-                                    placeholder="Max"
-                                    className="sidebar-input"
-                                    value={filters.maxBuyin}
-                                    onChange={e => setFilters(p => ({ ...p, maxBuyin: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Amenities group completely removed per Real Filters mandate */}
-
-                        <button className="sidebar-apply-btn" onClick={() => {
-                            setHasSearched(true);
-                            fetchAllData({ includeVenues: true });
-                        }}>
-                            Apply Filters
-                        </button>
-                    </div>
-
-                    {/* Room Detail Panel */}
-                    {selectedRoom && (
-                        <div className="room-detail-panel">
-                            <div className="detail-header">
-                                <h3>{selectedRoom.name}</h3>
-                                <button className="detail-close" onClick={() => setSelectedRoom(null)}>×</button>
-                            </div>
-                            <p className="detail-location">{selectedRoom.city}, {selectedRoom.state}</p>
-                            <button className="detail-view-btn" onClick={() => router.push(selectedRoom.is_social_page ? `/club/${selectedRoom.social_page_id}` : `/hub/venues/${selectedRoom.id}`)}>View Full Details</button>
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    };
-
-    const renderVenues = () => {
-        // Always show venues — no gate
-
-        if (venues.length === 0 && !venueLoading && !loading) {
-            return (
-                <div className="empty-state">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-                    <p>No Venues Found Matching Your Criteria</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Try A Different City, Adjust Filters, Or Use GPS</p>
-                    <button onClick={clearFilters}>Clear All Filters</button>
-                </div>
-            );
-        }
-
-        const sorted = getSortedVenues(venues);
-        const displayed = sorted.slice(0, displayCount.venues);
-        const remaining = venues.length - displayed.length;
-
-        return (
-            <>
-                {/* ═══ MAP CARD — Directly under header ═══ */}
-                <div className={`map-preview-card${mapFullscreen ? ' map-preview-fullscreen' : ''}`}>
-                    {/* Only show collapse badge when fullscreen */}
-                    {mapFullscreen && (
-                        <div className="map-preview-expand-badge" onClick={(e) => { e.stopPropagation(); setMapFullscreen(false); }} style={{ cursor: 'pointer', pointerEvents: 'auto' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" />
-                                <line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" />
-                            </svg>
-                            Collapse Map
-                        </div>
-                    )}
-                    <MapErrorBoundary>
-                        <VenueMap
-                            key={mapFullscreen ? 'venues-fullscreen' : 'venues-preview'}
-                            venues={sorted}
-                            userLocation={userLocation}
-                            centerLocation={mapCenter}
-                            fullHeight={mapFullscreen}
-                            onVenueClick={onMapVenueClick}
-                            radiusMiles={filters.radius}
-                            onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
-                        />
-                    </MapErrorBoundary>
-                </div>
-
-                {/* Results bar: results count + Sort + Expand Map — ALL ON ONE LINE BELOW MAP */}
-                <div className="results-bar">
-                    <span className="results-count">{venues.length} Result{venues.length !== 1 ? 's' : ''} Found</span>
-                    
-                    <div className="sort-results-wrapper">
-                        <label className="sort-results-label">Sort:</label>
-                        <select
-                            value={sortBy}
-                            onChange={e => setSortBy(e.target.value)}
-                            className="sort-results-select"
-                        >
-                            <option value="default">{userLocation ? 'Nearest First' : 'Default'}</option>
-                            <option value="distance">Distance (Nearest)</option>
-                            <option value="trust-desc">Trust Score (High → Low)</option>
-                            <option value="trust-asc">Trust Score (Low → High)</option>
-                            <option value="name-az">Name (A → Z)</option>
-                            <option value="name-za">Name (Z → A)</option>
-                            <option value="venue-type">Venue Type</option>
-                            <option value="state-az">State (A → Z)</option>
-                            <option value="most-tables">Most Tables</option>
-                            <option value="most-games">Most Games Offered</option>
-                            <option value="city-az">City (A → Z)</option>
-                        </select>
-                    </div>
-
-                    <span className="results-showing">
-                        {(userLocation || nearestDistance) ? `Nearest: ~${nearestDistance || '0'} miles` : `Showing ${displayed.length} of ${venues.length}`}
-                    </span>
-                    
-                    {/* Expand Map button — on same line */}
-                    {!mapFullscreen && (
-                        <button className="expand-map-inline-btn" onClick={() => setMapFullscreen(true)}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
-                                <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
-                            </svg>
-                            Expand Map
-                        </button>
-                    )}
-                </div>
-
-                {/* ═══ FULL-WIDTH VENUE CARDS BELOW MAP ═══ */}
-                <div className="venues-cards-section">
-                    <div className="card-grid">
-                        {displayed.map((venue, i) => {
-                            const maxGtd = venueMaxGtd[String(venue.id)] || 0;
-                            const isHighlighted = highlightedVenueId === venue.id;
-                            return (
-                                <div key={venue.id || i} id={'venue-card-' + venue.id}
-                                    className={'venue-card-wrapper' + (isHighlighted ? ' venue-card-highlighted' : '')}>
-                                <VenueCard
-                                    venue={{ ...venue, max_gtd: maxGtd }}
-                                    index={i}
-                                    isFavorited={isFavorited('venue', venue.id)}
-    
-                                    hasPromo={promotionVenueIds.has(String(venue.id))}
-                                    onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                                    onNavigate={(path) => router.push(path)}
-                                    reviewStats={pnmReviewStatsMap[String(venue.id)]}
-                                    predictionData={venuePredictionsMap[String(venue.id)]}
-                                />
-                                </div>
-                            );
-                        })}
-                    </div>
-                    {/* Load More / Expand Radius */}
-                    {(() => {
-                        const currentRadius = Number(filters.radius) || 50;
-                        const nextTier = RADIUS_TIERS.find(r => r > currentRadius);
-                        const hasMoreToShow = remaining > 0;
-                        const canExpandRadius = userLocation && nextTier && !hasMoreToShow;
-                        
-                        if (hasMoreToShow) {
-                            return (
-                                <div className="load-more">
-                                    <button className="load-more-btn" onClick={() => loadMore('venues')}>
-                                        Show More Results ({remaining} Remaining)
-                                    </button>
-                                </div>
-                            );
-                        }
-                        if (canExpandRadius) {
-                            return (
-                                <div className="load-more" style={{ marginTop: '30px', textAlign: 'center' }}>
-                                    <button 
-                                        className="expand-radius-btn" 
-                                        onClick={() => loadMore('venues')}
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '10px',
-                                            padding: '14px 36px',
-                                            background: 'linear-gradient(135deg, rgba(212,168,83,0.22) 0%, rgba(184,134,11,0.10) 100%)',
-                                            border: '2px solid rgba(212,168,83,0.5)',
-                                            borderRadius: '12px',
-                                            color: '#f0d48a',
-                                            fontSize: '15px',
-                                            fontWeight: '700',
-                                            letterSpacing: '0.3px',
-                                            cursor: 'pointer',
-                                            boxShadow: 'inset 0 1px 0 rgba(212,168,83,0.15), 0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px rgba(212,168,83,0.08)',
-                                            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212,168,83,0.35) 0%, rgba(184,134,11,0.18) 100%)';
-                                            e.currentTarget.style.color = '#fff';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212,168,83,0.22) 0%, rgba(184,134,11,0.10) 100%)';
-                                            e.currentTarget.style.color = '#f0d48a';
-                                        }}
-                                    >
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <polyline points="8 12 12 16 16 12" />
-                                            <line x1="12" y1="8" x2="12" y2="16" />
-                                        </svg>
-                                        Search Farther — Expand To {nextTier} Miles
-                                    </button>
-                                </div>
-                            );
-                        }
-                        return null;
-                    })()}
-                </div>
-            </>
-        );
-    };
-
-    const renderTours = () => {
-        const tourSearchVal = filters.hubTourSearch || '';
-        const tourStateVal = filters.hubTourState || 'all';
-        let filteredTours = tours;
-        if (tourSearchVal) {
-            const lower = tourSearchVal.toLowerCase();
-            filteredTours = filteredTours.filter(t => (t.name || '').toLowerCase().includes(lower) || (t.city || '').toLowerCase().includes(lower) || (t.state || '').toLowerCase().includes(lower) || (t.tour_code || '').toLowerCase().includes(lower));
-        }
-        if (tourStateVal !== 'all') {
-            filteredTours = filteredTours.filter(t => t.state === tourStateVal);
-        }
-
-        return (
-            <>
-                {/* Search + State Filter */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <input type="text" placeholder="Search tours..." value={tourSearchVal}
-                        onChange={(e) => setFilters(f => ({ ...f, hubTourSearch: e.target.value }))}
-                        style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
-                    <select value={tourStateVal}
-                        onChange={(e) => setFilters(f => ({ ...f, hubTourState: e.target.value }))}
-                        className="sort-select" style={{ minWidth: 100 }}>
-                        <option value="all">All States</option>
-                        {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                            <option key={st} value={st}>{st}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="results-bar">
-                    <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}</span>
-                </div>
-                {filteredTours.length === 0 ? (
-                    <div className="empty-state">
-                        <p>No Matching Tours</p>
-                        <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{tourSearchVal || tourStateVal !== 'all' ? 'Try adjusting your search or filters.' : 'Check back soon for poker tour schedules.'}</p>
-                        <button onClick={() => setFilters(f => ({ ...f, hubTourSearch: '', hubTourState: 'all' }))}>Clear Tour Filters</button>
-                    </div>
-                ) : (
-                    <>
-                        <div className="card-grid tours-grid">
-                            {filteredTours.slice(0, displayCount.tours).map((tour, i) => (
-                                <TourCard
-                                    key={tour.tour_code || i}
-                                    tour={tour}
-                                    isFavorited={isFavorited('tour', tour.tour_code)}
-                                    onFavorite={(e) => toggleFavorite('tour', tour.tour_code, e)}
-                                    onNavigate={(path) => router.push(path)}
-                                />
-                            ))}
-                        </div>
-                        {displayCount.tours < filteredTours.length && (
-                            <div className="load-more">
-                                <button className="load-more-btn" onClick={() => loadMore('tours')}>
-                                    Load More ({filteredTours.length - displayCount.tours} remaining)
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
-            </>
-        );
-    };
-
-    const renderSeries = () => {
-        const seriesSearchVal = filters.hubSeriesSearch || '';
-        const seriesStateVal = filters.hubSeriesState || 'all';
-        let filteredSeries = series;
-        if (seriesSearchVal) {
-            const lower = seriesSearchVal.toLowerCase();
-            filteredSeries = filteredSeries.filter(s => (s.name || '').toLowerCase().includes(lower) || (s.city || '').toLowerCase().includes(lower) || (s.state || '').toLowerCase().includes(lower) || (s.series_code || '').toLowerCase().includes(lower));
-        }
-        if (seriesStateVal !== 'all') {
-            filteredSeries = filteredSeries.filter(s => s.state === seriesStateVal);
-        }
-
-        return (
-            <>
-                {/* Search + State Filter */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <input type="text" placeholder="Search series..." value={seriesSearchVal}
-                        onChange={(e) => setFilters(f => ({ ...f, hubSeriesSearch: e.target.value }))}
-                        style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
-                    <select value={seriesStateVal}
-                        onChange={(e) => setFilters(f => ({ ...f, hubSeriesState: e.target.value }))}
-                        className="sort-select" style={{ minWidth: 100 }}>
-                        <option value="all">All States</option>
-                        {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                            <option key={st} value={st}>{st}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="results-bar">
-                    <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filteredSeries.length}</span> series</span>
-                    <div className="view-toggle">
-                        <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
-                            Grid
-                        </button>
-                        <button className={'view-btn' + (seriesViewMode === 'calendar' ? ' active' : '')} onClick={() => setSeriesViewMode('calendar')}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                            Calendar
-                        </button>
-                    </div>
-                </div>
-
-                {filteredSeries.length === 0 ? (
-                    <div className="empty-state">
-                        <p>No Matching Series</p>
-                        <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{seriesSearchVal || seriesStateVal !== 'all' ? 'Try adjusting your search or filters.' : 'Check back soon for poker series.'}</p>
-                        <button onClick={() => setFilters(f => ({ ...f, hubSeriesSearch: '', hubSeriesState: 'all' }))}>Clear Series Filters</button>
-                    </div>
-                ) : seriesViewMode === 'calendar' ? renderSeriesCalendar() : (
-                    <>
-                        <div className="card-grid">
-                            {filteredSeries.slice(0, displayCount.series).map((s, i) => (
-                                <SeriesCard
-                                    key={s.id || i}
-                                    series={s}
-                                    index={i}
-                                    isFavorited={isFavorited('series', s.id || (i + 1))}
-                                    onFavorite={(e) => toggleFavorite('series', s.id || (i + 1), e)}
-                                    onNavigate={(path) => router.push(path)}
-                                />
-                            ))}
-                        </div>
-                        {displayCount.series < filteredSeries.length && (
-                            <div className="load-more">
-                                <button className="load-more-btn" onClick={() => loadMore('series')}>
-                                    Load More ({filteredSeries.length - displayCount.series} remaining)
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
-            </>
-        );
-    };
-
-    const renderDailyTournaments = () => {
-        // Local filter state for daily tournaments on hub page
-        const dtGameType = filters.hubDailyGameType || 'all';
-        const dtMinBuyin = filters.hubDailyMinBuyin || '';
-        const dtMaxBuyin = filters.hubDailyMaxBuyin || '';
-        const dtMinGtd = filters.hubDailyMinGtd || '';
-        const dtSort = filters.hubDailySort || 'time';
-
-        // Apply client-side filters
-        let filtered = dailyTournaments;
-        if (dtGameType !== 'all') {
-            filtered = filtered.filter(t => {
-                const gt = (t.game_type || '').toLowerCase();
-                if (dtGameType === 'nlh') return gt.includes('nlh') || gt.includes('hold') || gt.includes('holdem') || gt === 'no limit holdem';
-                if (dtGameType === 'plo') return gt.includes('plo') || gt.includes('omaha hi-lo') || gt.includes('pot limit omaha');
-                if (dtGameType === 'mixed') return gt.includes('mix') || gt.includes('horse') || gt.includes('dealer');
-                if (dtGameType === 'omaha') return gt.includes('omaha') && !gt.includes('hi-lo');
-                return true;
-            });
-        }
-        if (dtMinBuyin) filtered = filtered.filter(t => (t.buy_in || 0) >= Number(dtMinBuyin));
-        if (dtMaxBuyin) filtered = filtered.filter(t => (t.buy_in || 0) <= Number(dtMaxBuyin));
-        if (dtMinGtd) filtered = filtered.filter(t => (t.guaranteed || 0) >= Number(dtMinGtd));
-
-        // Sort
-        if (dtSort === 'buyin') filtered = [...filtered].sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
-        else if (dtSort === 'guaranteed') filtered = [...filtered].sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
-
-        return (
-            <>
-                {/* Day selector */}
-                <div className="day-selector">
-                    {DAYS_OF_WEEK.map(day => (
-                        <button
-                            key={day}
-                            className={'day-btn' + (filters.selectedDay === day ? ' active' : '')}
-                            onClick={() => {
-                                setFilters({ ...filters, selectedDay: day });
-                                fetchDailyTournaments(day);
-                            }}
-                        >
-                            {day.slice(0, 3)}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Game type chips */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                    {[{ key: 'all', label: 'All Games' }, { key: 'nlh', label: 'NLH' }, { key: 'plo', label: 'PLO' }, { key: 'mixed', label: 'Mixed' }, { key: 'omaha', label: 'Omaha' }].map(g => (
-                        <button key={g.key}
-                            onClick={() => setFilters(f => ({ ...f, hubDailyGameType: g.key }))}
-                            style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: dtGameType === g.key ? '1px solid #d4a853' : '1px solid rgba(255,255,255,0.15)', background: dtGameType === g.key ? 'rgba(212,168,83,0.2)' : 'rgba(255,255,255,0.05)', color: dtGameType === g.key ? '#d4a853' : 'rgba(255,255,255,0.6)' }}
-                        >{g.label}</button>
-                    ))}
-                </div>
-
-                {/* Buy-in range + GTD + Sort */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
-                    <input type="number" placeholder="Min $" value={dtMinBuyin}
-                        onChange={(e) => setFilters(f => ({ ...f, hubDailyMinBuyin: e.target.value }))}
-                        style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
-                    <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>to</span>
-                    <input type="number" placeholder="Max $" value={dtMaxBuyin}
-                        onChange={(e) => setFilters(f => ({ ...f, hubDailyMaxBuyin: e.target.value }))}
-                        style={{ width: 70, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
-                    <input type="number" placeholder="Min GTD" value={dtMinGtd}
-                        onChange={(e) => setFilters(f => ({ ...f, hubDailyMinGtd: e.target.value }))}
-                        style={{ width: 80, padding: '5px 8px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 12, fontFamily: 'inherit' }} />
-                    <select value={dtSort}
-                        onChange={(e) => setFilters(f => ({ ...f, hubDailySort: e.target.value }))}
-                        className="sort-select" style={{ fontSize: 12 }}>
-                        <option value="time">Start Time</option>
-                        <option value="buyin">Buy-In</option>
-                        <option value="guaranteed">Guaranteed</option>
-                    </select>
-                </div>
-
-                {/* Result count */}
-                <div className="results-bar" style={{ marginBottom: 8 }}>
-                    <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
-                </div>
-
-                {filtered.length === 0 ? (
-                    <div className="empty-state">
-                        <p>No daily tournaments match your filters for {filters.selectedDay}</p>
-                        <button onClick={() => setFilters(f => ({ ...f, hubDailyGameType: 'all', hubDailyMinBuyin: '', hubDailyMaxBuyin: '', hubDailyMinGtd: '' }))}>Clear Daily Filters</button>
-                    </div>
-                ) : (
-                    <div className="card-grid daily-grid">
-                        {filtered.slice(0, 50).map((t, i) => (
-                            <div key={t.id || i} className="entity-card daily-card">
-                                <div className="card-header">
-                                    <span className="time-badge">{t.start_time}</span>
-                                    <span className="badge game-type">{formatGameType(t.game_type)}</span>
-                                </div>
-                                <h4>{t.venue_name}</h4>
-                                {(t.city || t.state) && <p className="card-location">{[t.city, t.state].filter(Boolean).join(', ')}</p>}
-                                <div className="card-tags">
-                                    <span className="tag buyin">${t.buy_in}</span>
-                                    {t.guaranteed && <span className="tag gtd">{formatMoney(t.guaranteed)} GTD</span>}
-                                    {t.format && <span className="tag format">{t.format}</span>}
-                                </div>
-                                {t.tournament_name && (
-                                    <p className="card-detail">{t.tournament_name}</p>
-                                )}
-                                <div className="card-footer">
-                                    {t.venueType && t.venueType !== 'Unknown' && <span className="venue-type">{t.venueType.replace(/[_-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>}
-                                    {t.pokerAtlasUrl && (
-                                        <a href={t.pokerAtlasUrl} target="_blank" rel="noopener noreferrer" className="action-btn primary">
-                                            Info
-                                        </a>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </>
-        );
-    };
-
-    // --- Live Games Renderer (Search-First) ---
-    const renderLiveGames = () => {
-        const totalTables = liveGames.reduce((sum, g) => sum + (g.table_count || 0), 0);
-
-        return (
-            <>
-                {/* Search Bar */}
-                <div style={{ position: 'relative', marginBottom: 20 }}>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-                        borderRadius: 12, padding: '10px 16px',
-                    }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                        <input
-                            ref={liveSearchInputRef}
-                            type="text"
-                            value={liveSearchQuery}
-                            onChange={(e) => handleLiveSearchInput(e.target.value)}
-                            onFocus={() => { if (liveVenueList.length === 0) fetchLiveVenueList(); if (liveVenueSuggestions.length > 0) setShowLiveSuggestions(true); }}
-                            placeholder="Search for a venue or poker room..."
-                            style={{
-                                flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                                color: '#fff', fontSize: 15, fontWeight: 500,
-                            }}
-                        />
-                        {selectedLiveVenue && (
-                            <button onClick={handleClearLiveVenue} style={{
-                                background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 6,
-                                padding: '4px 8px', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 12,
-                            }}>Clear</button>
-                        )}
-                    </div>
-
-                    {/* Autocomplete Dropdown */}
-                    {showLiveSuggestions && liveVenueSuggestions.length > 0 && (
-                        <div style={{
-                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-                            background: 'rgba(15, 23, 42, 0.98)', backdropFilter: 'blur(16px)',
-                            border: '1px solid rgba(212,168,83,0.3)', borderRadius: 10,
-                            marginTop: 4, overflow: 'hidden', maxHeight: 320, overflowY: 'auto',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                        }}>
-                            {liveVenueSuggestions.map((v, i) => (
-                                <div key={v.slug || i} onClick={() => handleSelectLiveVenue(v)} style={{
-                                    padding: '12px 16px', cursor: 'pointer',
-                                    borderBottom: i < liveVenueSuggestions.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    transition: 'background 0.15s',
-                                }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(212,168,83,0.1)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
-                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                                    </svg>
-                                    <span style={{ color: '#fff', fontSize: 14, fontWeight: 500 }}>{v.name}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* No venue selected — prompt */}
-                {!selectedLiveVenue && !liveLoading && (
-                    <div className="empty-state">
-                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1.5">
-                            <circle cx="12" cy="12" r="4" fill="rgba(239,68,68,0.3)" />
-                            <circle cx="12" cy="12" r="7" stroke="rgba(239,68,68,0.2)" strokeWidth="1.5" />
-                            <circle cx="12" cy="12" r="10" stroke="rgba(239,68,68,0.1)" strokeWidth="1" />
-                        </svg>
-                        <p style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Search For A Cash Game</p>
-                        <p style={{ fontSize: 13, opacity: 0.4, marginTop: 6, maxWidth: 320, textAlign: 'center' }}>
-                            Type a venue or poker room name above to see what games are running right now. Data updates every 15 minutes via Smarter.Poker Intelligence.
-                        </p>
-                    </div>
-                )}
-
-                {/* Loading state */}
-                {liveLoading && renderSkeletons(4)}
-
-                {/* Selected venue — show results */}
-                {selectedLiveVenue && !liveLoading && liveGames.length === 0 && (
-                    <div className="empty-state">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-                            <circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-                        </svg>
-                        <p style={{ fontWeight: 600 }}>No Live Games At {selectedLiveVenue.name} Right Now</p>
-                        <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Check back later—data refreshes every 15 minutes</p>
-                        <button onClick={() => fetchLiveGames(selectedLiveVenue.slug)} style={{
-                            marginTop: 12, padding: '8px 20px', background: 'rgba(212,168,83,0.2)',
-                            border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8,
-                            color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                        }}>{liveLoading ? 'Checking...' : 'Check Again'}</button>
-                    </div>
-                )}
-
-                {selectedLiveVenue && liveGames.length > 0 && (
-                    <>
-                        <div className="results-bar">
-                            <span className="results-count">
-                                {totalTables} table{totalTables !== 1 ? 's' : ''} running
-                            </span>
-                            <div className="live-refresh">
-                                <span className="live-dot"></span>
-                                <span>Smarter.Poker Live</span>
-                                <button className="refresh-btn" onClick={() => fetchLiveGames(selectedLiveVenue.slug)} disabled={liveLoading}>
-                                    {liveLoading ? 'Refreshing...' : 'Refresh'}
-                                </button>
-                            </div>
-                        </div>
-                        <div className="card-grid">
-                            <div className="entity-card live-card" style={{ cursor: 'default' }}>
-                                <div className="card-header">
-                                    <h4>{selectedLiveVenue.name}</h4>
-                                    <span className="live-badge">LIVE</span>
-                                </div>
-                                <div className="live-games-list">
-                                    {liveGames.map((game, gi) => (
-                                        <div key={gi} className="live-game-row">
-                                            <span className="live-game-type">{formatGameType(game.game_type)}</span>
-                                            <span className="live-game-stakes">{game.stakes || game.game_name_raw || '-'}</span>
-                                            <span className="live-game-tables">{game.table_count || 0} table{(game.table_count || 0) !== 1 ? 's' : ''}</span>
-                                            {game.wait_time !== null && game.wait_time !== undefined && (
-                                                <span className="live-game-wait" style={{ color: game.wait_time <= 3 ? '#22c55e' : game.wait_time <= 10 ? '#d4a853' : '#ef4444' }}>
-                                                    {game.wait_time + ' waiting'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="card-footer">
-                                    <span className="live-time">Updated {liveGames[0]?.created_at ? new Date(liveGames[0].created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'recently'}</span>
-                                    <span style={{ fontSize: 11, opacity: 0.4 }}>via Smarter.Poker</span>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </>
-        );
-    };
-
-    // --- NEW: Series Calendar Renderer ---
-    const renderSeriesCalendar = () => {
-        const today = new Date();
-        const months = [];
-        for (let m = 0; m < 4; m++) {
-            const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
-            months.push({ year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) });
-        }
-
-        return (
-            <div className="calendar-view">
-                {months.map((mo, mi) => {
-                    const daysInMonth = new Date(mo.year, mo.month + 1, 0).getDate();
-                    const firstDay = new Date(mo.year, mo.month, 1).getDay();
-                    const monthSeries = series.filter(s => {
-                        if (!s.start_date) return false;
-                        const start = new Date(s.start_date);
-                        const end = s.end_date ? new Date(s.end_date) : start;
-                        const moStart = new Date(mo.year, mo.month, 1);
-                        const moEnd = new Date(mo.year, mo.month + 1, 0);
-                        return start <= moEnd && end >= moStart;
-                    });
-
-                    return (
-                        <div key={mi} className="calendar-month">
-                            <h3 className="calendar-month-title">{mo.label}</h3>
-                            <div className="calendar-grid-header">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                                    <div key={d} className="cal-header-cell">{d}</div>
-                                ))}
-                            </div>
-                            <div className="calendar-grid-body">
-                                {Array.from({ length: firstDay }).map((_, i) => (
-                                    <div key={'empty-' + i} className="cal-cell empty"></div>
-                                ))}
-                                {Array.from({ length: daysInMonth }).map((_, di) => {
-                                    const dayNum = di + 1;
-                                    const dateStr = mo.year + '-' + String(mo.month + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
-                                    const dayDate = new Date(mo.year, mo.month, dayNum);
-                                    const daySeries = monthSeries.filter(s => {
-                                        const start = new Date(s.start_date);
-                                        const end = s.end_date ? new Date(s.end_date) : start;
-                                        return dayDate >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) &&
-                                            dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
-                                    });
-                                    const isToday = dayDate.toDateString() === today.toDateString();
-                                    return (
-                                        <div key={dayNum} className={'cal-cell' + (isToday ? ' today' : '') + (daySeries.length > 0 ? ' has-events' : '')}>
-                                            <span className="cal-day-num">{dayNum}</span>
-                                            {daySeries.slice(0, 2).map((s, si) => {
-                                                const tourColor = TOUR_COLORS[s.tour_code] || TOUR_COLORS.default;
-                                                return (
-                                                    <div key={si} className="cal-event"
-                                                        style={{ background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff' }}
-                                                        onClick={() => router.push('/hub/series/' + (s.id || si + 1))}
-                                                        title={s.name}>
-                                                        {(s.tour_code || s.short_name || '').slice(0, 5)}
-                                                    </div>
-                                                );
-                                            })}
-                                            {daySeries.length > 2 && <div className="cal-more">+{daySeries.length - 2}</div>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        );
     };
 
     return (

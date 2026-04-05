@@ -802,6 +802,31 @@ export default async function handler(req, res) {
                   venue.venue_news = [];
               }
 
+              // === VENUE GAME SCHEDULES (per-day cash game listings) ===
+              try {
+                  const SCHED_DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                  const { data: schedData } = await getSupabase()
+                      .from('venue_game_schedules')
+                      .select('id, day_of_week, game_name, start_time, end_time, notes')
+                      .eq('venue_id', parseInt(id, 10))
+                      .eq('is_active', true)
+                      .order('day_of_week')
+                      .order('start_time')
+                      .limit(200);
+                  if (schedData && schedData.length > 0) {
+                      const grouped = {};
+                      SCHED_DAYS.forEach(d => { grouped[d] = []; });
+                      schedData.forEach(row => {
+                          if (grouped[row.day_of_week]) grouped[row.day_of_week].push(row);
+                      });
+                      venue.game_schedule = grouped;
+                  } else {
+                      venue.game_schedule = null;
+                  }
+              } catch (schedErr) {
+                  venue.game_schedule = null;
+              }
+
               return res.status(200).json({
                   success: true,
                   data: venue,

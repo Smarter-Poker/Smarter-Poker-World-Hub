@@ -30,7 +30,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-import { RFI, THREE_BET, BB_DEFENSE, FOUR_BET, COLD_CALL, SQUEEZE, getHandFrequencies, ALL_HANDS as SOLVER_ALL_HANDS, getRFIByDepth } from '../../../src/config/solverRanges';
+import { RFI, BB_DEFENSE, FOUR_BET, COLD_CALL, SQUEEZE, getHandFrequencies, getRFIByDepth } from '../../../src/config/solverRanges';
 
 
 /**

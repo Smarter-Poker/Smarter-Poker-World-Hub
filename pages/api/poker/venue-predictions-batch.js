@@ -217,6 +217,27 @@ function describeQuietHours(hours) {
   return `${formatHour(hours[0])}-${formatHour(hours[hours.length - 1])}`;
 }
 
+// Cache the venue ID→name map from static JSON (loaded once per cold start)
+let _venueIdToName = null;
+function getVenueIdToNameMap() {
+  if (_venueIdToName) return _venueIdToName;
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const jsonPath = path.join(process.cwd(), 'public', 'data', 'all-venues.json');
+    const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+    const venues = raw.venues || raw.data || raw || [];
+    _venueIdToName = {};
+    (Array.isArray(venues) ? venues : []).forEach(v => {
+      if (v.id && v.name) _venueIdToName[v.id] = v.name;
+    });
+  } catch (e) {
+    console.warn('venue-predictions-batch: failed to load all-venues.json:', e.message);
+    _venueIdToName = {};
+  }
+  return _venueIdToName;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -236,39 +257,25 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
     const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Fetch game-level history for all requested venues at once
-    const numericIds = ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    // Resolve venue IDs → names from static JSON (same source as frontend)
+    const idToNameMap = getVenueIdToNameMap();
+    const nameToId = {};
+    const venueNamesArray = [];
 
-    // Query game_live_history matching these venue IDs via a join or venue_name lookup
-    // Since game_live_history uses bravo_slug/venue_name, we need to first get venue names
-    const { data: venueNames, error: venueErr } = await supabase
-      .from('venues')
-      .select('id, name, bravo_slug')
-      .in('id', numericIds);
-
-    if (venueErr) {
-      // Table might not exist yet — return empty gracefully
-      if (venueErr.code === '42P01' || venueErr.code === '42703') {
-        return res.status(200).json({ success: true, predictions: {}, message: 'Venue data not ready' });
+    ids.forEach(id => {
+      const intId = parseInt(id, 10);
+      const name = idToNameMap[intId];
+      if (name) {
+        nameToId[name.toLowerCase()] = intId;
+        venueNamesArray.push(name);
       }
-      throw venueErr;
-    }
+    });
 
-    if (!venueNames || venueNames.length === 0) {
+    if (venueNamesArray.length === 0) {
       return res.status(200).json({ success: true, predictions: {} });
     }
 
-    // Build a map of venue name → venue ID for reverse lookup
-    const nameToId = {};
-    const slugToId = {};
-    venueNames.forEach(v => {
-      if (v.name) nameToId[v.name.toLowerCase()] = v.id;
-      if (v.bravo_slug) slugToId[v.bravo_slug.toLowerCase()] = v.id;
-    });
-
-    // Fetch history for all these venues by name
-    const venueNamesArray = venueNames.map(v => v.name).filter(Boolean);
-
+    // Fetch history for all these venues by name from game_live_history
     let historyData = [];
     // Batch in chunks of 20 venue names to avoid query limits
     for (let i = 0; i < venueNamesArray.length; i += 20) {
@@ -330,3 +337,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
