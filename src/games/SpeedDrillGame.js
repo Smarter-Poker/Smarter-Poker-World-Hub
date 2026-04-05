@@ -8,6 +8,7 @@ import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
+import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import gameSessionService from '../services/GameSessionService';
 // confetti loaded lazily
 let _confetti = null;

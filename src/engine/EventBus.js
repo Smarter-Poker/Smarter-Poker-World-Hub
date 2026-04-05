@@ -60,6 +60,7 @@ export const EventType = {
     GEEVES_QUESTION_MISSED: 'GEEVES_QUESTION_MISSED',
     GEEVES_KB_UPDATED: 'GEEVES_KB_UPDATED',
     GEEVES_OPENED: 'GEEVES_OPENED',
+    BUG_REPORT_SUBMITTED: 'BUG_REPORT_SUBMITTED',
 
     // ── ORB-6: The Wire (Messenger / WebRTC) ──
     MESSAGE_SENT: 'MESSAGE_SENT',
@@ -308,6 +309,9 @@ const _busEmitMethods = {
 
     geevesOpened: () =>
         eventBus.emit(EventType.GEEVES_OPENED, {}, 'GeevesOrb'),
+
+    bugReportSubmitted: (ticketId, priority, system) =>
+        eventBus.emit(EventType.BUG_REPORT_SUBMITTED, { ticketId, priority, system }, 'BugWidget'),
 
     // ── ORB-6: The Wire (Messenger / WebRTC) ──
     messageSent: (conversationId, recipientId) =>

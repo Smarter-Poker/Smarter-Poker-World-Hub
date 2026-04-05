@@ -45,6 +45,7 @@ import achievementService from '../../src/services/AchievementService';
 import { claimReward } from '../../src/lib/claimReward';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 // busEmit not needed at page level — DiamondEngine auto-emits, useTrainingBus has own import
+import { leakAnalyzer } from '../../src/engine/LeakSignalAnalyzer';
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
@@ -717,6 +718,12 @@ export default function MemoryGamesPage() {
     useTrainingBus('preflop-charts');
     const userId = user?.id;
     const containerRef = useRef(null);
+
+    // Start leak analyzer for Jarvis integration — feeds into LeakService + Jarvis PA alerts
+    useEffect(() => {
+        leakAnalyzer.start();
+        if (userId) leakAnalyzer.setUserId(userId);
+    }, [userId]);
 
     // Zustand Global State (replaces some local useState)
     const currentLevel = useMemoryStore((s) => s.currentLevel) || 1; // Fallback to level 1 if undefined

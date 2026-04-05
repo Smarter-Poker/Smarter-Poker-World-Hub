@@ -6,7 +6,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { MIXED_SCENARIOS } from './ScenarioDatabase';
-import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
+import { busEmit } from '../engine/EventBus';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -78,7 +79,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         else if (difference <= 5) points += 200;
         else if (difference <= 15) points += 50;
         if (difference <= 15) { setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCloseCount(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
-        else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentScenario?.title || 'Unknown', action: targetAction, expected: actualFreq, got: userFreq, diff: difference }); }
+        else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentScenario?.title || 'Unknown', action: targetAction, expected: actualFreq, got: userFreq, diff: difference }); busEmit.decisionIncorrect(streak, { userAction: `${targetAction} ${userFreq}%`, bestAction: `${targetAction} ${actualFreq}%`, scenario: currentScenario }); }
         setGameState('revealed');
         setTimeout(nextRound, 2000);
     };
@@ -258,6 +259,24 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                             <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
                             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
                         </div>
+
+                        {/* Suggested Next Game */}
+                        {(() => {
+                            const suggestion = getNextGameSuggestion('mixed-strategy', grade);
+                            if (!suggestion) return null;
+                            return (
+                                <div style={{
+                                    background: `${suggestion.color}10`, border: `1px solid ${suggestion.color}30`,
+                                    borderRadius: 10, padding: 14, marginTop: 10, textAlign: 'center', cursor: 'pointer'
+                                }} onClick={onExit}>
+                                    <div style={{ fontSize: 10, color: suggestion.color, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
+                                        {suggestion.icon} SUGGESTED NEXT
+                                    </div>
+                                    <div style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}>{suggestion.title}</div>
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{suggestion.reason}</div>
+                                </div>
+                            );
+                        })()}
                     </motion.div>
                 );
             })()}

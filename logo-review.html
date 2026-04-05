@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Venue Logo Review</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; text-align: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+  .card { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155; }
+  .logo-container { width: 54px; height: 54px; background: #000; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #475569; border-radius: 4px; }
+  .logo-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .name { font-size: 14px; font-weight: bold; margin-bottom: 5px; }
+  .id { font-size: 11px; color: #94a3b8; font-family: monospace; }
+  h1 { color: #38bdf8; }
+  p { color: #cbd5e1; max-width: 600px; margin: 0 auto 30px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <h1>Venue Logo Review</h1>
+  <p>These are all the existing logos pulled directly from public/data/all-venues.json rendered at exactly 54x54 (the size used in the UI). Notice how almost all of them are tiny DuckDuckGo favicons.</p>
+  <p><strong>Look through the grid. Reply in the Antigravity chat with the IDs or Names of the ones you want to KEEP.</strong></p>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    fetch('./public/data/all-venues.json')
+      .then(res => res.json())
+      .then(data => {
+        const h = document.getElementById('grid');
+        const venues = data.venues.filter(v => v.logo_url && ['casino', 'card_room', 'poker_club'].includes(v.venue_type));
+        venues.forEach(v => {
+          h.innerHTML += `
+            <div class="card">
+              <div class="logo-container"><img src="${v.logo_url}" /></div>
+              <div class="name">${v.name}</div>
+              <div class="id">ID: ${v.id}</div>
+            </div>`;
+        });
+      });
+  </script>
+</body>
+</html>

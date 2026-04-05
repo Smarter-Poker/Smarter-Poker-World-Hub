@@ -7,7 +7,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { SoundEngine } from './GameEngine';
-import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
+import { busEmit } from '../engine/EventBus';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -453,6 +454,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                 correct: correctOpt?.action || correctOpt?.hands || '?',
                 picked: option.action || option.hands || '?',
             });
+            busEmit.decisionIncorrect(0, { userAction: option.action || option.hands, bestAction: correctOpt?.action || correctOpt?.hands, scenario: currentChallenge });
         }
     };
 
@@ -1103,6 +1105,24 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                             {getCoachingTip(playerWon ? 'A' : 'C')}
                         </div>
                     </div>
+
+                    {/* Suggested Next Game */}
+                    {(() => {
+                        const suggestion = getNextGameSuggestion('tournament', playerWon ? 'A' : 'C');
+                        if (!suggestion) return null;
+                        return (
+                            <div style={{
+                                background: `${suggestion.color}10`, border: `1px solid ${suggestion.color}30`,
+                                borderRadius: 10, padding: 14, marginTop: 10, textAlign: 'center', cursor: 'pointer'
+                            }} onClick={() => setMatchState('lobby')}>
+                                <div style={{ fontSize: 10, color: suggestion.color, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
+                                    {suggestion.icon} SUGGESTED NEXT
+                                </div>
+                                <div style={{ fontSize: 14, color: '#fff', fontWeight: 700 }}>{suggestion.title}</div>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{suggestion.reason}</div>
+                            </div>
+                        );
+                    })()}
                 </div>
             </motion.div>
         );

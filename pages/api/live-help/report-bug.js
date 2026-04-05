@@ -58,21 +58,25 @@ export default async function handler(req, res) {
             } catch { /* proceed as anonymous */ }
         }
 
-        // ── Store in database (if table exists) ──
+        // ── Store in database (atomic RPC + real-time DM injection) ──
         let ticketId = null;
         try {
-            const { data: ticket } = await getSupabase()
-                .from('live_help_tickets')
-                .insert({
-                    user_id: userId,
-                    subject: `[BUG] ${subject.trim()}`,
-                    description: `${description.trim()}\n\n---\nPage: ${currentPage || 'unknown'}\nUser Agent: ${userAgent || 'unknown'}\nReported: ${new Date().toISOString()}`,
-                    priority: priority,
-                    status: 'open',
-                })
-                .select('id')
-                .maybeSingle();
-            ticketId = ticket?.id;
+            const { data: result, error: rpcError } = await getSupabase().rpc('fn_submit_bug_report_to_admin', {
+                p_sender_id: userId,
+                p_subject: subject.trim(),
+                p_description: description.trim(),
+                p_priority: priority,
+                p_current_page: currentPage || 'unknown',
+                p_user_agent: userAgent || 'unknown'
+            });
+
+            if (rpcError) throw rpcError;
+            if (result?.success) {
+                ticketId = result.ticket_id;
+                console.log(`[ReportBug] Atomic bug report successful: Ticket ${ticketId}, MSG: ${result.message_id}`);
+            } else {
+                console.warn('[ReportBug] Atomic bug report failed internally:', result?.error);
+            }
         } catch (dbErr) {
             console.warn('[ReportBug] DB insert failed (non-fatal):', dbErr.message);
         }

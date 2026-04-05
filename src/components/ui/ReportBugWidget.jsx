@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import MetalModal from './MetalModal';
 import { getAuthUser } from '../../lib/authUtils'; // Assuming authUtils is two levels up
+import { busEmit } from '../../engine/EventBus';
 
 export default function ReportBugWidget({ contextPath = '/hub/messenger' }) {
     const [showModal, setShowModal] = useState(false);
@@ -49,6 +50,16 @@ export default function ReportBugWidget({ contextPath = '/hub/messenger' }) {
 
             if (!res.ok) throw new Error('Failed to submit');
             
+            // Assuming endpoint returns tracking ID (res.json() may not exist if it's returning empty, but in our case ReportBug returns {"success": true, "ticket_id": v_ticket_id})
+            let ticketId = 'UNKNOWN';
+            try { 
+                const data = await res.json(); 
+                if (data.ticket_id) ticketId = data.ticket_id;
+            } catch(e){}
+
+            // Push globally to any listeners
+            busEmit.bugReportSubmitted(ticketId, bugPriority, contextPath);
+
             setBugSuccess(true);
             setBugSubject('');
             setBugDescription('');
