@@ -14,6 +14,7 @@ export default function FavoritesTabPanel({
     favorites,
     toggleFavorite,
     venueMaxGtd,
+    promotionVenueIds = new Set(),
     pnmReviewStatsMap,
     venuePredictionsMap = {},
     setActiveTab,
@@ -51,6 +52,7 @@ export default function FavoritesTabPanel({
                             venue={{ ...venue, max_gtd: maxGtd }}
                             index={i}
                             isFavorited={true}
+                            hasPromo={promotionVenueIds.has(String(venue.id))}
                             onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                             onNavigate={(path) => router.push(path)}
                             reviewStats={pnmReviewStatsMap[String(venue.id)]}

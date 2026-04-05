@@ -1860,6 +1860,7 @@ export default function PokerNearMePage() {
                 setHasSearched={setHasSearched}
                 fetchAllData={fetchAllData}
                 router={router}
+                setIframeModal={setIframeModal}
             />
         );
         if (activeTab === 'live') return (
@@ -1881,6 +1882,7 @@ export default function PokerNearMePage() {
                 favorites={favorites}
                 toggleFavorite={toggleFavorite}
                 venueMaxGtd={venueMaxGtd}
+                promotionVenueIds={promotionVenueIds}
                 pnmReviewStatsMap={pnmReviewStatsMap}
                 venuePredictionsMap={venuePredictionsMap}
                 setActiveTab={setActiveTab}

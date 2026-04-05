@@ -25,6 +25,7 @@ export default function MapTabPanel({
     setHasSearched,
     fetchAllData,
     router,
+    setIframeModal,
 }) {
     // Apply map-specific filters
     let filteredVenues = allVenuesForMap;
@@ -153,6 +154,7 @@ export default function MapTabPanel({
                             fullHeight
                             onVenueClick={onMapVenueClick}
                             radiusMiles={filters.radius}
+                            onOpenIframeModal={setIframeModal ? (url, title) => setIframeModal({ isOpen: true, url, title }) : undefined}
                         />
                     </MapErrorBoundary>
                 </div>
