@@ -106,7 +106,7 @@ export default function VenuesTabPanel({
                 </div>
 
                 <span className="results-showing">
-                    {(userLocation || nearestDistance) ? `Nearest: ~${nearestDistance || '0'} miles` : `Showing ${displayed.length} of ${venues.length}`}
+                    {(userLocation || nearestDistance) ? `Nearest: ${nearestDistance || '0'} Miles` : `Showing ${displayed.length} of ${venues.length}`}
                 </span>
                 
                 {!mapFullscreen && (
