@@ -58,6 +58,11 @@ import RangeBuilder from './RangeBuilder';
 import MultiwayTrainer from './MultiwayTrainer';
 import OpponentProfiler from './OpponentProfiler';
 import ThreeBetTrainer from './ThreeBetTrainer';
+// ═══ PHASE 6: Solutions Browser, Custom Drills, HH Import, Tournament ═══
+import PreflopSolutionsBrowser from './PreflopSolutionsBrowser';
+import CustomSpotDrillBuilder from './CustomSpotDrillBuilder';
+import HandHistoryImporter from './HandHistoryImporter';
+import TournamentTrainer from './TournamentTrainer';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
@@ -2225,7 +2230,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'solutions', label: 'Solutions' }, { id: 'drills', label: 'Drills' }, { id: 'import', label: 'Import' }, { id: 'tournament', label: 'MTT' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -4487,6 +4492,26 @@ function GodModeArenaInner({
                     {/* ═══ TAB: 3-BET TRAINER ═══ */}
                     {reviewTab === '3bet' && (<>
                         <ThreeBetTrainer />
+                    </>)}
+
+                    {/* ═══ TAB: PREFLOP SOLUTIONS BROWSER ═══ */}
+                    {reviewTab === 'solutions' && (<>
+                        <PreflopSolutionsBrowser />
+                    </>)}
+
+                    {/* ═══ TAB: CUSTOM SPOT DRILL BUILDER ═══ */}
+                    {reviewTab === 'drills' && (<>
+                        <CustomSpotDrillBuilder />
+                    </>)}
+
+                    {/* ═══ TAB: HAND HISTORY IMPORTER ═══ */}
+                    {reviewTab === 'import' && (<>
+                        <HandHistoryImporter />
+                    </>)}
+
+                    {/* ═══ TAB: TOURNAMENT TRAINER ═══ */}
+                    {reviewTab === 'tournament' && (<>
+                        <TournamentTrainer />
                     </>)}
 
                     {/* ACTION BUTTONS */}
