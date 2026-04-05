@@ -1608,7 +1608,8 @@ export default function UserProfilePage() {
 
     const isOwnProfile = currentUser?.id === profile.id;
     const displayName = profile.full_name || profile.username || 'Player';
-    const locationParts = [profile.city, profile.state, profile.country].filter(Boolean);
+    const isDan = displayName?.toLowerCase().includes('dan bekavac') || profile.username?.toLowerCase() === 'danbekavac';
+    const locationParts = [profile.city, profile.state, profile.country === 'US' ? null : profile.country].filter(Boolean);
 
     return (
         <PageTransition>
@@ -1679,7 +1680,7 @@ export default function UserProfilePage() {
 
                 {/* PROFILE HEADER - SmarterPoker Style */}
                 <div style={{ padding: '0 16px', marginTop: -50, position: 'relative', zIndex: 10 }}>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', gap: 16 }}>
                         {/* Avatar */}
                         <div style={{ position: 'relative', display: 'inline-block' }}>
                             <Avatar src={profile.avatar_url} name={displayName} size={120} />
@@ -1714,16 +1715,17 @@ export default function UserProfilePage() {
                         </div>
 
                         {/* Name & Stats */}
-                        <div style={{ flex: 1, paddingBottom: 8 }}>
-                            <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text }}>{displayName}</h1>
+                        <div style={{ flex: 1, paddingTop: 51, paddingBottom: 8 }}>
+                            <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text, lineHeight: 1 }}>{displayName}</h1>
                             {profile.created_at && (
-                                <div style={{ fontSize: 11, color: C.textSec, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <div style={{ fontSize: 11, color: C.textSec, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    Member Since {new Date(profile.created_at).getFullYear()}
+                                    Member Since {isDan ? 2025 : new Date(profile.created_at).getFullYear()}
+                                    {locationParts.length > 0 && <span>· {locationParts.join(', ')}</span>}
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: 8, fontSize: 14, color: C.textSec, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                                 {[{ val: animatedStats.friends, label: 'Friends' }, { val: animatedStats.followers, label: 'Followers' }, { val: animatedStats.following, label: 'Following' }, { val: animatedStats.posts, label: 'Posts' }].map((s, i) => (
                                     <React.Fragment key={s.label}>
                                         {i > 0 && <span>·</span>}
@@ -1754,13 +1756,14 @@ export default function UserProfilePage() {
                         </div>
                     </div>
 
-                    {/* Intro Bar - Location, Work, School */}
-                    <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 14, color: C.textSec }}>
-                        {locationParts.length > 0 && <span> {locationParts.join(', ')}</span>}
-                        {profile.occupation && <span>· 💼 {profile.occupation}</span>}
-                        {profile.home_casino && <span>·  {profile.home_casino}</span>}
-                        {profile.instagram && <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: C.textSec, textDecoration: 'none' }}>· 📸 @{profile.instagram.replace('@', '')}</a>}
-                    </div>
+                    {/* Intro Bar - Work, Social */}
+                    {(profile.occupation || profile.instagram) && (
+                        <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 14, color: C.textSec }}>
+                            {profile.occupation && <span>💼 {profile.occupation}</span>}
+                            {profile.occupation && profile.instagram && <span>·</span>}
+                            {profile.instagram && <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={{ color: C.textSec, textDecoration: 'none' }}>📸 @{profile.instagram.replace('@', '')}</a>}
+                        </div>
+                    )}
 
                     {/* Friends Row - "Friends with..." + Mutual Friends Badge */}
                     {friends.length > 0 && (
