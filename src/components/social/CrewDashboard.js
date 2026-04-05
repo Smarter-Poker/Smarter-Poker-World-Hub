@@ -156,7 +156,7 @@ export default function CrewDashboard({ currentUser }) {
 
             {crews.length === 0 && !showCreate && !showJoin && (
                 <div style={{ textAlign: 'center', padding: '20px 0', opacity: 0.7, fontSize: 13 }}>
-                    You aren't in any crews yet. Create or join one to team up with friends!
+                    You Aren't In Any Crews Yet. Create Or Join One To Team Up With Friends!
                 </div>
             )}
 

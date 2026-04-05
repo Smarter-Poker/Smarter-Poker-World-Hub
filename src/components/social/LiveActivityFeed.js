@@ -134,10 +134,9 @@ export default function LiveActivityFeed({ currentUser }) {
             {/* Empty state */}
             {!loading && activeSessions.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>🎰</div>
                     <div style={{ color: T.textSec, fontSize: 13 }}>
                         {tab === 'friends'
-                            ? 'No friends are live right now. Start a session to let them know!'
+                            ? 'No Friends Are Live Right Now. Start A Session To Let Them Know!'
                             : 'No public sessions right now.'}
                     </div>
                 </div>
