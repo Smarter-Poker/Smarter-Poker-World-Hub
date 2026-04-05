@@ -17,6 +17,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { explainDecision } from '../../engines/AICoachEngine';
 import { calculateActionEVs } from '../../engines/EVCalculator';
+import { explainStrategy } from '../../engines/StrategyExplainer';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ENGINE-GENERATED EXPLANATION INTERFACE (No AI — Pure Engine)
@@ -198,13 +199,51 @@ export function FeedbackCard({
                 deepDive.equityAnalysis = `${scenario.heroPosition} vs ${scenario.villainPosition}${scenario.heroHand ? ` with ${scenario.heroHand}` : ''}. ${result.evDiff ? `Your play costs ${Math.abs(result.evDiff).toFixed(2)} BB in EV.` : ''}`;
             }
 
-            const keyTakeaway = coaching.concepts.length > 0
-                ? `Key concepts: ${coaching.concepts.map(c => c.replace(/_/g, ' ')).join(', ')}.`
-                : (result.isCorrect ? 'Solid play — keep it up.' : `Review ${result.gtoLine.action} in this spot type.`);
+            // ═══ Enhanced Strategy Explanation (StrategyExplainer engine) ═══
+            let strategyInsight: { explanation: string; keyFactors: string[]; strategicConcept: string } | null = null;
+            try {
+                const holeCards = scenario.heroHand
+                    ? (typeof scenario.heroHand === 'string' && scenario.heroHand.length === 4
+                        ? [scenario.heroHand.slice(0, 2), scenario.heroHand.slice(2, 4)]
+                        : scenario.heroHand)
+                    : null;
+                const board = Array.isArray(scenario.board) ? scenario.board : [];
+
+                if (holeCards && board.length >= 3) {
+                    strategyInsight = explainStrategy({
+                        holeCards,
+                        board,
+                        correctAction: result.gtoLine?.action || '',
+                        userAction: result.userAction?.action || '',
+                        position: (scenario.heroPosition === 'BB' || scenario.heroPosition === 'SB') ? 'OOP' : 'IP',
+                        street: _detectStreet(scenario.board),
+                        spotType: scenario.spotType || 'cbet',
+                        betFrequency: result.gtoLine?.frequency,
+                        frequencies: question.gtoFrequencies || {},
+                        is3BetPot: scenario.is3BetPot || false,
+                    });
+                }
+            } catch {}
+
+            const keyTakeaway = strategyInsight?.keyFactors?.length
+                ? strategyInsight.keyFactors.slice(0, 3).join(' • ')
+                : coaching.concepts.length > 0
+                    ? `Key concepts: ${coaching.concepts.map((c: string) => c.replace(/_/g, ' ')).join(', ')}.`
+                    : (result.isCorrect ? 'Solid play — keep it up.' : `Review ${result.gtoLine.action} in this spot type.`);
+
+            // Use StrategyExplainer for deeper explanation when available
+            const shortExplain = strategyInsight?.explanation || coaching.detail || coaching.text;
+
+            if (strategyInsight?.strategicConcept) {
+                deepDive.rangeConsiderations = (deepDive.rangeConsiderations || '') +
+                    ` Strategic concept: ${strategyInsight.strategicConcept}.`;
+            }
 
             setEngineExplanation({
-                headline: coaching.text,
-                shortExplanation: coaching.detail || coaching.text,
+                headline: strategyInsight?.strategicConcept
+                    ? `${coaching.text} — ${strategyInsight.strategicConcept}`
+                    : coaching.text,
+                shortExplanation: shortExplain,
                 deepDive: Object.keys(deepDive).length > 0 ? deepDive : undefined,
                 keyTakeaway,
                 confidence: 1.0,
