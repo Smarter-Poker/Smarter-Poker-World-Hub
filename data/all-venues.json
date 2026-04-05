@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T07:23:02.027Z",
+  "updated_at": "2026-04-05T07:44:51.542Z",
   "total": 677,
   "venues": [
     {
@@ -3723,7 +3723,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2249.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2249.jpg"
     },
     {
       "id": 1947,
@@ -3749,61 +3749,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1947.png"
-    },
-    {
-      "id": 2251,
-      "name": "Treasure Chest",
-      "slug": null,
-      "website": "https://treasurechestcasino.com",
-      "address": "3355 Las Vegas Blvd. South",
-      "city": "Gainesville",
-      "state": "FL",
-      "phone": "(702) 414-7657",
-      "venue_type": "card_room",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas",
-      "hours": null,
-      "latitude": 36.1238067,
-      "longitude": -115.1683189,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": [
-        "$1/$2"
-      ],
-      "poker_tables": 8,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2251.png"
-    },
-    {
-      "id": 1954,
-      "name": "Creek Entertainment",
-      "slug": "creek-entertainment-gretna",
-      "website": "http://www.creekentertainment.com/",
-      "address": "501 Race Track Drive",
-      "city": "Gretna",
-      "state": "FL",
-      "phone": "(850) 875-6930",
-      "venue_type": "card_room",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/creek-entertainment-gretna",
-      "hours": null,
-      "latitude": 30.5837211,
-      "longitude": -84.7034225,
-      "trust_score": 4.8,
-      "games_offered": [
-        "PLO"
-      ],
-      "stakes_cash": null,
-      "poker_tables": 15,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1954.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1947.jpg"
     },
     {
       "id": 2889,
@@ -4169,7 +4115,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2235.svg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2235.png"
     },
     {
       "id": 2754,
@@ -4361,7 +4307,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2753.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2753.jpg"
     },
     {
       "id": 2237,
@@ -4546,7 +4492,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2687.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2687.jpg"
     },
     {
       "id": 2891,
@@ -4572,7 +4518,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2891.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2891.jpg"
     },
     {
       "id": 1950,
@@ -4599,35 +4545,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1950.png"
-    },
-    {
-      "id": 2256,
-      "name": "Sarasota Kennel Club",
-      "slug": null,
-      "website": "https://www.sarasotakennelclub.com",
-      "address": "3355 Las Vegas Blvd. South",
-      "city": "Sarasota",
-      "state": "FL",
-      "phone": "(702) 414-7657",
-      "venue_type": "card_room",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/venetian-las-vegas/tournaments",
-      "hours": null,
-      "latitude": 36.1238067,
-      "longitude": -115.1683189,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": [
-        "$1/$2",
-        "$2/$5"
-      ],
-      "poker_tables": 15,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2256.png"
     },
     {
       "id": 2732,
@@ -5112,7 +5029,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2340.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2340.jpg"
     },
     {
       "id": 3050,
@@ -5192,7 +5109,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2051.jpg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2051.png"
     },
     {
       "id": 2053,
