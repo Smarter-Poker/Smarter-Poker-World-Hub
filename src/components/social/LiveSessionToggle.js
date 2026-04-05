@@ -164,7 +164,7 @@ export default function LiveSessionToggle({ currentUser }) {
                 }}
             >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ fontSize: 20 }}>{session ? '🟢' : '🎰'}</div>
+                    <div style={{ fontSize: 20 }}>{session ? '🟢' : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5.636 18.364a9 9 0 0 1 0-12.728"/><path d="M18.364 5.636a9 9 0 0 1 0 12.728"/><path d="M8.464 15.536a5 5 0 0 1 0-7.072"/><path d="M15.536 8.464a5 5 0 0 1 0 7.072"/><circle cx="12" cy="12" r="1"/></svg>}</div>
                     <div>
                         <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
                             {session ? 'LIVE AT THE TABLE' : 'Start Live Session'}

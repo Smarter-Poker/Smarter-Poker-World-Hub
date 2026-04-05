@@ -56,33 +56,14 @@ const timeAgo = (date) => {
 };
 
 // Avatar Component with online status
-function Avatar({ src, name, size = 120, showOnline = false, onlineTime = null }) {
-    const initials = (name || 'U').charAt(0).toUpperCase();
-    const colors = ['#1877F2', '#42B72A', '#F02849', '#A033FF', '#FF6600'];
-    const bgColor = colors[initials.charCodeAt(0) % colors.length];
-
+function Avatar({ src, name, size = 120 }) {
     return (
         <div style={{ position: 'relative', display: 'inline-block' }}>
-            {src ? (
-                <img src={src} alt={name} style={{
-                    width: size, height: size, borderRadius: '50%', objectFit: 'cover',
-                    border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }} loading="lazy" />
-            ) : (
-                <div style={{
-                    width: size, height: size, borderRadius: '50%', background: bgColor,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: size * 0.4, fontWeight: 700, color: 'white',
-                    border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }}>{initials}</div>
-            )}
-            {showOnline && (
-                <div style={{
-                    position: 'absolute', bottom: size * 0.05, right: size * 0.05,
-                    background: C.green, color: 'white', fontSize: 10, fontWeight: 600,
-                    padding: '2px 6px', borderRadius: 10, border: '2px solid white'
-                }}>{onlineTime || '●'}</div>
-            )}
+            <img src={src || '/default-avatar.png'} alt={name || 'Player'} style={{
+                width: size, height: size, borderRadius: '50%', objectFit: 'cover',
+                border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                background: '#1a1a2e',
+            }} loading="lazy" onError={e => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }} />
         </div>
     );
 }
@@ -1717,11 +1698,19 @@ export default function UserProfilePage() {
                         {/* Name & Stats */}
                         <div style={{ flex: 1, paddingTop: 51, paddingBottom: 8 }}>
                             <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: C.text, lineHeight: 1 }}>{displayName}</h1>
-                            {profile.created_at && (
+                            {(profile.created_at || locationParts.length > 0) && (
                                 <div style={{ fontSize: 11, color: C.textSec, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    Member Since {isDan ? 2025 : new Date(profile.created_at).getFullYear()}
-                                    {locationParts.length > 0 && <span>· {locationParts.join(', ')}</span>}
+                                    {profile.created_at && (<>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        Member Since {isDan ? 2025 : new Date(profile.created_at).getFullYear()}
+                                    </>)}
+                                    {locationParts.length > 0 && (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                            {profile.created_at && '·'}
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                            {locationParts.join(', ')}
+                                        </span>
+                                    )}
                                 </div>
                             )}
 
