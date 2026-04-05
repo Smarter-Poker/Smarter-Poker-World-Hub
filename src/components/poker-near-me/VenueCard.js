@@ -263,10 +263,23 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* === ADDRESS === */}
             <a
                 className="vc3-address"
-                href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((venue.address || '') + ', ' + (venue.city || '') + ', ' + (venue.state || ''))}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
+                href="#"
+                onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const addr = encodeURIComponent((venue.address || '') + ', ' + (venue.city || '') + ', ' + (venue.state || ''));
+                    const ua = navigator.userAgent || '';
+                    if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
+                        // iOS — open Apple Maps
+                        window.open('https://maps.apple.com/?q=' + addr, '_blank');
+                    } else if (/Android/i.test(ua)) {
+                        // Android — geo: URI opens default maps app
+                        window.location.href = 'geo:0,0?q=' + addr;
+                    } else {
+                        // Desktop fallback — Google Maps in new tab
+                        window.open('https://www.google.com/maps/search/?api=1&query=' + addr, '_blank');
+                    }
+                }}
                 title="Open In Maps"
             >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
