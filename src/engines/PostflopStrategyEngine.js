@@ -20,6 +20,21 @@
 
 import { analyzeBoard, FLUSH_TEXTURE, PAIR_TEXTURE, CONNECTIVITY, HEIGHT } from './BoardTextureEngine';
 import { classifyMadeHand, classifyDraws, MADE_HANDS, DRAWS, evaluateHand } from './HandStrengthEngine';
+import {
+    FLOP_CBET_MATRIX,
+    FLOP_CHECKRAISE_MATRIX,
+    TURN_BARREL_MATRIX,
+    RIVER_STRATEGY_MATRIX,
+    FACING_BET_MATRIX,
+    THREE_BET_POT_ADJUSTMENTS,
+    lookupCbetStrategy,
+    lookupCheckRaiseStrategy,
+    lookupTurnStrategy,
+    lookupRiverStrategy,
+    lookupFacingBetStrategy,
+    classifyBetSize,
+    calculateGeometricSizing,
+} from '../config/postflopSolverData';
 
 // ── Bet Sizing Constants ─────────────────────────────────────────────────
 
@@ -637,18 +652,18 @@ export function getFacingBetStrategy(holeCards, board, betSize, potSize, street)
  * @returns {Object} Complete strategy recommendation
  */
 export function getPostflopStrategy(params) {
-    const { holeCards, board, position, street, isPFR, facingBet, betSize, potSize, prevAction } = params;
+    const { holeCards, board, position, street, isPFR, facingBet, betSize, potSize, prevAction, is3BetPot } = params;
 
     // Validate inputs
     if (!holeCards || holeCards.length < 2) return { error: 'Need 2 hole cards' };
     if (!board || board.length < 3) return { error: 'Need at least 3 board cards' };
 
-    // Route to correct strategy based on context
+    // Route to correct strategy based on context — use ENHANCED solver-data versions
     if (facingBet) {
         return {
             type: 'facing_bet',
             street,
-            ...getFacingBetStrategy(holeCards, board, betSize || 3, potSize || 6, street),
+            ...getEnhancedFacingBetStrategy(holeCards, board, betSize || 3, potSize || 6, street),
         };
     }
 
@@ -657,18 +672,41 @@ export function getPostflopStrategy(params) {
             return {
                 type: 'cbet',
                 street: 'flop',
-                ...getCbetStrategy(board, position, holeCards),
+                ...getEnhancedCbetStrategy(board, position, holeCards, { is3BetPot }),
             };
         } else {
             // As the defender (caller), check to PFR most of the time
-            // Check-raise strategy applies when PFR bets
+            // Use enhanced check-raise lookup from solver data
+            const boardAnalysis = analyzeBoard(board);
+            const textureKey = classifyBoardTexture(boardAnalysis);
+            const handClass = classifyHandClass(holeCards, board);
+            let xrData = null;
+
+            try {
+                xrData = lookupCheckRaiseStrategy(textureKey, handClass);
+            } catch (e) { /* fallback below */ }
+
+            const checkRaiseInfo = xrData
+                ? {
+                    shouldRaise: xrData.raise > 0.30,
+                    frequency: xrData.raise,
+                    callFreq: xrData.call,
+                    foldFreq: xrData.fold,
+                    raiseSizing: xrData.raiseSizing,
+                    handClass,
+                    boardTexture: textureKey,
+                    isEnhanced: true,
+                }
+                : getCheckRaiseStrategy(board, holeCards);
+
             return {
                 type: 'defender_flop',
                 street: 'flop',
                 action: ACTIONS.CHECK,
                 frequency: 0.85,
-                reason: 'As the caller, check to the preflop raiser',
-                checkRaiseInfo: getCheckRaiseStrategy(board, holeCards),
+                reason: `As the caller (${handClass}), check to the preflop raiser`,
+                checkRaiseInfo,
+                handClass,
             };
         }
     }
@@ -677,7 +715,7 @@ export function getPostflopStrategy(params) {
         return {
             type: 'turn_barrel',
             street: 'turn',
-            ...getTurnStrategy(holeCards, board, prevAction || 'bet', position),
+            ...getEnhancedTurnStrategy(holeCards, board, prevAction || 'bet', position),
         };
     }
 
@@ -685,7 +723,7 @@ export function getPostflopStrategy(params) {
         return {
             type: 'river_decision',
             street: 'river',
-            ...getRiverStrategy(holeCards, board, position, prevAction || 'check'),
+            ...getEnhancedRiverStrategy(holeCards, board, position, prevAction || 'check'),
         };
     }
 
@@ -729,6 +767,352 @@ export function getValidBetSizes(potSize, effectiveStack) {
         .filter(s => s.amount >= 1 && s.amount <= effectiveStack);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ENHANCED SOLVER-DATA LOOKUP — Uses granular postflopSolverData tables
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Classify a hand into one of the solver data hand classes.
+ * Maps from HandStrengthEngine output → postflopSolverData hand class keys.
+ */
+export function classifyHandClass(holeCards, board) {
+    const madeHand = classifyMadeHand(holeCards, board);
+    const draws = classifyDraws(holeCards, board);
+    const street = board.length === 5 ? 'river' : (board.length === 4 ? 'turn' : 'flop');
+
+    // Combo draw takes priority (flush draw + straight draw)
+    if (draws.isCombo || (draws.outs >= 12 && street !== 'river')) return 'combo_draw';
+
+    // On river: check for rivered hands or missed draws
+    if (street === 'river') {
+        // Check if hand improved on river card
+        const board4 = board.slice(0, 4);
+        const madeHand4 = classifyMadeHand(holeCards, board4);
+
+        if (madeHand.strength >= 0.80 && madeHand4.strength < 0.50) {
+            // Rivered a big hand
+            if (madeHand.category === MADE_HANDS.FLUSH) return 'rivered_flush';
+            if (madeHand.category === MADE_HANDS.STRAIGHT) return 'rivered_straight';
+            return 'rivered_2p';
+        }
+
+        // Missed draws
+        const draws4 = classifyDraws(holeCards, board4);
+        if (draws4.outs >= 8 && madeHand.strength < 0.20) {
+            if (draws4.draws?.includes?.(DRAWS.FLUSH_DRAW)) return 'missed_fd';
+            return 'missed_sd';
+        }
+    }
+
+    // Strong made hands
+    if (madeHand.strength >= 0.70) return 'nuts_plus';
+    if (madeHand.category === MADE_HANDS.OVERPAIR || (madeHand.strength >= 0.55 && madeHand.strength < 0.70)) return 'overpair';
+    if (madeHand.strength >= 0.45) return 'tpgk';
+    if (madeHand.strength >= 0.35) return 'tpwk';
+    if (madeHand.strength >= 0.25) return 'second_pair';
+
+    // Draws (pre-river)
+    if (street !== 'river') {
+        if (draws.draws?.includes?.(DRAWS.FLUSH_DRAW) || draws.outs >= 9) return 'flush_draw';
+        if (draws.draws?.includes?.(DRAWS.OESD) || draws.outs >= 8) return 'oesd';
+        if (draws.outs >= 4) return 'gutshot';
+    }
+
+    // Weak made hand
+    if (madeHand.strength >= 0.15) return 'weak_pair';
+
+    // No pair
+    const boardAnalysis = analyzeBoard(board);
+    const heroRanks = holeCards.map(c => c[0]);
+    const boardRanks = board.map(c => c[0]);
+    const RANK_VALS = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+    const maxBoardRank = Math.max(...boardRanks.map(r => RANK_VALS[r] || 0));
+    const hasOvercards = heroRanks.filter(r => (RANK_VALS[r] || 0) > maxBoardRank).length >= 2;
+
+    if (hasOvercards) return 'overcards';
+
+    // Check for backdoor draws (flop only)
+    if (street === 'flop' && draws.outs >= 1) return 'backdoor';
+
+    return 'air';
+}
+
+/**
+ * Classify the board texture into one of the solver data texture keys.
+ * Maps from BoardTextureEngine output → postflopSolverData texture keys.
+ */
+export function classifyBoardTexture(boardAnalysis) {
+    const { flush, pair, connectivity, wetness, height } = boardAnalysis;
+    const isHigh = height.height === HEIGHT.HIGH;
+
+    if (flush.texture === FLUSH_TEXTURE.MONOTONE) {
+        return isHigh ? 'monotone_high' : 'monotone_low';
+    }
+
+    if (pair.texture !== PAIR_TEXTURE.UNPAIRED) {
+        return isHigh ? 'paired_high' : 'paired_low';
+    }
+
+    // Check for connected/wet boards
+    if (connectivity?.straightPossible || wetness.wetness >= 7) {
+        if (isHigh) return 'connected_wet';
+        return 'low_connected';
+    }
+
+    // Broadway dry (all cards T+)
+    const RANK_VALS = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+    if (boardAnalysis.cards && boardAnalysis.cards.every(c => (RANK_VALS[c[0]] || 0) >= 10)) {
+        return 'broadway_dry';
+    }
+
+    // Two-tone vs rainbow
+    if (flush.texture === FLUSH_TEXTURE.TWO_TONE) {
+        return isHigh ? 'two_tone_high' : 'two_tone_low';
+    }
+
+    // Rainbow dry
+    return isHigh ? 'dry_rainbow_high' : 'dry_rainbow_low';
+}
+
+/**
+ * Classify the turn runout type for the turn barrel matrix.
+ */
+export function classifyTurnRunout(flopAnalysis, turnAnalysis, turnCard) {
+    const RANK_VALS = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+    const turnRank = RANK_VALS[turnCard?.[0]] || 0;
+
+    // Check flush completing
+    if (turnAnalysis.flush?.flushPossible && !flopAnalysis.flush?.flushPossible) {
+        return 'flush_completing';
+    }
+
+    // Check straight completing
+    if (turnAnalysis.connectivity?.straightPossible && !flopAnalysis.connectivity?.straightPossible) {
+        return 'straight_completing';
+    }
+
+    // Check board pairing
+    if (turnAnalysis.pair?.texture !== PAIR_TEXTURE.UNPAIRED && flopAnalysis.pair?.texture === PAIR_TEXTURE.UNPAIRED) {
+        return 'board_pairing';
+    }
+
+    // Check if overcard
+    const flopCards = flopAnalysis.cards || [];
+    const maxFlopRank = Math.max(...flopCards.map(c => RANK_VALS[c?.[0]] || 0));
+    if (turnRank > maxFlopRank && turnRank >= 11) { // J+ overcard
+        return 'overcard';
+    }
+
+    // Blank
+    return turnRank >= 10 ? 'blank_high' : 'blank_low';
+}
+
+/**
+ * Classify the river board state for the river strategy matrix.
+ */
+export function classifyRiverBoardState(boardAnalysis) {
+    const hasPair = boardAnalysis.pair?.texture !== PAIR_TEXTURE.UNPAIRED;
+    const hasFlush = boardAnalysis.flush?.flushPossible;
+    const hasStraight = boardAnalysis.connectivity?.straightPossible;
+
+    if (hasPair) return 'board_paired';
+    if (hasFlush && hasStraight) return 'flush_possible'; // Simplify: use flush as primary
+    if (hasFlush) return 'flush_possible';
+    if (hasStraight) return 'straight_possible';
+    return 'dry_no_draws';
+}
+
+/**
+ * ENHANCED c-bet strategy using solver data tables.
+ * Uses the granular hand-class × board-texture matrix for per-hand frequencies.
+ *
+ * @param {string[]} board - Flop cards
+ * @param {string} posContext - 'IP' or 'OOP'
+ * @param {string[]} holeCards - Hero's hole cards
+ * @param {Object} [opts] - Options { is3BetPot: false }
+ * @returns {Object} Enhanced strategy with solver-calibrated frequencies
+ */
+export function getEnhancedCbetStrategy(board, posContext, holeCards, opts = {}) {
+    try {
+        const boardAnalysis = analyzeBoard(board);
+        if (boardAnalysis.error) return getCbetStrategy(board, posContext, holeCards); // fallback
+
+        const textureKey = classifyBoardTexture(boardAnalysis);
+        const handClass = classifyHandClass(holeCards, board);
+        const strategy = lookupCbetStrategy(textureKey, handClass, posContext);
+
+        // Apply 3-bet pot adjustments
+        let betFreq = strategy.betFreq;
+        if (opts.is3BetPot && THREE_BET_POT_ADJUSTMENTS[handClass]) {
+            const adj = THREE_BET_POT_ADJUSTMENTS[handClass];
+            betFreq = Math.min(1, betFreq * adj.betFreqMult);
+        }
+
+        // Select preferred sizing from size distribution
+        const sizes = strategy.sizes || { s50: 1.0 };
+        const sizeEntries = Object.entries(sizes).sort((a, b) => b[1] - a[1]);
+        const preferredSizeKey = sizeEntries[0]?.[0] || 's50';
+        const sizeMap = { s33: 'SMALL', s50: 'MEDIUM', s75: 'LARGE', s100: 'POT', s150: 'OVERBET' };
+        const sizingKey = sizeMap[preferredSizeKey] || 'MEDIUM';
+
+        const madeHand = classifyMadeHand(holeCards, board);
+        const draws = classifyDraws(holeCards, board);
+
+        return {
+            shouldBet: betFreq > 0.50,
+            frequency: Math.round(betFreq * 100) / 100,
+            sizing: BET_SIZES[sizingKey],
+            sizingKey,
+            sizeDistribution: sizes,
+            reason: `${madeHand.description} (${handClass}) on ${textureKey} — solver freq ${Math.round(betFreq * 100)}%`,
+            handCategory: madeHand.category,
+            handClass,
+            boardTexture: textureKey,
+            drawInfo: draws,
+            isEnhanced: true,
+        };
+    } catch (e) {
+        // Fallback to original heuristic
+        return getCbetStrategy(board, posContext, holeCards);
+    }
+}
+
+/**
+ * ENHANCED turn strategy using solver data tables.
+ */
+export function getEnhancedTurnStrategy(holeCards, board, flopAction, posContext, opts = {}) {
+    try {
+        if (board.length < 4) return getTurnStrategy(holeCards, board, flopAction, posContext);
+
+        const boardAnalysis = analyzeBoard(board);
+        const flopAnalysis = analyzeBoard(board.slice(0, 3));
+        const turnCard = board[3];
+
+        const runoutKey = classifyTurnRunout(flopAnalysis, boardAnalysis, turnCard);
+        const handClass = classifyHandClass(holeCards, board);
+        const strategy = lookupTurnStrategy(runoutKey, handClass, posContext);
+
+        let betFreq = strategy.betFreq;
+        if (flopAction !== 'bet') betFreq *= 0.65; // Lower if we didn't c-bet
+
+        const sizes = strategy.sizes || { s50: 1.0 };
+        const sizeEntries = Object.entries(sizes).sort((a, b) => b[1] - a[1]);
+        const preferredSizeKey = sizeEntries[0]?.[0] || 's50';
+        const sizeMap = { s50: 'MEDIUM', s75: 'LARGE', s100: 'POT', s150: 'OVERBET' };
+        const sizingKey = sizeMap[preferredSizeKey] || 'MEDIUM';
+
+        const madeHand = classifyMadeHand(holeCards, board);
+        const draws = classifyDraws(holeCards, board);
+
+        return {
+            action: betFreq > 0.50 ? ACTIONS.BET : ACTIONS.CHECK,
+            frequency: Math.round(betFreq * 100) / 100,
+            sizing: BET_SIZES[sizingKey],
+            sizingKey,
+            sizeDistribution: sizes,
+            reason: `${madeHand.description} (${handClass}) — ${runoutKey} turn — solver freq ${Math.round(betFreq * 100)}%`,
+            handCategory: madeHand.category,
+            handClass,
+            turnRunout: runoutKey,
+            drawInfo: draws,
+            isEnhanced: true,
+        };
+    } catch (e) {
+        return getTurnStrategy(holeCards, board, flopAction, posContext);
+    }
+}
+
+/**
+ * ENHANCED river strategy using solver data tables.
+ */
+export function getEnhancedRiverStrategy(holeCards, board, posContext, prevAction) {
+    try {
+        if (board.length < 5) return getRiverStrategy(holeCards, board, posContext, prevAction);
+
+        const boardAnalysis = analyzeBoard(board);
+        const boardState = classifyRiverBoardState(boardAnalysis);
+        const handClass = classifyHandClass(holeCards, board);
+        const strategy = lookupRiverStrategy(boardState, handClass, posContext);
+
+        let betFreq = strategy.betFreq;
+        if (prevAction !== 'bet') betFreq *= 0.70; // Lower if we weren't the aggressor
+
+        const sizes = strategy.sizes || { s75: 1.0 };
+        const sizeEntries = Object.entries(sizes).sort((a, b) => b[1] - a[1]);
+        const preferredSizeKey = sizeEntries[0]?.[0] || 's75';
+        const sizeMap = { s50: 'MEDIUM', s75: 'LARGE', s100: 'POT', s150: 'OVERBET' };
+        const sizingKey = sizeMap[preferredSizeKey] || 'LARGE';
+
+        const madeHand = classifyMadeHand(holeCards, board);
+
+        // Determine category
+        let category = 'check';
+        if (handClass === 'nuts_plus' || handClass === 'overpair' || handClass === 'tpgk' ||
+            handClass === 'rivered_flush' || handClass === 'rivered_straight' || handClass === 'rivered_2p') {
+            category = betFreq > 0.40 ? 'value' : 'check';
+        } else if (handClass === 'missed_fd' || handClass === 'missed_sd' || handClass === 'air') {
+            category = betFreq > 0.15 ? 'bluff' : 'check';
+        } else {
+            category = 'bluff_catcher';
+        }
+
+        return {
+            action: betFreq > 0.50 ? ACTIONS.BET : ACTIONS.CHECK,
+            frequency: Math.round(betFreq * 100) / 100,
+            sizing: BET_SIZES[sizingKey],
+            sizingKey,
+            sizeDistribution: sizes,
+            reason: `${madeHand.description} (${handClass}) on ${boardState} river — solver freq ${Math.round(betFreq * 100)}%`,
+            category,
+            handCategory: madeHand.category,
+            handClass,
+            boardState,
+            handStrength: madeHand.strength,
+            isEnhanced: true,
+        };
+    } catch (e) {
+        return getRiverStrategy(holeCards, board, posContext, prevAction);
+    }
+}
+
+/**
+ * ENHANCED facing-bet strategy using solver data tables.
+ */
+export function getEnhancedFacingBetStrategy(holeCards, board, betSize, potSize, street) {
+    try {
+        const handClass = classifyHandClass(holeCards, board);
+        const betFraction = potSize > 0 ? betSize / potSize : 0.5;
+        const sizeCategory = classifyBetSize(betFraction);
+        const strategy = lookupFacingBetStrategy(street, sizeCategory, handClass);
+
+        const madeHand = classifyMadeHand(holeCards, board);
+        const draws = street !== 'river' ? classifyDraws(holeCards, board) : { draws: [DRAWS.NONE], outs: 0, equity: 0 };
+        const potOdds = betSize / (potSize + betSize + betSize);
+
+        let action = ACTIONS.FOLD;
+        if (strategy.raise >= strategy.call && strategy.raise >= strategy.fold) action = ACTIONS.RAISE;
+        else if (strategy.call >= strategy.fold) action = ACTIONS.CALL;
+
+        const actionFreq = action === ACTIONS.RAISE ? strategy.raise : (action === ACTIONS.CALL ? strategy.call : strategy.fold);
+
+        return {
+            action,
+            frequency: Math.round(actionFreq * 100) / 100,
+            callFreq: strategy.call,
+            raiseFreq: strategy.raise,
+            foldFreq: strategy.fold,
+            reason: `${madeHand.description} (${handClass}) vs ${sizeCategory} bet — ${action} ${Math.round(actionFreq * 100)}%`,
+            handCategory: madeHand.category,
+            handClass,
+            drawInfo: draws,
+            potOdds: Math.round(potOdds * 100) / 100,
+            isEnhanced: true,
+        };
+    } catch (e) {
+        return getFacingBetStrategy(holeCards, board, betSize, potSize, street);
+    }
+}
+
 // ── Default export ───────────────────────────────────────────────────────
 
 export default {
@@ -740,6 +1124,15 @@ export default {
     getFacingBetStrategy,
     calculateBetAmount,
     getValidBetSizes,
+    // Enhanced solver-data versions
+    getEnhancedCbetStrategy,
+    getEnhancedTurnStrategy,
+    getEnhancedRiverStrategy,
+    getEnhancedFacingBetStrategy,
+    classifyHandClass,
+    classifyBoardTexture,
+    classifyTurnRunout,
+    classifyRiverBoardState,
     BET_SIZES,
     POSITION_CONTEXT,
     ACTIONS,

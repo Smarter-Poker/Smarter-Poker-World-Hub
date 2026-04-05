@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T08:58:19.304Z",
+  "updated_at": "2026-04-05T09:01:40.841Z",
   "total": 677,
   "venues": [
     {
@@ -11749,7 +11749,7 @@
       "slug": null,
       "website": "https://www.jackcincinnaticasino.com",
       "address": null,
-      "city": "Cincinnati",
+      "city": "Cleveland",
       "state": "OH",
       "phone": null,
       "venue_type": "series",
@@ -11793,7 +11793,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2695.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2695.jpg"
     },
     {
       "id": 1880,
@@ -11819,7 +11819,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1880.webp"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1880.png"
     },
     {
       "id": 2697,
@@ -11845,7 +11845,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2697.webp"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2697.jpg"
     },
     {
       "id": 2806,
