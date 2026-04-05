@@ -7,6 +7,9 @@ import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
+// confetti loaded lazily
+let _confetti = null;
+async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
 import achievementService from '../services/AchievementService';
 
 export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
@@ -75,7 +78,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
             setScore(prev => prev + pointsEarned);
             setStreak(prev => prev + 1);
             setMaxStreak(prev => Math.max(prev, streak + 1));
-            SoundEngine.play('correct');
+            SoundEngine.play(streak >= 2 ? 'combo' : 'correct');
         } else {
             setStreak(0);
             setLives(prev => prev - 1);
@@ -88,7 +91,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
             if (lives - (isCorrect ? 0 : 1) <= 0) {
                 setGameState('gameover');
                 SoundEngine.play('gameOver');
-                { const acc = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 75 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('speed-drill', score, g); }
+                { const acc = handsPlayed > 0 ? Math.round((score / (handsPlayed * 110)) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 75 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('speed-drill', score, g); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
                 const diamondReward = Math.floor(score / 100);
                 if (diamondReward > 0 && DiamondEngine) {
                     const newBalance = DiamondEngine.award(diamondReward);
@@ -157,7 +160,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>++</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>{'\u26A1'}</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 36, color: '#FFD700', marginBottom: 16 }}>SPEED DRILL</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>
                         Flash a hand → Pick the action → Build streaks!<br />
@@ -200,14 +203,14 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                             )}
                         </div>
                     )}
-                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-                        <button onClick={() => handleAnswer('fold')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(100,100,100,0.3)', border: '2px solid #666', borderRadius: 12, color: '#fff', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button onClick={() => handleAnswer('fold')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(100,100,100,0.3)', border: '2px solid #666', borderRadius: 12, color: '#fff', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
                             <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)' }}>1</span>FOLD
                         </button>
-                        <button onClick={() => handleAnswer('call')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(16,185,129,0.3)', border: '2px solid #10B981', borderRadius: 12, color: '#10B981', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                        <button onClick={() => handleAnswer('call')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(16,185,129,0.3)', border: '2px solid #10B981', borderRadius: 12, color: '#10B981', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
                             <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>2</span>CALL
                         </button>
-                        <button onClick={() => handleAnswer('raise')} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: 'rgba(239,68,68,0.3)', border: '2px solid #EF4444', borderRadius: 12, color: '#EF4444', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                        <button onClick={() => handleAnswer('raise')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(239,68,68,0.3)', border: '2px solid #EF4444', borderRadius: 12, color: '#EF4444', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
                             <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>3</span>RAISE
                         </button>
                     </div>
@@ -230,7 +233,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
                             <div style={{ fontFamily: 'Orbitron', fontSize: 56, fontWeight: 900, color: gradeColor, lineHeight: 1 }}>{grade}</div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 16 }}>PERFORMANCE GRADE</div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
                                 <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 14 }}>
                                     <div style={{ fontFamily: 'Orbitron', fontSize: 24, fontWeight: 800, color: '#FFD700' }}>{score.toLocaleString()}</div>
                                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</div>

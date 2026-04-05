@@ -7,6 +7,8 @@ import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
+let _confetti = null;
+async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
 import achievementService from '../services/AchievementService';
 
 export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
@@ -61,7 +63,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
             setMaxStreak(prev => Math.max(prev, streak + 1));
             setCorrectCount(prev => prev + 1);
             setTimeRemaining(prev => Math.min(prev + TIME_BONUS, 60000));
-            SoundEngine.play('correct');
+            SoundEngine.play(streak >= 2 ? 'combo' : 'correct');
         } else {
             setStreak(0);
             setTimeRemaining(prev => Math.max(prev - TIME_PENALTY, 0));
@@ -77,7 +79,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                 SoundEngine.play('levelUp');
                 const diamondReward = Math.floor(score / 50) + 10;
                 if (DiamondEngine) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
-                { const acc = newHandsCompleted > 0 ? Math.round(((correctCount + 1) / newHandsCompleted) * 100) : 0; const g = acc >= 95 ? 'S' : acc >= 85 ? 'A' : acc >= 70 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pressure-cooker', score, g); }
+                { const acc = newHandsCompleted > 0 ? Math.round(((correctCount + 1) / newHandsCompleted) * 100) : 0; const g = acc >= 95 ? 'S' : acc >= 85 ? 'A' : acc >= 70 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pressure-cooker', score, g); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
                 if (userId) {
                     const accuracy = Math.round((score / (newHandsCompleted * 100)) * 100);
                     gameSessionService.recordSession(userId, {
@@ -139,7 +141,10 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
                 <div style={{ fontFamily: 'Orbitron', fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{handsCompleted}/{handsRequired}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {streak > 1 && <div style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #ff6b00, #ff0066)', borderRadius: 16, fontWeight: 700, fontSize: 13, color: '#fff', animation: 'pulse 0.5s ease' }}>{streak}x</div>}
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{handsCompleted}/{handsRequired}</div>
+                </div>
             </div>
 
             {gameState === 'ready' && (

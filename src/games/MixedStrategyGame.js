@@ -7,6 +7,8 @@ import { SoundEngine } from './GameEngine';
 import { MIXED_SCENARIOS } from './ScenarioDatabase';
 import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
+let _confetti = null;
+async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
 import achievementService from '../services/AchievementService';
 
 const ACTION_COLORS = {
@@ -48,7 +50,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
     const nextRound = useCallback(() => {
         if (roundsPlayed >= maxRounds) {
             setGameState('gameover');
-            { const acc = maxRounds > 0 ? Math.round((closeCount / maxRounds) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('mixed-strategy', score, g); }
+            { const acc = maxRounds > 0 ? Math.round((closeCount / maxRounds) * 100) : 0; const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 60 ? 'B' : acc >= 40 ? 'C' : 'D'; savePersonalBest('mixed-strategy', score, g); SoundEngine.play(acc >= 60 ? 'levelUp' : 'gameOver'); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
             const diamondReward = Math.floor(score / 500) + (score >= 4000 ? 20 : 0);
             if (DiamondEngine && diamondReward > 0) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
             if (userId) {
@@ -72,7 +74,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         if (difference === 0) points += 500;
         else if (difference <= 5) points += 200;
         else if (difference <= 15) points += 50;
-        if (difference <= 15) { setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCloseCount(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play('correct'); }
+        if (difference <= 15) { setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCloseCount(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
         else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); }
         setGameState('revealed');
         setTimeout(nextRound, 2000);
@@ -96,12 +98,15 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
                 <div style={{ fontFamily: 'Orbitron', fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{roundsPlayed}/{maxRounds}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {streak > 1 && <div style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #A855F7, #D946EF)', borderRadius: 16, fontWeight: 700, fontSize: 13, color: '#fff' }}>{streak}x</div>}
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{roundsPlayed}/{maxRounds}</div>
+                </div>
             </div>
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>Mix</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>{'\uD83C\uDFB0'}</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#A855F7', marginBottom: 16 }}>MIXED STRATEGY</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>Not every decision is 100% frequency.<br />Dial in the exact GTO frequency for mixed spots.<br />Correct Frequency = Massive Points!</p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #A855F7, #D946EF)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>

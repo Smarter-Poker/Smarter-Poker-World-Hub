@@ -7,6 +7,8 @@ import { SoundEngine } from './GameEngine';
 import { getRandomScenario, RANKS } from './ScenarioDatabase';
 import { shareResult, savePersonalBest } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
+let _confetti = null;
+async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
 import achievementService from '../services/AchievementService';
 
 export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userId }) {
@@ -44,7 +46,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     const nextRound = useCallback(() => {
         if (round >= maxRounds) {
             setGameState('gameover');
-            { const acc = Math.round((correctAnswers / maxRounds) * 100); const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 65 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pattern-recognition', score, g); }
+            { const acc = Math.round((correctAnswers / maxRounds) * 100); const g = acc >= 90 ? 'S' : acc >= 80 ? 'A' : acc >= 65 ? 'B' : acc >= 50 ? 'C' : 'D'; savePersonalBest('pattern-recognition', score, g); SoundEngine.play(acc >= 65 ? 'levelUp' : 'gameOver'); if (g === 'S' || g === 'A') fireConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } }); }
             const diamondReward = correctAnswers * 2 + Math.floor(score / 100);
             if (DiamondEngine && diamondReward > 0) { const newBalance = DiamondEngine.award(diamondReward); onScoreUpdate?.(newBalance); }
             if (userId) {
@@ -63,7 +65,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         if (gameState !== 'playing' || !currentPattern) return;
         setUserAnswer(action);
         const isCorrect = action === currentPattern.correctAnswer;
-        if (isCorrect) { setScore(prev => prev + 100 + (streak * 25)); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play('correct'); }
+        if (isCorrect) { setScore(prev => prev + 100 + (streak * 25)); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
         else { setStreak(0); SoundEngine.play('wrong'); }
         setGameState('revealed');
         setTimeout(() => { nextRound(); }, 1200);
@@ -107,12 +109,15 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <button onClick={onExit} style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>← Exit</button>
                 <div style={{ fontFamily: 'Orbitron', fontSize: 28, fontWeight: 900, color: '#FFD700' }}>{score.toLocaleString()}</div>
-                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{round}/{maxRounds}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {streak > 1 && <div style={{ padding: '4px 10px', background: 'linear-gradient(135deg, #3B82F6, #0088ff)', borderRadius: 16, fontWeight: 700, fontSize: 13, color: '#fff' }}>{streak}x</div>}
+                    <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>{round}/{maxRounds}</div>
+                </div>
             </div>
 
             {gameState === 'ready' && (
                 <div style={{ marginTop: 60 }}>
-                    <div style={{ fontSize: 80, marginBottom: 20 }}>Pattern</div>
+                    <div style={{ fontSize: 80, marginBottom: 20 }}>{'\uD83E\uDDE9'}</div>
                     <h1 style={{ fontFamily: 'Orbitron', fontSize: 32, color: '#00D4FF', marginBottom: 16 }}>PATTERN RECOGNITION</h1>
                     <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 30, lineHeight: 1.6 }}>See a partial range → Identify the dominant action!<br />Is this a RAISING range, CALLING range, or FOLDING range?<br />8 patterns. Test your GTO intuition!</p>
                     <button onClick={startGame} style={{ padding: '16px 48px', fontSize: 18, fontWeight: 700, background: 'linear-gradient(135deg, #00D4FF, #0088ff)', color: '#fff', border: 'none', borderRadius: 50, cursor: 'pointer' }}>START [SPACE]</button>
@@ -135,12 +140,12 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                             )}
                         </div>
                     )}
-                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                         {['fold', 'call', 'raise'].map((action, idx) => {
                             const colors = { fold: { bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD Range' }, call: { bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL Range' }, raise: { bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE Range' } };
                             const c = colors[action];
                             return (
-                                <button key={action} onClick={() => handleAnswer(action)} disabled={gameState !== 'playing'} style={{ padding: '16px 32px', fontSize: 16, fontWeight: 700, background: c.bg, border: `2px solid ${c.border}`, borderRadius: 12, color: c.color, cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative' }}>
+                                <button key={action} onClick={() => handleAnswer(action)} disabled={gameState !== 'playing'} style={{ flex: '1 1 90px', minHeight: 52, padding: '14px 20px', fontSize: 15, fontWeight: 700, background: c.bg, border: `2px solid ${c.border}`, borderRadius: 12, color: c.color, cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
                                     <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>{idx + 1}</span>
                                     {c.label}
                                 </button>

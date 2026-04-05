@@ -805,35 +805,6 @@ const styles = `
     color: #e2e8f0;
   }
 
-  /* Back Button */
-  .back-btn-container {
-    max-width: 900px;
-    margin: 0 auto 12px;
-  }
-  .back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background: rgba(0, 212, 255, 0.08);
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    border-radius: 8px;
-    color: #00D4FF;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .back-btn:hover {
-    background: rgba(0, 212, 255, 0.15);
-    border-color: rgba(0, 212, 255, 0.4);
-  }
-  .back-btn:active {
-    transform: scale(0.97);
-  }
-
   /* Breadcrumb Navigation */
   .breadcrumb-nav {
     max-width: 900px;
