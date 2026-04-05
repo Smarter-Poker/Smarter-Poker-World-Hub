@@ -8,7 +8,7 @@
  *   - EV tolerance thresholds
  *   - Time limits per decision
  *   - Scenario complexity scaling
- *   - XP & Diamond reward multipliers
+ *   - Diamond reward multipliers
  *   - Visual theme (accent color, glow, unlock animation)
  *
  * Tier Mapping:
@@ -91,19 +91,19 @@ export const LEVEL_REGISTRY: Record<number, LevelDefinition> = {
     // BEGINNER (Levels 1-2)
     1: {
         id: 1, name: 'Foundations', tier: 'BEGINNER',
-        description: 'Master the basic opening ranges and preflop fundamentals',
+        description: 'Full solver-backed GTO training — all spot types and streets',
         masteryThreshold: MASTERY_THRESHOLD, minQuestionsRequired: 20,
         evToleranceBB: 0.50, timeLimitSeconds: 30,
-        scenarioTypes: ['PREFLOP_RANGES'], scenarioComplexity: 1,
+        scenarioTypes: ['PREFLOP_RANGES', 'POSTFLOP_DECISION', 'BOARD_TEXTURE', 'SIZING_LOGIC', 'POSITION_BATTLE'], scenarioComplexity: 1,
         xpMultiplier: 1.0, diamondMultiplier: 1.0,
         accentColor: '#4ADE80', glowIntensity: 0.3, unlockAnimation: 'fade_in',
     },
     2: {
         id: 2, name: 'Opening Ranges', tier: 'BEGINNER',
-        description: 'Expand position-based opening and 3-bet ranges',
+        description: 'Full solver-backed GTO training — all spot types and streets',
         masteryThreshold: MASTERY_THRESHOLD, minQuestionsRequired: 20,
         evToleranceBB: 0.40, timeLimitSeconds: 25,
-        scenarioTypes: ['PREFLOP_RANGES', 'POSITION_BATTLE'], scenarioComplexity: 2,
+        scenarioTypes: ['PREFLOP_RANGES', 'POSTFLOP_DECISION', 'BOARD_TEXTURE', 'SIZING_LOGIC', 'POSITION_BATTLE'], scenarioComplexity: 2,
         xpMultiplier: 1.1, diamondMultiplier: 1.0,
         accentColor: '#34D399', glowIntensity: 0.35, unlockAnimation: 'slide_up',
     },

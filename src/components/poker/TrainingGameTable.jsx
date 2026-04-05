@@ -138,7 +138,6 @@ function TrainingGameTable({
     totalQuestions = 20,
     gameTitle = 'ICM FUNDAMENTALS',
     questionText = 'You Are On The Button (Last To Act). The Player To Your Right Bets 2.5BB. What Is Your Best Move?',
-    xp = 1250,
     diamonds = 500,
     onFold,
     onCall,
@@ -180,7 +179,7 @@ function TrainingGameTable({
                     {gameTitle}
                 </div>
                 <div style={{ display: 'flex', gap: 6, fontSize: 8, fontWeight: 'bold' }}>
-                    <span style={{ color: '#22d3ee' }}>⚡ {xp.toLocaleString()} XP</span>
+                    <span style={{ color: '#22d3ee' }}>💎 {diamonds.toLocaleString()} Diamonds</span>
                     <span style={{ color: '#ef4444' }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {diamonds}</span>
                 </div>
             </div>

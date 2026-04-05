@@ -18,7 +18,7 @@ const CHALLENGE_TYPES = {
         title: 'Preflop Precision',
         description: 'Test Your Preflop Decision Making',
         difficulty: 'Easy',
-        xpReward: 50,
+        diamondReward: 50,
         color: '#00FFFF'
     },
     range: {
@@ -26,7 +26,7 @@ const CHALLENGE_TYPES = {
         title: 'Range Builder',
         description: 'Construct the Optimal Range',
         difficulty: 'Medium',
-        xpReward: 100,
+        diamondReward: 100,
         color: '#FFD700'
     },
     gto: {
@@ -34,7 +34,7 @@ const CHALLENGE_TYPES = {
         title: 'GTO Showdown',
         description: 'Find the Game-theory Optimal Play',
         difficulty: 'Hard',
-        xpReward: 200,
+        diamondReward: 200,
         color: '#FF00FF'
     },
     blitz: {
@@ -42,7 +42,7 @@ const CHALLENGE_TYPES = {
         title: 'Speed Blitz',
         description: '30 Seconds to Make 5 Decisions',
         difficulty: 'Expert',
-        xpReward: 300,
+        diamondReward: 300,
         color: '#FF6B35'
     }
 };
@@ -113,7 +113,7 @@ export const ChallengeCard = ({
                         </span>
                         <span className="meta-reward">
                             <span className="reward-icon">⚡</span>
-                            <span className="reward-value">+{challenge.xpReward} XP</span>
+                            <span className="reward-value">+{challenge.diamondReward} Diamonds</span>
                         </span>
                     </div>
 

@@ -85,7 +85,7 @@ export const STANDARD_REWARDS = {
     NEW_LEVEL_UNLOCKED: 'new_level_unlocked',
     SOCIAL_POST: 'social_post_share',
     STRATEGY_COMMENT: 'strategy_comment',
-    XP_LEVEL_UP: 'xp_level_up',
+    LEVEL_UP: 'level_up',
     GTO_CHART_STUDY: 'gto_chart_study',
     REFERRAL_SUCCESS: 'referral_success',
 } as const;

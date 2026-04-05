@@ -29,7 +29,7 @@ export default function TriviaResult({
     totalQuestions,
     timeSpent,
     timeRemaining,
-    xpEarned,
+    xpEarned, // legacy prop — ignored, kept for backward compat
     diamondsEarned,
     streak,
     streakMultiplier = 1,
@@ -270,13 +270,7 @@ export default function TriviaResult({
                         </div>
                     )}
 
-                    {xpEarned > 0 && (
-                        <div className="stat-item highlight">
-                            <Zap size={24} className="stat-icon xp" />
-                            <div className="stat-value">+{xpEarned}</div>
-                            <div className="stat-label">XP Earned</div>
-                        </div>
-                    )}
+                    {/* XP display removed — diamonds are the only reward currency */}
 
                     {hasMultiplier && (
                         <div className="stat-item multiplier">

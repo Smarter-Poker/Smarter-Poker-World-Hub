@@ -26,7 +26,7 @@ const PRIZE_TYPES = [
   { value: 'chips', label: 'Chips' },
   { value: 'freeroll', label: 'Freeroll Entry' },
   { value: 'merchandise', label: 'Merchandise' },
-  { value: 'points', label: 'Points/XP' },
+  { value: 'points', label: 'Points/Diamonds' },
   { value: 'other', label: 'Other' }
 ];
 

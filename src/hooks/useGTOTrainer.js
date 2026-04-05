@@ -39,7 +39,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     const [correctCount, setCorrectCount] = useState(0);
     const [streak, setStreak] = useState(0);
     const [bestStreak, setBestStreak] = useState(0);
-    const [totalXP, setTotalXP] = useState(0);
+    // XP system removed — diamonds are the only reward currency
+    const totalXP = 0; // legacy compatibility stub
 
     // Feedback state
     const [showFeedback, setShowFeedback] = useState(false);

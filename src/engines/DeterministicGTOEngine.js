@@ -407,17 +407,9 @@ export class DeterministicGTOEngine {
             const stackDepth = gameConfig.pioStackDepth || 100;
 
             // ═══ ADAPTIVE DIFFICULTY ═══
-            // Use session performance to adjust effective level for spot selection.
-            // If the player is crushing it (>85% recent accuracy), bump up the
-            // effective level to expose them to harder spots (3bet, 4bet, squeeze).
-            // If struggling (<35%), keep them on simpler spots (RFI only).
+            // All levels now get the full spot pool — no level-based content gating.
+            // Progression is mastery-based (85%/90% threshold) not content-restricted.
             let effectiveLevel = level;
-            try {
-                const autoDifficulty = this.getAutoAdjustedDifficulty();
-                if (autoDifficulty === 'expert' && level < 5) effectiveLevel = Math.max(level, 5);
-                else if (autoDifficulty === 'advanced' && level < 4) effectiveLevel = Math.max(level, 4);
-                else if (autoDifficulty === 'beginner' && level > 2) effectiveLevel = Math.min(level, 2);
-            } catch (e) { /* non-critical — use base level */ }
 
             // Build pool of available spots, weighted by difficulty level
             const spotPool = this._buildPreflopSpotPool(effectiveLevel, stackDepth);
@@ -542,9 +534,8 @@ export class DeterministicGTOEngine {
 
     /**
      * Build a pool of preflop spots appropriate for the difficulty level.
-     * Level 1-2: RFI only
-     * Level 3-4: RFI + 3-Bet + BB Defense
-     * Level 5+:  All spots (+ 4-Bet, Cold Call, Squeeze)
+     * ALL LEVELS get ALL spot types — no content gating by level.
+     * Level progression only affects mastery threshold (85%/90%).
      */
     _buildPreflopSpotPool(level, stackDepth) {
         const pool = [];
@@ -569,9 +560,9 @@ export class DeterministicGTOEngine {
             });
         }
 
-        if (level < 3) return pool;
+        // All levels now get all spot types (no level gating)
 
-        // ─── 3-Bet (level 3+) ────────────────────────────────────────
+        // ─── 3-Bet (all levels) ──────────────────────────────────────
         for (const [key, data] of Object.entries(SOLVER_3BET)) {
             const parts = key.split('_vs_');
             const pos = parts[0];
@@ -592,7 +583,7 @@ export class DeterministicGTOEngine {
             });
         }
 
-        // ─── BB Defense (level 3+) ───────────────────────────────────
+        // ─── BB Defense (all levels) ─────────────────────────────────
         for (const [key, data] of Object.entries(SOLVER_BB_DEF)) {
             const villain = key.replace('vs_', '');
             pool.push({
@@ -611,9 +602,7 @@ export class DeterministicGTOEngine {
             });
         }
 
-        if (level < 5) return pool;
-
-        // ─── 4-Bet (level 5+) ────────────────────────────────────────
+        // ─── 4-Bet (all levels) ──────────────────────────────────────
         for (const [key, data] of Object.entries(SOLVER_4BET)) {
             const parts = key.split('_vs_');
             const pos = parts[0];
@@ -683,19 +672,8 @@ export class DeterministicGTOEngine {
      * Standard: uniform random
      */
     _pickAdaptiveSpot(spotPool, effectiveLevel) {
-        if (effectiveLevel >= 5 && spotPool.length > 1) {
-            const advancedTypes = ['4bet', 'squeeze', 'cold_call'];
-            const advanced = spotPool.filter(s => advancedTypes.includes(s.spotType));
-            const standard = spotPool.filter(s => !advancedTypes.includes(s.spotType));
-
-            // 60% chance to pick from advanced pool when available
-            if (advanced.length > 0 && Math.random() < 0.6) {
-                return advanced[Math.floor(Math.random() * advanced.length)];
-            }
-            if (standard.length > 0) {
-                return standard[Math.floor(Math.random() * standard.length)];
-            }
-        }
+        // All levels get uniform random selection across all spot types.
+        // No level-based bias — every level plays the same solver content.
         return spotPool[Math.floor(Math.random() * spotPool.length)];
     }
 
@@ -4595,9 +4573,9 @@ export class DeterministicGTOEngine {
     }
 
     getStreetForLevel(level) {
-        if (level <= 3) return 'flop';
-        if (level <= 7) return 'turn';
-        return 'river';
+        // All levels get all streets — no content gating by level
+        // The solver pool contains flop, turn, and river spots for all levels
+        return null; // null = all streets
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

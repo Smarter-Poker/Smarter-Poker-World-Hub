@@ -128,9 +128,9 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
                     {/* Description */}
                     <p style={styles.description}>{clinic.description}</p>
 
-                    {/* XP Multiplier */}
+                    {/* Diamond Multiplier */}
                     <div style={styles.xpBadge}>
-                         {xpMultiplier}x XP MULTIPLIER
+                         {xpMultiplier}x DIAMOND MULTIPLIER
                     </div>
 
                     {/* Buttons */}

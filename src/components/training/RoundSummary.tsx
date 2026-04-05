@@ -38,7 +38,7 @@ interface SessionStats {
     accuracy: number;
     passed: boolean;
     finalHealth: number;
-    xpEarned: number;
+    diamondsEarned: number;
     timeElapsed: number;
     blunders?: BlunderData[];
     bestStreak?: number;
@@ -189,7 +189,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
     onExit,
     onReviewHand,
 }) => {
-    const [phase, setPhase] = useState<'SCORE' | 'XP' | 'COACHING' | 'BLUNDERS' | 'ACTIONS'>('SCORE');
+    const [phase, setPhase] = useState<'SCORE' | 'DIAMONDS' | 'COACHING' | 'BLUNDERS' | 'ACTIONS'>('SCORE');
     const [showConfetti, setShowConfetti] = useState(false);
     const [aiCoaching, setAiCoaching] = useState<AICoaching | null>(null);
     const [isLoadingCoaching, setIsLoadingCoaching] = useState(false);
@@ -249,8 +249,8 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
         // Phase 1: Show score (immediate)
         setPhase('SCORE');
 
-        // Phase 2: Show XP after 1.5s
-        timers.push(setTimeout(() => setPhase('XP'), 1500));
+        // Phase 2: Show Diamonds after 1.5s
+        timers.push(setTimeout(() => setPhase('DIAMONDS'), 1500));
 
         // Phase 3: Show coaching after 2.5s (if AI coaching available)
         timers.push(setTimeout(() => setPhase('COACHING'), 2500));
@@ -351,7 +351,7 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                     </motion.div>
 
                     {/* Stats Row */}
-                    {(phase === 'XP' || phase === 'COACHING' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
+                    {(phase === 'DIAMONDS' || phase === 'COACHING' || phase === 'BLUNDERS' || phase === 'ACTIONS') && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -383,9 +383,9 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                                     animate={{ scale: [1, 1.2, 1] }}
                                     transition={{ duration: 0.5, delay: 0.5 }}
                                 >
-                                    +{stats.xpEarned}
+                                    +{stats.diamondsEarned}
                                 </motion.span>
-                                <span style={styles.statLabel}>XP Earned</span>
+                                <span style={styles.statLabel}>Diamonds Earned</span>
                             </motion.div>
                             {stats.bestStreak && stats.bestStreak > 3 && (
                                 <motion.div

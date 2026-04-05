@@ -11,7 +11,7 @@ export default function LevelCompleteModal({
     passed,
     correctCount,
     totalQuestions,
-    xpEarned,
+    xpEarned, // legacy prop name — treated as diamondsEarned
     bestStreak,
     passThreshold,
     onNextLevel,
@@ -73,7 +73,7 @@ export default function LevelCompleteModal({
                     </div>
 
                     <div className="xp-row">
-                        <div className="xp-label">XP Earned</div>
+                        <div className="xp-label">Diamonds Earned</div>
                         <div className="xp-value">+{xpEarned}</div>
                     </div>
 

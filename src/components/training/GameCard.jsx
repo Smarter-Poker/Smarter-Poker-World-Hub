@@ -2,13 +2,17 @@
  * GAME CARD — Enhanced with Progress Bar and Action States
  * 
  * Features:
- * - Visual progress bar showing "Level X/10"
+ * - Visual progress bar showing "Level X/12" with LevelRegistry tier names
  * - Three action states: START / RESUME / MASTERED
  * - Gold border for mastered games
  * - Streak badge for completed games
  */
 
 import { motion } from 'framer-motion';
+import TRAINING_CONFIG from '../../config/trainingConfig';
+import { getLevel } from '../../config/LevelRegistry';
+
+const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
 
 export default function GameCard({ game, onClick, index = 0, image, progress }) {
     if (!game) return null;
@@ -23,11 +27,15 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
 
     const categoryColor = CATEGORY_COLORS[game.category] || '#FF6B35';
 
-    // Progress state calculations
+    // Progress state calculations — uses LevelRegistry total (12 levels)
     const currentLevel = progress?.levelsCompleted || 0;
-    const maxLevel = 10;
+    const maxLevel = TOTAL_LEVELS;
     const progressPercent = (currentLevel / maxLevel) * 100;
     const lastScore = progress?.bestScore || 0;
+
+    // Current level tier info from LevelRegistry
+    const levelDef = getLevel(Math.max(1, currentLevel));
+    const tierColor = levelDef?.accentColor || categoryColor;
 
     // Game states
     const isMastered = currentLevel >= maxLevel;
@@ -250,7 +258,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                             <motion.circle
                                 cx="18" cy="18" r="15"
                                 fill="none"
-                                stroke={hasPlayed ? '#4CAF50' : '#00D4FF'}
+                                stroke={hasPlayed ? tierColor : '#00D4FF'}
                                 strokeWidth="3"
                                 strokeDasharray="94.2" // 2 * pi * 15
                                 initial={{ strokeDashoffset: 94.2 }}
@@ -276,8 +284,8 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                         flexDirection: 'column',
                         alignItems: 'flex-start',
                     }}>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-                            Progress
+                        <span style={{ fontSize: 10, color: tierColor, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+                            {levelDef?.name || 'Progress'}
                         </span>
                         <span style={{ fontSize: 12, color: '#fff', fontWeight: 800 }}>
                             Level {currentLevel} <span style={{ color: 'rgba(255,255,255,0.3)' }}>/ {maxLevel}</span>

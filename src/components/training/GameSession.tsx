@@ -77,7 +77,7 @@ interface SessionStats {
     accuracy: number;
     passed: boolean;
     finalHealth: number;
-    xpEarned: number;
+    diamondsEarned: number;
 }
 
 // ============================================================================
@@ -456,13 +456,13 @@ const ResultOverlay: React.FC<{
 
             {isCorrect && (
                 <motion.div
-                    className="xp-bonus"
+                    className="diamond-bonus"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.3 }}
                 >
                     <span className="sparkle">✨</span>
-                    +10 XP
+                    +5 Diamonds
                     <span className="sparkle">✨</span>
                 </motion.div>
             )}
@@ -918,7 +918,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                 accuracy,
                 passed,
                 finalHealth: health,
-                xpEarned: correctCount * 10 + (passed ? 100 : 0),
+                diamondsEarned: correctCount * 5 + (passed ? 50 : 0),
             };
 
             // Push training data to Jarvis with retry logic
@@ -1028,7 +1028,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                             questionsAnswered: handNumber,
                             questionsCorrect: correctCount,
                             accuracy,
-                            xpEarned: correctCount * 10 + (passed ? 100 : 0)
+                            diamondsEarned: correctCount * 5 + (passed ? 50 : 0)
                         })
                     });
 
@@ -1262,7 +1262,7 @@ const GameSession: React.FC<GameSessionProps> = ({
                         <div className="final-stats">
                             <p>Accuracy: {((correctCount / handNumber) * 100).toFixed(1)}%</p>
                             <p>Final HP: {health}/{maxHealth}</p>
-                            <p>XP Earned: {correctCount * 10 + (health > 0 ? 100 : 0)}</p>
+                            <p>Diamonds Earned: {correctCount * 5 + (health > 0 ? 50 : 0)}</p>
                         </div>
                         <button onClick={onExit}>Continue</button>
                     </motion.div>
@@ -1529,7 +1529,7 @@ const GameSession: React.FC<GameSessionProps> = ({
           font-size: 1rem;
         }
 
-        .xp-bonus {
+        .diamond-bonus {
           font-size: 1.5rem;
           font-weight: bold;
           color: #fcd34d;

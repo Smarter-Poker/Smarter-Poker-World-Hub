@@ -17,7 +17,7 @@
  *   - 10 levels per game
  *   - 20 hands per level
  *   - 85% pass threshold (enforced by MasteryGate)
- *   - No XP loss allowed
+ *   - No diamond loss allowed
  *
  * Migrated from: AI-Content-GTO-Engine/src/core/GameLibrary.ts
  * ═══════════════════════════════════════════════════════════════════════════
@@ -43,7 +43,7 @@ export const GAME_RULES = {
     LEVELS_PER_GAME: 10,
     HANDS_PER_LEVEL: 20,
     PASS_THRESHOLD: 0.85,
-    XP_LOSS_ALLOWED: false,
+    DIAMOND_LOSS_ALLOWED: false,
 } as const;
 
 export const CATEGORIES: Record<string, GameCategory> = {

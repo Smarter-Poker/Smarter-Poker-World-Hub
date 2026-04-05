@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { dailyRotationEngine } from '../../engine/DailyRotationEngine';
 
-export default function FeaturedHero({ onPlayNow, userStreak = 5, xpMultiplier = 2.5 }) {
+export default function FeaturedHero({ onPlayNow, userStreak = 5, diamondMultiplier = 2.5 }) {
     const [featuredContent, setFeaturedContent] = useState(null);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -54,8 +54,8 @@ export default function FeaturedHero({ onPlayNow, userStreak = 5, xpMultiplier =
                     <div style={styles.statsRow}>
                         <div style={styles.statItem}>
                             <span style={styles.statIcon}></span>
-                            <span style={styles.statText}>XP MULTIPLIER ACTIVE</span>
-                            <span style={styles.statValue}>×{xpMultiplier}</span>
+                            <span style={styles.statText}>DIAMOND MULTIPLIER ACTIVE</span>
+                            <span style={styles.statValue}>×{diamondMultiplier}</span>
                         </div>
                         <span style={styles.statDivider}>•</span>
                         <div style={styles.statItem}>

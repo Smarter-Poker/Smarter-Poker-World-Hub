@@ -4,7 +4,7 @@
  * From the GTO Training Engine Blueprint:
  * - Each clinic targets a specific leak category
  * - 10-level progressive difficulty
- * - 2.5x XP multiplier for remediation mode
+ * - 2.5x diamond multiplier for remediation mode
  * - Awards badges on completion
  * ═══════════════════════════════════════════════════════════════════════════
  */

@@ -77,9 +77,9 @@ const LeaderboardEntry = ({ entry, index, isCurrentUser, onClick }) => {
 
             {/* Stats */}
             <div className="entry-stats">
-                <div className="stat xp">
-                    <span className="stat-value">{entry.xp_earned.toLocaleString()}</span>
-                    <span className="stat-label">XP</span>
+                <div className="stat diamonds-earned">
+                    <span className="stat-value">{(entry.xp_earned || entry.diamonds_earned || 0).toLocaleString()}</span>
+                    <span className="stat-label">Diamonds</span>
                 </div>
                 {entry.diamonds_earned > 0 && (
                     <div className="stat diamonds">
@@ -231,7 +231,7 @@ const LeaderboardEntry = ({ entry, index, isCurrentUser, onClick }) => {
           gap: 2px;
         }
 
-        .stat.xp .stat-value {
+        .stat.diamonds-earned .stat-value {
           font-family: 'Exo 2', sans-serif;
           font-size: 1.1rem;
           font-weight: 700;
@@ -351,7 +351,7 @@ export const LeaderboardOrb = ({
                     <div className="empty-state">
                         <span className="empty-icon">📊</span>
                         <span>No Data Yet</span>
-                        <span className="empty-hint">Be The First To Earn XP!</span>
+                        <span className="empty-hint">Be The First To Earn Diamonds!</span>
                     </div>
                 ) : (
                     <div className="entries-list">
@@ -372,7 +372,7 @@ export const LeaderboardOrb = ({
             {currentUserEntry && (
                 <footer className="current-user-footer">
                     <span>Your Rank: #{currentUserEntry.rank}</span>
-                    <span>{currentUserEntry.xp_earned.toLocaleString()} XP earned</span>
+                    <span>{(currentUserEntry.xp_earned || currentUserEntry.diamonds_earned || 0).toLocaleString()} Diamonds earned</span>
                 </footer>
             )}
 

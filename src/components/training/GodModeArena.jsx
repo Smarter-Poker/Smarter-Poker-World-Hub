@@ -54,7 +54,7 @@ import useGTOTrainer from '../../hooks/useGTOTrainer';
 import useSpacedRepetition from '../../hooks/useSpacedRepetition';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
-import TRAINING_CONFIG from '../../config/trainingConfig';
+import TRAINING_CONFIG, { getDiamondReward } from '../../config/trainingConfig';
 import { getLevel } from '../../config/LevelRegistry';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
@@ -1310,7 +1310,7 @@ function GodModeArenaInner({
         correctCount,
         streak,
         bestStreak,
-        totalXP,
+        totalXP, // legacy stub (always 0) — diamonds are the only currency
         requiredCorrect,
         passThreshold,
         totalLevels,
@@ -2106,7 +2106,7 @@ function GodModeArenaInner({
 
                     {/* DIAMOND REWARD CARD */}
                     {(() => {
-                        const baseReward = Math.max(5, Math.round(gtowScore * 0.5));
+                        const baseReward = getDiamondReward(currentLevel, correctCount, bestStreak > 5 ? 2 : 0);
                         const bonusReward = speedBonusDiamonds || 0;
                         const totalReward = baseReward + bonusReward;
                         return (
@@ -2128,15 +2128,30 @@ function GodModeArenaInner({
                                         <div style={{ fontSize: 18, fontWeight: 900, color: '#fbbf24', fontFamily: "'Orbitron', monospace" }}>+{totalReward}</div>
                                     </div>
                                 </div>
-                                {bonusReward > 0 && (
-                                    <div style={{
-                                        padding: '4px 10px', borderRadius: 8,
-                                        background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.3)',
-                                        fontSize: 10, fontWeight: 700, color: '#fbbf24',
-                                    }}>
-                                        +{bonusReward} SPEED BONUS
-                                    </div>
-                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                    {(() => {
+                                        const lvlDef = getLevel(currentLevel);
+                                        const mult = lvlDef?.diamondMultiplier || 1.0;
+                                        return mult > 1.0 ? (
+                                            <div style={{
+                                                padding: '4px 10px', borderRadius: 8,
+                                                background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.3)',
+                                                fontSize: 10, fontWeight: 700, color: '#a78bfa',
+                                            }}>
+                                                {mult}x LEVEL BONUS
+                                            </div>
+                                        ) : null;
+                                    })()}
+                                    {bonusReward > 0 && (
+                                        <div style={{
+                                            padding: '4px 10px', borderRadius: 8,
+                                            background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.3)',
+                                            fontSize: 10, fontWeight: 700, color: '#fbbf24',
+                                        }}>
+                                            +{bonusReward} SPEED BONUS
+                                        </div>
+                                    )}
+                                </div>
                             </motion.div>
                         );
                     })()}

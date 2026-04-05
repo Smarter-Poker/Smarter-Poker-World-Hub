@@ -54,7 +54,7 @@ export const ShareScoreCard = ({
       accuracy: data.accuracy || 0,
       timeSpent: data.timeSpent || 0,
       gtoLines: data.gtoLines || [],
-      xpEarned: data.xpEarned || 0
+      diamondsEarned: data.diamondsEarned || data.xpEarned || 0
     };
   }, [post.achievementData]);
 
@@ -142,9 +142,9 @@ export const ShareScoreCard = ({
             <span className="stat-label">Time</span>
           </div>
           <div className="stat">
-            <span className="stat-icon">⚡</span>
-            <span className="stat-value">+{scoreData.xpEarned}</span>
-            <span className="stat-label">XP</span>
+            <span className="stat-icon">💎</span>
+            <span className="stat-value">+{scoreData.diamondsEarned}</span>
+            <span className="stat-label">Diamonds</span>
           </div>
         </div>
       </div>

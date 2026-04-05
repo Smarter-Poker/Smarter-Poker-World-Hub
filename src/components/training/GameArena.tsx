@@ -11,7 +11,7 @@
  * - Conditional engine rendering (PIO/CHART/SCENARIO)
  * - Level Failed modal when HP reaches 0
  * - Session Complete modal with stats
- * - XP earned display with animations
+ * - Diamond earned display with animations
  *
  * @author Smarter.Poker Engineering
  */
@@ -53,7 +53,7 @@ interface SessionStats {
     accuracy: number;
     passed: boolean;
     finalHealth: number;
-    xpEarned: number;
+    diamondsEarned: number;
     timeElapsed: number;
 }
 
@@ -101,8 +101,8 @@ const GameArena: React.FC<GameArenaProps> = ({
     const [phase, setPhase] = useState<'LOADING' | 'USER_TURN' | 'FEEDBACK' | 'COMPLETE'>('LOADING');
 
     // HUD state
-    const [totalXP, setTotalXP] = useState(0);
-    const [recentXP, setRecentXP] = useState(0);
+    const [totalDiamonds, setTotalDiamonds] = useState(0);
+    const [recentDiamonds, setRecentDiamonds] = useState(0);
     const [showDamage, setShowDamage] = useState(0);
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [showFailed, setShowFailed] = useState(false);
@@ -210,13 +210,13 @@ const GameArena: React.FC<GameArenaProps> = ({
                 setTimeout(() => setShowDamage(0), 1000);
             }
 
-            // Update correct count and XP
+            // Update correct count and diamonds
             if (result.isCorrect) {
                 setCorrectCount(prev => prev + 1);
-                const xp = 10 + Math.floor(level * 2);
-                setTotalXP(prev => prev + xp);
-                setRecentXP(xp);
-                setTimeout(() => setRecentXP(0), 1000);
+                const diamonds = 5 + Math.floor(level * 1);
+                setTotalDiamonds(prev => prev + diamonds);
+                setRecentDiamonds(diamonds);
+                setTimeout(() => setRecentDiamonds(0), 1000);
             }
 
             // Update engine-specific feedback
@@ -279,16 +279,16 @@ const GameArena: React.FC<GameArenaProps> = ({
             accuracy,
             passed: false,
             finalHealth: health,
-            xpEarned: totalXP,
+            diamondsEarned: totalDiamonds,
             timeElapsed,
         };
-    }, [handNumber, correctCount, health, totalXP]);
+    }, [handNumber, correctCount, health, totalDiamonds]);
 
     const handleRetry = useCallback(() => {
         setHealth(MAX_HEALTH);
         setHandNumber(0);
         setCorrectCount(0);
-        setTotalXP(0);
+        setTotalDiamonds(0);
         setShowFailed(false);
         setShowComplete(false);
         startTimeRef.current = Date.now();
@@ -349,19 +349,19 @@ const GameArena: React.FC<GameArenaProps> = ({
                     {handNumber > 0 ? Math.round((correctCount / handNumber) * 100) : 0}%
                 </div>
 
-                {/* XP Display */}
+                {/* Diamond Display */}
                 <div style={styles.xpContainer}>
-                    <span style={styles.xpIcon}>⭐</span>
-                    <span style={styles.xpValue}>{totalXP}</span>
+                    <span style={styles.xpIcon}>💎</span>
+                    <span style={styles.xpValue}>{totalDiamonds}</span>
                     <AnimatePresence>
-                        {recentXP > 0 && (
+                        {recentDiamonds > 0 && (
                             <motion.span
                                 initial={{ y: 0, opacity: 1 }}
                                 animate={{ y: -20, opacity: 0 }}
                                 exit={{ opacity: 0 }}
                                 style={styles.xpFloat}
                             >
-                                +{recentXP}
+                                +{recentDiamonds}
                             </motion.span>
                         )}
                     </AnimatePresence>
@@ -548,8 +548,8 @@ const GameArena: React.FC<GameArenaProps> = ({
                                     <span style={styles.statLabel}>Correct</span>
                                 </div>
                                 <div style={styles.statItem}>
-                                    <span style={styles.statValue}>+{sessionStats.xpEarned}</span>
-                                    <span style={styles.statLabel}>XP Earned</span>
+                                    <span style={styles.statValue}>+{sessionStats.diamondsEarned}</span>
+                                    <span style={styles.statLabel}>Diamonds Earned</span>
                                 </div>
                             </div>
                             <p style={styles.passingNote}>

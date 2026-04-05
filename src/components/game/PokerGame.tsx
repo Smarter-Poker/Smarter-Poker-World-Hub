@@ -240,7 +240,6 @@ interface PokerGameProps {
     questionNumber?: number;
     totalQuestions?: number;
     timerSeconds?: number;
-    xp?: number;
     diamonds?: number;
     onFold?: () => void;
     onCall?: () => void;
@@ -254,7 +253,6 @@ const PokerGame: React.FC<PokerGameProps> = ({
     questionNumber = 1,
     totalQuestions = 20,
     timerSeconds = 15,
-    xp = 1250,
     diamonds = 500,
     onFold, onCall, onRaise, onAllIn
 }) => {
@@ -300,8 +298,7 @@ const PokerGame: React.FC<PokerGameProps> = ({
                 </button>
                 <h1 className="text-sm font-bold tracking-wider uppercase" style={{ color: '#22d3ee' }}>{gameTitle}</h1>
                 <div className="flex gap-3 text-xs font-semibold">
-                    <span style={{ color: '#22d3ee' }}>⚡ {xp.toLocaleString()} XP</span>
-                    <span style={{ color: '#ef4444' }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {diamonds}</span>
+                    <span style={{ color: '#22d3ee' }}><img src="/images/diamond.png" alt="Diamond" style={{width:20,height:20,display:"inline-block",verticalAlign:"middle"}}/> {diamonds}</span>
                 </div>
             </div>
 

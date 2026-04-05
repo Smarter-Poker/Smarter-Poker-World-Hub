@@ -187,7 +187,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                                         <div style={{ fontSize: 18, fontWeight: 700, color: C.blue }}>
                                             {profile.xp_total?.toLocaleString() || 0}
                                         </div>
-                                        <div style={{ fontSize: 11, color: C.textSec }}>XP</div>
+                                        <div style={{ fontSize: 11, color: C.textSec }}>Diamonds</div>
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
                                         <div style={{ fontSize: 18, fontWeight: 700, color: '#FFD700' }}>

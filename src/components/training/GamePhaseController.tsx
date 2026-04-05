@@ -48,7 +48,6 @@ export interface SessionStats {
     criticalMistakes: number;
     totalEVLost: number;
     averageTime: number;
-    xpEarned: number;
     diamondsEarned: number;
     accuracy: number;
     handResults: HandResult[];
@@ -91,7 +90,6 @@ const DEFAULT_SESSION_STATS: SessionStats = {
     criticalMistakes: 0,
     totalEVLost: 0,
     averageTime: 0,
-    xpEarned: 0,
     diamondsEarned: 0,
     accuracy: 0,
     handResults: []
@@ -259,14 +257,8 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                 timeToDecide
             };
 
-            // Calculate XP/Diamonds with fallbacks
-            const baseXP = fullConfig?.baseXPPerHand ?? 10;
-            const xpMultiplier = fullConfig?.xpMultiplier ?? 1.0;
+            // Calculate diamonds with fallbacks
             const diamondMultiplier = fullConfig?.diamondMultiplier ?? 1.0;
-
-            const xpEarned = solverResult?.isCorrect
-                ? Math.floor(baseXP * xpMultiplier)
-                : Math.floor(baseXP * 0.25);
 
             const diamondsEarned = solverResult?.isCorrect
                 ? Math.floor(5 * diamondMultiplier)
@@ -297,7 +289,6 @@ export function useGamePhaseController(config: Partial<PhaseControllerConfig> = 
                         mistakeCount: (prev.sessionStats?.mistakeCount ?? 0) + (solverResult?.isCorrect ? 0 : 1),
                         criticalMistakes: (prev.sessionStats?.criticalMistakes ?? 0) + (isCritical ? 1 : 0),
                         totalEVLost: (prev.sessionStats?.totalEVLost ?? 0) + Math.max(0, -(solverResult?.evDiff ?? 0)),
-                        xpEarned: (prev.sessionStats?.xpEarned ?? 0) + xpEarned,
                         diamondsEarned: (prev.sessionStats?.diamondsEarned ?? 0) + diamondsEarned,
                         handResults: [...(prev.sessionStats?.handResults ?? []), handResult]
                     };
@@ -744,7 +735,7 @@ export function SessionReport({
                     <StatBox label="Correct" value={stats.correctCount} color="#22c55e" />
                     <StatBox label="Mistakes" value={stats.mistakeCount} color="#f59e0b" />
                     <StatBox label="Critical" value={stats.criticalMistakes} color="#ef4444" />
-                    <StatBox label="XP Earned" value={`+${stats.xpEarned}`} color="#00d4ff" />
+                    <StatBox label="Diamonds" value={`+${stats.diamondsEarned}`} color="#00d4ff" />
                     <StatBox label="Diamonds" value={`+${stats.diamondsEarned}`} color="#a855f7" />
                     <StatBox label="Avg Time" value={`${stats.averageTime.toFixed(1)}s`} color="#888" />
                 </div>

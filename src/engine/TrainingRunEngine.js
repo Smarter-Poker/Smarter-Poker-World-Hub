@@ -21,9 +21,9 @@ export const RUN_RULES = {
     PASS_THRESHOLD: 0.85, // 85%
     PASS_CORRECT_COUNT: 17, // 17/20
     TIME_PER_QUESTION: 15, // seconds
-    XP_BASE_CORRECT: 10,
-    XP_STREAK_BONUS: 5,
-    XP_SPEED_MULTIPLIERS: {
+    DIAMOND_BASE_CORRECT: 5,
+    DIAMOND_STREAK_BONUS: 3,
+    DIAMOND_SPEED_MULTIPLIERS: {
         LIGHTNING: 2.0,  // < 20% time used
         FAST: 1.5,       // < 40% time used
         NORMAL: 1.25,    // < 60% time used
@@ -185,17 +185,17 @@ class TrainingRunEngineClass {
 
         // Calculate speed bonus
         const percentTimeUsed = (responseTimeMs / (RUN_RULES.TIME_PER_QUESTION * 1000)) * 100;
-        let speedMultiplier = RUN_RULES.XP_SPEED_MULTIPLIERS.STANDARD;
+        let speedMultiplier = RUN_RULES.DIAMOND_SPEED_MULTIPLIERS.STANDARD;
         let speedLabel = 'STANDARD';
 
         if (percentTimeUsed <= 20) {
-            speedMultiplier = RUN_RULES.XP_SPEED_MULTIPLIERS.LIGHTNING;
+            speedMultiplier = RUN_RULES.DIAMOND_SPEED_MULTIPLIERS.LIGHTNING;
             speedLabel = 'LIGHTNING';
         } else if (percentTimeUsed <= 40) {
-            speedMultiplier = RUN_RULES.XP_SPEED_MULTIPLIERS.FAST;
+            speedMultiplier = RUN_RULES.DIAMOND_SPEED_MULTIPLIERS.FAST;
             speedLabel = 'FAST';
         } else if (percentTimeUsed <= 60) {
-            speedMultiplier = RUN_RULES.XP_SPEED_MULTIPLIERS.NORMAL;
+            speedMultiplier = RUN_RULES.DIAMOND_SPEED_MULTIPLIERS.NORMAL;
             speedLabel = 'NORMAL';
         }
 

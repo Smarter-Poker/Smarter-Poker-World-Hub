@@ -24,7 +24,7 @@ import type { Scenario, GameConfig } from '../../types/poker';
 
 interface DirectorProps {
     config: GameConfig;
-    onScenarioComplete: (correct: boolean, xpEarned: number, diamondsEarned: number) => void;
+    onScenarioComplete: (correct: boolean, diamondsEarned: number, bonusDiamonds: number) => void;
 }
 
 type GamePhase = 'INTRO' | 'REPLAYING' | 'AWAITING_DECISION' | 'SHOWING_RESULT' | 'SHOWING_GTO';
@@ -239,7 +239,7 @@ export function Director({ config, onScenarioComplete }: DirectorProps) {
             setShowNextHandButton(true);
             setPhase('SHOWING_GTO');
 
-            onScenarioComplete(true, reward.totalXP, reward.totalDiamonds);
+            onScenarioComplete(true, reward.totalDiamonds, reward.totalDiamonds);
         }, 2000);
     }, [onScenarioComplete]);
 

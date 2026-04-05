@@ -306,7 +306,7 @@ class DailyRotationEngineClass {
             name: game.name,
             focus: game.focus,
             difficulty: game.difficulty,
-            xpReward: 100 + (game.difficulty * 50),
+            diamondReward: 5 + (game.difficulty * 2),
             timeLimit: game.difficulty <= 2 ? null : 30, // 30 min for hard games
         };
     }

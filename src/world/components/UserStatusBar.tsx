@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   USER STATUS BAR — Diamond Balance, XP/Tier, Daily Streak
+   USER STATUS BAR — Diamond Balance, Tier, Daily Streak
    Displays key user stats in a sleek horizontal bar
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 // ─────────────────────────────────────────────────────────────────────────────
 const MOCK_USER_STATS = {
     diamonds: 300,
-    xp: 50,
+    diamonds_earned: 50,
     level: 1,
     tier: 'Bronze',
     streak: 0,          // Default to 0 (no fake streak)
@@ -86,12 +86,11 @@ function DiamondDisplay({ count }: { count: number }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ⬆️ XP & TIER DISPLAY
+// ⬆️ TIER DISPLAY
 // ─────────────────────────────────────────────────────────────────────────────
-function XPDisplay({ xp, level, tier }: { xp: number; level: number; tier: string }) {
+function TierDisplay({ level, tier }: { level: number; tier: string }) {
     const tierConfig = TIER_CONFIG[tier] || TIER_CONFIG.Bronze;
-    const xpForNextLevel = (level + 1) * 1000; // Simple formula
-    const progress = ((xp % 1000) / 1000) * 100;
+    const progress = ((level % 12) / 12) * 100;
 
     return (
         <div
@@ -129,7 +128,7 @@ function XPDisplay({ xp, level, tier }: { xp: number; level: number; tier: strin
                         LV {level}
                     </span>
                 </div>
-                {/* XP Progress bar */}
+                {/* Level Progress bar */}
                 <div
                     style={{
                         width: 60,
@@ -242,7 +241,7 @@ export function UserStatusBar() {
             }}
         >
             <DiamondDisplay count={stats.diamonds} />
-            <XPDisplay xp={stats.xp} level={stats.level} tier={stats.tier} />
+            <TierDisplay level={stats.level} tier={stats.tier} />
             <StreakDisplay streak={stats.streak} multiplier={stats.streakMultiplier} />
         </div>
     );

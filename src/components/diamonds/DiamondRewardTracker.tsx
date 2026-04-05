@@ -18,7 +18,7 @@ const STANDARD_PAYOUTS = [
     { id: 'new_level', name: 'New Level Unlocked', diamonds: 50, icon: '🔓', repeatable: true },
     { id: 'social_post', name: 'Share a Post', diamonds: 15, icon: '📝', repeatable: true },
     { id: 'strategy_comment', name: 'Strategy Comment', diamonds: 5, icon: '💬', repeatable: true },
-    { id: 'xp_level_up', name: 'XP Level Up', diamonds: 100, icon: '⬆️', repeatable: true },
+    { id: 'level_up', name: 'Level Up', diamonds: 100, icon: '⬆️', repeatable: true },
     { id: 'chart_study', name: 'GTO Chart Study (3+ min)', diamonds: 10, icon: '📊', repeatable: true },
     { id: 'referral', name: 'Referral Success', diamonds: 500, icon: '👥', note: 'Bypasses cap!', bypasses: true },
 ];
@@ -90,7 +90,7 @@ const EASTER_EGG_CATEGORIES = [
         color: '#FFD700',
         eggs: [
             { name: 'To Infinity', desc: '1M total diamonds', diamonds: 5000, rarity: 'legendary' },
-            { name: 'Millionaire', desc: '1M lifetime XP', diamonds: 2500, rarity: 'legendary' },
+            { name: 'Millionaire', desc: '1M lifetime diamonds', diamonds: 2500, rarity: 'legendary' },
             { name: 'The Finisher', desc: 'Complete every game', diamonds: 2000, rarity: 'legendary' },
             { name: 'Zero Leak', desc: '1K hands, no leaks', diamonds: 1500, rarity: 'legendary' },
             { name: 'The Centurion', desc: '100-day streak', diamonds: 1000, rarity: 'legendary' },

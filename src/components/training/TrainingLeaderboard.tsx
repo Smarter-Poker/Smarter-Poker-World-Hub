@@ -108,7 +108,7 @@ export function TrainingLeaderboard({ userId, compact = false }) {
                                         {entry.accuracy}% • {entry.questionsCorrect} correct
                                     </div>
                                 </div>
-                                <div style={styles.xp}>+{entry.totalXp} XP</div>
+                                <div style={styles.xp}>+{entry.totalXp} 💎</div>
                             </motion.div>
                         ))}
                     </AnimatePresence>

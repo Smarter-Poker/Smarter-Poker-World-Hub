@@ -25,7 +25,7 @@ function getStreakMessage(days: number, multiplier: number): string {
     ];
 
     const bonusText = multiplier > 1
-        ? ` You Earn ${multiplier}x XP And Diamonds Today!`
+        ? ` You Earn ${multiplier}x Diamonds Today!`
         : '';
 
     const randomMessage = messages[Math.floor(Math.random() * messages.length)];

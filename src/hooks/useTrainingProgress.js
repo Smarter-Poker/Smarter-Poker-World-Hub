@@ -20,7 +20,7 @@ const createEmptyProgress = () => ({
     levelsCompleted: 0,
     mastery: 0,
     bestScore: 0,
-    totalXP: 0,
+    totalDiamonds: 0,
     lastPlayed: null,
     streakBest: 0,
 });
@@ -64,7 +64,7 @@ export default function useTrainingProgress() {
                                 levelsCompleted: Math.max(0, (p.level || 1) - 1), // level 2 means 1 level completed
                                 mastery: mastery,
                                 bestScore: 0, // Not tracked yet
-                                totalXP: p.xp || 0,
+                                totalDiamonds: p.diamonds || p.xp || 0,
                                 lastPlayed: p.last_played_at,
                                 streakBest: p.best_streak || 0,
                                 currentLevel: p.level || 1,
@@ -168,7 +168,7 @@ export default function useTrainingProgress() {
                 lastPlayed: new Date().toISOString(),
                 mastery: Math.max(existing.mastery, sessionData.accuracy || 0),
                 bestScore: Math.max(existing.bestScore, sessionData.score || 0),
-                totalXP: existing.totalXP + (sessionData.xpEarned || 0),
+                totalDiamonds: existing.totalDiamonds + (sessionData.diamondsEarned || 0),
                 streakBest: Math.max(existing.streakBest, sessionData.bestStreak || 0),
             };
 
@@ -188,7 +188,7 @@ export default function useTrainingProgress() {
             return {
                 gamesPlayed: 0,
                 gamesMastered: 0,
-                totalXP: 0,
+                totalDiamonds: 0,
                 averageMastery: 0,
                 overallRank: USER_RANKS.UNRANKED,
             };
@@ -196,13 +196,13 @@ export default function useTrainingProgress() {
 
         const gamesPlayed = games.filter(g => g.attempts > 0).length;
         const gamesMastered = games.filter(g => g.mastery >= 85).length;
-        const totalXP = games.reduce((sum, g) => sum + g.totalXP, 0);
+        const totalDiamonds = games.reduce((sum, g) => sum + (g.totalDiamonds || 0), 0);
         const averageMastery = games.reduce((sum, g) => sum + g.mastery, 0) / games.length;
 
         return {
             gamesPlayed,
             gamesMastered,
-            totalXP,
+            totalDiamonds,
             averageMastery: Math.round(averageMastery),
             overallRank: getRankFromMastery(averageMastery),
         };
