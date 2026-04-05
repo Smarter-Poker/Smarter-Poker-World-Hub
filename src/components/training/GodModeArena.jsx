@@ -5,7 +5,7 @@
  * - GTO Wizard-style action buttons + 5-tier feedback
  * - GTOW Score tracking + EV Loss metrics
  * - Post-session review with hand history
- * - 25 questions per level, 10 levels total
+ * - 20 questions per level, 12 levels total (Foundations → Boss Mode)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -55,6 +55,7 @@ import useSpacedRepetition from '../../hooks/useSpacedRepetition';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 import TRAINING_CONFIG from '../../config/trainingConfig';
+import { getLevel } from '../../config/LevelRegistry';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 import { eventBus, EventType, busEmit } from '../../engine/EventBus';
@@ -4439,16 +4440,21 @@ function GodModeArenaInner({
                     {/* MASTERY PROGRESS */}
                     <div style={styles.masteryContainer}>
                         <div style={styles.masteryLabel}>
-                            Overall Mastery: {currentLevel * 10}%
+                            Overall Mastery: {Math.round((currentLevel / (totalLevels || 12)) * 100)}%
                         </div>
                         <div style={styles.masteryBar}>
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${currentLevel * 10}%` }}
+                                animate={{ width: `${Math.round((currentLevel / (totalLevels || 12)) * 100)}%` }}
                                 transition={{ duration: 1, delay: 0.5 }}
                                 style={styles.masteryFill}
                             />
                         </div>
+                        {masteryStatus && (
+                            <div style={{ fontSize: 11, color: masteryStatus.passed ? '#22c55e' : '#f97316', fontWeight: 600, marginTop: 4 }}>
+                                {masteryStatus.message}
+                            </div>
+                        )}
                     </div>
 
                     {/* F7: Drill Filters */}
@@ -4535,6 +4541,14 @@ function GodModeArenaInner({
                                     <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginTop: 4 }}>
                                         Level {currentLevel} of {(totalLevels || 12)} • {totalQuestions || 25} Questions
                                     </div>
+                                    {(() => {
+                                        const levelDef = getLevel(currentLevel);
+                                        return levelDef ? (
+                                            <div style={{ fontSize: 11, color: levelDef.accentColor || '#00d4ff', fontWeight: 700, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                {levelDef.name} — {levelDef.tier}
+                                            </div>
+                                        ) : null;
+                                    })()}
                                 </motion.div>
 
                                 {/* Session Goal Card */}
@@ -4552,10 +4566,10 @@ function GodModeArenaInner({
                                         Session Goal
                                     </div>
                                     <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>
-                                        Score ≥70% to advance to Level {Math.min(currentLevel + 1, (totalLevels || 12))}
+                                        Score ≥{passThreshold || 85}% to advance to Level {Math.min(currentLevel + 1, (totalLevels || 12))}
                                     </div>
                                     <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
-                                        Answer {Math.ceil((totalQuestions || 25) * 0.7)} of {totalQuestions || 25} questions correctly
+                                        Answer {requiredCorrect || Math.ceil((totalQuestions || 25) * 0.85)} of {totalQuestions || 25} questions correctly
                                     </div>
                                 </motion.div>
 

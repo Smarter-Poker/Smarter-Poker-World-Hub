@@ -2,10 +2,10 @@
  * LevelSelector.tsx
  * ==================
  * Level selection screen for God Mode games.
- * Shows 10 levels in a vertical map with lock/unlock status and high scores.
+ * Shows 12 levels (Foundations → Boss Mode) in a vertical map with lock/unlock status and high scores.
  *
  * Features:
- * - Visual level "map" from 1-10
+ * - Visual level "map" from 1-12
  * - Lock logic: Level 1 always unlocked, others require 85%+ on previous
  * - High score display for each level
  * - Play button triggers session start
@@ -58,25 +58,25 @@ interface LevelSelectorProps {
 
 // Derive level metadata from LevelRegistry (solver-backed source of truth)
 // Fallback arrays ensure zero breakage if registry import fails
-const LEVEL_TITLES = Array.from({ length: 10 }, (_, i) => {
+const LEVEL_TITLES = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg?.name || ['The Basics', 'Building Blocks', 'Getting Serious', 'Challenge Mode', 'Mid-Game Mastery', 'Advanced Tactics', 'Expert Level', 'Master Class', 'Elite Training', 'Final Exam'][i];
 });
 
-const LEVEL_DESCRIPTIONS = Array.from({ length: 10 }, (_, i) => {
+const LEVEL_DESCRIPTIONS = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg?.description || ['Learn the fundamentals', 'Reinforce core concepts', 'Apply what you know', 'Test your knowledge', 'Handle complex spots', 'Advanced decision making', 'Expert-level scenarios', 'Master the subtleties', 'Elite performance required', 'Prove your mastery'][i];
 });
 
 // Passing grades from LevelRegistry — masteryThreshold is 0.85 (85%) for L1-10, 0.90 for Boss Mode
 // EV tolerance tightens each level, so we scale passing grades based on registry complexity
-const PASSING_GRADES = Array.from({ length: 10 }, (_, i) => {
+const PASSING_GRADES = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg ? Math.round(reg.masteryThreshold * 100) : [85, 87, 89, 91, 93, 95, 97, 98, 99, 100][i];
 });
 
 // Level accent colors from registry for UI theming
-const LEVEL_COLORS = Array.from({ length: 10 }, (_, i) => {
+const LEVEL_COLORS = Array.from({ length: Object.keys(LEVEL_REGISTRY).length }, (_, i) => {
     const reg = LEVEL_REGISTRY[i + 1];
     return reg?.accentColor || '#00D4FF';
 });
@@ -306,7 +306,8 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
             // Build level data with lock logic
             const levelDataList: LevelData[] = [];
 
-            for (let i = 1; i <= 10; i++) {
+            const totalLevels = Object.keys(LEVEL_REGISTRY).length;
+            for (let i = 1; i <= totalLevels; i++) {
                 const levelKey = `level_${i}`;
                 const progress = levelProgress[levelKey] || {};
                 const prevProgress = i > 1 ? (levelProgress[`level_${i - 1}`] || {}) : null;
