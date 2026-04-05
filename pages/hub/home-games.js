@@ -951,24 +951,15 @@ export default function HomeGamesPage() {
                         pointer-events: none;
                     }
                     .vc3-card:hover {
-                        border-color: rgba(212,168,83,0.35);
+                        filter: brightness(1.08);
                         background: linear-gradient(160deg, rgba(18,28,42,0.97) 0%, rgba(12,20,32,0.99) 100%);
                         box-shadow:
-                            inset 0 1px 0 rgba(212,168,83,0.1),
+                            inset 0 1px 0 rgba(255,255,255,0.08),
                             inset 0 0 20px rgba(212,168,83,0.03),
                             0 8px 32px rgba(0,0,0,0.55),
-                            0 0 0 1px rgba(212,168,83,0.08);
+                            0 0 0 1px rgba(255,255,255,0.06);
                         transform: translateY(-2px);
                     }
-                    .vc3-accent {
-                        position: absolute;
-                        top: 0; left: 0; right: 0;
-                        height: 3px;
-                        border-radius: 14px 14px 0 0;
-                        opacity: 0.75;
-                        transition: opacity 0.3s;
-                    }
-                    .vc3-card:hover .vc3-accent { opacity: 1; }
                     .vc3-header {
                         display: flex;
                         align-items: flex-start;

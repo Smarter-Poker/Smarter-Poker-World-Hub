@@ -102,6 +102,19 @@ export function ExternalLinkProvider({ children }) {
                 return;
             }
 
+            // CRITICAL: Skip map URLs — must open in native maps app, not iframe
+            const isMapUrl = (
+                lowerHref.includes('google.com/maps') ||
+                lowerHref.includes('maps.google.com') ||
+                lowerHref.includes('maps.apple.com') ||
+                lowerHref.includes('waze.com') ||
+                lowerHref.includes('map.google.com')
+            );
+            if (isMapUrl) return;
+
+            // CRITICAL: Skip tel: and mailto: protocol links
+            if (href.startsWith('tel:') || href.startsWith('mailto:')) return;
+
             // HendonMob URLs will open in ArticleReaderModal with proxy support
 
             // Also intercept links that explicitly should open externally

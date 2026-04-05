@@ -189,12 +189,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 transform: mounted ? 'translateY(0)' : 'translateY(12px)',
                 transition: `opacity 0.35s ease ${Math.min(index * 0.04, 0.4)}s, transform 0.35s ease ${Math.min(index * 0.04, 0.4)}s`,
                 cursor: 'pointer',
+                borderColor: typeColor.accent,
             }}
         >
-            {/* Top accent gradient line */}
-            <div className="vc3-accent" style={{
-                background: `linear-gradient(90deg, ${typeColor.accent}, ${typeColor.accent}55, transparent)`,
-            }} />
 
             {/* === HEADER ZONE === */}
             <div className="vc3-header">
@@ -264,12 +261,19 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             </div>
 
             {/* === ADDRESS === */}
-            <p className="vc3-address">
+            <a
+                className="vc3-address"
+                href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((venue.address || '') + ', ' + (venue.city || '') + ', ' + (venue.state || ''))}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                title="Open In Maps"
+            >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
                 </svg>
                 <span>{venue.address ? (venue.address + ' - ') : ''}{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}</span>
-            </p>
+            </a>
 
             {/* Home Game Host Info — Avatar + Name + Profile Link */}
             {venue.venue_type === 'home_game' && venue.host_display_name && (

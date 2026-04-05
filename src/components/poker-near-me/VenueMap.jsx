@@ -885,11 +885,10 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     const radiusMeters = Number(radiusMiles) * 1609.34; // miles → meters
     radiusCircleRef.current = L.circle([center.lat, center.lng], {
       radius: radiusMeters,
-      color: '#d4a853',
+      color: '#ffffff',
       weight: 2.5,
       opacity: 0.85,
-      fillColor: '#d4a853',
-      fillOpacity: 0.08,
+      fill: false,
       dashArray: '10, 10',
       interactive: false,
     }).addTo(map);

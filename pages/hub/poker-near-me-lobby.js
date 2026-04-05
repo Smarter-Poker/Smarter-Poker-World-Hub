@@ -3378,22 +3378,11 @@ export default function PokerNearMeLobby() {
         cursor: pointer;
       }
       .vc3-card:hover {
-        border-color: rgba(212,168,83,0.3);
+        filter: brightness(1.08);
         background: linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(10, 18, 32, 0.96));
         box-shadow: 0 6px 28px rgba(212,168,83,0.1), 0 2px 12px rgba(0,0,0,0.35);
         transform: translateY(-2px);
       }
-
-      /* Accent Line */
-      .vc3-accent {
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        border-radius: 16px 16px 0 0;
-        opacity: 0.7;
-        transition: opacity 0.3s;
-      }
-      .vc3-card:hover .vc3-accent { opacity: 1; }
 
       /* Header Zone */
       .vc3-header {
