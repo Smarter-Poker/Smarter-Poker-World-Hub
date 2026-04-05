@@ -12,6 +12,7 @@ import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { getGameConfig as getGameCfg } from '../../../src/config/gameConfigs';
+import { getGameScenarioConfig } from '../../../src/config/GameScenarioMap';
 
 // ── Deterministic hash for seeded fallback data (avoids Math.random in data gen) ──
 function hashSeed(str) {
@@ -106,6 +107,9 @@ export default async function handler(req, res) {
               const pioConfig = pioQueryService.getGameConfig(gameId);
               const gameCfg = getGameCfg(gameId);
 
+              // ═══ SOLVER SCENARIO MAP: Route game to correct solver levels/spots ═══
+              const scenarioConfig = getGameScenarioConfig(gameId);
+
               if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
                   // PIO/CHART ENGINE: Generate from real solver data
                   // Inject service-role client so engine bypasses RLS
@@ -118,10 +122,14 @@ export default async function handler(req, res) {
                           count: needed,
                           gameConfig: pioConfig,
                           // ═══ PHASE 15: Pass targeting hints ═══
-                          targetPositions: targetPositions || undefined,
+                          targetPositions: targetPositions || (scenarioConfig?.positions) || undefined,
                           targetStreet: targetStreet || undefined,
                           // ═══ PHASE 19: Difficulty filter ═══
                           difficulty: difficulty || 'standard',
+                          // ═══ SOLVER SCENARIO MAP: Inject solver routing ═══
+                          scenarioLevels: scenarioConfig?.scenarioLevels || undefined,
+                          spotTypes: scenarioConfig?.spotTypes || undefined,
+                          stackDepths: scenarioConfig?.stackDepths || undefined,
                       });
                       if (batch && batch.length > 0) {
                           solverQuestions = batch.map(q => ({ question_data: q }));

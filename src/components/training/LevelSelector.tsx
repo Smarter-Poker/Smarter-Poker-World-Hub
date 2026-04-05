@@ -18,6 +18,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 import { getAuthUser } from '../../lib/authUtils';
+import { LEVEL_REGISTRY, MASTERY_THRESHOLD, getLevel } from '../../config/LevelRegistry';
 
 // ============================================================================
 // TYPES
@@ -32,6 +33,9 @@ interface LevelData {
     isUnlocked: boolean;
     isCompleted: boolean;
     attempts: number;
+    diamondMultiplier?: number;
+    tier?: string;
+    accentColor?: string;
 }
 
 interface GameData {
@@ -52,34 +56,30 @@ interface LevelSelectorProps {
 // CONSTANTS
 // ============================================================================
 
-const LEVEL_TITLES = [
-    'The Basics',
-    'Building Blocks',
-    'Getting Serious',
-    'Challenge Mode',
-    'Mid-Game Mastery',
-    'Advanced Tactics',
-    'Expert Level',
-    'Master Class',
-    'Elite Training',
-    'Final Exam',
-];
+// Derive level metadata from LevelRegistry (solver-backed source of truth)
+// Fallback arrays ensure zero breakage if registry import fails
+const LEVEL_TITLES = Array.from({ length: 10 }, (_, i) => {
+    const reg = LEVEL_REGISTRY[i + 1];
+    return reg?.name || ['The Basics', 'Building Blocks', 'Getting Serious', 'Challenge Mode', 'Mid-Game Mastery', 'Advanced Tactics', 'Expert Level', 'Master Class', 'Elite Training', 'Final Exam'][i];
+});
 
-const LEVEL_DESCRIPTIONS = [
-    'Learn the fundamentals',
-    'Reinforce core concepts',
-    'Apply what you know',
-    'Test your knowledge',
-    'Handle complex spots',
-    'Advanced decision making',
-    'Expert-level scenarios',
-    'Master the subtleties',
-    'Elite performance required',
-    'Prove your mastery',
-];
+const LEVEL_DESCRIPTIONS = Array.from({ length: 10 }, (_, i) => {
+    const reg = LEVEL_REGISTRY[i + 1];
+    return reg?.description || ['Learn the fundamentals', 'Reinforce core concepts', 'Apply what you know', 'Test your knowledge', 'Handle complex spots', 'Advanced decision making', 'Expert-level scenarios', 'Master the subtleties', 'Elite performance required', 'Prove your mastery'][i];
+});
 
-// Passing grades scale up with level
-const PASSING_GRADES = [85, 87, 89, 91, 93, 95, 97, 98, 99, 100];
+// Passing grades from LevelRegistry — masteryThreshold is 0.85 (85%) for L1-10, 0.90 for Boss Mode
+// EV tolerance tightens each level, so we scale passing grades based on registry complexity
+const PASSING_GRADES = Array.from({ length: 10 }, (_, i) => {
+    const reg = LEVEL_REGISTRY[i + 1];
+    return reg ? Math.round(reg.masteryThreshold * 100) : [85, 87, 89, 91, 93, 95, 97, 98, 99, 100][i];
+});
+
+// Level accent colors from registry for UI theming
+const LEVEL_COLORS = Array.from({ length: 10 }, (_, i) => {
+    const reg = LEVEL_REGISTRY[i + 1];
+    return reg?.accentColor || '#00D4FF';
+});
 
 // ============================================================================
 // LEVEL CARD COMPONENT
@@ -91,7 +91,7 @@ const LevelCard: React.FC<{
     onPlay: (level: number) => void;
     index: number;
 }> = ({ levelData, gameTitle, onPlay, index }) => {
-    const { level, title, description, passingGrade, highScore, isUnlocked, isCompleted, attempts } = levelData;
+    const { level, title, description, passingGrade, highScore, isUnlocked, isCompleted, attempts, diamondMultiplier, tier } = levelData;
 
     // Determine card state
     const getCardStyle = () => {
@@ -157,7 +157,7 @@ const LevelCard: React.FC<{
                     {description}
                 </p>
 
-                {/* Pass requirement */}
+                {/* Pass requirement + Reward info */}
                 <div style={styles.requirement}>
                     <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 11 }}>
                         Pass: {passingGrade}%
@@ -165,6 +165,11 @@ const LevelCard: React.FC<{
                     {attempts > 0 && (
                         <span style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: 10, marginLeft: 12 }}>
                             {attempts} attempt{attempts !== 1 ? 's' : ''}
+                        </span>
+                    )}
+                    {diamondMultiplier && diamondMultiplier > 1.0 && (
+                        <span style={{ color: '#FBBF24', fontSize: 10, marginLeft: 12, fontWeight: 600 }}>
+                            {diamondMultiplier}x Diamonds
                         </span>
                     )}
                 </div>
@@ -310,6 +315,7 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                 const isUnlocked = i === 1 || (prevProgress?.highScore || 0) >= PASSING_GRADES[i - 2];
                 const isCompleted = (progress.highScore || 0) >= PASSING_GRADES[i - 1];
 
+                const regLevel = getLevel(i);
                 levelDataList.push({
                     level: i,
                     title: LEVEL_TITLES[i - 1],
@@ -319,6 +325,9 @@ const LevelSelector: React.FC<LevelSelectorProps> = ({ gameId, userId, onBack })
                     isUnlocked,
                     isCompleted,
                     attempts: progress.attempts || 0,
+                    diamondMultiplier: regLevel?.diamondMultiplier || 1.0,
+                    tier: regLevel?.tier || 'BEGINNER',
+                    accentColor: regLevel?.accentColor || LEVEL_COLORS[i - 1],
                 });
             }
 

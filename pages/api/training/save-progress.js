@@ -24,6 +24,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { withRetry } from '../../../src/lib/supabaseRetry';
 import { withTiming } from '../../../src/utils/trainingApiUtils';
+import { getMasteryGate } from '../../../src/guards/MasteryGate';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -134,6 +135,19 @@ export default async function handler(req, res) {
               return res.status(400).json({ success: false, error: 'Missing required fields' });
           }
 
+          // ═══ MASTERY GATE: Server-side mastery verification ═══
+          // Don't trust client `passed` — run MasteryGate.checkMastery() server-side
+          const masteryGate = getMasteryGate();
+          const masteryResult = masteryGate.checkMastery(
+              userId,
+              level,
+              questionsCorrect || 0,
+              questionsAnswered || 0
+          );
+          // Override client-side `passed` with server-verified result
+          const serverVerifiedPassed = masteryResult.achieved;
+          const masteryToken = masteryResult.masteryToken || null;
+
           // 1. Save level completion to history (with retry for transient failures)
           const { data: levelHistory, error: historyError } = await withRetry(
               () => getSupabase()
@@ -145,7 +159,7 @@ export default async function handler(req, res) {
                       questions_answered: questionsAnswered,
                       questions_correct: questionsCorrect,
                       accuracy_percentage: accuracy,
-                      passed: passed,
+                      passed: serverVerifiedPassed,
                       time_spent_seconds: timeSpentSeconds,
                       best_streak: streak,
                       diamonds_earned: diamondsEarned
@@ -173,7 +187,7 @@ export default async function handler(req, res) {
                   () => getSupabase()
                       .from('training_progress')
                       .update({
-                          level: passed ? Math.min(level + 1, 10) : level,
+                          level: serverVerifiedPassed ? Math.min(level + 1, 12) : level,
                           hands_played: (existingProgress.hands_played || 0) + questionsAnswered,
                           correct_answers: (existingProgress.correct_answers || 0) + questionsCorrect,
                           total_answers: (existingProgress.total_answers || 0) + questionsAnswered,
@@ -195,7 +209,7 @@ export default async function handler(req, res) {
 
               // 3. Upsert leaderboard entry
               try {
-                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, passed);
+                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, serverVerifiedPassed);
               } catch (lbError) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
@@ -219,7 +233,15 @@ export default async function handler(req, res) {
                   success: true,
                   progress: updatedProgress,
                   levelHistory: levelHistory,
-                  diamondsAwarded: diamondsEarned
+                  diamondsAwarded: diamondsEarned,
+                  mastery: {
+                      passed: serverVerifiedPassed,
+                      status: masteryResult.status,
+                      accuracy: masteryResult.accuracyPercent,
+                      masteryToken: masteryToken,
+                      nextLevelUnlocked: masteryResult.nextLevelUnlocked || null,
+                      message: masteryResult.message,
+                  }
               });
           } else {
               // Create new progress
@@ -229,7 +251,7 @@ export default async function handler(req, res) {
                       .insert({
                           user_id: userId,
                           game_id: gameId,
-                          level: passed ? Math.min(level + 1, 10) : level,
+                          level: serverVerifiedPassed ? Math.min(level + 1, 12) : level,
                           hands_played: questionsAnswered,
                           correct_answers: questionsCorrect,
                           total_answers: questionsAnswered,
@@ -252,7 +274,7 @@ export default async function handler(req, res) {
 
               // 3. Upsert leaderboard entry
               try {
-                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, passed);
+                  await upsertLeaderboard(getSupabase(), userId, gameId, diamondsEarned, accuracy, serverVerifiedPassed);
               } catch (lbError) {
                   console.warn('Leaderboard upsert failed:', lbError.message);
               }
@@ -276,7 +298,15 @@ export default async function handler(req, res) {
                   success: true,
                   progress: newProgress,
                   levelHistory: levelHistory,
-                  diamondsAwarded: diamondsEarned
+                  diamondsAwarded: diamondsEarned,
+                  mastery: {
+                      passed: serverVerifiedPassed,
+                      status: masteryResult.status,
+                      accuracy: masteryResult.accuracyPercent,
+                      masteryToken: masteryToken,
+                      nextLevelUnlocked: masteryResult.nextLevelUnlocked || null,
+                      message: masteryResult.message,
+                  }
               });
           }
 

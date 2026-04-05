@@ -8,6 +8,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { sanitizeParam, withTiming } from '../../../src/utils/trainingApiUtils';
+import { getLevel } from '../../../src/config/LevelRegistry';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -62,7 +63,20 @@ export default async function handler(req, res) {
               return res.status(200).json(DEFAULT_PROGRESS);
           }
 
-          return res.status(200).json(session);
+          // ═══ LEVEL REGISTRY: Enrich response with level metadata ═══
+          const currentLevelDef = getLevel(session.current_level || 1);
+          const enrichedSession = {
+              ...session,
+              levelMeta: currentLevelDef ? {
+                  name: currentLevelDef.name,
+                  tier: currentLevelDef.tier,
+                  masteryThreshold: currentLevelDef.masteryThreshold,
+                  diamondMultiplier: currentLevelDef.diamondMultiplier,
+                  accentColor: currentLevelDef.accentColor,
+              } : null,
+          };
+
+          return res.status(200).json(enrichedSession);
 
       } catch (err) {
           console.error('Error fetching progress:', err);

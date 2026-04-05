@@ -26,6 +26,7 @@ import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
 import '../styles/avatar-shimmer.css';
+import '../styles/poker-near-me.css';
 import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
 
 const orbitron = Orbitron({

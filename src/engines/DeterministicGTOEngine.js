@@ -786,7 +786,7 @@ export class DeterministicGTOEngine {
      * Generate a batch of N questions from solver data
      * IMP-6 FIX: Strengthened dedup — rejects same heroHand+scenarioHash combos
      */
-    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard' }) {
+    async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard', scenarioLevels, spotTypes, stackDepths }) {
         if (!gameConfig) return [];
 
         const questions = [];
@@ -795,9 +795,10 @@ export class DeterministicGTOEngine {
 
         // ═══ PHASE 15: Targeted practice — fetch pool with optional position/street filters ═══
         // ═══ PHASE 19: Fetch larger pool for difficulty filtering ═══
+        // ═══ SOLVER SCENARIO MAP: Pass routing params to pool fetcher ═══
         const poolMultiplier = difficulty === 'standard' ? 3 : 5;
         const poolSize = Math.min(count * poolMultiplier, 125);
-        const scenarios = await this.fetchSolverPool(gameConfig, level, poolSize, targetStreet);
+        const scenarios = await this.fetchSolverPool(gameConfig, level, poolSize, targetStreet, { stackDepths, spotTypes });
 
         if (!scenarios || scenarios.length === 0) return [];
 
@@ -1035,31 +1036,73 @@ export class DeterministicGTOEngine {
         return this.buildQuestionFromScenario(scenario, gameConfig, level, 0);
     }
 
-    async fetchSolverPool(gameConfig, level, limit = 25, targetStreet = null) {
+    async fetchSolverPool(gameConfig, level, limit = 25, targetStreet = null, routingParams = {}) {
         try {
             // ═══ PHASE 15: Allow street override for targeted practice ═══
             const street = targetStreet || this.getStreetForLevel(level);
+
+            // ═══ SOLVER SCENARIO MAP: Use stackDepths from GameScenarioMap if provided ═══
+            const { stackDepths, spotTypes } = routingParams;
+            const effectiveStackDepths = (stackDepths && stackDepths.length > 0)
+                ? stackDepths
+                : [gameConfig.pioStackDepth];
 
             // ═══ PHASE 21: Randomized pool fetch for varied training spots ═══
             // Fetch a larger pool then shuffle client-side to avoid repetitive scenarios.
             // Supabase doesn't support ORDER BY random(), so we over-fetch and shuffle.
             const fetchLimit = Math.min(limit * 4, 500);
 
-            const { data, error } = await this.db
-                .from('solved_spots_gold')
-                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
-                .eq('game_type', gameConfig.pioGameType)
-                .eq('stack_depth', gameConfig.pioStackDepth)
-                .eq('street', street)
-                .limit(fetchLimit);
+            // Query across all effective stack depths (multi-depth for MTT games)
+            let allData = [];
+            for (const depth of effectiveStackDepths) {
+                const { data, error } = await this.db
+                    .from('solved_spots_gold')
+                    .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                    .eq('game_type', gameConfig.pioGameType)
+                    .eq('stack_depth', depth)
+                    .eq('street', street)
+                    .limit(Math.ceil(fetchLimit / effectiveStackDepths.length));
 
-            if (error || !data || data.length === 0) {
-                console.log(`[DeterministicEngine] No solved spots for ${gameConfig.pioGameType} ${street} ${gameConfig.pioStackDepth}bb`);
+                if (!error && data && data.length > 0) {
+                    allData = allData.concat(data);
+                }
+            }
+
+            if (allData.length === 0) {
+                console.log(`[DeterministicEngine] No solved spots for ${gameConfig.pioGameType} ${street} depths=[${effectiveStackDepths.join(',')}]bb`);
                 return null;
             }
 
+            // ═══ SOLVER SCENARIO MAP: Filter by spotTypes if provided ═══
+            // SpotTypes map to scenario_hash patterns (e.g., 'rfi' matches scenarios with RFI action)
+            if (spotTypes && spotTypes.length > 0) {
+                const spotTypePatterns = {
+                    'rfi': /\b(rfi|open|raise_first)\b/i,
+                    'vs3bet': /\b(vs_?3bet|facing_?3bet|3bet_def)\b/i,
+                    'bb_defense': /\b(bb_def|bb_vs|big_blind)\b/i,
+                    'cold_call': /\b(cold_call|flat|overcall)\b/i,
+                    '4bet': /\b(4bet|four_bet)\b/i,
+                    'squeeze': /\b(squeeze|sqz)\b/i,
+                };
+                const patterns = spotTypes
+                    .map(st => spotTypePatterns[st])
+                    .filter(Boolean);
+
+                if (patterns.length > 0) {
+                    const filtered = allData.filter(row => {
+                        const hash = (row.scenario_hash || '').toLowerCase();
+                        return patterns.some(p => p.test(hash));
+                    });
+                    // Only apply filter if it returns results; otherwise fall through with full pool
+                    if (filtered.length > 0) {
+                        allData = filtered;
+                        console.log(`[DeterministicEngine] 🎯 SpotType filter: ${spotTypes.join(',')} → ${filtered.length} scenarios`);
+                    }
+                }
+            }
+
             // Fisher-Yates shuffle for true randomization of training spots
-            const shuffled = [...data];
+            const shuffled = [...allData];
             for (let i = shuffled.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
