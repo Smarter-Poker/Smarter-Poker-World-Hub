@@ -8,7 +8,8 @@
    Storage Key: 'smarter-poker-auth'
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../types/supabase';
 
 // CRITICAL: .trim() removes trailing newlines/whitespace that cause connection issues
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -62,6 +63,6 @@ export const supabase = new Proxy({}, {
    get(target, prop) {
       return getSupabase()[prop as keyof typeof _supabase];
    }
-}) as ReturnType<typeof createClient>;
+}) as SupabaseClient<Database>;
 
 export default supabase;

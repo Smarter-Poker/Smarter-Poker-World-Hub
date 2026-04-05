@@ -410,17 +410,17 @@ description: Master roadmap for all remaining Smarter.Poker improvements, featur
 
 ---
 
-### 4.4 — Venue Reviews & Ratings `[ ]`
+### 4.4 — Venue Reviews & Ratings `[x]`
 
 **What to build**:
-1. `[ ]` 5-star rating system per venue
-2. `[ ]` Rating categories: Dealers, Atmosphere, Food/Drinks, Waitlist Speed, Game Selection
-3. `[ ]` Written reviews with character limit
-4. `[ ]` Upvote/downvote on reviews
-5. `[ ]` "Verified Player" badge (if user has bankroll session at that venue)
+1. `[x]` 5-star rating system per venue
+2. `[x]` Rating categories: Dealers, Atmosphere, Food/Drinks, Waitlist Speed, Game Selection
+3. `[x]` Written reviews with character limit
+4. `[x]` Upvote/downvote on reviews
+5. `[x]` "Verified Player" badge (if user has bankroll session at that venue)
 6. `[ ]` Review moderation in Horses admin panel
-7. `[ ]` Database: `venue_reviews` table with foreign keys to venues + profiles
-8. `[ ]` Aggregate ratings displayed on venue cards in Poker Near Me
+7. `[x]` Database: `venue_reviews` table with foreign keys to venues + profiles
+8. `[x]` Aggregate ratings displayed on venue cards in Poker Near Me
 
 **RISK LEVEL**: LOW — new feature, new table, plugs into existing venue pages
 

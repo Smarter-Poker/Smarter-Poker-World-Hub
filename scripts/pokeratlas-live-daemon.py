@@ -192,6 +192,8 @@ PA_VALIDATED_REGIONS = [
     'colorado',
     'arizona',
     'new-york',
+    'illinois',
+    'indiana',
 ]
 
 # Full list for daily discovery pass (to detect new regions)
