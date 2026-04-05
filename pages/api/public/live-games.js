@@ -153,7 +153,7 @@ async function handlePost(req, res) {
                 expires_at: new Date(Date.now() + 4 * 3600000).toISOString() // Reports expire after 4 hours
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (insertError) {
             // If the table doesn't exist yet, create a graceful fallback

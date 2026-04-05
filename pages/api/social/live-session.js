@@ -63,7 +63,7 @@ export default async function handler(req, res) {
                     notes: notes || null,
                     livekit_room: roomName,
                     status: 'active',
-                }).select().single();
+                }).select().maybeSingle();
 
                 if (insertErr) return res.status(500).json({ error: insertErr.message });
                 return res.status(200).json({ session });
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
                     .eq('id', session_id)
                     .eq('user_id', user.id)
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (updErr) return res.status(500).json({ error: updErr.message });
                 return res.status(200).json({ session: data });
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
                     .eq('id', session_id)
                     .eq('user_id', user.id)
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (endErr) return res.status(500).json({ error: endErr.message });
                 return res.status(200).json({ session: data });
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
 
                 const { data: msg, error: chatErr } = await sb.from('session_chat_messages').insert({
                     session_id, user_id: user.id, message: message.trim(),
-                }).select('*, profiles:user_id(username, avatar_url)').single();
+                }).select('*, profiles:user_id(username, avatar_url)').maybeSingle();
 
                 if (chatErr) return res.status(500).json({ error: chatErr.message });
                 return res.status(200).json({ message: msg });
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
                 const { data } = await sb.from('live_sessions')
                     .select('*, profiles:user_id(username, avatar_url, full_name)')
                     .eq('id', session_id)
-                    .single();
+                    .maybeSingle();
                 return res.status(200).json({ session: data });
             }
 
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
                     .eq('user_id', user.id)
                     .eq('status', 'active')
                     .limit(1)
-                    .single();
+                    .maybeSingle();
                 return res.status(200).json({ session: data || null });
             }
 

@@ -57,7 +57,7 @@ export default async function handler(req, res) {
                 checkin_time: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[Checkin API] Insert error:', error);

@@ -65,7 +65,7 @@ export default async function handler(req, res) {
                         crew_code: crew_code
                     })
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (createErr) {
                     console.error('[Crews API] Create error:', createErr);
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
                         role: 'member'
                     })
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (joinErr) {
                     console.error('[Crews API] Join error:', joinErr);

@@ -81,7 +81,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('diamonds')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         const currentDiamonds = profile?.diamonds || 0;
         await adminSupabase
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
             .eq('id', userId);
 
         // 5. Log Transaction
-        const venueReq = await adminSupabase.from('venues').select('name').eq('id', venue_id).single();
+        const venueReq = await adminSupabase.from('venues').select('name').eq('id', venue_id).maybeSingle();
         const venueName = venueReq.data?.name || 'Venue';
         await adminSupabase
             .from('diamond_transactions')

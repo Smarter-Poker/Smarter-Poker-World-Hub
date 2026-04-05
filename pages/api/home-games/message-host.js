@@ -105,7 +105,7 @@ export default async function handler(req, res) {
                     created_by: userId,
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
 
             if (convoErr || !newConvo) {
                 console.error('[MessageHost] Failed to create conversation:', convoErr?.message);

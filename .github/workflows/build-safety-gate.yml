@@ -12,6 +12,11 @@ concurrency:
   group: safety-gate-${{ github.ref }}
   cancel-in-progress: true
 
+# Permissions needed for safety checks + failure notification (issue creation)
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   safety-checks:
     name: Pre-Deploy Safety Checks

@@ -94,7 +94,7 @@ export default async function handler(req, res) {
                   .from('social_pages')
                   .select('id')
                   .eq('slug', slug)
-                  .single();
+                  .maybeSingle();
               
               if (!pageLookup?.id) {
                   return res.status(404).json({ success: false, error: 'Social page not found' });

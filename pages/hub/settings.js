@@ -824,7 +824,7 @@ export default function SettingsPage() {
                             .from('user_notification_preferences')
                             .insert({ user_id: user.id })
                             .select()
-                            .single()
+                            .maybeSingle()
                             .then(({ data: newPrefs }) => {
                                 if (newPrefs) setNotificationPrefs(newPrefs);
                             });
