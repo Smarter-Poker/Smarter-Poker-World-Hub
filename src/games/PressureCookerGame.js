@@ -35,6 +35,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
     const [usedPowerUps, setUsedPowerUps] = useState(new Set());
     const [activePowerUp, setActivePowerUp] = useState(null);
     const [streakFreezeAvailable, setStreakFreezeAvailable] = useState(false);
+    const [eliminatedAction, setEliminatedAction] = useState(null);
     const availablePowerUps = getGamePowerUps('pressure-cooker');
 
     const TIME_BONUS = 3000;
@@ -56,14 +57,14 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
         setCurrentHand(hand); setGameState('playing'); setTimeRemaining(INITIAL_TIME);
         setScore(0); setHandsCompleted(0); setStreak(0); setMaxStreak(0); setCorrectCount(0); setUserAnswer(null);
         mistakesRef.current = [];
-        setUsedPowerUps(new Set()); setActivePowerUp(null); setStreakFreezeAvailable(false);
+        setUsedPowerUps(new Set()); setActivePowerUp(null); setStreakFreezeAvailable(false); setEliminatedAction(null);
         SoundEngine.play('levelUp');
     }, [getRandomHand]);
 
     const nextHand = useCallback(() => {
         const hand = getRandomHand();
         if (!hand) return;
-        setCurrentHand(hand); setGameState('playing'); setUserAnswer(null);
+        setCurrentHand(hand); setGameState('playing'); setUserAnswer(null); setEliminatedAction(null);
     }, [getRandomHand]);
 
     const handleAnswer = useCallback((action) => {
@@ -169,9 +170,13 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
             setActivePowerUp('STREAK_FREEZE');
         } else if (powerUp.id === 'HINT_REVEAL') {
             setActivePowerUp(null);
+            if (currentHand) {
+                const wrongActions = ['fold', 'call', 'raise'].filter(a => a !== currentHand.correctAction);
+                setEliminatedAction(wrongActions[Math.floor(Math.random() * wrongActions.length)]);
+            }
         }
         SoundEngine.play('levelUp');
-    }, [DiamondEngine, usedPowerUps, onScoreUpdate]);
+    }, [DiamondEngine, usedPowerUps, onScoreUpdate, currentHand]);
 
     const timerSec = (timeRemaining / 1000).toFixed(1);
     const timerColor = timeRemaining > 15000 ? '#00ff88' : timeRemaining > 7000 ? '#ffaa00' : '#ff4444';
@@ -244,15 +249,16 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
                         </div>
                     )}
                     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <button onClick={() => handleAnswer('fold')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(100,100,100,0.3)', border: '2px solid #666', borderRadius: 12, color: '#fff', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
-                            <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)' }}>1</span>FOLD
-                        </button>
-                        <button onClick={() => handleAnswer('call')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(16,185,129,0.3)', border: '2px solid #10B981', borderRadius: 12, color: '#10B981', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
-                            <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>2</span>CALL
-                        </button>
-                        <button onClick={() => handleAnswer('raise')} disabled={gameState !== 'playing'} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: 'rgba(239,68,68,0.3)', border: '2px solid #EF4444', borderRadius: 12, color: '#EF4444', cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
-                            <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>3</span>RAISE
-                        </button>
+                        {[{ action: 'fold', bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD', key: '1' },
+                          { action: 'call', bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL', key: '2' },
+                          { action: 'raise', bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE', key: '3' }].map(btn => {
+                            const isElim = eliminatedAction === btn.action;
+                            return (
+                                <button key={btn.action} onClick={() => !isElim && handleAnswer(btn.action)} disabled={gameState !== 'playing' || isElim} style={{ flex: '1 1 80px', minHeight: 52, padding: '14px 20px', fontSize: 16, fontWeight: 700, background: isElim ? 'rgba(50,50,50,0.2)' : btn.bg, border: `2px solid ${isElim ? 'rgba(255,255,255,0.05)' : btn.border}`, borderRadius: 12, color: isElim ? 'rgba(255,255,255,0.15)' : btn.color, cursor: (gameState === 'playing' && !isElim) ? 'pointer' : 'default', opacity: isElim ? 0.25 : (gameState === 'playing' ? 1 : 0.5), position: 'relative', touchAction: 'manipulation', textDecoration: isElim ? 'line-through' : 'none' }}>
+                                    <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>{btn.key}</span>{isElim ? '✗' : btn.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </>
             )}

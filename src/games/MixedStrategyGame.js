@@ -11,6 +11,8 @@ import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
+import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
+import PowerUpBar from '../components/training/PowerUpBar';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -37,7 +39,11 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
     const [diff, setDiff] = useState(0);
     const [maxStreak, setMaxStreak] = useState(0);
     const [closeCount, setCloseCount] = useState(0);
+    const [usedPowerUps, setUsedPowerUps] = useState(new Set());
+    const [activePowerUp, setActivePowerUp] = useState(null);
+    const [doublePointsActive, setDoublePointsActive] = useState(false);
     const mistakesRef = useRef([]);
+    const availablePowerUps = getGamePowerUps('mixed-strategy');
 
     const getMixedScenario = useCallback(() => {
         const scenario = MIXED_SCENARIOS[Math.floor(Math.random() * MIXED_SCENARIOS.length)];
@@ -50,6 +56,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         const { scenario, action } = getMixedScenario();
         setCurrentScenario(scenario); setTargetAction(action); setGameState('playing');
         setScore(0); setStreak(0); setMaxStreak(0); setCloseCount(0); setRoundsPlayed(0); setUserFreq(50);
+        setUsedPowerUps(new Set()); setActivePowerUp(null); setDoublePointsActive(false);
         mistakesRef.current = [];
         SoundEngine.play('levelUp');
     }, [getMixedScenario]);
@@ -78,15 +85,33 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         const actualFreq = currentScenario.frequencies[targetAction];
         const difference = Math.abs(actualFreq - userFreq);
         setDiff(difference);
+        const pointMultiplier = doublePointsActive ? 2 : 1;
+        if (doublePointsActive) setDoublePointsActive(false);
         let points = Math.max(0, 100 - difference * 2);
         if (difference === 0) points += 500;
         else if (difference <= 5) points += 200;
         else if (difference <= 15) points += 50;
+        points *= pointMultiplier;
         if (difference <= 15) { setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCloseCount(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
         else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentScenario?.title || 'Unknown', action: targetAction, expected: actualFreq, got: userFreq, diff: difference }); busEmit.decisionIncorrect(streak, { userAction: `${targetAction} ${userFreq}%`, bestAction: `${targetAction} ${actualFreq}%`, scenario: currentScenario }); }
         setGameState('revealed');
         setTimeout(nextRound, 2000);
     };
+
+    const handlePowerUp = useCallback((pu) => {
+        if (!purchasePowerUp(pu, DiamondEngine)) return;
+        onScoreUpdate?.(DiamondEngine.getBalance());
+        setUsedPowerUps(prev => new Set([...prev, pu.id]));
+        if (pu.id === 'DOUBLE_POINTS') { setDoublePointsActive(true); setActivePowerUp('DOUBLE_POINTS'); }
+        else if (pu.id === 'HINT_REVEAL' && currentScenario) {
+            // For mixed strategy, show a hint: narrow the range by ±20%
+            setActivePowerUp(null);
+            const actualFreq = currentScenario.frequencies[targetAction];
+            const low = Math.max(0, actualFreq - 20);
+            const high = Math.min(100, actualFreq + 20);
+            setUserFreq(Math.round((low + high) / 2));
+        }
+    }, [DiamondEngine, onScoreUpdate, currentScenario, targetAction]);
 
     useEffect(() => {
         const handleKey = (e) => {
@@ -123,6 +148,16 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
 
             {(gameState === 'playing' || gameState === 'revealed') && currentScenario && (
                 <>
+                    {gameState === 'playing' && (
+                        <PowerUpBar
+                            powerUps={availablePowerUps}
+                            usedPowerUps={usedPowerUps}
+                            activePowerUp={activePowerUp}
+                            onActivate={handlePowerUp}
+                            diamondBalance={DiamondEngine?.getBalance() || 0}
+                            compact
+                        />
+                    )}
                     <div style={{ fontSize: 16, color: '#A855F7', marginBottom: 12, fontWeight: 600 }}>{currentScenario.title}</div>
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 30 }}>{currentScenario.context}</div>
                     <div style={{ width: 140, height: 100, background: 'linear-gradient(145deg, #2e1a2e, #1a1a2e)', border: '2px solid #A855F7', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '0 auto 40px', boxShadow: '0 10px 30px rgba(168, 85, 247, 0.2)' }}>
@@ -189,7 +224,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} label="PRECISION" />
 
                         {/* Position Weakness Heatmap */}
-                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={totalRounds} />
+                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={maxRounds} />
 
                         {/* Weakness Analysis */}
                         {mistakesRef.current.length > 0 && (() => {

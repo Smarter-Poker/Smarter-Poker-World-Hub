@@ -17,6 +17,9 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, x-user-id, Authorization',
 };
 
+const CATEGORY_KEYS = ['dealers', 'atmosphere', 'food_drinks', 'waitlist_speed', 'game_selection'];
+const CATEGORY_COLUMNS = CATEGORY_KEYS.map(k => k + '_rating');
+
 export default async function handler(req, res) {
   try {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
@@ -32,8 +35,10 @@ export default async function handler(req, res) {
     }
 
     try {
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // POST — Create a review with 5-category ratings
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'POST') {
-        // Require JWT for writes
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for reviews' });
         const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
@@ -42,50 +47,82 @@ export default async function handler(req, res) {
         const { venue_id, rating, review_text, reviewer_name, category_ratings } = req.body;
         const user_id = authUser.id;
 
-        if (!venue_id || !rating || !review_text || !reviewer_name) {
-          return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, rating, review_text, reviewer_name' });
+        if (!venue_id || !rating) {
+          return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, rating' });
         }
 
-        const venueIdNum = parseInt(venue_id, 10);
-        if (isNaN(venueIdNum) || venueIdNum < 1) {
-          return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
-        }
-
+        const venueIdStr = String(venue_id);
         const ratingNum = parseInt(rating, 10);
         if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
           return res.status(400).json({ success: false, error: 'Rating must be an integer between 1 and 5' });
         }
 
-        // Check if user is a verified player at this venue (has bankroll sessions)
+        // Check if user is a verified player — bankroll_sessions OR user_venue_checkins
         let is_verified_player = false;
         try {
           const { data: sessions } = await getSupabase()
             .from('bankroll_sessions')
             .select('id')
             .eq('user_id', user_id)
-            .eq('venue_id', venueIdNum)
+            .eq('venue_id', venue_id)
             .limit(1);
           is_verified_player = sessions && sessions.length > 0;
-        } catch (_) { /* non-fatal — just skip verified badge */ }
+        } catch (_) { /* non-fatal */ }
 
-        // Build insert payload with optional category ratings
+        // Fallback: check venue check-ins if bankroll didn't match
+        if (!is_verified_player) {
+          try {
+            const { data: checkins } = await getSupabase()
+              .from('user_venue_checkins')
+              .select('id')
+              .eq('user_id', user_id)
+              .eq('venue_id', venueIdStr)
+              .limit(1);
+            is_verified_player = checkins && checkins.length > 0;
+          } catch (_) { /* non-fatal */ }
+        }
+
+        // Also check venue_checkins (the social check-in table)
+        if (!is_verified_player) {
+          try {
+            const { data: socialCheckins } = await getSupabase()
+              .from('venue_checkins')
+              .select('id')
+              .eq('user_id', user_id)
+              .eq('venue_id', venueIdStr)
+              .limit(1);
+            is_verified_player = socialCheckins && socialCheckins.length > 0;
+          } catch (_) { /* non-fatal */ }
+        }
+
+        // Build insert payload
         const insertPayload = {
-          venue_id: String(venueIdNum),
+          venue_id: venueIdStr,
           user_id,
           rating: ratingNum,
-          review_text,
-          reviewer_name,
-          created_at: new Date().toISOString(),
+          review_text: (review_text || '').trim() || null,
+          reviewer_name: (reviewer_name || '').trim() || 'Anonymous',
+          is_verified_player,
           helpful_count: 0,
           unhelpful_count: 0,
+          created_at: new Date().toISOString(),
         };
 
-        // Store category ratings + verified status in metadata JSON
+        // Persist category ratings as first-class columns
+        if (category_ratings && typeof category_ratings === 'object') {
+          for (const key of CATEGORY_KEYS) {
+            const val = category_ratings[key];
+            if (Number.isInteger(val) && val >= 1 && val <= 5) {
+              insertPayload[key + '_rating'] = val;
+            }
+          }
+        }
+
+        // Also store in metadata for backward compat
         const metadata = {};
         if (category_ratings && typeof category_ratings === 'object') {
-          const validCats = ['dealers', 'game_quality', 'rake', 'food', 'atmosphere'];
           for (const [key, val] of Object.entries(category_ratings)) {
-            if (validCats.includes(key) && Number.isInteger(val) && val >= 1 && val <= 5) {
+            if (Number.isInteger(val) && val >= 1 && val <= 5) {
               metadata[key + '_rating'] = val;
             }
           }
@@ -104,11 +141,21 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: error.message });
         }
 
+        // Recalculate venue trust_score from review average
+        try {
+          await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: venueIdStr });
+        } catch (rpcErr) {
+          console.warn('[Reviews] trust_score recalc failed (non-fatal):', rpcErr.message);
+        }
+
         return res.status(201).json({ success: true, review: data });
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // GET — Fetch reviews with category averages + sorting
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'GET') {
-        const { venue_id, venue_ids, stats_only, limit = '20', offset = '0' } = req.query;
+        const { venue_id, venue_ids, stats_only, limit = '20', offset = '0', sort = 'newest' } = req.query;
 
         // --- Bulk stats endpoint for venue cards ---
         if (stats_only === 'true' && venue_ids) {
@@ -149,19 +196,15 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'venue_id is required' });
         }
 
-        const venueIdNum = parseInt(venue_id, 10);
-        if (isNaN(venueIdNum) || venueIdNum < 1) {
-          return res.status(400).json({ success: false, error: 'venue_id must be a valid positive integer' });
-        }
-
-        const limitNum = parseInt(limit, 10) || 20;
+        const venueIdStr = String(venue_id);
+        const limitNum = Math.min(parseInt(limit, 10) || 20, 100);
         const offsetNum = parseInt(offset, 10) || 0;
 
-        // Single query: fetch reviews with rating for stats (eliminates N+1)
-        const { data: reviews, error: reviewError } = await getSupabase()
+        // Fetch all reviews for stats computation
+        const { data: allReviews, error: reviewError } = await getSupabase()
           .from('venue_reviews')
-          .select('*')
-          .eq('venue_id', String(venueIdNum))
+          .select('id, user_id, venue_id, rating, review_text, reviewer_name, is_verified_player, helpful_count, unhelpful_count, dealers_rating, atmosphere_rating, food_drinks_rating, waitlist_speed_rating, game_selection_rating, created_at, metadata')
+          .eq('venue_id', venueIdStr)
           .order('created_at', { ascending: false })
           .limit(200);
 
@@ -170,37 +213,96 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: reviewError.message });
         }
 
-        const allReviews = reviews || [];
-        const total_reviews = allReviews.length;
+        const reviews = allReviews || [];
+        const total_reviews = reviews.length;
         const avg_rating = total_reviews > 0
-          ? parseFloat((allReviews.reduce((sum, r) => sum + r.rating, 0) / total_reviews).toFixed(2))
+          ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / total_reviews).toFixed(2))
           : 0;
 
+        // Rating distribution
         const rating_distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-        allReviews.forEach((r) => {
+        reviews.forEach((r) => {
           rating_distribution[r.rating] = (rating_distribution[r.rating] || 0) + 1;
         });
 
-        // Apply pagination to final result
-        const paginatedReviews = allReviews.slice(offsetNum, offsetNum + limitNum);
+        // Category averages
+        const category_averages = {};
+        for (const col of CATEGORY_COLUMNS) {
+          const vals = reviews.map(r => r[col]).filter(v => v != null && v >= 1 && v <= 5);
+          category_averages[col.replace('_rating', '')] = vals.length > 0
+            ? parseFloat((vals.reduce((s, v) => s + v, 0) / vals.length).toFixed(2))
+            : null;
+        }
+
+        // Verified count
+        const verified_count = reviews.filter(r => r.is_verified_player).length;
+
+        // Sort
+        let sortedReviews = [...reviews];
+        switch (sort) {
+          case 'highest':
+            sortedReviews.sort((a, b) => b.rating - a.rating || new Date(b.created_at) - new Date(a.created_at));
+            break;
+          case 'lowest':
+            sortedReviews.sort((a, b) => a.rating - b.rating || new Date(b.created_at) - new Date(a.created_at));
+            break;
+          case 'helpful':
+            sortedReviews.sort((a, b) => (b.helpful_count || 0) - (a.helpful_count || 0));
+            break;
+          case 'verified':
+            sortedReviews = sortedReviews.filter(r => r.is_verified_player);
+            break;
+          case 'newest':
+          default:
+            // Already sorted by created_at DESC
+            break;
+        }
+
+        // Paginate
+        const paginatedReviews = sortedReviews.slice(offsetNum, offsetNum + limitNum);
+
+        // Fetch reviewer profiles (batch)
+        const userIds = [...new Set(paginatedReviews.map(r => r.user_id).filter(Boolean))];
+        let profileMap = {};
+        if (userIds.length > 0) {
+          try {
+            const { data: profiles } = await getSupabase()
+              .from('profiles')
+              .select('id, username, avatar_url, full_name')
+              .in('id', userIds);
+            if (profiles) {
+              for (const p of profiles) profileMap[p.id] = p;
+            }
+          } catch (_) { /* non-fatal */ }
+        }
+
+        // Attach profile to each review
+        const enrichedReviews = paginatedReviews.map(r => ({
+          ...r,
+          profile: profileMap[r.user_id] || null,
+        }));
 
         return res.status(200).json({
           success: true,
-          reviews: paginatedReviews,
+          reviews: enrichedReviews,
           avg_rating,
           total_reviews,
           rating_distribution,
+          category_averages,
+          verified_count,
         });
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // DELETE — Remove own review
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'DELETE') {
-        // CRITICAL FIX #1: Require JWT auth instead of query param user_id
         const token = req.headers.authorization?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ success: false, error: 'Auth required for delete' });
         const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { review_id } = req.query;
+        const { review_id, venue_id: delVenueId } = req.query;
         const user_id = authUser.id;
 
         if (!review_id) {
@@ -223,16 +325,26 @@ export default async function handler(req, res) {
           return res.status(404).json({ success: false, error: 'Review not found or not owned by user' });
         }
 
+        // Recalculate trust score after deletion
+        const deletedVenueId = delVenueId || data[0]?.venue_id;
+        if (deletedVenueId) {
+          try {
+            await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(deletedVenueId) });
+          } catch (_) { /* non-fatal */ }
+        }
+
         return res.status(200).json({ success: true, deleted: data[0] });
       }
 
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // PATCH — Helpful / Unhelpful voting
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (req.method === 'PATCH') {
         const { review_id, action } = req.body;
         if (!review_id || !['helpful', 'unhelpful'].includes(action)) {
           return res.status(400).json({ success: false, error: 'review_id and action ("helpful" or "unhelpful") required' });
         }
 
-        // Fetch current counts then increment the appropriate one
         const { data: existing, error: fetchErr } = await getSupabase()
           .from('venue_reviews')
           .select('helpful_count, unhelpful_count')

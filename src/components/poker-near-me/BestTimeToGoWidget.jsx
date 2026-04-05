@@ -1,6 +1,10 @@
 /**
- * BestTimeToGoWidget — Compact intelligence widget for venue detail pages
- * Shows peak hours, quiet hours, game-specific predictions, and a mini heatmap.
+ * BestTimeToGoWidget — Intelligence widget for venue detail pages
+ * v2.0 — Enhanced with:
+ *   - Quiet Hours natural language analysis
+ *   - Game-specific ETA predictions (e.g., "Usually opens Omaha Fri 6 PM")
+ *   - Mini 7-day activity bar chart
+ *   - Semantic confidence bar
  */
 import { useState, useEffect, useMemo } from 'react';
 import { eventBus, EventType } from '../../engine/EventBus';
@@ -16,6 +20,13 @@ function intensityColor(intensity) {
   return 'rgba(34, 197, 94, 0.8)';
 }
 
+function confidenceColor(conf) {
+  if (conf >= 80) return '#4ade80';
+  if (conf >= 50) return '#00D4FF';
+  if (conf >= 30) return '#fbbf24';
+  return '#f87171';
+}
+
 export default function BestTimeToGoWidget({ venueId, venueName }) {
   const [predictions, setPredictions] = useState(null);
   const [heatmapData, setHeatmapData] = useState(null);
@@ -28,15 +39,22 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
 
     const fetchAllData = () => {
       setLoading(true);
-      const venuePart = venueName ? `&venue=${encodeURIComponent(venueName)}` : '';
       const gameTypePart = selectedGame ? `&game_type=${encodeURIComponent(selectedGame)}` : '';
 
       Promise.all([
         fetch(`/api/poker/game-predictions?venue_id=${venueId}`).then(r => r.json()).catch(() => null),
         fetch(`/api/poker/peak-activity?venue=${encodeURIComponent(venueName || '')}${gameTypePart}`).then(r => r.json()).catch(() => null),
-      ]).then(([predData, heatData]) => {
+        fetch(`/api/poker/venue-predictions-batch?venue_ids=${venueId}`).then(r => r.json()).catch(() => null),
+      ]).then(([predData, heatData, batchData]) => {
         if (predData?.success) setPredictions(predData);
         if (heatData?.heatmap) setHeatmapData(heatData);
+        // Merge batch data into predictions for quiet hours / game ETA
+        if (batchData?.success && batchData.predictions?.[venueId]) {
+          setPredictions(prev => ({
+            ...(prev || {}),
+            batchInsights: batchData.predictions[venueId],
+          }));
+        }
         setLoading(false);
       });
     };
@@ -69,22 +87,24 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
     return grid;
   }, [heatmapData]);
 
+  const batchInsights = predictions?.batchInsights;
   const hasPredictions = predictions?.predictions?.length > 0;
   const hasHeatmap = heatmapGrid.length > 0;
+  const hasBatchData = batchInsights?.has_data;
 
   if (loading) {
     return (
       <div className="bttg-widget">
         <div className="bttg-loading">
           <div className="bttg-spinner" />
-          <span>Analyzing activity patterns...</span>
+          <span>Analyzing Activity Patterns...</span>
         </div>
         <style jsx>{STYLES}</style>
       </div>
     );
   }
 
-  if (!hasPredictions && !hasHeatmap) {
+  if (!hasPredictions && !hasHeatmap && !hasBatchData) {
     return null; // No data — don't render widget at all
   }
 
@@ -102,42 +122,95 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
           </svg>
           <h3>Best Time to Go</h3>
         </div>
-        {predictions?.summary?.data_quality && (
-          <span className={`bttg-quality bttg-quality-${predictions.summary.data_quality.toLowerCase()}`}>
-            {predictions.summary.data_quality} Data
+        {(predictions?.summary?.data_quality || batchInsights?.data_quality) && (
+          <span className={`bttg-quality bttg-quality-${(batchInsights?.data_quality || predictions?.summary?.data_quality || '').toLowerCase()}`}>
+            {batchInsights?.data_quality || predictions?.summary?.data_quality} Data
           </span>
         )}
       </div>
 
       {/* Summary badges */}
-      {predictions?.summary && (
-        <div className="bttg-summary">
-          {predictions.summary.best_time && (
-            <div className="bttg-badge bttg-badge-peak">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2">
-                <path d="M23 6l-9.5 9.5-5-5L1 18" /><polyline points="17 6 23 6 23 12" />
-              </svg>
-              <div>
-                <span className="bttg-badge-label">Peak Time</span>
-                <span className="bttg-badge-value">{predictions.summary.best_time}</span>
-              </div>
+      <div className="bttg-summary">
+        {(predictions?.summary?.best_time || batchInsights?.best_time) && (
+          <div className="bttg-badge bttg-badge-peak">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2">
+              <path d="M23 6l-9.5 9.5-5-5L1 18" /><polyline points="17 6 23 6 23 12" />
+            </svg>
+            <div>
+              <span className="bttg-badge-label">Peak Time</span>
+              <span className="bttg-badge-value">{batchInsights?.best_time || predictions?.summary?.best_time}</span>
             </div>
-          )}
-          {activePrediction?.quiet_hour && (
-            <div className="bttg-badge bttg-badge-quiet">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
-                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-              </svg>
-              <div>
-                <span className="bttg-badge-label">Quiet Hour</span>
-                <span className="bttg-badge-value">{activePrediction.quiet_hour.label}</span>
-              </div>
+          </div>
+        )}
+        {(activePrediction?.quiet_hour || batchInsights?.quiet_hours) && (
+          <div className="bttg-badge bttg-badge-quiet">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            </svg>
+            <div>
+              <span className="bttg-badge-label">Quiet Hours</span>
+              <span className="bttg-badge-value">{batchInsights?.quiet_hours || activePrediction?.quiet_hour?.label}</span>
             </div>
-          )}
+          </div>
+        )}
+      </div>
+
+      {/* === Mini 7-Day Activity Bar Chart === */}
+      {batchInsights?.day_scores && batchInsights.day_scores.some(s => s > 0) && (
+        <div className="bttg-day-chart">
+          <span className="bttg-day-chart-title">Weekly Activity</span>
+          <div className="bttg-day-bars">
+            {batchInsights.day_scores.map((score, idx) => (
+              <div key={idx} className="bttg-day-bar-col">
+                <div className="bttg-day-bar-track">
+                  <div
+                    className="bttg-day-bar-fill"
+                    style={{
+                      height: `${Math.max(score, 4)}%`,
+                      background: score >= 70
+                        ? 'linear-gradient(180deg, #4ade80, #22c55e)'
+                        : score >= 40
+                          ? 'linear-gradient(180deg, #00D4FF, #0891b2)'
+                          : 'linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.12))',
+                      boxShadow: score >= 70 ? '0 0 6px rgba(34,197,94,0.4)' : 'none',
+                    }}
+                  />
+                </div>
+                <span className="bttg-day-bar-label">{DAY_SHORT[idx]}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Game-specific predictions */}
+      {/* === Game-Specific ETA Predictions === */}
+      {batchInsights?.game_eta?.length > 0 && (
+        <div className="bttg-game-eta-section">
+          <span className="bttg-game-eta-title">Game-Specific Predictions</span>
+          {batchInsights.game_eta.map((eta, idx) => (
+            <div key={idx} className="bttg-game-eta-row">
+              <span className="bttg-game-eta-chip">{eta.game}</span>
+              <span className="bttg-game-eta-label">{eta.label}</span>
+              <div className="bttg-confidence-bar-wrap">
+                <div className="bttg-confidence-bar-track">
+                  <div
+                    className="bttg-confidence-bar-fill"
+                    style={{
+                      width: `${eta.confidence}%`,
+                      background: confidenceColor(eta.confidence),
+                    }}
+                  />
+                </div>
+                <span className="bttg-confidence-pct" style={{ color: confidenceColor(eta.confidence) }}>
+                  {eta.confidence}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Game-specific prediction tabs */}
       {hasPredictions && predictions.predictions.length > 1 && (
         <div className="bttg-game-tabs">
           {predictions.predictions.slice(0, 5).map(p => (
@@ -169,7 +242,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
               <span className="bttg-pred-tag">Peak: {activePrediction.peak_days.join(', ')}</span>
             )}
             <span className="bttg-pred-tag bttg-pred-confidence">
-              {activePrediction.confidence}% confidence
+              {activePrediction.confidence}% Confidence
             </span>
           </div>
         </div>
@@ -263,6 +336,71 @@ const STYLES = `
   }
   .bttg-badge-label { display: block; font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
   .bttg-badge-value { display: block; font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px; }
+
+  /* === Mini Day Bar Chart === */
+  .bttg-day-chart {
+    margin-bottom: 16px; padding: 14px; border-radius: 12px;
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
+  }
+  .bttg-day-chart-title {
+    display: block; font-size: 10px; color: rgba(255,255,255,0.4);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
+  }
+  .bttg-day-bars {
+    display: flex; gap: 6px; align-items: flex-end; height: 60px;
+  }
+  .bttg-day-bar-col {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .bttg-day-bar-track {
+    width: 100%; height: 48px; border-radius: 4px;
+    background: rgba(255,255,255,0.04); display: flex; align-items: flex-end;
+    overflow: hidden; position: relative;
+  }
+  .bttg-day-bar-fill {
+    width: 100%; border-radius: 4px 4px 0 0; transition: height 0.6s ease-out;
+    min-height: 2px;
+  }
+  .bttg-day-bar-label {
+    font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 500;
+  }
+
+  /* === Game-Specific ETA === */
+  .bttg-game-eta-section {
+    margin-bottom: 16px; padding: 14px; border-radius: 12px;
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06);
+  }
+  .bttg-game-eta-title {
+    display: block; font-size: 10px; color: rgba(255,255,255,0.4);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600;
+  }
+  .bttg-game-eta-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .bttg-game-eta-row:last-child { margin-bottom: 0; }
+  .bttg-game-eta-chip {
+    padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 700;
+    background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.25);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .bttg-game-eta-label {
+    font-size: 13px; color: rgba(255,255,255,0.7); flex: 1; min-width: 0;
+  }
+  .bttg-confidence-bar-wrap {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .bttg-confidence-bar-track {
+    width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .bttg-confidence-bar-fill {
+    height: 100%; border-radius: 2px; transition: width 0.5s ease;
+  }
+  .bttg-confidence-pct {
+    font-size: 11px; font-weight: 700; min-width: 30px; text-align: right;
+  }
 
   .bttg-game-tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
   .bttg-game-tab {

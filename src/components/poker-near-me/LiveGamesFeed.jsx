@@ -462,9 +462,12 @@ export default function LiveGamesFeed({
         }
 
         // 2. Filter by Distance
+        // CRITICAL: Venues without coordinates must be EXCLUDED (not included).
+        // Previously `return true` let ALL unmatched live venues (e.g. California)
+        // leak through the radius filter for users in Illinois.
         if (effectiveLocation && filterRadius !== 'any') {
             list = list.filter(v => {
-                if (!v.latitude || !v.longitude) return true;
+                if (!v.latitude || !v.longitude) return false;
                 return calcDist(v) <= Number(filterRadius);
             });
         }

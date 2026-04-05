@@ -575,19 +575,39 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </div>
             </div>
 
-            {/* === TRUST SCORE === */}
+            {/* === TRUST SCORE / PLAYER RATING === */}
             <div className="vc3-trust" style={{ marginTop: '0px' }}>
-                <div className="vc3-trust-header">
-                    <span className="vc3-trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
-                    <span className="vc3-trust-val" style={{ color: trust.color }}>{venue.trust_score || '-'}/5</span>
-                </div>
-                <div className="vc3-trust-track">
-                    <div className="vc3-trust-fill" style={{
-                        width: mounted ? trust.pct + '%' : '0%',
-                        background: `linear-gradient(90deg, ${trust.color}, ${trust.color}77)`,
-                        boxShadow: `0 0 8px ${trust.color}33`,
-                    }} />
-                </div>
+                {reviewStats && reviewStats.total_reviews > 0 ? (
+                    <>
+                        <div className="vc3-trust-header">
+                            <span className="vc3-trust-label" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#d4a853' : '#f59e0b' }}>Player Rating</span>
+                            <span className="vc3-trust-val" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#d4a853' : '#f59e0b' }}>
+                                {(Number(reviewStats.avg_rating) || 0).toFixed(1)}/5 ({reviewStats.total_reviews})
+                            </span>
+                        </div>
+                        <div className="vc3-trust-track">
+                            <div className="vc3-trust-fill" style={{
+                                width: mounted ? Math.round((Number(reviewStats.avg_rating) / 5) * 100) + '%' : '0%',
+                                background: `linear-gradient(90deg, ${reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#d4a853' : '#f59e0b'}, ${reviewStats.avg_rating >= 4 ? '#22c55e77' : reviewStats.avg_rating >= 3 ? '#d4a85377' : '#f59e0b77'})`,
+                                boxShadow: `0 0 8px ${reviewStats.avg_rating >= 4 ? '#22c55e33' : reviewStats.avg_rating >= 3 ? '#d4a85333' : '#f59e0b33'}`,
+                            }} />
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="vc3-trust-header">
+                            <span className="vc3-trust-label" style={{ color: trust.color }}>Trust: {trust.label}</span>
+                            <span className="vc3-trust-val" style={{ color: trust.color }}>{venue.trust_score || '-'}/5</span>
+                        </div>
+                        <div className="vc3-trust-track">
+                            <div className="vc3-trust-fill" style={{
+                                width: mounted ? trust.pct + '%' : '0%',
+                                background: `linear-gradient(90deg, ${trust.color}, ${trust.color}77)`,
+                                boxShadow: `0 0 8px ${trust.color}33`,
+                            }} />
+                        </div>
+                    </>
+                )}
             </div>
 
             <style jsx>{`

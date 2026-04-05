@@ -11,6 +11,8 @@ import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
+import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
+import PowerUpBar from '../components/training/PowerUpBar';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -451,17 +453,23 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
     const [gameOver, setGameOver] = useState(false);
     const [streakCount, setStreakCount] = useState(0);
     const [maxStreak, setMaxStreak] = useState(0);
+    const [usedPowerUps, setUsedPowerUps] = useState(new Set());
+    const [activePowerUp, setActivePowerUp] = useState(null);
+    const [streakFreezeAvailable, setStreakFreezeAvailable] = useState(false);
+    const [eliminatedOptionIdx, setEliminatedOptionIdx] = useState(null);
     const mistakesRef = useRef([]);
+    const availablePowerUps = getGamePowerUps('spot-trainer');
 
     const currentSpot = SPOT_SCENARIOS[currentSpotIndex];
     const currentStreet = currentSpot?.streets[currentStreetIndex];
 
     const handleOptionSelect = (option, index) => {
-        if (showResult) return;
+        if (showResult || index === eliminatedOptionIdx) return;
 
         setSelectedOption(index);
         setShowResult(true);
         setTotalAnswers(prev => prev + 1);
+        setEliminatedOptionIdx(null);
 
         if (option.correct) {
             const basePoints = 100;
@@ -483,8 +491,15 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                 });
             }
         } else {
-            SoundEngine.play('wrong');
-            setStreakCount(0);
+            // Check streak freeze
+            const freezeSaved = streakFreezeAvailable && streakCount > 0;
+            if (freezeSaved) {
+                setStreakFreezeAvailable(false);
+                SoundEngine.play('correct'); // saved!
+            } else {
+                SoundEngine.play('wrong');
+                setStreakCount(0);
+            }
             const correctOption = currentStreet.options.find(o => o.correct);
             mistakesRef.current.push({
                 spot: currentSpot.title,
@@ -497,9 +512,25 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
         }
     };
 
+    const handlePowerUp = (pu) => {
+        if (!purchasePowerUp(pu, DiamondEngine)) return;
+        onScoreUpdate?.(DiamondEngine.getBalance());
+        setUsedPowerUps(prev => new Set([...prev, pu.id]));
+        if (pu.id === 'STREAK_FREEZE') { setStreakFreezeAvailable(true); setActivePowerUp('STREAK_FREEZE'); }
+        else if (pu.id === 'HINT_REVEAL' && currentStreet) {
+            setActivePowerUp(null);
+            // Eliminate one wrong option
+            const wrongIndices = currentStreet.options.map((o, i) => (!o.correct ? i : -1)).filter(i => i >= 0);
+            if (wrongIndices.length > 0) {
+                setEliminatedOptionIdx(wrongIndices[Math.floor(Math.random() * wrongIndices.length)]);
+            }
+        }
+    };
+
     const handleNext = () => {
         setSelectedOption(null);
         setShowResult(false);
+        setEliminatedOptionIdx(null);
 
         // Check if there are more streets in this spot
         if (currentStreetIndex < currentSpot.streets.length - 1) {
@@ -805,6 +836,18 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                 </div>
             </div>
 
+            {/* Power-Ups */}
+            {!showResult && (
+                <PowerUpBar
+                    powerUps={availablePowerUps}
+                    usedPowerUps={usedPowerUps}
+                    activePowerUp={activePowerUp}
+                    onActivate={handlePowerUp}
+                    diamondBalance={DiamondEngine?.getBalance() || 0}
+                    compact
+                />
+            )}
+
             {/* Spot Info */}
             <div style={styles.spotInfo}>
                 <h2 style={styles.spotTitle}>{currentSpot.title}</h2>
@@ -877,9 +920,10 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                     const isSelected = selectedOption === idx;
                     const isCorrect = option.correct;
                     const showCorrectness = showResult;
+                    const isEliminated = eliminatedOptionIdx === idx;
 
-                    let bgColor = 'rgba(255,255,255,0.05)';
-                    let borderColor = 'rgba(255,255,255,0.2)';
+                    let bgColor = isEliminated ? 'rgba(50,50,50,0.15)' : 'rgba(255,255,255,0.05)';
+                    let borderColor = isEliminated ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)';
 
                     if (showCorrectness) {
                         if (isCorrect) {
@@ -897,18 +941,20 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                     return (
                         <motion.button
                             key={idx}
-                            whileHover={{ scale: showResult ? 1 : 1.02 }}
-                            whileTap={{ scale: showResult ? 1 : 0.98 }}
+                            whileHover={{ scale: (showResult || isEliminated) ? 1 : 1.02 }}
+                            whileTap={{ scale: (showResult || isEliminated) ? 1 : 0.98 }}
                             onClick={() => handleOptionSelect(option, idx)}
-                            disabled={showResult}
+                            disabled={showResult || isEliminated}
                             style={{
                                 ...styles.optionButton,
                                 background: bgColor,
                                 borderColor: borderColor,
-                                cursor: showResult ? 'default' : 'pointer',
+                                cursor: (showResult || isEliminated) ? 'default' : 'pointer',
+                                opacity: isEliminated ? 0.25 : 1,
+                                textDecoration: isEliminated ? 'line-through' : 'none',
                             }}
                         >
-                            <span style={styles.optionText}>{option.action}</span>
+                            <span style={styles.optionText}>{isEliminated ? `✗ ${option.action}` : option.action}</span>
                             {showResult && (
                                 <span style={{
                                     ...styles.evBadge,

@@ -1,0 +1,176 @@
+/**
+ * SeriesTabPanel — Extracted from poker-near-me.js renderSeries() + renderSeriesCalendar()
+ * Series listing with search, state filter, grid/calendar toggle, and paginated grid.
+ */
+import React from 'react';
+import dynamic from 'next/dynamic';
+
+const SeriesCard = dynamic(() => import('./SeriesCard'), { ssr: false });
+
+const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
+
+const TOUR_COLORS = {
+    'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+    'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626' },
+    'WSOPC': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227' },
+    'MSPT': { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6' },
+    'RGPS': { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981' },
+    'PGT': { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6' },
+    'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' }
+};
+
+function SeriesCalendar({ series, router }) {
+    const today = new Date();
+    const months = [];
+    for (let m = 0; m < 4; m++) {
+        const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+        months.push({ year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) });
+    }
+
+    return (
+        <div className="calendar-view">
+            {months.map((mo, mi) => {
+                const daysInMonth = new Date(mo.year, mo.month + 1, 0).getDate();
+                const firstDay = new Date(mo.year, mo.month, 1).getDay();
+                const monthSeries = series.filter(s => {
+                    if (!s.start_date) return false;
+                    const start = new Date(s.start_date);
+                    const end = s.end_date ? new Date(s.end_date) : start;
+                    const moStart = new Date(mo.year, mo.month, 1);
+                    const moEnd = new Date(mo.year, mo.month + 1, 0);
+                    return start <= moEnd && end >= moStart;
+                });
+
+                return (
+                    <div key={mi} className="calendar-month">
+                        <h3 className="calendar-month-title">{mo.label}</h3>
+                        <div className="calendar-grid-header">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                                <div key={d} className="cal-header-cell">{d}</div>
+                            ))}
+                        </div>
+                        <div className="calendar-grid-body">
+                            {Array.from({ length: firstDay }).map((_, i) => (
+                                <div key={'empty-' + i} className="cal-cell empty"></div>
+                            ))}
+                            {Array.from({ length: daysInMonth }).map((_, di) => {
+                                const dayNum = di + 1;
+                                const dayDate = new Date(mo.year, mo.month, dayNum);
+                                const daySeries = monthSeries.filter(s => {
+                                    const start = new Date(s.start_date);
+                                    const end = s.end_date ? new Date(s.end_date) : start;
+                                    return dayDate >= new Date(start.getFullYear(), start.getMonth(), start.getDate()) &&
+                                        dayDate <= new Date(end.getFullYear(), end.getMonth(), end.getDate());
+                                });
+                                const isToday = dayDate.toDateString() === today.toDateString();
+                                return (
+                                    <div key={dayNum} className={'cal-cell' + (isToday ? ' today' : '') + (daySeries.length > 0 ? ' has-events' : '')}>
+                                        <span className="cal-day-num">{dayNum}</span>
+                                        {daySeries.slice(0, 2).map((s, si) => {
+                                            const tourColor = TOUR_COLORS[s.tour_code] || TOUR_COLORS.default;
+                                            return (
+                                                <div key={si} className="cal-event"
+                                                    style={{ background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff' }}
+                                                    onClick={() => router.push('/hub/series/' + (s.id || si + 1))}
+                                                    title={s.name}>
+                                                    {(s.tour_code || s.short_name || '').slice(0, 5)}
+                                                </div>
+                                            );
+                                        })}
+                                        {daySeries.length > 2 && <div className="cal-more">+{daySeries.length - 2}</div>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+export default function SeriesTabPanel({
+    series,
+    filters,
+    setFilters,
+    displayCount,
+    loadMore,
+    seriesViewMode,
+    setSeriesViewMode,
+    isFavorited,
+    toggleFavorite,
+    router,
+}) {
+    const seriesSearchVal = filters.hubSeriesSearch || '';
+    const seriesStateVal = filters.hubSeriesState || 'all';
+    let filteredSeries = series;
+    if (seriesSearchVal) {
+        const lower = seriesSearchVal.toLowerCase();
+        filteredSeries = filteredSeries.filter(s => (s.name || '').toLowerCase().includes(lower) || (s.city || '').toLowerCase().includes(lower) || (s.state || '').toLowerCase().includes(lower) || (s.series_code || '').toLowerCase().includes(lower));
+    }
+    if (seriesStateVal !== 'all') {
+        filteredSeries = filteredSeries.filter(s => s.state === seriesStateVal);
+    }
+
+    return (
+        <>
+            {/* Search + State Filter */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input type="text" placeholder="Search series..." value={seriesSearchVal}
+                    onChange={(e) => setFilters(f => ({ ...f, hubSeriesSearch: e.target.value }))}
+                    style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
+                <select value={seriesStateVal}
+                    onChange={(e) => setFilters(f => ({ ...f, hubSeriesState: e.target.value }))}
+                    className="sort-select" style={{ minWidth: 100 }}>
+                    <option value="all">All States</option>
+                    {US_STATES.map(st => (
+                        <option key={st} value={st}>{st}</option>
+                    ))}
+                </select>
+            </div>
+            <div className="results-bar">
+                <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filteredSeries.length}</span> series</span>
+                <div className="view-toggle">
+                    <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+                        Grid
+                    </button>
+                    <button className={'view-btn' + (seriesViewMode === 'calendar' ? ' active' : '')} onClick={() => setSeriesViewMode('calendar')}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                        Calendar
+                    </button>
+                </div>
+            </div>
+
+            {filteredSeries.length === 0 ? (
+                <div className="empty-state">
+                    <p>No Matching Series</p>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{seriesSearchVal || seriesStateVal !== 'all' ? 'Try adjusting your search or filters.' : 'Check back soon for poker series.'}</p>
+                    <button onClick={() => setFilters(f => ({ ...f, hubSeriesSearch: '', hubSeriesState: 'all' }))}>Clear Series Filters</button>
+                </div>
+            ) : seriesViewMode === 'calendar' ? <SeriesCalendar series={filteredSeries} router={router} /> : (
+                <>
+                    <div className="card-grid">
+                        {filteredSeries.slice(0, displayCount.series).map((s, i) => (
+                            <SeriesCard
+                                key={s.id || i}
+                                series={s}
+                                index={i}
+                                isFavorited={isFavorited('series', s.id || (i + 1))}
+                                onFavorite={(e) => toggleFavorite('series', s.id || (i + 1), e)}
+                                onNavigate={(path) => router.push(path)}
+                            />
+                        ))}
+                    </div>
+                    {displayCount.series < filteredSeries.length && (
+                        <div className="load-more">
+                            <button className="load-more-btn" onClick={() => loadMore('series')}>
+                                Load More ({filteredSeries.length - displayCount.series} remaining)
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
+        </>
+    );
+}

@@ -5,9 +5,11 @@
  * Props:
  *   mistakes: Array<{ position: string, ... }> — position field contains scenario title like "UTG Open (100BB)"
  *   totalAnswers: number — total questions answered
+ *   showCumulative: boolean — also show all-time cumulative data from localStorage
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { getCumulativeWeakness } from '../../utils/weaknessTracker';
 
 // Extract clean position from scenario title like "UTG Open (100BB)" or "BB vs SB 3-bet"
 function extractPosition(title) {
@@ -49,13 +51,14 @@ function getBorderColor(ratio) {
     return 'rgba(239,68,68,0.9)';
 }
 
-export default function PositionWeaknessHeatmap({ mistakes, totalAnswers }) {
-    const positionData = useMemo(() => {
+export default function PositionWeaknessHeatmap({ mistakes, totalAnswers, showCumulative = true }) {
+    const [viewMode, setViewMode] = useState('session'); // 'session' | 'alltime'
+
+    const sessionData = useMemo(() => {
         if (!mistakes || mistakes.length === 0) return null;
 
         const counts = {};
         mistakes.forEach(m => {
-            // Try extracting from position field, spot field, or title field
             const raw = m.position || m.spot || m.title || '';
             const pos = extractPosition(raw);
             if (pos) {
@@ -73,11 +76,35 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers }) {
         }));
     }, [mistakes]);
 
+    const cumulativeData = useMemo(() => {
+        if (!showCumulative) return null;
+        try {
+            const cumulative = getCumulativeWeakness();
+            if (!cumulative || !cumulative.positions) return null;
+            const counts = {};
+            Object.entries(cumulative.positions).forEach(([pos, data]) => {
+                if (data.mistakes > 0) {
+                    counts[pos] = data.mistakes;
+                }
+            });
+            if (Object.keys(counts).length === 0) return null;
+            const maxCount = Math.max(...Object.values(counts), 1);
+            return SEAT_POSITIONS.map(seat => ({
+                ...seat,
+                count: counts[seat.key] || 0,
+                ratio: (counts[seat.key] || 0) / maxCount,
+            }));
+        } catch { return null; }
+    }, [showCumulative]);
+
+    const positionData = viewMode === 'alltime' && cumulativeData ? cumulativeData : sessionData;
+
     if (!positionData) return null;
 
-    // Check if any position has mistakes
     const hasMistakes = positionData.some(s => s.count > 0);
     if (!hasMistakes) return null;
+
+    const hasBothViews = sessionData && cumulativeData;
 
     const radius = 65;
     const centerX = 90;
@@ -92,10 +119,25 @@ export default function PositionWeaknessHeatmap({ mistakes, totalAnswers }) {
             marginBottom: 16,
         }}>
             <div style={{
-                fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
-                letterSpacing: 1.5, textAlign: 'center', marginBottom: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8,
             }}>
-                {'\uD83D\uDD25'} POSITION WEAKNESS MAP
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5 }}>
+                    {'\uD83D\uDD25'} POSITION WEAKNESS MAP
+                </span>
+                {hasBothViews && (
+                    <button
+                        onClick={() => setViewMode(v => v === 'session' ? 'alltime' : 'session')}
+                        style={{
+                            padding: '2px 8px', fontSize: 8, fontWeight: 700, letterSpacing: 0.5,
+                            background: viewMode === 'alltime' ? 'rgba(168,139,250,0.2)' : 'rgba(255,255,255,0.06)',
+                            border: `1px solid ${viewMode === 'alltime' ? 'rgba(168,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: 10, color: viewMode === 'alltime' ? '#A78BFA' : 'rgba(255,255,255,0.4)',
+                            cursor: 'pointer', transition: 'all 0.2s',
+                        }}
+                    >
+                        {viewMode === 'session' ? 'ALL-TIME' : 'SESSION'}
+                    </button>
+                )}
             </div>
 
             <div style={{ position: 'relative', width: 180, height: 160, margin: '0 auto' }}>

@@ -11,6 +11,8 @@ import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
+import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
+import PowerUpBar from '../components/training/PowerUpBar';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -26,7 +28,13 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     const [userAnswer, setUserAnswer] = useState(null);
     const [correctAnswers, setCorrectAnswers] = useState(0);
     const [maxStreak, setMaxStreak] = useState(0);
+    const [usedPowerUps, setUsedPowerUps] = useState(new Set());
+    const [activePowerUp, setActivePowerUp] = useState(null);
+    const [doublePointsActive, setDoublePointsActive] = useState(false);
+    const [hintUsedThisRound, setHintUsedThisRound] = useState(false);
+    const [eliminatedOption, setEliminatedOption] = useState(null);
     const mistakesRef = useRef([]);
+    const availablePowerUps = getGamePowerUps('pattern-recognition');
 
     const generatePattern = useCallback(() => {
         const scenario = getRandomScenario(level);
@@ -46,6 +54,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         const pattern = generatePattern();
         if (!pattern) return;
         setCurrentPattern(pattern); setGameState('playing'); setScore(0); setStreak(0); setMaxStreak(0); setRound(1); setCorrectAnswers(0); setUserAnswer(null);
+        setUsedPowerUps(new Set()); setActivePowerUp(null); setDoublePointsActive(false); setHintUsedThisRound(false); setEliminatedOption(null);
         mistakesRef.current = [];
         SoundEngine.play('levelUp');
     }, [generatePattern]);
@@ -66,18 +75,33 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         }
         const pattern = generatePattern();
         if (!pattern) return;
-        setCurrentPattern(pattern); setGameState('playing'); setRound(prev => prev + 1); setUserAnswer(null);
+        setCurrentPattern(pattern); setGameState('playing'); setRound(prev => prev + 1); setUserAnswer(null); setHintUsedThisRound(false); setEliminatedOption(null);
     }, [round, maxRounds, generatePattern, correctAnswers, score, DiamondEngine, onScoreUpdate, userId, level, streak, currentPattern]);
 
     const handleAnswer = useCallback((action) => {
         if (gameState !== 'playing' || !currentPattern) return;
         setUserAnswer(action);
         const isCorrect = action === currentPattern.correctAnswer;
-        if (isCorrect) { setScore(prev => prev + 100 + (streak * 25)); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
+        const pointMultiplier = doublePointsActive ? 2 : 1;
+        if (doublePointsActive) setDoublePointsActive(false);
+        if (isCorrect) { setScore(prev => prev + (100 + (streak * 25)) * pointMultiplier); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
         else { setStreak(0); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentPattern.scenario?.title || 'Unknown', correct: currentPattern.correctAnswer, picked: action }); busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentPattern.correctAnswer, scenario: currentPattern.scenario }); }
         setGameState('revealed');
         setTimeout(() => { nextRound(); }, 1200);
     }, [gameState, currentPattern, streak, nextRound]);
+
+    const handlePowerUp = useCallback((pu) => {
+        if (!purchasePowerUp(pu, DiamondEngine)) return;
+        onScoreUpdate?.(DiamondEngine.getBalance());
+        setUsedPowerUps(prev => new Set([...prev, pu.id]));
+        if (pu.id === 'DOUBLE_POINTS') { setDoublePointsActive(true); setActivePowerUp('DOUBLE_POINTS'); }
+        else if (pu.id === 'HINT_REVEAL' && currentPattern) {
+            setHintUsedThisRound(true); setActivePowerUp(null);
+            // Eliminate one wrong answer
+            const wrongOptions = ['fold', 'call', 'raise'].filter(a => a !== currentPattern.correctAnswer);
+            setEliminatedOption(wrongOptions[Math.floor(Math.random() * wrongOptions.length)]);
+        }
+    }, [DiamondEngine, onScoreUpdate, currentPattern]);
 
     useEffect(() => {
         const handleKey = (e) => {
@@ -134,6 +158,16 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
 
             {(gameState === 'playing' || gameState === 'revealed') && currentPattern && (
                 <>
+                    {gameState === 'playing' && (
+                        <PowerUpBar
+                            powerUps={availablePowerUps}
+                            usedPowerUps={usedPowerUps}
+                            activePowerUp={activePowerUp}
+                            onActivate={handlePowerUp}
+                            diamondBalance={DiamondEngine?.getBalance() || 0}
+                            compact
+                        />
+                    )}
                     <div style={{ fontSize: 16, color: '#00D4FF', marginBottom: 12, fontWeight: 600 }}>{currentPattern.scenario.title}</div>
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 20 }}>What action does this range primarily represent?</div>
                     {renderMiniGrid()}
@@ -152,10 +186,11 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         {['fold', 'call', 'raise'].map((action, idx) => {
                             const colors = { fold: { bg: 'rgba(100,100,100,0.3)', border: '#666', color: '#fff', label: 'FOLD Range' }, call: { bg: 'rgba(16,185,129,0.3)', border: '#10B981', color: '#10B981', label: 'CALL Range' }, raise: { bg: 'rgba(239,68,68,0.3)', border: '#EF4444', color: '#EF4444', label: 'RAISE Range' } };
                             const c = colors[action];
+                            const isEliminated = eliminatedOption === action;
                             return (
-                                <button key={action} onClick={() => handleAnswer(action)} disabled={gameState !== 'playing'} style={{ flex: '1 1 90px', minHeight: 52, padding: '14px 20px', fontSize: 15, fontWeight: 700, background: c.bg, border: `2px solid ${c.border}`, borderRadius: 12, color: c.color, cursor: gameState === 'playing' ? 'pointer' : 'default', opacity: gameState === 'playing' ? 1 : 0.5, position: 'relative', touchAction: 'manipulation' }}>
+                                <button key={action} onClick={() => !isEliminated && handleAnswer(action)} disabled={gameState !== 'playing' || isEliminated} style={{ flex: '1 1 90px', minHeight: 52, padding: '14px 20px', fontSize: 15, fontWeight: 700, background: isEliminated ? 'rgba(50,50,50,0.2)' : c.bg, border: `2px solid ${isEliminated ? 'rgba(255,255,255,0.05)' : c.border}`, borderRadius: 12, color: isEliminated ? 'rgba(255,255,255,0.15)' : c.color, cursor: (gameState === 'playing' && !isEliminated) ? 'pointer' : 'default', opacity: (gameState === 'playing' && !isEliminated) ? 1 : isEliminated ? 0.25 : 0.5, position: 'relative', touchAction: 'manipulation', textDecoration: isEliminated ? 'line-through' : 'none' }}>
                                     <span style={{ position: 'absolute', top: -8, right: -6, width: 20, height: 20, background: 'rgba(0,0,0,0.8)', borderRadius: 4, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.3)', color: '#fff' }}>{idx + 1}</span>
-                                    {c.label}
+                                    {isEliminated ? '✗' : c.label}
                                 </button>
                             );
                         })}
@@ -199,7 +234,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                         <AnimatedAccuracyBar accuracy={accuracy} grade={grade} />
 
                         {/* Position Weakness Heatmap */}
-                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={totalRounds} />
+                        <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={maxRounds} />
 
                         {/* Weakness Analysis */}
                         {mistakesRef.current.length > 0 && (() => {

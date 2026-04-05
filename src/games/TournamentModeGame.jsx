@@ -12,6 +12,8 @@ import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 import AnimatedAccuracyBar from '../components/training/AnimatedAccuracyBar';
 import { recordSessionWeakness } from '../utils/weaknessTracker';
+import { getGamePowerUps, purchasePowerUp } from '../utils/powerUps';
+import PowerUpBar from '../components/training/PowerUpBar';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -350,6 +352,11 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
     const matchRef = useRef([]);
     const searchTimerRef = useRef(null);
     const mistakesRef = useRef([]);
+    const [usedPowerUps, setUsedPowerUps] = useState(new Set());
+    const [activePowerUp, setActivePowerUp] = useState(null);
+    const [streakFreezeAvailable, setStreakFreezeAvailable] = useState(false);
+    const [eliminatedOptionIdx, setEliminatedOptionIdx] = useState(null);
+    const availablePowerUps = getGamePowerUps('tournament');
 
     // Load horses from Supabase on mount
     useEffect(() => {
@@ -422,6 +429,7 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     setOpponentScore(0);
                     setCurrentChallenge(matchRef.current[0]);
                     mistakesRef.current = [];
+                    setUsedPowerUps(new Set()); setActivePowerUp(null); setStreakFreezeAvailable(false); setEliminatedOptionIdx(null);
                 }, 800);
             }, 2000);
         }, 5000 + Math.random() * 4000); // 5-9 seconds (avg ~7s)
@@ -434,10 +442,11 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
 
     // Handle option selection
     const handleOptionSelect = (option, index) => {
-        if (showResult) return;
+        if (showResult || index === eliminatedOptionIdx) return;
 
         setSelectedOption(index);
         setShowResult(true);
+        setEliminatedOptionIdx(null);
 
         const isCorrect = option.correct !== undefined
             ? option.correct
@@ -447,9 +456,16 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
             setPlayerScore(prev => prev + 1);
             SoundEngine.play('correct');
         } else {
-            // Opponent "wins" this round
-            setOpponentScore(prev => prev + 1);
-            SoundEngine.play('wrong');
+            // Check streak freeze — saves one round loss
+            const freezeSaved = streakFreezeAvailable;
+            if (freezeSaved) {
+                setStreakFreezeAvailable(false);
+                SoundEngine.play('correct'); // saved!
+            } else {
+                // Opponent "wins" this round
+                setOpponentScore(prev => prev + 1);
+                SoundEngine.play('wrong');
+            }
             const correctOpt = currentChallenge.options.find(o => o.correct !== undefined ? o.correct : o.ev === Math.max(...currentChallenge.options.map(x => x.ev || 0)));
             mistakesRef.current.push({
                 title: currentChallenge.title,
@@ -461,10 +477,29 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
         }
     };
 
+    // Handle power-up activation
+    const handlePowerUp = (pu) => {
+        if (!purchasePowerUp(pu, DiamondEngine)) return;
+        onScoreUpdate?.(DiamondEngine.getBalance());
+        setUsedPowerUps(prev => new Set([...prev, pu.id]));
+        if (pu.id === 'STREAK_FREEZE') { setStreakFreezeAvailable(true); setActivePowerUp('STREAK_FREEZE'); }
+        else if (pu.id === 'HINT_REVEAL' && currentChallenge) {
+            setActivePowerUp(null);
+            const wrongIndices = currentChallenge.options.map((o, i) => {
+                const isCorrect = o.correct !== undefined ? o.correct : o.ev === Math.max(...currentChallenge.options.map(x => x.ev || 0));
+                return !isCorrect ? i : -1;
+            }).filter(i => i >= 0);
+            if (wrongIndices.length > 0) {
+                setEliminatedOptionIdx(wrongIndices[Math.floor(Math.random() * wrongIndices.length)]);
+            }
+        }
+    };
+
     // Handle next round
     const handleNextRound = () => {
         setSelectedOption(null);
         setShowResult(false);
+        setEliminatedOptionIdx(null);
 
         if (currentRound < ROUNDS_PER_MATCH - 1) {
             setCurrentRound(prev => prev + 1);
@@ -837,6 +872,18 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                     Round {currentRound + 1} of {ROUNDS_PER_MATCH}
                 </div>
 
+                {/* Power-Ups */}
+                {!showResult && (
+                    <PowerUpBar
+                        powerUps={availablePowerUps}
+                        usedPowerUps={usedPowerUps}
+                        activePowerUp={activePowerUp}
+                        onActivate={handlePowerUp}
+                        diamondBalance={DiamondEngine?.getBalance() || 0}
+                        compact
+                    />
+                )}
+
                 {/* Challenge Card */}
                 <div style={styles.challengeCard}>
                     <div style={styles.challengeHeader}>
@@ -877,9 +924,10 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                             const isCorrect = option.correct !== undefined
                                 ? option.correct
                                 : option.ev === Math.max(...currentChallenge.options.map(o => o.ev || 0));
+                            const isEliminated = eliminatedOptionIdx === idx;
 
-                            let bgColor = 'rgba(255,255,255,0.05)';
-                            let borderColor = 'rgba(255,255,255,0.2)';
+                            let bgColor = isEliminated ? 'rgba(50,50,50,0.15)' : 'rgba(255,255,255,0.05)';
+                            let borderColor = isEliminated ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)';
 
                             if (showResult) {
                                 if (isCorrect) {
@@ -897,18 +945,20 @@ export default function TournamentModeGame({ onExit, onScoreUpdate, DiamondEngin
                             return (
                                 <motion.button
                                     key={idx}
-                                    whileHover={{ scale: showResult ? 1 : 1.02 }}
-                                    whileTap={{ scale: showResult ? 1 : 0.98 }}
+                                    whileHover={{ scale: (showResult || isEliminated) ? 1 : 1.02 }}
+                                    whileTap={{ scale: (showResult || isEliminated) ? 1 : 0.98 }}
                                     onClick={() => handleOptionSelect(option, idx)}
-                                    disabled={showResult}
+                                    disabled={showResult || isEliminated}
                                     style={{
                                         ...styles.optionButton,
                                         background: bgColor,
                                         borderColor: borderColor,
+                                        opacity: isEliminated ? 0.25 : 1,
+                                        textDecoration: isEliminated ? 'line-through' : 'none',
                                     }}
                                 >
                                     <div style={styles.optionText}>
-                                        {option.action || option.hands}
+                                        {isEliminated ? `✗ ${option.action || option.hands}` : (option.action || option.hands)}
                                     </div>
                                     {option.percent && (
                                         <div style={styles.optionPercent}>{option.percent}</div>

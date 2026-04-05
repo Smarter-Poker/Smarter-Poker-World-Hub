@@ -92,42 +92,63 @@ function formatDateRange(startDate, endDate) {
   return startStr + ' - ' + endStr;
 }
 
-function TrustDots({ score }) {
-  const maxDots = 5;
-  const filled = Math.round(score || 0);
+function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
+  const displayRating = totalReviews > 0 ? avgRating : (trustScore || 0);
+  const displayLabel = totalReviews > 0 ? 'Player Rating' : 'Trust Score';
+  const ratingColor = displayRating >= 4 ? '#22c55e' : displayRating >= 3 ? '#d4a853' : displayRating >= 2 ? '#f59e0b' : '#ef4444';
+  const stars = [1, 2, 3, 4, 5];
   return (
-    <div className="trust-dots">
-      {Array.from({ length: maxDots }, (_, i) => (
-        <span
-          key={i}
-          className={'trust-dot' + (i < filled ? ' filled' : '')}
-        />
-      ))}
-      <span className="trust-label">{score ? score.toFixed(1) : 'N/A'}</span>
+    <div className="player-rating-display">
+      <div className="prd-stars">
+        {stars.map(function(star) {
+          return (
+            <svg
+              key={star}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill={star <= Math.round(displayRating) ? ratingColor : 'rgba(255,255,255,0.12)'}
+              stroke={star <= Math.round(displayRating) ? ratingColor : 'rgba(255,255,255,0.15)'}
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ filter: star <= Math.round(displayRating) ? 'drop-shadow(0 0 3px ' + ratingColor + '44)' : 'none' }}
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          );
+        })}
+      </div>
+      <span className="prd-value" style={{ color: ratingColor }}>{displayRating ? displayRating.toFixed(1) : 'N/A'}</span>
+      {totalReviews > 0 && (
+        <a href="#reviews-section" className="prd-count" onClick={function(e) { e.preventDefault(); var el = document.getElementById('reviews-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>
+          ({totalReviews} {totalReviews === 1 ? 'Review' : 'Reviews'})
+        </a>
+      )}
       <style jsx>{`
-        .trust-dots {
+        .player-rating-display {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
         }
-        .trust-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.15);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          transition: background 0.2s;
+        .prd-stars {
+          display: flex;
+          gap: 2px;
         }
-        .trust-dot.filled {
-          background: #00D4FF;
-          border-color: #00D4FF;
-          box-shadow: 0 0 4px rgba(0, 212, 255, 0.4);
+        .prd-value {
+          font-size: 14px;
+          font-weight: 700;
+          margin-left: 2px;
         }
-        .trust-label {
-          margin-left: 6px;
-          font-size: 13px;
-          color: #00D4FF;
-          font-weight: 600;
+        .prd-count {
+          font-size: 12px;
+          color: rgba(255,255,255,0.4);
+          text-decoration: none;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .prd-count:hover {
+          color: rgba(255,255,255,0.7);
         }
       `}</style>
     </div>
@@ -1199,8 +1220,8 @@ export default function VenueDetailPage() {
                 )}
               </div>
               <div className="venue-trust">
-                <span className="trust-text">Trust Score</span>
-                <TrustDots score={venue.trust_score} />
+                <span className="trust-text">Player Rating</span>
+                <PlayerRatingDisplay avgRating={avgRating} totalReviews={totalReviews} trustScore={venue.trust_score} />
               </div>
 
               {/* Action Buttons */}
