@@ -217,8 +217,8 @@ const _busEmitMethods = {
     decisionCorrect: (streak) =>
         eventBus.emit(EventType.DECISION_CORRECT, { streak }, 'TrainingArena'),
 
-    decisionIncorrect: (lostStreak) =>
-        eventBus.emit(EventType.DECISION_INCORRECT, { lostStreak }, 'TrainingArena'),
+    decisionIncorrect: (lostStreak, { userAction, bestAction, scenario } = {}) =>
+        eventBus.emit(EventType.DECISION_INCORRECT, { lostStreak, userAction, bestAction, scenario }, 'TrainingArena'),
 
     screenShake: (intensity = 'medium') =>
         eventBus.emit(EventType.SCREEN_SHAKE, { intensity }, 'Effects'),

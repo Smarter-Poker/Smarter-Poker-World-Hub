@@ -6,7 +6,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
-import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
+import { busEmit } from '../engine/EventBus';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -72,6 +73,7 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
             setTimeRemaining(prev => Math.max(prev - TIME_PENALTY, 0));
             SoundEngine.play('wrong');
             mistakesRef.current.push({ position: currentHand.scenario?.title || 'Unknown', hand: currentHand.hand, correct: currentHand.correctAction, picked: action });
+            busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentHand.correctAction, scenario: currentHand.scenario });
         }
 
         setHandsCompleted(newHandsCompleted);

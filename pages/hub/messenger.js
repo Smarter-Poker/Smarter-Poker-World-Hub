@@ -18,6 +18,7 @@ import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { messengerPreferences } from '../../src/services/preferences-service';
+import ReportBugWidget from '../../src/components/ui/ReportBugWidget';
 import { eventBus, EventType, busEmit } from '../../src/engine/EventBus';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
@@ -4653,10 +4654,15 @@ function MessengerPage() {
                         padding: 12,
                         borderTop: `1px solid ${C.border}`,
                         textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
                     }}>
+                        <ReportBugWidget contextPath="/hub/messenger" />
+                        
                         <Link href="/hub/social-media" style={{
                             color: C.blue, fontSize: 14, fontWeight: 500, textDecoration: 'none',
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         }}>
                             <span style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

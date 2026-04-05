@@ -6,7 +6,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario, RANKS } from './ScenarioDatabase';
-import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
+import { busEmit } from '../engine/EventBus';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -69,7 +70,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         setUserAnswer(action);
         const isCorrect = action === currentPattern.correctAnswer;
         if (isCorrect) { setScore(prev => prev + 100 + (streak * 25)); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
-        else { setStreak(0); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentPattern.scenario?.title || 'Unknown', correct: currentPattern.correctAnswer, picked: action }); }
+        else { setStreak(0); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentPattern.scenario?.title || 'Unknown', correct: currentPattern.correctAnswer, picked: action }); busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentPattern.correctAnswer, scenario: currentPattern.scenario }); }
         setGameState('revealed');
         setTimeout(() => { nextRound(); }, 1200);
     }, [gameState, currentPattern, streak, nextRound]);

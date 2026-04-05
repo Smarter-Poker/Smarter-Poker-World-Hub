@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
+import { busEmit } from '../engine/EventBus';
 import gameSessionService from '../services/GameSessionService';
 // confetti loaded lazily
 let _confetti = null;
@@ -87,6 +88,7 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
             setLives(prev => prev - 1);
             SoundEngine.play('wrong');
             mistakesRef.current.push({ position: currentHand.scenario?.title || 'Unknown', hand: currentHand.hand, correct: currentHand.correctAction, picked: action });
+            busEmit.decisionIncorrect(streak, { userAction: action, bestAction: currentHand.correctAction, scenario: currentHand.scenario });
         }
 
         setGameState('revealed');
