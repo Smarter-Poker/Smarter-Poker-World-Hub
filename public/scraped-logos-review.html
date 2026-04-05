@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>123 Scraped Logos — Review</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    background: #0a0e1a; color: #e2e8f0; padding: 20px; 
+  }
+  header { text-align: center; margin-bottom: 30px; }
+  h1 { color: #f59e0b; font-size: 28px; margin-bottom: 6px; }
+  h1 span { color: #38bdf8; }
+  .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 15px; }
+  .stats { 
+    color: #64748b; font-size: 13px; margin-bottom: 20px;
+    display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+  }
+  .stats .num { color: #22d3ee; font-weight: bold; font-size: 15px; }
+  .grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+    gap: 14px; 
+  }
+  .card { 
+    background: #1e293b; padding: 14px; border-radius: 10px; 
+    border: 1px solid #334155; text-align: center; transition: 0.2s;
+    border-left: 3px solid #22c55e;
+  }
+  .card:hover { border-color: #0ea5e9; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(14,165,233,0.15); }
+  .card.failed { border-left-color: #ef4444; opacity: 0.6; }
+  .logo-wrap { 
+    width: 100px; height: 100px; margin: 0 auto 10px; 
+    background: #111827; border-radius: 8px; display: flex; 
+    align-items: center; justify-content: center; overflow: hidden; 
+    border: 1px solid #374151; 
+  }
+  .logo-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .logo-wrap .no-logo { color: #ef4444; font-size: 11px; font-weight: bold; }
+  .name { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; color: #f1f5f9; }
+  .location { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+  .meta { font-size: 10px; color: #475569; font-family: monospace; }
+  .badge {
+    display: inline-block; font-size: 9px; padding: 2px 6px; border-radius: 3px;
+    font-weight: bold; margin-top: 4px;
+  }
+  .badge.ok { background: #14532d; color: #4ade80; }
+  .badge.fail { background: #3f1219; color: #f87171; }
+  .counter { 
+    position: fixed; bottom: 15px; right: 15px; 
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 8px 14px; font-size: 12px; color: #94a3b8; z-index: 100;
+  }
+  .counter span { color: #f59e0b; font-weight: bold; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🔍 <span>123</span> Scraped Logos</h1>
+    <div class="subtitle">These are the logos scraped via Google Images + Camoufox in the last session</div>
+    <div class="stats">
+      <div><span class="num">123</span> total scraped</div>
+      <div><span class="num">122</span> verified ✅</div>
+      <div><span class="num">1</span> failed ❌</div>
+    </div>
+  </header>
+  <div class="grid">
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2619.png" alt="Bike Series (The Bicycle Casino)" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Bike Series (The Bicycle Casino)</div>
+      <div class="location">Bell Gardens, CA</div>
+      <div class="meta">ID: 2619</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2189.png" alt="Crystal Park Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Crystal Park Casino</div>
+      <div class="location">Compton, CA</div>
+      <div class="meta">ID: 2189</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1927.png" alt="Oaks Card Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Oaks Card Club</div>
+      <div class="location">Emeryville, CA</div>
+      <div class="meta">ID: 1927</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2887.png" alt="Towers Casino Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Towers Casino Casino</div>
+      <div class="location">Grass Valley, CA</div>
+      <div class="meta">ID: 2887</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2870.png" alt="Central Coast Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Central Coast Casino</div>
+      <div class="location">Grover Beach, CA</div>
+      <div class="meta">ID: 2870</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2186.png" alt="Gardens Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Gardens Casino</div>
+      <div class="location">Hawaiian Gardens, CA</div>
+      <div class="meta">ID: 2186</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2679.png" alt="Hawaiian Gardens Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Hawaiian Gardens Poker Series</div>
+      <div class="location">Hawaiian Gardens, CA</div>
+      <div class="meta">ID: 2679</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2714.png" alt="Livermore Poker Room Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Livermore Poker Room Series</div>
+      <div class="location">Livermore, CA</div>
+      <div class="meta">ID: 2714</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1865.png" alt="Parkwest Casino Lodi" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Parkwest Casino Lodi</div>
+      <div class="location">Lodi, CA</div>
+      <div class="meta">ID: 1865</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2869.png" alt="Casino Monterey - The Marina Club Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Casino Monterey - The Marina Club Casino</div>
+      <div class="location">Marina, CA</div>
+      <div class="meta">ID: 2869</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1934.png" alt="Parkwest Casino Cordova" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Parkwest Casino Cordova</div>
+      <div class="location">Rancho Cordova, CA</div>
+      <div class="meta">ID: 1934</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2874.png" alt="Graton Resort & Casino Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Graton Resort & Casino Casino</div>
+      <div class="location">Rohnert Park, CA</div>
+      <div class="meta">ID: 2874</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1935.png" alt="Parkwest Casino Lotus" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Parkwest Casino Lotus</div>
+      <div class="location">Sacramento, CA</div>
+      <div class="meta">ID: 1935</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2879.png" alt="Oceanview Casino Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Oceanview Casino Casino</div>
+      <div class="location">Santa Cruz, CA</div>
+      <div class="meta">ID: 2879</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2222.png" alt="Black Oak Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Black Oak Casino</div>
+      <div class="location">Tuolumne, CA</div>
+      <div class="meta">ID: 2222</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3030.png" alt="Bally's Black Hawk Casino Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Bally's Black Hawk Casino Casino</div>
+      <div class="location">Black Hawk, CO</div>
+      <div class="meta">ID: 3030</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3034.png" alt="Sky Ute Casino Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Sky Ute Casino Casino</div>
+      <div class="location">Ignacio, CO</div>
+      <div class="meta">ID: 3034</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2637.png" alt="Florida State Poker Championship" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Florida State Poker Championship</div>
+      <div class="location">Jacksonville, FL</div>
+      <div class="meta">ID: 2637</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2238.png" alt="Jacksonville Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Jacksonville Poker Room</div>
+      <div class="location">Jacksonville, FL</div>
+      <div class="meta">ID: 2238</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2753.png" alt="Seminole Brighton Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Seminole Brighton Poker Series</div>
+      <div class="location">Okeechobee, FL</div>
+      <div class="meta">ID: 2753</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1951.png" alt="bestbet Orange Park" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">bestbet Orange Park</div>
+      <div class="location">Orange Park, FL</div>
+      <div class="meta">ID: 1951</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2685.png" alt="bestbet Orange Park Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">bestbet Orange Park Poker Series</div>
+      <div class="location">Orange Park, FL</div>
+      <div class="meta">ID: 2685</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2687.png" alt="Isle Casino Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Isle Casino Poker Series</div>
+      <div class="location">Pompano Beach, FL</div>
+      <div class="meta">ID: 2687</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2732.png" alt="Spring Fling Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Spring Fling Poker Series</div>
+      <div class="location">Sarasota, FL</div>
+      <div class="meta">ID: 2732</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1952.png" alt="bestbet St. Augustine" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">bestbet St. Augustine</div>
+      <div class="location">St. Augustine, FL</div>
+      <div class="meta">ID: 1952</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2898.png" alt="Silks @ Tampa Bay Downs" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Silks @ Tampa Bay Downs</div>
+      <div class="location">Tampa, FL</div>
+      <div class="meta">ID: 2898</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3050.png" alt="Horseshoe Casino Council Bluffs" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Horseshoe Casino Council Bluffs</div>
+      <div class="location">Council Bluffs, IA</div>
+      <div class="meta">ID: 3050</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2313.png" alt="Rivers Chicago" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Rivers Chicago</div>
+      <div class="location">Chicago, IL</div>
+      <div class="meta">ID: 2313</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2761.png" alt="Illinois Poker Championship" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Illinois Poker Championship</div>
+      <div class="location">Des Plaines, IL</div>
+      <div class="meta">ID: 2761</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2644.png" alt="Rivers Casino Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Rivers Casino Poker Series</div>
+      <div class="location">Des Plaines, IL</div>
+      <div class="meta">ID: 2644</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2961.png" alt="Chicagoland Charity Poker" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Chicagoland Charity Poker</div>
+      <div class="location">Schaumburg, IL</div>
+      <div class="meta">ID: 2961</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3056.png" alt="Terre Haute Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Terre Haute Casino</div>
+      <div class="location">Terre Haute, IN</div>
+      <div class="meta">ID: 3056</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1996.png" alt="Club JAQK" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Club JAQK</div>
+      <div class="location">Louisville, KY</div>
+      <div class="meta">ID: 1996</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3070.png" alt="Paragon Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Paragon Casino</div>
+      <div class="location">Marksville, LA</div>
+      <div class="meta">ID: 3070</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2711.png" alt="Live Casino Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Live Casino Poker Series</div>
+      <div class="location">Hanover, MD</div>
+      <div class="meta">ID: 2711</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1837.png" alt="Live! Casino Maryland" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Live! Casino Maryland</div>
+      <div class="location">Hanover, MD</div>
+      <div class="meta">ID: 1837</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1968.png" alt="Kings Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Kings Poker Room</div>
+      <div class="location">Grand Rapids, MI</div>
+      <div class="meta">ID: 1968</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2820.png" alt="Michigan Charitable Gaming Association (MiCGA)" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Michigan Charitable Gaming Association (MiCGA)</div>
+      <div class="location">Lansing, MI</div>
+      <div class="meta">ID: 2820</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2970.png" alt="Legends Poker Place of Metamora" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Legends Poker Place of Metamora</div>
+      <div class="location">Metamora, MI</div>
+      <div class="meta">ID: 2970</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1969.png" alt="Muskegon Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Muskegon Poker Room</div>
+      <div class="location">Muskegon, MI</div>
+      <div class="meta">ID: 1969</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1982.png" alt="Ace High Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Ace High Poker Club</div>
+      <div class="location">Oxford, MI</div>
+      <div class="meta">ID: 1982</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1972.png" alt="Rosemack Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Rosemack Poker Room</div>
+      <div class="location">Roseville, MI</div>
+      <div class="meta">ID: 1972</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1975.png" alt="The Saginaw Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">The Saginaw Poker Room</div>
+      <div class="location">Saginaw, MI</div>
+      <div class="meta">ID: 1975</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1966.png" alt="DiCicco's Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">DiCicco's Poker Room</div>
+      <div class="location">Shelby Township, MI</div>
+      <div class="meta">ID: 1966</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1967.png" alt="G's Charity Poker" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">G's Charity Poker</div>
+      <div class="location">Shelby Township, MI</div>
+      <div class="meta">ID: 1967</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1981.png" alt="Momo's Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Momo's Poker Room</div>
+      <div class="location">Taylor, MI</div>
+      <div class="meta">ID: 1981</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1971.png" alt="Paradise Poker" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Paradise Poker</div>
+      <div class="location">Utica, MI</div>
+      <div class="meta">ID: 1971</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2975.png" alt="Waterford Card Room at 300 Bowl" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Waterford Card Room at 300 Bowl</div>
+      <div class="location">Waterford, MI</div>
+      <div class="meta">ID: 2975</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1875.png" alt="Gun Lake Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Gun Lake Casino</div>
+      <div class="location">Wayland, MI</div>
+      <div class="meta">ID: 1875</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1973.png" alt="Roundtree Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Roundtree Poker Room</div>
+      <div class="location">Ypsilanti, MI</div>
+      <div class="meta">ID: 1973</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1976.png" alt="Thompson Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Thompson Poker Room</div>
+      <div class="location">Ypsilanti, MI</div>
+      <div class="meta">ID: 1976</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2662.png" alt="Running Aces Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Running Aces Poker Series</div>
+      <div class="location">Columbus, MN</div>
+      <div class="meta">ID: 2662</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2722.png" alt="Mid-America Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Mid-America Poker Series</div>
+      <div class="location">Kansas City, MO</div>
+      <div class="meta">ID: 2722</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3080.png" alt="Bugz's Cardroom" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Bugz's Cardroom</div>
+      <div class="location">Billings, MT</div>
+      <div class="meta">ID: 3080</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3082.png" alt="Doc & Eddy's" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Doc & Eddy's</div>
+      <div class="location">Billings, MT</div>
+      <div class="meta">ID: 3082</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3081.png" alt="Butte Rats Poker" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Butte Rats Poker</div>
+      <div class="location">Butte, MT</div>
+      <div class="meta">ID: 3081</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3083.png" alt="Ike & Susan's Lounge & Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Ike & Susan's Lounge & Casino</div>
+      <div class="location">Great Falls, MT</div>
+      <div class="meta">ID: 3083</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3084.png" alt="Montana Nugget Kalispell" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Montana Nugget Kalispell</div>
+      <div class="location">Kalispell, MT</div>
+      <div class="meta">ID: 3084</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/napt-poker-tour.png" alt="NAPT Poker Tour" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">NAPT Poker Tour</div>
+      <div class="location"></div>
+      <div class="meta">ID: napt-poker-tour</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2291.png" alt="Harrahs AC" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Harrahs AC</div>
+      <div class="location">Atlantic City, NJ</div>
+      <div class="meta">ID: 2291</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2296.png" alt="Resorts Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Resorts Casino</div>
+      <div class="location">Atlantic City, NJ</div>
+      <div class="meta">ID: 2296</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3073.png" alt="Sandia" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Sandia</div>
+      <div class="location">Albuquerque, NM</div>
+      <div class="meta">ID: 3073</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3071.png" alt="Inn of the Mountain Gods Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Inn of the Mountain Gods Casino</div>
+      <div class="location">Mescalero, NM</div>
+      <div class="meta">ID: 3071</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2165.png" alt="Arizona Charlies Boulder" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Arizona Charlies Boulder</div>
+      <div class="location">Las Vegas, NV</div>
+      <div class="meta">ID: 2165</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2145.png" alt="Binions" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Binions</div>
+      <div class="location">Las Vegas, NV</div>
+      <div class="meta">ID: 2145</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2147.png" alt="Four Queens" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Four Queens</div>
+      <div class="location">Las Vegas, NV</div>
+      <div class="meta">ID: 2147</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card failed">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2737.png" alt="Macau Poker Open" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Macau Poker Open</div>
+      <div class="location">Las Vegas, NV</div>
+      <div class="meta">ID: 2737</div>
+      <span class="badge fail">FAILED</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2674.png" alt="Red Rock Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Red Rock Poker Series</div>
+      <div class="location">Las Vegas, NV</div>
+      <div class="meta">ID: 2674</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2141.png" alt="Treasure Island" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Treasure Island</div>
+      <div class="location">Las Vegas, NV</div>
+      <div class="meta">ID: 2141</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2849.png" alt="Caesars Republic Lake Tahoe" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Caesars Republic Lake Tahoe</div>
+      <div class="location">Stateline, NV</div>
+      <div class="meta">ID: 2849</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2855.png" alt="Peppermill Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Peppermill Poker Room</div>
+      <div class="location">West Wendover, NV</div>
+      <div class="meta">ID: 2855</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2469.png" alt="Seneca Niagara" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Seneca Niagara</div>
+      <div class="location">Niagara Falls, NY</div>
+      <div class="meta">ID: 2469</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2956.png" alt="Seneca Salamanca Casino Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Seneca Salamanca Casino Casino</div>
+      <div class="location">Salamanca, NY</div>
+      <div class="meta">ID: 2956</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1877.png" alt="Rivers Casino Schenectady" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Rivers Casino Schenectady</div>
+      <div class="location">Schenectady, NY</div>
+      <div class="meta">ID: 1877</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2696.png" alt="Jack Casino Cincinnati Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Jack Casino Cincinnati Poker Series</div>
+      <div class="location">Cincinnati, OH</div>
+      <div class="meta">ID: 2696</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2695.png" alt="Jack Casino Cleveland Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Jack Casino Cleveland Poker Series</div>
+      <div class="location">Cleveland, OH</div>
+      <div class="meta">ID: 2695</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2806.png" alt="Shark Tank Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Shark Tank Poker Club</div>
+      <div class="location">Columbus, OH</div>
+      <div class="meta">ID: 2806</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2807.png" alt="The Reserve Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">The Reserve Poker Club</div>
+      <div class="location">Toledo, OH</div>
+      <div class="meta">ID: 2807</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2765.png" alt="Chickasaw Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Chickasaw Poker Series</div>
+      <div class="location">Thackerville, OK</div>
+      <div class="meta">ID: 2765</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2628.png" alt="WinStar Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">WinStar Poker Series</div>
+      <div class="location">Thackerville, OK</div>
+      <div class="meta">ID: 2628</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1842.png" alt="WinStar World Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">WinStar World Casino</div>
+      <div class="location">Thackerville, OK</div>
+      <div class="meta">ID: 1842</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1882.png" alt="River Spirit Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">River Spirit Casino</div>
+      <div class="location">Tulsa, OK</div>
+      <div class="meta">ID: 1882</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2610.png" alt="RunGood Poker Series (RGPS)" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">RunGood Poker Series (RGPS)</div>
+      <div class="location">Tulsa, OK</div>
+      <div class="meta">ID: 2610</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3044.png" alt="Indigo Sky Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Indigo Sky Casino</div>
+      <div class="location">Wyandotte, OK</div>
+      <div class="meta">ID: 3044</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1885.png" alt="Seven Feathers Casino Resort" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Seven Feathers Casino Resort</div>
+      <div class="location">Canyonville, OR</div>
+      <div class="meta">ID: 1885</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2982.png" alt="Legends Poker Lounge & Social Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Legends Poker Lounge & Social Club</div>
+      <div class="location">Medford, OR</div>
+      <div class="meta">ID: 2982</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1957.png" alt="Medford Social Club Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Medford Social Club Poker Room</div>
+      <div class="location">Medford, OR</div>
+      <div class="meta">ID: 1957</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1958.png" alt="Oregon Poker Club - Kit Kat Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Oregon Poker Club - Kit Kat Club</div>
+      <div class="location">Portland, OR</div>
+      <div class="meta">ID: 1958</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1960.png" alt="Oregon Poker Club - Stadiums Sports Bar" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Oregon Poker Club - Stadiums Sports Bar</div>
+      <div class="location">Portland, OR</div>
+      <div class="meta">ID: 1960</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1961.png" alt="The Game" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">The Game</div>
+      <div class="location">Portland, OR</div>
+      <div class="meta">ID: 1961</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2955.png" alt="Rivers Casino" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Rivers Casino</div>
+      <div class="location">Philadelphia, PA</div>
+      <div class="meta">ID: 2955</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2302.png" alt="SugarHouse Philadelphia" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">SugarHouse Philadelphia</div>
+      <div class="location">Philadelphia, PA</div>
+      <div class="meta">ID: 2302</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2300.png" alt="Rivers Pittsburgh" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Rivers Pittsburgh</div>
+      <div class="location">Pittsburgh, PA</div>
+      <div class="meta">ID: 2300</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2912.png" alt="Club Montmartre" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Club Montmartre</div>
+      <div class="location">Paris, Paris</div>
+      <div class="meta">ID: 2912</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/rough-riders-poker-tour.png" alt="Rough Riders Poker Tour" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Rough Riders Poker Tour</div>
+      <div class="location"></div>
+      <div class="meta">ID: rough-riders-poker-tour</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2274.png" alt="Dallas Poker Room" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Dallas Poker Room</div>
+      <div class="location">Arlington, TX</div>
+      <div class="meta">ID: 2274</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2430.png" alt="Red Star Social" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Red Star Social</div>
+      <div class="location">Austin, TX</div>
+      <div class="meta">ID: 2430</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1919.png" alt="Spades Poker House Baytown" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Spades Poker House Baytown</div>
+      <div class="location">Baytown, TX</div>
+      <div class="meta">ID: 1919</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1911.png" alt="Lone Star Social" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Lone Star Social</div>
+      <div class="location">Cedar Park, TX</div>
+      <div class="meta">ID: 1911</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1901.png" alt="Aggieland Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Aggieland Poker Club</div>
+      <div class="location">College Station, TX</div>
+      <div class="meta">ID: 1901</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2286.png" alt="Corpus Christi Poker" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Corpus Christi Poker</div>
+      <div class="location">Corpus Christi, TX</div>
+      <div class="meta">ID: 2286</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2715.png" alt="Poker House Dallas Tournament Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Poker House Dallas Tournament Series</div>
+      <div class="location">Dallas, TX</div>
+      <div class="meta">ID: 2715</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2933.png" alt="Sun City Card Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Sun City Card Club</div>
+      <div class="location">El Paso, TX</div>
+      <div class="meta">ID: 2933</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2276.png" alt="Fort Worth Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Fort Worth Poker Club</div>
+      <div class="location">Fort Worth, TX</div>
+      <div class="meta">ID: 2276</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2270.png" alt="Champions Poker" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Champions Poker</div>
+      <div class="location">Houston, TX</div>
+      <div class="meta">ID: 2270</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2417.png" alt="Offsuit Poker Lounge" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Offsuit Poker Lounge</div>
+      <div class="location">Houston, TX</div>
+      <div class="meta">ID: 2417</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2418.png" alt="Paramount Social Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Paramount Social Club</div>
+      <div class="location">Houston, TX</div>
+      <div class="meta">ID: 2418</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2750.png" alt="Prime Social Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Prime Social Poker Series</div>
+      <div class="location">Houston, TX</div>
+      <div class="meta">ID: 2750</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2419.png" alt="River Room Social Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">River Room Social Club</div>
+      <div class="location">Houston, TX</div>
+      <div class="meta">ID: 2419</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1925.png" alt="The Hangar Poker House" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">The Hangar Poker House</div>
+      <div class="location">Humble, TX</div>
+      <div class="meta">ID: 1925</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1899.png" alt="101 Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">101 Poker Club</div>
+      <div class="location">Katy, TX</div>
+      <div class="meta">ID: 1899</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2950.png" alt="West Texas Card House" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">West Texas Card House</div>
+      <div class="location">Lubbock, TX</div>
+      <div class="meta">ID: 2950</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1828.png" alt="Lodge Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Lodge Poker Club</div>
+      <div class="location">Round Rock, TX</div>
+      <div class="meta">ID: 1828</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2633.png" alt="Lodge Poker Series" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Lodge Poker Series</div>
+      <div class="location">Round Rock, TX</div>
+      <div class="meta">ID: 2633</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2281.png" alt="SA Poker Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">SA Poker Club</div>
+      <div class="location">San Antonio, TX</div>
+      <div class="meta">ID: 2281</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2944.png" alt="The Royal Card House of San Antonio" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">The Royal Card House of San Antonio</div>
+      <div class="location">San Antonio, TX</div>
+      <div class="meta">ID: 2944</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1918.png" alt="Spades Poker House" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Spades Poker House</div>
+      <div class="location">Webster, TX</div>
+      <div class="meta">ID: 1918</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2904.png" alt="Alpha Social Card Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Alpha Social Card Club</div>
+      <div class="location">Wichita Falls, TX</div>
+      <div class="meta">ID: 2904</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2919.png" alt="Johny's Social Card Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Johny's Social Card Club</div>
+      <div class="location">Wichita Falls, TX</div>
+      <div class="meta">ID: 2919</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2942.png" alt="The Rose Social Club" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">The Rose Social Club</div>
+      <div class="location">Wilmer, TX</div>
+      <div class="meta">ID: 2942</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2038.png" alt="Caesars Virginia" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Caesars Virginia</div>
+      <div class="location">Danville, VA</div>
+      <div class="meta">ID: 2038</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2760.png" alt="Wisconsin State Poker Championship" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Wisconsin State Poker Championship</div>
+      <div class="location">Baraboo, WI</div>
+      <div class="meta">ID: 2760</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+    <div class="card ">
+      <div class="logo-wrap"><img src="https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3047.png" alt="Hollywood Casino at Charles Town Races" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>FAILED</div>'" /></div>
+      <div class="name">Hollywood Casino at Charles Town Races</div>
+      <div class="location">Charles Town, WV</div>
+      <div class="meta">ID: 3047</div>
+      <span class="badge ok">SCRAPED ✓</span>
+    </div>
+  </div>
+  <div class="counter"><span>123</span> scraped logos shown</div>
+</body>
+</html>
