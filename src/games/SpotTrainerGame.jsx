@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
+import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
 // confetti loaded lazily on first use
 let _confetti = null;
 async function fireConfetti(opts) {
@@ -675,6 +676,9 @@ export default function SpotTrainerGame({ onExit, onScoreUpdate, DiamondEngine, 
                             </div>
                         </div>
                     )}
+
+                    {/* Position Weakness Heatmap */}
+                    <PositionWeaknessHeatmap mistakes={mistakesRef.current} totalAnswers={totalAnswers} />
 
                     {/* Weakness Detection */}
                     {mistakesRef.current.length > 0 && (
