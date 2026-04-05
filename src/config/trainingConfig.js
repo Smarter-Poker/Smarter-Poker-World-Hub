@@ -1,46 +1,43 @@
 /**
  * Training Level Configuration
  * ═══════════════════════════════════════════════════════════════════════════
- * 100 games × 25 questions × 10 levels
- * Pass threshold: 85% (Level 1) → 100% (Level 10)
+ * 100 games × 25 questions × 12 levels (Foundations → Boss Mode)
+ * Pass threshold: 85% (standard) / 90% (Boss Mode Level 12)
+ *
+ * SOURCE OF TRUTH: LevelRegistry.ts
+ * This file is a JS bridge so existing .js components can import it.
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import { LEVEL_REGISTRY, MASTERY_THRESHOLD, BOSS_MODE_THRESHOLD, MIN_QUESTIONS_REQUIRED } from './LevelRegistry';
+
+// Build pass thresholds from LevelRegistry
+const passThresholds = {};
+const diamondMultipliers = {};
+for (const [levelNum, def] of Object.entries(LEVEL_REGISTRY)) {
+    const lvl = parseInt(levelNum, 10);
+    passThresholds[lvl] = Math.round(def.masteryThreshold * 100);
+    diamondMultipliers[lvl] = def.diamondMultiplier;
+}
+
 export const TRAINING_CONFIG = {
-    questionsPerLevel: 25,
-    totalLevels: 10,
+    questionsPerLevel: MIN_QUESTIONS_REQUIRED, // 20 (from LevelRegistry)
+    totalLevels: Object.keys(LEVEL_REGISTRY).length, // 12
 
-    // Pass thresholds: +2% per level
-    passThresholds: {
-        1: 85,  // 21/25 correct
-        2: 87,  // 22/25 correct
-        3: 89,  // 22/25 correct (rounded)
-        4: 91,  // 23/25 correct
-        5: 93,  // 23/25 correct (rounded)
-        6: 95,  // 24/25 correct
-        7: 97,  // 24/25 correct (rounded)
-        8: 98,  // 24/25 correct (rounded)
-        9: 99,  // 25/25 correct (practically)
-        10: 100, // 25/25 correct (perfect)
-    },
+    // Pass thresholds derived from LevelRegistry (85% standard, 90% Boss Mode)
+    passThresholds,
 
-    // XP rewards per level
-    xpRewards: {
-        1: 50,
-        2: 75,
-        3: 100,
-        4: 150,
-        5: 200,
-        6: 275,
-        7: 350,
-        8: 450,
-        9: 600,
-        10: 1000, // Mastery bonus
-    },
+    // Diamond multipliers per level (replaces XP)
+    diamondMultipliers,
+
+    // Mastery constants
+    masteryThreshold: MASTERY_THRESHOLD,       // 0.85
+    bossModeThreshold: BOSS_MODE_THRESHOLD,    // 0.90
 
     // Engine types
     engines: {
-        PIO: 'solver',      // 60 games - Supabase solver_templates
-        CHART: 'chart',     // 19 games - JSON range charts
+        PIO: 'solver',        // 60 games - Supabase solver_templates
+        CHART: 'chart',       // 19 games - JSON range charts
         SCENARIO: 'scenario', // 21 games - Mental game questions
     },
 };
@@ -49,7 +46,7 @@ export const TRAINING_CONFIG = {
  * Get required correct answers for a level
  */
 export function getRequiredCorrect(level) {
-    const threshold = TRAINING_CONFIG.passThresholds[level] || 85;
+    const threshold = TRAINING_CONFIG.passThresholds[level] || Math.round(MASTERY_THRESHOLD * 100);
     return Math.ceil((threshold / 100) * TRAINING_CONFIG.questionsPerLevel);
 }
 
@@ -61,12 +58,19 @@ export function checkLevelPassed(level, correctAnswers) {
 }
 
 /**
- * Get XP reward for completing a level
+ * Get diamond reward for completing a level
  */
+export function getDiamondReward(level, correctAnswers, streakBonus = 0) {
+    const multiplier = TRAINING_CONFIG.diamondMultipliers[level] || 1.0;
+    const accuracy = correctAnswers / TRAINING_CONFIG.questionsPerLevel;
+    const baseDiamonds = 5;
+    const accuracyBonus = accuracy >= 1.0 ? 10 : accuracy >= 0.9 ? 5 : accuracy >= 0.85 ? 3 : 0;
+    return Math.round((baseDiamonds + accuracyBonus + streakBonus) * multiplier);
+}
+
+// LEGACY: Keep getXPReward as alias for getDiamondReward (backwards compatibility)
 export function getXPReward(level, correctAnswers, streakBonus = 0) {
-    const baseXP = TRAINING_CONFIG.xpRewards[level] || 50;
-    const accuracyBonus = Math.round(baseXP * (correctAnswers / TRAINING_CONFIG.questionsPerLevel));
-    return baseXP + accuracyBonus + streakBonus;
+    return getDiamondReward(level, correctAnswers, streakBonus);
 }
 
 export default TRAINING_CONFIG;

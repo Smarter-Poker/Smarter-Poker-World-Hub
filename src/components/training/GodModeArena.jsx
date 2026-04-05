@@ -1312,6 +1312,10 @@ function GodModeArenaInner({
         totalXP,
         requiredCorrect,
         passThreshold,
+        totalLevels,
+        // ═══ MASTERY GATE ═══
+        masteryToken,
+        masteryStatus,
         showFeedback,
         feedbackResult,
         explanation,
@@ -4330,7 +4334,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 12, marginBottom: 20,
                         flexDirection: levelPassed ? 'row' : 'column',
                     }}>
-                        {levelPassed && currentLevel < TRAINING_CONFIG.totalLevels && (
+                        {levelPassed && currentLevel < (totalLevels || 12) && (
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
@@ -4529,7 +4533,7 @@ function GodModeArenaInner({
                                         {gameName || 'GTO Training'}
                                     </div>
                                     <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600, marginTop: 4 }}>
-                                        Level {currentLevel} of {TRAINING_CONFIG.totalLevels} • {totalQuestions || 25} Questions
+                                        Level {currentLevel} of {(totalLevels || 12)} • {totalQuestions || 25} Questions
                                     </div>
                                 </motion.div>
 
@@ -4548,7 +4552,7 @@ function GodModeArenaInner({
                                         Session Goal
                                     </div>
                                     <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>
-                                        Score ≥70% to advance to Level {Math.min(currentLevel + 1, TRAINING_CONFIG.totalLevels)}
+                                        Score ≥70% to advance to Level {Math.min(currentLevel + 1, (totalLevels || 12))}
                                     </div>
                                     <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
                                         Answer {Math.ceil((totalQuestions || 25) * 0.7)} of {totalQuestions || 25} questions correctly

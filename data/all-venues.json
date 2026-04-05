@@ -1,6 +1,6 @@
 {
   "updated_at": "2026-04-05T06:13:10.723Z",
-  "total": 684,
+  "total": 677,
   "venues": [
     {
       "id": 1856,
@@ -3919,32 +3919,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2686.png"
     },
     {
-      "id": 2629,
-      "name": "Hard Rock Poker Tour",
-      "slug": null,
-      "website": "https://www.hardrock.com",
-      "address": null,
-      "city": "Hollywood",
-      "state": "FL",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/hardrock.com.ico"
-    },
-    {
       "id": 2246,
       "name": "Seminole Classic",
       "slug": null,
@@ -4059,32 +4033,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2245.png"
-    },
-    {
-      "id": 2622,
-      "name": "bestbet Jax Poker Tour",
-      "slug": null,
-      "website": "https://www.bestbetjax.com",
-      "address": null,
-      "city": "Jacksonville",
-      "state": "FL",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/bestbetjax.com.ico"
     },
     {
       "id": 2637,
@@ -5585,35 +5533,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2316.jpg"
-    },
-    {
-      "id": 1998,
-      "name": "Bill Henricks ",
-      "slug": null,
-      "website": "https://www.facebook.com/billhenrickspoker",
-      "address": "3000 S. Las Vegas Blvd.",
-      "city": "Las Vegas",
-      "state": "IL",
-      "phone": "(702) 676-7680",
-      "venue_type": "poker_club",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas",
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "Mixed",
-        "PLO",
-        "NLH",
-        "Limit HE"
-      ],
-      "stakes_cash": null,
-      "poker_tables": 29,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/facebook.com.ico"
     },
     {
       "id": 2000,
@@ -9760,32 +9679,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1991.png"
     },
     {
-      "id": 2741,
-      "name": "888poker LIVE",
-      "slug": null,
-      "website": "https://www.888poker.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/888poker.com.ico"
-    },
-    {
       "id": 2630,
       "name": "Aria Poker Classic",
       "slug": null,
@@ -10395,32 +10288,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2624.svg"
     },
     {
-      "id": 2609,
-      "name": "Heartland Poker Tour (HPT)",
-      "slug": null,
-      "website": "https://hptpoker.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/hptpoker.com.ico"
-    },
-    {
       "id": 2677,
       "name": "Horseshoe Las Vegas Poker Series",
       "slug": null,
@@ -10834,32 +10701,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2635.png"
     },
     {
-      "id": 2613,
-      "name": "PokerStars LIVE",
-      "slug": null,
-      "website": "https://www.pokerstars.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/pokerstars.com.ico"
-    },
-    {
       "id": 2674,
       "name": "Red Rock Poker Series",
       "slug": null,
@@ -11082,32 +10923,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2148.png"
-    },
-    {
-      "id": 2734,
-      "name": "Trailblazer Poker Series",
-      "slug": null,
-      "website": "https://www.trailblazerpoker.com",
-      "address": null,
-      "city": "Las Vegas",
-      "state": "NV",
-      "phone": null,
-      "venue_type": "tour",
-      "has_tournaments": true,
-      "poker_atlas_url": null,
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/trailblazerpoker.com.ico"
     },
     {
       "id": 2141,
@@ -17548,32 +17363,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3025.webp"
     },
     {
-      "id": 2996,
-      "name": "Broadway Grill & Pizzeria",
-      "slug": "broadway-grill-pizzeria-everett",
-      "website": "http://Broadwaygrill.net",
-      "address": "3121 Broadway",
-      "city": "Everett",
-      "state": "WA",
-      "phone": "(425) 595-4144",
-      "venue_type": "card_room",
-      "has_tournaments": true,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/broadway-grill-pizzeria-everett",
-      "hours": null,
-      "latitude": 47.9757657,
-      "longitude": -122.2010812,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/broadwaygrill.net.ico"
-    },
-    {
       "id": 2999,
       "name": "Buzz Inn Steakhouse Evergreen Way",
       "slug": "buzz-inn-steakhouse-evergreen-way-everett",
@@ -17754,32 +17543,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2991.png"
-    },
-    {
-      "id": 3002,
-      "name": "Buzz Inn Steakhouse Marysville",
-      "slug": "buzz-inn-steakhouse-marysville",
-      "website": "https://www.pokeratlas.com/poker-room/buzz-inn-steakhouse-marysville",
-      "address": "1065 State Ave.",
-      "city": "Marysville",
-      "state": "WA",
-      "phone": "(360) 653-3306",
-      "venue_type": "card_room",
-      "has_tournaments": true,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/buzz-inn-steakhouse-marysville",
-      "hours": null,
-      "latitude": 48.0595035,
-      "longitude": -122.1773916,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://icons.duckduckgo.com/ip3/pokeratlas.com.ico"
     },
     {
       "id": 3020,
@@ -18545,6 +18308,22 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2477.png"
+    },
+    {
+      "id": "napt-poker-tour",
+      "name": "NAPT Poker Tour",
+      "slug": "napt-poker-tour",
+      "venue_type": "tour",
+      "website": "https://www.pokerstarslive.com/napt/",
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/napt-poker-tour.png"
+    },
+    {
+      "id": "rough-riders-poker-tour",
+      "name": "Rough Riders Poker Tour",
+      "slug": "rough-riders-poker-tour",
+      "venue_type": "tour",
+      "website": "https://www.roughriderspoker.com/",
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/rough-riders-poker-tour.png"
     }
   ]
 }

@@ -11,13 +11,14 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getAuthUser, getSessionToken } from '../lib/authUtils';
-import TRAINING_CONFIG, { checkLevelPassed, getRequiredCorrect } from '../config/trainingConfig';
+import TRAINING_CONFIG, { checkLevelPassed, getRequiredCorrect, getDiamondReward } from '../config/trainingConfig';
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
 import { eventBus } from '../engine/EventBus';
 import { trainingSounds } from '../utils/trainingSounds';
 import { deterministicEngine } from '../engines/DeterministicGTOEngine';
 
-const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
+const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel;
+const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
 
 export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel = 1, trainerConfig = null) {
     // If custom trainer config provided, use its questions count
@@ -85,7 +86,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
      */
     const prefetchNextLevel = useCallback(async () => {
         if (prefetchTriggeredRef.current) return;
-        if (level >= 10) return; // Max level, nothing to prefetch
+        if (level >= TOTAL_LEVELS) return; // Max level, nothing to prefetch
         if (trainerConfig) return; // Custom trainers don't auto-advance
 
         prefetchTriggeredRef.current = true;
@@ -904,6 +905,10 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     /**
      * Save progress to database
      */
+    // ═══ MASTERY GATE: Store mastery token from server response ═══
+    const [masteryToken, setMasteryToken] = useState(null);
+    const [masteryStatus, setMasteryStatus] = useState(null); // server-verified mastery result
+
     const saveProgress = useCallback(async (passed, accuracy) => {
         if (!userId || !gameId) return;
 
@@ -914,14 +919,10 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             };
 
-            // Save basic progress (training_progress + training_level_history)
-            // Calculate diamond rewards based on performance
-            const diamondsForPassing = passed ? 5 : 0;
-            const accuracyBonus = accuracy >= 100 ? 10 : accuracy >= 90 ? 5 : accuracy >= 80 ? 3 : 0;
-            const levelMultiplier = Math.ceil(level / 3); // Levels 1-3 = 1x, 4-6 = 2x, 7-9 = 3x, 10 = 4x
-            const diamondsEarned = (diamondsForPassing + accuracyBonus) * levelMultiplier;
+            // Calculate diamond rewards using LevelRegistry multipliers
+            const diamondsEarned = getDiamondReward(level, correctCount, bestStreak > 5 ? 2 : 0);
 
-            await fetch('/api/training/save-progress', {
+            const response = await fetch('/api/training/save-progress', {
                 method: 'POST', headers,
                 body: JSON.stringify({
                     userId, gameId, level,
@@ -929,17 +930,33 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     questionsCorrect: correctCount,
                     accuracy, passed,
                     streak: bestStreak,
-                    xpEarned: totalXP,
                     diamondsEarned,
                     timeSpentSeconds: 0,
                 }),
             });
 
+            // ═══ MASTERY GATE: Handle server-verified mastery response ═══
+            try {
+                const data = await response.json();
+                if (data.mastery) {
+                    setMasteryStatus(data.mastery);
+                    if (data.mastery.masteryToken) {
+                        setMasteryToken(data.mastery.masteryToken);
+                        console.log(`[GTOTrainer] 🏆 Mastery token received — next level: ${data.mastery.nextLevelUnlocked}`);
+                    }
+                    // Server overrides client pass/fail
+                    if (data.mastery.passed !== passed) {
+                        console.log(`[GTOTrainer] ⚠️ Server mastery override: client=${passed} server=${data.mastery.passed}`);
+                        setLevelPassed(data.mastery.passed);
+                    }
+                }
+            } catch (parseErr) {
+                // Non-critical — mastery token is a bonus, not required for gameplay
+                console.warn('[GTOTrainer] Mastery response parse failed:', parseErr.message);
+            }
+
             // ═══ PHASE 14: Save mistakes to spaced repetition ═══
             saveMistakesToSpacedRepetition();
-
-            // NOTE: save-session is handled by GodModeArena's auto-save useEffect
-            // to avoid duplicate training_sessions rows.
 
             // Emit progress-saved event so useTrainingProgress can re-hydrate
             try {
@@ -955,7 +972,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         } catch (err) {
             console.warn('[GTOTrainer] Save progress error:', err);
         }
-    }, [userId, gameId, level, correctCount, bestStreak, totalXP, gtowScoring, effectiveQuestionsPerLevel, saveMistakesToSpacedRepetition]);
+    }, [userId, gameId, level, correctCount, bestStreak, gtowScoring, effectiveQuestionsPerLevel, saveMistakesToSpacedRepetition]);
 
     /**
      * Advance to next question or complete level
@@ -1038,7 +1055,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
      * 🚀 Uses prefetched cache if available, otherwise fetches fresh
      */
     const startNextLevel = useCallback(() => {
-        if (!levelPassed || level >= TRAINING_CONFIG.totalLevels) return;
+        if (!levelPassed || level >= TOTAL_LEVELS) return;
 
         const nextLevel = level + 1;
         setLevel(nextLevel);
@@ -1157,6 +1174,11 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         totalXP,
         requiredCorrect: getRequiredCorrect(level),
         passThreshold: TRAINING_CONFIG.passThresholds[level],
+        totalLevels: TOTAL_LEVELS,
+
+        // ═══ MASTERY GATE: Server-verified mastery state ═══
+        masteryToken,
+        masteryStatus,
 
         // Feedback state
         showFeedback,
