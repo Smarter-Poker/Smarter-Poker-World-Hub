@@ -210,18 +210,102 @@ export function generateLevel8() {
 }
 
 /**
- * Build the decision options for a flop scenario
+ * Build MULTI-SIZING decision options for a flop scenario.
+ * GTO Wizard-style: "Check / Bet 33% / Bet 75%" with separate frequencies per size.
+ * Uses the sizeDistribution from enhanced solver data when available.
  */
 function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) {
     if (matchup.isPFR) {
-        // PFR options: Bet (various sizes) or Check
-        const betSize = strategy.sizing;
+        const betFreq = strategy.frequency || 0;
+        const checkFreq = Math.round((1 - betFreq) * 100);
+        const betFreqPct = Math.round(betFreq * 100);
+
+        // Check if we have multi-size distribution from solver data
+        const sizeDist = strategy.sizeDistribution;
+
+        if (sizeDist && Object.keys(sizeDist).length > 1) {
+            // ═══ MULTI-SIZING MODE (GTO Wizard-style) ═══
+            // Split the total bet frequency across multiple sizing options
+            const sizeLabels = {
+                s33: { label: 'Bet 33% Pot', fraction: 0.33 },
+                s50: { label: 'Bet 50% Pot', fraction: 0.50 },
+                s75: { label: 'Bet 75% Pot', fraction: 0.75 },
+                s100: { label: 'Bet Pot', fraction: 1.0 },
+                s150: { label: 'Overbet 150%', fraction: 1.5 },
+            };
+
+            const options = [
+                {
+                    label: 'Check',
+                    action: 'check',
+                    isCorrect: betFreq <= 0.50,
+                    frequency: checkFreq,
+                    feedback: betFreq <= 0.50
+                        ? `Good check. ${strategy.reason}`
+                        : `Checking is too passive. ${strategy.reason}`,
+                    evDelta: betFreq <= 0.50 ? 0 : -0.5,
+                },
+            ];
+
+            // Add each sizing option with its share of the total bet frequency
+            const sortedSizes = Object.entries(sizeDist)
+                .filter(([key, wt]) => wt > 0.05 && sizeLabels[key]) // Only show sizes with >5% weight
+                .sort((a, b) => {
+                    const fracA = sizeLabels[a[0]]?.fraction || 0;
+                    const fracB = sizeLabels[b[0]]?.fraction || 0;
+                    return fracA - fracB;
+                });
+
+            let bestSizeFreq = 0;
+            let bestSizeKey = null;
+
+            for (const [sizeKey, weight] of sortedSizes) {
+                const sizeInfo = sizeLabels[sizeKey];
+                const sizeFreqPct = Math.round(betFreqPct * weight);
+                if (sizeFreqPct > bestSizeFreq) {
+                    bestSizeFreq = sizeFreqPct;
+                    bestSizeKey = sizeKey;
+                }
+            }
+
+            for (const [sizeKey, weight] of sortedSizes) {
+                const sizeInfo = sizeLabels[sizeKey];
+                const sizeFreqPct = Math.round(betFreqPct * weight);
+                const isBestSize = sizeKey === bestSizeKey;
+
+                options.push({
+                    label: sizeInfo.label,
+                    action: 'bet',
+                    sizing: sizeInfo.fraction,
+                    isCorrect: strategy.shouldBet && isBestSize,
+                    frequency: sizeFreqPct,
+                    feedback: strategy.shouldBet
+                        ? (isBestSize
+                            ? `Correct sizing! ${sizeInfo.label} is the preferred size here. ${strategy.reason}`
+                            : `Betting is right, but ${sizeLabels[bestSizeKey]?.label || 'a different size'} is preferred. ${strategy.reason}`)
+                        : `Betting is too aggressive here. ${strategy.reason}`,
+                    evDelta: strategy.shouldBet ? (isBestSize ? 0 : -0.15) : -0.5,
+                });
+            }
+
+            // Normalize frequencies to sum to 100
+            const totalFreq = options.reduce((s, o) => s + o.frequency, 0);
+            if (totalFreq > 0 && totalFreq !== 100) {
+                const scale = 100 / totalFreq;
+                options.forEach(o => { o.frequency = Math.round(o.frequency * scale); });
+            }
+
+            return options;
+        }
+
+        // ═══ SINGLE-SIZE FALLBACK (original behavior) ═══
+        const betSize = strategy.sizing || BET_SIZES.MEDIUM;
         return [
             {
                 label: 'Check',
                 action: 'check',
                 isCorrect: !strategy.shouldBet,
-                frequency: Math.round((1 - strategy.frequency) * 100),
+                frequency: checkFreq,
                 feedback: strategy.shouldBet
                     ? `Checking is too passive. ${strategy.reason}`
                     : `Good check. ${strategy.reason}`,
@@ -232,7 +316,7 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
                 action: 'bet',
                 sizing: betSize.fraction,
                 isCorrect: strategy.shouldBet,
-                frequency: Math.round(strategy.frequency * 100),
+                frequency: betFreqPct,
                 feedback: strategy.shouldBet
                     ? `Correct! ${strategy.reason}`
                     : `Overbet/bluff. ${strategy.reason}`,
@@ -241,37 +325,50 @@ function buildFlopOptions(matchup, strategy, madeHand, draws, board, heroCards) 
         ];
     } else {
         // Defender options: Check-Raise, Call, Fold
-        const crStrategy = strategy;
-        const callFreq = Math.max(0, 100 - Math.round(crStrategy.frequency * 100) - (madeHand.strength < 0.15 && draws.outs < 4 ? 30 : 10));
+        // Use enhanced XR data if available from solver tables
+        const crInfo = strategy.checkRaiseInfo || strategy;
+        const raiseFreq = crInfo.raiseFreq || crInfo.frequency || 0;
+        const callFreq = crInfo.callFreq || Math.max(0, 1 - raiseFreq - (madeHand.strength < 0.15 && draws.outs < 4 ? 0.30 : 0.10));
+        const foldFreq = crInfo.foldFreq || Math.max(0, 1 - raiseFreq - callFreq);
+
+        const raiseFreqPct = Math.round(raiseFreq * 100);
+        const callFreqPct = Math.round(callFreq * 100);
+        const foldFreqPct = Math.max(0, 100 - raiseFreqPct - callFreqPct);
+
+        // Determine correct action based on highest frequency
+        const maxFreq = Math.max(raiseFreqPct, callFreqPct, foldFreqPct);
+        const correctAction = raiseFreqPct === maxFreq ? 'raise' : (callFreqPct === maxFreq ? 'call' : 'fold');
 
         return [
             {
                 label: 'Fold',
                 action: 'fold',
-                isCorrect: madeHand.strength < 0.15 && draws.outs < 4,
-                frequency: Math.max(0, 100 - callFreq - Math.round(crStrategy.frequency * 100)),
-                feedback: madeHand.strength < 0.15 && draws.outs < 4
-                    ? `Correct fold. ${madeHand.description} with no draws.`
+                isCorrect: correctAction === 'fold',
+                frequency: foldFreqPct,
+                feedback: correctAction === 'fold'
+                    ? `Correct fold. ${madeHand.description} with insufficient equity.`
                     : `Too tight! You have ${madeHand.description}${draws.outs > 0 ? ` + ${draws.description}` : ''}.`,
-                evDelta: madeHand.strength < 0.15 && draws.outs < 4 ? 0 : -1.0,
+                evDelta: correctAction === 'fold' ? 0 : -1.0,
             },
             {
                 label: 'Call',
                 action: 'call',
-                isCorrect: !crStrategy.shouldRaise && (madeHand.strength >= 0.15 || draws.outs >= 4),
-                frequency: callFreq,
-                feedback: `Call. ${madeHand.description}${draws.outs > 0 ? ` with ${draws.description}` : ''}.`,
-                evDelta: 0,
+                isCorrect: correctAction === 'call',
+                frequency: callFreqPct,
+                feedback: correctAction === 'call'
+                    ? `Good call. ${madeHand.description}${draws.outs > 0 ? ` with ${draws.description}` : ''}.`
+                    : (correctAction === 'raise' ? `Calling is OK but raising is better here.` : `Too loose. ${madeHand.description}.`),
+                evDelta: correctAction === 'call' ? 0 : -0.3,
             },
             {
                 label: 'Raise',
                 action: 'raise',
-                isCorrect: crStrategy.shouldRaise,
-                frequency: Math.round(crStrategy.frequency * 100),
-                feedback: crStrategy.shouldRaise
-                    ? `Great check-raise! ${crStrategy.reason}`
-                    : `Check-raise is too aggressive here. ${crStrategy.reason}`,
-                evDelta: crStrategy.shouldRaise ? 0.5 : -1.5,
+                isCorrect: correctAction === 'raise',
+                frequency: raiseFreqPct,
+                feedback: correctAction === 'raise'
+                    ? `Great check-raise! ${crInfo.reason || strategy.reason || ''}`
+                    : `Check-raise is too aggressive here. ${crInfo.reason || strategy.reason || ''}`,
+                evDelta: correctAction === 'raise' ? 0.5 : -1.5,
             },
         ];
     }
@@ -311,29 +408,7 @@ export function generateLevel9() {
             const strategy = getEnhancedTurnStrategy(heroCards, board, 'bet', matchup.posContext);
             const handClass = classifyHandClass(heroCards, board);
 
-            const options = [
-                {
-                    label: 'Check',
-                    action: 'check',
-                    isCorrect: strategy.action === ACTIONS.CHECK,
-                    frequency: Math.round((1 - strategy.frequency) * 100),
-                    feedback: strategy.action === ACTIONS.CHECK
-                        ? `Good pot control. ${strategy.reason}`
-                        : `Too passive — missed value or bluff opportunity. ${strategy.reason}`,
-                    evDelta: strategy.action === ACTIONS.CHECK ? 0 : -0.5,
-                },
-                {
-                    label: `Bet ${strategy.sizing.label}`,
-                    action: 'bet',
-                    sizing: strategy.sizing.fraction,
-                    isCorrect: strategy.action === ACTIONS.BET,
-                    frequency: Math.round(strategy.frequency * 100),
-                    feedback: strategy.action === ACTIONS.BET
-                        ? `Correct barrel! ${strategy.reason}`
-                        : `This barrel is too thin. ${strategy.reason}`,
-                    evDelta: strategy.action === ACTIONS.BET ? 0 : -0.8,
-                },
-            ];
+            const options = buildMultiSizeOptions(strategy, 'turn');
 
             scenarios.push({
                 id: `l9-turn-${matchup.hero.toLowerCase()}-${matchup.villain.toLowerCase()}-${handIdx}`,
@@ -450,45 +525,107 @@ export function generateLevel10() {
 }
 
 /**
- * Build decision options for a river scenario
+ * Build multi-sizing options for turn/river bet-or-check scenarios.
+ * Uses sizeDistribution from enhanced solver data when available.
  */
-function buildRiverOptions(strategy, madeHand, prevAction) {
+function buildMultiSizeOptions(strategy, street) {
+    const betFreq = strategy.frequency || 0;
+    const checkFreq = Math.round((1 - betFreq) * 100);
+    const betFreqPct = Math.round(betFreq * 100);
+    const sizeDist = strategy.sizeDistribution;
+    const isBet = strategy.action === ACTIONS.BET;
+
+    const sizeLabels = {
+        s50: { label: 'Bet 50% Pot', fraction: 0.50 },
+        s75: { label: 'Bet 75% Pot', fraction: 0.75 },
+        s100: { label: 'Bet Pot', fraction: 1.0 },
+        s150: { label: 'Overbet 150%', fraction: 1.5 },
+    };
+
     const options = [
         {
             label: 'Check',
             action: 'check',
-            isCorrect: strategy.action === ACTIONS.CHECK,
-            frequency: Math.round((1 - strategy.frequency) * 100),
-            feedback: strategy.action === ACTIONS.CHECK
-                ? `Correct. ${strategy.reason}`
-                : `Missed value or bluff. ${strategy.reason}`,
-            evDelta: strategy.action === ACTIONS.CHECK ? 0 : -0.5,
+            isCorrect: !isBet,
+            frequency: checkFreq,
+            feedback: !isBet
+                ? `Good pot control. ${strategy.reason}`
+                : `Too passive — missed value or bluff. ${strategy.reason}`,
+            evDelta: !isBet ? 0 : -0.5,
         },
     ];
 
-    // Add bet options based on hand category
-    if (strategy.category === 'value' || strategy.category === 'bluff') {
+    if (sizeDist && Object.keys(sizeDist).length > 1) {
+        const sortedSizes = Object.entries(sizeDist)
+            .filter(([key, wt]) => wt > 0.05 && sizeLabels[key])
+            .sort((a, b) => (sizeLabels[a[0]]?.fraction || 0) - (sizeLabels[b[0]]?.fraction || 0));
+
+        let bestSizeFreq = 0, bestSizeKey = null;
+        for (const [sk, wt] of sortedSizes) {
+            const f = Math.round(betFreqPct * wt);
+            if (f > bestSizeFreq) { bestSizeFreq = f; bestSizeKey = sk; }
+        }
+
+        for (const [sk, wt] of sortedSizes) {
+            const si = sizeLabels[sk];
+            const freqPct = Math.round(betFreqPct * wt);
+            const isBest = sk === bestSizeKey;
+
+            options.push({
+                label: si.label,
+                action: 'bet',
+                sizing: si.fraction,
+                isCorrect: isBet && isBest,
+                frequency: freqPct,
+                feedback: isBet
+                    ? (isBest ? `Correct ${street} barrel! ${strategy.reason}` : `Betting is right but ${sizeLabels[bestSizeKey]?.label} is preferred.`)
+                    : `This ${street} barrel is too thin. ${strategy.reason}`,
+                evDelta: isBet ? (isBest ? 0 : -0.15) : -0.8,
+            });
+        }
+    } else {
+        // Single-size fallback
+        const sizing = strategy.sizing || BET_SIZES.MEDIUM;
         options.push({
-            label: `Bet ${strategy.sizing.label}`,
+            label: `Bet ${sizing.label}`,
             action: 'bet',
-            sizing: strategy.sizing.fraction,
-            isCorrect: strategy.action === ACTIONS.BET,
-            frequency: Math.round(strategy.frequency * 100),
-            feedback: strategy.action === ACTIONS.BET
-                ? `${strategy.category === 'value' ? 'Value bet' : 'Bluff'} — ${strategy.reason}`
-                : `Bad ${strategy.category === 'value' ? 'value' : 'bluff'}. ${strategy.reason}`,
-            evDelta: strategy.action === ACTIONS.BET ? 0.3 : -1.0,
+            sizing: sizing.fraction,
+            isCorrect: isBet,
+            frequency: betFreqPct,
+            feedback: isBet ? `Correct ${street} barrel! ${strategy.reason}` : `This barrel is too thin. ${strategy.reason}`,
+            evDelta: isBet ? 0 : -0.8,
         });
     }
 
-    // For bluff catchers facing a bet, add call/fold
+    // Normalize
+    const total = options.reduce((s, o) => s + o.frequency, 0);
+    if (total > 0 && total !== 100) {
+        const scale = 100 / total;
+        options.forEach(o => { o.frequency = Math.round(o.frequency * scale); });
+    }
+
+    return options;
+}
+
+/**
+ * Build decision options for a river scenario — with multi-sizing and bluff-catcher support.
+ */
+function buildRiverOptions(strategy, madeHand, prevAction) {
+    // For value hands and bluffs: multi-sizing bet or check
+    if (strategy.category === 'value' || strategy.category === 'bluff') {
+        return buildMultiSizeOptions(strategy, 'river');
+    }
+
+    // For bluff catchers facing a bet: call/fold
     if (strategy.category === 'bluff_catcher') {
-        options.push(
+        const callFreq = madeHand.strength >= 0.25 ? 60 : 30;
+        const foldFreq = 100 - callFreq;
+        return [
             {
                 label: 'Call',
                 action: 'call',
                 isCorrect: madeHand.strength >= 0.25,
-                frequency: madeHand.strength >= 0.25 ? 60 : 30,
+                frequency: callFreq,
                 feedback: madeHand.strength >= 0.25
                     ? `Good call — ${madeHand.description} is strong enough to bluff-catch.`
                     : `Loose call — ${madeHand.description} is too weak here.`,
@@ -498,16 +635,17 @@ function buildRiverOptions(strategy, madeHand, prevAction) {
                 label: 'Fold',
                 action: 'fold',
                 isCorrect: madeHand.strength < 0.25,
-                frequency: madeHand.strength < 0.25 ? 70 : 40,
+                frequency: foldFreq,
                 feedback: madeHand.strength < 0.25
-                    ? `Correct fold. ${madeHand.description} can\'t beat many value hands.`
+                    ? `Correct fold. ${madeHand.description} can't beat many value hands.`
                     : `Too tight! ${madeHand.description} is good enough to call.`,
                 evDelta: madeHand.strength < 0.25 ? 0 : -0.5,
             },
-        );
+        ];
     }
 
-    return options;
+    // Default: check or bet
+    return buildMultiSizeOptions(strategy, 'river');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -553,13 +691,19 @@ export function getRandomPostflopScenario(level) {
 
 /**
  * Get a postflop scenario filtered by criteria.
+ * GTO Wizard-style spot filtering: position, street, action type, board texture, hand class.
  *
  * @param {number} level - 8, 9, or 10
  * @param {Object} [filter] - Optional filters
- * @param {string} [filter.position] - Hero position
+ * @param {string} [filter.position] - Hero position (BTN, CO, BB, etc.)
+ * @param {string} [filter.vsPosition] - Villain position
  * @param {string} [filter.spotType] - 'cbet', 'check_raise', 'turn_barrel', etc.
- * @param {string} [filter.boardTexture] - Board description match
+ * @param {string} [filter.boardTextureKey] - Solver texture key (e.g., 'dry_rainbow_high')
+ * @param {string} [filter.handClass] - Solver hand class (e.g., 'overpair', 'flush_draw')
  * @param {boolean} [filter.isPFR] - Was hero the PFR?
+ * @param {string} [filter.posContext] - 'IP' or 'OOP'
+ * @param {string} [filter.correctAction] - Filter by GTO correct action
+ * @param {string[]} [filter.excludeIds] - Scenario IDs to exclude (already seen)
  * @returns {Object|null} A matching scenario
  */
 export function getFilteredPostflopScenario(level, filter = {}) {
@@ -567,6 +711,9 @@ export function getFilteredPostflopScenario(level, filter = {}) {
 
     if (filter.position) {
         scenarios = scenarios.filter(s => s.position === filter.position);
+    }
+    if (filter.vsPosition) {
+        scenarios = scenarios.filter(s => s.vsPosition === filter.vsPosition);
     }
     if (filter.spotType) {
         scenarios = scenarios.filter(s => s.spotType === filter.spotType);
@@ -577,9 +724,57 @@ export function getFilteredPostflopScenario(level, filter = {}) {
     if (filter.posContext) {
         scenarios = scenarios.filter(s => s.posContext === filter.posContext);
     }
+    if (filter.boardTextureKey) {
+        scenarios = scenarios.filter(s => s.boardTextureKey === filter.boardTextureKey);
+    }
+    if (filter.handClass) {
+        scenarios = scenarios.filter(s => s.handClass === filter.handClass);
+    }
+    if (filter.correctAction) {
+        scenarios = scenarios.filter(s => s.correctAction === filter.correctAction);
+    }
+    if (filter.excludeIds && filter.excludeIds.length > 0) {
+        const excludeSet = new Set(filter.excludeIds);
+        scenarios = scenarios.filter(s => !excludeSet.has(s.id));
+    }
 
     if (scenarios.length === 0) return null;
     return scenarios[Math.floor(Math.random() * scenarios.length)];
+}
+
+/**
+ * Get available filter options for a level.
+ * Returns what positions, spot types, board textures, etc. are available.
+ * Useful for building filter UI dropdowns.
+ */
+export function getAvailableFilters(level) {
+    const scenarios = getPostflopScenariosForLevel(level);
+
+    const positions = new Set();
+    const vsPositions = new Set();
+    const spotTypes = new Set();
+    const boardTextures = new Set();
+    const handClasses = new Set();
+    const correctActions = new Set();
+
+    for (const s of scenarios) {
+        if (s.position) positions.add(s.position);
+        if (s.vsPosition) vsPositions.add(s.vsPosition);
+        if (s.spotType) spotTypes.add(s.spotType);
+        if (s.boardTextureKey) boardTextures.add(s.boardTextureKey);
+        if (s.handClass) handClasses.add(s.handClass);
+        if (s.correctAction) correctActions.add(s.correctAction);
+    }
+
+    return {
+        positions: [...positions].sort(),
+        vsPositions: [...vsPositions].sort(),
+        spotTypes: [...spotTypes].sort(),
+        boardTextures: [...boardTextures].sort(),
+        handClasses: [...handClasses].sort(),
+        correctActions: [...correctActions].sort(),
+        totalScenarios: scenarios.length,
+    };
 }
 
 /**
