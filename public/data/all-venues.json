@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T17:07:10.317Z",
+  "updated_at": "2026-04-05T17:11:08.271Z",
   "total": 677,
   "venues": [
     {
@@ -17866,7 +17866,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3047.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3047.jpg"
     },
     {
       "id": 2478,
@@ -17957,7 +17957,7 @@
       "slug": "napt-poker-tour",
       "venue_type": "tour",
       "website": "https://www.pokerstarslive.com/napt/",
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/napt-poker-tour.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/napt-poker-tour.jpg"
     },
     {
       "id": "rough-riders-poker-tour",
