@@ -239,7 +239,7 @@ export default function FlopTextureAnalyzer() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto', flexWrap: 'wrap' }}>
           {TEXTURES.map(t => (
             <button key={t.id} onClick={() => setSelectedTexture(t)} style={{
-              padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              padding: '6px 10px', borderRadius: 6, cursor: 'pointer',
               background: selectedTexture.id === t.id ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.15)',
               border: selectedTexture.id === t.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
               color: selectedTexture.id === t.id ? '#f1f5f9' : '#94a3b8', fontSize: 10, fontWeight: 600,

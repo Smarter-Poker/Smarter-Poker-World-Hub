@@ -10,7 +10,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 
 // ═══ SCENARIO PRESETS ═══
 const SCENARIOS = [
@@ -242,7 +242,7 @@ export default function HandStrengthDistribution() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto' }}>
           {SCENARIOS.map(s => (
             <button key={s.id} onClick={() => setSelectedScenario(s)} style={{
-              padding: '6px 10px', borderRadius: 5, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+              padding: '6px 10px', borderRadius: 5, cursor: 'pointer', whiteSpace: 'nowrap',
               background: selectedScenario.id === s.id ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.15)',
               border: selectedScenario.id === s.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
               color: selectedScenario.id === s.id ? '#f1f5f9' : '#94a3b8', fontSize: 10, fontWeight: 600,

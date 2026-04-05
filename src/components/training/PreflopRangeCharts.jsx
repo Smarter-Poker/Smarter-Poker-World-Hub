@@ -104,7 +104,7 @@ export default function PreflopRangeCharts() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto' }}>
           {CHART_TYPES.map(ct => (
             <button key={ct.id} onClick={() => setChartType(ct.id)} style={{
-              padding: '5px 10px', borderRadius: 5, border: 'none', cursor: 'pointer',
+              padding: '5px 10px', borderRadius: 5, cursor: 'pointer',
               background: chartType === ct.id ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
               color: chartType === ct.id ? '#3b82f6' : '#94a3b8', fontSize: 10, fontWeight: 600,
               border: chartType === ct.id ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
@@ -116,7 +116,7 @@ export default function PreflopRangeCharts() {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {POSITIONS.map(pos => (
             <button key={pos} onClick={() => setPosition(pos)} style={{
-              padding: '5px 12px', borderRadius: 5, border: 'none', cursor: 'pointer', flex: 1,
+              padding: '5px 12px', borderRadius: 5, cursor: 'pointer', flex: 1,
               background: position === pos ? 'rgba(245,158,11,0.15)' : 'rgba(0,0,0,0.15)',
               color: position === pos ? '#f59e0b' : '#94a3b8', fontSize: 11, fontWeight: 700,
               border: position === pos ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent',
