@@ -10,9 +10,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { PvPMatch, MATCH_FORMATS, calculateRatingChange, getRankTier } from '../../../src/engines/PvPMatchEngine';
+
+// Lazy-load PvPArena to avoid SSR issues with heavy component
+const PvPArena = dynamic(() => import('../../../src/components/training/PvPArena'), { ssr: false });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GAME FORMATS
@@ -425,6 +430,7 @@ export default function PvPLobbyPage() {
   const [opponent, setOpponent] = useState(null);
   const searchTimerRef = useRef(null);
 
+  const [inArena, setInArena] = useState(false); // When true, show PvPArena component
   const [currentUser, setCurrentUser] = useState({ name: 'You', rating: 1200 });
   const [onlineCount, setOnlineCount] = useState(null); // null until mounted (SSR-safe)
   useEffect(() => {
@@ -469,54 +475,61 @@ export default function PvPLobbyPage() {
     setIsSearching(false);
   }, []);
 
-  // Ready up + save match result to Supabase
+  // Ready up → launch PvPArena for the match
   const handleReady = useCallback(() => {
     setSelfReady(true);
-    // Simulate game start after both players ready
-    setTimeout(async () => {
-      const accuracy = 70 + Math.floor(Math.random() * 20);
-      const handsCount = FORMATS[format].hands;
+    // Launch PvPArena after a short countdown
+    setTimeout(() => {
+      setInArena(true);
+    }, 1500);
+  }, []);
 
-      eventBus?.emit?.(
-        EventType?.SESSION_END || 'session:end',
-        {
+  // Handle arena completion — save results + return to lobby
+  const handleArenaComplete = useCallback(async (result) => {
+    setInArena(false);
+    setMatchFound(false);
+    setOpponent(null);
+    setSelfReady(false);
+
+    const accuracy = result?.accuracy || 70;
+    const handsCount = result?.handsPlayed || FORMATS[format].hands;
+
+    eventBus?.emit?.(
+      EventType?.SESSION_END || 'session:end',
+      { gameId: 'pvp-match', handsPlayed: handsCount, accuracy },
+      'PvPLobby'
+    );
+
+    // Save PvP session to Supabase
+    try {
+      const token = getAccessToken();
+      if (!token) return;
+      await authedFetch('/api/training/save-session', {
+        method: 'POST',
+        body: JSON.stringify({
           gameId: 'pvp-match',
+          gameName: `PvP ${FORMATS[format].name} (${STAKE_LEVELS[stakeLevel].name})`,
+          gtowScore: accuracy,
+          totalEVLoss: result?.totalEVLoss || 0,
           handsPlayed: handsCount,
+          mistakeCount: Math.round(handsCount * (1 - accuracy / 100)),
           accuracy,
-        },
-        'PvPLobby'
-      );
-
-      // Save PvP session to Supabase
-      try {
-        const token = getAccessToken();
-        if (!token) return;
-        await authedFetch('/api/training/save-session', {
-          method: 'POST',
-          body: JSON.stringify({
-            gameId: 'pvp-match',
-            gameName: `PvP ${FORMATS[format].name} (${STAKE_LEVELS[stakeLevel].name})`,
-            gtowScore: accuracy,
-            totalEVLoss: 0,
-            handsPlayed: handsCount,
-            mistakeCount: Math.round(handsCount * (1 - accuracy / 100)),
-            accuracy,
-            correctCount: Math.round((handsCount * accuracy) / 100),
-            bestStreak: 0,
-            levelPassed: accuracy >= 60,
-            level: stakeLevel + 1,
-            handHistory: [],
-            trainerConfig: {
-              format,
-              stakeLevel: STAKE_LEVELS[stakeLevel].name,
-              opponent: opponent?.name,
-            },
-          }),
-        });
-      } catch (err) {
-        console.warn('[PvP] Save error:', err.message);
-      }
-    }, 3000);
+          correctCount: Math.round((handsCount * accuracy) / 100),
+          bestStreak: result?.bestStreak || 0,
+          levelPassed: accuracy >= 60,
+          level: stakeLevel + 1,
+          handHistory: result?.handHistory || [],
+          trainerConfig: {
+            format,
+            stakeLevel: STAKE_LEVELS[stakeLevel].name,
+            opponent: opponent?.name,
+            ratingChange: result?.ratingChange,
+          },
+        }),
+      });
+    } catch (err) {
+      console.warn('[PvP] Save error:', err.message);
+    }
   }, [format, stakeLevel, opponent]);
 
   useEffect(() => {
@@ -524,6 +537,19 @@ export default function PvPLobbyPage() {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     };
   }, []);
+
+  // ═══ If in arena mode, render PvPArena full-screen ═══
+  if (inArena) {
+    return (
+      <PvPArena
+        userId={currentUser?.id || 'local-user'}
+        userRating={currentUser?.rating || 1200}
+        userName={currentUser?.name || 'You'}
+        diamondBalance={100}
+        onExit={(result) => handleArenaComplete(result || {})}
+      />
+    );
+  }
 
   return (
     <>

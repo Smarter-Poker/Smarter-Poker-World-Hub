@@ -19,6 +19,44 @@ import { deterministicEngine } from '../engines/DeterministicGTOEngine';
 
 // ═══ Phase GTO-CLONE: SessionTracker for Supabase persistence ═══
 import { createSessionRecord, createMoveRecords, saveSession } from '../engines/SessionTracker';
+// ═══ Phase GTO-CLONE: DifficultyEngine for Simple/Grouped/Standard modes ═══
+import { simplifyActions, DIFFICULTY } from '../engines/DifficultyEngine';
+// ═══ Phase GTO-CLONE: ActionTreeEngine for GTO action mapping + scoring ═══
+import { scoreAction, mapToSolverAction } from '../engines/ActionTreeEngine';
+
+/**
+ * Apply difficulty-based option simplification (GTO Wizard Simple/Grouped/Standard)
+ * Simple: Bet/Check/Fold (3 options max)
+ * Grouped: Small/Medium/Large/Check/Fold (5 options max)
+ * Standard: Full solver sizings (unchanged)
+ */
+function applyDifficultyToQuestion(question, difficultyMode) {
+    if (!question || !question.options || difficultyMode === 'standard') return question;
+    try {
+        const potSize = question.scenario?.pot || 10;
+        const simplified = simplifyActions(
+            question.options.map(o => ({
+                id: o.id,
+                text: o.text,
+                action: o.text?.toLowerCase?.() || o.id,
+                frequency: question.gtoFrequencies?.[o.id] || 0,
+            })),
+            difficultyMode === 'simple' ? DIFFICULTY.SIMPLE : DIFFICULTY.GROUPED,
+            potSize
+        );
+        if (simplified && simplified.length > 0) {
+            return {
+                ...question,
+                options: simplified.map(s => ({ id: s.id, text: s.text })),
+                _originalOptions: question.options,
+                _difficultyApplied: difficultyMode,
+            };
+        }
+    } catch (e) {
+        // Fallback: return question unchanged
+    }
+    return question;
+}
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel;
 const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
@@ -407,6 +445,25 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             scenario.pot                                        // Pot size for scaling
         );
 
+        // ═══ Phase GTO-CLONE: ActionTreeEngine score for solver-node accuracy ═══
+        let actionTreeScore = null;
+        try {
+            if (frequencies && Object.keys(frequencies).length > 0) {
+                const gtoStrategy = Object.entries(frequencies).map(([id, freq]) => ({
+                    id,
+                    text: options.find(o => o.id === id)?.text || id,
+                    frequency: freq,
+                }));
+                actionTreeScore = scoreAction(
+                    { id: selectedOptionId, text: selectedText },
+                    gtoStrategy,
+                    scenario.pot || 10
+                );
+            }
+        } catch (e) {
+            // ActionTreeEngine scoring is non-critical
+        }
+
         // Store for UI consumption
         setLastMoveClassification(moveResult.classification);
         setLastEVLoss(moveResult.evLoss);
@@ -439,6 +496,8 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 evData: currentQuestion.evData || null,
                 // ═══ PHASE 27: Explanation text for hand replay review ═══
                 explanation: currentQuestion.explanation || null,
+                // ═══ Phase GTO-CLONE: ActionTreeEngine solver-node score ═══
+                actionTreeScore: actionTreeScore || null,
                 // ═══ PHASE 51: Hand categorization for replay display ═══
                 handCategory: currentQuestion.handCategory || null,
             },
@@ -838,7 +897,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     nextQ.heroHand = hand.heroHand;
                     hand.currentQuestion = nextQ;
 
-                    setCurrentQuestion(nextQ);
+                    // ═══ Phase GTO-CLONE: Apply difficulty mode ═══
+                    const diffMode2 = trainerConfig?.difficultyMode || (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) || 'standard';
+                    setCurrentQuestion(applyDifficultyToQuestion(nextQ, diffMode2));
                     setCurrentStreet(data.street || hand.currentStreet);
                     setShowFeedback(false);
                     setLoading(false);
@@ -1050,7 +1111,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         } else {
             if (preloadComplete && preloadedQuestions[questionNumber]) {
                 // Serve next question from pre-loaded array (INSTANT)
-                const nextQ = preloadedQuestions[questionNumber];
+                // ═══ Phase GTO-CLONE: Apply difficulty mode to simplify options ═══
+                const diffMode = trainerConfig?.difficultyMode || (typeof localStorage !== 'undefined' ? localStorage.getItem('gma_difficulty') : null) || 'standard';
+                const nextQ = applyDifficultyToQuestion(preloadedQuestions[questionNumber], diffMode);
                 setCurrentQuestion(nextQ);
                 setQuestionNumber(prev => prev + 1);
 
