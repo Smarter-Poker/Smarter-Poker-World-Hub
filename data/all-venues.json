@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T07:48:13.106Z",
+  "updated_at": "2026-04-05T08:17:32.080Z",
   "total": 677,
   "venues": [
     {
@@ -5452,93 +5452,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2316.jpg"
     },
     {
-      "id": 2000,
-      "name": "John Donnahue",
-      "slug": null,
-      "website": "https://www.facebook.com/johndonnahuepoker",
-      "address": "3000 S. Las Vegas Blvd.",
-      "city": "Las Vegas",
-      "state": "IL",
-      "phone": "(702) 676-7680",
-      "venue_type": "poker_club",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/10803",
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "Mixed",
-        "PLO",
-        "NLH",
-        "Limit HE"
-      ],
-      "stakes_cash": null,
-      "poker_tables": 29,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2000.png"
-    },
-    {
-      "id": 2001,
-      "name": "Johnny’s Game ",
-      "slug": "johnny-s-game-las-vegas",
-      "website": "https://www.facebook.com/johnnysgame",
-      "address": "3000 S. Las Vegas Blvd.",
-      "city": "Las Vegas",
-      "state": "IL",
-      "phone": "(702) 676-7680",
-      "venue_type": "poker_club",
-      "has_tournaments": true,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/cash-games",
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH",
-        "PLO",
-        "PLO8",
-        "Limit HE",
-        "Tournaments"
-      ],
-      "stakes_cash": null,
-      "poker_tables": 10,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2001.png"
-    },
-    {
-      "id": 1997,
-      "name": "The Gym",
-      "slug": null,
-      "website": "https://www.facebook.com/thegympoker",
-      "address": "3000 S. Las Vegas Blvd.",
-      "city": "Las Vegas",
-      "state": "IL",
-      "phone": "(702) 676-7680",
-      "venue_type": "poker_club",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/resorts-world-las-vegas/tournaments",
-      "hours": null,
-      "latitude": null,
-      "longitude": null,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH",
-        "PLO",
-        "Tournaments"
-      ],
-      "stakes_cash": null,
-      "poker_tables": 5,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1997.png"
-    },
-    {
       "id": 2960,
       "name": "Chicago Charitable Games",
       "slug": "ccg-poker-lombard",
@@ -5563,32 +5476,6 @@
       "hours_weekend": null,
       "about": null,
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2960.png"
-    },
-    {
-      "id": 2962,
-      "name": "Hard Rock Casino",
-      "slug": "hard-rock-casino-rockford",
-      "website": "https://casino.hardrock.com/rockford/casino",
-      "address": "7801 E. State St.",
-      "city": "Rockford",
-      "state": "IL",
-      "phone": "(779) 269-9010",
-      "venue_type": "card_room",
-      "has_tournaments": true,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/hard-rock-casino-rockford",
-      "hours": null,
-      "latitude": 42.2699348,
-      "longitude": -88.9627801,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH"
-      ],
-      "stakes_cash": null,
-      "poker_tables": null,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2962.jpg"
     },
     {
       "id": 2823,
@@ -5646,7 +5533,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2804.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2804.jpg"
     },
     {
       "id": 2961,
@@ -5726,7 +5613,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2958.jpg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2958.png"
     },
     {
       "id": 2319,
@@ -5807,7 +5694,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2725.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2725.jpg"
     },
     {
       "id": 2318,
@@ -5837,7 +5724,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2318.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2318.jpg"
     },
     {
       "id": 2663,
@@ -5863,7 +5750,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2663.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2663.jpg"
     },
     {
       "id": 3052,
@@ -5918,7 +5805,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2323.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2323.jpg"
     },
     {
       "id": 1844,
@@ -6378,7 +6265,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3065.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3065.jpg"
     },
     {
       "id": 3066,
@@ -6430,7 +6317,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2671.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2671.jpg"
     },
     {
       "id": 3070,
@@ -6619,7 +6506,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2711.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2711.jpg"
     },
     {
       "id": 1837,
@@ -6680,7 +6567,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1836.jpg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1836.png"
     },
     {
       "id": 3046,
@@ -6706,7 +6593,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3046.jpg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3046.png"
     },
     {
       "id": 2492,
@@ -6764,7 +6651,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2493.jpg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2493.png"
     },
     {
       "id": 2640,
@@ -6842,7 +6729,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2965.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2965.jpg"
     },
     {
       "id": 1965,
@@ -6924,7 +6811,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2326.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2326.jpg"
     },
     {
       "id": 1871,
@@ -6976,7 +6863,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1968.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1968.jpg"
     },
     {
       "id": 2967,
@@ -7054,7 +6941,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2974.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2974.jpg"
     },
     {
       "id": 1980,
@@ -7083,7 +6970,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1980.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1980.jpg"
     },
     {
       "id": 2970,
@@ -7324,7 +7211,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1975.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1975.jpg"
     },
     {
       "id": 1966,
@@ -7376,7 +7263,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1967.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1967.jpg"
     },
     {
       "id": 1981,
@@ -7455,7 +7342,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1971.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1971.jpg"
     },
     {
       "id": 2969,
@@ -7507,7 +7394,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2975.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2975.jpg"
     },
     {
       "id": 1875,
@@ -7559,7 +7446,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2968.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2968.jpg"
     },
     {
       "id": 1973,
@@ -7585,7 +7472,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1973.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1973.jpg"
     },
     {
       "id": 1976,

@@ -15,8 +15,11 @@
  * @author Smarter.Poker Engineering
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// ═══ Phase GTO-CLONE: AICoachEngine for local coaching fallback ═══
+import { explainDecision, generateStudyPlan, COACH_PERSONALITY } from '../../engines/AICoachEngine';
 
 // ============================================================================
 // TYPES
@@ -166,6 +169,50 @@ const AnimatedCounter: React.FC<{ target: number; duration?: number; suffix?: st
 };
 
 // ============================================================================
+// ENGINE COACHING HELPERS (No AI — Pure Logic)
+// ============================================================================
+
+function _identifyStrengths(stats: any, positionStats?: any): string[] {
+    const strengths: string[] = [];
+    if (stats.accuracy >= 80) strengths.push('Consistent decision-making');
+    if (stats.bestStreak >= 8) strengths.push(`Excellent streak of ${stats.bestStreak} correct`);
+    else if (stats.bestStreak >= 5) strengths.push('Good streak management');
+    if (positionStats) {
+        const strongPositions = Object.entries(positionStats)
+            .filter(([_, v]: [string, any]) => v.total >= 3 && (v.correct / v.total) >= 0.8)
+            .map(([pos]) => pos);
+        if (strongPositions.length > 0) strengths.push(`Strong from ${strongPositions.join(', ')}`);
+    }
+    if (strengths.length === 0) strengths.push('Session completed');
+    return strengths;
+}
+
+function _identifyWeaknesses(stats: any, weakSpots?: any[], classificationCounts?: any): string[] {
+    const areas: string[] = [];
+    if (classificationCounts?.blunder > 0) areas.push(`${classificationCounts.blunder} blunder${classificationCounts.blunder > 1 ? 's' : ''} — review these hands`);
+    if (weakSpots && weakSpots.length > 0) {
+        const worst = weakSpots[0];
+        areas.push(`Weakest spot: ${worst.position || ''} ${worst.street || ''} ${worst.spotType || ''}`.trim());
+    }
+    if (stats.accuracy < 60) areas.push('Core GTO fundamentals need work');
+    return areas;
+}
+
+function _buildDetailedFeedback(stats: any, gtowScore?: number, totalEVLoss?: number, classificationCounts?: any): string {
+    let feedback = `You played ${stats.handsPlayed} hands with ${stats.accuracy}% accuracy.`;
+    if (gtowScore !== undefined) feedback += ` GTOW Score: ${gtowScore}.`;
+    if (totalEVLoss !== undefined && totalEVLoss > 0) feedback += ` Total EV loss: ${totalEVLoss.toFixed(1)} BB.`;
+    if (stats.bestStreak > 5) feedback += ` Great streak of ${stats.bestStreak}!`;
+    else feedback += ' Work on building longer correct streaks.';
+    if (classificationCounts) {
+        const best = classificationCounts.best || 0;
+        const correct = classificationCounts.correct || 0;
+        if (best + correct > 0) feedback += ` ${best + correct} optimal/correct decisions.`;
+    }
+    return feedback;
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -194,47 +241,50 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
     const [aiCoaching, setAiCoaching] = useState<AICoaching | null>(null);
     const [isLoadingCoaching, setIsLoadingCoaching] = useState(false);
 
-    // Fetch AI coaching when component opens
+    // ═══ Generate coaching from local AICoachEngine (no AI API) ═══
     useEffect(() => {
-        async function fetchCoaching() {
-            if (!isOpen || !gameId) return;
+        if (!isOpen || !gameId) return;
 
-            setIsLoadingCoaching(true);
-            try {
-                const response = await fetch('/api/training/coaching-summary', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        gameId,
-                        gameName,
-                        level,
-                        questionsAnswered: stats.handsPlayed,
-                        questionsCorrect: stats.correctAnswers,
-                        accuracy: stats.accuracy,
-                        streak: stats.bestStreak,
-                        timeSpentSeconds: stats.timeElapsed,
-                        mistakes: mistakes || [],
-                        // ═══ PHASE 15: Enhanced coaching data ═══
-                        gtowScore,
-                        totalEVLoss,
-                        classificationCounts,
-                        positionStats,
-                        weakSpots,
-                    })
-                });
+        setIsLoadingCoaching(true);
+        try {
+            const localCoaching: AICoaching = {
+                overallGrade: stats.accuracy >= 90 ? 'A+' : stats.accuracy >= 80 ? 'A' : stats.accuracy >= 70 ? 'B' : stats.accuracy >= 60 ? 'C' : 'D',
+                headline: stats.accuracy >= 90
+                    ? 'Exceptional session — GTO mastery in action.'
+                    : stats.accuracy >= 80
+                    ? 'Strong session — your GTO fundamentals are solid.'
+                    : stats.accuracy >= 70
+                    ? 'Good session — a few spots to tighten up.'
+                    : stats.accuracy >= 60
+                    ? 'Decent session with room for improvement.'
+                    : 'Focus on the basics — review your biggest mistakes.',
+                strengths: _identifyStrengths(stats, positionStats),
+                areasToImprove: _identifyWeaknesses(stats, weakSpots, classificationCounts),
+                detailedFeedback: _buildDetailedFeedback(stats, gtowScore, totalEVLoss, classificationCounts),
+                readyForNextLevel: stats.accuracy >= 85 && (gtowScore === undefined || gtowScore >= 70),
+            };
 
-                const data = await response.json();
-                if (data.success && data.coaching) {
-                    setAiCoaching(data.coaching);
+            // Generate study plan from mistakes
+            if (mistakes && mistakes.length > 0) {
+                const studyPlan = generateStudyPlan(mistakes.map(m => ({
+                    type: 'mistake',
+                    title: m.correctAnswer || 'Unknown',
+                    description: `Chose ${m.userAnswer} instead of ${m.correctAnswer}`,
+                    severity: 'major',
+                })));
+                if (studyPlan && studyPlan.days && studyPlan.days.length > 0) {
+                    localCoaching.recommendedDrill = {
+                        name: studyPlan.days[0].focus || 'Review Mistakes',
+                        reason: studyPlan.days[0].description || 'Practice your weakest spots',
+                    };
                 }
-            } catch (error) {
-                console.error('[RoundSummary] Failed to fetch AI coaching:', error);
-            } finally {
-                setIsLoadingCoaching(false);
             }
+            setAiCoaching(localCoaching);
+        } catch (err) {
+            console.warn('[RoundSummary] Engine coaching failed:', err);
+        } finally {
+            setIsLoadingCoaching(false);
         }
-
-        fetchCoaching();
     }, [isOpen, gameId, gameName, level, stats, mistakes]);
 
     // Animate through phases

@@ -5,6 +5,10 @@
 
 import React, { useState, useRef } from 'react';
 
+// ═══ Phase GTO-CLONE: Multi-site HandHistoryParser engine ═══
+import { parseHandHistory as engineParseHandHistory, detectSite, getHeroDecisionPoints } from '../../../engines/HandHistoryParser';
+import { analyzeHand } from '../../../engines/HandAnalyzer';
+
 interface ParsedHand {
     id: string;
     site: string;
@@ -117,6 +121,32 @@ export function HandHistoryParser({ onHandParsed, onClose }: HandHistoryParserPr
 
     const handleTextChange = (text: string) => {
         setRawText(text);
+        // ═══ Phase GTO-CLONE: Use multi-site engine first, fall back to legacy parser ═══
+        try {
+            const engineResult = engineParseHandHistory(text);
+            if (engineResult && engineResult.heroCards && engineResult.heroCards.length > 0) {
+                const detectedSite = detectSite(text);
+                setParsedHand({
+                    id: engineResult.id || 'unknown',
+                    site: detectedSite || 'Unknown',
+                    stakes: engineResult.stakes || 'Unknown',
+                    heroCards: engineResult.heroCards || [],
+                    board: engineResult.board || [],
+                    pot: engineResult.pot || 0,
+                    result: engineResult.result || '',
+                    actions: (engineResult.actions || []).map((a: any) => ({
+                        street: a.street,
+                        player: a.player,
+                        action: a.action,
+                        amount: a.amount,
+                    })),
+                });
+                return;
+            }
+        } catch (e) {
+            // Fall through to legacy parser
+            console.warn('[HandHistoryParser] Engine parse failed, using legacy:', e);
+        }
         const parsed = parsePokerStarsHand(text);
         setParsedHand(parsed);
     };

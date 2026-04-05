@@ -10,7 +10,8 @@
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { getGrokClient } from '../../../src/lib/grokClient';
+// ═══ Phase GTO-CLONE: Grok AI removed — all questions from engines only ═══
+// import { getGrokClient } from '../../../src/lib/grokClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
@@ -126,15 +127,11 @@ export default async function handler(req, res) {
               }
           }
 
-          // FALLBACK: Route to legacy engine if deterministic failed
+          // FALLBACK: Route to legacy PIO engine if deterministic failed
           if (!question) {
               if (preferredEngine === 'SCENARIO') {
-                  // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
-                  question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
-
-                  // CHART ENGINE: Handled by DeterministicGTOEngine.generateFromCharts() in STEP 3
-                  // (Legacy generateQuestionFromChart/generateChartQuestionWithGrok were removed in Phase 28)
-
+                  // SCENARIO ENGINE: Now handled by DeterministicGTOEngine — no AI fallback
+                  console.log(`[Training] SCENARIO engine for ${gameId} — engine-only, no Grok.`);
               } else {
                   // PIO ENGINE: GTO Solver Data (Default)
                   try {
@@ -185,36 +182,12 @@ export default async function handler(req, res) {
 
 
           // ═══════════════════════════════════════════════════════════════════
-          // STEP 4: GROK AI FALLBACK — ALL GAMES
-          // When both deterministic engine and cache return nothing, fall back
-          // to Grok AI to ensure every game has content. Questions are clearly
-          // labeled as GROK_GTO source (not solver-verified).
+          // STEP 4: ENGINE-ONLY — No AI fallback
+          // All questions come from DeterministicGTOEngine, PostflopScenarioGenerator,
+          // or Supabase cache. If none available, return error.
           // ═══════════════════════════════════════════════════════════════════
           if (!question) {
-              const grokEngine = preferredEngine === 'SCENARIO' ? 'SCENARIO' : engineType;
-              console.log(`[Training] ⚠️ Falling back to Grok AI for ${gameId} (engine: ${grokEngine})`);
-              question = await generateQuestionWithGrok(gameId, grokEngine, level, gameType, game, gameConfig);
-
-              // Save to cache for future use (avoids repeated Grok calls)
-              if (question) {
-                  try {
-                      await getSupabase()
-                          .from('training_question_cache')
-                          .insert({
-                              question_id: question.id,
-                              game_id: gameId,
-                              engine_type: grokEngine,
-                              game_type: gameType,
-                              level: parseInt(level, 10),
-                              question_data: question,
-                              times_used: 1,
-                          });
-                  } catch (cacheError) {
-                      if (!cacheError.message?.includes('duplicate')) {
-                          console.error('[Training] ⚠️ Cache save failed:', cacheError.message);
-                      }
-                  }
-              }
+              console.log(`[Training] ⚠️ No question available for ${gameId} level ${level} — all engines returned empty.`);
           }
 
           if (!question) {

@@ -12,6 +12,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { getSessionToken } from '../../lib/authUtils';
 
+// ═══ Phase GTO-CLONE: LeakDetector + HandAnalyzer engines ═══
+import { detectLeaks, analyzeFrequencies, generateDrillRecommendations } from '../../engines/LeakDetector';
+
 // ── SVG Line Chart ──────────────────────────────────────────────
 function LineChart({
     data = [],
@@ -434,7 +437,80 @@ export default function PerformanceTrends({ gameId, userId, days = 30, compact =
                     <ClassificationTrendChart data={classificationTrend} height={60} />
                 </motion.div>
             )}
+
+            {/* ═══ Phase GTO-CLONE: Leak Detection via LeakDetector Engine ═══ */}
+            {!compact && analytics?.sessionHistory && (
+                <LeakDetectionPanel sessionHistory={analytics.sessionHistory} />
+            )}
         </div>
+    );
+}
+
+// ═══ Phase GTO-CLONE: Leak Detection Panel using LeakDetector engine ═══
+function LeakDetectionPanel({ sessionHistory }) {
+    const leaks = useMemo(() => {
+        if (!sessionHistory || sessionHistory.length < 3) return null;
+        try {
+            return detectLeaks(sessionHistory);
+        } catch (e) {
+            return null;
+        }
+    }, [sessionHistory]);
+
+    const drills = useMemo(() => {
+        if (!leaks || leaks.length === 0) return [];
+        try {
+            return generateDrillRecommendations(leaks);
+        } catch (e) {
+            return [];
+        }
+    }, [leaks]);
+
+    if (!leaks || leaks.length === 0) return null;
+
+    const severityColors = { critical: '#ef4444', major: '#f97316', minor: '#fbbf24' };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            style={{
+                padding: '12px',
+                background: 'rgba(239, 68, 68, 0.05)',
+                borderRadius: 8,
+                border: '1px solid rgba(239, 68, 68, 0.15)',
+                marginTop: 8,
+            }}
+        >
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                🔍 Leak Detection
+                <span style={{ fontSize: 9, fontWeight: 400, color: '#94a3b8' }}>
+                    {leaks.length} leak{leaks.length !== 1 ? 's' : ''} identified
+                </span>
+            </div>
+            {leaks.slice(0, 3).map((leak, i) => (
+                <div key={i} style={{
+                    padding: '8px',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: 6,
+                    marginBottom: i < 2 ? 6 : 0,
+                    borderLeft: `3px solid ${severityColors[leak.severity] || '#fbbf24'}`,
+                }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0', marginBottom: 2 }}>
+                        {leak.title || leak.type}
+                    </div>
+                    <div style={{ fontSize: 9, color: '#94a3b8', lineHeight: 1.4 }}>
+                        {leak.description || leak.fix}
+                    </div>
+                </div>
+            ))}
+            {drills.length > 0 && (
+                <div style={{ marginTop: 8, fontSize: 10, color: '#64748b' }}>
+                    💡 Recommended: {drills.slice(0, 2).map(d => d.name || d.description).join(', ')}
+                </div>
+            )}
+        </motion.div>
     );
 }
 

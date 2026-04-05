@@ -10,7 +10,10 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
+
+// ═══ Phase GTO-CLONE: Import GTOScoreEngine for grade/diamond calculations ═══
+import { SessionScorer, getScoreGrade, getScoreColor, calculateSessionDiamonds } from '../engines/GTOScoreEngine';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONSTANTS
@@ -344,6 +347,9 @@ export default function useGTOWScore() {
     const [positionStats, setPositionStats] = useState({});  // { 'BTN': { total: 0, correct: 0 }, ... }
     const [streetStats, setStreetStats] = useState({});      // { 'flop': { total: 0, correct: 0 }, ... }
 
+    // ═══ Phase GTO-CLONE: SessionScorer from GTOScoreEngine ═══
+    const sessionScorerRef = useRef(new SessionScorer());
+
     // Derived metrics
     const gtowScore = useMemo(() => {
         if (movesMade === 0) return 100;
@@ -460,6 +466,21 @@ export default function useGTOWScore() {
             timestamp: Date.now(),
             ...handData,
         }]);
+
+        // ═══ Phase GTO-CLONE: Also record in SessionScorer for grade/diamond tracking ═══
+        try {
+            sessionScorerRef.current.recordMove({
+                handId: handData?.handId || `hand_${Date.now()}`,
+                street: handData?.street || 'preflop',
+                heroCards: handData?.heroCards || '',
+                board: handData?.board || [],
+                playerAction: handData?.action || '',
+                gtoAction: handData?.correctAction || '',
+                evLoss: evLoss || 0,
+            });
+        } catch (e) {
+            // Non-critical — main scoring still works without this
+        }
     }, []);
 
     /**
@@ -480,6 +501,8 @@ export default function useGTOWScore() {
         setLastClassification(null);
         setPositionStats({});
         setStreetStats({});
+        // ═══ Phase GTO-CLONE: Reset SessionScorer ═══
+        sessionScorerRef.current.reset();
     }, []);
 
     // ═══ Phase 36: Derived accuracy metric ═══
@@ -751,6 +774,14 @@ export default function useGTOWScore() {
 
         // Phase 59: Hand type performance
         handTypePerformance,
+
+        // ═══ Phase GTO-CLONE: Grade + Diamond integration from GTOScoreEngine ═══
+        grade: getScoreGrade(gtowScore),
+        gradeColor: getScoreColor(gtowScore),
+        sessionSummary: sessionScorerRef.current.getSummary(),
+        calculateDiamonds: (levelMultiplier = 1.0) =>
+            calculateSessionDiamonds(sessionScorerRef.current.getSummary(), levelMultiplier),
+        sessionScorer: sessionScorerRef.current,
 
         // Actions
         recordMove,

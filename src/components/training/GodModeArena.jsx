@@ -1555,36 +1555,45 @@ function GodModeArenaInner({
                         correctAnswer: h.correctAnswer || '?',
                     })) || [];
 
-                const res = await fetch('/api/training/coaching-summary', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                        gameId,
-                        gameName,
-                        level: currentLevel,
-                        questionsAnswered: totalQ,
-                        questionsCorrect: correctQ,
-                        accuracy: acc,
-                        streak: bestStreak,
-                        timeSpentSeconds: sessionElapsed,
-                        mistakes: mistakesArr,
-                        gtowScore,
-                        totalEVLoss,
-                        classificationCounts: (() => {
-                            const cc = {};
-                            handHistory?.forEach(h => { if (h.classification) cc[h.classification] = (cc[h.classification] || 0) + 1; });
-                            return cc;
-                        })(),
-                        positionStats: posStats,
-                        weakSpots: weakSpots.slice(0, 5),
-                        crossSessionContext,
-                    }),
-                });
+                // ═══ Phase GTO-CLONE: Engine-only coaching (no AI API) ═══
+                const cc = {};
+                handHistory?.forEach(h => { if (h.classification) cc[h.classification] = (cc[h.classification] || 0) + 1; });
 
-                const data = await res.json();
-                if (data.success && data.coaching) {
-                    setAiCoaching(data.coaching);
+                const strengths = [];
+                if (acc >= 80) strengths.push('Consistent decision-making');
+                if (bestStreak >= 8) strengths.push(`Excellent streak of ${bestStreak} correct`);
+                else if (bestStreak >= 5) strengths.push('Good streak management');
+                const strongPositions = Object.entries(posStats)
+                    .filter(([, v]) => v.total >= 3 && (v.correct / v.total) >= 0.8)
+                    .map(([pos]) => pos);
+                if (strongPositions.length > 0) strengths.push(`Strong from ${strongPositions.join(', ')}`);
+                if (strengths.length === 0) strengths.push('Session completed');
+
+                const areas = [];
+                if (cc.blunder > 0) areas.push(`${cc.blunder} blunder${cc.blunder > 1 ? 's' : ''} — review these hands`);
+                if (weakSpots.length > 0) {
+                    const worst = weakSpots[0];
+                    areas.push(`Weakest spot: ${worst.position || ''} ${worst.street || ''} ${worst.spotType || ''}`.trim());
                 }
+                if (acc < 60) areas.push('Core GTO fundamentals need work');
+
+                let feedback = `You played ${totalQ} hands with ${acc}% accuracy.`;
+                if (gtowScore !== undefined) feedback += ` GTOW Score: ${gtowScore}.`;
+                if (totalEVLoss !== undefined && totalEVLoss > 0) feedback += ` Total EV loss: ${totalEVLoss.toFixed(1)} BB.`;
+                feedback += bestStreak > 5 ? ` Great streak of ${bestStreak}!` : ' Work on building longer correct streaks.';
+
+                setAiCoaching({
+                    overallGrade: acc >= 90 ? 'A+' : acc >= 80 ? 'A' : acc >= 70 ? 'B' : acc >= 60 ? 'C' : 'D',
+                    headline: acc >= 90 ? 'Exceptional session — GTO mastery in action.'
+                        : acc >= 80 ? 'Strong session — your GTO fundamentals are solid.'
+                        : acc >= 70 ? 'Good session — a few spots to tighten up.'
+                        : acc >= 60 ? 'Decent session with room for improvement.'
+                        : 'Focus on the basics — review your biggest mistakes.',
+                    strengths,
+                    areasToImprove: areas,
+                    detailedFeedback: feedback,
+                    readyForNextLevel: acc >= 85 && (gtowScore === undefined || gtowScore >= 70),
+                });
             } catch (err) {
                 console.warn('[AICoaching] Fetch error:', err.message);
             }

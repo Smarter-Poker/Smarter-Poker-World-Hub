@@ -27,6 +27,14 @@ import {
     getRFIByDepth,
 } from '../config/solverRanges';
 
+// ═══ POSTFLOP ENGINE INTEGRATION (L8-L10) ═══
+import {
+    getRandomPostflopScenario,
+    getFilteredPostflopScenario,
+    generateAllPostflopScenarios,
+} from './PostflopScenarioGenerator';
+import { calculateActionEVs } from './EVCalculator';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ACTION CODE → HUMAN-READABLE LABEL MAPPING
 // ═══════════════════════════════════════════════════════════════════════════
@@ -382,6 +390,11 @@ export class DeterministicGTOEngine {
 
         const source = gameConfig.sourceOfTruth;
 
+        // ═══ POSTFLOP L8-L10: Route to PostflopScenarioGenerator ═══
+        if (level >= 8 && level <= 10) {
+            return this.generateFromPostflopEngine(gameConfig, level, seenIds);
+        }
+
         if (source === 'PioSOLVER') {
             const question = await this.generateFromSolvedSpots(gameConfig, level, seenIds);
             // Fallback: if no PIO data and game is preflop-focused, use local solver ranges
@@ -392,7 +405,7 @@ export class DeterministicGTOEngine {
         } else if (source === 'ICMIZER') {
             return this.generateFromCharts(gameConfig, level, seenIds);
         }
-        // SCENARIO games (psychology) fall back to Grok — not handled here
+        // SCENARIO games (psychology) — handled by solver data pool, no AI fallback
         return null;
     }
 
@@ -402,6 +415,142 @@ export class DeterministicGTOEngine {
      * Covers ALL spot types: RFI, 3-Bet, BB Defense, 4-Bet, Cold Call, Squeeze.
      * Higher levels get more complex spots (3bet, 4bet, squeeze).
      */
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // POSTFLOP ENGINE (L8-L10) — Routes to PostflopScenarioGenerator
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Generate a postflop training question from the PostflopScenarioGenerator.
+     * Converts engine scenario format → standard training question format.
+     */
+    generateFromPostflopEngine(gameConfig, level, seenIds = []) {
+        try {
+            const scenario = getRandomPostflopScenario(level);
+            if (!scenario) {
+                console.warn(`[DeterministicEngine] No postflop scenario for L${level}`);
+                return null;
+            }
+
+            // Build unique ID to avoid repeats
+            const scenarioId = `postflop_L${level}_${scenario.heroCards.join('')}_${scenario.board.join('')}`;
+            if (seenIds.includes(scenarioId)) {
+                // Try again with a filter to get a different scenario
+                const altScenario = getRandomPostflopScenario(level);
+                if (!altScenario) return null;
+            }
+
+            // Map scenario options to standard question format
+            const options = scenario.options.map((opt, idx) => ({
+                id: String.fromCharCode(97 + idx), // a, b, c, d
+                text: opt.label || opt.action,
+                action: opt.action,
+                frequency: opt.frequency || 0,
+            }));
+
+            // Find correct answer (highest frequency action)
+            const correctOption = options.reduce((best, opt) =>
+                opt.frequency > best.frequency ? opt : best, options[0]);
+
+            // Build GTO frequencies map { "a": 45, "b": 30, "c": 25 }
+            const gtoFrequencies = {};
+            options.forEach(opt => { gtoFrequencies[opt.id] = opt.frequency; });
+
+            // Build the street label
+            const streetLabels = { flop: 'Flop', turn: 'Turn', river: 'River' };
+            const streetLabel = streetLabels[scenario.street] || scenario.street;
+
+            // Format board display
+            const boardStr = scenario.board.map(c => c.toUpperCase()).join(' ');
+            const heroStr = scenario.heroCards.map(c => c.toUpperCase()).join(' ');
+
+            // Build question text
+            const contextParts = [];
+            if (scenario.lastAction) contextParts.push(scenario.lastAction);
+            if (scenario.boardTexture) contextParts.push(`Board: ${scenario.boardTexture}`);
+            if (scenario.madeHand) contextParts.push(`You have: ${scenario.madeHand}`);
+            if (scenario.draws && scenario.draws.length > 0) contextParts.push(`Draws: ${scenario.draws.join(', ')}`);
+
+            const question = {
+                id: scenarioId,
+                type: 'PIO',
+                source: 'POSTFLOP_ENGINE',
+                question: `${streetLabel} Decision — ${scenario.position} vs ${scenario.villainPosition}`,
+                scenario: {
+                    title: `${streetLabel} Play`,
+                    context: contextParts.join(' | '),
+                    heroPosition: scenario.position,
+                    villainPosition: scenario.villainPosition,
+                    pot: scenario.potSize || 6,
+                    heroStack: scenario.stackSize || 100,
+                    villainStack: scenario.stackSize || 100,
+                    street: scenario.street,
+                    board: boardStr,
+                    heroHand: heroStr,
+                    // ═══ POSTFLOP-SPECIFIC FIELDS ═══
+                    boardTexture: scenario.boardTexture || null,
+                    madeHand: scenario.madeHand || null,
+                    draws: scenario.draws || [],
+                    isPFR: scenario.isPFR !== undefined ? scenario.isPFR : true,
+                    spotType: scenario.spotType || null,
+                },
+                heroCards: scenario.heroCards,
+                boardCards: scenario.board,
+                options,
+                correctAnswer: correctOption.id,
+                correctAnswerText: correctOption.text,
+                explanation: scenario.explanation || `GTO ${correctOption.text} at ${correctOption.frequency}% frequency on this ${scenario.boardTexture || ''} board.`,
+                gtoFrequencies,
+                level,
+                // EV data from EVCalculator if available
+                evData: scenario.evData || null,
+            };
+
+            return question;
+        } catch (err) {
+            console.error('[DeterministicEngine] Postflop generation error:', err.message);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a batch of postflop questions for L8-L10.
+     */
+    generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty) {
+        const questions = [];
+        const usedIds = new Set();
+
+        // Generate more than needed to allow filtering
+        const maxAttempts = count * 4;
+        for (let i = 0; i < maxAttempts && questions.length < count; i++) {
+            const filter = {};
+            if (targetPositions && targetPositions.length > 0) {
+                filter.position = targetPositions[i % targetPositions.length];
+            }
+            if (targetStreet) {
+                // Map targetStreet to spotType
+                const streetSpotMap = { flop: 'cbet', turn: 'turn_barrel', river: 'river_value' };
+                filter.spotType = streetSpotMap[targetStreet] || undefined;
+            }
+
+            const scenario = Object.keys(filter).length > 0
+                ? getFilteredPostflopScenario(level, filter)
+                : getRandomPostflopScenario(level);
+
+            if (!scenario) continue;
+
+            const q = this.generateFromPostflopEngine({ pioStackDepth: 100 }, level, [...usedIds]);
+            if (!q) continue;
+            if (usedIds.has(q.id)) continue;
+
+            usedIds.add(q.id);
+            questions.push(q);
+        }
+
+        console.log(`[DeterministicEngine] ✅ Generated ${questions.length} postflop questions for L${level}`);
+        return questions;
+    }
+
     generateFromLocalSolverRanges(gameConfig, level) {
         try {
             const stackDepth = gameConfig.pioStackDepth || 100;
@@ -766,6 +915,11 @@ export class DeterministicGTOEngine {
      */
     async generateBatch({ gameId, level, count = 25, gameConfig, targetPositions, targetStreet, difficulty = 'standard', scenarioLevels, spotTypes, stackDepths }) {
         if (!gameConfig) return [];
+
+        // ═══ POSTFLOP L8-L10: Route to PostflopScenarioGenerator ═══
+        if (level >= 8 && level <= 10) {
+            return this.generatePostflopBatch(level, count, targetPositions, targetStreet, difficulty);
+        }
 
         const questions = [];
         const usedQuestionIds = new Set();

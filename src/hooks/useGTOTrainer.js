@@ -17,6 +17,9 @@ import { eventBus } from '../engine/EventBus';
 import { trainingSounds } from '../utils/trainingSounds';
 import { deterministicEngine } from '../engines/DeterministicGTOEngine';
 
+// ═══ Phase GTO-CLONE: SessionTracker for Supabase persistence ═══
+import { createSessionRecord, createMoveRecords, saveSession } from '../engines/SessionTracker';
+
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel;
 const TOTAL_LEVELS = TRAINING_CONFIG.totalLevels; // 12 (from LevelRegistry)
 
@@ -968,6 +971,28 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 }, 'useGTOTrainer');
             } catch (busErr) {
                 console.warn('[GTOTrainer] Bus emit failed (non-critical):', busErr.message);
+            }
+
+            // ═══ Phase GTO-CLONE: Save session + moves via SessionTracker ═══
+            try {
+                if (gtowScoring.sessionScorer && userId) {
+                    const summary = gtowScoring.sessionScorer.getSummary();
+                    const sessionRecord = createSessionRecord({
+                        userId,
+                        gameId,
+                        level,
+                        summary,
+                    });
+                    const moveRecords = createMoveRecords(
+                        'session_' + Date.now(),
+                        gtowScoring.sessionScorer.moves || []
+                    );
+                    await saveSession(sessionRecord, moveRecords).catch(e =>
+                        console.warn('[GTOTrainer] SessionTracker save non-critical error:', e.message)
+                    );
+                }
+            } catch (stErr) {
+                console.warn('[GTOTrainer] SessionTracker integration non-critical:', stErr.message);
             }
 
         } catch (err) {

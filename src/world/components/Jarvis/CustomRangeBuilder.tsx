@@ -6,6 +6,9 @@
 import React, { useState } from 'react';
 import { PRESET_RANGES } from './RangeVisualizer';
 
+// ═══ Phase GTO-CLONE: RangeGradingEngine for automated grading ═══
+import { gradeRange, generateHeatmapGrid, HAND_CATEGORIES } from '../../../engines/RangeGradingEngine';
+
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 interface CustomRangeBuilderProps {
@@ -20,6 +23,9 @@ export function CustomRangeBuilder({ initialRange, onSave, onAskJarvis, onClose 
     const [compareTo, setCompareTo] = useState<string>('BTN Open');
     const [brushMode, setBrushMode] = useState<'add' | 'remove' | 'mixed'>('add');
     const [brushFrequency, setBrushFrequency] = useState(1);
+
+    // ═══ Phase GTO-CLONE: Range grading state ═══
+    const [gradeResult, setGradeResult] = useState<any>(null);
 
     // Get hand notation for a cell
     const getHandNotation = (row: number, col: number): { hand: string; type: 'pair' | 'suited' | 'offsuit' } => {
@@ -77,7 +83,18 @@ export function CustomRangeBuilder({ initialRange, onSave, onAskJarvis, onClose 
 
     const gtoRange = PRESET_RANGES[compareTo]?.hands || {};
 
-    const clearRange = () => setCustomRange({});
+    const clearRange = () => { setCustomRange({}); setGradeResult(null); };
+
+    // ═══ Phase GTO-CLONE: Grade player's range vs GTO ═══
+    const gradeMyRange = () => {
+        try {
+            const solverSolution = PRESET_RANGES[compareTo]?.hands || {};
+            const result = gradeRange(customRange, solverSolution, 'frequency');
+            setGradeResult(result);
+        } catch (e) {
+            console.error('[CustomRangeBuilder] Grade error:', e);
+        }
+    };
 
     const loadPreset = () => {
         const preset = PRESET_RANGES[compareTo]?.hands || {};
@@ -360,25 +377,89 @@ Compare this to a standard ${compareTo} range and tell me:
                 </button>
             </div>
 
-            <button
-                onClick={askJarvisToReview}
-                disabled={Object.keys(customRange).length === 0}
-                style={{
-                    width: '100%',
+            {/* ═══ Phase GTO-CLONE: Grade vs GTO Button ═══ */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <button
+                    onClick={gradeMyRange}
+                    disabled={Object.keys(customRange).length === 0}
+                    style={{
+                        flex: 1,
+                        padding: '10px',
+                        background: Object.keys(customRange).length > 0
+                            ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                            : 'rgba(34, 197, 94, 0.2)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: Object.keys(customRange).length > 0 ? '#fff' : 'rgba(255, 255, 255, 0.3)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: Object.keys(customRange).length > 0 ? 'pointer' : 'not-allowed'
+                    }}
+                >
+                    📊 Grade vs GTO
+                </button>
+                <button
+                    onClick={askJarvisToReview}
+                    disabled={Object.keys(customRange).length === 0}
+                    style={{
+                        flex: 1,
+                        padding: '10px',
+                        background: Object.keys(customRange).length > 0
+                            ? 'linear-gradient(135deg, #FFD700, #FFA500)'
+                            : 'rgba(255, 215, 0, 0.2)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: Object.keys(customRange).length > 0 ? '#000' : 'rgba(255, 255, 255, 0.3)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: Object.keys(customRange).length > 0 ? 'pointer' : 'not-allowed'
+                    }}
+                >
+                    🎩 Ask Jarvis
+                </button>
+            </div>
+
+            {/* ═══ Phase GTO-CLONE: Grade Result Display ═══ */}
+            {gradeResult && (
+                <div style={{
                     padding: '12px',
-                    background: Object.keys(customRange).length > 0
-                        ? 'linear-gradient(135deg, #FFD700, #FFA500)'
-                        : 'rgba(255, 215, 0, 0.2)',
-                    border: 'none',
+                    background: 'rgba(34, 197, 94, 0.1)',
+                    border: `1px solid ${gradeResult.score >= 80 ? 'rgba(34, 197, 94, 0.4)' : gradeResult.score >= 60 ? 'rgba(245, 158, 11, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
                     borderRadius: '8px',
-                    color: Object.keys(customRange).length > 0 ? '#000' : 'rgba(255, 255, 255, 0.3)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: Object.keys(customRange).length > 0 ? 'pointer' : 'not-allowed'
-                }}
-            >
-                🎩 Ask Jarvis to Review My Range
-            </button>
+                    marginBottom: '8px'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>Range Grade</span>
+                        <span style={{
+                            fontSize: '20px',
+                            fontWeight: 800,
+                            color: gradeResult.score >= 80 ? '#22c55e' : gradeResult.score >= 60 ? '#f59e0b' : '#ef4444'
+                        }}>
+                            {Math.round(gradeResult.score)}%
+                        </span>
+                    </div>
+                    {gradeResult.categoryBreakdown && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            {Object.entries(gradeResult.categoryBreakdown).map(([cat, data]: [string, any]) => (
+                                <span key={cat} style={{
+                                    padding: '2px 6px',
+                                    background: data.score >= 80 ? 'rgba(34, 197, 94, 0.2)' : data.score >= 60 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                    borderRadius: '4px',
+                                    fontSize: '9px',
+                                    color: 'rgba(255, 255, 255, 0.8)'
+                                }}>
+                                    {cat.replace(/_/g, ' ')}: {Math.round(data.score)}%
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                    {gradeResult.worstHands && gradeResult.worstHands.length > 0 && (
+                        <div style={{ marginTop: '8px', fontSize: '10px', color: 'rgba(255, 255, 255, 0.6)' }}>
+                            Biggest deviations: {gradeResult.worstHands.slice(0, 5).map((h: any) => h.hand).join(', ')}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

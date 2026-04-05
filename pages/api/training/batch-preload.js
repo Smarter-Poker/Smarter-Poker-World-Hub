@@ -139,39 +139,23 @@ export default async function handler(req, res) {
                       console.error('[BatchPreload] ⚠️ Solver engine failed:', solverErr.message);
                   }
               } else if (gameCfg?.engine === 'SCENARIO' || pioConfig?.sourceOfTruth === 'SCENARIO') {
-                  // SCENARIO/PSYCHOLOGY: Generate via Grok AI when cache is empty
+                  // SCENARIO/PSYCHOLOGY: Use DeterministicEngine for scenario questions too
+                  // No AI fallback — engines handle all question generation
                   try {
-                      const { getGrokClient } = await import('../../../src/lib/grokClient');
-                      const grok = getGrokClient();
-                      const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default;
-                      const game = TRAINING_LIBRARY.find(g => g.id === gameId);
-                      const gameName = game?.name || 'Training Game';
-                      const gameFocus = game?.focus || 'poker psychology';
-                      const needed = questionCount - cachedQuestions.length;
-
-                      for (let i = 0; i < Math.min(needed, 10); i++) {
-                          try {
-                              const prompt = `You are an elite poker mental game coach. Generate a unique PSYCHOLOGY training question #${i + 1} for "${gameName}" focusing on: ${gameFocus}. Difficulty: ${gameLevel}/10.\n\nGenerate in this EXACT JSON format (no markdown):\n{"id":"grok_${gameId}_${Date.now()}_${i}","type":"SCENARIO","source":"GROK_GTO","question":"...","scenario":{"title":"${gameName}","context":"...","isPsychology":true,"heroPosition":"BTN","villainPosition":"BB","pot":12,"heroStack":100,"villainStack":100,"street":"flop"},"options":[{"id":"a","text":"..."},{"id":"b","text":"..."},{"id":"c","text":"..."},{"id":"d","text":"..."}],"correctAnswer":"b","explanation":"..."}`;
-                              const resp = await grok.chat.completions.create({
-                                  model: 'grok-3', messages: [{ role: 'user', content: prompt }],
-                                  temperature: 0.9, max_tokens: 600,
-                              }, { signal: AbortSignal.timeout(15000) });
-                              const content = resp.choices[0]?.message?.content || '';
-                              const jsonMatch = content.match(/\{[\s\S]*\}/);
-                              if (jsonMatch) {
-                                  const parsed = JSON.parse(jsonMatch[0]);
-                                  if (parsed.scenario) parsed.scenario.isPsychology = true;
-                                  solverQuestions.push({ question_data: parsed });
-                              }
-                          } catch (grokErr) {
-                              console.warn('[BatchPreload] Grok question gen failed:', grokErr.message);
-                          }
+                      const batch = deterministicEngine.generateBatch(
+                          gameLevel,
+                          Math.min(questionCount - cachedQuestions.length, 15),
+                          gameCfg,
+                      );
+                      if (batch && batch.length > 0) {
+                          solverQuestions = batch.map(q => {
+                              if (q.scenario) q.scenario.isPsychology = true;
+                              return { question_data: q };
+                          });
+                          console.log(`[BatchPreload] ✅ Engine generated ${batch.length} scenario questions for ${gameId}`);
                       }
-                      if (solverQuestions.length > 0) {
-                          console.log(`[BatchPreload] ✅ Grok generated ${solverQuestions.length} psychology questions for ${gameId}`);
-                      }
-                  } catch (grokImportErr) {
-                      console.error('[BatchPreload] ⚠️ Grok import failed:', grokImportErr.message);
+                  } catch (scenarioErr) {
+                      console.warn('[BatchPreload] ⚠️ Scenario engine failed:', scenarioErr.message);
                   }
               }
           }
@@ -180,43 +164,9 @@ export default async function handler(req, res) {
           const allQuestions = [...cachedQuestions, ...solverQuestions];
 
           if (allQuestions.length === 0) {
-              // ═══ GROK AI FALLBACK — for games with zero data ═══
-              try {
-                  const { getGrokClient } = await import('../../../src/lib/grokClient');
-                  const grok = getGrokClient();
-                  const TRAINING_LIBRARY = require('../../../src/data/TRAINING_LIBRARY').default || require('../../../src/data/TRAINING_LIBRARY');
-                  const game = (Array.isArray(TRAINING_LIBRARY) ? TRAINING_LIBRARY : []).find(g => g.id === gameId);
-                  const gameName = game?.name || 'Training Game';
-                  const gameFocus = game?.focus || 'GTO poker strategy';
-
-                  console.log(`[BatchPreload] ⚠️ Grok fallback for ${gameId} (zero cache+solver data)`);
-                  for (let i = 0; i < Math.min(questionCount, 10); i++) {
-                      try {
-                          const prompt = `You are an elite GTO poker coach. Generate a unique training question #${i + 1} for "${gameName}" focusing on: ${gameFocus}. Difficulty: ${gameLevel}/10.\n\nGenerate in this EXACT JSON format (no markdown):\n{"id":"grok_${gameId}_${Date.now()}_${i}","type":"PIO","source":"GROK_GTO","question":"...","scenario":{"title":"${gameName}","context":"...","heroPosition":"BTN","villainPosition":"BB","pot":12,"heroStack":100,"villainStack":100,"street":"flop","board":"Jh 7s 2d","heroHand":"AKs"},"heroCards":["Ah","Kh"],"boardCards":["Jh","7s","2d"],"options":[{"id":"a","text":"Fold"},{"id":"b","text":"Call"},{"id":"c","text":"Raise"},{"id":"d","text":"All-In"}],"correctAnswer":"c","correctAnswerText":"Raise","explanation":"...","gtoFrequencies":{"a":5,"b":25,"c":60,"d":10}}`;
-                          const resp = await grok.chat.completions.create({
-                              model: 'grok-3', messages: [{ role: 'user', content: prompt }],
-                              temperature: 0.9, max_tokens: 800,
-                          }, { signal: AbortSignal.timeout(15000) });
-                          const content = resp.choices[0]?.message?.content || '';
-                          const jsonMatch = content.match(/\{[\s\S]*\}/);
-                          if (jsonMatch) {
-                              const parsed = JSON.parse(jsonMatch[0]);
-                              allQuestions.push({ question_data: parsed });
-                          }
-                      } catch (grokErr) {
-                          console.warn('[BatchPreload] Grok question gen failed:', grokErr.message);
-                      }
-                  }
-                  if (allQuestions.length > 0) {
-                      console.log(`[BatchPreload] ✅ Grok fallback generated ${allQuestions.length} questions for ${gameId}`);
-                  }
-              } catch (grokImportErr) {
-                  console.error('[BatchPreload] ⚠️ Grok import failed:', grokImportErr.message);
-              }
-          }
-
-          if (allQuestions.length === 0) {
-              return res.status(404).json({ success: false, error: 'No questions available for this game/level' });
+              // ═══ Engine-only — no AI fallback. Return 404 if no solver data exists. ═══
+              console.log(`[BatchPreload] ⚠️ No questions for ${gameId} level ${gameLevel} — engines returned empty.`);
+              return res.status(404).json({ success: false, error: 'No questions available for this game/level. Solver data not yet loaded for this configuration.' });
           }
 
           // BUG-03 FIX: Use Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
