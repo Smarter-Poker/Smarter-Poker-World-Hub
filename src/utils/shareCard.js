@@ -202,3 +202,39 @@ export function savePersonalBest(gameMode, score, grade) {
         console.warn('[PersonalBest] Save failed:', e);
     }
 }
+
+/**
+ * Get a coaching tip based on grade and game mode
+ */
+const COACHING_TIPS = {
+    S: [
+        'Elite-level play. You\'re operating at GTO precision.',
+        'Flawless execution. Time to raise the stakes and push harder.',
+        'Near-perfect. Try a harder difficulty or faster speed next.',
+    ],
+    A: [
+        'Strong fundamentals. Tighten up marginal spots to reach S-tier.',
+        'Great session! Focus on the spots you missed to break through.',
+        'You\'re close to mastery. Review your weakest positions.',
+    ],
+    B: [
+        'Solid base. Drill the positions you\'re weakest on individually.',
+        'Good progress. Pay attention to how position changes optimal ranges.',
+        'Getting there. Try slowing down to build accuracy before speed.',
+    ],
+    C: [
+        'Focus on memorizing core opening ranges before mixed spots.',
+        'Study one position at a time \u2014 mastery comes from depth, not breadth.',
+        'Try the easier levels first to build a strong foundation.',
+    ],
+    D: [
+        'Start with the fundamentals: EP is tight, LP is wide, blinds defend.',
+        'Review the basic range charts before speed-running drills.',
+        'No worries \u2014 every GTO master started where you are. Keep grinding!',
+    ],
+};
+
+export function getCoachingTip(grade) {
+    const tips = COACHING_TIPS[grade] || COACHING_TIPS.C;
+    return tips[Math.floor(Math.random() * tips.length)];
+}

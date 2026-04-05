@@ -2,10 +2,11 @@
  * Pattern Recognition Game — Extracted from memory-games.js for bundle splitting
  * Identify the pattern - what action does this range shape represent?
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { getRandomScenario, RANKS } from './ScenarioDatabase';
-import { shareResult, savePersonalBest } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -21,6 +22,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     const [userAnswer, setUserAnswer] = useState(null);
     const [correctAnswers, setCorrectAnswers] = useState(0);
     const [maxStreak, setMaxStreak] = useState(0);
+    const mistakesRef = useRef([]);
 
     const generatePattern = useCallback(() => {
         const scenario = getRandomScenario(level);
@@ -40,6 +42,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         const pattern = generatePattern();
         if (!pattern) return;
         setCurrentPattern(pattern); setGameState('playing'); setScore(0); setStreak(0); setMaxStreak(0); setRound(1); setCorrectAnswers(0); setUserAnswer(null);
+        mistakesRef.current = [];
         SoundEngine.play('levelUp');
     }, [generatePattern]);
 
@@ -66,7 +69,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
         setUserAnswer(action);
         const isCorrect = action === currentPattern.correctAnswer;
         if (isCorrect) { setScore(prev => prev + 100 + (streak * 25)); setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCorrectAnswers(prev => prev + 1); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
-        else { setStreak(0); SoundEngine.play('wrong'); }
+        else { setStreak(0); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentPattern.scenario?.title || 'Unknown', correct: currentPattern.correctAnswer, picked: action }); }
         setGameState('revealed');
         setTimeout(() => { nextRound(); }, 1200);
     }, [gameState, currentPattern, streak, nextRound]);
@@ -161,7 +164,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                 const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 65 ? 'B' : accuracy >= 50 ? 'C' : 'D';
                 const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
                 return (
-                    <div style={{ marginTop: 20 }}>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ marginTop: 20 }}>
                         {/* Performance Hero Card */}
                         <div style={{
                             background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
@@ -197,6 +200,25 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                                 <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
                             </div>
                         </div>
+
+                        {/* Weakness Analysis */}
+                        {mistakesRef.current.length > 0 && (() => {
+                            const posCounts = {};
+                            mistakesRef.current.forEach(m => { posCounts[m.position] = (posCounts[m.position] || 0) + 1; });
+                            const sorted = Object.entries(posCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+                            return (
+                                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', letterSpacing: 1.5, marginBottom: 10 }}>{'\u26A0\uFE0F'} WEAKNESS DETECTED</div>
+                                    {sorted.map(([pos, count], i) => (
+                                        <div key={pos} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < sorted.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{pos}</span>
+                                            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>{count} mistake{count > 1 ? 's' : ''}</span>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Focus on these spots in your next session</div>
+                                </div>
+                            );
+                        })()}
 
                         {/* Diamond Reward */}
                         {diamondReward > 0 && (
@@ -242,7 +264,13 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
                             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                             borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
                         }}>{'\uD83D\uDCF4'} Share Result</button>
-                    </div>
+
+                        {/* Coaching Tip */}
+                        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 10, padding: '12px 16px', marginTop: 12, textAlign: 'left' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
+                        </div>
+                    </motion.div>
                 );
             })()}
         </div>

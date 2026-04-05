@@ -2937,8 +2937,8 @@ export default function PokerNearMePage() {
             )}
 
             <SEOHead
-                title="Poker Near Me — Find Live Poker Rooms & Casinos"
-                description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-time Game Info, Tournament Schedules, And Interactive Maps Across The United States."
+                title="Live Cash Games — Find Live Poker Rooms & Casinos Near You"
+                description="Discover Live Cash Games, Poker Rooms, Casinos, And Card Rooms Near You. Real-Time Game Info, Tournament Schedules, And Interactive Maps Across The United States."
                 canonical="/hub/poker-near-me"
             />
 
@@ -2967,7 +2967,7 @@ export default function PokerNearMePage() {
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
-                    <h1 className="pnm-title">POKER NEAR ME</h1>
+                    <h1 className="pnm-title">LIVE CASH GAMES</h1>
                     <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 

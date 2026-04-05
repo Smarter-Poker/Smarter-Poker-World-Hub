@@ -36,7 +36,7 @@ const TOUR_LOGOS = {
     WSOPC: '/images/tours/wsopc.png',
     MSPT: '/images/tours/mspt.png',
     RGPS: '/images/tours/rgps.png',
-    PGT: '/images/tours/pgt.png',
+    PGT: '/images/tours/pgt.jpg',
     NAPT: '/images/tours/napt.png',
     BPO: '/images/tours/bpo.png',
     ROUGHRIDER: '/images/tours/roughrider.png',

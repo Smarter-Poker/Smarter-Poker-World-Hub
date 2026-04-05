@@ -2,10 +2,11 @@
  * Mixed Strategy Game — Extracted from memory-games.js for bundle splitting
  * Slider-based frequency training for complex spots
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { MIXED_SCENARIOS } from './ScenarioDatabase';
-import { shareResult, savePersonalBest } from '../utils/shareCard';
+import { shareResult, savePersonalBest, getCoachingTip } from '../utils/shareCard';
 import gameSessionService from '../services/GameSessionService';
 let _confetti = null;
 async function fireConfetti(opts) { try { if (!_confetti) { const m = await import('canvas-confetti'); _confetti = m.default || m; } _confetti(opts); } catch {} }
@@ -32,6 +33,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
     const [diff, setDiff] = useState(0);
     const [maxStreak, setMaxStreak] = useState(0);
     const [closeCount, setCloseCount] = useState(0);
+    const mistakesRef = useRef([]);
 
     const getMixedScenario = useCallback(() => {
         const scenario = MIXED_SCENARIOS[Math.floor(Math.random() * MIXED_SCENARIOS.length)];
@@ -44,6 +46,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         const { scenario, action } = getMixedScenario();
         setCurrentScenario(scenario); setTargetAction(action); setGameState('playing');
         setScore(0); setStreak(0); setMaxStreak(0); setCloseCount(0); setRoundsPlayed(0); setUserFreq(50);
+        mistakesRef.current = [];
         SoundEngine.play('levelUp');
     }, [getMixedScenario]);
 
@@ -75,7 +78,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
         else if (difference <= 5) points += 200;
         else if (difference <= 15) points += 50;
         if (difference <= 15) { setStreak(prev => prev + 1); setMaxStreak(prev => Math.max(prev, streak + 1)); setCloseCount(prev => prev + 1); setScore(prev => prev + points + (streak * 50)); SoundEngine.play(streak >= 2 ? 'combo' : 'correct'); }
-        else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); }
+        else { setStreak(0); setScore(prev => prev + points); SoundEngine.play('wrong'); mistakesRef.current.push({ position: currentScenario?.title || 'Unknown', action: targetAction, expected: actualFreq, got: userFreq, diff: difference }); }
         setGameState('revealed');
         setTimeout(nextRound, 2000);
     };
@@ -151,7 +154,7 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                 const grade = accuracy >= 90 ? 'S' : accuracy >= 80 ? 'A' : accuracy >= 60 ? 'B' : accuracy >= 40 ? 'C' : 'D';
                 const gradeColor = { S: '#FFD700', A: '#22C55E', B: '#3B82F6', C: '#F59E0B', D: '#EF4444' }[grade];
                 return (
-                    <div style={{ marginTop: 20 }}>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ marginTop: 20 }}>
                         {/* Performance Hero Card */}
                         <div style={{
                             background: `linear-gradient(135deg, ${gradeColor}15, ${gradeColor}05)`,
@@ -187,6 +190,23 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                                 <div style={{ height: '100%', width: `${accuracy}%`, background: gradeColor, borderRadius: 4, transition: 'width 1s ease' }} />
                             </div>
                         </div>
+
+                        {/* Weakness Analysis */}
+                        {mistakesRef.current.length > 0 && (() => {
+                            const sorted = [...mistakesRef.current].sort((a, b) => b.diff - a.diff).slice(0, 3);
+                            return (
+                                <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', letterSpacing: 1.5, marginBottom: 10 }}>{'\u26A0\uFE0F'} BIGGEST MISSES</div>
+                                    {sorted.map((m, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: i < sorted.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{m.position} ({m.action})</span>
+                                            <span style={{ fontSize: 12, color: '#EF4444', fontWeight: 700 }}>off by {m.diff}%</span>
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 8 }}>Study these frequencies to improve</div>
+                                </div>
+                            );
+                        })()}
 
                         {/* Diamond Reward */}
                         {diamondReward > 0 && (
@@ -232,7 +252,13 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
                             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
                             borderRadius: 10, color: 'rgba(255,255,255,0.5)', cursor: 'pointer'
                         }}>{'\uD83D\uDCF4'} Share Result</button>
-                    </div>
+
+                        {/* Coaching Tip */}
+                        <div style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 10, padding: '12px 16px', marginTop: 12, textAlign: 'left' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#00D4FF', letterSpacing: 1.5, marginBottom: 4 }}>{'\uD83C\uDFAF'} COACH TIP</div>
+                            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{getCoachingTip(grade)}</div>
+                        </div>
+                    </motion.div>
                 );
             })()}
         </div>

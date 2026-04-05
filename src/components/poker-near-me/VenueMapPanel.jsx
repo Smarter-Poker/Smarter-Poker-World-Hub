@@ -172,13 +172,17 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       }).addTo(map).bindPopup('You are here');
     }
 
-    // Fit bounds to show all markers
-    if (validVenues.length > 0) {
+    // Fit bounds to show relevant area
+    if (userLocation && radiusMiles && radiusMiles !== 'any' && radiusMiles !== 'Any') {
+      // User has location + specific radius — zoom to their radius (e.g. 50mi)
+      const zoom = radiusToZoom(radiusMiles);
+      map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
+    } else if (validVenues.length > 0) {
       const bounds = L.latLngBounds(validVenues.map(v => [v.latitude, v.longitude]));
       if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
     }
-  }, [venues, userLocation, onVenueSelect]);
+  }, [venues, userLocation, onVenueSelect, radiusMiles]);
 
   // ═══ DYNAMIC RADIUS ZOOM — Adjust zoom when radius filter changes ═══
   useEffect(() => {
