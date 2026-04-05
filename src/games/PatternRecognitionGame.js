@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
-import { getRandomScenario, RANKS } from './ScenarioDatabase';
+import { getRandomScenario, getRandomEnrichedScenario, RANKS } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
@@ -37,7 +37,7 @@ export default function PatternRecognitionGame({ level = 1, onExit, onScoreUpdat
     const availablePowerUps = getGamePowerUps('pattern-recognition');
 
     const generatePattern = useCallback(() => {
-        const scenario = getRandomScenario(level);
+        const scenario = getRandomEnrichedScenario(level);
         if (!scenario) return null;
         const solution = scenario.solution || {};
         const hands = Object.keys(solution);

@@ -12,15 +12,29 @@ export default function ViralGrowthModule({ currentUser }) {
 
         const loadData = async () => {
             try {
-                // Get code
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('referral_code')
-                    .eq('id', currentUser.id)
-                    .maybeSingle();
-                
-                if (profile?.referral_code) {
-                    setReferralCode(profile.referral_code);
+                // Get or auto-generate referral code via API
+                const token = (await supabase.auth.getSession()).data.session?.access_token;
+                if (token) {
+                    const res = await fetch('/api/social/referral', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setReferralCode(data.referralCode);
+                    }
+                }
+
+                // If API failed, fallback to direct profile query
+                if (!referralCode) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('referral_code')
+                        .eq('id', currentUser.id)
+                        .maybeSingle();
+                    
+                    if (profile?.referral_code) {
+                        setReferralCode(profile.referral_code);
+                    }
                 }
 
                 // Get referrals
@@ -41,7 +55,18 @@ export default function ViralGrowthModule({ currentUser }) {
         loadData();
     }, [currentUser]);
 
+    const [copied, setCopied] = useState(false);
+
     const handleCopy = () => {
+        if (!referralCode) return;
+        const shareUrl = `https://smarter.poker/?ref=${referralCode}`;
+        navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        toast.success('Referral link copied!');
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleCopyCode = () => {
         if (!referralCode) return;
         navigator.clipboard.writeText(referralCode);
         toast.success('Referral code copied!');
@@ -73,7 +98,7 @@ export default function ViralGrowthModule({ currentUser }) {
             <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 16, textAlign: 'center', marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: '#ccc', marginBottom: 8 }}>Your Unique Invite Code</div>
                 <div 
-                    onClick={handleCopy}
+                    onClick={handleCopyCode}
                     style={{ 
                         fontSize: 24, fontWeight: 800, color: '#00FF88', letterSpacing: 2, 
                         background: 'rgba(0,0,0,0.3)', padding: '8px 16px', borderRadius: 8,
@@ -82,6 +107,16 @@ export default function ViralGrowthModule({ currentUser }) {
                 >
                     {referralCode || '---------'}
                 </div>
+                <button 
+                    onClick={handleCopy}
+                    style={{
+                        display: 'block', margin: '12px auto 0', padding: '10px 24px',
+                        background: copied ? '#00FF88' : 'linear-gradient(135deg, #00FF88, #00BFFF)',
+                        color: copied ? '#000' : '#000', border: 'none', borderRadius: 8,
+                        fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                        transition: 'all 0.3s ease'
+                    }}
+                >{copied ? 'Copied!' : 'Share Invite Link'}</button>
                 <div style={{ fontSize: 12, marginTop: 8, color: '#FFD700' }}>
                     Both you and your friend earn 500 Diamonds upon joining!
                 </div>

@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
-import { getRandomScenario } from './ScenarioDatabase';
+import { getRandomScenario, getRandomEnrichedScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
@@ -45,12 +45,19 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
     const TIME_DECREASE = 100;
 
     const getRandomHand = useCallback(() => {
-        const scenario = getRandomScenario(level);
+        const scenario = getRandomEnrichedScenario(level);
         if (!scenario) return null;
         const hands = Object.entries(scenario.solution);
         if (hands.length === 0) return null;
         const [hand, correctAction] = hands[Math.floor(Math.random() * hands.length)];
-        return { hand, correctAction, scenario };
+        // If solver frequencies are available, attach them for smarter grading
+        const enrichedEntry = scenario.enrichedSolution?.[hand];
+        return {
+            hand,
+            correctAction,
+            scenario,
+            frequencies: enrichedEntry || null,
+        };
     }, [level]);
 
     const startGame = useCallback(() => {
@@ -93,7 +100,15 @@ export default function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, Diamo
         setUserAnswer(action);
         setHandsPlayed(prev => prev + 1);
 
-        const isCorrect = action === currentHand.correctAction;
+        // Mixed-frequency grading: if solver frequencies available, any action
+        // with >25% frequency counts as correct (mimics GTO Wizard tolerance)
+        let isCorrect;
+        if (currentHand.frequencies) {
+            const actionFreq = currentHand.frequencies[action] || 0;
+            isCorrect = actionFreq >= 0.25;
+        } else {
+            isCorrect = action === currentHand.correctAction;
+        }
 
         if (isCorrect) {
             const multiplier = doublePointsActive ? 2 : 1;

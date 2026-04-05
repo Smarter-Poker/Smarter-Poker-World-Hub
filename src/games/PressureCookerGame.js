@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
-import { getRandomScenario } from './ScenarioDatabase';
+import { getRandomScenario, getRandomEnrichedScenario } from './ScenarioDatabase';
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
@@ -43,12 +43,13 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
     const INITIAL_TIME = 30000;
 
     const getRandomHand = useCallback(() => {
-        const scenario = getRandomScenario(level);
+        const scenario = getRandomEnrichedScenario(level);
         if (!scenario) return null;
         const hands = Object.entries(scenario.solution);
         if (hands.length === 0) return null;
         const [hand, correctAction] = hands[Math.floor(Math.random() * hands.length)];
-        return { hand, correctAction, scenario };
+        const enrichedEntry = scenario.enrichedSolution?.[hand];
+        return { hand, correctAction, scenario, frequencies: enrichedEntry || null };
     }, [level]);
 
     const startGame = useCallback(() => {
@@ -70,7 +71,13 @@ export default function PressureCookerGame({ level = 1, onExit, onScoreUpdate, D
     const handleAnswer = useCallback((action) => {
         if (gameState !== 'playing' || !currentHand) return;
         setUserAnswer(action);
-        const isCorrect = action === currentHand.correctAction;
+        let isCorrect;
+        if (currentHand.frequencies) {
+            const actionFreq = currentHand.frequencies[action] || 0;
+            isCorrect = actionFreq >= 0.25;
+        } else {
+            isCorrect = action === currentHand.correctAction;
+        }
         const newHandsCompleted = handsCompleted + 1;
 
         if (isCorrect) {

@@ -7,10 +7,11 @@
  *   gameType: 'cash_6max' | 'mtt' | 'spins' (default: cash_6max)
  *   stackDepth: number (default: 100)
  *   position: 'UTG' | 'MP' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB'
- *   scenario: 'rfi' | 'vs3bet' | 'bb_defense' | 'push_fold' (default: rfi)
+ *   scenario: 'rfi' | 'vs3bet' | 'bb_defense' | 'push_fold' | '4bet' | 'squeeze' | 'cold_call'
+ *   vsPosition: optional villain position for 3bet/bb_defense/cold_call/squeeze spots
  *
  * Returns:
- *   { success, range: { actions, frequencies, stats } }
+ *   { success, range: { actions, gridData, stats, ... } }
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -29,7 +30,7 @@ function getSupabase() {
     }
     return _supabase;
 }
-import { GTO_RFI_RANGES as PREFLOP_RFI_RANGES, VS_3BET_RANGES, BB_DEFENSE_RANGES } from '../../../src/config/gtoRangeData';
+import { RFI, THREE_BET, BB_DEFENSE, FOUR_BET, COLD_CALL, SQUEEZE, getHandFrequencies, ALL_HANDS as SOLVER_ALL_HANDS, getRFIByDepth } from '../../../src/config/solverRanges';
 
 
 /**
@@ -99,6 +100,7 @@ export default async function handler(req, res) {
               stackDepth = '100',
               position = 'BTN',
               scenario = 'rfi',
+              vsPosition = '',
           } = req.query;
 
           // Input validation
@@ -107,65 +109,131 @@ export default async function handler(req, res) {
           }
 
           const pos = VALID_POSITIONS.includes(position.toUpperCase()) ? position.toUpperCase() : 'BTN';
+          const vsPos = vsPosition ? vsPosition.toUpperCase() : '';
           const allHands = getAllHands();
           let rangeData = {};
           let actions = [];
-          let source = 'solver_derived';
+          let source = 'solver_ranges';
+          let spotLabel = '';
+
+          /**
+           * Helper: convert solver spot data → API grid format
+           * Maps { raise: 0.85, call: 0.10 } → { 'Raise': 85.0, 'Call': 10.0, 'Fold': 5.0 }
+           * percentages are rounded to 1 decimal.
+           */
+          function buildGridFromSpot(spotData, actionLabels) {
+              allHands.forEach(hand => {
+                  const freq = getHandFrequencies(spotData, hand);
+                  const hasAction = (freq.raise > 0.005) || (freq.call > 0.005);
+                  if (hasAction) {
+                      const entry = {};
+                      actionLabels.forEach(({ key, solverKey }) => {
+                          entry[key] = Math.round(freq[solverKey] * 1000) / 10;
+                      });
+                      rangeData[hand] = entry;
+                  } else {
+                      rangeData[hand] = null;
+                  }
+              });
+          }
 
           // ─── RFI Ranges ────────────────────────────────────────────────
           if (scenario === 'rfi') {
-              const posRange = PREFLOP_RFI_RANGES[pos] || {};
+              const sd = parseInt(stackDepth, 10) || 100;
+              const spotData = getRFIByDepth(sd, pos);
+              if (!spotData) {
+                  return res.status(400).json({ success: false, error: `No RFI data for position ${pos}` });
+              }
               actions = ['Raise', 'Fold'];
+              spotLabel = `${pos} RFI (${sd}BB)`;
               allHands.forEach(hand => {
-                  const raiseFreq = posRange[hand] || 0;
-                  rangeData[hand] = raiseFreq > 0
-                      ? { 'Raise': Math.round(raiseFreq * 1000) / 10, 'Fold': Math.round((1 - raiseFreq) * 1000) / 10 }
+                  const freq = getHandFrequencies(spotData, hand);
+                  rangeData[hand] = freq.raise > 0.005
+                      ? { 'Raise': Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 }
                       : null;
               });
           }
 
-          // ─── Vs 3-Bet ──────────────────────────────────────────────────
-          else if (scenario === 'vs3bet') {
-              const posRange = VS_3BET_RANGES[pos] || VS_3BET_RANGES['BTN'] || {};
-              actions = ['4-Bet', 'Call', 'Fold'];
-              allHands.forEach(hand => {
-                  const freq = posRange[hand] || 0;
-                  if (freq > 0) {
-                      // High freq = 4-bet, medium = call, low = fold
-                      const fourBetFreq = freq > 0.7 ? freq * 0.6 : freq * 0.3;
-                      const callFreq = freq - fourBetFreq;
-                      const foldFreq = 1 - freq;
-                      rangeData[hand] = {
-                          '4-Bet': Math.round(fourBetFreq * 1000) / 10,
-                          'Call': Math.round(callFreq * 1000) / 10,
-                          'Fold': Math.round(foldFreq * 1000) / 10,
-                      };
-                  } else {
-                      rangeData[hand] = null;
-                  }
-              });
+          // ─── Vs 3-Bet (4-Bet / Call / Fold facing a 3bet) ─────────────
+          else if (scenario === 'vs3bet' || scenario === '4bet') {
+              // Look up FOUR_BET spot: e.g. UTG_vs_3bet, CO_vs_3bet, BTN_vs_3bet
+              const spotKey = `${pos}_vs_3bet`;
+              const spotData = FOUR_BET[spotKey];
+              if (!spotData) {
+                  // Fallback: try closest available spot
+                  const fallbackKey = Object.keys(FOUR_BET).find(k => k.startsWith(pos)) || 'BTN_vs_3bet';
+                  const fbData = FOUR_BET[fallbackKey] || {};
+                  actions = ['4-Bet', 'Call', 'Fold'];
+                  spotLabel = `${pos} vs 3-Bet (${fallbackKey})`;
+                  buildGridFromSpot(fbData, [
+                      { key: '4-Bet', solverKey: 'raise' },
+                      { key: 'Call', solverKey: 'call' },
+                      { key: 'Fold', solverKey: 'fold' },
+                  ]);
+              } else {
+                  actions = ['4-Bet', 'Call', 'Fold'];
+                  spotLabel = `${pos} vs 3-Bet`;
+                  buildGridFromSpot(spotData, [
+                      { key: '4-Bet', solverKey: 'raise' },
+                      { key: 'Call', solverKey: 'call' },
+                      { key: 'Fold', solverKey: 'fold' },
+                  ]);
+              }
           }
 
           // ─── BB Defense ────────────────────────────────────────────────
           else if (scenario === 'bb_defense') {
-              // BB defense varies by who opened
-              const vsPos = pos === 'BB' ? 'vs_BTN' : `vs_${pos}`;
-              const defenseRange = BB_DEFENSE_RANGES[vsPos] || BB_DEFENSE_RANGES['vs_BTN'] || {};
+              // BB defense vs opener — uses vsPosition or falls back to vs_BTN
+              const defKey = vsPos ? `vs_${vsPos}` : (pos === 'BB' ? 'vs_BTN' : `vs_${pos}`);
+              const spotData = BB_DEFENSE[defKey] || BB_DEFENSE['vs_BTN'];
               actions = ['3-Bet', 'Call', 'Fold'];
+              spotLabel = `BB Defense ${defKey.replace('_', ' ')}`;
+              buildGridFromSpot(spotData, [
+                  { key: '3-Bet', solverKey: 'raise' },
+                  { key: 'Call', solverKey: 'call' },
+                  { key: 'Fold', solverKey: 'fold' },
+              ]);
+          }
+
+          // ─── 3-Bet Ranges (IP/OOP 3-bet vs opener) ────────────────────
+          // Note: separate from vs3bet (which is the opener's response TO a 3bet)
+          // This uses THREE_BET data: BTN_vs_UTG, SB_vs_CO, BB_vs_BTN, etc.
+          // Accessed when frontend queries scenario=vs3bet with a specific vsPosition
+          // or via the new expanded spot picker
+
+          // ─── Cold Call ─────────────────────────────────────────────────
+          else if (scenario === 'cold_call') {
+              // Cold call spots: CO_vs_UTG, BTN_vs_UTG, BTN_vs_CO, SB_vs_BTN
+              const ccKey = vsPos ? `${pos}_vs_${vsPos}` : Object.keys(COLD_CALL).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
+              const spotData = COLD_CALL[ccKey];
+              if (!spotData) {
+                  return res.status(400).json({ success: false, error: `No cold-call data for ${ccKey}` });
+              }
+              actions = ['Call', 'Fold'];
+              spotLabel = `${ccKey.replace(/_/g, ' ')} Cold Call`;
               allHands.forEach(hand => {
-                  const freq = defenseRange[hand] || 0;
-                  if (freq > 0) {
-                      const threeBetFreq = freq > 0.8 ? freq * 0.4 : freq * 0.15;
-                      const callFreq = freq - threeBetFreq;
-                      const foldFreq = 1 - freq;
-                      rangeData[hand] = {
-                          '3-Bet': Math.round(threeBetFreq * 1000) / 10,
-                          'Call': Math.round(callFreq * 1000) / 10,
-                          'Fold': Math.round(foldFreq * 1000) / 10,
-                      };
-                  } else {
-                      rangeData[hand] = null;
-                  }
+                  const freq = getHandFrequencies(spotData, hand);
+                  rangeData[hand] = freq.call > 0.005
+                      ? { 'Call': Math.round(freq.call * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 }
+                      : null;
+              });
+          }
+
+          // ─── Squeeze ───────────────────────────────────────────────────
+          else if (scenario === 'squeeze') {
+              // Find matching squeeze spot
+              const sqzKey = Object.keys(SQUEEZE).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE)[0];
+              const spotData = SQUEEZE[sqzKey];
+              if (!spotData) {
+                  return res.status(400).json({ success: false, error: `No squeeze data for ${pos}` });
+              }
+              actions = ['Squeeze', 'Fold'];
+              spotLabel = sqzKey.replace(/_/g, ' ');
+              allHands.forEach(hand => {
+                  const freq = getHandFrequencies(spotData, hand);
+                  rangeData[hand] = freq.raise > 0.005
+                      ? { 'Squeeze': Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 }
+                      : null;
               });
           }
 
@@ -174,7 +242,7 @@ export default async function handler(req, res) {
               actions = ['Push', 'Fold'];
               const sd = parseInt(stackDepth, 10) || 15;
 
-              // Try loading from memory_charts_gold
+              // Try loading from memory_charts_gold (Supabase)
               const { data: charts } = await getSupabase()
                   .from('memory_charts_gold')
                   .select('hand_matrix, hero_position, stack_depth')
@@ -193,19 +261,21 @@ export default async function handler(req, res) {
                           : null;
                   });
                   source = 'memory_charts_gold';
+                  spotLabel = `${pos} Push/Fold ${sd}BB (DB)`;
               } else {
-                  // Fallback: generate simplified push/fold based on stack depth
+                  // Fallback: use RFI data at the appropriate stack depth
+                  const rfiRange = getRFIByDepth(sd, pos) || {};
                   const pushThreshold = sd <= 8 ? 0.4 : sd <= 12 ? 0.3 : sd <= 15 ? 0.25 : 0.2;
-                  const rfiRange = PREFLOP_RFI_RANGES[pos] || {};
                   allHands.forEach(hand => {
-                      const rfiFreq = rfiRange[hand] || 0;
-                      if (rfiFreq >= pushThreshold) {
-                          rangeData[hand] = { 'Push': Math.round(rfiFreq * 1000) / 10, 'Fold': Math.round((1 - rfiFreq) * 1000) / 10 };
+                      const freq = getHandFrequencies(rfiRange, hand);
+                      if (freq.raise >= pushThreshold) {
+                          rangeData[hand] = { 'Push': Math.round(freq.raise * 1000) / 10, 'Fold': Math.round(freq.fold * 1000) / 10 };
                       } else {
                           rangeData[hand] = null;
                       }
                   });
                   source = 'derived_from_rfi';
+                  spotLabel = `${pos} Push/Fold ${sd}BB (derived)`;
               }
           }
 
@@ -233,6 +303,7 @@ export default async function handler(req, res) {
                   gameType,
                   stackDepth: parseInt(stackDepth, 10),
                   source,
+                  spotLabel,
               },
           });
 

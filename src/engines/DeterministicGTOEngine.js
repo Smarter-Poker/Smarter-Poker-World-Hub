@@ -15,6 +15,17 @@
 
 
 import { supabase } from '../lib/supabase';
+import {
+    RFI as SOLVER_RFI,
+    THREE_BET as SOLVER_3BET,
+    BB_DEFENSE as SOLVER_BB_DEF,
+    FOUR_BET as SOLVER_4BET,
+    COLD_CALL as SOLVER_CC,
+    ALL_HANDS as SOLVER_ALL_HANDS,
+    getHandFrequencies as solverGetFreqs,
+    getRFIByDepth,
+    getRangePercentage,
+} from '../config/solverRanges';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACTION CODE → HUMAN-READABLE LABEL MAPPING
@@ -372,12 +383,116 @@ export class DeterministicGTOEngine {
         const source = gameConfig.sourceOfTruth;
 
         if (source === 'PioSOLVER') {
-            return this.generateFromSolvedSpots(gameConfig, level, seenIds);
+            const question = await this.generateFromSolvedSpots(gameConfig, level, seenIds);
+            // Fallback: if no PIO data and game is preflop-focused, use local solver ranges
+            if (!question && gameConfig.pioStreet === 'preflop') {
+                return this.generateFromLocalSolverRanges(gameConfig, level);
+            }
+            return question;
         } else if (source === 'ICMIZER') {
             return this.generateFromCharts(gameConfig, level, seenIds);
         }
         // SCENARIO games (psychology) fall back to Grok — not handled here
         return null;
+    }
+
+    /**
+     * Generate a preflop question from local solverRanges.js data.
+     * Used as fallback when PIO database has no preflop spots for this config.
+     */
+    generateFromLocalSolverRanges(gameConfig, level) {
+        try {
+            const positions = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
+            const heroPos = positions[Math.floor(Math.random() * positions.length)];
+            const stackDepth = gameConfig.pioStackDepth || 100;
+
+            // Get the appropriate range data
+            const spotData = getRFIByDepth(stackDepth, heroPos);
+            if (!spotData) return null;
+
+            // Pick a random hand from ALL_HANDS
+            const hand = SOLVER_ALL_HANDS[Math.floor(Math.random() * SOLVER_ALL_HANDS.length)];
+            const freqs = solverGetFreqs(spotData, hand);
+
+            // Build action frequencies in engine format
+            const actions = {};
+            if (freqs.raise > 0.01) actions['r'] = freqs.raise;
+            if (freqs.fold > 0.01) actions['f'] = freqs.fold;
+
+            // Determine correct action
+            const correctAction = freqs.raise >= freqs.fold ? 'r' : 'f';
+            const gtoFrequencies = {};
+            if (actions['r']) gtoFrequencies['r'] = Math.round(freqs.raise * 100);
+            if (actions['f']) gtoFrequencies['f'] = Math.round(freqs.fold * 100);
+
+            // Build rawFrequencies (per-hand matrix for range grid)
+            const rawFrequencies = {};
+            rawFrequencies['r'] = {};
+            rawFrequencies['f'] = {};
+            for (const h of SOLVER_ALL_HANDS) {
+                const hf = solverGetFreqs(spotData, h);
+                if (hf.raise > 0.01) rawFrequencies['r'][h] = hf.raise;
+                if (hf.fold > 0.01) rawFrequencies['f'][h] = hf.fold;
+            }
+
+            // Parse hand to cards
+            const heroCards = this._handNotationToCards(hand);
+
+            return {
+                id: `local_solver_${heroPos}_${hand}_${Date.now()}`,
+                source: 'local_solver_ranges',
+                heroHand: hand,
+                heroCards,
+                boardCards: [],
+                scenario: {
+                    street: 'preflop',
+                    board: '',
+                    boardCards: [],
+                    pot: 1.5,
+                    heroPosition: heroPos,
+                    villainPosition: 'BB',
+                    heroStack: stackDepth,
+                    villainStack: stackDepth,
+                    stackDepth,
+                    gameType: 'cash_6max',
+                    nodeType: 'preflop_open',
+                    context: `${heroPos} RFI (${stackDepth}BB)`,
+                    isMixedStrategy: freqs.raise > 0.05 && freqs.raise < 0.95,
+                },
+                question: `You are in ${heroPos} with ${hand}. Action folds to you. What do you do?`,
+                options: [
+                    { id: 'r', label: 'Raise', frequency: Math.round(freqs.raise * 100) },
+                    { id: 'f', label: 'Fold', frequency: Math.round(freqs.fold * 100) },
+                ],
+                correctAnswer: correctAction,
+                correctAnswerText: correctAction === 'r' ? 'Raise' : 'Fold',
+                frequencies: actions,
+                gtoFrequencies,
+                rawFrequencies,
+                evData: null,
+                explanation: `${heroPos} opens ${hand} ${Math.round(freqs.raise * 100)}% of the time at ${stackDepth}BB.`,
+                difficulty: level,
+            };
+        } catch (err) {
+            console.error('[DeterministicEngine] Local solver ranges fallback error:', err.message);
+            return null;
+        }
+    }
+
+    /**
+     * Convert hand notation (e.g., "AKs", "TT", "Q9o") to card objects.
+     */
+    _handNotationToCards(hand) {
+        if (!hand) return [];
+        if (hand.length === 2) {
+            return [{ rank: hand[0], suit: 'h' }, { rank: hand[1], suit: 's' }];
+        }
+        if (hand.length === 3) {
+            const r1 = hand[0], r2 = hand[1], flag = hand[2];
+            if (flag === 's') return [{ rank: r1, suit: 's' }, { rank: r2, suit: 's' }];
+            return [{ rank: r1, suit: 'h' }, { rank: r2, suit: 'd' }];
+        }
+        return [{ rank: hand[0] || 'A', suit: 'h' }, { rank: hand[1] || 'K', suit: 's' }];
     }
 
     /**

@@ -131,7 +131,7 @@ export default function CrewDashboard({ currentUser }) {
                         placeholder="Crew Name..." autoFocus
                         style={{ flex: 1, background: '#111', color: 'white', border: '1px solid #444', borderRadius: 6, padding: '8px 12px', outline: 'none' }} 
                     />
-                    <button onClick={handleCreateCrew} style={{ background: '#00FF88', color: 'black', border: 'none', padding: '0 16px', borderRadius: 6, fontWeight: 'bold' }}>Creat</button>
+                    <button onClick={handleCreateCrew} style={{ background: '#00FF88', color: 'black', border: 'none', padding: '0 16px', borderRadius: 6, fontWeight: 'bold' }}>Create</button>
                     <button onClick={() => setShowCreate(false)} style={{ background: 'transparent', color: '#999', border: 'none', padding: '0 8px' }}>✕</button>
                 </div>
             )}

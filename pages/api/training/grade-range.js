@@ -42,7 +42,21 @@ function getSupabase() {
     }
     return _supabase;
 }
-import { GTO_RFI_RANGES as GTO_RFI } from '../../../src/config/gtoRangeData';
+import { RFI, getHandFrequencies, ALL_HANDS as SOLVER_ALL_HANDS } from '../../../src/config/solverRanges';
+
+// Build backward-compatible flat ranges from new solver data
+function solverSpotToFlatFreqs(spotData) {
+    const flat = {};
+    for (const hand of SOLVER_ALL_HANDS) {
+        const f = getHandFrequencies(spotData, hand);
+        if (f.raise > 0 || f.call > 0) {
+            flat[hand] = f.raise + f.call;
+        }
+    }
+    return flat;
+}
+const GTO_RFI = {};
+Object.keys(RFI).forEach(pos => { GTO_RFI[pos] = solverSpotToFlatFreqs(RFI[pos]); });
 
 
 /**

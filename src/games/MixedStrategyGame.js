@@ -6,6 +6,79 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { SoundEngine } from './GameEngine';
 import { MIXED_SCENARIOS } from './ScenarioDatabase';
+import {
+    RFI, THREE_BET, BB_DEFENSE, FOUR_BET, SQUEEZE,
+    getHandFrequencies, ALL_HANDS, getAvailableSpots,
+} from '../config/solverRanges';
+
+/**
+ * Generate dynamic mixed-strategy scenarios from solver data.
+ * These are hands where the solver has a genuine mix (no action > 90%).
+ * Much more realistic than the 10 hand-picked MIXED_SCENARIOS.
+ */
+function generateSolverMixedScenarios() {
+    const scenarios = [];
+    const spots = getAvailableSpots();
+
+    // Helper: extract mixed hands from a spot
+    function extractMixed(data, label, context) {
+        for (const hand of ALL_HANDS) {
+            const f = getHandFrequencies(data, hand);
+            const raise = Math.round(f.raise * 100);
+            const call = Math.round(f.call * 100);
+            const fold = Math.round(f.fold * 100);
+
+            // A hand is "mixed" if the top action is < 90% and there are 2+ actions with >8%
+            const actions = [
+                ['raise', raise],
+                ['call', call],
+                ['fold', fold],
+            ].filter(([_, v]) => v > 8);
+
+            if (actions.length >= 2) {
+                const maxAction = actions.reduce((a, b) => b[1] > a[1] ? b : a);
+                if (maxAction[1] < 90) {
+                    const frequencies = {};
+                    actions.forEach(([a, v]) => { frequencies[a] = v; });
+                    scenarios.push({
+                        id: `solver-${label}-${hand}`.replace(/\s+/g, '-'),
+                        title: label,
+                        hand,
+                        context,
+                        frequencies,
+                        isSolverDerived: true,
+                    });
+                }
+            }
+        }
+    }
+
+    // RFI spots
+    spots.rfi.forEach(s => {
+        extractMixed(s.data, s.label, `Opening range from ${s.label.replace(' Open', '')}`);
+    });
+
+    // 3-Bet spots
+    spots.threeBet.forEach(s => {
+        extractMixed(s.data, s.label, `Facing an open raise`);
+    });
+
+    // BB Defense
+    spots.bbDefense.forEach(s => {
+        extractMixed(s.data, s.label, `Defending from the big blind`);
+    });
+
+    // 4-Bet
+    spots.fourBet.forEach(s => {
+        extractMixed(s.data, s.label, `Facing a 3-bet`);
+    });
+
+    return scenarios;
+}
+
+// Build combined pool: hand-picked + solver-generated
+const SOLVER_MIXED = generateSolverMixedScenarios();
+const ALL_MIXED_SCENARIOS = [...MIXED_SCENARIOS, ...SOLVER_MIXED];
 import { shareResult, savePersonalBest, getCoachingTip, getNextGameSuggestion } from '../utils/shareCard';
 import { busEmit } from '../engine/EventBus';
 import PositionWeaknessHeatmap from '../components/training/PositionWeaknessHeatmap';
@@ -46,7 +119,9 @@ export default function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, Di
     const availablePowerUps = getGamePowerUps('mixed-strategy');
 
     const getMixedScenario = useCallback(() => {
-        const scenario = MIXED_SCENARIOS[Math.floor(Math.random() * MIXED_SCENARIOS.length)];
+        // Use combined pool of hand-picked + solver-generated scenarios
+        const pool = ALL_MIXED_SCENARIOS.length > 0 ? ALL_MIXED_SCENARIOS : MIXED_SCENARIOS;
+        const scenario = pool[Math.floor(Math.random() * pool.length)];
         const actions = Object.entries(scenario.frequencies).filter(([_, freq]) => freq > 0);
         const [action] = actions[Math.floor(Math.random() * actions.length)];
         return { scenario, action };

@@ -13,6 +13,23 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
 import { getCardImagePath } from './Card';
+import {
+    RANKS as SOLVER_RANKS,
+    ALL_HANDS as SOLVER_ALL_HANDS,
+    getHandFromGrid,
+    RFI,
+    THREE_BET,
+    BB_DEFENSE,
+    FOUR_BET,
+    SQUEEZE,
+    COLD_CALL,
+    getHandFrequencies,
+    getPrimaryAction,
+    isInRange,
+    getRangePercentage,
+    getAvailableSpots,
+    resolveSpot,
+} from '../../config/solverRanges';
 
 // Convert abstract hand notation ("K5o", "AKs", "TT") to two specific card objects with suits
 function handToCards(hand) {
@@ -33,133 +50,192 @@ function handToCards(hand) {
     return [{ rank: hand[0] || 'A', suit: 'h' }, { rank: hand[1] || 'K', suit: 's' }];
 }
 
-// ═══ STANDARD GTO PREFLOP RANGES (RFI — Raise First In) ═══
-// These are simplified solver-derived open-raising ranges by position (6-max, 100BB)
-const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+// ═══ SOLVER RANGES: Now sourced from centralized solverRanges.js ═══
+// All range data (RFI, 3-bet, BB defense, 4-bet, squeeze) lives in one file.
+// The GTO_RANGES adapter below converts { raise: freq, call: freq } → flat frequency
+// for backward-compatible rendering in the 13x13 matrix.
+const RANKS = SOLVER_RANKS;
 
-// Frequency: 1.0 = always raise, 0.5 = mixed (raise 50%), 0 = fold
-const GTO_RANGES = {
-    UTG: {
-        // ~15% RFI
-        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 0.8, '88': 0.5, '77': 0.3,
-        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 0.8, 'A5s': 0.5, 'A4s': 0.3,
-        'AKo': 1, 'AQo': 0.8, 'AJo': 0.5,
-        'KQs': 1, 'KJs': 0.7, 'KTs': 0.4,
-        'QJs': 0.7, 'QTs': 0.3,
-        'JTs': 0.5, 'T9s': 0.3,
-        '98s': 0.2, '87s': 0.2, '76s': 0.15,
-    },
-    HJ: {
-        // ~19% RFI
-        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 0.7, '77': 0.5, '66': 0.3,
-        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 0.5, 'A5s': 0.7, 'A4s': 0.5, 'A3s': 0.3, 'A2s': 0.2,
-        'AKo': 1, 'AQo': 1, 'AJo': 0.7, 'ATo': 0.4,
-        'KQs': 1, 'KJs': 1, 'KTs': 0.7, 'K9s': 0.3,
-        'QJs': 1, 'QTs': 0.6, 'Q9s': 0.2,
-        'JTs': 0.8, 'J9s': 0.3,
-        'T9s': 0.6, 'T8s': 0.2,
-        '98s': 0.4, '87s': 0.3, '76s': 0.25, '65s': 0.2,
-        'KQo': 0.5, 'KJo': 0.3,
-    },
-    CO: {
-        // ~27% RFI
-        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 0.8, '66': 0.6, '55': 0.4, '44': 0.3,
-        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 0.8, 'A8s': 0.6, 'A7s': 0.5, 'A6s': 0.5, 'A5s': 1, 'A4s': 0.8, 'A3s': 0.6, 'A2s': 0.5,
-        'AKo': 1, 'AQo': 1, 'AJo': 1, 'ATo': 0.7, 'A9o': 0.3,
-        'KQs': 1, 'KJs': 1, 'KTs': 1, 'K9s': 0.6, 'K8s': 0.3,
-        'QJs': 1, 'QTs': 1, 'Q9s': 0.5, 'Q8s': 0.2,
-        'JTs': 1, 'J9s': 0.6, 'J8s': 0.2,
-        'T9s': 1, 'T8s': 0.4,
-        '98s': 0.7, '87s': 0.6, '76s': 0.5, '65s': 0.4, '54s': 0.3,
-        'KQo': 1, 'KJo': 0.7, 'KTo': 0.4,
-        'QJo': 0.5, 'QTo': 0.3,
-        'JTo': 0.3,
-    },
-    BTN: {
-        // ~45% RFI
-        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 1, '66': 1, '55': 0.8, '44': 0.7, '33': 0.5, '22': 0.4,
-        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 1, 'A8s': 1, 'A7s': 1, 'A6s': 1, 'A5s': 1, 'A4s': 1, 'A3s': 1, 'A2s': 1,
-        'AKo': 1, 'AQo': 1, 'AJo': 1, 'ATo': 1, 'A9o': 0.7, 'A8o': 0.5, 'A7o': 0.3, 'A6o': 0.2, 'A5o': 0.3, 'A4o': 0.2,
-        'KQs': 1, 'KJs': 1, 'KTs': 1, 'K9s': 1, 'K8s': 0.7, 'K7s': 0.6, 'K6s': 0.5, 'K5s': 0.4, 'K4s': 0.3, 'K3s': 0.2, 'K2s': 0.15,
-        'QJs': 1, 'QTs': 1, 'Q9s': 1, 'Q8s': 0.6, 'Q7s': 0.3, 'Q6s': 0.3, 'Q5s': 0.2, 'Q4s': 0.15,
-        'JTs': 1, 'J9s': 1, 'J8s': 0.5, 'J7s': 0.3, 'J6s': 0.15,
-        'T9s': 1, 'T8s': 0.8, 'T7s': 0.3, 'T6s': 0.15,
-        '98s': 1, '97s': 0.4, '96s': 0.15,
-        '87s': 1, '86s': 0.3, '76s': 0.8, '75s': 0.2,
-        '65s': 0.7, '64s': 0.15, '54s': 0.6, '53s': 0.1, '43s': 0.15,
-        'KQo': 1, 'KJo': 1, 'KTo': 0.8, 'K9o': 0.4, 'K8o': 0.2,
-        'QJo': 1, 'QTo': 0.7, 'Q9o': 0.3,
-        'JTo': 0.8, 'J9o': 0.3,
-        'T9o': 0.5, 'T8o': 0.15,
-        '98o': 0.3, '87o': 0.2, '76o': 0.1,
-    },
-    SB: {
-        // ~40% open-raise (limp or raise)
-        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 1, '66': 0.8, '55': 0.7, '44': 0.5, '33': 0.4, '22': 0.3,
-        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 1, 'A8s': 0.8, 'A7s': 0.7, 'A6s': 0.7, 'A5s': 1, 'A4s': 0.8, 'A3s': 0.7, 'A2s': 0.6,
-        'AKo': 1, 'AQo': 1, 'AJo': 1, 'ATo': 0.8, 'A9o': 0.5, 'A8o': 0.3, 'A5o': 0.2,
-        'KQs': 1, 'KJs': 1, 'KTs': 1, 'K9s': 0.8, 'K8s': 0.5, 'K7s': 0.4, 'K6s': 0.3, 'K5s': 0.3,
-        'QJs': 1, 'QTs': 1, 'Q9s': 0.7, 'Q8s': 0.4, 'Q7s': 0.2,
-        'JTs': 1, 'J9s': 0.8, 'J8s': 0.3,
-        'T9s': 1, 'T8s': 0.5, 'T7s': 0.2,
-        '98s': 0.8, '97s': 0.3, '87s': 0.7, '76s': 0.6, '65s': 0.5, '54s': 0.4, '43s': 0.2,
-        'KQo': 1, 'KJo': 0.7, 'KTo': 0.5, 'K9o': 0.2,
-        'QJo': 0.6, 'QTo': 0.4,
-        'JTo': 0.5, 'J9o': 0.2,
-        'T9o': 0.3, '98o': 0.2, '87o': 0.15,
-    },
-};
+/**
+ * All available training spots — RFI + 3-bet + BB Defense + 4-bet + Squeeze
+ */
+const SPOT_CATEGORIES = [
+    { id: 'rfi', label: 'RFI (Open Raise)' },
+    { id: '3bet', label: '3-Bet' },
+    { id: 'coldcall', label: 'Cold Call' },
+    { id: 'bbdef', label: 'BB Defense' },
+    { id: '4bet', label: '4-Bet' },
+    { id: 'squeeze', label: 'Squeeze' },
+];
 
-// All possible hands in the 13x13 matrix
-function getAllHands() {
-    const hands = [];
-    for (let r = 0; r < 13; r++) {
-        for (let c = 0; c < 13; c++) {
-            if (r === c) hands.push(RANKS[r] + RANKS[c]);
-            else if (r < c) hands.push(RANKS[r] + RANKS[c] + 's');
-            else hands.push(RANKS[c] + RANKS[r] + 'o');
+/**
+ * Build a flat lookup of all available spots with display labels + solver data.
+ */
+function buildSpotList() {
+    const spots = [];
+
+    // RFI spots
+    Object.keys(RFI).forEach(pos => {
+        spots.push({
+            key: `RFI.${pos}`,
+            category: 'rfi',
+            label: `${pos} Open`,
+            shortLabel: pos,
+            data: RFI[pos],
+        });
+    });
+
+    // 3-Bet spots
+    Object.keys(THREE_BET).forEach(key => {
+        const parts = key.split('_vs_');
+        const pos = parts[0];
+        const villain = parts[1] || key;
+        spots.push({
+            key: `3BET.${key}`,
+            category: '3bet',
+            label: `${pos} 3-Bet vs ${villain}`,
+            shortLabel: `${pos} v ${villain}`,
+            data: THREE_BET[key],
+        });
+    });
+
+    // BB Defense spots
+    Object.keys(BB_DEFENSE).forEach(key => {
+        const villain = key.replace('vs_', '');
+        spots.push({
+            key: `BB_DEF.${key}`,
+            category: 'bbdef',
+            label: `BB Defense vs ${villain}`,
+            shortLabel: `BB v ${villain}`,
+            data: BB_DEFENSE[key],
+        });
+    });
+
+    // 4-Bet spots
+    Object.keys(FOUR_BET).forEach(key => {
+        const parts = key.split('_vs_');
+        const pos = parts[0];
+        spots.push({
+            key: `4BET.${key}`,
+            category: '4bet',
+            label: `${pos} 4-Bet vs 3bet`,
+            shortLabel: `${pos} 4bet`,
+            data: FOUR_BET[key],
+        });
+    });
+
+    // Cold-call spots
+    Object.keys(COLD_CALL).forEach(key => {
+        const parts = key.split('_vs_');
+        const pos = parts[0];
+        const villain = parts[1] || key;
+        spots.push({
+            key: `CC.${key}`,
+            category: 'coldcall',
+            label: `${pos} Flat vs ${villain}`,
+            shortLabel: `${pos} v ${villain}`,
+            data: COLD_CALL[key],
+        });
+    });
+
+    // Squeeze spots
+    Object.keys(SQUEEZE).forEach(key => {
+        spots.push({
+            key: `SQZ.${key}`,
+            category: 'squeeze',
+            label: key.replace(/_/g, ' '),
+            shortLabel: key.replace(/_/g, ' ').slice(0, 14),
+            data: SQUEEZE[key],
+        });
+    });
+
+    return spots;
+}
+
+const ALL_SPOTS = buildSpotList();
+
+/**
+ * Convert solver data { hand: { raise, call } } to flat freq map { hand: freq }
+ * where freq = raise + call (total action frequency for matrix coloring).
+ * Also returns the full action frequencies for quiz logic.
+ */
+function solverToFlatRange(spotData) {
+    if (!spotData) return {};
+    const flat = {};
+    for (const hand of SOLVER_ALL_HANDS) {
+        const f = getHandFrequencies(spotData, hand);
+        const totalAction = f.raise + f.call;
+        if (totalAction > 0) {
+            flat[hand] = totalAction;
         }
     }
-    return hands;
+    return flat;
 }
 
-function getHandNotation(r, c) {
-    if (r === c) return RANKS[r] + RANKS[c];
-    if (r < c) return RANKS[r] + RANKS[c] + 's';
-    return RANKS[c] + RANKS[r] + 'o';
+/**
+ * Get the full raise/call/fold breakdown for a hand in a spot.
+ */
+function getFullFreqs(spotData, hand) {
+    return getHandFrequencies(spotData, hand);
 }
+
+// Build legacy GTO_RANGES from RFI data for backward-compatible position selector
+const GTO_RANGES = {};
+Object.keys(RFI).forEach(pos => {
+    GTO_RANGES[pos] = solverToFlatRange(RFI[pos]);
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MEMOIZED SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Memoized matrix cell for quiz mode
+// GTO Wizard-style multi-color cell — shows raise (blue), call (green), fold (gray) gradient
 const QuizMatrixCell = React.memo(({ cell, isHighlighted }) => {
-    const cellColor = cell.freq >= 0.9 ? '#22c55e'
-        : cell.freq >= 0.7 ? '#4ade80'
-            : cell.freq >= 0.5 ? '#86efac'
-                : cell.freq >= 0.3 ? '#fbbf24'
-                    : cell.freq >= 0.1 ? '#f97316'
-                        : cell.freq > 0 ? '#ef4444'
-                            : 'rgba(255,255,255,0.04)';
+    const actions = cell.actions || { raise: 0, call: 0, fold: 1 };
+    const hasAction = actions.raise > 0.01 || actions.call > 0.01;
+
+    // Build CSS gradient from action frequencies (GTO Wizard style)
+    let cellBg;
+    if (!hasAction) {
+        cellBg = 'rgba(255,255,255,0.04)';
+    } else if (actions.call > 0.01 && actions.raise > 0.01) {
+        // Mixed raise+call: split gradient
+        const raisePercent = Math.round(actions.raise / (actions.raise + actions.call) * 100);
+        cellBg = `linear-gradient(135deg, #3b82f6 0%, #3b82f6 ${raisePercent}%, #22c55e ${raisePercent}%, #22c55e 100%)`;
+    } else if (actions.raise > 0.01) {
+        // Pure raise — intensity by frequency
+        const alpha = 0.3 + actions.raise * 0.7;
+        cellBg = `rgba(59,130,246,${alpha})`;
+    } else {
+        // Pure call
+        const alpha = 0.3 + actions.call * 0.7;
+        cellBg = `rgba(34,197,94,${alpha})`;
+    }
+
+    // Dim cells that are mostly fold but have some action
+    const opacity = hasAction ? (cell.freq < 0.15 ? 0.6 : 1) : 0.4;
+
+    const title = `${cell.hand}: R${Math.round(actions.raise*100)}% C${Math.round(actions.call*100)}% F${Math.round(actions.fold*100)}%`;
 
     return (
         <div
             style={{
                 aspectRatio: '1',
-                background: cellColor,
+                background: cellBg,
                 borderRadius: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 6.5,
                 fontWeight: 'bold',
-                color: cell.freq > 0.3 ? '#000' : cell.freq > 0 ? '#fff' : '#444',
+                color: hasAction ? (cell.freq > 0.3 ? '#fff' : '#ddd') : '#444',
                 border: isHighlighted ? '2px solid #00d4ff' : '1px solid rgba(0,0,0,0.2)',
                 boxShadow: isHighlighted ? '0 0 8px rgba(0,212,255,0.6)' : 'none',
                 position: 'relative',
+                opacity,
+                textShadow: hasAction && cell.freq > 0.3 ? '0 1px 2px rgba(0,0,0,0.5)' : 'none',
             }}
-            title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
+            title={title}
         >
             {cell.hand}
         </div>
@@ -223,6 +299,8 @@ const BuildMatrixCell = React.memo(({ cell, isSelected, solverInRange, rangeChec
 
 export default function PreflopRangeTrainer({ onExit }) {
     const [position, setPosition] = useState('BTN');
+    const [spotCategory, setSpotCategory] = useState('rfi');
+    const [activeSpot, setActiveSpot] = useState(ALL_SPOTS.find(s => s.key === 'RFI.BTN') || ALL_SPOTS[0]);
     const [currentHand, setCurrentHand] = useState(null);
     const [showFeedback, setShowFeedback] = useState(false);
     const [selectedAction, setSelectedAction] = useState(null);
@@ -230,7 +308,7 @@ export default function PreflopRangeTrainer({ onExit }) {
     const [streak, setStreak] = useState(0);
     const [showMatrix, setShowMatrix] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const allHands = useMemo(() => getAllHands(), []);
+    const allHands = useMemo(() => [...SOLVER_ALL_HANDS], []);
 
     // Phase 8: Interactive range-building mode
     const [trainerMode, setTrainerMode] = useState('quiz'); // 'quiz' | 'build'
@@ -238,7 +316,19 @@ export default function PreflopRangeTrainer({ onExit }) {
     const [rangeChecked, setRangeChecked] = useState(false);
     const [rangeScore, setRangeScore] = useState(null);
 
-    const range = useMemo(() => GTO_RANGES[position] || {}, [position]);
+    // Derive flat range + solver data from active spot
+    const range = useMemo(() => solverToFlatRange(activeSpot?.data), [activeSpot]);
+    const spotData = activeSpot?.data || {};
+
+    // Available spots filtered by category
+    const categorySpots = useMemo(() =>
+        ALL_SPOTS.filter(s => s.category === spotCategory),
+    [spotCategory]);
+
+    // Range percentage display
+    const rangePercent = useMemo(() =>
+        activeSpot?.data ? getRangePercentage(activeSpot.data).toFixed(1) : '0',
+    [activeSpot]);
 
     // Deal a new hand
     const dealHand = useCallback(() => {
@@ -249,7 +339,7 @@ export default function PreflopRangeTrainer({ onExit }) {
         setShowMatrix(false);
     }, [allHands]);
 
-    // Start on mount and position change
+    // Start on mount and spot change
     useEffect(() => {
         setIsLoading(true);
         const timer = setTimeout(() => {
@@ -257,38 +347,39 @@ export default function PreflopRangeTrainer({ onExit }) {
             setIsLoading(false);
         }, 150);
         return () => clearTimeout(timer);
-    }, [position, dealHand]);
+    }, [activeSpot, dealHand]);
 
-    // Get correct action for current hand
+    // Get correct action for current hand — now uses full raise/call/fold breakdown
+    const handActions = useMemo(() => {
+        if (!currentHand) return { raise: 0, call: 0, fold: 1 };
+        return getFullFreqs(spotData, currentHand);
+    }, [currentHand, spotData]);
+
     const correctAction = useMemo(() => {
-        if (!currentHand) return 'fold';
-        const freq = range[currentHand] || 0;
-        if (freq >= 0.5) return 'raise';
-        if (freq > 0) return 'mixed'; // Present in range but < 50%
+        if (handActions.raise >= handActions.call && handActions.raise >= handActions.fold) return 'raise';
+        if (handActions.call >= handActions.raise && handActions.call >= handActions.fold) return 'call';
         return 'fold';
-    }, [currentHand, range]);
+    }, [handActions]);
 
+    // Backward-compat: "handFreq" = total action frequency (raise + call)
     const handFreq = useMemo(() => {
-        if (!currentHand) return 0;
-        return range[currentHand] || 0;
-    }, [currentHand, range]);
+        return handActions.raise + handActions.call;
+    }, [handActions]);
 
     const [feedbackResult, setFeedbackResult] = useState(null);
 
-    // Handle answer
+    // Handle answer — now uses real raise/call/fold frequencies from solver
     const handleAction = useCallback((action) => {
         if (showFeedback) return;
         setSelectedAction(action);
         setShowFeedback(true);
         setShowMatrix(true);
 
-        // Convert the current hand frequency (0 to 1 scale) to 0-100 scale for classifyMove
+        // Build GTO frequency map from solver's mixed-strategy data (0-100 scale)
         const gtoFreqs = {
-            'raise': Math.round(handFreq * 100),
-            'fold': Math.round((1 - handFreq) * 100),
-            // Call is not explicitly defined in the simplified preflop GTO_RANGES matrix,
-            // we assume Raise vs Fold mostly, but allow Call if freq is > 0 and < 0.5
-            'call': handFreq > 0 && handFreq < 0.5 ? Math.round(handFreq * 100) : 0
+            'raise': Math.round(handActions.raise * 100),
+            'call': Math.round(handActions.call * 100),
+            'fold': Math.round(handActions.fold * 100),
         };
 
         // Classify move using the central engine
@@ -305,7 +396,7 @@ export default function PreflopRangeTrainer({ onExit }) {
 
         setFeedbackResult(classification);
 
-        // Score logic: anything better than WRONG is technically a "pass" for streaks in preflop trainer
+        // Score logic: anything better than WRONG is technically a "pass" for streaks
         const isPass = classification.classification === 'best' || classification.classification === 'correct' || classification.classification === 'inaccuracy';
 
         setScore(prev => ({
@@ -313,22 +404,23 @@ export default function PreflopRangeTrainer({ onExit }) {
             total: prev.total + 1,
         }));
         setStreak(prev => isPass ? prev + 1 : 0);
-    }, [showFeedback, handFreq, correctAction, currentHand]);
+    }, [showFeedback, handActions, correctAction, currentHand]);
 
-    // Build 13x13 matrix for display
+    // Build 13x13 matrix — now includes raise/call/fold breakdown for each cell
     const matrix = useMemo(() => {
         const grid = [];
         for (let r = 0; r < 13; r++) {
             const row = [];
             for (let c = 0; c < 13; c++) {
-                const hand = getHandNotation(r, c);
+                const hand = getHandFromGrid(r, c);
                 const freq = range[hand] || 0;
-                row.push({ hand, freq, isCurrentHand: hand === currentHand });
+                const actions = getFullFreqs(spotData, hand);
+                row.push({ hand, freq, actions, isCurrentHand: hand === currentHand });
             }
             grid.push(row);
         }
         return grid;
-    }, [range, currentHand]);
+    }, [range, spotData, currentHand]);
 
     const accuracy = useMemo(() => score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0, [score]);
     const accColor = useMemo(() => accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#fbbf24' : '#ef4444', [accuracy]);
@@ -363,16 +455,43 @@ export default function PreflopRangeTrainer({ onExit }) {
         setRangeChecked(true);
     }, [range, userRange]);
 
-    // Reset build mode when position changes
+    // Reset build mode when spot changes
     useEffect(() => {
         setUserRange(new Set());
         setRangeChecked(false);
         setRangeScore(null);
-    }, [position]);
+    }, [activeSpot]);
 
     // Memoized handlers
     const handlePositionChange = useCallback((pos) => {
         setPosition(pos);
+        // Find the matching RFI spot for this position
+        const rfiSpot = ALL_SPOTS.find(s => s.key === `RFI.${pos}`);
+        if (rfiSpot) {
+            setActiveSpot(rfiSpot);
+            setSpotCategory('rfi');
+        }
+        setScore({ correct: 0, total: 0 });
+        setStreak(0);
+    }, []);
+
+    const handleSpotChange = useCallback((spot) => {
+        setActiveSpot(spot);
+        setScore({ correct: 0, total: 0 });
+        setStreak(0);
+        // Update position label from spot
+        const posMatch = spot.label.match(/^(UTG|MP|HJ|CO|BTN|SB|BB)/);
+        if (posMatch) setPosition(posMatch[1]);
+    }, []);
+
+    const handleCategoryChange = useCallback((catId) => {
+        setSpotCategory(catId);
+        const firstSpot = ALL_SPOTS.find(s => s.category === catId);
+        if (firstSpot) {
+            setActiveSpot(firstSpot);
+            const posMatch = firstSpot.label.match(/^(UTG|MP|HJ|CO|BTN|SB|BB)/);
+            if (posMatch) setPosition(posMatch[1]);
+        }
         setScore({ correct: 0, total: 0 });
         setStreak(0);
     }, []);
@@ -431,22 +550,51 @@ export default function PreflopRangeTrainer({ onExit }) {
                 </div>
             </div>
 
-            {/* POSITION SELECTOR */}
-            <div style={S.posBar}>
-                {Object.keys(GTO_RANGES).map(pos => (
+            {/* SPOT CATEGORY TABS */}
+            <div style={{ display: 'flex', gap: 0, margin: '0 8px 2px', overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                {SPOT_CATEGORIES.map(cat => (
                     <button
-                        key={pos}
-                        onClick={() => handlePositionChange(pos)}
+                        key={cat.id}
+                        onClick={() => handleCategoryChange(cat.id)}
                         style={{
-                            ...S.posBtn,
-                            background: position === pos ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
-                            color: position === pos ? '#00d4ff' : '#94a3b8',
-                            borderColor: position === pos ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)',
+                            padding: '6px 10px', border: 'none', cursor: 'pointer',
+                            fontSize: 10, fontWeight: 700, letterSpacing: 0.3,
+                            whiteSpace: 'nowrap', flexShrink: 0,
+                            background: spotCategory === cat.id ? 'rgba(168,85,247,0.15)' : 'transparent',
+                            color: spotCategory === cat.id ? '#a855f7' : '#64748b',
+                            borderBottom: spotCategory === cat.id ? '2px solid #a855f7' : '2px solid transparent',
+                            transition: 'all 0.2s ease',
                         }}
                     >
-                        {pos}
+                        {cat.label}
                     </button>
                 ))}
+            </div>
+
+            {/* SPOT SELECTOR (within category) */}
+            <div style={S.posBar}>
+                {categorySpots.map(spot => (
+                    <button
+                        key={spot.key}
+                        onClick={() => handleSpotChange(spot)}
+                        style={{
+                            ...S.posBtn,
+                            background: activeSpot?.key === spot.key ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                            color: activeSpot?.key === spot.key ? '#00d4ff' : '#94a3b8',
+                            borderColor: activeSpot?.key === spot.key ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)',
+                            fontSize: 10,
+                            padding: '6px 10px',
+                            minWidth: 40,
+                        }}
+                    >
+                        {spot.shortLabel}
+                    </button>
+                ))}
+                {categorySpots.length > 0 && (
+                    <div style={{ fontSize: 9, color: '#64748b', alignSelf: 'center', marginLeft: 4 }}>
+                        {rangePercent}%
+                    </div>
+                )}
             </div>
 
             {/* MODE TOGGLE */}
@@ -479,7 +627,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         exit={{ scale: 0.8, opacity: 0 }}
                         style={S.handDisplay}
                     >
-                        <div style={S.handLabel}>Your Hand ({position})</div>
+                        <div style={S.handLabel}>Your Hand • {activeSpot?.label || position}</div>
                         <div style={S.handCards}>
                             {handToCards(currentHand).map((card, i) => (
                                 <motion.img
@@ -593,12 +741,16 @@ export default function PreflopRangeTrainer({ onExit }) {
                             )}
                         </div>
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                            {currentHand} at {position}:{' '}
-                            {handFreq === 0
+                            {currentHand} • {activeSpot?.label || position}:{' '}
+                            {handActions.raise === 0 && handActions.call === 0
                                 ? 'Not in range — Fold'
-                                : handFreq >= 0.5
-                                    ? `Raise (${Math.round(handFreq * 100)}% frequency)`
-                                    : `Mixed — Raise ${Math.round(handFreq * 100)}% / Fold ${Math.round((1 - handFreq) * 100)}%`}
+                                : (() => {
+                                    const parts = [];
+                                    if (handActions.raise > 0) parts.push(`Raise ${Math.round(handActions.raise * 100)}%`);
+                                    if (handActions.call > 0) parts.push(`Call ${Math.round(handActions.call * 100)}%`);
+                                    if (handActions.fold > 0.01) parts.push(`Fold ${Math.round(handActions.fold * 100)}%`);
+                                    return parts.length > 1 ? `Mixed — ${parts.join(' / ')}` : parts[0];
+                                })()}
                         </div>
 
                         <motion.button
@@ -619,7 +771,7 @@ export default function PreflopRangeTrainer({ onExit }) {
             {/* 13x13 RANGE MATRIX */}
             {trainerMode === 'quiz' ? (
                 <div style={S.matrixContainer}>
-                    <div style={S.matrixTitle}>{position} Open-Raise Range (RFI)</div>
+                    <div style={S.matrixTitle}>{activeSpot?.label || `${position} Open`} ({rangePercent}% of hands)</div>
                     <div style={S.matrix}>
                         {matrix.flat().map((cell, i) => {
                             const isHighlighted = showFeedback && cell.isCurrentHand;
@@ -634,10 +786,9 @@ export default function PreflopRangeTrainer({ onExit }) {
                     </div>
                     <div style={S.legend}>
                         {[
-                            { label: '90%+', color: '#22c55e' },
-                            { label: '50%+', color: '#86efac' },
-                            { label: 'Mixed', color: '#fbbf24' },
-                            { label: '<10%', color: '#f97316' },
+                            { label: 'Raise', color: '#3b82f6' },
+                            { label: 'Call', color: '#22c55e' },
+                            { label: 'Mixed', color: 'linear-gradient(135deg, #3b82f6 50%, #22c55e 50%)' },
                             { label: 'Fold', color: 'rgba(255,255,255,0.08)' },
                         ].map(l => (
                             <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#94a3b8' }}>
@@ -650,7 +801,7 @@ export default function PreflopRangeTrainer({ onExit }) {
             ) : (
                 /* RANGE BUILDER MODE */
                 <div style={S.matrixContainer}>
-                    <div style={S.matrixTitle}>Click to build your {position} opening range</div>
+                    <div style={S.matrixTitle}>Build: {activeSpot?.label || `${position} Open`}</div>
                     <div style={S.matrix}>
                         {matrix.flat().map((cell, i) => {
                             const isSelected = userRange.has(cell.hand);

@@ -87,7 +87,7 @@ export const RANK_VALUES = {
 export const VALID_POSITIONS = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
 /** Valid scenario types for range queries */
-export const VALID_SCENARIOS = ['rfi', 'vs3bet', 'bb_defense', 'push_fold'];
+export const VALID_SCENARIOS = ['rfi', 'vs3bet', 'bb_defense', 'push_fold', '4bet', 'squeeze', 'cold_call'];
 
 /** Valid game type prefixes */
 export const VALID_GAME_TYPES = ['hu_cash', 'cash_6max', 'cash_9max', 'mtt', 'sng'];

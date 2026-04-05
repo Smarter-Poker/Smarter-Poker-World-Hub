@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SoundEngine, EffectsEngine } from './GameEngine';
-import { getRandomScenario } from './ScenarioDatabase';
+import { getRandomScenario, getRandomEnrichedScenario } from './ScenarioDatabase';
 
 // Game constants
 const INITIAL_TIME = 3000; // 3 seconds per hand
@@ -15,15 +15,16 @@ const MAX_LIVES = 3;
 const POINTS_PER_CORRECT = 100;
 const STREAK_BONUS_MULTIPLIER = 10;
 
-// Generate random hand from scenario
+// Generate random hand from scenario (enriched with solver frequencies)
 function getRandomHandFromScenario(scenario) {
     const hands = Object.entries(scenario.solution);
     if (hands.length === 0) return null;
 
     const randomIndex = Math.floor(Math.random() * hands.length);
     const [hand, correctAction] = hands[randomIndex];
+    const enrichedEntry = scenario.enrichedSolution?.[hand];
 
-    return { hand, correctAction, scenario };
+    return { hand, correctAction, scenario, frequencies: enrichedEntry || null };
 }
 
 // Hand display component
@@ -133,7 +134,7 @@ export default function SpeedDrill({ level = 1, onExit, onComplete }) {
 
     // Initialize game
     const startGame = useCallback(() => {
-        const scenario = getRandomScenario(level);
+        const scenario = getRandomEnrichedScenario(level);
         if (!scenario) return;
 
         const hand = getRandomHandFromScenario(scenario);
@@ -155,7 +156,7 @@ export default function SpeedDrill({ level = 1, onExit, onComplete }) {
 
     // Next hand
     const nextHand = useCallback(() => {
-        const scenario = getRandomScenario(level);
+        const scenario = getRandomEnrichedScenario(level);
         if (!scenario) return;
 
         const hand = getRandomHandFromScenario(scenario);
@@ -179,7 +180,14 @@ export default function SpeedDrill({ level = 1, onExit, onComplete }) {
         setUserAnswer(action);
         setHandsPlayed(prev => prev + 1);
 
-        const isCorrect = action === currentHand.correctAction;
+        // Mixed-frequency grading: any action with >25% solver frequency counts
+        let isCorrect;
+        if (currentHand.frequencies) {
+            const actionFreq = currentHand.frequencies[action] || 0;
+            isCorrect = actionFreq >= 0.25;
+        } else {
+            isCorrect = action === currentHand.correctAction;
+        }
 
         if (isCorrect) {
             const streakBonus = streak * STREAK_BONUS_MULTIPLIER;

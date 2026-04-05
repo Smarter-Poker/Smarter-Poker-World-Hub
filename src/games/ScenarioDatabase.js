@@ -17934,4 +17934,126 @@ export function getLevelConfig(level) {
     return LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
 }
 
-export default { ALL_SCENARIOS, getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS };
+// ═══════════════════════════════════════════════════════════════════════════
+// SOLVER-ENRICHED SCENARIO BRIDGE
+// Converts binary 'raise'/'fold' solutions to mixed-strategy frequencies
+// by cross-referencing with solverRanges.js data at runtime.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import {
+    RFI as SOLVER_RFI,
+    THREE_BET as SOLVER_3BET,
+    BB_DEFENSE as SOLVER_BB_DEF,
+    FOUR_BET as SOLVER_4BET,
+    getHandFrequencies as solverGetFreqs,
+    getRFIByDepth,
+} from '../config/solverRanges';
+
+/**
+ * Map scenario metadata to the best-matching solver spot.
+ * Returns null if no solver data matches (e.g., post-flop scenarios).
+ */
+function matchSolverSpot(scenario) {
+    const pos = scenario.position;
+    const level = scenario.level;
+    const title = (scenario.title || '').toLowerCase();
+
+    // Level 1-2: RFI opens — use stack-depth-aware data
+    if (level <= 2 && (title.includes('open') || title.includes('rfi'))) {
+        const depth = scenario.stackDepth || 100;
+        return getRFIByDepth(depth, pos) || SOLVER_RFI[pos] || null;
+    }
+
+    // Level 3: BB Defense
+    if (level === 3 && title.includes('bb defense')) {
+        const vsMatch = title.match(/vs\s*(utg|mp|hj|co|btn|sb)/i);
+        if (vsMatch) {
+            const vsKey = `vs_${vsMatch[1].toUpperCase()}`;
+            return SOLVER_BB_DEF[vsKey] || null;
+        }
+    }
+
+    // Level 4: 3-bet ranges
+    if (level === 4 && title.includes('3-bet')) {
+        // Try to find matching 3-bet spot
+        const keys = Object.keys(SOLVER_3BET);
+        for (const key of keys) {
+            if (key.toUpperCase().startsWith(pos)) return SOLVER_3BET[key];
+        }
+    }
+
+    // Level 6: 4-bet ranges
+    if (level === 6 && title.includes('4-bet')) {
+        const keys = Object.keys(SOLVER_4BET);
+        for (const key of keys) {
+            if (key.toUpperCase().startsWith(pos)) return SOLVER_4BET[key];
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Enrich a scenario's binary solution with solver frequencies.
+ * Returns a new scenario object with `enrichedSolution` containing
+ * { hand: { raise: freq, call: freq, fold: freq } } for each hand.
+ *
+ * If no solver data matches, returns the original scenario unchanged.
+ */
+export function enrichScenarioWithFrequencies(scenario) {
+    if (!scenario || !scenario.solution) return scenario;
+
+    const solverSpot = matchSolverSpot(scenario);
+    if (!solverSpot) return scenario;
+
+    const enrichedSolution = {};
+    for (const [hand, action] of Object.entries(scenario.solution)) {
+        const solverFreqs = solverGetFreqs(solverSpot, hand);
+        enrichedSolution[hand] = {
+            primaryAction: action,
+            raise: solverFreqs.raise,
+            call: solverFreqs.call,
+            fold: solverFreqs.fold,
+        };
+    }
+
+    // Also include hands that are in the solver range but NOT in the binary solution
+    // (these are hands with low frequency that the binary solution missed)
+    const allSolverHands = Object.keys(solverSpot);
+    for (const hand of allSolverHands) {
+        if (!enrichedSolution[hand]) {
+            const solverFreqs = solverGetFreqs(solverSpot, hand);
+            if (solverFreqs.raise > 0.05 || solverFreqs.call > 0.05) {
+                enrichedSolution[hand] = {
+                    primaryAction: solverFreqs.raise > solverFreqs.fold ? 'raise' : 'fold',
+                    raise: solverFreqs.raise,
+                    call: solverFreqs.call,
+                    fold: solverFreqs.fold,
+                };
+            }
+        }
+    }
+
+    return {
+        ...scenario,
+        enrichedSolution,
+        hasMixedFrequencies: true,
+    };
+}
+
+/**
+ * Get solver-enriched scenarios for a level.
+ */
+export function getEnrichedScenariosByLevel(level) {
+    return getScenariosByLevel(level).map(enrichScenarioWithFrequencies);
+}
+
+/**
+ * Get a random solver-enriched scenario for a level.
+ */
+export function getRandomEnrichedScenario(level) {
+    const scenario = getRandomScenario(level);
+    return enrichScenarioWithFrequencies(scenario);
+}
+
+export default { ALL_SCENARIOS, getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS, enrichScenarioWithFrequencies, getEnrichedScenariosByLevel, getRandomEnrichedScenario };
