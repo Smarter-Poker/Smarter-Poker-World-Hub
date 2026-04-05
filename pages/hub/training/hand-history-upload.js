@@ -1312,14 +1312,29 @@ export default function HandHistoryUploadPage() {
       hands.forEach((h) => {
         try {
           const { grade } = gradeHand(h);
-          if (grade === 'GTO') coachingAggregate.gto++;
-          else if (grade === 'OK' || grade === 'N/A') coachingAggregate.ok++;
+          if (grade === 'BEST') coachingAggregate.gto++;
+          else if (grade === 'CORRECT' || grade === 'N/A') coachingAggregate.ok++;
           else coachingAggregate.leak++;
         } catch {
           coachingAggregate.ok++;
         }
       });
       eventBus?.emit?.('training:coaching-summary', coachingAggregate, 'HandHistoryUpload');
+
+      // ── Engine Leak Detection: run on hands with engine analysis ──
+      try {
+        const engineHands = hands.filter(h => h._engineHand);
+        if (engineHands.length > 0) {
+          const sessionReport = analyzeSession(engineHands.map(h => h._engineHand));
+          if (sessionReport) {
+            const leaks = detectLeaks(sessionReport);
+            const drills = generateDrillRecommendations(leaks);
+            eventBus?.emit?.('training:leaks-detected', { leaks, drills, report: sessionReport }, 'HandHistoryUpload');
+          }
+        }
+      } catch (e) {
+        console.warn('[HH] Engine leak detection failed:', e.message);
+      }
     }
   }, []);
 
