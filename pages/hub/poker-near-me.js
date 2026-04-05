@@ -2042,7 +2042,6 @@ export default function PokerNearMePage() {
                 <UniversalHeader 
                     pageDepth={2} 
                     onMenuClick={() => setMenuOpen(true)} 
-                    onBackClick={() => router.push('/hub')}
                 />
 
                 {/* Hamburger Menu */}
