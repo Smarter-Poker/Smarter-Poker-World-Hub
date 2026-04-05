@@ -372,7 +372,7 @@ export default function PokerNearMeLobby() {
       let url = `/api/poker/venues?limit=${PAGE_SIZE}&offset=${pageNum * PAGE_SIZE}`;
       if (query) url += `&search=${encodeURIComponent(query)}`;
       if (userLocation) {
-        url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
+        url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=50`;
       }
       if (sortBy) url += `&sort=${sortBy}`;
       // Apply filters

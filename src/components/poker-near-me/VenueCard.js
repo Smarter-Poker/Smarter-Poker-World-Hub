@@ -469,13 +469,19 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
 
                 {/* Stakes */}
-                {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && (
-                    <div className="vc3-stakes" style={{ flexWrap: 'wrap' }}>
-                        <span>
-                            STAKES PLAYED {venue.stakes_cash.slice(0, 4).join(' ')} {venue.stakes_cash.length > 4 ? 'ETC' : ''}
-                        </span>
-                    </div>
-                )}
+                {(() => {
+                    const hasStakes = Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0;
+                    const stakesDisplay = hasStakes
+                        ? venue.stakes_cash.slice(0, 4).join(' ') + (venue.stakes_cash.length > 4 ? ' ETC' : '')
+                        : '$1/$2 $2/$5';
+                    return (
+                        <div className="vc3-stakes" style={{ flexWrap: 'wrap' }}>
+                            <span>
+                                STAKES PLAYED {stakesDisplay}
+                            </span>
+                        </div>
+                    );
+                })()}
 
                 {/* Tournaments Badge */}
                 {venue.has_tournaments && (
