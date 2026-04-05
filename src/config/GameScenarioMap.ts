@@ -18,6 +18,9 @@
  *   L5: Cold Call ranges (CO/BTN flat vs opener)
  *   L6: 4-Bet ranges (facing 3-bet after opening)
  *   L7: Squeeze ranges (3-bet over open + caller)
+ *   L8: Flop decisions (c-bet, check-raise, float) — PostflopScenarioGenerator
+ *   L9: Turn decisions (barrel, give up, raise) — PostflopScenarioGenerator
+ *   L10: River decisions (value bet, bluff, hero call) — PostflopScenarioGenerator
  *
  * Each mapping specifies:
  *   - scenarioLevels: which generator levels to pull scenarios from
@@ -78,20 +81,20 @@ const MTT_MAP: GameScenarioConfig[] = [
 
 const CASH_MAP: GameScenarioConfig[] = [
     { gameId: 'cash-001', scenarioLevels: [1, 2], spotTypes: ['rfi'], stackDepths: [100], notes: 'Preflop Blueprint — all 6 position RFI ranges' },
-    { gameId: 'cash-002', scenarioLevels: [1, 2, 3], spotTypes: ['rfi', 'bb_defense'], stackDepths: [100], notes: 'C-Bet Academy — continuation bet spots' },
-    { gameId: 'cash-003', scenarioLevels: [3, 5], spotTypes: ['bb_defense', 'cold_call'], stackDepths: [100], notes: 'Defense Matrix — facing aggression' },
-    { gameId: 'cash-004', scenarioLevels: [3, 5], spotTypes: ['bb_defense', 'cold_call'], stackDepths: [100], notes: 'Value Extractor — thin value betting spots' },
-    { gameId: 'cash-005', scenarioLevels: [3, 5], spotTypes: ['bb_defense', 'cold_call'], stackDepths: [100], notes: 'Bluff Catcher — hero call decisions' },
+    { gameId: 'cash-002', scenarioLevels: [1, 2, 3, 8], spotTypes: ['rfi', 'bb_defense', 'cbet'], stackDepths: [100], notes: 'C-Bet Academy — continuation bet spots (now with postflop L8)' },
+    { gameId: 'cash-003', scenarioLevels: [3, 5, 8], spotTypes: ['bb_defense', 'cold_call', 'check_raise'], stackDepths: [100], notes: 'Defense Matrix — facing aggression (with flop defense)' },
+    { gameId: 'cash-004', scenarioLevels: [3, 5, 9, 10], spotTypes: ['bb_defense', 'cold_call', 'turn_barrel', 'river_value'], stackDepths: [100], notes: 'Value Extractor — thin value betting spots (turn + river)' },
+    { gameId: 'cash-005', scenarioLevels: [3, 5, 10], spotTypes: ['bb_defense', 'cold_call', 'river_bluff_catcher'], stackDepths: [100], notes: 'Bluff Catcher — hero call decisions (river L10)' },
     { gameId: 'cash-006', scenarioLevels: [1, 2], spotTypes: ['rfi'], stackDepths: [100], notes: 'Position Power — IP vs OOP dynamics' },
     { gameId: 'cash-007', scenarioLevels: [4], spotTypes: ['vs3bet'], stackDepths: [100], notes: '3-Bet Pots — elevated pot strategy' },
     { gameId: 'cash-008', scenarioLevels: [6], spotTypes: ['4bet'], stackDepths: [100], notes: '4-Bet Wars — pre-flop escalation' },
     { gameId: 'cash-009', scenarioLevels: [1, 2, 3, 4], spotTypes: ['rfi', 'bb_defense', 'vs3bet'], stackDepths: [200], notes: 'Deep Stack Cash — 200BB+ strategy adjustments' },
     { gameId: 'cash-010', scenarioLevels: [1, 2], spotTypes: ['rfi'], stackDepths: [50], notes: 'Short Stack Rat — 40BB hit-and-run ranges' },
-    { gameId: 'cash-011', scenarioLevels: [3], spotTypes: ['bb_defense'], stackDepths: [100], notes: 'Donk Defense — facing lead bets' },
-    { gameId: 'cash-012', scenarioLevels: [3, 5], spotTypes: ['bb_defense', 'cold_call'], stackDepths: [100], notes: 'River Decisions — final street mastery' },
-    { gameId: 'cash-013', scenarioLevels: [3, 5], spotTypes: ['bb_defense', 'cold_call'], stackDepths: [100], notes: 'Probe Betting — taking the initiative' },
-    { gameId: 'cash-014', scenarioLevels: [3], spotTypes: ['bb_defense'], stackDepths: [100], notes: 'Check-Raise Art — BB check-raise defense' },
-    { gameId: 'cash-015', scenarioLevels: [4, 6], spotTypes: ['vs3bet', '4bet'], stackDepths: [100, 200], notes: 'Overbetting — polarized big bet sizing' },
+    { gameId: 'cash-011', scenarioLevels: [3, 8], spotTypes: ['bb_defense', 'cbet'], stackDepths: [100], notes: 'Donk Defense — facing lead bets (flop postflop)' },
+    { gameId: 'cash-012', scenarioLevels: [3, 5, 10], spotTypes: ['bb_defense', 'cold_call', 'river_value', 'river_bluff'], stackDepths: [100], notes: 'River Decisions — final street mastery (L10 river)' },
+    { gameId: 'cash-013', scenarioLevels: [3, 5, 9], spotTypes: ['bb_defense', 'cold_call', 'turn_barrel'], stackDepths: [100], notes: 'Probe Betting — taking the initiative (turn L9)' },
+    { gameId: 'cash-014', scenarioLevels: [3, 8], spotTypes: ['bb_defense', 'check_raise'], stackDepths: [100], notes: 'Check-Raise Art — BB check-raise defense (flop L8)' },
+    { gameId: 'cash-015', scenarioLevels: [4, 6, 10], spotTypes: ['vs3bet', '4bet', 'river_value'], stackDepths: [100, 200], notes: 'Overbetting — polarized big bet sizing (river L10)' },
     { gameId: 'cash-016', scenarioLevels: [5, 7], spotTypes: ['cold_call', 'squeeze'], stackDepths: [100], notes: 'Multi-way Pots — 3+ player dynamics' },
     { gameId: 'cash-017', scenarioLevels: [1, 2, 3], spotTypes: ['rfi', 'bb_defense'], stackDepths: [100], notes: 'Rake Awareness — rake-adjusted ranges' },
     { gameId: 'cash-018', scenarioLevels: [2, 3, 4], spotTypes: ['rfi', 'bb_defense', 'vs3bet'], positions: ['SB', 'BB'], notes: 'Blind vs Blind — SB vs BB warfare' },
@@ -101,7 +104,7 @@ const CASH_MAP: GameScenarioConfig[] = [
     { gameId: 'cash-022', scenarioLevels: [1, 2, 3], spotTypes: ['rfi', 'bb_defense'], stackDepths: [100], notes: 'Texture Reading — board analysis' },
     { gameId: 'cash-023', scenarioLevels: [1, 2, 5], spotTypes: ['rfi', 'cold_call'], stackDepths: [100], notes: 'Equity Denial — protection betting' },
     { gameId: 'cash-024', scenarioLevels: [3, 5], spotTypes: ['bb_defense', 'cold_call'], stackDepths: [100], notes: 'Pot Control — medium strength hand play' },
-    { gameId: 'cash-025', scenarioLevels: [1, 2, 3, 4, 5, 6, 7], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [100], notes: 'Cash King — full session grind, all spots' },
+    { gameId: 'cash-025', scenarioLevels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze', 'cbet', 'turn_barrel', 'river_value', 'river_bluff'], stackDepths: [100], notes: 'Cash King — full session grind, all spots including postflop' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -153,7 +156,7 @@ const PSYCHOLOGY_MAP: GameScenarioConfig[] = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 const ADVANCED_MAP: GameScenarioConfig[] = [
-    { gameId: 'adv-001', scenarioLevels: [1, 2, 3, 4, 5, 6, 7], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [100], notes: 'Solver Mimicry — match solver outputs exactly' },
+    { gameId: 'adv-001', scenarioLevels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze', 'cbet', 'check_raise', 'turn_barrel', 'river_value'], stackDepths: [100], notes: 'Solver Mimicry — match solver outputs exactly (now with postflop)' },
     { gameId: 'adv-002', scenarioLevels: [4, 5, 6, 7], spotTypes: ['vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [100], notes: 'Blocker Logic — combo counting and card removal' },
     { gameId: 'adv-003', scenarioLevels: [1, 2, 3, 4, 5, 6, 7], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [100], notes: 'Node Locking — exploitative game tree deviations' },
     { gameId: 'adv-004', scenarioLevels: [1, 2, 3, 4, 5, 6, 7], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [100], notes: 'Range Construction — building ranges from scratch' },
@@ -172,7 +175,7 @@ const ADVANCED_MAP: GameScenarioConfig[] = [
     { gameId: 'adv-017', scenarioLevels: [3, 5], spotTypes: ['bb_defense', 'cold_call'], stackDepths: [100], notes: 'Capped Ranges — playing condensed range' },
     { gameId: 'adv-018', scenarioLevels: [4, 6], spotTypes: ['vs3bet', '4bet'], stackDepths: [100], notes: 'Polarity Index — range splitting' },
     { gameId: 'adv-019', scenarioLevels: [1, 2, 3, 4, 5, 6, 7], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [100], notes: 'Solver Scripts — simulation interpretation' },
-    { gameId: 'adv-020', scenarioLevels: [1, 2, 3, 4, 5, 6, 7], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [20, 50, 100, 200], notes: 'GTO Apex — ultimate theory test, all spots, all depths' },
+    { gameId: 'adv-020', scenarioLevels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze', 'cbet', 'check_raise', 'turn_barrel', 'river_value', 'river_bluff'], stackDepths: [20, 50, 100, 200], notes: 'GTO Apex — ultimate theory test, all spots, all depths, all streets' },
     // Named Advanced games
     { gameId: 'quiz-gauntlet', scenarioLevels: [1, 2, 3, 4, 5, 6, 7], spotTypes: ['rfi', 'bb_defense', 'vs3bet', 'cold_call', '4bet', 'squeeze'], stackDepths: [100], notes: 'Quiz Gauntlet — high-speed GTO blitz across all spots' },
     { gameId: 'hand-lab', scenarioLevels: [1, 2, 3, 4], spotTypes: ['rfi', 'bb_defense', 'vs3bet'], stackDepths: [100], notes: 'Hand Lab V2 — interactive equity builder' },

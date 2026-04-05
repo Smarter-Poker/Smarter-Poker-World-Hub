@@ -272,15 +272,11 @@ export const ALL_SCENARIOS = [
 
 /**
  * Get scenarios for a specific level.
- * Levels 1-7 come from the solver generator; level 10 from hardcoded.
+ * Levels 1-10 come from the solver generator (L1-7 preflop, L8-10 postflop).
  */
 export function getScenariosByLevel(level) {
-    if (level >= 1 && level <= 7) {
+    if (level >= 1 && level <= 10) {
         return getSolverScenariosForLevel(level);
-    }
-    // Level 8-9: fall back to level 7 (squeeze) content
-    if (level === 8 || level === 9) {
-        return getSolverScenariosForLevel(7);
     }
     return ALL_SCENARIOS.filter(s => s.level === level);
 }
@@ -289,13 +285,9 @@ export function getScenariosByLevel(level) {
  * Get a random scenario for a level.
  */
 export function getRandomScenario(level) {
-    // Solver-generated levels (1-7)
-    if (level >= 1 && level <= 7) {
+    // Solver-generated levels (1-10: L1-7 preflop, L8-10 postflop)
+    if (level >= 1 && level <= 10) {
         return getRandomSolverScenario(level);
-    }
-    // Levels 8-9: fall back to level 7
-    if (level === 8 || level === 9) {
-        return getRandomSolverScenario(7);
     }
     const scenarios = getScenariosByLevel(level);
     if (scenarios.length === 0) return null;

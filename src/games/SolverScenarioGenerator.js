@@ -31,6 +31,9 @@ import {
     ALL_HANDS, getHandFrequencies, getRFIByDepth,
 } from '../config/solverRanges';
 
+// Postflop scenario generators (L8-L10)
+import { generateAllPostflopScenarios } from '../engines/PostflopScenarioGenerator';
+
 // ── Threshold: solver freq must be ≥ this to count as "in range" ────────
 const IN_RANGE_THRESHOLD = 0.10;
 
@@ -397,6 +400,9 @@ let _cachedScenarios = null;
 export function generateAllSolverScenarios() {
     if (_cachedScenarios) return _cachedScenarios;
 
+    // Generate postflop scenarios from the PostflopScenarioGenerator
+    const postflop = generateAllPostflopScenarios();
+
     _cachedScenarios = {
         1: generateLevel1(),
         2: generateLevel2(),
@@ -405,10 +411,10 @@ export function generateAllSolverScenarios() {
         5: generateLevel5(),
         6: generateLevel6(),
         7: generateLevel7(),
-        // Levels 8-10: reserved for post-flop solver data (not yet available)
-        8: [],
-        9: [],
-        10: [],
+        // Levels 8-10: Postflop scenarios from PostflopScenarioGenerator
+        8: postflop[8] || [],
+        9: postflop[9] || [],
+        10: postflop[10] || [],
     };
 
     return _cachedScenarios;
