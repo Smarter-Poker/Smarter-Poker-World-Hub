@@ -111,7 +111,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     const [showFeedback, setShowFeedback] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
     const [explanation, setExplanation] = useState('');
-    const [xpEarned, setXpEarned] = useState(0);
+    const [diamondsEarned, setDiamondsEarned] = useState(0);
 
     // Flash overlay state
     const [flashColor, setFlashColor] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
     // Question tracking
     const [questionIndex, setQuestionIndex] = useState(0);
     const [score, setScore] = useState(0);
-    const [totalXP, setTotalXP] = useState(0);
+    const [totalDiamonds, setTotalDiamonds] = useState(0);
 
     // Session complete state
     const [sessionComplete, setSessionComplete] = useState(false);
@@ -237,14 +237,14 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         setIsCorrect(correct);
         setExplanation(question.explanation || 'Good decision!');
 
-        // Track score locally (XP awarded at level completion by XP Engine, not per question)
-        const baseXP = correct ? 100 : 0;
-        setXpEarned(baseXP);
+        // Track score locally (diamonds awarded at level completion, not per question)
+        const baseDiamonds = correct ? 5 : 0;
+        setDiamondsEarned(baseDiamonds);
 
         if (correct) {
             setScore(prev => prev + 1);
-            setTotalXP(prev => prev + baseXP);
-            // NOTE: XP is NOT logged here - awarded by automated XP engine at level completion
+            setTotalDiamonds(prev => prev + baseDiamonds);
+            // NOTE: Diamonds are NOT logged here - awarded at level completion
         } else {
             // Log mistake to Supabase with lawId for leak detection (per question)
             if (question.lawId) {
@@ -314,7 +314,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
         setSessionComplete(false);
         setQuestionIndex(0);
         setScore(0);
-        setTotalXP(0);
+        setTotalDiamonds(0);
         setGamePhase(GamePhase.IDLE);
     }, []);
 
@@ -330,7 +330,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
             setSessionComplete(false);
             setQuestionIndex(0);
             setScore(0);
-            setTotalXP(0);
+            setTotalDiamonds(0);
             setDetectedLeaks([]);
             setGamePhase(GamePhase.IDLE);
         }
@@ -854,7 +854,7 @@ export default function UniversalTrainingTable({ gameId, onAnswer }: UniversalTr
                                 color: '#fbbf24',
                                 marginBottom: 16
                             }}>
-                                +{xpEarned} XP
+                                +{diamondsEarned} 💎
                             </div>
                         )}
                         <div style={{

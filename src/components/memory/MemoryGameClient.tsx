@@ -32,8 +32,8 @@ interface GameStateType {
     correctCount: number;
     streak: number;
     maxStreak: number;
-    totalXP: number;
-    sessionXP: number;
+    totalDiamonds: number;
+    sessionDiamonds: number;
     userAnswer: string | null;
     answerTime: number;
     startTime: number;
@@ -52,8 +52,8 @@ type GameAction =
 const HANDS_PER_SESSION = 20;
 const PASS_THRESHOLD = 0.85; // 85%
 const SPEED_BONUS_THRESHOLD = 2000; // 2 seconds
-const XP_PER_CORRECT = 10;
-const XP_SPEED_BONUS = 5;
+const DIAMONDS_PER_CORRECT = 5;
+const DIAMOND_SPEED_BONUS = 3;
 const COMBO_THRESHOLD = 5;
 
 const ACTION_COLORS = {
@@ -79,7 +79,7 @@ function gameReducer(state: GameStateType, action: GameAction): GameStateType {
                 score: 0,
                 correctCount: 0,
                 streak: 0,
-                sessionXP: 0,
+                sessionDiamonds: 0,
                 sessionResults: [],
                 startTime: Date.now(),
             };
@@ -97,9 +97,9 @@ function gameReducer(state: GameStateType, action: GameAction): GameStateType {
             const responseTime = action.time - state.answerTime;
             const isSpeedBonus = responseTime < SPEED_BONUS_THRESHOLD;
 
-            let xpEarned = 0;
+            let diamondsEarned = 0;
             if (isCorrect) {
-                xpEarned = XP_PER_CORRECT + (isSpeedBonus ? XP_SPEED_BONUS : 0);
+                diamondsEarned = DIAMONDS_PER_CORRECT + (isSpeedBonus ? DIAMOND_SPEED_BONUS : 0);
             }
 
             const newSeenHands = new Set(state.seenHands);
@@ -114,8 +114,8 @@ function gameReducer(state: GameStateType, action: GameAction): GameStateType {
                 correctCount: state.correctCount + (isCorrect ? 1 : 0),
                 streak: isCorrect ? state.streak + 1 : 0,
                 maxStreak: Math.max(state.maxStreak, isCorrect ? state.streak + 1 : state.streak),
-                totalXP: state.totalXP + xpEarned,
-                sessionXP: state.sessionXP + xpEarned,
+                totalDiamonds: state.totalDiamonds + diamondsEarned,
+                sessionDiamonds: state.sessionDiamonds + diamondsEarned,
                 seenHands: newSeenHands,
                 sessionResults: [
                     ...state.sessionResults,
@@ -149,7 +149,7 @@ function gameReducer(state: GameStateType, action: GameAction): GameStateType {
                 score: 0,
                 correctCount: 0,
                 streak: 0,
-                sessionXP: 0,
+                sessionDiamonds: 0,
                 sessionResults: [],
                 // Keep seenHands to avoid repeats
             };
@@ -207,8 +207,8 @@ export default function MemoryGameClient({
         correctCount: 0,
         streak: 0,
         maxStreak: 0,
-        totalXP: 0,
-        sessionXP: 0,
+        totalDiamonds: 0,
+        sessionDiamonds: 0,
         userAnswer: null,
         answerTime: 0,
         startTime: 0,
@@ -220,7 +220,7 @@ export default function MemoryGameClient({
 
     // Reward processing state (moved to top level to fix hooks violation)
     const [rewardsProcessed, setRewardsProcessed] = useState(false);
-    const [backendRewards, setBackendRewards] = useState<{ xp: number; diamonds: number } | null>(null);
+    const [backendRewards, setBackendRewards] = useState<{ diamonds: number } | null>(null);
 
     // Calculate accuracy at component level
     const accuracy = gameState.sessionResults.length > 0
@@ -270,7 +270,6 @@ export default function MemoryGameClient({
             }
 
             setBackendRewards({
-                xp: gameState.sessionXP,
                 diamonds: totalDiamonds
             });
 
@@ -280,8 +279,7 @@ export default function MemoryGameClient({
             console.error('Failed to process rewards:', error);
             // Fallback: still show local rewards
             setBackendRewards({
-                xp: gameState.sessionXP,
-                diamonds: Math.floor(gameState.sessionXP / 10)
+                diamonds: gameState.sessionDiamonds
             });
         }
     };
@@ -646,7 +644,7 @@ export default function MemoryGameClient({
 
                         {isCorrect && isSpeedBonus && (
                             <div className="text-yellow-400 text-xl font-bold animate-pulse">
-                                ⚡ SPEED BONUS +{XP_SPEED_BONUS} XP
+                                ⚡ SPEED BONUS +{DIAMOND_SPEED_BONUS} 💎
                             </div>
                         )}
                     </div>
@@ -734,7 +732,7 @@ export default function MemoryGameClient({
     // ═══════════════════════════════════════════════════════════════════════
 
     if (gameState.state === 'SUMMARY') {
-        const displayDiamonds = backendRewards?.diamonds ?? (passed ? Math.floor(gameState.sessionXP / 10) : 0);
+        const displayDiamonds = backendRewards?.diamonds ?? (passed ? gameState.sessionDiamonds : 0);
 
 
         return (
@@ -765,8 +763,8 @@ export default function MemoryGameClient({
                             <span className="font-bold text-orange-400">🔥 {gameState.maxStreak}</span>
                         </div>
                         <div className="flex justify-between border-b border-slate-700 pb-3">
-                            <span className="text-slate-400">Session XP</span>
-                            <span className="font-bold text-cyan-400">+{gameState.sessionXP} XP</span>
+                            <span className="text-slate-400">Session Diamonds</span>
+                            <span className="font-bold text-cyan-400">+{gameState.sessionDiamonds} 💎</span>
                         </div>
                         {passed && (
                             <div className="flex justify-between pt-2">

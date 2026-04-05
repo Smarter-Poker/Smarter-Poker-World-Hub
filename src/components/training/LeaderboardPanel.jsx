@@ -79,7 +79,7 @@ function LeaderboardEntry({ entry, rank, isCurrentUser }) {
                     {entry.accuracy || 0}%
                 </div>
                 <div style={{ fontSize: 8, color: '#475569', fontWeight: 600 }}>
-                    {entry.total_xp || 0} XP
+                    💎 {entry.total_diamonds || entry.total_xp || 0}
                 </div>
             </div>
         </motion.div>

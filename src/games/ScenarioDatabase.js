@@ -15,16 +15,16 @@ export function getHandName(row, col) {
 // DIFFICULTY SETTINGS - Timer, complexity, and scoring adjustments
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVEL_CONFIG = {
-    1: { timer: 90, gridSize: 13, maxHands: 20, xpMultiplier: 1.0 },
-    2: { timer: 85, gridSize: 13, maxHands: 22, xpMultiplier: 1.2 },
-    3: { timer: 80, gridSize: 13, maxHands: 24, xpMultiplier: 1.4 },
-    4: { timer: 75, gridSize: 13, maxHands: 26, xpMultiplier: 1.6 },
-    5: { timer: 70, gridSize: 13, maxHands: 28, xpMultiplier: 1.8 },
-    6: { timer: 65, gridSize: 13, maxHands: 30, xpMultiplier: 2.0 },
-    7: { timer: 60, gridSize: 13, maxHands: 32, xpMultiplier: 2.2 },
-    8: { timer: 55, gridSize: 13, maxHands: 34, xpMultiplier: 2.4 },
-    9: { timer: 50, gridSize: 13, maxHands: 36, xpMultiplier: 2.6 },
-    10: { timer: 45, gridSize: 13, maxHands: 40, xpMultiplier: 3.0 },
+    1: { timer: 90, gridSize: 13, maxHands: 20, diamondMultiplier: 1.0 },
+    2: { timer: 85, gridSize: 13, maxHands: 22, diamondMultiplier: 1.2 },
+    3: { timer: 80, gridSize: 13, maxHands: 24, diamondMultiplier: 1.4 },
+    4: { timer: 75, gridSize: 13, maxHands: 26, diamondMultiplier: 1.6 },
+    5: { timer: 70, gridSize: 13, maxHands: 28, diamondMultiplier: 1.8 },
+    6: { timer: 65, gridSize: 13, maxHands: 30, diamondMultiplier: 2.0 },
+    7: { timer: 60, gridSize: 13, maxHands: 32, diamondMultiplier: 2.2 },
+    8: { timer: 55, gridSize: 13, maxHands: 34, diamondMultiplier: 2.4 },
+    9: { timer: 50, gridSize: 13, maxHands: 36, diamondMultiplier: 2.6 },
+    10: { timer: 45, gridSize: 13, maxHands: 40, diamondMultiplier: 3.0 },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

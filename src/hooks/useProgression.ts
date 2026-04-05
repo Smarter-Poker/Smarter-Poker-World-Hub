@@ -502,7 +502,6 @@ export function useProgression(): UseProgressionReturn {
         // BACKGROUND SAVE - don't make user wait
         const savePayload: SavePayload = {
             handResult,
-            newTotalXP: state.totalXP + reward.totalXP,
             newTotalDiamonds: state.totalDiamonds + reward.totalDiamonds,
             newStreak: state.streak
         };
@@ -530,7 +529,7 @@ export function useProgression(): UseProgressionReturn {
     }, [state.streak]);
 
     // Calculate level info
-    const levelInfo = calculateLevel(state.totalXP);
+    const levelInfo = calculateLevel(state.totalDiamonds);
     const winRate = state.sessionTotal > 0
         ? Math.round((state.sessionCorrect / state.sessionTotal) * 100)
         : 0;
@@ -538,7 +537,7 @@ export function useProgression(): UseProgressionReturn {
     return {
         state,
         level: levelInfo.level,
-        xpToNextLevel: levelInfo.xpToNext,
+        diamondsToNextLevel: levelInfo.diamondsToNext,
         levelProgress: levelInfo.progress,
         winRate,
         recordHandResult,
