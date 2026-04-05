@@ -14,6 +14,10 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import Card from '../../../src/components/training/Card';
+// ── Phase 5 Engines: Hand History Analysis Pipeline ──────────────────────
+import { parseHandHistory as engineParseHandHistory, detectSite } from '../../../src/engines/HandHistoryParser';
+import { analyzeHand, analyzeSession } from '../../../src/engines/HandAnalyzer';
+import { detectLeaks, generateDrillRecommendations } from '../../../src/engines/LeakDetector';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND HISTORY PARSERS — Multi-Site Support (PokerStars, GGPoker, 888, WPN)
@@ -234,9 +238,37 @@ function parseWPNHand(text) {
 }
 
 /**
- * AUTO-DETECT format and parse hands from any supported site
+ * AUTO-DETECT format and parse hands from any supported site.
+ * Uses Phase 5 HandHistoryParser engine first (structured output with streets,
+ * decision points, etc.), falling back to inline parsers for WPN/edge cases.
  */
 function parseHandHistory(text) {
+  // Try the engine parser first — produces richer structured output
+  try {
+    const engineHands = engineParseHandHistory(text);
+    if (engineHands && engineHands.length > 0) {
+      // Engine hands have structured streets — adapt to the flat format this page expects
+      return engineHands.map(h => ({
+        id: h.id,
+        site: h.site || detectSite(text),
+        gameType: h.gameType || 'Cash',
+        stakes: h.stakes || 'Unknown',
+        hero: h.hero?.name || 'Hero',
+        heroCards: h.hero?.holeCards || [],
+        board: _extractBoard(h),
+        pot: h.result?.pot || 0,
+        actions: _flattenActions(h),
+        result: h.result?.heroes?.[0]?.won || 0,
+        rawText: (h._raw || '').substring(0, 500),
+        // Preserve the full engine hand for deep analysis
+        _engineHand: h,
+      }));
+    }
+  } catch (e) {
+    console.warn('[HH] Engine parser failed, using inline fallback:', e.message);
+  }
+
+  // Fallback to inline parsers (handles WPN and edge cases)
   if (text.includes('PokerStars')) return parsePokerStarsHand(text);
   if (text.includes('Poker Hand #') || text.includes('GGPoker') || text.includes('GG Network'))
     return parseGGPokerHand(text);
@@ -247,15 +279,41 @@ function parseHandHistory(text) {
     text.includes('Americas Cardroom')
   )
     return parseWPNHand(text);
-  // Fallback: try PokerStars format (most common)
   const psHands = parsePokerStarsHand(text);
   if (psHands.length > 0) return psHands;
-  // Try all parsers
   const ggHands = parseGGPokerHand(text);
   if (ggHands.length > 0) return ggHands;
   const hands888 = parse888Hand(text);
   if (hands888.length > 0) return hands888;
   return parseWPNHand(text);
+}
+
+/** Extract flat board array from engine's structured streets */
+function _extractBoard(hand) {
+  const board = [];
+  if (hand.streets?.flop?.board) board.push(...hand.streets.flop.board);
+  if (hand.streets?.turn?.board) board.push(...hand.streets.turn.board);
+  if (hand.streets?.river?.board) board.push(...hand.streets.river.board);
+  return board;
+}
+
+/** Flatten engine's street-based actions into the flat array this page uses */
+function _flattenActions(hand) {
+  const actions = [];
+  const heroName = hand.hero?.name || 'Hero';
+  for (const street of ['preflop', 'flop', 'turn', 'river']) {
+    const streetData = hand.streets?.[street];
+    if (!streetData?.actions) continue;
+    for (const a of streetData.actions) {
+      actions.push({
+        player: a.player || 'Unknown',
+        action: (a.action || 'checks').toLowerCase(),
+        amount: a.amount || 0,
+        isHero: a.player === heroName,
+      });
+    }
+  }
+  return actions;
 }
 
 // Card rendering uses shared Card.tsx custom PNG deck
@@ -303,6 +361,43 @@ const GRADE_TIERS = {
 };
 
 function gradeHand(hand) {
+  // ── ENGINE PATH: Use HandAnalyzer for structured engine-parsed hands ──
+  if (hand?._engineHand) {
+    try {
+      const analysis = analyzeHand(hand._engineHand);
+      if (analysis && analysis.summary) {
+        const s = analysis.summary;
+        const score = s.accuracy || 0;
+        let gradeName, tier;
+        if (score >= 90) { gradeName = 'BEST'; tier = GRADE_TIERS.BEST; }
+        else if (score >= 75) { gradeName = 'CORRECT'; tier = GRADE_TIERS.CORRECT; }
+        else if (score >= 55) { gradeName = 'INACCURACY'; tier = GRADE_TIERS.INACCURACY; }
+        else if (score >= 30) { gradeName = 'MISTAKE'; tier = GRADE_TIERS.MISTAKE; }
+        else { gradeName = 'BLUNDER'; tier = GRADE_TIERS.BLUNDER; }
+        // Convert engine decisions to tips
+        const tips = analysis.decisions.map(d => ({
+          text: `${d.street || 'preflop'}: ${d.playerAction || '?'} — ${d.classification || 'unknown'}${d.evLoss > 0 ? ` (${d.evLoss.toFixed(2)} bb EV loss)` : ''}${d.gtoAction ? ` | GTO: ${d.gtoAction}` : ''}`,
+          type: d.classification === 'correct' ? 'good' : d.classification === 'blunder' ? 'warning' : 'info',
+        }));
+        if (tips.length === 0) tips.push({ text: 'Clean line — no detectable GTO deviations', type: 'good' });
+        return {
+          grade: gradeName,
+          tier,
+          color: tier.color,
+          evLoss: s.totalEVLoss || 0,
+          tips,
+          score,
+          position: hand._engineHand.hero?.position || deriveHeroPosition(hand),
+          street: analysis.decisions.length > 0 ? analysis.decisions[analysis.decisions.length - 1].street : 'preflop',
+          _engineAnalysis: analysis,
+        };
+      }
+    } catch (e) {
+      console.warn('[HH] Engine analyzeHand failed, using inline grading:', e.message);
+    }
+  }
+
+  // ── INLINE FALLBACK: Rule-based grading for non-engine hands ──
   // HARDENED: Full try-catch prevents crash on malformed hand data
   try {
     const actions = Array.isArray(hand?.actions) ? hand.actions : [];
