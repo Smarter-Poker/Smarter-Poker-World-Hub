@@ -62,16 +62,14 @@ export async function getOrCreateLocation(
   if (existing) return existing.id;
 
   // Create new location using the auth session's user ID
-  const insertData: Record<string, unknown> = {
+  const insertData = {
     user_id: authUserId,
     name,
     venue_type: venueType,
     latitude,
     longitude,
+    poker_venue_id: pokerVenueId ? String(pokerVenueId) : null,
   };
-  if (pokerVenueId) {
-    insertData.poker_venue_id = pokerVenueId;
-  }
 
   const { data: newLoc, error } = await supabase
     .from('bankroll_locations')

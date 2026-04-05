@@ -846,7 +846,8 @@ const GameSession: React.FC<GameSessionProps> = ({
                 setIsControlsLocked(false);
             }
         }
-    }, [currentHand, userId, gameId, handNumber, totalHands, health, engineType, screenControls, fetchNextHand, completeSession]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentHand, userId, gameId, handNumber, totalHands, health, engineType, screenControls, fetchNextHand]);
 
     // ========================================================================
     // HELPERS

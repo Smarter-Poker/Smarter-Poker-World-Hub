@@ -51,8 +51,8 @@ export interface Trip {
   end_date: string | null;
   purpose: string | null;
   notes: string | null;
-  status: 'active' | 'completed' | 'deleted';
-  trip_type?: 'trip' | 'series';
+  status: string;
+  trip_type?: string | null;
   totalNet?: number;
   totalExpenses?: number;
   entryCount?: number;
@@ -73,9 +73,11 @@ export interface BankrollAlert {
   severity: number;
   title: string;
   message: string;
-  data: Record<string, unknown> | null;
+  data: unknown;
   is_read: boolean;
+  is_dismissed?: boolean;
   created_at: string;
+  [key: string]: unknown;
 }
 
 export type CategoryFilter =

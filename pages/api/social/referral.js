@@ -77,13 +77,13 @@ export default async function handler(req, res) {
             // Recent referral list
             const { data: recentReferrals } = await supabase
                 .from('referrals')
-                .select('id, status, created_at, referred_id')
+                .select('id, status, created_at, referee_id')
                 .eq('referrer_id', user.id)
                 .order('created_at', { ascending: false })
                 .limit(20);
 
             // Get referred user names
-            const referredIds = (recentReferrals || []).map(r => r.referred_id).filter(Boolean);
+            const referredIds = (recentReferrals || []).map(r => r.referee_id).filter(Boolean);
             let referredProfiles = {};
             if (referredIds.length > 0) {
                 const { data: profiles } = await supabase
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
 
             const enrichedReferrals = (recentReferrals || []).map(r => ({
                 ...r,
-                referredUser: referredProfiles[r.referred_id] || null,
+                referredUser: referredProfiles[r.referee_id] || null,
             }));
 
             return res.status(200).json({
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
                 const { data: existing } = await supabase
                     .from('referrals')
                     .select('id')
-                    .eq('referred_id', user.id)
+                    .eq('referee_id', user.id)
                     .maybeSingle();
 
                 if (existing) {
@@ -173,8 +173,8 @@ export default async function handler(req, res) {
                 // Create referral record
                 await supabase.from('referrals').insert({
                     referrer_id: referrer.id,
-                    referred_id: user.id,
-                    referral_code: code.trim().toUpperCase(),
+                    referee_id: user.id,
+                    referral_code_used: code.trim().toUpperCase(),
                     status: 'completed',
                 });
 

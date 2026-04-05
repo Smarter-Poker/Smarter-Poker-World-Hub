@@ -1042,6 +1042,9 @@ export type Database = {
           skill_tier: string | null
           state: string | null
           streak_count: number | null
+          streak_days: number | null
+          hub_preferences: Json | null
+          level: number | null
           total_xp: number | null
           username: string | null
           xp_total: number | null
@@ -1066,6 +1069,9 @@ export type Database = {
           skill_tier?: string | null
           state?: string | null
           streak_count?: number | null
+          streak_days?: number | null
+          hub_preferences?: Json | null
+          level?: number | null
           total_xp?: number | null
           username?: string | null
           xp_total?: number | null
@@ -1090,6 +1096,9 @@ export type Database = {
           skill_tier?: string | null
           state?: string | null
           streak_count?: number | null
+          streak_days?: number | null
+          hub_preferences?: Json | null
+          level?: number | null
           total_xp?: number | null
           username?: string | null
           xp_total?: number | null
@@ -2222,9 +2231,94 @@ export type Database = {
           is_revision: boolean
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
-        Relationships: []
+        Insert: {
+          id?: string
+          user_id: string
+          category: string
+          location_id?: string | null
+          trip_id?: string | null
+          entry_date: string
+          start_time?: string | null
+          end_time?: string | null
+          gross_in?: number
+          gross_out?: number
+          net_result?: number
+          notes?: string | null
+          media_urls?: string[] | null
+          emotional_tag?: string | null
+          stakes?: string | null
+          game_type?: string | null
+          tournament_name?: string | null
+          tournament_type?: string | null
+          buy_in_amount?: number | null
+          finish_position?: number | null
+          field_size?: number | null
+          reentry_count?: number | null
+          add_on_amount?: number | null
+          bounties_collected?: number | null
+          casino_game?: string | null
+          slot_machine?: string | null
+          sport?: string | null
+          bet_type?: string | null
+          odds?: string | null
+          bet_result?: string | null
+          expense_type?: string | null
+          duration_hours?: number | null
+          is_revision?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          category?: string
+          location_id?: string | null
+          trip_id?: string | null
+          entry_date?: string
+          start_time?: string | null
+          end_time?: string | null
+          gross_in?: number
+          gross_out?: number
+          net_result?: number
+          notes?: string | null
+          media_urls?: string[] | null
+          emotional_tag?: string | null
+          stakes?: string | null
+          game_type?: string | null
+          tournament_name?: string | null
+          tournament_type?: string | null
+          buy_in_amount?: number | null
+          finish_position?: number | null
+          field_size?: number | null
+          reentry_count?: number | null
+          add_on_amount?: number | null
+          bounties_collected?: number | null
+          casino_game?: string | null
+          slot_machine?: string | null
+          sport?: string | null
+          bet_type?: string | null
+          odds?: string | null
+          bet_result?: string | null
+          expense_type?: string | null
+          duration_hours?: number | null
+          is_revision?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bankroll_ledger_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "bankroll_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bankroll_ledger_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "bankroll_trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bankroll_locations: {
         Row: {
@@ -2237,8 +2331,26 @@ export type Database = {
           poker_venue_id: string | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          venue_type?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          poker_venue_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          venue_type?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          poker_venue_id?: string | null
+          created_at?: string
+        }
         Relationships: []
       }
       bankroll_trips: {
@@ -2257,9 +2369,45 @@ export type Database = {
           created_at: string
           updated_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
-        Relationships: []
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          location_id?: string | null
+          start_date: string
+          end_date?: string | null
+          purpose?: string | null
+          notes?: string | null
+          status?: string
+          trip_type?: string | null
+          mileage?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          location_id?: string | null
+          start_date?: string
+          end_date?: string | null
+          purpose?: string | null
+          notes?: string | null
+          status?: string
+          trip_type?: string | null
+          mileage?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bankroll_trips_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "bankroll_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bankroll_rules: {
         Row: {
@@ -2271,8 +2419,24 @@ export type Database = {
           is_active: boolean
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          rule_type: string
+          value: number
+          is_strict?: boolean
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          rule_type?: string
+          value?: number
+          is_strict?: boolean
+          is_active?: boolean
+          created_at?: string
+        }
         Relationships: []
       }
       bankroll_rule_violations: {
@@ -2286,8 +2450,26 @@ export type Database = {
           is_dismissed: boolean
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          rule_id: string
+          violation_type: string
+          actual_value?: number | null
+          threshold_value?: number | null
+          is_dismissed?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          rule_id?: string
+          violation_type?: string
+          actual_value?: number | null
+          threshold_value?: number | null
+          is_dismissed?: boolean
+          created_at?: string
+        }
         Relationships: []
       }
       bankroll_alerts: {
@@ -2298,12 +2480,37 @@ export type Database = {
           severity: number
           title: string
           message: string
-          data: Record<string, unknown> | null
+          data: Json | null
           is_read: boolean
+          is_dismissed: boolean
+          location_id: string | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          alert_type: string
+          severity: number
+          title: string
+          message: string
+          data?: unknown
+          is_read?: boolean
+          is_dismissed?: boolean
+          location_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          alert_type?: string
+          severity?: number
+          title?: string
+          message?: string
+          data?: Json | null
+          is_read?: boolean
+          is_dismissed?: boolean
+          created_at?: string
+        }
         Relationships: []
       }
       bankroll_segments: {
@@ -2311,13 +2518,41 @@ export type Database = {
           id: string
           user_id: string
           segment_type: string
-          initial_deposit: number
+          label: string | null
           current_balance: number
+          initial_deposit: number
+          target_amount: number | null
+          is_active: boolean
+          is_read_only: boolean
           created_at: string
           updated_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          segment_type: string
+          label?: string | null
+          current_balance?: number
+          initial_deposit?: number
+          target_amount?: number | null
+          is_active?: boolean
+          is_read_only?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          segment_type?: string
+          label?: string | null
+          current_balance?: number
+          initial_deposit?: number
+          target_amount?: number | null
+          is_active?: boolean
+          is_read_only?: boolean
+          created_at?: string
+          updated_at?: string
+        }
         Relationships: []
       }
       bankroll_transfers: {
@@ -2326,12 +2561,37 @@ export type Database = {
           user_id: string
           from_segment_id: string | null
           to_segment_id: string | null
+          from_segment: string | null
+          to_segment: string | null
           amount: number
           notes: string | null
+          reason: string | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          from_segment_id?: string | null
+          to_segment_id?: string | null
+          from_segment?: string | null
+          to_segment?: string | null
+          amount: number
+          notes?: string | null
+          reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          from_segment_id?: string | null
+          to_segment_id?: string | null
+          from_segment?: string | null
+          to_segment?: string | null
+          amount?: number
+          notes?: string | null
+          reason?: string | null
+          created_at?: string
+        }
         Relationships: []
       }
       bankroll_assistant_memory: {
@@ -2340,10 +2600,28 @@ export type Database = {
           user_id: string
           memory_type: string
           content: string
+          location_id: string | null
+          is_active: boolean
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          memory_type: string
+          content: string
+          location_id?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          memory_type?: string
+          content?: string
+          location_id?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
         Relationships: []
       }
       dealer_calendar_events: {
@@ -2361,8 +2639,34 @@ export type Database = {
           hourly_rate: number | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          venue_name?: string | null
+          venue_address?: string | null
+          event_date: string
+          notes?: string | null
+          alert_enabled?: boolean
+          notification_sent?: boolean
+          share_token?: string
+          hourly_rate?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          venue_name?: string | null
+          venue_address?: string | null
+          event_date?: string
+          notes?: string | null
+          alert_enabled?: boolean
+          notification_sent?: boolean
+          share_token?: string
+          hourly_rate?: number | null
+          created_at?: string
+        }
         Relationships: []
       }
       staking_arrangements: {
@@ -2383,8 +2687,40 @@ export type Database = {
           created_at: string
           updated_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          backer_name: string
+          backer_email?: string | null
+          backer_phone?: string | null
+          split_percentage: number
+          markup_percentage?: number
+          starting_makeup?: number
+          current_makeup?: number
+          start_date: string
+          end_date?: string | null
+          is_active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          backer_name?: string
+          backer_email?: string | null
+          backer_phone?: string | null
+          split_percentage?: number
+          markup_percentage?: number
+          starting_makeup?: number
+          current_makeup?: number
+          start_date?: string
+          end_date?: string | null
+          is_active?: boolean
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
         Relationships: []
       }
       staking_sessions: {
@@ -2399,8 +2735,28 @@ export type Database = {
           makeup_after: number
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          arrangement_id: string
+          ledger_entry_id: string
+          gross_result: number
+          player_share: number
+          backer_share: number
+          makeup_before?: number
+          makeup_after?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          arrangement_id?: string
+          ledger_entry_id?: string
+          gross_result?: number
+          player_share?: number
+          backer_share?: number
+          makeup_before?: number
+          makeup_after?: number
+          created_at?: string
+        }
         Relationships: []
       }
       toke_gigs: {
@@ -2423,8 +2779,44 @@ export type Database = {
           created_at: string
           updated_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          venue_name: string
+          venue_address?: string | null
+          location_id?: string | null
+          venue_type?: string | null
+          poker_venue_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          start_date: string
+          end_date?: string | null
+          hourly_rate: number
+          mileage?: number | null
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          venue_name?: string
+          venue_address?: string | null
+          location_id?: string | null
+          venue_type?: string | null
+          poker_venue_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          start_date?: string
+          end_date?: string | null
+          hourly_rate?: number
+          mileage?: number | null
+          status?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
         Relationships: []
       }
       toke_gig_days: {
@@ -2439,8 +2831,28 @@ export type Database = {
           notes: string | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          gig_id: string
+          user_id: string
+          day_number: number
+          date: string
+          started_at: string
+          ended_at?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          gig_id?: string
+          user_id?: string
+          day_number?: number
+          date?: string
+          started_at?: string
+          ended_at?: string | null
+          notes?: string | null
+          created_at?: string
+        }
         Relationships: []
       }
       toke_downs: {
@@ -2464,8 +2876,46 @@ export type Database = {
           notes: string | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          gig_id: string
+          day_id: string
+          user_id: string
+          down_type: string
+          game_type?: string | null
+          tournament_name?: string | null
+          table_number?: string | null
+          tournament_buyin?: number | null
+          cash_stakes?: string | null
+          cash_variant?: string | null
+          started_at: string
+          ended_at?: string | null
+          toke_amount: number
+          is_double_down?: boolean
+          down_multiplier?: number
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          gig_id?: string
+          day_id?: string
+          user_id?: string
+          down_type?: string
+          game_type?: string | null
+          tournament_name?: string | null
+          table_number?: string | null
+          tournament_buyin?: number | null
+          cash_stakes?: string | null
+          cash_variant?: string | null
+          started_at?: string
+          ended_at?: string | null
+          toke_amount?: number
+          is_double_down?: boolean
+          down_multiplier?: number
+          notes?: string | null
+          created_at?: string
+        }
         Relationships: []
       }
       toke_expenses: {
@@ -2480,8 +2930,28 @@ export type Database = {
           receipt_url: string | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          gig_id: string
+          day_id: string
+          category: string
+          amount: number
+          description?: string | null
+          receipt_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          gig_id?: string
+          day_id?: string
+          category?: string
+          amount?: number
+          description?: string | null
+          receipt_url?: string | null
+          created_at?: string
+        }
         Relationships: []
       }
       memory_charts_gold: {
@@ -2494,10 +2964,33 @@ export type Database = {
           stack_depth: number | null
           villain_position: string | null
           action: string | null
+          hand_matrix: Json | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          chart_id: string
+          hero_position: string
+          position?: string | null
+          game_type?: string | null
+          stack_depth?: number | null
+          villain_position?: string | null
+          action?: string | null
+          hand_matrix?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          chart_id?: string
+          hero_position?: string
+          position?: string | null
+          game_type?: string | null
+          stack_depth?: number | null
+          villain_position?: string | null
+          action?: string | null
+          hand_matrix?: Json | null
+          created_at?: string
+        }
         Relationships: []
       }
       training_sessions: {
@@ -2509,8 +3002,22 @@ export type Database = {
           completed_at: string
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          game_id: string
+          score: number
+          completed_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          game_id?: string
+          score?: number
+          completed_at?: string
+          created_at?: string
+        }
         Relationships: []
       }
       user_leaks: {
@@ -2528,8 +3035,34 @@ export type Database = {
           created_at: string
           updated_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          leak_category: string
+          leak_name: string
+          error_rate: number
+          confidence: number
+          total_samples: number
+          mistake_count: number
+          clinic_id?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          leak_category?: string
+          leak_name?: string
+          error_rate?: number
+          confidence?: number
+          total_samples?: number
+          mistake_count?: number
+          clinic_id?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
         Relationships: []
       }
       user_level_progress: {
@@ -2543,8 +3076,26 @@ export type Database = {
           last_played_at: string | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          chart_id: string
+          best_accuracy?: number
+          is_unlocked?: boolean
+          times_played?: number
+          last_played_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          chart_id?: string
+          best_accuracy?: number
+          is_unlocked?: boolean
+          times_played?: number
+          last_played_at?: string | null
+          created_at?: string
+        }
         Relationships: []
       }
       player_stats: {
@@ -2555,8 +3106,20 @@ export type Database = {
           win_rate: number | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          hands_played?: number | null
+          win_rate?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          hands_played?: number | null
+          win_rate?: number | null
+          created_at?: string
+        }
         Relationships: []
       }
       xp_logs: {
@@ -2574,11 +3137,139 @@ export type Database = {
           is_correct: boolean
           question_number: number
           time_taken_ms: number | null
-          metadata: Record<string, unknown> | null
+          metadata: Json | null
           created_at: string
         }
-        Insert: Record<string, unknown>
-        Update: Record<string, unknown>
+        Insert: {
+          id?: string
+          user_id: string
+          game_id: string
+          session_type: string
+          xp_awarded: number
+          base_xp: number
+          streak_multiplier: number
+          speed_multiplier: number
+          remediation_multiplier: number
+          streak_count: number
+          is_correct: boolean
+          question_number: number
+          time_taken_ms?: number | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          game_id?: string
+          session_type?: string
+          xp_awarded?: number
+          base_xp?: number
+          streak_multiplier?: number
+          speed_multiplier?: number
+          remediation_multiplier?: number
+          streak_count?: number
+          is_correct?: boolean
+          question_number?: number
+          time_taken_ms?: number | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      tilt_journal: {
+        Row: {
+          id: string
+          user_id: string
+          timestamp: string
+          trigger: string
+          intensity: number
+          situation: string | null
+          response: string | null
+          outcome: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          timestamp: string
+          trigger: string
+          intensity: number
+          situation?: string | null
+          response?: string | null
+          outcome?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          timestamp?: string
+          trigger?: string
+          intensity?: number
+          situation?: string | null
+          response?: string | null
+          outcome?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      opponent_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          opponent_name: string
+          notes: string | null
+          play_style: string | null
+          tendencies: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          opponent_name: string
+          notes?: string | null
+          play_style?: string | null
+          tendencies?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          opponent_name?: string
+          notes?: string | null
+          play_style?: string | null
+          tendencies?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jarvis_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string | null
+          messages: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string | null
+          messages: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string | null
+          messages?: Json
+          created_at?: string
+          updated_at?: string
+        }
         Relationships: []
       }
       xp_vault: {
@@ -3743,6 +4434,18 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      get_user_total_xp: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      get_active_leaks: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      update_hub_preferences: {
+        Args: { p_user_id: string; p_preferences: Json }
+        Returns: undefined
       }
     }
     Enums: {

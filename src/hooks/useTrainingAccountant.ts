@@ -26,7 +26,7 @@ interface XPLogEntry {
     is_correct: boolean;
     question_number: number;
     time_taken_ms?: number;
-    metadata?: Record<string, unknown>;
+    metadata?: { [key: string]: string | number | boolean | null } | null;
 }
 
 interface LeakEntry {

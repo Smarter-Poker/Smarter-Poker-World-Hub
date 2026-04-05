@@ -223,7 +223,7 @@ export async function hydrateHiddenCardIds(userId: string): Promise<void> {
 
         if (error) throw error;
 
-        const cloudHidden = data?.hub_preferences?.hiddenCardIds;
+        const cloudHidden = (data?.hub_preferences as Record<string, unknown> | null)?.hiddenCardIds;
         if (Array.isArray(cloudHidden)) {
             const currentLocal = getHiddenCardIds();
             const set1 = new Set(cloudHidden);

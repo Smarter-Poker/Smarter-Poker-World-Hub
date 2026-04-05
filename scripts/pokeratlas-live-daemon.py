@@ -196,6 +196,21 @@ PA_VALIDATED_REGIONS = [
     'indiana',
 ]
 
+# Hardcoded fallback list for prominent venues located in regions that PokerAtlas
+# does not aggregate into a regional cash-game slug (e.g. Chicago 301s to Vegas)
+PA_ORPHAN_VENUES = [
+    {
+        'slug': 'wind-creek-chicago-southland-hazel-crest',
+        'name': 'Wind Creek Chicago Southland',
+        'region': 'illinois'
+    },
+    {
+        'slug': 'horseshoe-hammond',
+        'name': 'Horseshoe Hammond',
+        'region': 'indiana'
+    }
+]
+
 # Full list for daily discovery pass (to detect new regions)
 PA_ALL_REGION_SLUGS = [
     # High-priority (major poker markets)
@@ -253,7 +268,7 @@ def load_pa_regions():
 # ============================================================
 # DATA EXTRACTION
 # ============================================================
-def extract_games_from_region(html, region_slug):
+def extract_games_from_region(html, region_slug, fallback_venue_name=None):
     """Extract cash game data from a PokerAtlas region cash-games page.
 
     HTML structure (from production analysis):
@@ -299,9 +314,13 @@ def extract_games_from_region(html, region_slug):
             r'<h2\s+class="venue-name">(.*?)</h2>',
             item, re.DOTALL | re.IGNORECASE
         )
-        if not venue_match:
-            continue
-        venue_name = re.sub(r'<[^>]+>', '', venue_match.group(1)).strip()
+        
+        venue_name = ''
+        if venue_match:
+            venue_name = re.sub(r'<[^>]+>', '', venue_match.group(1)).strip()
+        elif fallback_venue_name:
+            venue_name = fallback_venue_name
+            
         if not venue_name:
             continue
 
@@ -940,6 +959,25 @@ def run_scrape_cycle(mgr):
         # Checkpoint every 15
         if (i + 1) % 15 == 0:
             log.info(f'  --- {i+1}/{len(regions)} | {len(all_venues)} venues | {errors} errors ---')
+
+    # ORPHAN VENUE EXPLICIT SCRAPE
+    log.info(f'Scraping {len(PA_ORPHAN_VENUES)} orphan venues (missing region mapping)...')
+    for i, orphan in enumerate(PA_ORPHAN_VENUES):
+        url = f"https://www.pokeratlas.com/poker-room/{orphan['slug']}/cash-games"
+        html = mgr.fetch_with_fallback(url, expected_slug=orphan['slug'])
+        
+        if html and html != 'REDIRECT':
+            venues, rhash, now = extract_games_from_region(html, orphan['region'], fallback_venue_name=orphan['name'])
+            if venues:
+                total_games = sum(len(v['games']) for v in venues)
+                log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ✅ {orphan['name'][:30]:30} | {total_games} games")
+                all_venues.extend(venues)
+            else:
+                log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ⏭️  {orphan['name'][:30]:30} | no data")
+        else:
+            log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ❌ {orphan['name'][:30]:30} | fetch failed")
+        
+        time.sleep(RATE_LIMIT_DELAY)
 
     # Build Supabase payload
     log.info(f'💾 Saving {len(all_venues)} venue records to Supabase...')

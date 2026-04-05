@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Venue Logo Review — Smarter.Poker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e1a; color: #e2e8f0; padding: 20px; }
+  .header { text-align: center; margin-bottom: 30px; padding: 20px; }
+  .header h1 { font-size: 28px; color: #38bdf8; margin-bottom: 8px; }
+  .header .stats { font-size: 16px; color: #94a3b8; line-height: 1.8; }
+  .header .stats .green { color: #22c55e; font-weight: bold; }
+  .header .stats .yellow { color: #f59e0b; font-weight: bold; }
+  .header .stats .red { color: #ef4444; font-weight: bold; }
+  .filter-bar { text-align: center; margin: 15px 0 25px; }
+  .filter-bar button { background: #334155; color: #e2e8f0; border: 1px solid #475569; padding: 8px 16px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .filter-bar button:hover, .filter-bar button.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 40px; }
+  .card { background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; text-align: center; transition: border-color 0.2s; }
+  .card:hover { border-color: #38bdf8; }
+  .card.broken { border-color: #ef4444 !important; }
+  .card.null-logo { border-color: #f59e0b; opacity: 0.7; }
+  .card.loaded { border-color: #22c55e44; }
+  .logo-box { width: 80px; height: 80px; background: #000; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #475569; border-radius: 6px; }
+  .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .fallback { color: #64748b; font-size: 11px; text-transform: uppercase; }
+  .name { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; min-height: 34px; }
+  .meta { font-size: 11px; color: #64748b; font-family: monospace; }
+  .loading { text-align: center; padding: 60px; font-size: 18px; color: #64748b; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Venue Logo Review</h1>
+  <div class="stats" id="stats">Loading venue data...</div>
+</div>
+<div class="filter-bar" id="filter-bar" style="display:none">
+  <button class="active" data-filter="all">All</button>
+  <button data-filter="ok">Loaded OK</button>
+  <button data-filter="broken">Broken</button>
+  <button data-filter="null">No Logo</button>
+</div>
+<div class="grid" id="grid">
+  <div class="loading">Loading venues from all-venues.json...</div>
+</div>
+
+<script>
+let brokenCount = 0;
+let loadedCount = 0;
+let totalWithLogo = 0;
+
+async function init() {
+  const res = await fetch('/data/all-venues.json');
+  const data = await res.json();
+  const venues = data.venues || [];
+  
+  const withLogo = venues.filter(v => v.logo_url).sort((a,b) => a.name.localeCompare(b.name));
+  const noLogo = venues.filter(v => !v.logo_url).sort((a,b) => a.name.localeCompare(b.name));
+  totalWithLogo = withLogo.length;
+  
+  document.getElementById('stats').innerHTML = `
+    <span class="green">${withLogo.length}</span> logos hosted on Supabase CDN &nbsp;|&nbsp;
+    <span class="yellow">${noLogo.length}</span> venues with no logo &nbsp;|&nbsp;
+    <span class="red" id="broken-count">scanning...</span> broken images
+  `;
+  document.getElementById('filter-bar').style.display = 'block';
+  
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  
+  // Render logo cards
+  withLogo.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.status = 'pending';
+    card.dataset.id = v.id;
+    const esc = (s) => (s||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    card.innerHTML = `
+      <div class="logo-box"><img src="${v.logo_url}" alt="${esc(v.name)}" /></div>
+      <div class="name">${esc(v.name)}</div>
+      <div class="meta">${esc(v.city)}, ${esc(v.state)} • ID:${v.id}</div>
+    `;
+    const img = card.querySelector('img');
+    img.onload = () => { card.dataset.status = 'ok'; card.classList.add('loaded'); updateCounts(); };
+    img.onerror = () => { 
+      card.dataset.status = 'broken'; 
+      card.classList.add('broken'); 
+      card.querySelector('.logo-box').innerHTML = '<div class="fallback">BROKEN</div>';
+      updateCounts(); 
+    };
+    grid.appendChild(card);
+  });
+  
+  // Render null logo cards
+  noLogo.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'card null-logo';
+    card.dataset.status = 'null';
+    card.dataset.id = v.id;
+    const esc = (s) => (s||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+    card.innerHTML = `
+      <div class="logo-box"><div class="fallback">NO LOGO</div></div>
+      <div class="name">${esc(v.name)}</div>
+      <div class="meta">${esc(v.city)}, ${esc(v.state)} • ID:${v.id}</div>
+    `;
+    grid.appendChild(card);
+  });
+  
+  // Update filter button counts
+  document.querySelector('[data-filter="all"]').textContent = `All (${venues.length})`;
+  document.querySelector('[data-filter="null"]').textContent = `No Logo (${noLogo.length})`;
+  
+  // Final count update after all images settle
+  setTimeout(updateCounts, 10000);
+  setTimeout(updateCounts, 30000);
+}
+
+function updateCounts() {
+  brokenCount = document.querySelectorAll('[data-status="broken"]').length;
+  loadedCount = document.querySelectorAll('[data-status="ok"]').length;
+  const pending = totalWithLogo - brokenCount - loadedCount;
+  const el = document.getElementById('broken-count');
+  if (el) {
+    el.textContent = brokenCount + (pending > 0 ? ` (${pending} still loading)` : '');
+  }
+  document.querySelector('[data-filter="ok"]').textContent = `Loaded OK (${loadedCount})`;
+  document.querySelector('[data-filter="broken"]').textContent = `Broken (${brokenCount})`;
+}
+
+// Filter logic
+document.getElementById('filter-bar').addEventListener('click', (e) => {
+  if (e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  const filter = e.target.dataset.filter;
+  document.querySelectorAll('.card').forEach(c => {
+    if (filter === 'all') c.style.display = '';
+    else if (filter === 'ok') c.style.display = c.dataset.status === 'ok' ? '' : 'none';
+    else if (filter === 'broken') c.style.display = c.dataset.status === 'broken' ? '' : 'none';
+    else if (filter === 'null') c.style.display = c.dataset.status === 'null' ? '' : 'none';
+  });
+});
+
+init();
+</script>
+</body>
+</html>

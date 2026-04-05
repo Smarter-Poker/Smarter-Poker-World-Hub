@@ -65,7 +65,7 @@ export interface TokeGig {
     end_date?: string | null;
     hourly_rate: number;
     mileage?: number | null;
-    status: 'active' | 'completed' | 'deleted';
+    status: string;
     notes?: string | null;
     created_at: string;
     updated_at: string;
@@ -104,7 +104,7 @@ export interface TokeDown {
     gig_id: string;
     day_id: string;            // FK → toke_gig_days.id
     user_id: string;
-    down_type: 'cash' | 'tournament' | 'break' | 'brush';
+    down_type: string;
     game_type?: string | null;
     tournament_name?: string | null;
     table_number?: string | null;
@@ -125,7 +125,7 @@ export interface TokeExpense {
     user_id: string;
     gig_id: string;
     day_id: string;            // FK → toke_gig_days.id
-    category: 'food' | 'ride_share' | 'gas' | 'mileage' | 'air_fare' | 'lodging' | 'supplies' | 'other' | 'tip_out';
+    category: string;
     amount: number;
     description?: string | null;
     receipt_url?: string | null;

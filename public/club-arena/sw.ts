@@ -102,7 +102,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
 self.addEventListener('push', (event: PushEvent) => {
   const data = event.data?.json() || {};
 
-  const options: NotificationOptions = {
+  const options = {
     body: data.body || 'New notification from Club Arena',
     icon: '/hub/club-arena/poker-chip-logo.png',
     badge: '/hub/club-arena/poker-chip-logo.png',
@@ -112,7 +112,7 @@ self.addEventListener('push', (event: PushEvent) => {
       { action: 'open', title: 'Open' },
       { action: 'close', title: 'Dismiss' },
     ],
-  };
+  } as NotificationOptions;
 
   event.waitUntil((self as any).registration.showNotification(data.title || 'Club Arena', options));
 });

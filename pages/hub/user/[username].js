@@ -33,6 +33,8 @@ import SharePostModal from '../../../src/components/social/SharePostModal';
 import ReactionPicker from '../../../src/components/social/ReactionPicker';
 import PostImageLightbox from '../../../src/components/social/PostImageLightbox';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import ViralGrowthModule from '../../../src/components/social/ViralGrowthModule';
+import CrewDashboard from '../../../src/components/social/CrewDashboard';
 
 const PlayerNotes = dynamic(() => import('../../../src/components/poker/PlayerNotes'), { ssr: false });
 
@@ -2051,6 +2053,14 @@ export default function UserProfilePage() {
                                 <div style={{ marginBottom: 16 }}>
                                     <PlayerNotes targetPlayerId={profile.id} targetPlayerName={profile.username} />
                                 </div>
+                            )}
+
+                            {/* Viral Growth & Crews (Only for Own Profile) */}
+                            {isOwnProfile && (
+                                <>
+                                    <ViralGrowthModule currentUser={currentUser} />
+                                    <CrewDashboard currentUser={currentUser} />
+                                </>
                             )}
 
                             {/* Bio — below Poker Resume */}

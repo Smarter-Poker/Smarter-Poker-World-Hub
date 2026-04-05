@@ -18,8 +18,9 @@ interface Chart {
     hero_position: string;
     villain_action?: string;
     stack_depth: number;
-    hand_matrix: Record<string, any>;
+    hand_matrix: unknown;
     created_at?: string;
+    [key: string]: unknown;
 }
 
 interface LevelProgress {
