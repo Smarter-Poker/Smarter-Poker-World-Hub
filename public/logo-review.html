@@ -3,146 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Venue Logo Review — Smarter.Poker</title>
+<title>Venue Logo Review — All 677 Venues</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e1a; color: #e2e8f0; padding: 20px; }
-  .header { text-align: center; margin-bottom: 30px; padding: 20px; }
-  .header h1 { font-size: 28px; color: #38bdf8; margin-bottom: 8px; }
-  .header .stats { font-size: 16px; color: #94a3b8; line-height: 1.8; }
-  .header .stats .green { color: #22c55e; font-weight: bold; }
-  .header .stats .yellow { color: #f59e0b; font-weight: bold; }
-  .header .stats .red { color: #ef4444; font-weight: bold; }
-  .filter-bar { text-align: center; margin: 15px 0 25px; }
-  .filter-bar button { background: #334155; color: #e2e8f0; border: 1px solid #475569; padding: 8px 16px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-  .filter-bar button:hover, .filter-bar button.active { background: #38bdf8; color: #0f172a; border-color: #38bdf8; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 40px; }
-  .card { background: #1e293b; padding: 12px; border-radius: 8px; border: 1px solid #334155; text-align: center; transition: border-color 0.2s; }
-  .card:hover { border-color: #38bdf8; }
-  .card.broken { border-color: #ef4444 !important; }
-  .card.null-logo { border-color: #f59e0b; opacity: 0.7; }
-  .card.loaded { border-color: #22c55e44; }
-  .logo-box { width: 80px; height: 80px; background: #000; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #475569; border-radius: 6px; }
-  .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-  .fallback { color: #64748b; font-size: 11px; text-transform: uppercase; }
-  .name { font-size: 13px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; min-height: 34px; }
-  .meta { font-size: 11px; color: #64748b; font-family: monospace; }
-  .loading { text-align: center; padding: 60px; font-size: 18px; color: #64748b; }
+  body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    background: #0a0e1a; color: #e2e8f0; padding: 20px; 
+  }
+  header { text-align: center; margin-bottom: 30px; }
+  h1 { color: #38bdf8; font-size: 28px; margin-bottom: 8px; }
+  .stats { color: #94a3b8; font-size: 14px; margin-bottom: 15px; }
+  .stats span { color: #22d3ee; font-weight: bold; }
+  
+  .controls { 
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; 
+  }
+  .controls input { 
+    padding: 8px 14px; border-radius: 6px; border: 1px solid #334155; 
+    background: #1e293b; color: #e2e8f0; font-size: 14px; width: 300px; 
+  }
+  .controls button { 
+    padding: 8px 16px; border-radius: 6px; border: 1px solid #334155; 
+    background: #1e293b; color: #e2e8f0; cursor: pointer; font-size: 13px; 
+  }
+  .controls button.active { background: #0ea5e9; border-color: #0ea5e9; color: #000; font-weight: bold; }
+  .controls button:hover { background: #334155; }
+  .controls button.active:hover { background: #38bdf8; }
+
+  .grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+    gap: 12px; 
+  }
+  .card { 
+    background: #1e293b; padding: 12px; border-radius: 8px; 
+    border: 1px solid #334155; text-align: center; transition: 0.2s;
+  }
+  .card:hover { border-color: #0ea5e9; transform: translateY(-2px); }
+  .card.supabase { border-left: 3px solid #22c55e; }
+  .card.local { border-left: 3px solid #eab308; }
+  .card.missing { border-left: 3px solid #ef4444; }
+
+  .logo-wrap { 
+    width: 80px; height: 80px; margin: 0 auto 8px; 
+    background: #111827; border-radius: 6px; display: flex; 
+    align-items: center; justify-content: center; overflow: hidden; 
+    border: 1px solid #374151; 
+  }
+  .logo-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .logo-wrap .no-logo { color: #4b5563; font-size: 11px; }
+
+  .name { font-size: 12px; font-weight: 600; margin-bottom: 4px; line-height: 1.3; }
+  .meta { font-size: 10px; color: #64748b; font-family: monospace; }
+  .state-badge {
+    display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px;
+    background: #1e3a5f; color: #38bdf8; margin-top: 4px;
+  }
+  .source-badge {
+    display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-top: 2px;
+  }
+  .source-badge.cdn { background: #14532d; color: #4ade80; }
+  .source-badge.local { background: #422006; color: #fbbf24; }
+  .source-badge.none { background: #3f1219; color: #f87171; }
+
+  .legend { display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-dot.green { background: #22c55e; }
+  .legend-dot.yellow { background: #eab308; }
+  .legend-dot.red { background: #ef4444; }
+
+  #loading { text-align: center; padding: 60px; color: #64748b; font-size: 18px; }
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>Venue Logo Review</h1>
-  <div class="stats" id="stats">Loading venue data...</div>
-</div>
-<div class="filter-bar" id="filter-bar" style="display:none">
-  <button class="active" data-filter="all">All</button>
-  <button data-filter="ok">Loaded OK</button>
-  <button data-filter="broken">Broken</button>
-  <button data-filter="null">No Logo</button>
-</div>
-<div class="grid" id="grid">
-  <div class="loading">Loading venues from all-venues.json...</div>
-</div>
+  <header>
+    <h1>Venue Logo Review</h1>
+    <div class="stats" id="stats">Loading...</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot green"></div> Supabase CDN</div>
+      <div class="legend-item"><div class="legend-dot yellow"></div> Local/Other</div>
+      <div class="legend-item"><div class="legend-dot red"></div> No Logo</div>
+    </div>
+    <div class="controls">
+      <input type="text" id="search" placeholder="Search by name, state, or ID..." />
+      <button class="active" data-filter="all">All</button>
+      <button data-filter="supabase">Supabase CDN</button>
+      <button data-filter="local">Local/Other</button>
+      <button data-filter="missing">No Logo</button>
+    </div>
+  </header>
 
-<script>
-let brokenCount = 0;
-let loadedCount = 0;
-let totalWithLogo = 0;
+  <div id="loading">Loading venue data...</div>
+  <div class="grid" id="grid"></div>
 
-async function init() {
-  const res = await fetch('/data/all-venues.json');
-  const data = await res.json();
-  const venues = data.venues || [];
-  
-  const withLogo = venues.filter(v => v.logo_url).sort((a,b) => a.name.localeCompare(b.name));
-  const noLogo = venues.filter(v => !v.logo_url).sort((a,b) => a.name.localeCompare(b.name));
-  totalWithLogo = withLogo.length;
-  
-  document.getElementById('stats').innerHTML = `
-    <span class="green">${withLogo.length}</span> logos hosted on Supabase CDN &nbsp;|&nbsp;
-    <span class="yellow">${noLogo.length}</span> venues with no logo &nbsp;|&nbsp;
-    <span class="red" id="broken-count">scanning...</span> broken images
-  `;
-  document.getElementById('filter-bar').style.display = 'block';
-  
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-  
-  // Render logo cards
-  withLogo.forEach(v => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.status = 'pending';
-    card.dataset.id = v.id;
-    const esc = (s) => (s||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    card.innerHTML = `
-      <div class="logo-box"><img src="${v.logo_url}" alt="${esc(v.name)}" /></div>
-      <div class="name">${esc(v.name)}</div>
-      <div class="meta">${esc(v.city)}, ${esc(v.state)} • ID:${v.id}</div>
-    `;
-    const img = card.querySelector('img');
-    img.onload = () => { card.dataset.status = 'ok'; card.classList.add('loaded'); updateCounts(); };
-    img.onerror = () => { 
-      card.dataset.status = 'broken'; 
-      card.classList.add('broken'); 
-      card.querySelector('.logo-box').innerHTML = '<div class="fallback">BROKEN</div>';
-      updateCounts(); 
-    };
-    grid.appendChild(card);
-  });
-  
-  // Render null logo cards
-  noLogo.forEach(v => {
-    const card = document.createElement('div');
-    card.className = 'card null-logo';
-    card.dataset.status = 'null';
-    card.dataset.id = v.id;
-    const esc = (s) => (s||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-    card.innerHTML = `
-      <div class="logo-box"><div class="fallback">NO LOGO</div></div>
-      <div class="name">${esc(v.name)}</div>
-      <div class="meta">${esc(v.city)}, ${esc(v.state)} • ID:${v.id}</div>
-    `;
-    grid.appendChild(card);
-  });
-  
-  // Update filter button counts
-  document.querySelector('[data-filter="all"]').textContent = `All (${venues.length})`;
-  document.querySelector('[data-filter="null"]').textContent = `No Logo (${noLogo.length})`;
-  
-  // Final count update after all images settle
-  setTimeout(updateCounts, 10000);
-  setTimeout(updateCounts, 30000);
-}
+  <script>
+    let allVenues = [];
+    let currentFilter = 'all';
 
-function updateCounts() {
-  brokenCount = document.querySelectorAll('[data-status="broken"]').length;
-  loadedCount = document.querySelectorAll('[data-status="ok"]').length;
-  const pending = totalWithLogo - brokenCount - loadedCount;
-  const el = document.getElementById('broken-count');
-  if (el) {
-    el.textContent = brokenCount + (pending > 0 ? ` (${pending} still loading)` : '');
-  }
-  document.querySelector('[data-filter="ok"]').textContent = `Loaded OK (${loadedCount})`;
-  document.querySelector('[data-filter="broken"]').textContent = `Broken (${brokenCount})`;
-}
+    async function loadVenues() {
+      const resp = await fetch('/data/all-venues.json');
+      const data = await resp.json();
+      allVenues = data.venues || data;
+      updateStats();
+      renderGrid();
+    }
 
-// Filter logic
-document.getElementById('filter-bar').addEventListener('click', (e) => {
-  if (e.target.tagName !== 'BUTTON') return;
-  document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
-  e.target.classList.add('active');
-  const filter = e.target.dataset.filter;
-  document.querySelectorAll('.card').forEach(c => {
-    if (filter === 'all') c.style.display = '';
-    else if (filter === 'ok') c.style.display = c.dataset.status === 'ok' ? '' : 'none';
-    else if (filter === 'broken') c.style.display = c.dataset.status === 'broken' ? '' : 'none';
-    else if (filter === 'null') c.style.display = c.dataset.status === 'null' ? '' : 'none';
-  });
-});
+    function getLogoType(v) {
+      if (!v.logo_url || v.logo_url.length === 0) return 'missing';
+      if (v.logo_url.includes('supabase')) return 'supabase';
+      return 'local';
+    }
 
-init();
-</script>
+    function updateStats() {
+      const total = allVenues.length;
+      const supabase = allVenues.filter(v => getLogoType(v) === 'supabase').length;
+      const local = allVenues.filter(v => getLogoType(v) === 'local').length;
+      const missing = allVenues.filter(v => getLogoType(v) === 'missing').length;
+      document.getElementById('stats').innerHTML = 
+        `<span>${total}</span> total venues · <span>${supabase}</span> Supabase CDN · <span>${local}</span> local/other · <span>${missing}</span> no logo`;
+    }
+
+    function renderGrid() {
+      const search = document.getElementById('search').value.toLowerCase();
+      const grid = document.getElementById('grid');
+      document.getElementById('loading').style.display = 'none';
+
+      let filtered = allVenues.filter(v => {
+        const type = getLogoType(v);
+        if (currentFilter !== 'all' && type !== currentFilter) return false;
+        if (search) {
+          const hay = `${v.name} ${v.state} ${v.id} ${v.city}`.toLowerCase();
+          return hay.includes(search);
+        }
+        return true;
+      });
+
+      grid.innerHTML = filtered.map(v => {
+        const type = getLogoType(v);
+        const logoHtml = v.logo_url 
+          ? `<img src="${v.logo_url}" alt="${v.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=no-logo>BROKEN</div>'" />`
+          : `<div class="no-logo">NO LOGO</div>`;
+        const badgeClass = type === 'supabase' ? 'cdn' : type === 'local' ? 'local' : 'none';
+        const badgeText = type === 'supabase' ? 'CDN' : type === 'local' ? 'LOCAL' : 'NONE';
+        return `<div class="card ${type}">
+          <div class="logo-wrap">${logoHtml}</div>
+          <div class="name">${v.name}</div>
+          <div class="meta">ID: ${v.id}</div>
+          <span class="state-badge">${v.state || '??'}</span>
+          <span class="source-badge ${badgeClass}">${badgeText}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Event listeners
+    document.getElementById('search').addEventListener('input', renderGrid);
+    document.querySelectorAll('.controls button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderGrid();
+      });
+    });
+
+    loadVenues();
+  </script>
 </body>
 </html>

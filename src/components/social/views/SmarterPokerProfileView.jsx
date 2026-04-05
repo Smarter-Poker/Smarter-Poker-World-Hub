@@ -7,11 +7,18 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { SPAvatar, SP_COLORS, SPPostCard } from '../SmarterPokerStyleCard';
 import { PokerTierBadge } from '../PokerReputationBadges';
 import { useSupabase } from '../../../providers/SupabaseProvider';
 import { SocialService } from '../../../services/SocialService';
 import { busEmit, eventBus, EventType } from '../../../engine/EventBus';
+
+// Dynamic imports for social modules (browser-only)
+const LiveSessionToggle = dynamic(() => import('../LiveSessionToggle'), { ssr: false });
+const LiveActivityFeed = dynamic(() => import('../LiveActivityFeed'), { ssr: false });
+const ViralGrowthModule = dynamic(() => import('../ViralGrowthModule'), { ssr: false });
+const CrewDashboard = dynamic(() => import('../CrewDashboard'), { ssr: false });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📷 COVER PHOTO & PROFILE HEADER
@@ -825,7 +832,27 @@ export const SmarterPokerProfileView = ({ onNavigate, onOpenChat }) => {
             <div className="profile-content">
                 {/* Left Column */}
                 <div className="profile-left">
+                    {/* Live Session Toggle (own profile only) */}
+                    {isOwnProfile && authUser && (
+                        <LiveSessionToggle currentUser={authUser} />
+                    )}
+
                     <AboutCard user={user} />
+
+                    {/* Live Activity Feed — friends currently playing */}
+                    {authUser && (
+                        <LiveActivityFeed currentUser={authUser} />
+                    )}
+
+                    {/* Viral Growth / Referral Module */}
+                    {isOwnProfile && authUser && (
+                        <ViralGrowthModule currentUser={authUser} />
+                    )}
+
+                    {/* Crew Dashboard */}
+                    {isOwnProfile && authUser && (
+                        <CrewDashboard currentUser={authUser} />
+                    )}
 
                     {/* Photos Preview */}
                     <div className="photos-card">

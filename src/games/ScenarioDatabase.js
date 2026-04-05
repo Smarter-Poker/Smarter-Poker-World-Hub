@@ -576,6 +576,19 @@ import {
 const _solverScenarios = generateAllSolverScenarios();
 
 // ═══════════════════════════════════════════════════════════════════════════
+// COMPATIBILITY EXPORTS — LEVEL_2 through LEVEL_9 for memory-games.js
+// These map to the solver-generated scenarios instead of the old hardcoded arrays
+// ═══════════════════════════════════════════════════════════════════════════
+export const LEVEL_2_SCENARIOS = _solverScenarios[2] || [];
+export const LEVEL_3_SCENARIOS = _solverScenarios[3] || [];
+export const LEVEL_4_SCENARIOS = _solverScenarios[4] || [];
+export const LEVEL_5_SCENARIOS = _solverScenarios[5] || [];
+export const LEVEL_6_SCENARIOS = _solverScenarios[6] || [];
+export const LEVEL_7_SCENARIOS = _solverScenarios[7] || [];
+export const LEVEL_8_SCENARIOS = _solverScenarios[7] || []; // L8 falls back to L7
+export const LEVEL_9_SCENARIOS = _solverScenarios[7] || []; // L9 falls back to L7
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ALL SCENARIOS — Combines hand-curated L1 + solver-generated L2-7 + L10
 // ═══════════════════════════════════════════════════════════════════════════
 
