@@ -1,80 +1,102 @@
-import React, { useState } from 'react';
-import MetalModal from './MetalModal';
-import { getAuthUser } from '../../lib/authUtils'; // Assuming authUtils is two levels up
+import React, { useState, useMemo } from 'react';
 import { busEmit } from '../../engine/EventBus';
 
+/**
+ * MESSENGER OPTIONS — direct social media messenger links
+ * Opens directly into the user's personal messaging app.
+ * Pre-fills message with page context, device info, and timestamp.
+ */
+const ADMIN_PHONE = '17086775221';
+const MESSENGER_OPTIONS = [
+    {
+        key: 'sms',
+        label: 'iMessage / SMS',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+        ),
+        color: '#34C759',
+        bg: 'rgba(52,199,89,0.12)',
+        border: 'rgba(52,199,89,0.35)',
+        getUrl: (msg) => `sms:+${ADMIN_PHONE}&body=${encodeURIComponent(msg)}`,
+    },
+    {
+        key: 'whatsapp',
+        label: 'WhatsApp',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+        ),
+        color: '#25D366',
+        bg: 'rgba(37,211,102,0.12)',
+        border: 'rgba(37,211,102,0.35)',
+        getUrl: (msg) => `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`,
+    },
+    {
+        key: 'telegram',
+        label: 'Telegram',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+            </svg>
+        ),
+        color: '#0088CC',
+        bg: 'rgba(0,136,204,0.12)',
+        border: 'rgba(0,136,204,0.35)',
+        getUrl: (msg) => `https://t.me/share/url?url=${encodeURIComponent('smarter.poker')}&text=${encodeURIComponent(msg)}`,
+    },
+    {
+        key: 'email',
+        label: 'Email',
+        icon: (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+            </svg>
+        ),
+        color: '#d4a853',
+        bg: 'rgba(212,168,83,0.12)',
+        border: 'rgba(212,168,83,0.35)',
+        getUrl: (msg) => `mailto:support@smarter.poker?subject=${encodeURIComponent('Bug Report — Smarter.Poker')}&body=${encodeURIComponent(msg)}`,
+    },
+];
+
+/**
+ * Builds a pre-filled bug report message with device/page context.
+ */
+function buildBugMessage(contextPath) {
+    const lines = [
+        'Bug Report — Smarter.Poker',
+        '---',
+        `Page: ${contextPath || window?.location?.pathname || 'Unknown'}`,
+        `Device: ${navigator?.userAgent?.slice(0, 120) || 'Unknown'}`,
+        `Time: ${new Date().toLocaleString()}`,
+        '---',
+        '',
+        'Describe the issue below:',
+        '',
+    ];
+    return lines.join('\n');
+}
+
 export default function ReportBugWidget({ contextPath = '/hub/messenger' }) {
-    const [showModal, setShowModal] = useState(false);
-    const [bugSubject, setBugSubject] = useState('');
-    const [bugDescription, setBugDescription] = useState('');
-    const [bugPriority, setBugPriority] = useState('medium');
-    const [bugSubmitting, setBugSubmitting] = useState(false);
-    const [bugSuccess, setBugSuccess] = useState(false);
-    const [bugError, setBugError] = useState('');
+    const [showPicker, setShowPicker] = useState(false);
 
-    const handleSubmit = async () => {
-        if (!bugSubject.trim() || !bugDescription.trim()) {
-            setBugError('Please fill in both subject and description.');
-            return;
-        }
-        setBugSubmitting(true);
-        setBugError('');
-        try {
-            // Get auth token
-            let token = null;
-            if (typeof window !== 'undefined') {
-                const keys = ['smarter-poker-auth', 'smarter_poker_auth', 'sp_auth'];
-                for (const key of keys) {
-                    const raw = localStorage.getItem(key);
-                    if (raw) {
-                        const p = JSON.parse(raw);
-                        if (p?.access_token) { token = p.access_token; break; }
-                    }
-                }
-            }
+    const message = useMemo(() => buildBugMessage(contextPath), [contextPath]);
 
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-
-            const res = await fetch('/api/live-help/report-bug', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    subject: bugSubject.trim(),
-                    description: bugDescription.trim(),
-                    priority: bugPriority,
-                    currentPage: contextPath,
-                    userAgent: navigator.userAgent,
-                }),
-            });
-
-            if (!res.ok) throw new Error('Failed to submit');
-            
-            // Assuming endpoint returns tracking ID (res.json() may not exist if it's returning empty, but in our case ReportBug returns {"success": true, "ticket_id": v_ticket_id})
-            let ticketId = 'UNKNOWN';
-            try { 
-                const data = await res.json(); 
-                if (data.ticket_id) ticketId = data.ticket_id;
-            } catch(e){}
-
-            // Push globally to any listeners
-            busEmit.bugReportSubmitted(ticketId, bugPriority, contextPath);
-
-            setBugSuccess(true);
-            setBugSubject('');
-            setBugDescription('');
-            setBugPriority('medium');
-        } catch (err) {
-            setBugError('Failed to submit bug report. Please try again.');
-        } finally {
-            setBugSubmitting(false);
-        }
+    const handleMessengerClick = (option) => {
+        const url = option.getUrl(message);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        busEmit.bugReportSubmitted?.('messenger-' + option.key, 'user-directed', contextPath);
+        setShowPicker(false);
     };
 
     return (
         <>
             <button
-                onClick={() => setShowModal(true)}
+                onClick={() => setShowPicker(true)}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -99,133 +121,133 @@ export default function ReportBugWidget({ contextPath = '/hub/messenger' }) {
                 }}
             >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
                 Report a Bug to Customer Service
             </button>
 
-            <MetalModal
-                isOpen={showModal}
-                onClose={() => {
-                    setShowModal(false);
-                    setBugSuccess(false);
-                    setBugError('');
-                }}
-                title="Report a Bug"
-                width="400px"
-            >
-                {bugSuccess ? (
-                    <div style={{ textAlign: 'center', padding: '20px 10px', color: '#00ff88' }}>
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                            <polyline points="22 4 12 14.01 9 11.01" />
-                        </svg>
-                        <h3 style={{ margin: '0 0 8px 0', color: '#fff' }}>Report Submitted</h3>
-                        <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
-                            Our engineering team has been notified. We'll look into it right away. Thank you!
-                        </p>
-                        <button
-                            onClick={() => setShowModal(false)}
-                            style={{
-                                marginTop: 24, padding: '10px 24px', borderRadius: 8,
-                                background: 'rgba(0, 255, 136, 0.15)', border: '1px solid rgba(0, 255, 136, 0.3)',
-                                color: '#00ff88', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                            }}
-                        >
-                            Close
-                        </button>
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Subject / Summary</label>
-                            <input
-                                type="text"
-                                value={bugSubject}
-                                onChange={e => setBugSubject(e.target.value)}
-                                placeholder="What went wrong?"
-                                maxLength={120}
-                                style={{
-                                    width: '100%', padding: '12px', borderRadius: 8,
-                                    border: '1px solid rgba(255, 107, 107, 0.3)',
-                                    background: 'rgba(0,0,0,0.2)', color: '#fff',
-                                    fontSize: 14, outline: 'none', boxSizing: 'border-box',
-                                }}
-                            />
-                        </div>
-                        
-                        <div>
-                            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Detailed Description</label>
-                            <textarea
-                                value={bugDescription}
-                                onChange={e => setBugDescription(e.target.value)}
-                                placeholder="Describe the issue. What were you doing? What did you expect to happen?"
-                                rows={4}
-                                maxLength={2000}
-                                style={{
-                                    width: '100%', padding: '12px', borderRadius: 8,
-                                    border: '1px solid rgba(255, 107, 107, 0.3)',
-                                    background: 'rgba(0,0,0,0.2)', color: '#fff',
-                                    fontSize: 14, outline: 'none', resize: 'vertical',
-                                    lineHeight: 1.5, boxSizing: 'border-box',
-                                }}
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: 8, fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>Priority Level</label>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                {['low', 'medium', 'high'].map(p => (
-                                    <button
-                                        key={p}
-                                        onClick={() => setBugPriority(p)}
-                                        style={{
-                                            flex: 1, padding: '8px', borderRadius: 6,
-                                            fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                            textTransform: 'uppercase', letterSpacing: '0.5px',
-                                            transition: 'all 0.2s',
-                                            background: bugPriority === p
-                                                ? p === 'high' ? 'rgba(255,68,68,0.2)' : p === 'medium' ? 'rgba(255,165,0,0.2)' : 'rgba(0,255,136,0.2)'
-                                                : 'rgba(255,255,255,0.05)',
-                                            border: `1px solid ${bugPriority === p
-                                                ? p === 'high' ? '#ff4444' : p === 'medium' ? '#ffa500' : '#00ff88'
-                                                : 'rgba(255,255,255,0.1)'}`,
-                                            color: bugPriority === p
-                                                ? p === 'high' ? '#ff4444' : p === 'medium' ? '#ffa500' : '#00ff88'
-                                                : 'rgba(255,255,255,0.5)',
-                                        }}
-                                    >
-                                        {p}
-                                    </button>
-                                ))}
+            {/* Messenger Picker Overlay */}
+            {showPicker && (
+                <div
+                    onClick={() => setShowPicker(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        zIndex: 99999,
+                        background: 'rgba(0,0,0,0.65)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 20,
+                        animation: 'rbw-fadeIn 0.15s ease-out',
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            background: 'linear-gradient(145deg, #1a1f2e 0%, #0d1117 100%)',
+                            border: '1px solid rgba(255,107,107,0.25)',
+                            borderRadius: 16,
+                            padding: '24px 20px',
+                            maxWidth: 340,
+                            width: '100%',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                            animation: 'rbw-slideUp 0.2s ease-out',
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Report a Bug</span>
                             </div>
+                            <button
+                                onClick={() => setShowPicker(false)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 20, lineHeight: 1 }}
+                            >
+                                &times;
+                            </button>
                         </div>
 
-                        {bugError && (
-                            <div style={{ fontSize: 13, color: '#ff6b6b' }}>{bugError}</div>
-                        )}
+                        {/* Description */}
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                            Choose your preferred messenger. Your page and device info will be included automatically.
+                        </p>
 
-                        <button
-                            onClick={handleSubmit}
-                            disabled={bugSubmitting || !bugSubject.trim() || !bugDescription.trim()}
-                            style={{
-                                marginTop: 8, width: '100%', padding: '12px', borderRadius: 8,
-                                background: (bugSubject.trim() && bugDescription.trim())
-                                    ? 'linear-gradient(135deg, #cc3333 0%, #ff4444 100%)'
-                                    : 'rgba(255,255,255,0.08)',
-                                border: 'none', color: '#fff', fontSize: 15, fontWeight: 700,
-                                cursor: (bugSubject.trim() && bugDescription.trim()) ? 'pointer' : 'not-allowed',
-                                opacity: bugSubmitting ? 0.6 : 1, transition: 'all 0.2s',
-                            }}
-                        >
-                            {bugSubmitting ? 'Submitting...' : 'Submit Bug Report'}
-                        </button>
+                        {/* Messenger Buttons */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {MESSENGER_OPTIONS.map(opt => (
+                                <button
+                                    key={opt.key}
+                                    onClick={() => handleMessengerClick(opt)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 12,
+                                        width: '100%',
+                                        padding: '12px 16px',
+                                        borderRadius: 12,
+                                        background: opt.bg,
+                                        border: `1px solid ${opt.border}`,
+                                        color: opt.color,
+                                        fontSize: 15,
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        textAlign: 'left',
+                                        fontFamily: 'inherit',
+                                    }}
+                                    onMouseEnter={e => {
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.boxShadow = `0 4px 16px ${opt.border}`;
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.transform = 'none';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                >
+                                    {opt.icon}
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                )}
-            </MetalModal>
+                </div>
+            )}
+
+            {/* Animations */}
+            <style>{`
+                @keyframes rbw-fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes rbw-slideUp {
+                    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+            `}</style>
         </>
     );
 }
+
+/**
+ * Exported helper for other components (e.g. GeevesFloatingOrb)
+ * to open a messenger link with pre-filled bug context.
+ */
+export function openBugMessenger(messengerKey, contextPath) {
+    const message = buildBugMessage(contextPath);
+    const option = MESSENGER_OPTIONS.find(o => o.key === messengerKey);
+    if (!option) {
+        // Default to SMS if unknown key
+        const fallback = MESSENGER_OPTIONS[0];
+        window.open(fallback.getUrl(message), '_blank', 'noopener,noreferrer');
+        return;
+    }
+    window.open(option.getUrl(message), '_blank', 'noopener,noreferrer');
+}
+
+export { MESSENGER_OPTIONS, buildBugMessage };

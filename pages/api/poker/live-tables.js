@@ -3,6 +3,12 @@
  * Returns live table data from Smarter.Poker Intelligence.
  * Data is refreshed every 15 minutes by autonomous daemons.
  *
+ * DEDUP LAYERS (v2.0 — Pipeline Remediation):
+ *   Layer 1: Batch-aware — only latest scrape_batch_id per source wins
+ *   Layer 2: Cross-source alias merge — Bravo "Bellagio" + PA "Bellagio Hotel & Casino" → single venue
+ *   Layer 3: Bravo priority — real-time Bravo data always wins over PokerAtlas catalog estimates
+ *   Layer 4: Game-name dedup — first occurrence per venue wins (ordered by timestamp desc)
+ *
  * Query params:
  *   ?venue=slug       — Filter by specific bravo_slug
  *   ?search=term      — Search venue names (fuzzy ilike)
@@ -10,6 +16,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { resolveVenueName } from './venue-dedup';
 
 // Decode HTML entities and fix pipe separators in venue names
 function cleanVenueName(str) {
@@ -26,6 +33,18 @@ function cleanVenueName(str) {
     result = result.replace(/\|/g, ' ');
     result = result.replace(/\s{2,}/g, ' ').trim();
     return result;
+}
+
+// Normalize venue name for fuzzy matching (strips punctuation, lowercases)
+function normalizeForMatch(name) {
+    if (!name) return '';
+    return name.toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/'/g, '')
+        .replace(/-/g, ' ')
+        .replace(/[^a-z0-9 ]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 let _supabase = null;
@@ -97,47 +116,160 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Database query failed' });
     }
 
-    // Group by venue and deduplicate games by name
-    const grouped = {};
+    // ═══════════════════════════════════════════════════════════
+    // LAYER 1: BATCH-AWARE FILTERING
+    // When a scrape cycle partially fails, old batch records survive
+    // alongside new ones. Find the latest batch_id per source, and
+    // discard all rows that don't belong to it.
+    // ═══════════════════════════════════════════════════════════
+    const latestBatchBySource = {}; // source → { batch_id, timestamp }
     for (const row of (data || [])) {
+      const src = row.source || 'bravo';
+      const ts = new Date(row.scrape_timestamp).getTime();
+      if (!latestBatchBySource[src] || ts > latestBatchBySource[src].timestamp) {
+        latestBatchBySource[src] = { batch_id: row.scrape_batch_id, timestamp: ts };
+      }
+    }
+
+    // Filter: only keep rows from the latest batch per source
+    let dedupedRows = 0;
+    let batchFilteredRows = 0;
+    const batchFiltered = (data || []).filter(row => {
+      const src = row.source || 'bravo';
+      const latestBatch = latestBatchBySource[src];
+      // If we know the latest batch for this source, only keep matching rows
+      // Allow rows without a batch ID (legacy data) to pass through
+      if (latestBatch && row.scrape_batch_id && row.scrape_batch_id !== latestBatch.batch_id) {
+        batchFilteredRows++;
+        return false;
+      }
+      return true;
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // LAYER 2: CROSS-SOURCE ALIAS MERGE
+    // Build a canonical slug resolver so "Bellagio" (Bravo) and 
+    // "Bellagio Hotel & Casino" (PokerAtlas) merge into one venue.
+    // Uses the alias registry from venue-dedup.js + normalized matching.
+    // ═══════════════════════════════════════════════════════════
+    
+    // First pass: build index of Bravo slugs by normalized venue name
+    const bravoSlugsByNormName = {};  // normalized_name → bravo_slug
+    const bravoSlugs = new Set();
+    for (const row of batchFiltered) {
+      if ((row.source || 'bravo') === 'bravo') {
+        bravoSlugs.add(row.bravo_slug);
+        const normName = normalizeForMatch(cleanVenueName(row.venue_name));
+        if (normName && !bravoSlugsByNormName[normName]) {
+          bravoSlugsByNormName[normName] = row.bravo_slug;
+        }
+        // Also index by alias-resolved canonical name
+        const canonical = resolveVenueName(cleanVenueName(row.venue_name));
+        const normCanonical = normalizeForMatch(canonical);
+        if (normCanonical && !bravoSlugsByNormName[normCanonical]) {
+          bravoSlugsByNormName[normCanonical] = row.bravo_slug;
+        }
+      }
+    }
+
+    // Resolve each row's canonical slug (PA records may get remapped to a Bravo slug)
+    function resolveSlug(row) {
       const slug = row.bravo_slug;
-      const gameName = row.game_name || 'Unknown Game';
+      const src = row.source || 'bravo';
       
-      if (!grouped[slug]) {
-        grouped[slug] = {
+      // Bravo records always keep their own slug
+      if (src === 'bravo') return slug;
+      
+      // For PA records, try to find a matching Bravo venue
+      const cleanName = cleanVenueName(row.venue_name);
+      const canonical = resolveVenueName(cleanName);
+      const normName = normalizeForMatch(cleanName);
+      const normCanonical = normalizeForMatch(canonical);
+      
+      // Check if any Bravo venue matches this PA venue's name
+      if (normCanonical && bravoSlugsByNormName[normCanonical]) {
+        return bravoSlugsByNormName[normCanonical];
+      }
+      if (normName && bravoSlugsByNormName[normName]) {
+        return bravoSlugsByNormName[normName];
+      }
+      
+      // No Bravo match — keep original PA slug
+      return slug;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LAYER 3 & 4: GROUP + DEDUP + BRAVO PRIORITY
+    // Group by resolved slug, dedup games by name.
+    // Bravo data (real-time) always wins over PokerAtlas (catalog).
+    // ═══════════════════════════════════════════════════════════
+    const grouped = {};
+    let crossSourceMerges = 0;
+    
+    for (const row of batchFiltered) {
+      const resolvedSlug = resolveSlug(row);
+      const gameName = row.game_name || 'Unknown Game';
+      const src = row.source || 'bravo';
+      
+      // Track cross-source merges for diagnostics
+      if (resolvedSlug !== row.bravo_slug) {
+        crossSourceMerges++;
+      }
+      
+      if (!grouped[resolvedSlug]) {
+        grouped[resolvedSlug] = {
           venue_name: cleanVenueName(row.venue_name),
-          bravo_slug: slug,
+          bravo_slug: resolvedSlug,
           last_updated: row.scrape_timestamp,
           games: [],
           _latestOriginStamp: new Date(row.scrape_timestamp).getTime(),
           _seenGames: new Set(),
+          _hasBravoData: src === 'bravo',
+          _sources: new Set([src]),
         };
       }
       
-      const venueData = grouped[slug];
+      const venueData = grouped[resolvedSlug];
+      venueData._sources.add(src);
       
-      // If the row's timestamp is older than 5 minutes from the newest seen snapshot for this venue, IGNORE it.
-      const stampDiff = venueData._latestOriginStamp - new Date(row.scrape_timestamp).getTime();
-      if (stampDiff > 5 * 60 * 1000) {
+      // If this venue already has Bravo data, prefer Bravo's venue name
+      if (src === 'bravo' && !venueData._hasBravoData) {
+        venueData.venue_name = cleanVenueName(row.venue_name);
+        venueData._hasBravoData = true;
+      }
+      
+      // If we already have Bravo data for this venue, skip PokerAtlas catalog rows 
+      // entirely — they only add noise (tables_running=0 estimates)
+      if (venueData._hasBravoData && src === 'pokeratlas') {
+        dedupedRows++;
         continue;
       }
       
-      // Since data is ordered by scrape_timestamp desc, the first time we see a game is its latest snapshot
+      // Timestamp-based staleness filter (within same batch)
+      const stampDiff = venueData._latestOriginStamp - new Date(row.scrape_timestamp).getTime();
+      if (stampDiff > 5 * 60 * 1000) {
+        dedupedRows++;
+        continue;
+      }
+      
+      // Game-name dedup: first occurrence wins (data ordered by timestamp desc)
       if (!venueData._seenGames.has(gameName)) {
         venueData._seenGames.add(gameName);
         venueData.games.push({
           game: row.game_name,
           tables_running: row.tables_running,
           players_waiting: row.players_waiting,
-          source: row.source || 'bravo',
+          source: src,
           buyin: row.buyin_range || null,
           runs: row.runs_schedule || null,
           data_quality: row.data_quality || null,
         });
+      } else {
+        dedupedRows++;
       }
     }
 
-    const venues = Object.values(grouped).map(({ _seenGames, _latestOriginStamp, ...v }) => v);
+    const venues = Object.values(grouped).map(({ _seenGames, _latestOriginStamp, _hasBravoData, _sources, ...v }) => v);
     const totalTables = venues.reduce(
       (sum, v) => sum + v.games.reduce((s, g) => s + (g.tables_running || 0), 0), 0
     );
@@ -155,6 +287,13 @@ export default async function handler(req, res) {
         data_source: 'Smarter.Poker Intelligence',
         refresh_interval: '15 minutes',
         last_scrape: data?.[0]?.scrape_timestamp || null,
+        dedup_stats: {
+          raw_rows: (data || []).length,
+          batch_filtered: batchFilteredRows,
+          cross_source_merges: crossSourceMerges,
+          duplicate_rows_removed: dedupedRows,
+          final_venues: venues.length,
+        },
       },
       venues,
     });
