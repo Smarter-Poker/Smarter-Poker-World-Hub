@@ -63,6 +63,11 @@ import PreflopSolutionsBrowser from './PreflopSolutionsBrowser';
 import CustomSpotDrillBuilder from './CustomSpotDrillBuilder';
 import HandHistoryImporter from './HandHistoryImporter';
 import TournamentTrainer from './TournamentTrainer';
+// ═══ PHASE 7: Postflop Solutions, Sizing, Study Plan, Reports ═══
+import PostflopSolutionsBrowser from './PostflopSolutionsBrowser';
+import SizingTrainer from './SizingTrainer';
+import StudyPlanCurriculum from './StudyPlanCurriculum';
+import AggregatedReportViewer from './AggregatedReportViewer';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 
@@ -2230,7 +2235,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'solutions', label: 'Solutions' }, { id: 'drills', label: 'Drills' }, { id: 'import', label: 'Import' }, { id: 'tournament', label: 'MTT' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'solutions', label: 'Solutions' }, { id: 'drills', label: 'Drills' }, { id: 'import', label: 'Import' }, { id: 'tournament', label: 'MTT' }, { id: 'postflop', label: 'Postflop' }, { id: 'sizing', label: 'Sizing' }, { id: 'curriculum', label: 'Study Plan' }, { id: 'reports', label: 'Reports' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -4512,6 +4517,26 @@ function GodModeArenaInner({
                     {/* ═══ TAB: TOURNAMENT TRAINER ═══ */}
                     {reviewTab === 'tournament' && (<>
                         <TournamentTrainer />
+                    </>)}
+
+                    {/* ═══ TAB: POSTFLOP SOLUTIONS BROWSER ═══ */}
+                    {reviewTab === 'postflop' && (<>
+                        <PostflopSolutionsBrowser />
+                    </>)}
+
+                    {/* ═══ TAB: SIZING TRAINER ═══ */}
+                    {reviewTab === 'sizing' && (<>
+                        <SizingTrainer />
+                    </>)}
+
+                    {/* ═══ TAB: STUDY PLAN CURRICULUM ═══ */}
+                    {reviewTab === 'curriculum' && (<>
+                        <StudyPlanCurriculum />
+                    </>)}
+
+                    {/* ═══ TAB: AGGREGATED REPORTS ═══ */}
+                    {reviewTab === 'reports' && (<>
+                        <AggregatedReportViewer />
                     </>)}
 
                     {/* ACTION BUTTONS */}
