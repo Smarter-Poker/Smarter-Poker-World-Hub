@@ -8,7 +8,8 @@
  *     gameType: 'cash_6max',
  *     stackDepth: 100,
  *     position: 'BTN',
- *     scenario: 'rfi',
+ *     scenario: 'rfi' | 'vs3bet' | '4bet' | 'bb_defense' | 'cold_call' | 'squeeze' | 'push_fold',
+ *     vsPosition: 'UTG' (optional, for 3bet/bb_defense/cold_call),
  *     selectedHands: ['AA', 'AKs', 'AKo', ...]  // Hands the user selected
  *   }
  *
@@ -42,10 +43,60 @@ function getSupabase() {
     }
     return _supabase;
 }
-import { RFI, getHandFrequencies, ALL_HANDS as SOLVER_ALL_HANDS } from '../../../src/config/solverRanges';
+import {
+    RFI, BB_DEFENSE, FOUR_BET, COLD_CALL, SQUEEZE, THREE_BET,
+    getHandFrequencies, ALL_HANDS as SOLVER_ALL_HANDS, getRFIByDepth,
+} from '../../../src/config/solverRanges';
 
-// Build backward-compatible flat ranges from new solver data
-function solverSpotToFlatFreqs(spotData) {
+/**
+ * Resolve the solver spot data for a given scenario + position + vsPosition.
+ * Returns { spotData, flat } where flat = { hand: totalActionFreq }.
+ */
+function resolveSpotForGrading(scenario, pos, vsPosition, stackDepth) {
+    let spotData = null;
+    const vsPos = vsPosition ? vsPosition.toUpperCase() : '';
+
+    switch (scenario) {
+        case 'rfi': {
+            const sd = parseInt(stackDepth, 10) || 100;
+            spotData = getRFIByDepth(sd, pos);
+            break;
+        }
+        case 'vs3bet':
+        case '4bet': {
+            const key = `${pos}_vs_3bet`;
+            spotData = FOUR_BET[key] || Object.values(FOUR_BET).find((_, i) =>
+                Object.keys(FOUR_BET)[i].startsWith(pos)) || FOUR_BET['BTN_vs_3bet'];
+            break;
+        }
+        case 'bb_defense': {
+            const defKey = vsPos ? `vs_${vsPos}` : (pos === 'BB' ? 'vs_BTN' : `vs_${pos}`);
+            spotData = BB_DEFENSE[defKey] || BB_DEFENSE['vs_BTN'];
+            break;
+        }
+        case 'cold_call': {
+            const ccKey = vsPos ? `${pos}_vs_${vsPos}` :
+                Object.keys(COLD_CALL).find(k => k.startsWith(pos)) || 'BTN_vs_CO';
+            spotData = COLD_CALL[ccKey];
+            break;
+        }
+        case 'squeeze': {
+            const sqzKey = Object.keys(SQUEEZE).find(k => k.startsWith(pos)) || Object.keys(SQUEEZE)[0];
+            spotData = SQUEEZE[sqzKey];
+            break;
+        }
+        case 'push_fold': {
+            const sd = parseInt(stackDepth, 10) || 15;
+            spotData = getRFIByDepth(sd, pos);
+            break;
+        }
+        default:
+            spotData = RFI[pos] || RFI['BTN'];
+    }
+
+    if (!spotData) spotData = RFI[pos] || RFI['BTN'];
+
+    // Build flat freq map: hand → totalActionFreq (raise + call)
     const flat = {};
     for (const hand of SOLVER_ALL_HANDS) {
         const f = getHandFrequencies(spotData, hand);
@@ -53,10 +104,8 @@ function solverSpotToFlatFreqs(spotData) {
             flat[hand] = f.raise + f.call;
         }
     }
-    return flat;
+    return { spotData, flat };
 }
-const GTO_RFI = {};
-Object.keys(RFI).forEach(pos => { GTO_RFI[pos] = solverSpotToFlatFreqs(RFI[pos]); });
 
 
 /**
@@ -100,7 +149,7 @@ export default async function handler(req, res) {
           const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
           if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-          const { position = 'BTN', scenario = 'rfi', selectedHands = [] } = req.body;
+          const { position = 'BTN', scenario = 'rfi', selectedHands = [], vsPosition = '', stackDepth = 100 } = req.body;
 
           if (!Array.isArray(selectedHands)) {
               return res.status(400).json({ success: false, error: 'selectedHands must be an array' });
@@ -112,7 +161,7 @@ export default async function handler(req, res) {
           }
 
           const pos = VALID_POSITIONS.includes(position.toUpperCase()) ? position.toUpperCase() : 'BTN';
-          const gtoRange = GTO_RFI[pos] || GTO_RFI['BTN'];
+          const { flat: gtoRange } = resolveSpotForGrading(scenario, pos, vsPosition, stackDepth);
           const allHands = getAllHands();
           const userSet = new Set(selectedHands.map(h => h.toUpperCase ? h : h));
 

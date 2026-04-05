@@ -1,0 +1,99 @@
+{
+  "batch_id": "81d0fa18-042f-4e1e-b7ca-31f99f578745",
+  "timestamp": "2026-04-05T04:20:22.848059+00:00",
+  "total_processed": 10,
+  "uploaded": 10,
+  "not_found": 0,
+  "results": [
+    {
+      "venue_id": 2186,
+      "venue_name": "Gardens Casino",
+      "status": "uploaded",
+      "source_url": "https://spinettisgaming.com/cdn/shop/products/HawaiianGardens_2_2.jpg?v=1658865575&width=1038",
+      "image_hash": "2d3cd94fb9ab224118d5a6de77521baa8048efbe4fffb79d5670104bc7bebb5d",
+      "image_size": 1036953,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2186.png"
+    },
+    {
+      "venue_id": 2679,
+      "venue_name": "Hawaiian Gardens Poker Series",
+      "status": "uploaded",
+      "source_url": "https://www.presstelegram.com/wp-content/uploads/migration/2017/201701/NEWS_170109821_AR_0_QKIMYUVIQJUP.jpg?w=1800&resize=1800,1800",
+      "image_hash": "82369bd18457aae96f4848a704d1d387129e512f80a7eeb374b9abb78ec40dd3",
+      "image_size": 4373573,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2679.png"
+    },
+    {
+      "venue_id": 2714,
+      "venue_name": "Livermore Poker Room Series",
+      "status": "uploaded",
+      "source_url": "https://www.turlockpoker.com/wp-content/uploads/2021/05/logo-1-1024x1024.png",
+      "image_hash": "73aad5faa94d0acb4261fd099516e518c2315585cd14e59dcebe822d0ae7ff23",
+      "image_size": 360270,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2714.png"
+    },
+    {
+      "venue_id": 1865,
+      "venue_name": "Parkwest Casino Lodi",
+      "status": "uploaded",
+      "source_url": "https://warnfirehose.com/logo.png",
+      "image_hash": "0e525fbdae8ff3f58a2fdeebd65309a60d222c1d02bf48d8694cc50b4997a34e",
+      "image_size": 186914,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1865.png"
+    },
+    {
+      "venue_id": 2869,
+      "venue_name": "Casino Monterey - The Marina Club Casino",
+      "status": "uploaded",
+      "source_url": "https://images.getbento.com/accounts/29b78158c5ec0174f47134f781986c9b/media/images/16256logo-2_marina.png",
+      "image_hash": "876fceb1d2b90a34bb06065a0d901f0e344fc7b5020b5a34b5b1315ad58666ad",
+      "image_size": 41166,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2869.png"
+    },
+    {
+      "venue_id": 1934,
+      "venue_name": "Parkwest Casino Cordova",
+      "status": "uploaded",
+      "source_url": "http://parkwestcasinocordova.com/wp-content/uploads/2022/09/COR_WebsiteBanner_PokerPyramid_AllSize_0922-02-1024x1024.jpg",
+      "image_hash": "1b5815478618c9fcd09c9559e30502bbb888c65fd4b979400a1970e954f89c0b",
+      "image_size": 742452,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1934.png"
+    },
+    {
+      "venue_id": 2874,
+      "venue_name": "Graton Resort & Casino Casino",
+      "status": "uploaded",
+      "source_url": "https://i.ebayimg.com/00/s/MTYwMFgxNjAw/z/hGsAAOSwoRtnom2f/$_57.JPG?set_id=880000500F",
+      "image_hash": "20e6a22ec9e46b75d9c54eea31e41000c4f85dc5d34c38068e27cc744879aab8",
+      "image_size": 3956734,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2874.png"
+    },
+    {
+      "venue_id": 1935,
+      "venue_name": "Parkwest Casino Lotus",
+      "status": "uploaded",
+      "source_url": "https://media.bizj.us/view/img/11689629/20200701185011*1200xx6897-6897-1176-0.jpg",
+      "image_hash": "e225b0c647bdfcc98b4a630866414f962676df5ca88fc39ede36511218c8eca2",
+      "image_size": 2453046,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1935.png"
+    },
+    {
+      "venue_id": 2879,
+      "venue_name": "Oceanview Casino Casino",
+      "status": "uploaded",
+      "source_url": "https://i.ebayimg.com/images/g/Q98AAOSw3qxkxuZw/s-l1200.jpg",
+      "image_hash": "6210c6ff775f9600e2eb4ab3e9fa3070fc2cfbc218afddbf3ab39b7f8e530afe",
+      "image_size": 2096560,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2879.png"
+    },
+    {
+      "venue_id": 2222,
+      "venue_name": "Black Oak Casino",
+      "status": "uploaded",
+      "source_url": "https://www.blackoakcasino.com/media/Promo_Fireworks25_Social_1080x1080_0d0cc2490a.jpg",
+      "image_hash": "0863b1b1dea51a03f1cecc2947c3cdd670a1e22a98d8cc71cf6738b244b5367e",
+      "image_size": 1363037,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2222.png"
+    }
+  ]
+}

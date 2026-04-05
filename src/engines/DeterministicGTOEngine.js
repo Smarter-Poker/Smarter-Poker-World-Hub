@@ -415,8 +415,11 @@ export class DeterministicGTOEngine {
             const spot = spotPool[Math.floor(Math.random() * spotPool.length)];
             const { spotData, heroPos, villainPos, spotType, nodeType, actionLabels, contextText, questionText } = spot;
 
-            // Pick a random hand
-            const hand = SOLVER_ALL_HANDS[Math.floor(Math.random() * SOLVER_ALL_HANDS.length)];
+            // Pick a hand with intelligent weighting:
+            // ~50% chance: hand from the range (raise/call > 5%) — tests inclusion knowledge
+            // ~30% chance: boundary hand (any action 10-90%) — tests mixed strategy
+            // ~20% chance: any hand — includes pure folds to test exclusion knowledge
+            const hand = this._pickWeightedHand(spotData);
             const freqs = solverGetFreqs(spotData, hand);
 
             // Build action frequencies in engine format
@@ -633,6 +636,41 @@ export class DeterministicGTOEngine {
         }
 
         return pool;
+    }
+
+    /**
+     * Pick a hand weighted toward interesting decisions.
+     * Avoids the GTO Wizard anti-pattern of drilling 72o fold over and over.
+     *
+     * Distribution: ~50% in-range, ~30% boundary/mixed, ~20% any (including folds)
+     */
+    _pickWeightedHand(spotData) {
+        const inRange = [];
+        const boundary = [];
+
+        for (const hand of SOLVER_ALL_HANDS) {
+            const f = solverGetFreqs(spotData, hand);
+            const totalAction = f.raise + f.call;
+            if (totalAction > 0.05) {
+                inRange.push(hand);
+                // Boundary: hand with genuine mix (no single action dominates)
+                if (totalAction > 0.10 && totalAction < 0.90) {
+                    boundary.push(hand);
+                } else if (f.raise > 0.05 && f.raise < 0.95 && f.call > 0.05) {
+                    boundary.push(hand);
+                }
+            }
+        }
+
+        const roll = Math.random();
+        if (roll < 0.50 && inRange.length > 0) {
+            return inRange[Math.floor(Math.random() * inRange.length)];
+        }
+        if (roll < 0.80 && boundary.length > 0) {
+            return boundary[Math.floor(Math.random() * boundary.length)];
+        }
+        // 20%: any hand (tests fold discipline too)
+        return SOLVER_ALL_HANDS[Math.floor(Math.random() * SOLVER_ALL_HANDS.length)];
     }
 
     /**

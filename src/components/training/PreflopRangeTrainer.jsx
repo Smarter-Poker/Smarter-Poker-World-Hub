@@ -330,14 +330,36 @@ export default function PreflopRangeTrainer({ onExit }) {
         activeSpot?.data ? getRangePercentage(activeSpot.data).toFixed(1) : '0',
     [activeSpot]);
 
-    // Deal a new hand
+    // Deal a new hand — weighted toward interesting decisions
+    // ~50% in-range hands, ~30% boundary/mixed, ~20% any (including folds)
     const dealHand = useCallback(() => {
-        const hand = allHands[Math.floor(Math.random() * allHands.length)];
+        const sd = spotData;
+        const inRange = [];
+        const boundary = [];
+        for (const h of allHands) {
+            const f = getFullFreqs(sd, h);
+            const total = f.raise + f.call;
+            if (total > 0.05) {
+                inRange.push(h);
+                if ((total > 0.10 && total < 0.90) || (f.raise > 0.05 && f.raise < 0.95 && f.call > 0.05)) {
+                    boundary.push(h);
+                }
+            }
+        }
+        const roll = Math.random();
+        let hand;
+        if (roll < 0.50 && inRange.length > 0) {
+            hand = inRange[Math.floor(Math.random() * inRange.length)];
+        } else if (roll < 0.80 && boundary.length > 0) {
+            hand = boundary[Math.floor(Math.random() * boundary.length)];
+        } else {
+            hand = allHands[Math.floor(Math.random() * allHands.length)];
+        }
         setCurrentHand(hand);
         setShowFeedback(false);
         setSelectedAction(null);
         setShowMatrix(false);
-    }, [allHands]);
+    }, [allHands, spotData]);
 
     // Start on mount and spot change
     useEffect(() => {

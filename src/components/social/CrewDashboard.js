@@ -10,6 +10,7 @@ export default function CrewDashboard({ currentUser }) {
     const [showJoin, setShowJoin] = useState(false);
     const [newCrewName, setNewCrewName] = useState('');
     const [joinCode, setJoinCode] = useState('');
+    const [confirmLeaveId, setConfirmLeaveId] = useState(null);
 
     const loadCrews = async () => {
         if (!currentUser) return;
@@ -80,7 +81,12 @@ export default function CrewDashboard({ currentUser }) {
     };
 
     const handleLeaveCrew = async (crewId) => {
-        if (!confirm('Are you sure you want to leave this crew?')) return;
+        if (confirmLeaveId !== crewId) {
+            setConfirmLeaveId(crewId);
+            setTimeout(() => setConfirmLeaveId(null), 5000); // Auto-reset after 5s
+            return;
+        }
+        setConfirmLeaveId(null);
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/social/crews', {
@@ -159,7 +165,7 @@ export default function CrewDashboard({ currentUser }) {
                     <div key={crew.id} style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                             <div style={{ fontSize: 18, fontWeight: 'bold', color: '#FFF' }}>{crew.name}</div>
-                            <button onClick={() => handleLeaveCrew(crew.id)} style={{ background: 'none', border: 'none', color: '#FF4444', fontSize: 11, cursor: 'pointer' }}>Leave</button>
+                            <button onClick={() => handleLeaveCrew(crew.id)} style={{ background: confirmLeaveId === crew.id ? '#FF4444' : 'none', border: 'none', color: confirmLeaveId === crew.id ? 'white' : '#FF4444', fontSize: 11, cursor: 'pointer', padding: confirmLeaveId === crew.id ? '4px 10px' : '0', borderRadius: 6, transition: 'all 0.2s', fontWeight: confirmLeaveId === crew.id ? 700 : 400 }}>{confirmLeaveId === crew.id ? 'Confirm Leave?' : 'Leave'}</button>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, opacity: 0.8 }}>
                             <div>Role: <span style={{ color: crew.myRole === 'owner' ? '#FFD700' : '#A033FF', fontWeight: 'bold', textTransform: 'capitalize' }}>{crew.myRole}</span></div>
