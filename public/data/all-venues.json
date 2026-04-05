@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-04-05T16:35:46.586Z",
+  "updated_at": "2026-04-05T16:41:57.218Z",
   "total": 677,
   "venues": [
     {
@@ -14600,36 +14600,6 @@
       "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1901.jpg"
     },
     {
-      "id": 2286,
-      "name": "Corpus Christi Poker",
-      "slug": null,
-      "website": null,
-      "address": "5862 Everhart Road",
-      "city": "Corpus Christi",
-      "state": "TX",
-      "phone": "(361) 299-0931",
-      "venue_type": "poker_club",
-      "has_tournaments": false,
-      "poker_atlas_url": "https://www.pokeratlas.com/poker-room/ace-1-social-club-corpus-christi",
-      "hours": null,
-      "latitude": 27.7031209,
-      "longitude": -97.3914418,
-      "trust_score": 4.8,
-      "games_offered": [
-        "NLH",
-        "PLO"
-      ],
-      "stakes_cash": [
-        "$1/$2",
-        "$2/$5"
-      ],
-      "poker_tables": 6,
-      "hours_weekday": null,
-      "hours_weekend": null,
-      "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2286.png"
-    },
-    {
       "id": 1904,
       "name": "Doghouse Poker Club",
       "slug": "doghouse-poker-club-cypress",
@@ -14710,7 +14680,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2440.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2440.jpg"
     },
     {
       "id": 2926,
@@ -14762,7 +14732,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2715.png"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2715.jpg"
     },
     {
       "id": 2932,
@@ -14926,7 +14896,7 @@
       "hours_weekday": null,
       "hours_weekend": null,
       "about": null,
-      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2019.jpg"
+      "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2019.png"
     },
     {
       "id": 2933,
