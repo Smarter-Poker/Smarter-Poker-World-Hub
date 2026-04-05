@@ -31,6 +31,8 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getAllHands, getCombos, VALID_POSITIONS, VALID_SCENARIOS, withTiming } from '../../../src/utils/trainingApiUtils';
+// ── Phase 4 Engine: Range Grading with category breakdowns + heatmap ────
+import { gradeRange, generateHeatmapGrid, generateGradingSummary, HAND_CATEGORIES } from '../../../src/engines/RangeGradingEngine';
 
 // ── Lazy Supabase getter (SSG-safe) ─────────────────────────────
 let _supabase = null;
@@ -238,6 +240,31 @@ export default async function handler(req, res) {
               }
           });
 
+          // ── Engine enrichment: category breakdowns + heatmap ────────
+          let engineData = {};
+          try {
+              // Build player range object for engine (hand → action)
+              const playerRange = {};
+              allHands.forEach(h => { playerRange[h] = userSet.has(h) ? 'raise' : 'fold'; });
+              // Build solver range object (hand → action based on freq)
+              const solverRange = {};
+              allHands.forEach(h => {
+                  const freq = gtoRange[h] || 0;
+                  solverRange[h] = freq >= 0.5 ? 'raise' : freq >= 0.1 ? 'mixed' : 'fold';
+              });
+              const engineResult = gradeRange(playerRange, solverRange, gtoRange, { mode: 'binary' });
+              const heatmap = generateHeatmapGrid(playerRange, solverRange, gtoRange);
+              const summary = generateGradingSummary(engineResult);
+              engineData = {
+                  categoryScores: engineResult?.categoryScores || {},
+                  heatmap: heatmap || [],
+                  summary: summary || {},
+                  deviations: (engineResult?.deviations || []).slice(0, 20), // Top 20 deviations
+              };
+          } catch (e) {
+              console.warn('[GradeRange] Engine enrichment failed:', e.message);
+          }
+
           return res.status(200).json({
               success: true,
               grade: {
@@ -262,6 +289,7 @@ export default async function handler(req, res) {
                   wrongCount: wrong.length,
                   mixedCount: Object.keys(mixed).length,
               },
+              ...engineData,
           });
 
       } catch (err) {

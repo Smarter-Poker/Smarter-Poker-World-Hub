@@ -15,6 +15,8 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken, authedFetch } from '../../../src/lib/authUtils';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
+// ── Phase 3 Engine: Session tracking with trends + leak identification ──
+import { calculateTrends, identifyLeaks } from '../../../src/engines/SessionTracker';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG LINE CHART COMPONENT

@@ -17,6 +17,9 @@ import { eventBus, EventType } from '../../../src/engine/EventBus';
 import ErrorBanner from '../../../src/components/training/ErrorBanner';
 import ConnectionToast from '../../../src/components/training/ConnectionToast';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+// ── Phase 5 Engine: Auto-detect leaks against GTO benchmarks ────────────
+import { detectLeaks, generateDrillRecommendations, LEAK_TYPES } from '../../../src/engines/LeakDetector';
+import { identifyLeaks as identifySessionLeaks } from '../../../src/engines/SessionTracker';
 
 function analyzeData(sessions) {
   if (!sessions || sessions.length === 0) return null;
@@ -103,7 +106,46 @@ function analyzeData(sessions) {
 
   leaks.sort((a, b) => a.acc - b.acc);
 
-  return { overallAcc, totalHands, leaks };
+  // ── Engine enrichment: GTO benchmark leak detection ──────────────────
+  let engineLeaks = [];
+  let drillRecommendations = [];
+  try {
+    // Run SessionTracker's identifyLeaks for position/game-type breakdowns
+    const sessionLeakResult = identifySessionLeaks(sessions);
+    if (sessionLeakResult && sessionLeakResult.length > 0) {
+      engineLeaks = sessionLeakResult.map((l, i) => ({
+        id: 1000 + i,
+        cat: l.category || 'Engine Detection',
+        area: l.area || l.type || 'Unknown',
+        acc: Math.round((1 - (l.deviation || 0)) * 100),
+        sample: l.sampleSize || 0,
+        tip: l.recommendation || l.description || 'Review this area for GTO improvement',
+        sev: (l.severity === 'high' || (l.deviation || 0) > 0.15) ? 'High' : 'Medium',
+        _engineLeak: l,
+      }));
+    }
+
+    // Run LeakDetector for drill recommendations if we have engine-enriched leaks
+    if (engineLeaks.length > 0) {
+      drillRecommendations = generateDrillRecommendations(
+        engineLeaks.map(l => l._engineLeak).filter(Boolean)
+      );
+    }
+  } catch (e) {
+    console.warn('[Scanner] Engine leak detection failed:', e.message);
+  }
+
+  // Merge engine leaks that don't overlap with inline leaks
+  const inlineAreas = new Set(leaks.map(l => l.area.toLowerCase()));
+  engineLeaks.forEach(el => {
+    if (!inlineAreas.has(el.area.toLowerCase())) {
+      leaks.push(el);
+    }
+  });
+
+  leaks.sort((a, b) => a.acc - b.acc);
+
+  return { overallAcc, totalHands, leaks, drillRecommendations, engineLeaks };
 }
 
 export default function WeaknessScannerPage() {
