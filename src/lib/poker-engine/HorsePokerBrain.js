@@ -5093,6 +5093,67 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             }
         }
 
+        // ═══ FLOP DONK-BET (BB defense → lead into PFR) ═══
+        // When we defended BB and the flop heavily favors our range, donk-bet
+        // to seize initiative. This is a modern strategy used on boards like
+        // 8-7-6, 5-5-3, 9-8-7 where BB's range connects heavily.
+        if (!wasPreAggressor && street === 'flop' && canRaise && !isIP) {
+            const shouldDonk = (
+                // Strong hands on low/connected boards (our range advantage)
+                (effectiveStrength >= 55 && (boardIsLow || boardIsConnected) && !boardIsHigh) ||
+                // Two pair or better on any low board
+                (effectiveStrength >= 65 && boardIsLow) ||
+                // Strong draws on wet boards (semi-bluff donk)
+                (drawEquity.outs >= 10 && isWetBoard && effectiveStrength >= 25)
+            );
+            if (shouldDonk) {
+                let donkFreq = 0.30 + aggressionBias / 40;
+                // Against frequent c-bettors, donk more (deny them c-bet equity)
+                if (!oppIsPassive) donkFreq += 0.08;
+                // Against tight players, donk less (they 3-bet preflop with strong hands)
+                if (oppOverfolds) donkFreq -= 0.05;
+                // Multiway: donk less (more players to get through)
+                if (numPlayers >= 3) donkFreq *= 0.60;
+                donkFreq = Math.max(0, Math.min(0.50, donkFreq));
+                if (Math.random() < donkFreq) {
+                    // Size: 33-50% pot depending on hand strength and board
+                    let donkFrac = effectiveStrength >= 65 ? 0.50 : 0.33;
+                    if (isWetBoard) donkFrac = Math.min(0.60, donkFrac + 0.08);
+                    const betSize = Math.round(potSize * donkFrac);
+                    const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                    console.log(`[HorseBrain] 🏋️ FLOP DONK: str=${effectiveStrength} board=${boardIsLow ? 'low' : boardIsConnected ? 'connected' : 'other'} outs=${drawEquity.outs}`);
+                    return { type: raiseAction.type, amount };
+                }
+            }
+        }
+
+        // ═══ FLOP BET (non-aggressor): Value bet + probe on checked flop ═══
+        // When opponent checks to us on flop and we're not the PFR,
+        // bet for value or to deny equity with medium+ hands
+        if (!wasPreAggressor && street === 'flop' && canRaise && isIP) {
+            if (effectiveStrength >= 55) {
+                // Value bet strong hands on checked-to flops
+                let valueBetFreq = 0.60;
+                if (numPlayers >= 3) valueBetFreq = 0.45;
+                if (Math.random() < valueBetFreq) {
+                    const sizeFrac = isDryBoard ? 0.45 : 0.55;
+                    const betSize = Math.round(potSize * sizeFrac);
+                    const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                    return { type: raiseAction.type, amount };
+                }
+            }
+            // Stab at pot with marginal hands on dry boards
+            if (effectiveStrength >= 30 && isDryBoard && numPlayers <= 2) {
+                let stabFreq = 0.25 + aggressionBias / 40;
+                if (oppOverfolds) stabFreq += 0.12;
+                if (Math.random() < stabFreq) {
+                    const betSize = Math.round(potSize * 0.33);
+                    const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                    return { type: raiseAction.type, amount };
+                }
+            }
+        }
+
         // ═══ DELAYED C-BET (new) — Bet the turn after checking the flop ═══
         // If we had initiative preflop but checked the flop, bet the turn to represent strength
         if (wasPreAggressor && street === 'turn' && !gameState.betOnFlop && canRaise) {
@@ -6028,17 +6089,36 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── MONSTERS (set+, two pair on safe board) → Value bet ──
             if (handEval.strength >= 75 && canRaise) {
                 // Slowplay traps: sometimes check monsters OOP to induce bluffs
-                // More likely to trap against aggressive opponents (they'll bluff)
                 const trapFreq = (oppTendency === 'bluffy' && oppConfidence > 0.3) ? 0.40 : 0.25;
                 if (!isIP && scareLevel === 0 && Math.random() < trapFreq && !multiway) {
                     return { type: 'check' }; // Check-raise trap
                 }
-                // Size depends on SPR: shallow → bigger (set up river jam), deep → geometric
-                // Against calling stations, go bigger
-                let sizeFrac = spr < 5 ? 0.75 : spr < 10 ? 0.66 : 0.60;
-                if (oppTendency === 'balanced' && oppCallFreq > 0.60 && oppConfidence > 0.3) {
-                    sizeFrac = Math.min(0.85, sizeFrac + 0.10); // Upsize vs calling stations
+
+                // ═══ GEOMETRIC SIZING: Plan to get stacks in by river ═══
+                // With monsters on the turn, we want to build the pot optimally
+                // so that our river bet naturally gets us all-in.
+                const streetsLeft = 2; // turn + river
+                const geoSizing = getGeometricSizing(potSize, heroStack, streetsLeft, true);
+
+                let sizeFrac;
+                if (geoSizing.isJammable && spr >= 3) {
+                    // Use geometric sizing to get stacks in by river
+                    sizeFrac = geoSizing.sizeFraction;
+                } else if (spr < 5) {
+                    sizeFrac = 0.75; // Shallow: bigger to set up jam
+                } else {
+                    sizeFrac = geoSizing.sizeFraction; // Deep: use computed geometric
                 }
+
+                // Against calling stations, go bigger (they call anyway)
+                if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
+                    sizeFrac = Math.min(1.0, sizeFrac * 1.15);
+                }
+                // Against nits, go slightly smaller to keep them in
+                if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
+                    sizeFrac = Math.max(0.45, sizeFrac * 0.85);
+                }
+
                 return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
             }
 
@@ -6114,16 +6194,48 @@ function makeTurnRiverHeuristicDecision(params) {
                 return { type: 'check' };
             }
 
-            // ── MEDIUM HANDS IP: Pot control ──
+            // ── MEDIUM HANDS IP: Showdown Value + Pot Control Framework ──
             if (isIP && handEval.strength >= 30 && handEval.strength < 55) {
-                // In a light pot (lots of checking), our medium hands have more showdown value
+
+                // ═══ SHOWDOWN VALUE ASSESSMENT ═══
+                // Medium hands IP have real showdown value — the question is whether
+                // betting gains more EV than checking to showdown.
+                const hasShowdownValue = handEval.strength >= 35;
+                const isVulnerable = boardWet === 'wet' || drawEq.outs >= 4; // Can be outdrawn
+                const isProtected = boardWet === 'dry' && scareLevel === 0; // Safe to check
+
+                // ═══ BET vs CHECK DECISION TREE ═══
+
+                // 1. Against weak ranges: thin value bet (they call with worse)
                 if (oppRangeStrength === 'weak' && handEval.strength >= 40 && canRaise) {
-                    // Thin value bet against weak ranges
-                    if (Math.random() < 0.35) {
+                    let thinBetFreq = 0.35;
+                    if (oppCallFreq > 0.55 && oppConfidence > 0.3) thinBetFreq = 0.50;
+                    // Narrative: if we bet flop, continued story makes this credible
+                    if (narrative.heroBetFlop) thinBetFreq += 0.06;
+                    if (Math.random() < thinBetFreq) {
                         return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.40)) };
                     }
                 }
-                // Check for pot control — realize equity without bloating pot
+
+                // 2. Vulnerable medium hands on wet boards: bet for protection
+                if (isVulnerable && handEval.strength >= 40 && canRaise && !multiway) {
+                    let protectFreq = 0.30;
+                    if (boardWet === 'wet' && drawEq.outs >= 6) protectFreq = 0.40;
+                    // If we've been barreling, continue (credible)
+                    if (narrative.heroBetFlop && narrative.storyIsConsistent) protectFreq += 0.08;
+                    if (Math.random() < protectFreq) {
+                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.45)) };
+                    }
+                }
+
+                // 3. Protected medium hands on dry boards: check for pot control
+                if (isProtected && hasShowdownValue) {
+                    // Check back is optimal — our hand plays well at showdown
+                    // and opponent's calling range beats us
+                    return { type: 'check' };
+                }
+
+                // 4. Medium-weak hands: always check for pot control
                 return { type: 'check' };
             }
 
@@ -6199,12 +6311,33 @@ function makeTurnRiverHeuristicDecision(params) {
             // check_call and lead fall through to the existing turn logic below
         }
 
-        // ── MONSTERS: Raise for value ──
+        // ── MONSTERS: Raise for value (geometric sizing to set up river jam) ──
         if (handEval.strength >= 80 && canRaise) {
-            // Size to set up river all-in: raise to about 2.5x-3x the bet
+            // Use geometric sizing: calculate raise that sets up a natural river all-in
+            const afterCallStack = heroStack - toCall;
+            const potAfterCall = potSize + toCall * 2;
+            const geoRiver = getGeometricSizing(potAfterCall, afterCallStack, 1, true);
+
+            // The raise should make the pot such that river jam is natural
             let raiseMult = 2.5 + Math.random() * 0.5;
-            // Against calling stations, raise bigger with the nuts
-            if (oppCallFreq > 0.60 && oppConfidence > 0.3) raiseMult += 0.5;
+
+            // If geometric sizing suggests we can jam river after a specific raise
+            if (spr >= 3 && spr <= 15) {
+                // Calculate: we raise to X, opponent calls, pot = potAfterCall + 2*(X-toCall)
+                // Then river: geoRiver.sizeFraction * newPot should ≈ remaining stack
+                // Solve backwards: pick raise size that creates right river SPR
+                const targetRiverSPR = 1.5; // Want ~1.5 SPR going into river for easy jam
+                const idealRaise = (heroStack / (1 + targetRiverSPR * 2) - potSize) / 2 + toCall;
+                if (idealRaise > toCall * 2) {
+                    raiseMult = idealRaise / toCall;
+                }
+            }
+
+            // Against calling stations, raise bigger
+            if (oppCallFreq > 0.60 && oppConfidence > 0.3) raiseMult = Math.min(4.0, raiseMult * 1.15);
+            // Against nits, smaller raise to keep them in
+            if (oppTendency === 'weak-tight' && oppConfidence > 0.3) raiseMult = Math.max(2.2, raiseMult * 0.85);
+
             const raiseSize = Math.round(toCall * raiseMult);
             return { type: raiseAction.type, amount: clampAmt(raiseSize) };
         }
@@ -6225,6 +6358,23 @@ function makeTurnRiverHeuristicDecision(params) {
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
             }
+
+            // ═══ NARRATIVE-DRIVEN TURN CALL/FOLD ADJUSTMENTS ═══
+            // Opponent barrel-barrel = polarized range → use hand strength + blockers
+            if (narrative.barrelsInARow >= 2 && handEval.strength < 65) {
+                // Opponent has double-barreled, their range is strong or bluff
+                // With blockers to their value range, lean toward calling
+                const hasBlockers = blocksTopSet || blocksOverpair || blocksNutFlush;
+                if (!hasBlockers && oppTendency !== 'bluffy') {
+                    // No blockers + opponent isn't known bluffer → fold marginal strong hands
+                    if (betToPot >= 0.60 && oppConfidence > 0.3) {
+                        console.log(`[HorseBrain] 📖 TURN NARRATIVE FOLD: double-barrel, no blockers, str=${handEval.strength}`);
+                        return canCheck ? { type: 'check' } : { type: 'fold' };
+                    }
+                }
+            }
+            // Hero was aggressive earlier → calling feels natural (continuing hand defense)
+            // No adjustment needed — just call
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
 
@@ -6272,6 +6422,17 @@ function makeTurnRiverHeuristicDecision(params) {
         if (handEval.strength >= 35 && potOdds < 0.25) {
             // Tighter multiway
             if (multiway && handEval.strength < 45) return canCheck ? { type: 'check' } : { type: 'fold' };
+
+            // ═══ NARRATIVE-DRIVEN MEDIUM HAND ADJUSTMENTS ═══
+            // Opponent barrel-barrel with a medium hand and no blockers → lean fold
+            if (narrative.barrelsInARow >= 2 && handEval.strength < 45 && oppConfidence > 0.3) {
+                const hasBlockers = blocksTopSet || blocksOverpair || blocksNutFlush;
+                if (!hasBlockers && oppTendency !== 'bluffy') {
+                    console.log(`[HorseBrain] 📖 TURN MEDIUM FOLD: double-barrel, medium hand (${handEval.strength}), no blockers`);
+                    return canCheck ? { type: 'check' } : { type: 'fold' };
+                }
+            }
+            // If opponent only bet once (single barrel), medium hands are fine to peel
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
 
@@ -6282,6 +6443,14 @@ function makeTurnRiverHeuristicDecision(params) {
             if (oppTendency === 'weak-tight' && oppConfidence > 0.3) floatFreq = 0.35;
             // Float less in heavy pots (opponent more committed)
             if (oppStreetAggression === 'very_heavy') floatFreq = 0.08;
+
+            // ═══ NARRATIVE-DRIVEN FLOAT ═══
+            // Opponent bet flop and turn → they're committed, floating is riskier
+            if (narrative.barrelsInARow >= 2) floatFreq = Math.max(0.05, floatFreq - 0.12);
+            // Opponent only bet turn after checking flop → weaker range, float more
+            if (!narrative.heroBetFlop && narrative.checkBehindCount >= 1) floatFreq += 0.08;
+
+            floatFreq = Math.max(0, Math.min(0.40, floatFreq));
             if (Math.random() < floatFreq) return canCall ? { type: 'call' } : { type: 'fold' };
         }
 
@@ -6317,6 +6486,21 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Against calling stations, overbet BIGGER (they pay off)
                 let overbetMax = 0.50;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) overbetMax = 0.80; // Up to 180% pot
+
+                // ═══ NARRATIVE-DRIVEN OVERBET SIZING ═══
+                // A consistent aggressive story makes overbets more believable
+                if (narrative.barrelsInARow >= 2 && narrative.storyIsConsistent) {
+                    overbetMax += 0.15; // Triple barrel into overbet = polarized + credible
+                }
+                // Slow-played line (checked earlier streets) → smaller bet, they're suspicious
+                if (narrative.checkBehindCount >= 1 && !heroIsAggressor) {
+                    overbetMax = Math.max(0.20, overbetMax - 0.20);
+                }
+                // River improved us (turnToRiverDelta big) → careful not to scare with overbet
+                if (turnToRiverDelta > 20) {
+                    overbetMax = Math.max(0.30, overbetMax - 0.10); // We hit on river, size down slightly
+                }
+
                 const overbetFrac = 1.0 + Math.random() * overbetMax;
                 // Against nits, use smaller sizing (they fold to overbets)
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
@@ -6331,6 +6515,26 @@ function makeTurnRiverHeuristicDecision(params) {
                 let sizeFrac = multiway ? 0.60 : 0.72;
                 // Against calling stations, size up
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) sizeFrac = Math.min(0.85, sizeFrac + 0.10);
+
+                // ═══ NARRATIVE-DRIVEN MONSTER SIZING ═══
+                // Consistent aggression story → can size up (opponent expects continuation)
+                if (narrative.barrelsInARow >= 1 && narrative.storyIsConsistent) {
+                    sizeFrac = Math.min(0.90, sizeFrac + 0.06);
+                }
+                // Trapping line (checked earlier) → smaller bet, opponent suspects trap if too big
+                if (narrative.checkBehindCount >= 1) {
+                    sizeFrac = Math.max(0.55, sizeFrac - 0.08);
+                }
+                // River card helped us a lot → size down to avoid folding out worse
+                if (turnToRiverDelta > 15) {
+                    sizeFrac = Math.max(0.55, sizeFrac - 0.05);
+                }
+                // Use geometric sizing for stack management
+                const geoRiver = getGeometricSizing(potSize, heroStack, 1, true);
+                if (geoRiver.isJammable && spr <= 3) {
+                    return { type: 'all_in' }; // Just jam, SPR is low enough
+                }
+
                 return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
             }
 
@@ -6351,10 +6555,37 @@ function makeTurnRiverHeuristicDecision(params) {
                     thinValueFreq = Math.max(0.25, thinValueFreq - 0.20); // Check more, let them bluff
                 }
 
+                // ═══ NARRATIVE-DRIVEN THIN VALUE ═══
+                // Consistent betting story makes thin value credible
+                if (narrative.barrelsInARow >= 1 && narrative.storyIsConsistent) {
+                    thinValueFreq = Math.min(0.85, thinValueFreq + 0.08);
+                }
+                // Checked earlier streets → opponent may expect weakness, thin value catches them
+                if (narrative.heroCheckedFlop && heroIsAggressor) {
+                    // Delayed aggression = trap line, thin value is strong here
+                    thinValueFreq = Math.min(0.80, thinValueFreq + 0.06);
+                }
+                // If we checked turn, betting river is suspicious — lower freq with marginal hands
+                if (narrative.heroCheckedTurn && !narrative.heroBetFlop) {
+                    thinValueFreq = Math.max(0.30, thinValueFreq - 0.10);
+                }
+                // River hurt us (equity dropped) → check more, our hand got worse
+                if (turnToRiverDelta < -10) {
+                    thinValueFreq = Math.max(0.25, thinValueFreq - 0.12);
+                }
+                // River helped us → value bet more aggressively
+                if (turnToRiverDelta > 10) {
+                    thinValueFreq = Math.min(0.85, thinValueFreq + 0.08);
+                }
+
                 if (Math.random() < thinValueFreq) {
                     let sizeFrac = multiway ? 0.45 : 0.55;
                     // Smaller sizing vs tight opponents to get called
                     if (oppFoldFreq > 0.50 && oppConfidence > 0.3) sizeFrac = Math.max(0.35, sizeFrac - 0.12);
+                    // Narrative: consistent barrels → can size up thin value
+                    if (narrative.storyIsConsistent && narrative.barrelsInARow >= 1) {
+                        sizeFrac = Math.min(0.70, sizeFrac + 0.06);
+                    }
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
                 return canCheck ? { type: 'check' } : { type: 'fold' };
@@ -6366,8 +6597,30 @@ function makeTurnRiverHeuristicDecision(params) {
                 let blockFreq = 0.28;
                 // Block bet more against aggressive opponents (deny them a big bluff)
                 if (oppTendency === 'bluffy' && oppConfidence > 0.3) blockFreq = 0.45;
+
+                // ═══ NARRATIVE-DRIVEN BLOCK BET ═══
+                // If we've been checking/calling, a small river bet is a credible block line
+                if (narrative.checkBehindCount >= 1 || narrative.heroCheckedTurn) {
+                    blockFreq += 0.08; // Pot-control line → block bet is natural continuation
+                }
+                // If we've been barreling, a sudden small bet is suspicious — avoid
+                if (narrative.barrelsInARow >= 2) {
+                    blockFreq = Math.max(0.10, blockFreq - 0.15); // Triple barrel then block? Doesn't make sense
+                }
+                // River weakened our hand → block bet to control pot
+                if (turnToRiverDelta < -5) {
+                    blockFreq += 0.06; // Hand got worse, block for cheap showdown
+                }
+                // OOP block bet (rare but useful when opponent is aggressive)
+                // Already restricted to IP above, but add OOP probe variant below
+
+                blockFreq = Math.max(0, Math.min(0.55, blockFreq));
                 if (Math.random() < blockFreq) {
-                    const blockFrac = 0.25 + Math.random() * 0.08;
+                    let blockFrac = 0.25 + Math.random() * 0.08;
+                    // Against very aggressive opponents, slightly bigger block to commit them
+                    if (oppTendency === 'bluffy' && oppConfidence > 0.3) {
+                        blockFrac = Math.min(0.40, blockFrac + 0.05);
+                    }
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * blockFrac)) };
                 }
             }
@@ -6462,6 +6715,27 @@ function makeTurnRiverHeuristicDecision(params) {
                     }
                     console.log(`[HorseBrain] 🎭 RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] count=${blockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(bluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * bluffFrac)) };
+                }
+            }
+
+            // ── RIVER SHOWDOWN VALUE CHECK-BACK FRAMEWORK ──
+            // If we reach here, we've declined to bet. But there's still a decision:
+            // some medium hands OOP should consider leading small vs checking to showdown.
+
+            // OOP medium hands: consider a small donk/lead if checked to us and opponent is passive
+            if (!isIP && handEval.strength >= 30 && handEval.strength < 55 && canRaise && !multiway) {
+                // Only lead if opponent has been passive (checking through)
+                if (narrative.heroCheckedTurn || narrative.checkBehindCount >= 1) {
+                    // Opponent showed weakness by checking — lead for thin value/denial
+                    let leadFreq = 0.15;
+                    if (oppTendency === 'weak-tight' && oppConfidence > 0.3) leadFreq = 0.25;
+                    if (turnToRiverDelta > 5) leadFreq += 0.06; // River helped us
+                    if (turnToRiverDelta < -5) leadFreq -= 0.06; // River hurt us
+                    leadFreq = Math.max(0, Math.min(0.35, leadFreq));
+                    if (Math.random() < leadFreq) {
+                        const leadFrac = 0.30 + Math.random() * 0.10; // 30-40% pot
+                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * leadFrac)) };
+                    }
                 }
             }
 
@@ -7517,6 +7791,103 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
 
     // Clamp to reasonable range: 20% to 200% pot
     return Math.max(0.20, Math.min(2.00, baseSizing));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GEOMETRIC BET SIZING PLANNER
+// ═══════════════════════════════════════════════════════════════════════════
+// Plans bet sizing across remaining streets to get all the money in by river.
+// Given: current pot, hero stack, streets remaining, and target (jam or not).
+// Returns: optimal sizing fraction for THIS street that sets up future streets.
+//
+// Example: 100bb stack, 10bb pot on flop.
+// Geometric growth: bet 75% pot each street → pot grows ~3x each street.
+// Flop: 10bb pot → bet 7.5 → pot becomes 25bb. Turn: 25bb → bet 18.75 → pot 62.5bb.
+// River: 62.5bb → bet 47 → pot 157bb. Stack used: ~73bb of 100bb.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate the geometric bet sizing fraction that gets stacks in by a target street.
+ * @param {number} potSize - Current pot in chips
+ * @param {number} heroStack - Hero's remaining stack in chips
+ * @param {number} streetsRemaining - Number of betting streets left (including current)
+ * @param {boolean} targetAllIn - Whether we want to be all-in by the last street
+ * @returns {{ sizeFraction: number, projectedPotByStreet: number[], isJammable: boolean }}
+ */
+function getGeometricSizing(potSize, heroStack, streetsRemaining, targetAllIn = true) {
+    if (streetsRemaining <= 0 || potSize <= 0) {
+        return { sizeFraction: 0.66, projectedPotByStreet: [], isJammable: false };
+    }
+
+    // SPR = Stack-to-Pot Ratio
+    const spr = heroStack / Math.max(1, potSize);
+
+    // If already pot committed (SPR < 2), just jam
+    if (spr < 2) {
+        return { sizeFraction: 999, projectedPotByStreet: [heroStack + potSize], isJammable: true };
+    }
+
+    // If we DON'T want to get all-in (pot control), return standard sizing
+    if (!targetAllIn) {
+        return {
+            sizeFraction: streetsRemaining === 1 ? 0.66 : 0.50,
+            projectedPotByStreet: [],
+            isJammable: false
+        };
+    }
+
+    // ═══ GEOMETRIC SIZING CALCULATION ═══
+    // We want: after N streets of betting fraction f, the pot = 2 * heroStack
+    // (i.e., hero puts in all remaining chips across N streets).
+    //
+    // At each street: newPot = pot * (1 + 2*f) [we bet f*pot, opponent calls f*pot]
+    // After N streets: finalPot = pot * (1+2f)^N
+    // We want: sum of our bets ≈ heroStack
+    // Our total bet = f*pot + f*pot*(1+2f) + f*pot*(1+2f)^2 + ...
+    // = f*pot * [(1+2f)^N - 1] / (2f)
+    // Set equal to heroStack and solve for f.
+    //
+    // Simpler approach: binary search for f that gets us approximately all-in.
+
+    let lo = 0.20, hi = 2.00;
+    for (let iter = 0; iter < 20; iter++) {
+        const mid = (lo + hi) / 2;
+        let totalBet = 0;
+        let currentPot = potSize;
+        for (let s = 0; s < streetsRemaining; s++) {
+            const betAmt = currentPot * mid;
+            totalBet += betAmt;
+            currentPot = currentPot + betAmt * 2; // both players put in betAmt
+        }
+        if (totalBet < heroStack) lo = mid;
+        else hi = mid;
+    }
+
+    const optimalFrac = (lo + hi) / 2;
+
+    // Project pot sizes for each street
+    const projectedPotByStreet = [];
+    let currentPot = potSize;
+    for (let s = 0; s < streetsRemaining; s++) {
+        const betAmt = currentPot * optimalFrac;
+        currentPot = currentPot + betAmt * 2;
+        projectedPotByStreet.push(Math.round(currentPot));
+    }
+
+    // Check if this actually gets us close to all-in
+    let totalBet = 0;
+    let cp = potSize;
+    for (let s = 0; s < streetsRemaining; s++) {
+        totalBet += cp * optimalFrac;
+        cp = cp + cp * optimalFrac * 2;
+    }
+    const isJammable = totalBet >= heroStack * 0.85; // Within 85% of stack = will jam
+
+    return {
+        sizeFraction: Math.max(0.25, Math.min(1.50, optimalFrac)),
+        projectedPotByStreet,
+        isJammable
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
