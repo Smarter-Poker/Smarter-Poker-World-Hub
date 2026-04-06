@@ -5014,8 +5014,20 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
     // ── FLOP/TURN: NO BET TO FACE ──
     if (canCheck && toCall === 0) {
-        // Check-raise strategy (#26) — OOP trapping
-        const crStrat = getCheckRaiseStrategy(effectiveStrength, isIP, handEval.hasFlushDraw || handEval.hasOESD, aggressionBias);
+        // Check-raise strategy (#26) — OOP trapping with full board/opponent context
+        const crStrat = getCheckRaiseStrategy(effectiveStrength, isIP, handEval.hasFlushDraw || handEval.hasOESD, aggressionBias, {
+            street,
+            boardWetness,
+            boardIsPaired,
+            numPlayers,
+            oppTendency: opponentAdjustment.bluffAware ? 'bluffy'
+                : opponentAdjustment.foldMod > 0 ? 'weak-tight'
+                : opponentAdjustment.callMod > 0 ? 'calling-station'
+                : 'balanced',
+            oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
+            oppCbetFreq: 0.60,
+            handCategory: handEval.category
+        });
         if (crStrat.shouldCheckRaise && Math.random() < crStrat.frequency) {
             return { type: 'check' };
         }
@@ -5736,7 +5748,8 @@ function makeTurnRiverHeuristicDecision(params) {
         enrichedOpponentRead = null,     // Full read from HorsePokerAdvanced.getOpponentRead()
         oppStreetAggression = 'unknown', // very_heavy/heavy/moderate/light
         heroIsAggressor = false,         // Was hero the preflop raiser?
-        counterStrategyMode = 'standard' // From selectCounterStrategy()
+        counterStrategyMode = 'standard', // From selectCounterStrategy()
+        streetNarrative = null           // Multi-street action memory
     } = params;
 
     if (street !== 'turn' && street !== 'river') return null;
@@ -5893,6 +5906,40 @@ function makeTurnRiverHeuristicDecision(params) {
         return Math.max(raiseAction.minAmount || 1, Math.min(amt, raiseAction.maxAmount || amt));
     };
 
+    // ═══ MULTI-STREET NARRATIVE ADJUSTMENTS ═══
+    // Use our prior street actions to keep our betting line believable.
+    // A horse that bet flop and checked turn shouldn't barrel the river with air.
+    // A horse that checked flop and bet turn IS telling a delayed value story.
+    const narrative = streetNarrative || {
+        heroBetFlop: false, heroCheckedFlop: false, heroBetTurn: false,
+        heroCheckedTurn: false, heroRaisedPreflop: false, barrelsInARow: 0,
+        checkBehindCount: 0, storyIsConsistent: true, suggestedLine: 'balanced'
+    };
+
+    // Narrative-based aggression modifier
+    // +: more likely to barrel  -: less likely to barrel
+    let narrativeAggrMod = 0;
+    if (narrative.suggestedLine === 'barrel' && narrative.storyIsConsistent) {
+        narrativeAggrMod = 5; // Continue the story — barrel is credible
+    }
+    if (narrative.suggestedLine === 'check-back') {
+        narrativeAggrMod = -8; // Haven't shown aggression — bluffs are less credible
+    }
+    if (narrative.suggestedLine === 'trap' && street === 'river') {
+        narrativeAggrMod = 3; // Check-turn, bet-river = credible value/trap line
+    }
+    if (!narrative.storyIsConsistent && handEval.strength < 50) {
+        narrativeAggrMod -= 5; // Our line doesn't make sense — don't bluff
+    }
+    // Triple barrel = high commitment — only do with strong hands or committed bluffs
+    if (narrative.barrelsInARow >= 2 && street === 'river') {
+        if (handEval.strength < 30 && !hasAnyBlocker) {
+            narrativeAggrMod -= 10; // Don't triple-barrel air without blockers
+        } else if (handEval.strength >= 60) {
+            narrativeAggrMod += 5; // Strong hand + two prior barrels = go for it
+        }
+    }
+
     // ════════════════════════════════════════════════════════════════
     //  T U R N
     // ════════════════════════════════════════════════════════════════
@@ -6023,6 +6070,36 @@ function makeTurnRiverHeuristicDecision(params) {
         if (isPotCommitted && handEval.strength >= 45) {
             if (canRaise) return { type: 'all_in' };
             if (canCall) return { type: 'call' };
+        }
+
+        // ── OOP MATRIX: structured check-call/check-raise for OOP turn decisions ──
+        if (!isIP && oppConfidence >= 0.25) {
+            const turnOopDecision = getOOPDecisionMatrix({
+                handStrength: handEval.strength,
+                handCategory: handEval.category,
+                hasStrongDraw: handEval.hasFlushDraw || handEval.hasOESD,
+                hasWeakDraw: handEval.hasGutshot || handEval.hasBackdoorFlush,
+                street: 'turn',
+                boardWetness: boardWet,
+                boardIsPaired: boardPaired,
+                boardIsMonotone: maxSuitCount >= 3,
+                numPlayers,
+                aggressionBias: aggressionBias + narrativeAggrMod,
+                oppTendency, oppConfidence, oppCallFreq,
+                oppCbetFreq: 0.60,
+                heroIsAggressor,
+                potSize, toCall, stackBB
+            });
+
+            if (turnOopDecision.action === 'check_raise' && canRaise && Math.random() < turnOopDecision.frequency) {
+                const crSize = Math.round(toCall * (turnOopDecision.sizeFraction || 3.0));
+                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: turn check-raise (${turnOopDecision.reason})`);
+                return { type: raiseAction.type, amount: clampAmt(crSize) };
+            }
+            if (turnOopDecision.action === 'check_fold') {
+                return canCheck ? { type: 'check' } : { type: 'fold' };
+            }
+            // check_call and lead fall through to the existing turn logic below
         }
 
         // ── MONSTERS: Raise for value ──
@@ -6198,52 +6275,95 @@ function makeTurnRiverHeuristicDecision(params) {
                 }
             }
 
+            // ── RIVER PROBE BET: OOP initiative when opponent checked back turn ──
+            // When OOP and opponent checked turn (showing weakness), probe the river.
+            // This exploits opponents who give up on turns with marginal holdings.
+            if (!isIP && canRaise && !multiway && narrative.heroCheckedTurn) {
+                // If opponent also checked turn (we're now betting into checked pot)
+                // This is NOT a bluff per se — it's a thin value / denial bet
+                if (handEval.strength >= 35 && handEval.strength < 55) {
+                    let probeFreq = 0.30 + aggressionBias / 50 + narrativeAggrMod / 40;
+                    // Against passive opponents who check back weak ranges → probe more
+                    if (oppTendency === 'weak-tight' && oppConfidence > 0.3) probeFreq += 0.12;
+                    if (oppTendency === 'balanced') probeFreq += 0.05;
+                    // Against aggressive opponents, they would have bet if strong → probe valuable
+                    if (oppTendency === 'bluffy' && oppConfidence > 0.3) probeFreq += 0.08;
+                    probeFreq = Math.max(0, Math.min(0.55, probeFreq));
+                    if (Math.random() < probeFreq) {
+                        const probeFrac = 0.40 + Math.random() * 0.15; // 40-55% pot
+                        console.log(`[HorseBrain] 🔍 RIVER PROBE: str=${handEval.strength} OOP after checked turn — ${Math.round(probeFrac * 100)}% pot`);
+                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeFrac)) };
+                    }
+                }
+            }
+
             // ── RIVER BLUFF: Polarized bluff with blockers ──
             // This is where the real skill shows — turning missed draws into profitable bluffs
             if (handEval.strength < 15 && canRaise && !multiway) {
                 let bluffProbability = 0;
 
-                // Premium blockers → highest bluff frequency
+                // ═══ BLOCKER-BASED BLUFF WEIGHTING ═══
+                // Each blocker type has a different EV impact on bluffing.
+                // Nut flush blocker is the best because it removes the most combos of nuts.
                 if (blocksNutFlush) bluffProbability += 0.25;
                 if (blocksSecondNutFlush) bluffProbability += 0.15;
                 if (blocksTopSet) bluffProbability += 0.12;
                 if (blocksOverpair) bluffProbability += 0.08;
-                if (blocksStraight) bluffProbability += 0.10; // New: straight blockers
+                if (blocksStraight) bluffProbability += 0.10;
+
+                // ═══ BLOCKER COMBO BONUS ═══
+                // Multiple blockers compound in value — opponent's value range is severely reduced
+                const blockerCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
+                if (blockerCount >= 2) bluffProbability += 0.08; // Combo blocker bonus
+                if (blockerCount >= 3) bluffProbability += 0.05; // Triple blocker — very strong bluff candidate
+
+                // ═══ NARRATIVE-DRIVEN BLUFF CREDIBILITY ═══
+                // Only bluff when our prior street actions tell a believable story
+                bluffProbability += narrativeAggrMod / 50;
+                // Triple barrel bluff: requires blockers + consistent story
+                if (narrative.barrelsInARow >= 2) {
+                    if (blockerCount >= 1 && narrative.storyIsConsistent) {
+                        bluffProbability += 0.06; // Committed bluff with story + blockers
+                    } else if (blockerCount === 0) {
+                        bluffProbability -= 0.10; // Triple barrel without blockers = bad idea
+                    }
+                }
+                // Delayed barrel bluff: checked flop, bet turn, bet river — credible
+                if (narrative.suggestedLine === 'delayed-barrel' && narrative.heroCheckedFlop) {
+                    bluffProbability += 0.05;
+                }
 
                 // Personality: aggressive horses bluff more
                 bluffProbability += aggressionBias / 80;
 
                 // ═══ OPPONENT-AWARE BLUFF FREQUENCY ═══
-                // Against over-folders, bluff MUCH more (pure profit)
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffProbability += 0.15;
-                // Against calling stations, DON'T bluff (they never fold)
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) bluffProbability = 0;
-                // Against weak-tight players, bluff with larger sizing
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) bluffProbability += 0.10;
 
                 // ═══ AGGRESSOR RANGE ADVANTAGE ═══
-                // If hero was PFR and board still favors PFR range → can bluff
                 if (heroIsAggressor && !boardFavorsCaller) bluffProbability += 0.08;
-                // If hero WASN'T PFR and board favors PFR → our bluffs look fake
                 if (!heroIsAggressor && boardFavorsPFR) bluffProbability -= 0.08;
 
-                // Board that missed draws → opponent likely has showdown value, less likely to call big
+                // Board that missed draws → opponent has showdown value
                 if (scareLevel === 0 && equityDelta < -10) bluffProbability += 0.08;
 
                 // ═══ HEAVY POT CAUTION ═══
-                // In very heavy pots, bluffs are more expensive → need more fold equity
                 if (oppStreetAggression === 'very_heavy') bluffProbability -= 0.10;
 
-                bluffProbability = Math.max(0, Math.min(0.40, bluffProbability));
+                bluffProbability = Math.max(0, Math.min(0.45, bluffProbability));
 
                 if (Math.random() < bluffProbability) {
-                    // Bluff sizing: use large sizing (66-80% pot) to maximize fold equity
-                    // Against weak-tight, go even bigger (overbet bluff)
                     let bluffFrac = 0.66 + Math.random() * 0.14;
                     if (oppTendency === 'weak-tight' && oppConfidence > 0.35) {
-                        bluffFrac = 0.90 + Math.random() * 0.30; // 90-120% pot overbet bluff
+                        bluffFrac = 0.90 + Math.random() * 0.30;
                     }
-                    console.log(`[HorseBrain] 🎭 RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] opp=${oppTendency} — ${Math.round(bluffFrac * 100)}% pot`);
+                    // ═══ BLOCKER-AWARE BLUFF SIZING ═══
+                    // With premium blockers, can go bigger (opponent is less likely to have nuts)
+                    if (blockerCount >= 2 && oppFoldFreq > 0.40) {
+                        bluffFrac = Math.max(bluffFrac, 0.80 + Math.random() * 0.40); // 80-120% pot
+                    }
+                    console.log(`[HorseBrain] 🎭 RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] count=${blockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(bluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * bluffFrac)) };
                 }
             }
@@ -6258,6 +6378,39 @@ function makeTurnRiverHeuristicDecision(params) {
         if (isPotCommitted && handEval.strength >= 35) {
             if (canRaise && handEval.strength >= 75) return { type: 'all_in' };
             return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+
+        // ── OOP MATRIX: structured river facing-bet decisions ──
+        if (!isIP && oppConfidence >= 0.25) {
+            const riverOopDecision = getOOPDecisionMatrix({
+                handStrength: handEval.strength,
+                handCategory: handEval.category,
+                hasStrongDraw: false, // River: no more draws
+                hasWeakDraw: false,
+                street: 'river',
+                boardWetness: boardWet,
+                boardIsPaired: boardPaired,
+                boardIsMonotone: maxSuitCount >= 3,
+                numPlayers,
+                aggressionBias: aggressionBias + narrativeAggrMod,
+                oppTendency, oppConfidence, oppCallFreq,
+                oppCbetFreq: 0.60,
+                heroIsAggressor,
+                potSize, toCall, stackBB
+            });
+
+            if (riverOopDecision.action === 'check_raise' && canRaise && Math.random() < riverOopDecision.frequency) {
+                const crSize = Math.round(toCall * (riverOopDecision.sizeFraction || 3.0));
+                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: river check-raise (${riverOopDecision.reason})`);
+                return { type: raiseAction.type, amount: clampAmt(crSize) };
+            }
+            if (riverOopDecision.action === 'check_fold' && handEval.strength < 40) {
+                // Only respect check_fold if we're not being offered great pot odds
+                if (potOdds > 0.25) {
+                    return canCheck ? { type: 'check' } : { type: 'fold' };
+                }
+            }
+            // check_call falls through to existing river logic
         }
 
         // ── MONSTERS: Raise for value ──
@@ -7987,6 +8140,12 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         // Also check if WE are the aggressor (preflop raiser) for nut advantage
         const heroIsAggressor = engineState.lastRaiser === profileId;
 
+        // ═══ MULTI-STREET NARRATIVE ═══
+        // Read what we did on prior streets to ensure our line tells a believable story.
+        const trHandId = engineState.handId || engineState.handNumber || `${tableId}_recent`;
+        const trMemory = getStreetMemory(profileId, trHandId);
+        const trNarrative = analyzeStreetNarrative(trMemory, street);
+
         const trDecision = makeTurnRiverHeuristicDecision({
             street, holeCards: holeCardStrings, board: boardStrings,
             handStr, position, stackBB, potSize, toCall, bb,
@@ -7997,7 +8156,9 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             enrichedOpponentRead,
             oppStreetAggression,
             heroIsAggressor,
-            counterStrategyMode: counterStrategy.mode
+            counterStrategyMode: counterStrategy.mode,
+            // Multi-street narrative for line consistency
+            streetNarrative: trNarrative
         });
         if (trDecision) {
             finalAction = trDecision.type;
@@ -8491,6 +8652,20 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // --- Record performance stats (#34) ---
     recordPerformanceAction(profileId, street, validAction.type, validAction.type !== 'fold' && validAction.type !== 'check');
 
+    // --- Record multi-street action for narrative tracking ---
+    const handIdForMemory = engineState.handId || engineState.handNumber || `${tableId}_${Date.now()}`;
+    {
+        let memStrength = 50;
+        try {
+            if (street !== 'preflop') {
+                memStrength = evaluatePostflopHand(holeCardStrings, boardStrings).strength;
+            } else {
+                memStrength = getPreflopStrength(handStr);
+            }
+        } catch (_) { }
+        recordStreetAction(profileId, handIdForMemory, street, validAction.type, validAction.amount || null, memStrength);
+    }
+
     return { action: validAction, delayMs };
 }
 
@@ -8749,6 +8924,117 @@ const angleShootMap = new Map();
 const ritRefusalMap = new Map();
 // Mod 32: Map<horseId+tableId, { leaks: Map<pattern, bbLost> }>
 const chipLeakMap = new Map();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MULTI-STREET ACTION MEMORY
+// ─────────────────────────────────────────────────────────────────────────────
+// Tracks what each horse did on each street within the current hand.
+// Key: `${profileId}_${handId}` → { preflop, flop, turn, river } action records.
+// This allows turn/river decisions to factor in prior street actions
+// (e.g., "I bet flop, checked turn → river barrel tells a weird story").
+// ─────────────────────────────────────────────────────────────────────────────
+const streetMemoryMap = new Map();
+
+/**
+ * Record hero's action on this street for multi-street planning.
+ * @param {string} profileId
+ * @param {string} handId - Unique hand identifier (or table+hand combo)
+ * @param {string} street - 'preflop', 'flop', 'turn', 'river'
+ * @param {string} action - 'fold', 'check', 'call', 'raise', 'bet', 'all_in'
+ * @param {number|null} amount
+ * @param {number} handStrength - 0-100 at time of action
+ */
+function recordStreetAction(profileId, handId, street, action, amount, handStrength) {
+    const key = `${profileId}_${handId}`;
+    if (!streetMemoryMap.has(key)) {
+        streetMemoryMap.set(key, { preflop: null, flop: null, turn: null, river: null });
+    }
+    const mem = streetMemoryMap.get(key);
+    mem[street] = { action, amount, handStrength, timestamp: Date.now() };
+
+    // Auto-cleanup: remove entries older than 2 minutes (hand should be over)
+    if (streetMemoryMap.size > 500) {
+        const cutoff = Date.now() - 120000;
+        for (const [k, v] of streetMemoryMap) {
+            const latest = v.river || v.turn || v.flop || v.preflop;
+            if (latest && latest.timestamp < cutoff) streetMemoryMap.delete(k);
+        }
+    }
+}
+
+/**
+ * Get prior street actions for multi-street planning.
+ * @param {string} profileId
+ * @param {string} handId
+ * @returns {Object} { preflop, flop, turn, river } each null or { action, amount, handStrength }
+ */
+function getStreetMemory(profileId, handId) {
+    const key = `${profileId}_${handId}`;
+    return streetMemoryMap.get(key) || { preflop: null, flop: null, turn: null, river: null };
+}
+
+/**
+ * Analyze multi-street narrative for decision context.
+ * @returns {Object} Multi-street context signals
+ */
+function analyzeStreetNarrative(memory, currentStreet) {
+    const result = {
+        heroBetFlop: false,
+        heroCheckedFlop: false,
+        heroBetTurn: false,
+        heroCheckedTurn: false,
+        heroRaisedPreflop: false,
+        barrelsInARow: 0,          // How many streets we've been betting
+        checkBehindCount: 0,       // How many streets we checked
+        storyIsConsistent: true,   // Does our line tell a believable story?
+        suggestedLine: 'balanced'  // 'barrel', 'check-back', 'delayed-barrel', 'trap'
+    };
+
+    if (memory.preflop?.action === 'raise' || memory.preflop?.action === 'bet') {
+        result.heroRaisedPreflop = true;
+    }
+    if (memory.flop) {
+        if (memory.flop.action === 'bet' || memory.flop.action === 'raise') {
+            result.heroBetFlop = true;
+            result.barrelsInARow++;
+        } else if (memory.flop.action === 'check') {
+            result.heroCheckedFlop = true;
+            result.checkBehindCount++;
+        }
+    }
+    if (memory.turn) {
+        if (memory.turn.action === 'bet' || memory.turn.action === 'raise') {
+            result.heroBetTurn = true;
+            result.barrelsInARow++;
+        } else if (memory.turn.action === 'check') {
+            result.heroCheckedTurn = true;
+            result.checkBehindCount++;
+            // If we bet flop but checked turn, our story is inconsistent
+            if (result.heroBetFlop) result.storyIsConsistent = false;
+        }
+    }
+
+    // Suggest line based on narrative
+    if (currentStreet === 'turn') {
+        if (result.heroBetFlop) {
+            result.suggestedLine = 'barrel'; // Continue the story
+        } else {
+            result.suggestedLine = 'delayed-barrel'; // Checked flop, bet turn = strength
+        }
+    } else if (currentStreet === 'river') {
+        if (result.heroBetFlop && result.heroBetTurn) {
+            result.suggestedLine = 'barrel'; // Triple barrel = strong or committed bluff
+        } else if (result.heroBetFlop && result.heroCheckedTurn) {
+            result.suggestedLine = 'trap'; // Check turn, bet river = delayed value or trap
+        } else if (result.heroCheckedFlop && result.heroBetTurn) {
+            result.suggestedLine = 'delayed-barrel'; // Flop check, turn bet, river = strong line
+        } else {
+            result.suggestedLine = 'check-back'; // Haven't shown aggression
+        }
+    }
+
+    return result;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODULE 25: MIN-RAISE HARASSMENT DETECTOR
