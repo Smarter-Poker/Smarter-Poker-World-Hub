@@ -2229,6 +2229,190 @@ test('isImageExposed: not exposed with mixed hands', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47e: Card utils + remaining functions ══');
+// ═══════════════════════════════════════════════════════════
+
+const cardToStr = brain.cardIntToString;
+const cardsToStr = brain.cardsToStrings;
+const mapPos = brain.mapPosition;
+const fmtHand = brain.formatHandString;
+const getPS = brain.getPreflopStrength;
+const getDeepAdj = brain.getDeepStackAdjustment;
+const isSoftPlay = brain.isSoftPlayAllowed;
+const recSoftPlay = brain.recordSoftPlay;
+const getChipLeak = brain.getChipLeakBoosts;
+const recChipLeak = brain.recordChipLeak;
+const reevPLORun = brain.reevaluatePLORunoutEquity;
+
+// ── cardIntToString ──
+
+test('cardIntToString: string passthrough', () => {
+    expect(cardToStr('Ah')).toBe('Ah');
+});
+
+test('cardIntToString: object with string rank/suit', () => {
+    expect(cardToStr({ rank: 'A', suit: 'h' })).toBe('Ah');
+    expect(cardToStr({ rank: 'T', suit: 's' })).toBe('Ts');
+});
+
+test('cardIntToString: object with numeric rank/suit', () => {
+    // rank 14 = Ace (14-2=12, RANKS[12]='A'), suit 0 = first suit
+    expect(cardToStr({ rank: 14, suit: 0 })).toBe('Ac');
+    expect(cardToStr({ rank: 2, suit: 1 })).toBe('2d');
+});
+
+test('cardIntToString: integer encoding', () => {
+    // Integer: rank * 4 + suit. rank 0='2', suit 0='c' → 0*4+0=0 → '2c'
+    expect(cardToStr(0)).toBe('2c');
+    // rank 12='A', suit 0='c' → 12*4+0=48 → 'Ac'
+    expect(cardToStr(48)).toBe('Ac');
+});
+
+// ── cardsToStrings ──
+
+test('cardsToStrings: handles null/empty', () => {
+    expect(cardsToStr(null).length).toBe(0);
+    expect(cardsToStr([]).length).toBe(0);
+});
+
+test('cardsToStrings: converts array of objects', () => {
+    const r = cardsToStr([{ rank: 'A', suit: 'h' }, { rank: 'K', suit: 'd' }]);
+    expect(r[0]).toBe('Ah');
+    expect(r[1]).toBe('Kd');
+});
+
+// ── mapPosition ──
+
+test('mapPosition: standard mappings', () => {
+    expect(mapPos('btn')).toBe('BTN');
+    expect(mapPos('sb')).toBe('SB');
+    expect(mapPos('bb')).toBe('BB');
+    expect(mapPos('co')).toBe('CO');
+    expect(mapPos('utg')).toBe('UTG');
+});
+
+test('mapPosition: unknown defaults to MP', () => {
+    expect(mapPos('weird')).toBe('MP');
+});
+
+// ── formatHandString ──
+
+test('formatHandString: pair', () => {
+    expect(fmtHand('Ah', 'Ad')).toBe('AA');
+    expect(fmtHand('5c', '5d')).toBe('55');
+});
+
+test('formatHandString: suited', () => {
+    expect(fmtHand('Ah', 'Kh')).toBe('AKs');
+});
+
+test('formatHandString: offsuit', () => {
+    expect(fmtHand('Ah', 'Kd')).toBe('AKo');
+});
+
+test('formatHandString: higher rank first', () => {
+    expect(fmtHand('7d', 'Ac')).toBe('A7o'); // A should come first
+});
+
+// ── getPreflopStrength ──
+
+test('getPreflopStrength: AA is highest', () => {
+    const r = getPS('AA');
+    expect(r).toBeGreaterThanOrEqual(90);
+});
+
+test('getPreflopStrength: AKs is strong', () => {
+    const r = getPS('AKs');
+    expect(r).toBeGreaterThanOrEqual(80);
+});
+
+test('getPreflopStrength: unknown hand gets default 20', () => {
+    expect(getPS('32o')).toBe(20);
+});
+
+// ── getDeepStackAdjustment ──
+
+test('getDeepStackAdjustment: shallow stack no adjustment', () => {
+    const r = getDeepAdj(100);
+    expect(r.widenRange).toBe(false);
+    expect(r.impliedOddsBonus).toBe(0);
+});
+
+test('getDeepStackAdjustment: deep stack gets bonus', () => {
+    const r = getDeepAdj(250);
+    expect(r.widenRange).toBe(true);
+    expect(r.impliedOddsBonus).toBeGreaterThan(0);
+    expect(r.suitedBonus).toBeGreaterThan(0);
+});
+
+test('getDeepStackAdjustment: 300bb is max bonus', () => {
+    const r300 = getDeepAdj(300);
+    const r500 = getDeepAdj(500); // capped at 300
+    expect(r300.impliedOddsBonus).toBe(r500.impliedOddsBonus);
+});
+
+// ── isSoftPlayAllowed + recordSoftPlay ──
+
+test('isSoftPlayAllowed: allowed initially', () => {
+    expect(isSoftPlay('h1-sp', 'h2-sp')).toBe(true);
+});
+
+test('isSoftPlayAllowed: blocked after 3 soft plays', () => {
+    recSoftPlay('h1-sp2', 'h2-sp2');
+    recSoftPlay('h1-sp2', 'h2-sp2');
+    recSoftPlay('h1-sp2', 'h2-sp2');
+    expect(isSoftPlay('h1-sp2', 'h2-sp2')).toBe(false);
+});
+
+test('isSoftPlayAllowed: pair key is order-independent', () => {
+    recSoftPlay('h-a', 'h-b');
+    recSoftPlay('h-b', 'h-a'); // Same pair, different order
+    recSoftPlay('h-a', 'h-b');
+    expect(isSoftPlay('h-b', 'h-a')).toBe(false); // 3 plays
+});
+
+// ── recordChipLeak + getChipLeakBoosts ──
+
+test('getChipLeakBoosts: zero with no data', () => {
+    const r = getChipLeak('nobody-cl', 'nobody-tbl');
+    expect(r.oopBoost).toBe(0);
+    expect(r.multiwayBoost).toBe(0);
+});
+
+test('recordChipLeak + getChipLeakBoosts: activates after 20BB loss', () => {
+    for (let i = 0; i < 5; i++) recChipLeak('horse-cl-1', 'table-cl-1', 'oop_check_call', 5);
+    const r = getChipLeak('horse-cl-1', 'table-cl-1');
+    expect(r.oopBoost).toBe(8); // 5*5=25 > 20
+});
+
+test('recordChipLeak: rejects zero/negative losses', () => {
+    recChipLeak('horse-cl-2', 'table-cl-2', 'oop_check_call', 0);
+    recChipLeak('horse-cl-2', 'table-cl-2', 'oop_check_call', -5);
+    const r = getChipLeak('horse-cl-2', 'table-cl-2');
+    expect(r.oopBoost).toBe(0);
+});
+
+// ── reevaluatePLORunoutEquity ──
+
+test('reevaluatePLORunoutEquity: blank runout', () => {
+    const r = reevPLORun(50, 52, 'turn');
+    expect(r.runoutType).toBe('blank');
+    expect(r.multiplier).toBe(1.0);
+});
+
+test('reevaluatePLORunoutEquity: big improvement', () => {
+    const r = reevPLORun(40, 60, 'turn'); // +20
+    expect(r.runoutType).toBe('nut_improve');
+    expect(r.multiplier).toBe(1.20);
+});
+
+test('reevaluatePLORunoutEquity: scare card', () => {
+    const r = reevPLORun(60, 40, 'river'); // -20
+    expect(r.runoutType).toBe('scare');
+    expect(r.multiplier).toBeLessThan(1.0);
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
