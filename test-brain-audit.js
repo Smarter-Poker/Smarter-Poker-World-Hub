@@ -2023,6 +2023,212 @@ test('evaluateDonkBet: medium equity calls', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47d: Deep execution tests ══');
+// ═══════════════════════════════════════════════════════════
+
+const selectCS = brain.selectCounterStrategy;
+const getRRG = brain.getRangeRotationGear;
+const getDRS = brain.getDynamicRebuyStrategy;
+const getRecStake = brain.getRecommendedStake;
+const evolveSkill = brain.evolveHorseSkill;
+const getSkillDr = brain.getSkillDrift;
+const getSessReview = brain.getSessionReview;
+const recOppAction = brain.recordOpponentAction;
+const getOppSessRead = brain.getOpponentSessionRead;
+const recOppShowdown = brain.recordOpponentShowdown;
+const getPFS = brain.getProbeFarmScore;
+const recProbeBet = brain.recordProbeBet;
+const recTableImg = brain.recordTableImageHand;
+const isImgExp = brain.isImageExposed;
+
+// ── selectCounterStrategy ──
+
+test('selectCounterStrategy: standard mode by default', () => {
+    const r = selectCS('horse-cs-1', null, 'table-cs-1');
+    expect(r.mode).toBe('standard');
+    expect(r).toHaveProperty('details');
+});
+
+test('selectCounterStrategy: returns non-standard when bot suspected', () => {
+    // Seed the suspectBotMap
+    brain.suspectBotMap.set('bot-cs-opp', { perfectFolds: 0, gtoSizes: 0, humanErrors: 0, handsObserved: 10, suspectScore: 70 });
+    const r = selectCS('horse-cs-2', 'bot-cs-opp', 'table-cs-2');
+    expect(r.mode).toBe('anti_bot');
+    brain.suspectBotMap.delete('bot-cs-opp');
+});
+
+test('selectCounterStrategy: stealth when high exposure', () => {
+    // Seed showdownExposureMap
+    brain.showdownExposureMap.set('horse-cs-3', new Map([['table-cs-3', { showdowns: 10, handsPlayed: 20 }]]));
+    const r = selectCS('horse-cs-3', null, 'table-cs-3');
+    expect(r.mode).toBe('stealth'); // 10/20 = 50% > 20%
+    brain.showdownExposureMap.delete('horse-cs-3');
+});
+
+// ── getRangeRotationGear ──
+
+test('getRangeRotationGear: returns valid gear on first call', () => {
+    const r = getRRG('horse-rr-1', 'table-rr-1');
+    expect(r).toHaveProperty('gear');
+    expect(r).toHaveProperty('foldMod');
+    expect(r).toHaveProperty('raiseMod');
+});
+
+test('getRangeRotationGear: rotates after 30 hands', () => {
+    const firstGear = getRRG('horse-rr-2', 'table-rr-2').gear;
+    for (let i = 0; i < 30; i++) getRRG('horse-rr-2', 'table-rr-2');
+    const secondGear = getRRG('horse-rr-2', 'table-rr-2').gear;
+    // After 30+ calls, gear should have rotated
+    if (firstGear === secondGear) throw new Error('Gear should have rotated after 30 hands');
+});
+
+// ── getDynamicRebuyStrategy ──
+
+test('getDynamicRebuyStrategy: max buyins rejects rebuy', () => {
+    const r = getDRS('horse-dr-1', 50, 2, 3, 200);
+    expect(r.shouldRebuy).toBe(false);
+    expect(r.reason).toBe('max_buyins_reached');
+});
+
+test('getDynamicRebuyStrategy: short stacked triggers rebuy', () => {
+    const r = getDRS('horse-dr-2', 40, 2, 1, 200); // 20bb
+    expect(r.shouldRebuy).toBe(true);
+    expect(r.reason).toBe('short_stacked');
+    expect(r.amount).toBeGreaterThan(0);
+});
+
+test('getDynamicRebuyStrategy: adequate stack no rebuy', () => {
+    const r = getDRS('horse-dr-3', 200, 2, 1, 200); // 100bb
+    expect(r.shouldRebuy).toBe(false);
+    expect(r.reason).toBe('adequate_stack');
+});
+
+// ── getRecommendedStake ──
+
+test('getRecommendedStake: small bankroll recommends low stakes', () => {
+    const r = getRecStake(5000, 'Cash');
+    expect(r.recommendedBlinds.bb).toBeLessThanOrEqual(2);
+    expect(r.maxBuyIn).toBeGreaterThan(0);
+});
+
+test('getRecommendedStake: tournament uses 50 buyin rule', () => {
+    const r = getRecStake(10000, 'Tournament');
+    expect(r.maxBuyIn).toBe(200);
+});
+
+// ── getAdaptiveStrategy ──
+
+test('getAdaptiveStrategy: insufficient data returns neutral', () => {
+    const r = getAdaptiveStrat('horse-adapt-nobody');
+    expect(r.reason).toBe('insufficient_data');
+    expect(r.rangeAdjust).toBe(0);
+});
+
+test('getAdaptiveStrategy: winning player tightens up', () => {
+    // Seed performance with 30+ hands and a big win rate
+    for (let i = 0; i < 35; i++) recordPerfAction('horse-adapt-1', 'preflop', 'call', true);
+    for (let i = 0; i < 10; i++) recordPerfResult('horse-adapt-1', true, 20); // +200BB in 35 hands
+    const r = getAdaptiveStrat('horse-adapt-1');
+    expect(r.rangeAdjust).toBeLessThan(0); // Tighter
+    expect(r.reason).toBe('protecting_profit');
+});
+
+// ── evolveHorseSkill + getSkillDrift + getSessionReview ──
+
+test('evolveHorseSkill: winning session increases drift', () => {
+    const r = evolveSkill('horse-evo-1', 10); // +10BB/100 = winning
+    expect(r.skillDrift).toBeGreaterThan(0);
+    expect(r.direction).toBe('stable'); // Only 1 point, need >2 for 'improving'
+});
+
+test('getSkillDrift: returns current drift', () => {
+    const d = getSkillDr('horse-evo-1');
+    expect(d).toBeGreaterThan(0);
+});
+
+test('evolveHorseSkill: losing session decreases drift', () => {
+    const r = evolveSkill('horse-evo-2', -10); // -10BB/100 = losing
+    expect(r.skillDrift).toBeLessThan(0);
+});
+
+test('getSessionReview: returns valid review structure', () => {
+    // Setup: record some performance for this horse
+    for (let i = 0; i < 5; i++) recordPerfAction('horse-review-1', 'preflop', 'raise', true);
+    recordPerfResult('horse-review-1', true, 5);
+    const r = getSessReview('horse-review-1');
+    expect(r).toHaveProperty('handsPlayed');
+    expect(r).toHaveProperty('vpip');
+    expect(r).toHaveProperty('grade');
+    expect(r.handsPlayed).toBe(5);
+});
+
+// ── recordOpponentAction + getOpponentSessionRead ──
+
+test('getOpponentSessionRead: null with insufficient data', () => {
+    const r = getOppSessRead('opp-nobody');
+    expect(r).toBeNull();
+});
+
+test('recordOpponentAction + getOpponentSessionRead: builds profile', () => {
+    // Record 10+ actions to exceed the 8-action threshold
+    for (let i = 0; i < 4; i++) {
+        recOppAction('test-opp-sr-1', 'preflop', 'call', {});
+        recOppAction('test-opp-sr-1', 'flop', 'bet', { betToPot: 0.5 });
+    }
+    recOppAction('test-opp-sr-1', 'preflop', 'raise', {});
+    recOppAction('test-opp-sr-1', 'preflop', 'fold', {});
+    const r = getOppSessRead('test-opp-sr-1');
+    if (!r) throw new Error('Expected non-null session read after 10 actions');
+    expect(r).toHaveProperty('aggFreq');
+    expect(r).toHaveProperty('sessionTendency');
+    expect(r).toHaveProperty('confidence');
+    expect(r.totalActions).toBeGreaterThanOrEqual(10);
+    expect(r.confidence).toBeGreaterThan(0);
+});
+
+test('recordOpponentShowdown: tracks bluffs', () => {
+    recOppShowdown('test-opp-sr-1', false, 10, true); // Lost bluff
+    recOppShowdown('test-opp-sr-1', true, 80, false);  // Won legit
+    recOppShowdown('test-opp-sr-1', false, 15, true);  // Lost bluff
+    const r = getOppSessRead('test-opp-sr-1');
+    expect(r.bluffRate).toBeGreaterThan(0); // 2/3 bluffs in showdowns
+    expect(r.showdownCount).toBe(3);
+});
+
+// ── recordProbeBet + getProbeFarmScore ──
+
+test('getProbeFarmScore: zero with no data', () => {
+    const r = getPFS('nobody-probe');
+    expect(r).toBe(0);
+});
+
+test('recordProbeBet + getProbeFarmScore: builds score', () => {
+    for (let i = 0; i < 5; i++) recProbeBet('test-probe-1', 0.25, true, 10); // Small probe, won
+    const r = getPFS('test-probe-1');
+    expect(r).toBeGreaterThan(0); // Should have a positive probe score
+});
+
+// ── recordTableImageHand + isImageExposed ──
+
+test('isImageExposed: not exposed with few hands', () => {
+    const r = isImgExp('horse-img-nobody', 'table-img-nobody');
+    expect(r).toBe(false);
+});
+
+test('isImageExposed: exposed after many showdowns', () => {
+    for (let i = 0; i < 10; i++) recTableImg('horse-img-1', 'table-img-1', true); // All showdowns
+    const r = isImgExp('horse-img-1', 'table-img-1');
+    expect(r).toBe(true); // 10/10 = 100% showdown rate > 25%
+});
+
+test('isImageExposed: not exposed with mixed hands', () => {
+    for (let i = 0; i < 15; i++) recTableImg('horse-img-2', 'table-img-2', false); // No showdowns
+    for (let i = 0; i < 2; i++) recTableImg('horse-img-2', 'table-img-2', true);  // 2 showdowns
+    const r = isImgExp('horse-img-2', 'table-img-2');
+    expect(r).toBe(false); // 2/17 = 11.7% < 25%
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
