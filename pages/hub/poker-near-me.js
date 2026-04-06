@@ -659,22 +659,23 @@ export default function PokerNearMePage() {
             });
     }, []);
 
+    const fetchLiveCount = useCallback(() => {
+        fetch('/api/poker/live-tables')
+            .then(r => r.json())
+            .then(json => {
+                if (json.metadata && typeof json.metadata.total_tables_running === 'number') {
+                    setLiveTableCount(json.metadata.total_tables_running);
+                }
+            })
+            .catch(() => { /* silent fail */ });
+    }, []);
+
     // Fetch live table count for map stats header
     useEffect(() => {
-        const fetchLiveCount = () => {
-            fetch('/api/poker/live-tables')
-                .then(r => r.json())
-                .then(json => {
-                    if (json.metadata && typeof json.metadata.total_tables_running === 'number') {
-                        setLiveTableCount(json.metadata.total_tables_running);
-                    }
-                })
-                .catch(() => { /* silent fail */ });
-        };
         fetchLiveCount();
         const interval = setInterval(fetchLiveCount, 120000); // refresh every 2 min
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchLiveCount]);
 
     // Fetch non-venue data on mount (tours, series, daily tournaments)
     // Venues are fetched AFTER GPS resolves to enforce 50mi radius default
@@ -922,16 +923,27 @@ export default function PokerNearMePage() {
             }
         };
 
-        let unsubFav, unsubUnfav;
+        const handleBusDataMutated = (event) => {
+            const { entity } = event.payload || {};
+            if (entity === 'live_tables' || entity === 'venues') {
+                // Instantly re-fetch the venue lists to grab the latest live tables/stats
+                if (typeof fetchVenues === 'function') fetchVenues({ silent: true });
+                if (typeof fetchLiveCount === 'function') fetchLiveCount();
+            }
+        };
+
+        let unsubFav, unsubUnfav, unsubMutate;
         if (bus && bus.on) {
             unsubFav = bus.on(EventType.VENUE_SAVED, handleBusFavSync);
             unsubUnfav = bus.on(EventType.VENUE_UNSAVED, handleBusUnfavSync);
+            unsubMutate = bus.on(EventType.DATA_MUTATED, handleBusDataMutated);
         }
 
         return () => {
             window.removeEventListener('storage', handleStorageSync);
             if (unsubFav) unsubFav();
             if (unsubUnfav) unsubUnfav();
+            if (unsubMutate) unsubMutate();
         };
     }, [bus]);
 

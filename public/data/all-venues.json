@@ -8160,7 +8160,7 @@
     "scrape_timestamp": "2026-03-30T03:56:57.297291+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "b657b498-817d-4b30-b73b-b0d03c87dacf",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1947.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1947-1775491726825.jpg"
   },
   {
     "id": 1948,
@@ -8592,7 +8592,7 @@
     "scrape_timestamp": "2026-03-30T03:41:39.169885+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1953.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1953-1775491726825.png"
   },
   {
     "id": 1954,
@@ -11780,7 +11780,7 @@
     "scrape_timestamp": "2026-03-30T04:39:41.257277+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "9e60a8b9-8821-49d8-af5c-ad21a5b9258d",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2027.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2027-1775491726825.jpg"
   },
   {
     "id": 2032,
@@ -32674,76 +32674,6 @@
     "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2720.png"
   },
   {
-    "id": 2721,
-    "name": "No Limit Gaming Tour",
-    "venue_type": "tour",
-    "city": "Orlando",
-    "state": "FL",
-    "phone": null,
-    "website": "https://www.nolimitgaming.com",
-    "games_offered": null,
-    "stakes_cash": null,
-    "poker_tables": null,
-    "trust_score": 4,
-    "is_featured": false,
-    "lat": null,
-    "lng": null,
-    "address": null,
-    "country": "US",
-    "hours_weekday": null,
-    "hours_weekend": null,
-    "is_active": false,
-    "email": null,
-    "tournament_schedule": [],
-    "last_verified_at": null,
-    "latitude": 28.5421218,
-    "longitude": -81.379045,
-    "pokeratlas_url": null,
-    "pokeratlas_slug": null,
-    "scrape_url": null,
-    "scrape_source": "pending",
-    "last_scraped": null,
-    "scrape_status": "pending",
-    "captain_enabled": false,
-    "captain_tier": "free",
-    "captain_activated_at": null,
-    "commission_type": "time",
-    "accepts_home_games": false,
-    "auto_text_enabled": true,
-    "waitlist_settings": {},
-    "tournament_settings": {},
-    "staff_pin_required": true,
-    "primary_contact_id": null,
-    "cover_photo_url": null,
-    "profile_photo_url": "https://img1.wsimg.com/cdnassets/transform/bfa8cd58-2650-4746-bf80-4babd8cd4e55/android-chrome-192x192",
-    "tagline": null,
-    "about": null,
-    "follower_count": 0,
-    "social_links": {},
-    "slug": null,
-    "has_tournaments": true,
-    "poker_atlas_url": null,
-    "hours": null,
-    "last_scraped_at": null,
-    "commander_enabled": false,
-    "commander_tier": "free",
-    "commander_activated_at": null,
-    "source": null,
-    "is_claimed": false,
-    "claimed_by": null,
-    "claimed_at": null,
-    "social_hub_page_id": null,
-    "social_hub_page_url": null,
-    "registration_completed_at": null,
-    "onboarding_step": 0,
-    "data_quality": "scraped_verified",
-    "scrape_html_hash": "fb06e10e41dfab35da2167bba0737c34a4164d65e2cba0734ba6a2bfb0bce2fd",
-    "scrape_timestamp": "2026-03-30T04:41:26.404507+00:00",
-    "scrape_confidence": "high",
-    "scrape_batch_id": "9e60a8b9-8821-49d8-af5c-ad21a5b9258d",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2721.png"
-  },
-  {
     "id": 2722,
     "name": "Mid-America Poker Series",
     "venue_type": "tour",
@@ -34911,7 +34841,7 @@
     "scrape_timestamp": "2026-03-30T03:39:34.871725+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2754.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2754-1775491726825.png"
   },
   {
     "id": 2755,
@@ -40934,7 +40864,7 @@
     "scrape_timestamp": "2026-04-02T03:34:05.379565+00:00",
     "scrape_confidence": "unverified",
     "scrape_batch_id": "328af537-bf3e-4fd7-bf84-510ef8048dbe",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2895.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2895-1775491726825.png"
   },
   {
     "id": 2896,
