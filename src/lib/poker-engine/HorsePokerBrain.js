@@ -6260,10 +6260,10 @@ function makeTurnRiverHeuristicDecision(params) {
         const safeBluffRate = liveRead.bluffRate !== null ? safeNum(liveRead.bluffRate, null) : null;
         const safeConfidence = safeNum(liveRead.confidence, 0);
 
-        // ═══ CONFIDENCE DECAY: Stale live data degrades over time (Phase 32) ═══
-        // If the live-read's last update was >10 hands ago, reduce confidence weight
-        const handsSinceUpdate = liveRead.handsSinceLastUpdate || 0;
-        const freshnessDecay = handsSinceUpdate > 10 ? Math.max(0.50, 1.0 - (handsSinceUpdate - 10) * 0.03) : 1.0;
+        // ═══ CONFIDENCE DECAY: Stale live data degrades over time (Phase 32/34) ═══
+        // Time-based: if no new data for 2+ minutes, start decaying. Halved by ~12 min.
+        const msSinceUpdate = liveRead.lastSeen ? (Date.now() - liveRead.lastSeen) : 0;
+        const freshnessDecay = msSinceUpdate > 120000 ? Math.max(0.50, 1.0 - (msSinceUpdate - 120000) / 600000) : 1.0;
         const adjustedConfidence = Math.min(0.70, safeConfidence * freshnessDecay);
 
         // Live data gets highest priority — it's the most current
@@ -10400,17 +10400,6 @@ function makeFlopHeuristicDecision(params) {
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) stabFreq += 0.08;
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) stabFreq -= 0.10; // Don't stab into calling stations
                 if (oppTendency === 'bluffy' && oppConfidence > 0.3) stabFreq -= 0.06; // They'll check-raise
-                // ═══ LIVE-READ FLOP IP STAB (Phase 25) ═══
-                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
-                    if (flopLiveRead.foldFreq > 0.50) stabFreq += 0.10;
-                    if (flopLiveRead.callFreq > 0.60) stabFreq -= 0.10;
-                    if (flopLiveRead.checkRaisePct !== null && flopLiveRead.checkRaisePct > 0.12) {
-                        stabFreq -= 0.08;
-                        stabSize -= 0.04; // Smaller to reduce CR damage
-                    }
-                    if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd < 0.22) stabFreq += 0.06;
-                }
-
                 // ── Range advantage stab modifier ──
                 if (rangeAdvantage === 'pfr') stabFreq += 0.08; // Board favors us → stab wider
                 if (rangeAdvantage === 'caller') stabFreq -= 0.06; // Board favors them → don't stab air
@@ -12341,9 +12330,9 @@ function applyExploitIntensifier(params) {
             }
         }
         // When they bet, RESPECT it (nits only bet with strong hands)
-        if (facingBet && handStrength < 60 && betToPot >= 0.50) {
-            const betToPot = toCall / Math.max(1, potSize);
-            if (betToPot >= 0.50 && handStrength < 60) {
+        const nitBetToPot = toCall / Math.max(1, potSize);
+        if (facingBet && handStrength < 60 && nitBetToPot >= 0.50) {
+            if (nitBetToPot >= 0.50 && handStrength < 60) {
                 return {
                     action: 'fold', amount: null,
                     exploiting: true, exploit: 'nit_respect'
@@ -15081,6 +15070,7 @@ function getLiveRead(horseId, tableId, opponentId) {
         positionStats: p.actionsByPosition,
         // Meta
         handsObserved: p.handsObserved,
+        lastSeen: p.lastSeen || Date.now(),
         confidence,
     };
 }
