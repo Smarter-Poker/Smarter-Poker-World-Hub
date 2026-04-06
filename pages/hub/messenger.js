@@ -2320,6 +2320,15 @@ function MessengerPage() {
     // Ref mirror of preferences to avoid stale closures in long-lived WebSocket callbacks
     const preferencesRef = useRef(preferences);
     useEffect(() => { preferencesRef.current = preferences; setSoundPrefsRef(preferences); }, [preferences]);
+
+    // Message Cache for Instant Display
+    const messageCacheRef = useRef({});
+    useEffect(() => {
+        if (activeConversation?.id && messages.length > 0) {
+            messageCacheRef.current[activeConversation.id] = messages;
+        }
+    }, [messages, activeConversation?.id]);
+
     // Phase 3: Connection status state
     const [connectionStatus, setConnectionStatus] = useState('connected'); // 'connected' | 'reconnecting' | 'disconnected'
     // Phase 3: Scroll-to-bottom FAB state
@@ -2660,6 +2669,18 @@ function MessengerPage() {
 
                 // Read activeConversation from ref (stable — no re-subscribe on switch)
                 const currentActive = activeConversationRef.current;
+
+                // DEEP SWEEP FIX: Natively inject the incoming background message into the message cache.
+                // This eliminates the 300ms "pop in" delay if the user clicks over to this conversation.
+                if (messageCacheRef.current && messageCacheRef.current[newMsg.conversation_id]) {
+                    const cacheArr = messageCacheRef.current[newMsg.conversation_id];
+                    // Verify it isn't already in the cache to prevent duplicates
+                    if (!cacheArr.some(m => m.id === newMsg.id)) {
+                        // The cache lacks the profile join since this is raw from the insert,
+                        // but it'll visually render instantly with the content until the background sync finishes.
+                        cacheArr.push(newMsg);
+                    }
+                }
 
                 // If it's NOT the active conversation, we need to manually update the conversation sidebar
                 if (!currentActive || currentActive.id !== newMsg.conversation_id) {
@@ -3237,7 +3258,13 @@ function MessengerPage() {
     };
 
     const loadMessages = async (conversationId) => {
-        setLoadingMessages(true);
+        // Optimistic UI check for instant loading
+        if (messageCacheRef.current[conversationId]) {
+            setMessages(messageCacheRef.current[conversationId]);
+            setLoadingMessages(false);
+        } else {
+            setLoadingMessages(true);
+        }
         setHasMoreMessages(true); // Reset on new conversation
         try {
 
@@ -3605,6 +3632,8 @@ function MessengerPage() {
 
             // Notify header to refresh unread badges
             busEmit.dataMutated('messenger');
+            // DEEP SWEEP FIX: Push native global Message Sent event
+            busEmit.messageSent(activeConversation.id, activeConversation.otherUser?.id);
         } catch (e) {
             console.error('Send message error:', e);
             // Mark message as failed
@@ -3631,6 +3660,8 @@ function MessengerPage() {
                 p_user_id: user.id,
                 p_reaction: emoji,
             });
+            // DEEP SWEEP FIX: Push native global Message Reacted event
+            busEmit.messageReacted(activeConversation?.id, messageId, emoji);
         } catch (e) {
             console.error('Reaction error:', e);
             // Reactions are optimistically updated, so failure is already handled in UI
@@ -3671,6 +3702,8 @@ function MessengerPage() {
                             : m
                     ));
                     setToast({ type: 'success', message: 'Message Deleted For Everyone' });
+                    // DEEP SWEEP FIX: Data mutated
+                    busEmit.dataMutated('messenger');
                 } else {
                     setToast({ type: 'error', message: 'Could Not Delete Message' });
                 }
@@ -3723,6 +3756,8 @@ function MessengerPage() {
                         : m
                 ));
                 setToast({ type: 'success', message: 'Message Edited' });
+                // DEEP SWEEP FIX: Push native global Message Edited event
+                busEmit.messageEdited(activeConversation?.id, editingMessage.id);
             } else {
                 setToast({ type: 'error', message: result.error || 'Edit Failed' });
             }
@@ -3765,6 +3800,8 @@ function MessengerPage() {
                 p_user_id: user.id,
             });
             if (error) throw error;
+            // DEEP SWEEP FIX: Data mutated
+            busEmit.dataMutated('messenger');
         } catch (e) {
             console.error('Unsend error:', e);
             // Restore on failure
@@ -3802,6 +3839,8 @@ function MessengerPage() {
                 throw new Error(errData.error || `Forward failed (${resp.status})`);
             }
             setToast({ type: 'success', message: `Message Forwarded To ${targetConversation.otherUser?.username || 'Conversation'}` });
+            // DEEP SWEEP FIX: Push native global Message Forwarded event
+            busEmit.messageForwarded(forwardingMessage.conversation_id || activeConversation?.id, targetConversation.id);
         } catch (e) {
             console.error('Forward error:', e);
             setToast({ type: 'error', message: 'Failed To Forward Message' });

@@ -5895,6 +5895,34 @@ function makeTurnRiverHeuristicDecision(params) {
     const isPotCommitted = spr < 3;
     const isDeep = spr > 8;
 
+    // ═══ EXPLOIT-LOOP INTENSIFIER ═══
+    // When high-confidence reads exist, try to exploit BEFORE the standard decision tree.
+    // This maximizes EV vs identified weak players.
+    if (oppConfidence >= 0.50 && !multiway) {
+        const exploitResult = applyExploitIntensifier({
+            currentAction: null, currentAmount: null,
+            handStrength: handEval.strength, handCategory: handEval.category,
+            street, potSize, toCall, bb,
+            canRaise, canCall,
+            raiseAction,
+            oppTendency, oppConfidence, oppBluffFreq, oppCallFreq, oppFoldFreq,
+            isIP, heroIsAggressor,
+            boardWetness: boardWet,
+            drawOuts: drawEq.outs,
+            numPlayers
+        });
+        if (exploitResult.exploiting && exploitResult.action) {
+            console.log(`[HorseBrain] 🎯 EXPLOIT INTENSIFIER: ${exploitResult.exploit} → ${exploitResult.action}`);
+            if (exploitResult.action === 'check') return canCheck ? { type: 'check' } : null;
+            if (exploitResult.action === 'fold') return { type: 'fold' };
+            if (exploitResult.action === 'call') return canCall ? { type: 'call' } : null;
+            if (raiseAction && (exploitResult.action === raiseAction.type || exploitResult.action === 'bet' || exploitResult.action === 'raise')) {
+                const amt = exploitResult.amount ? clampAmt(exploitResult.amount) : null;
+                return { type: raiseAction.type, amount: amt };
+            }
+        }
+    }
+
     // ═══ ANTI-EXPLOIT INTEGRATION ═══
     // In counter-exploit modes, adjust strategy to be less readable
     const inStealthMode = counterStrategyMode === 'stealth' || counterStrategyMode === 'anti_bot_stealth';
@@ -5953,6 +5981,50 @@ function makeTurnRiverHeuristicDecision(params) {
                 return { type: 'all_in' };
             }
 
+            // ── DELAYED C-BET: Checked flop as PFR, now bet turn ──
+            // This is a powerful line: checking flop shows "weakness" (trapping or giving up),
+            // then betting turn represents strength. Works especially well on turn cards that
+            // change the board texture (overcards, flush completions, board pairs).
+            if (heroIsAggressor && narrative.heroCheckedFlop && canRaise && !multiway) {
+                let delayedCbetFreq = 0;
+
+                // With strong hands: delayed c-bet for value (disguised line)
+                if (handEval.strength >= 55) {
+                    delayedCbetFreq = 0.65; // Strong hands should bet most of the time
+                }
+                // With medium hands: delayed c-bet to define hand + deny equity
+                else if (handEval.strength >= 35) {
+                    delayedCbetFreq = 0.35;
+                    // Turn overcard hit → we can represent it
+                    if (overcard && scareLevel >= 1) delayedCbetFreq += 0.12;
+                }
+                // With air: delayed c-bet bluff (works well on scare cards)
+                else if (handEval.strength < 20) {
+                    delayedCbetFreq = 0.20 + aggressionBias / 50;
+                    // Turn scare card → more credible bluff
+                    if (scareLevel >= 2) delayedCbetFreq += 0.12;
+                    if (overcard) delayedCbetFreq += 0.08;
+                    // Board paired → we can represent trips/full house
+                    if (newCardPairedBoard) delayedCbetFreq += 0.08;
+                    // Against over-folders, bluff more
+                    if (oppFoldFreq > 0.50 && oppConfidence > 0.25) delayedCbetFreq += 0.10;
+                    // Against callers, don't bluff
+                    if (oppCallFreq > 0.60 && oppConfidence > 0.3) delayedCbetFreq = 0;
+                }
+
+                // Narrative boost
+                delayedCbetFreq += narrativeAggrMod / 40;
+                delayedCbetFreq = Math.max(0, Math.min(0.80, delayedCbetFreq));
+
+                if (delayedCbetFreq > 0.05 && Math.random() < delayedCbetFreq) {
+                    // Delayed c-bet sizing: slightly bigger than normal (credible after checking)
+                    let sizeFrac = handEval.strength >= 55 ? 0.60 : 0.50;
+                    if (boardWet === 'wet') sizeFrac += 0.08; // Charge draws
+                    console.log(`[HorseBrain] 🎯 DELAYED C-BET: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency}`);
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
+                }
+            }
+
             // ── MONSTERS (set+, two pair on safe board) → Value bet ──
             if (handEval.strength >= 75 && canRaise) {
                 // Slowplay traps: sometimes check monsters OOP to induce bluffs
@@ -5976,26 +6048,36 @@ function makeTurnRiverHeuristicDecision(params) {
                 let sizeFrac = boardWet === 'dry' ? 0.45 : boardWet === 'wet' ? 0.66 : 0.55;
                 let betFreq = multiway ? 0.60 : aggrFreq;
 
+                // ═══ NARRATIVE-DRIVEN BARREL ═══
+                // If we bet the flop, continue the story (double barrel is credible)
+                if (narrative.heroBetFlop) {
+                    betFreq += 0.08; // Continuation story bonus
+                }
+                // If we checked flop, betting turn = delayed c-bet (also credible, but different line)
+                if (narrative.heroCheckedFlop && heroIsAggressor) {
+                    betFreq += 0.05; // Delayed c-bet line is strong
+                    sizeFrac = Math.max(sizeFrac, 0.55); // Delayed c-bet should be decent sized
+                }
+                // Apply narrative aggression modifier
+                betFreq += narrativeAggrMod / 30;
+
                 // ═══ NUT ADVANTAGE ADJUSTMENT ═══
-                // If hero is PFR on a board that favors PFR range → barrel more frequently
                 if (heroHasNutAdvantage && heroIsAggressor) {
                     betFreq = Math.min(0.85, betFreq + 0.15);
                 }
-                // If hero's range is capped (flat called PF on dry low board) → barrel less
                 if (heroRangeCapped) {
                     betFreq = Math.max(0.30, betFreq - 0.15);
                 }
 
                 // ═══ OPPONENT-AWARE BARREL FREQUENCY ═══
-                // Against weak-tight opponents, barrel more (they fold too much)
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
                     betFreq = Math.min(0.80, betFreq + 0.12);
                 }
-                // Against sticky callers, tighten barrel range (only bet for value)
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) {
                     if (handEval.strength < 60) betFreq = Math.max(0.25, betFreq - 0.20);
                 }
 
+                betFreq = Math.max(0.10, Math.min(0.90, betFreq));
                 if (Math.random() < betFreq) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
@@ -6048,8 +6130,23 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── BLUFF: Bet missed draws on favorable boards to represent improvement ──
             if (handEval.strength < 20 && canRaise && !multiway) {
                 let bluffFreq = 0.18 + aggressionBias / 50;
+
+                // ═══ NARRATIVE-DRIVEN BLUFF CREDIBILITY ═══
+                // If we c-bet flop, turn barrel bluff is a continuation of our story
+                if (narrative.heroBetFlop && narrative.storyIsConsistent) {
+                    bluffFreq += 0.08; // Our story says "I have it" — keep selling
+                }
+                // If we checked flop, a turn bet with air is a delayed c-bet bluff
+                if (narrative.heroCheckedFlop && heroIsAggressor) {
+                    bluffFreq += 0.05; // Delayed c-bet bluff — credible but weaker
+                }
+                // If we haven't shown aggression at all, bluffing now looks suspicious
+                if (!narrative.heroBetFlop && !heroIsAggressor) {
+                    bluffFreq -= 0.06; // No story to tell
+                }
+                bluffFreq += narrativeAggrMod / 50;
+
                 // ═══ BOARD + AGGRESSOR STATUS ═══
-                // If hero was PFR and board favors PFR range → we can represent strong hands
                 if (heroIsAggressor && boardFavorsPFR) bluffFreq += 0.10;
                 // Against over-folders, bluff more
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.25) bluffFreq += 0.08;
@@ -6513,13 +6610,102 @@ function makeTurnRiverHeuristicDecision(params) {
             }
         }
 
-        // ── HERO CALL: Very marginal but with strong reads ──
-        if (oppBluffy && handEval.strength >= 20 && handEval.strength < dynFoldThreshold && betToPot <= 0.75) {
-            let heroCallFreq = 0.15;
-            // With enriched read data showing high bluff frequency, hero call more
-            if (oppBluffFreq > 0.40 && oppConfidence > 0.4) heroCallFreq = 0.30;
-            if (Math.random() < heroCallFreq) {
-                console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} oppBluffFreq=${(oppBluffFreq * 100).toFixed(0)}% confidence=${(oppConfidence * 100).toFixed(0)}%`);
+        // ════════════════════════════════════════════════════
+        //  HERO CALL ENGINE (WORLD-CLASS)
+        //  The hardest decision in poker — calling with marginal
+        //  hands when you think opponent is bluffing.
+        //  Uses: MDF math, blockers, reads, narrative, board texture
+        // ════════════════════════════════════════════════════
+
+        // Hero calls happen BELOW the dynamic fold threshold — these are hands
+        // that "shouldn't" call by default but have strong reasons to.
+        if (handEval.strength >= 18 && handEval.strength < dynFoldThreshold && canCall) {
+
+            // ── BASE HERO CALL PROBABILITY ──
+            // Start from MDF: we NEED to call some % to prevent exploitation
+            // MDF tells us how often we need to defend to make opponent's bluffs breakeven
+            let heroCallProb = 0;
+
+            // If we're under-defending (folding more than 1-MDF), bump up calling
+            const targetDefenseFreq = mdf; // e.g., 0.60 for 66% pot bet
+            // We want ~targetDefenseFreq of our range to call. But we're at the bottom.
+            // Give these bottom-of-range hands a base call freq proportional to MDF.
+            heroCallProb = targetDefenseFreq * 0.25; // Start at 25% of MDF
+
+            // ── BLOCKER-BASED HERO CALL ──
+            // If we block opponent's value range, their bet is more likely a bluff
+            if (blocksNutFlush) heroCallProb += 0.12; // We block their nut flush → more bluffs
+            if (blocksSecondNutFlush) heroCallProb += 0.08;
+            if (blocksTopSet) heroCallProb += 0.08; // We block their top set
+            if (blocksOverpair) heroCallProb += 0.05; // We block AA/KK
+            if (blocksStraight) heroCallProb += 0.06;
+
+            // Combo blocker bonus
+            const heroBlockerCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
+            if (heroBlockerCount >= 2) heroCallProb += 0.10; // Multiple blockers = strong call candidate
+
+            // ── READ-BASED HERO CALL ──
+            if (oppBluffFreq > 0.35 && oppConfidence > 0.3) {
+                heroCallProb += 0.12; // Known bluffer: call wider
+            }
+            if (oppBluffFreq > 0.50 && oppConfidence > 0.4) {
+                heroCallProb += 0.08; // Prolific bluffer: call even wider
+            }
+            if (oppTendency === 'bluffy') {
+                heroCallProb += 0.06;
+            }
+            // Against known value-heavy players, fold more
+            if (oppBluffFreq < 0.15 && oppConfidence > 0.4) {
+                heroCallProb -= 0.15; // They rarely bluff → respect the bet
+            }
+
+            // ── NARRATIVE-BASED HERO CALL ──
+            // If opponent has been passive all hand but suddenly bets river → suspicious
+            if (oppStreetAggression === 'light' && betToPot >= 0.60) {
+                heroCallProb += 0.08; // Sudden aggression after passive line = often bluff
+            }
+            // If opponent bet every street (triple barrel) with a big final bet
+            if (oppStreetAggression === 'very_heavy' && betToPot >= 0.75) {
+                // Could be value OR committed bluff — use blockers to decide
+                if (heroBlockerCount >= 1) heroCallProb += 0.06;
+                else heroCallProb -= 0.05;
+            }
+
+            // ── BOARD TEXTURE HERO CALL ──
+            // Board that bricked all draws → opponent's draws missed → more bluffs
+            if (scareLevel === 0 && turnToRiverDelta <= -5) {
+                heroCallProb += 0.08; // Draws missed: opponent more likely bluffing
+            }
+            // Board completed obvious draws but we still have showdown value
+            if (scareLevel >= 2 && handEval.strength >= 30) {
+                heroCallProb -= 0.06; // Draw completed → opponent more likely to have it
+            }
+
+            // ── BET SIZE ADJUSTMENT ──
+            // Small bets = more likely thin value or blocker → can call wider
+            if (betToPot <= 0.40) heroCallProb += 0.10;
+            // Medium bets = standard — use base probability
+            // Large bets = polarized → blockers matter more
+            if (betToPot >= 0.80) {
+                // Large bet is polarized: either nuts or bluff
+                // Without blockers, fold more. With blockers, call more.
+                if (heroBlockerCount === 0) heroCallProb -= 0.10;
+                if (heroBlockerCount >= 2) heroCallProb += 0.05;
+            }
+            // Overbets are extremely polarized
+            if (betToPot >= 1.2) {
+                if (heroBlockerCount >= 1) heroCallProb += 0.05;
+                else heroCallProb -= 0.08;
+            }
+
+            // ── PERSONALITY ADJUSTMENT ──
+            heroCallProb += aggressionBias / 80; // Aggressive horses hero call more
+
+            // Clamp
+            heroCallProb = Math.max(0, Math.min(0.55, heroCallProb));
+
+            if (heroCallProb > 0.05 && Math.random() < heroCallProb) {
+                console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}%`);
                 return canCall ? { type: 'call' } : { type: 'fold' };
             }
         }
@@ -7331,6 +7517,154 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
 
     // Clamp to reasonable range: 20% to 200% pot
     return Math.max(0.20, Math.min(2.00, baseSizing));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPLOIT-LOOP INTENSIFIER
+// ═══════════════════════════════════════════════════════════════════════════
+// When we have high-confidence reads on a specific opponent's leak,
+// amplify the exploit. This is the "maximize EV vs known fish" module.
+// With enough observed hands and clear tendencies, shift from GTO
+// adjustments to pure exploitation mode.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Intensify exploitative adjustments when confidence is high.
+ * @param {Object} params
+ * @returns {{ action: string|null, amount: number|null, exploiting: boolean, exploit: string }}
+ */
+function applyExploitIntensifier(params) {
+    const {
+        currentAction, currentAmount, handStrength, handCategory,
+        street, potSize, toCall, bb, canRaise, canCall, raiseAction,
+        oppTendency, oppConfidence, oppBluffFreq, oppCallFreq, oppFoldFreq,
+        isIP, heroIsAggressor, boardWetness, drawOuts, numPlayers
+    } = params;
+
+    // Only engage when we have HIGH confidence reads (40+ hands observed)
+    if (oppConfidence < 0.50) return { action: null, exploiting: false, exploit: 'none' };
+
+    const facingBet = toCall > 0;
+    const multiway = numPlayers >= 3;
+
+    // ═══ EXPLOIT 1: OVER-FOLDER ═══
+    // Opponent folds > 55% → print money by betting any two cards
+    if (oppFoldFreq > 0.55 && oppConfidence >= 0.55) {
+        // Bluff more on every street when not facing a bet
+        if (!facingBet && handStrength < 25 && canRaise && !multiway) {
+            const exploitBluffFreq = 0.40 + (oppFoldFreq - 0.55) * 2.0; // Scales up to ~70%
+            if (Math.random() < Math.min(0.70, exploitBluffFreq)) {
+                const sizeFrac = 0.50 + Math.random() * 0.15; // 50-65% pot
+                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: over-folder bluff (foldFreq=${(oppFoldFreq * 100).toFixed(0)}%)`);
+                return {
+                    action: raiseAction.type,
+                    amount: Math.round(potSize * sizeFrac),
+                    exploiting: true, exploit: 'over_folder_bluff'
+                };
+            }
+        }
+        // Facing a bet: opponent is betting into us but usually folds → raise to test
+        if (facingBet && handStrength >= 25 && handStrength < 50 && canRaise && !multiway) {
+            if (Math.random() < 0.30) {
+                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: raise vs over-folder`);
+                return {
+                    action: raiseAction.type,
+                    amount: Math.round(toCall * 2.5),
+                    exploiting: true, exploit: 'over_folder_raise'
+                };
+            }
+        }
+    }
+
+    // ═══ EXPLOIT 2: CALLING STATION ═══
+    // Opponent calls > 60% → maximize value, never bluff
+    if (oppCallFreq > 0.60 && oppConfidence >= 0.50) {
+        // Value bet thinner — they call with garbage
+        if (!facingBet && handStrength >= 35 && handStrength < 55 && canRaise && !multiway) {
+            const thinValueFreq = 0.55 + (oppCallFreq - 0.60) * 1.5;
+            if (Math.random() < Math.min(0.80, thinValueFreq)) {
+                // Size UP — they're calling anyway
+                const sizeFrac = 0.65 + Math.random() * 0.20; // 65-85% pot
+                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: thin value vs calling station (callFreq=${(oppCallFreq * 100).toFixed(0)}%)`);
+                return {
+                    action: raiseAction.type,
+                    amount: Math.round(potSize * sizeFrac),
+                    exploiting: true, exploit: 'calling_station_value'
+                };
+            }
+        }
+        // Strong hands: overbet for value
+        if (!facingBet && handStrength >= 70 && canRaise) {
+            const overbetFrac = 1.0 + Math.random() * 0.50; // 100-150% pot
+            console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: overbet value vs calling station`);
+            return {
+                action: raiseAction.type,
+                amount: Math.round(potSize * overbetFrac),
+                exploiting: true, exploit: 'calling_station_overbet'
+            };
+        }
+        // NEVER bluff calling stations — convert bluff to check
+        if (!facingBet && handStrength < 20 && (currentAction === 'bet' || currentAction === 'raise')) {
+            return {
+                action: 'check', amount: null,
+                exploiting: true, exploit: 'calling_station_no_bluff'
+            };
+        }
+    }
+
+    // ═══ EXPLOIT 3: PROLIFIC BLUFFER ═══
+    // Opponent bluffs > 40% → call them down light, let them hang themselves
+    if (oppBluffFreq > 0.40 && oppConfidence >= 0.50) {
+        // Widen calling range dramatically
+        if (facingBet && handStrength >= 20 && handStrength < 50 && canCall) {
+            const exploitCallFreq = 0.50 + (oppBluffFreq - 0.40) * 2.0;
+            if (Math.random() < Math.min(0.75, exploitCallFreq)) {
+                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: call down bluffer (bluffFreq=${(oppBluffFreq * 100).toFixed(0)}%)`);
+                return {
+                    action: 'call', amount: null,
+                    exploiting: true, exploit: 'bluffer_calldown'
+                };
+            }
+        }
+        // Check-raise their bluffs with strong hands (trap)
+        if (!facingBet && handStrength >= 65 && !isIP && !multiway) {
+            if (Math.random() < 0.50) {
+                return {
+                    action: 'check', amount: null,
+                    exploiting: true, exploit: 'bluffer_trap'
+                };
+            }
+        }
+    }
+
+    // ═══ EXPLOIT 4: WEAK-TIGHT / NIT ═══
+    // Opponent is weak-tight → steal everything, respect their bets
+    if (oppTendency === 'weak-tight' && oppConfidence >= 0.55) {
+        // Steal pots relentlessly
+        if (!facingBet && handStrength < 30 && canRaise && !multiway) {
+            if (Math.random() < 0.45) {
+                const sizeFrac = 0.55 + Math.random() * 0.15;
+                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: steal vs nit`);
+                return {
+                    action: raiseAction.type,
+                    amount: Math.round(potSize * sizeFrac),
+                    exploiting: true, exploit: 'nit_steal'
+                };
+            }
+        }
+        // When they bet, RESPECT it (nits only bet with strong hands)
+        if (facingBet && handStrength < 60 && betToPot >= 0.50) {
+            const betToPot = toCall / Math.max(1, potSize);
+            if (betToPot >= 0.50 && handStrength < 60) {
+                return {
+                    action: 'fold', amount: null,
+                    exploiting: true, exploit: 'nit_respect'
+                };
+            }
+        }
+    }
+
+    return { action: null, exploiting: false, exploit: 'none' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
