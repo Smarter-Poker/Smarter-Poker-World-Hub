@@ -920,7 +920,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
     validVenues.forEach(function(venue) {
       // Use tour logo markers for tour stops, standard markers for everything else
-      const isTourStop = venue.venue_type === 'tour_stop' && venue.tour_code;
+      const isTourStop = (venue.venue_type === 'tour_stop' || venue.venue_type === 'poker_tour') && venue.tour_code;
       const venueIcon = isTourStop
         ? createTourLogoIcon(L, venue)
         : createVenueIcon(L, venue, uniformColor || null);
@@ -928,7 +928,11 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         ? buildTourPopupHtml(venue)
         : buildPopupHtml(venue);
 
-      const marker = L.marker([venue.latitude, venue.longitude], { icon: venueIcon })
+      // Tour pins get a slight offset so they overlap but don't fully cover venue dots
+      const markerLat = isTourStop ? venue.latitude + 0.002 : venue.latitude;
+      const markerLng = isTourStop ? venue.longitude + 0.002 : venue.longitude;
+
+      const marker = L.marker([markerLat, markerLng], { icon: venueIcon, zIndexOffset: isTourStop ? 500 : 0 })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
 
       const radius = getGeofenceRadius(venue.venue_type);

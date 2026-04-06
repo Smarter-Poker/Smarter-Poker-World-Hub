@@ -423,48 +423,60 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     // Add venue markers with logo pins
     const validVenues = venues.filter(v => v.latitude && v.longitude);
     validVenues.forEach(v => {
-      const venueIcon = createVenueIcon(L, v);
-      const colors = VENUE_TYPE_COLORS[v.venue_type] || DEFAULT_VENUE_COLOR;
-      const typeBadge = VENUE_TYPE_LABELS[v.venue_type] || v.venue_type || '';
-      const tables = v.totalTables || 0;
-      const detailPath = v.is_social_page
-        ? '/club/' + v.social_page_id
-        : '/hub/venues/' + v.id;
+      // ═══ TOUR STOPS — distinct red pin + tour popup ═══
+      const isTourStop = (v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour') && v.tour_code;
+      const venueIcon = isTourStop ? createTourIcon(L, v) : createVenueIcon(L, v);
 
-      // Build logo/initials badge
-      const logoUrl = v.logo_url || v.logoUrl || v.profile_photo_url || '';
-      const initials = (v.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
-      const logoBadge = logoUrl
-        ? `<img src="${logoUrl}" alt="" style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid ${colors.fill}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>`
-        : `<div style="display:flex;width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>`;
+      let popupHtml;
+      if (isTourStop) {
+        popupHtml = buildTourPopupHtml(v);
+      } else {
+        const colors = VENUE_TYPE_COLORS[v.venue_type] || DEFAULT_VENUE_COLOR;
+        const typeBadge = VENUE_TYPE_LABELS[v.venue_type] || v.venue_type || '';
+        const tables = v.totalTables || 0;
+        const detailPath = v.is_social_page
+          ? '/club/' + v.social_page_id
+          : '/hub/venues/' + v.id;
 
-      // Live games info
-      const gamesInfo = Array.isArray(v.games) && v.games.length
-        ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-            <span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE · ${tables} Tables</span>
-            <span style="font-size:10px;color:rgba(148,163,184,0.6);">${v.games.length} games</span>
-          </div>`
-        : '';
+        // Build logo/initials badge
+        const logoUrl = v.logo_url || v.logoUrl || v.profile_photo_url || '';
+        const initials = (v.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+        const logoBadge = logoUrl
+          ? `<img src="${logoUrl}" alt="" style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid ${colors.fill}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>`
+          : `<div style="display:flex;width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>`;
 
-      const popupHtml = `<div style="min-width:200px;max-width:300px;padding:14px 16px 12px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          ${logoBadge}
-          <div>
-            <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.2;">${escapeHtml(v.name)}</div>
-            <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${v.city || ''}, ${v.state || ''}</div>
+        // Live games info
+        const gamesInfo = Array.isArray(v.games) && v.games.length
+          ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+              <span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.3);">LIVE · ${tables} Tables</span>
+              <span style="font-size:10px;color:rgba(148,163,184,0.6);">${v.games.length} games</span>
+            </div>`
+          : '';
+
+        popupHtml = `<div style="min-width:200px;max-width:300px;padding:14px 16px 12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            ${logoBadge}
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#fff;line-height:1.2;">${escapeHtml(v.name)}</div>
+              <div style="font-size:10px;color:rgba(148,163,184,0.7);margin-top:1px;">${v.city || ''}, ${v.state || ''}</div>
+            </div>
           </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-          <span style="padding:2px 8px;border-radius:4px;background:${colors.glow?.replace(/[\d.]+\)$/, '0.15)') || 'rgba(212,168,83,0.15)'};color:${colors.fill};font-size:10px;font-weight:600;">${typeBadge}</span>
-        </div>
-        ${gamesInfo}
-        <div style="display:flex;gap:6px;">
-          <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(v.name) || 'Venue Details'}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Details</button>
-          <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.address || '') + ' ' + (v.name || '') + ' ' + (v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
-        </div>
-      </div>`;
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+            <span style="padding:2px 8px;border-radius:4px;background:${colors.glow?.replace(/[\d.]+\)$/, '0.15)') || 'rgba(212,168,83,0.15)'};color:${colors.fill};font-size:10px;font-weight:600;">${typeBadge}</span>
+          </div>
+          ${gamesInfo}
+          <div style="display:flex;gap:6px;">
+            <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(v.name) || 'Venue Details'}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Details</button>
+            <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.address || '') + ' ' + (v.name || '') + ' ' + (v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
+          </div>
+        </div>`;
+      }
 
-      const marker = L.marker([v.latitude, v.longitude], { icon: venueIcon })
+      // Tour pins get a slight offset (~150m) so they overlap but don't fully cover venue dots
+      const lat = isTourStop ? v.latitude + 0.002 : v.latitude;
+      const lng = isTourStop ? v.longitude + 0.002 : v.longitude;
+
+      const marker = L.marker([lat, lng], { icon: venueIcon, zIndexOffset: isTourStop ? 500 : 0 })
         .bindPopup(popupHtml, { className: 'pnm-popup', maxWidth: 300, closeButton: true });
 
       // Touch preview on mobile
@@ -475,7 +487,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         }
       });
 
-      if (onVenueSelectRef.current) {
+      if (!isTourStop && onVenueSelectRef.current) {
         marker.on('click', () => onVenueSelectRef.current(v));
       }
 
