@@ -6171,6 +6171,66 @@ function makeTurnRiverHeuristicDecision(params) {
         return withinBoard.length >= 3; // Hero card is in the middle of a connected board
     });
 
+    // ═══ PHASE 36A: GRANULAR BLOCKER SCORING ═══
+    // Beyond binary blocker detection: rank-weighted scoring system.
+    // Ace-high flush blocker > King-high (removes more nut combos).
+    // Unblock analysis: do we hold cards that DON'T block opponent's bluffing range?
+    // Best hero call spot: block their value + unblock their bluffs.
+    const blockerScore = (() => {
+        let score = 0;
+        // Rank-weighted flush blocker: Ace=0.25, King=0.18, Queen=0.12, Jack=0.08
+        if (flushSuit) {
+            for (const [i, suit] of heroSuits.entries()) {
+                if (suit === flushSuit) {
+                    const rank = heroRanks[i];
+                    if (rank === 12) score += 0.25;       // Ace of flush suit
+                    else if (rank === 11) score += 0.18;   // King of flush suit
+                    else if (rank === 10) score += 0.12;   // Queen of flush suit
+                    else if (rank === 9) score += 0.08;    // Jack of flush suit
+                    else score += 0.03;                     // Low flush card
+                }
+            }
+        }
+        // Set/top pair blockers
+        const maxBoardRank = Math.max(...boardRanks);
+        if (heroRanks.includes(maxBoardRank)) score += 0.10;
+        // Second-highest board card blocker
+        const sortedBoardRanks = [...new Set(boardRanks)].sort((a, b) => b - a);
+        if (sortedBoardRanks.length >= 2 && heroRanks.includes(sortedBoardRanks[1])) score += 0.06;
+        // Overpair blockers
+        if (heroRanks.some(r => r >= 11 && r > maxBoardRank)) score += 0.06;
+        // Straight blockers
+        if (blocksStraight) score += 0.08;
+        return score;
+    })();
+
+    // ═══ PHASE 36A: UNBLOCK ANALYSIS ═══
+    // For hero calls: we WANT to NOT block opponent's missed draws (their bluffing range).
+    const unblocksBluffs = (() => {
+        let unblockScore = 0;
+        // If flush draw exists but we DON'T hold the flush suit → opponent has all missed flush combos
+        if (flushSuit && !heroSuits.includes(flushSuit)) {
+            unblockScore += 0.08;
+        }
+        // If straight draws exist but our ranks don't connect to board
+        if (straightScary) {
+            const heroConnects = heroRanks.some(r => {
+                const nearby = uniqueRanks.filter(br => Math.abs(br - r) <= 2);
+                return nearby.length >= 2;
+            });
+            if (!heroConnects) unblockScore += 0.06;
+        }
+        // Low disconnected cards = ideal unblock hand
+        const heroMaxRank = Math.max(...heroRanks);
+        if (heroMaxRank <= 7 && !heroSuits.includes(flushSuit || '')) {
+            unblockScore += 0.04;
+        }
+        return unblockScore;
+    })();
+
+    // Combined hero call blocker quality: blocking value + unblocking bluffs
+    const heroCallBlockerQuality = blockerScore + unblocksBluffs;
+
     // ── NUT ADVANTAGE ──
     // Does the board favor the caller's range or the bettor's range?
     // Low, unpaired, rainbow boards favor the PFR (preflop raiser) = nut advantage
@@ -8557,6 +8617,12 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (blockerCount >= 2 && oppFoldFreq > 0.40) {
                         bluffFrac = Math.max(bluffFrac, 0.80 + Math.random() * 0.40); // 80-120% pot
                     }
+                    // ═══ PHASE 36A: GRANULAR BLOCKER SCORE → BLUFF SIZING ═══
+                    // High blockerScore = we remove more of their value range →
+                    // bigger bluffs are more profitable (they can't have nuts as often)
+                    if (blockerScore >= 0.30) {
+                        bluffFrac = Math.max(bluffFrac, 0.75 + Math.random() * 0.35); // 75-110% pot
+                    }
 
                     // ═══ PHASE 16: LIVE-READ DRIVEN RIVER BLUFF SIZING ═══
                     // The river is where sizing MATTERS MOST — wrong size = burning money.
@@ -9203,6 +9269,17 @@ function makeTurnRiverHeuristicDecision(params) {
             const heroBlockerCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
             if (heroBlockerCount >= 2) heroCallProb += 0.10; // Multiple blockers = strong call candidate
 
+            // ═══ PHASE 36A: GRANULAR BLOCKER QUALITY → HERO CALL ═══
+            // heroCallBlockerQuality combines rank-weighted value blocking + unblock analysis.
+            // Captures: Ace-high blocker > King-high, and unblocking opponent's missed draws.
+            if (heroCallBlockerQuality >= 0.25) {
+                heroCallProb += 0.12; // Premium: blocks value + unblocks bluffs
+            } else if (heroCallBlockerQuality >= 0.15) {
+                heroCallProb += 0.06; // Good: meaningful blocker impact
+            } else if (heroCallBlockerQuality < 0.05) {
+                heroCallProb -= 0.04; // Poor: no blocker value, bad hero call candidate
+            }
+
             // ── READ-BASED HERO CALL ──
             if (oppBluffFreq > 0.35 && oppConfidence > 0.3) {
                 heroCallProb += 0.12; // Known bluffer: call wider
@@ -9396,7 +9473,7 @@ function makeTurnRiverHeuristicDecision(params) {
             heroCallProb = Math.max(0, Math.min(0.65, heroCallProb));
 
             if (heroCallProb > 0.05 && Math.random() < heroCallProb) {
-                console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} bq=${heroCallBlockerQuality.toFixed(2)} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                 return canCall ? { type: 'call' } : { type: 'fold' };
             }
         }
@@ -11659,38 +11736,106 @@ function getDrawEquity(handEval, street) {
  * @param {number} aggressionBias - Personality
  * @returns {{ action: string, sizeFraction: number }}
  */
-function getRiverStrategy(handStrength, potOdds, canBet, facingBet, aggressionBias) {
+function getRiverStrategy(handStrength, potOdds, canBet, facingBet, aggressionBias, opts = {}) {
+    const {
+        boardWetness = 'medium',
+        oppTendency = 'balanced',
+        oppConfidence = 0,
+        hasBlockers = false,
+        drawsCompleted = false,
+        drawsBricked = false,
+        isIP = true,
+        betToPot = 0.66
+    } = opts;
+
+    // ═══ PHASE 36B: OPPONENT-AWARE ADJUSTMENTS ═══
+    const oppIsPassive = oppTendency === 'weak-tight' && oppConfidence > 0.3;
+    const oppIsBluffy = oppTendency === 'bluffy' && oppConfidence > 0.3;
+    const oppIsStation = oppTendency === 'calling-station' && oppConfidence > 0.3;
+
     if (!facingBet && canBet) {
-        // --- RIVER NO BET FACING ---
-        // Thin value bet (50-75 strength): small sizing
+        // ── NUTS: Overbet for max value ──
+        if (handStrength >= 90) {
+            let sizeFrac = 0.85;
+            if (oppIsStation) sizeFrac = 1.10;
+            if (drawsCompleted) sizeFrac = Math.min(1.30, sizeFrac + 0.15);
+            if (oppIsPassive && boardWetness === 'dry') sizeFrac = 0.65;
+            return { action: 'bet', sizeFraction: sizeFrac };
+        }
+        // ── Strong value (75-90) ──
+        if (handStrength >= 75) {
+            let sizeFrac = 0.66;
+            if (oppIsStation) sizeFrac = 0.80;
+            if (boardWetness === 'wet' && drawsCompleted) sizeFrac = 0.75;
+            return { action: 'bet', sizeFraction: sizeFrac };
+        }
+        // ── Thin value (50-75): context-dependent ──
         if (handStrength >= 50 && handStrength < 75) {
-            // Higher strength within this range = higher bet frequency
-            const strengthBonus = (handStrength - 50) / 100; // 0-0.25 bonus for stronger hands
-            if (Math.random() < 0.65 + strengthBonus + aggressionBias / 40) {
-                return { action: 'bet', sizeFraction: 0.33 };
-            }
+            const strengthBonus = (handStrength - 50) / 100;
+            let betFreq = 0.65 + strengthBonus + aggressionBias / 40;
+            let sizeFrac = 0.33;
+            if (boardWetness === 'dry') { betFreq += 0.08; sizeFrac = 0.28; }
+            if (boardWetness === 'wet' && drawsCompleted) betFreq -= 0.10;
+            if (oppIsStation) { betFreq += 0.10; sizeFrac = 0.40; }
+            if (oppIsPassive) betFreq += 0.06;
+            if (oppIsBluffy) betFreq -= 0.08;
+            if (isIP) betFreq += 0.05;
+            if (Math.random() < betFreq) return { action: 'bet', sizeFraction: sizeFrac };
             return { action: 'check', sizeFraction: 0 };
         }
-        // Strong value bet (75+): bigger sizing
-        if (handStrength >= 75) {
-            return { action: 'bet', sizeFraction: handStrength >= 90 ? 0.85 : 0.66 };
-        }
-        // Bluff with nothing sometimes
-        if (handStrength < 20 && Math.random() < 0.12 + aggressionBias / 60) {
-            return { action: 'bet', sizeFraction: 0.66 }; // Bluff like a value bet
+        // ── Bluff with nothing ──
+        if (handStrength < 20) {
+            let bluffFreq = 0.12 + aggressionBias / 60;
+            let bluffSize = 0.66;
+            if (hasBlockers) { bluffFreq += 0.12; bluffSize = 0.75; }
+            if (drawsBricked) bluffFreq -= 0.06;
+            if (drawsCompleted) bluffFreq += 0.08;
+            if (oppIsPassive) bluffFreq += 0.10;
+            if (oppIsStation) bluffFreq = Math.max(0, bluffFreq - 0.10);
+            bluffFreq = Math.max(0, Math.min(0.35, bluffFreq));
+            if (Math.random() < bluffFreq) return { action: 'bet', sizeFraction: bluffSize };
         }
         return { action: 'check', sizeFraction: 0 };
     }
 
     if (facingBet) {
-        // --- FACING RIVER BET ---
-        // Strong hands: call or raise
-        if (handStrength >= 75) return { action: 'raise', sizeFraction: 2.5 };
-        // Bluff-catch threshold: call with decent hands if pot odds are good
-        if (handStrength >= 45 && potOdds < 0.35) return { action: 'call', sizeFraction: 0 };
-        // Marginal: call sometimes
+        // ── Monsters: Raise for value ──
+        if (handStrength >= 85) {
+            let raiseMult = 2.5;
+            if (oppIsStation) raiseMult = 3.0;
+            if (oppIsPassive) raiseMult = 2.2;
+            return { action: 'raise', sizeFraction: raiseMult };
+        }
+        // ── Strong: call (or raise small bets) ──
+        if (handStrength >= 65) {
+            if (betToPot <= 0.40 && Math.random() < 0.30) {
+                return { action: 'raise', sizeFraction: 2.8 };
+            }
+            return { action: 'call', sizeFraction: 0 };
+        }
+        // ── Bluff-catching (45-65): opponent-aware ──
+        if (handStrength >= 45) {
+            let callFreq = 0.60;
+            if (potOdds < 0.35) callFreq += 0.10;
+            if (oppIsBluffy) callFreq += 0.15;
+            if (oppIsPassive && betToPot >= 0.60) callFreq -= 0.20;
+            if (hasBlockers) callFreq += 0.08;
+            if (drawsBricked) callFreq += 0.08;
+            callFreq = Math.max(0.15, Math.min(0.85, callFreq));
+            if (Math.random() < callFreq) return { action: 'call', sizeFraction: 0 };
+            return { action: 'fold', sizeFraction: 0 };
+        }
+        // ── Marginal (30-45): tight calling ──
         if (handStrength >= 30 && potOdds < 0.25) {
-            return Math.random() < 0.40 ? { action: 'call', sizeFraction: 0 } : { action: 'fold', sizeFraction: 0 };
+            let margCallFreq = 0.30;
+            if (oppIsBluffy) margCallFreq = 0.45;
+            if (oppIsPassive) margCallFreq = 0.10;
+            if (hasBlockers && drawsBricked) margCallFreq += 0.12;
+            if (betToPot >= 0.80) margCallFreq -= 0.10;
+            margCallFreq = Math.max(0.05, Math.min(0.55, margCallFreq));
+            return Math.random() < margCallFreq
+                ? { action: 'call', sizeFraction: 0 }
+                : { action: 'fold', sizeFraction: 0 };
         }
         return { action: 'fold', sizeFraction: 0 };
     }

@@ -2049,6 +2049,7 @@ export default function PokerNearMePage() {
 
                 <UniversalHeader 
                     pageDepth={1} 
+                    hideLeftIcon={true}
                     onMenuClick={() => setMenuOpen(true)} 
                 />
 
@@ -2063,7 +2064,7 @@ export default function PokerNearMePage() {
                         alt="Back To Lobby"
                         onClick={() => window.location.href = '/hub/poker-near-me-lobby'}
                         style={{
-                            height: 36,
+                            height: 18,
                             cursor: 'pointer',
                             transition: 'opacity 0.15s, transform 0.15s',
                             opacity: 0.9,

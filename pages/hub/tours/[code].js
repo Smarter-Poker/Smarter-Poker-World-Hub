@@ -25,7 +25,6 @@ const TOUR_COLORS = {
   'FPN': { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff' },
   'LIPS': { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff' },
   'ROUGHRIDER': { bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff' },
-  'CARD_PLAYER_CRUISES': { bg: 'linear-gradient(135deg, #0e7490, #164e63)', text: '#fff' },
   'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff' },
 };
 

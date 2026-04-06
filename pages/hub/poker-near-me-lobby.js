@@ -2632,7 +2632,7 @@ export default function PokerNearMeLobby() {
         {/* Universal header and Back button layer */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, pointerEvents: 'none' }}>
           <div style={{ pointerEvents: 'auto' }}>
-            <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+            <UniversalHeader pageDepth={1} hideLeftIcon={true} onMenuClick={() => setMenuOpen(true)} />
           </div>
           
           {/* In-page back button — brushed metal style */}
@@ -2647,7 +2647,7 @@ export default function PokerNearMeLobby() {
               alt="Back To Hub"
               onClick={() => window.location.href = '/hub'}
               style={{
-                height: 36,
+                height: 18,
                 cursor: 'pointer',
                 transition: 'opacity 0.15s, transform 0.15s',
                 opacity: 0.9,
