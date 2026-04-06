@@ -368,7 +368,7 @@ function createVenueIcon(L, venue, overrideColor) {
   return L.divIcon({
     className: 'venue-map-marker',
     html: `<div style="position:relative;width:44px;height:44px;">
-      <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${colors.fill};box-shadow:0 0 12px ${colors.fill}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 12px ${colors.fill}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
         ${innerContent}
       </div>
       ${labelHtml}
@@ -421,7 +421,7 @@ function createClusterIcon(L, cluster) {
     html: `<div style="
       width:${size}px;height:${size}px;border-radius:50%;
       background:${bgGradient};
-      border:${borderWidth}px solid rgba(255,255,255,0.9);
+      border:${borderWidth}px solid #94a3b8;
       display:flex;align-items:center;justify-content:center;
       font-size:${fontSize}px;font-weight:800;color:${textColor};
       box-shadow:0 0 ${size/2}px ${glowColor}, 0 4px 16px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.2);
@@ -456,7 +456,7 @@ function createTourLogoIcon(L, venue) {
       className: 'tour-logo-marker',
       html: `<div style="position:relative;width:42px;height:42px;">
         ${pulseRing}
-        <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
           <img src="${logoUrl}" alt="" style="width:32px;height:32px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
           <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${(venue.tour_code || '').slice(0, 4)}</div>
         </div>
@@ -473,7 +473,7 @@ function createTourLogoIcon(L, venue) {
     className: 'tour-logo-marker',
     html: `<div style="position:relative;width:42px;height:42px;">
       ${pulseRing}
-      <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,${tourColor},${tourColor}99);border:2.5px solid #fff;box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,${tourColor},${tourColor}99);border:2.5px solid #94a3b8;box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;">
         <span style="font-size:9px;font-weight:900;color:#fff;letter-spacing:0.3px;text-shadow:0 1px 2px rgba(0,0,0,0.5);">${(venue.tour_code || 'TOUR').slice(0, 4)}</span>
       </div>
       <div style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.5px;z-index:999;">${venue.tour_name || venue.tour_code}</div>

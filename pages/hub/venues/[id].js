@@ -337,6 +337,10 @@ export default function VenueDetailPage() {
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [scheduleDeleting, setScheduleDeleting] = useState(null);
 
+  // Tournament Schedule state (scraped tournament listings)
+  const [tournamentSchedule, setTournamentSchedule] = useState([]);
+  const [tournamentScheduleLoading, setTournamentScheduleLoading] = useState(false);
+
   // Get or create anonymous user ID for tracking
   function getAnonymousUserId() {
     try {
@@ -582,7 +586,6 @@ export default function VenueDetailPage() {
     fetchClaimStatus();
   }, [id]);
 
-  // Fetch game schedules
   var fetchGameSchedule = async function () {
     setScheduleLoading(true);
     try {
@@ -602,6 +605,28 @@ export default function VenueDetailPage() {
   useEffect(function () {
     if (!id) return;
     fetchGameSchedule();
+  }, [id]);
+
+  // Fetch daily tournaments
+  var fetchTournamentSchedule = async function () {
+    setTournamentScheduleLoading(true);
+    try {
+      var res = await fetch('/api/poker/daily-tournaments?venue_id=' + id + '&day=all');
+      if (res.ok) {
+        var json = await res.json();
+        if (json.success && json.tournaments && json.tournaments.length > 0) {
+          setTournamentSchedule(json.tournaments);
+        } else {
+          setTournamentSchedule([]);
+        }
+      }
+    } catch (e) { /* silent */ }
+    setTournamentScheduleLoading(false);
+  };
+
+  useEffect(function () {
+    if (!id) return;
+    fetchTournamentSchedule();
   }, [id]);
 
   var handleAddScheduleEntry = async function (e) {
@@ -1591,6 +1616,56 @@ export default function VenueDetailPage() {
                 </div>
               </div>
             </section>
+
+            {/* ============================================ */}
+            {/* UPCOMING TOURNAMENT SCHEDULE               */}
+            {/* ============================================ */}
+            {tournamentSchedule && tournamentSchedule.length > 0 && (
+              <section className="cash-game-schedule-section">
+                <div className="section-header-row">
+                  <h2 className="section-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
+                      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
+                      <path d="M4 22h16" />
+                      <path d="M10 22V2h4v20" />
+                      <path d="M8 9h8" />
+                    </svg>
+                    Upcoming Tournaments
+                  </h2>
+                </div>
+                <div className="tournament-schedule-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                  {tournamentSchedule.map((t, idx) => (
+                    <div key={t.id || idx} style={{
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <span style={{ color: '#00D4FF', fontWeight: '800', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {t.day_of_week} • {t.start_time}
+                          </span>
+                          <h4 style={{ margin: '4px 0 0', fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>
+                            {t.tournament_name || 'No Limit Hold\'em Tournament'}
+                          </h4>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', color: '#fff' }}>
+                            ${t.buy_in}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                        {t.guaranteed && <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{formatMoney(t.guaranteed)} GTD</span>}
+                        {t.game_type && <span>{t.game_type}</span>}
+                        {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString()}</span>}
+                        {t.blind_levels && <span>Levels: {t.blind_levels}m</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* ============================================ */}
             {/* CASH GAME SCHEDULE SECTION                  */}

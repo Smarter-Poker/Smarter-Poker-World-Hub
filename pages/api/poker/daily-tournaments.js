@@ -68,6 +68,7 @@ export default async function handler(req, res) {
               game_type, // NLH, PLO, Mixed, etc.
               minGuaranteed, // minimum guaranteed prize pool
               sort = 'time', // time, buyin, guaranteed
+              venue_id,      // new param for exact matching
               limit = 999
           } = req.query;
 
@@ -97,8 +98,15 @@ export default async function handler(req, res) {
               .order('buy_in', { ascending: true });
 
           // Filter by day
-          const targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
-          query = query.or(`day_of_week.eq.${targetDay},day_of_week.eq.Daily`);
+          if (day !== 'all') {
+              const targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
+              query = query.or(`day_of_week.eq.${targetDay},day_of_week.eq.Daily`);
+          }
+
+          // Filter by exact venue ID
+          if (venue_id) {
+              query = query.eq('venue_id', venue_id);
+          }
 
           // Filter by venue name
           if (venue) {

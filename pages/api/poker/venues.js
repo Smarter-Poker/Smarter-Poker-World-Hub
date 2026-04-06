@@ -1008,6 +1008,64 @@ export default async function handler(req, res) {
               venues = venues.filter(v => v.games_offered && v.games_offered.includes('Mixed'));
           }
 
+          // --- Calculate Charity Open/Next Event Status from Scraped Tournaments ---
+          const charityVenues = venues.filter(v => v.venue_type === 'charity');
+          if (charityVenues.length > 0) {
+              try {
+                  const charityIds = charityVenues.map(v => v.id);
+                  const { data: upcomingTours } = await getSupabase()
+                      .from('venue_daily_tournaments')
+                      .select('venue_id, day_of_week, city')
+                      .in('venue_id', charityIds)
+                      .eq('is_active', true)
+                      .eq('data_quality', 'scraped_verified');
+                      
+                  if (upcomingTours && upcomingTours.length > 0) {
+                      const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+                      const todayIdx = new Date(localCurrentTime).getDay();
+                      const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                      const todayStr = DAYS[todayIdx];
+                      
+                      const toursByVenue = {};
+                      upcomingTours.forEach(t => {
+                          if (!toursByVenue[t.venue_id]) toursByVenue[t.venue_id] = [];
+                          toursByVenue[t.venue_id].push(t);
+                      });
+                      
+                      venues.forEach(v => {
+                          if (v.venue_type !== 'charity') return;
+                          
+                          // Only overwrite if it wasn't already set by a fully populated social page run_schedule
+                          const hasTours = toursByVenue[v.id] || [];
+                          if (hasTours.length === 0) return; 
+                          
+                          const todayTour = hasTours.find(t => t.day_of_week === todayStr);
+                          if (todayTour) {
+                              v.is_today = true;
+                              v.next_event = null;
+                          } else {
+                              v.is_today = false;
+                              // Find closest next day
+                              for (let i = 1; i <= 7; i++) {
+                                  const nextIdx = (todayIdx + i) % 7;
+                                  const nextDayStr = DAYS[nextIdx];
+                                  const nextTour = hasTours.find(t => t.day_of_week === nextDayStr);
+                                  if (nextTour) {
+                                      v.next_event = {
+                                          day: nextTour.day_of_week,
+                                          location: nextTour.city || v.city || 'Local Area'
+                                      };
+                                      break;
+                                  }
+                              }
+                          }
+                      });
+                  }
+              } catch(e) {
+                  console.error('Error enriching charity next_event:', e);
+              }
+          }
+
           // --- Apply limit and return ---
           const total = venues.length;
           // No cap — return all venues (dataset is manageable size)
