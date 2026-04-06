@@ -47,33 +47,33 @@ import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 // 🎨 COLOR PALETTE - Premium Poker Theme
 // ═══════════════════════════════════════════════════════════════════════════
 
-const C = {
-    bg: '#F0F2F5',
-    bgDark: '#1C1E21',
-    card: '#FFFFFF',
-    cardDark: '#242526',
-    text: '#050505',
-    textDark: '#E4E6EB',
-    textSec: '#65676B',
-    textSecDark: '#B0B3B8',
-    blue: '#0084FF',
-    blueHover: '#0073E6',
-    green: '#31A24C',
-    purple: '#8A2BE2',
-    gold: '#FFD700',
-    red: '#E41E3F',
-    border: '#E4E6EB',
-    borderDark: '#3E4042',
-    hoverBg: '#E4E6EB',
-    hoverBgDark: '#3A3B3C',
-    ownBubble: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)',
-    otherBubble: '#E4E6EB',
-    otherBubbleDark: '#3A3B3C',
-    pokerGreen: '#35654d',
-    pokerFelt: '#1a472a',
-    chipGold: '#FFD700',
-    cardRed: '#E41E3F',
-};
+// Dynamic theme function - returns light or dark palette
+function getTheme(dark) {
+    return {
+        bg: dark ? '#1C1E21' : '#F0F2F5',
+        card: dark ? '#242526' : '#FFFFFF',
+        text: dark ? '#E4E6EB' : '#050505',
+        textSec: dark ? '#B0B3B8' : '#65676B',
+        blue: '#0084FF',
+        blueHover: '#0073E6',
+        green: '#31A24C',
+        purple: '#8A2BE2',
+        gold: '#FFD700',
+        red: '#E41E3F',
+        border: dark ? '#3E4042' : '#E4E6EB',
+        hoverBg: dark ? '#3A3B3C' : '#E4E6EB',
+        ownBubble: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)',
+        otherBubble: dark ? '#3A3B3C' : '#E4E6EB',
+        pokerGreen: '#35654d',
+        pokerFelt: '#1a472a',
+        chipGold: '#FFD700',
+        cardRed: '#E41E3F',
+        muted: dark ? '#8A8D91' : '#90949C',
+    };
+}
+
+// Default light theme (overridden at component level)
+let C = getTheme(false);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔧 UTILITY FUNCTIONS & HOOKS
@@ -1303,7 +1303,7 @@ AudioMessage.displayName = 'AudioMessage';
 // ═══════════════════════════════════════════════════════════════════════════
 
 
-function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, onEdit, onForward, onCallBack, currentUserId }) {
+function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInGroup, onRetry, onReact, onDelete, onEdit, onForward, onCallBack, onReply, onUnsend, currentUserId }) {
     const senderIsVip = sender?.is_vip || false;
     const [showReactions, setShowReactions] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -1579,6 +1579,50 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >Forward</button>
                         )}
+                        {/* Reply action — available on all non-deleted messages */}
+                        {!message.is_deleted && (
+                        <button
+                            onClick={() => {
+                                onReply?.(message);
+                                setShowMenu(false);
+                            }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                color: C.textSec,
+                                fontSize: 14,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >Reply</button>
+                        )}
+                        {/* Unsend — own messages within 2 minutes */}
+                        {isOwn && !message.is_deleted && (Date.now() - new Date(message.created_at).getTime()) < 120000 && (
+                        <button
+                            onClick={() => {
+                                onUnsend?.(message.id);
+                                setShowMenu(false);
+                            }}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 16px',
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                color: '#FF6B00',
+                                fontSize: 14,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = C.hoverBg}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >Unsend</button>
+                        )}
                         {isOwn && (
                         <button
                             onClick={() => {
@@ -1619,9 +1663,38 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                         boxShadow: '0 0 6px rgba(255,215,0,0.15)',
                     } : {}),
                 }}>
-                    {/* Render media content (images/videos) */}
+                    {/* Reply preview — shows quoted message above content */}
                     {(() => {
                         const content = message.content || message.text || '';
+                        const replyMatch = content.match(/^\[REPLY:([^\]]+)\]/);
+                        if (replyMatch) {
+                            const replyText = replyMatch[1];
+                            return (
+                                <div style={{
+                                    padding: '6px 10px',
+                                    marginBottom: 6,
+                                    borderLeft: `3px solid ${isOwn ? 'rgba(255,255,255,0.5)' : C.blue}`,
+                                    borderRadius: '0 8px 8px 0',
+                                    background: isOwn ? 'rgba(255,255,255,0.12)' : 'rgba(0,132,255,0.08)',
+                                    fontSize: 12,
+                                    lineHeight: 1.3,
+                                    color: isOwn ? 'rgba(255,255,255,0.8)' : C.textSec,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: 250,
+                                }}>
+                                    {replyText.length > 60 ? replyText.slice(0, 60) + '...' : replyText}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+                    {/* Render media content (images/videos) */}
+                    {(() => {
+                        let content = message.content || message.text || '';
+                        // Strip reply prefix — already displayed in the reply preview above
+                        content = content.replace(/^\[REPLY:[^\]]+\]\s*/, '');
 
                         // Check for call receipt: [CALL_RECEIPT]{"type":"video","duration":135,"status":"completed"}
                         if (content.startsWith('[CALL_RECEIPT]')) {
@@ -2201,8 +2274,12 @@ function MessengerPage() {
     // Editing State
     const [editingMessage, setEditingMessage] = useState(null); // message being edited
     const [editText, setEditText] = useState('');
+    // Reply State
+    const [replyToMessage, setReplyToMessage] = useState(null); // message being replied to
     // Forward State
     const [forwardingMessage, setForwardingMessage] = useState(null); // message to forward
+    // Dark Mode Detection
+    const [isDarkMode, setIsDarkMode] = useState(false);
     // Online Presence
     const [otherUserStatus, setOtherUserStatus] = useState('offline'); // 'online' | 'away' | 'offline'
     const [otherUserLastSeen, setOtherUserLastSeen] = useState(null);
@@ -2249,6 +2326,17 @@ function MessengerPage() {
 
     // OneSignal Push Notifications
     const { isInitialized: pushReady, isSubscribed: pushSubscribed, subscribe: subscribePush, setExternalUserId } = useOneSignal();
+
+    // Dark Mode detection & theme override
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const handler = (e) => { setIsDarkMode(e.matches); C = getTheme(e.matches); };
+        setIsDarkMode(mq.matches);
+        C = getTheme(mq.matches);
+        mq.addEventListener('change', handler);
+        return () => mq.removeEventListener('change', handler);
+    }, []);
 
     // Load preferences from service (localStorage + Supabase)
     useEffect(() => {
@@ -2323,6 +2411,7 @@ function MessengerPage() {
                 if (showMessageSearch) { setShowMessageSearch(false); return; }
                 if (forwardingMessage) { setForwardingMessage(null); return; }
                 if (editingMessage) { setEditingMessage(null); setEditText(''); return; }
+                if (replyToMessage) { setReplyToMessage(null); return; }
                 if (menuOpen) { setMenuOpen(false); return; }
                 // On mobile, Escape navigates back to sidebar
                 if (isMobile && activeConversation) { setActiveConversation(null); setShowSidebar(true); return; }
@@ -2330,7 +2419,7 @@ function MessengerPage() {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showUserInfo, showMessageSearch, forwardingMessage, editingMessage, menuOpen, isMobile, activeConversation]);
+    }, [showUserInfo, showMessageSearch, forwardingMessage, editingMessage, replyToMessage, menuOpen, isMobile, activeConversation]);
 
     // Phase 3: Connection status monitor (navigator.onLine + Supabase health)
     useEffect(() => {
@@ -3452,11 +3541,19 @@ function MessengerPage() {
         }
 
         // Regular message handling
+        // Prepend reply context if replying to a message
+        let finalContent = content.trim();
+        if (replyToMessage) {
+            const replyText = (replyToMessage.content || replyToMessage.text || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80);
+            finalContent = `[REPLY:${replyText}] ${finalContent}`;
+            setReplyToMessage(null); // Clear reply state after embedding
+        }
+
         // Optimistic update - show message immediately
         const tempId = `temp-${Date.now()}`;
         const optimisticMsg = {
             id: tempId,
-            content: content.trim(),
+            content: finalContent,
             created_at: new Date().toISOString(),
             sender_id: user.id,
             profiles: isClubMode && clubPage
@@ -3469,7 +3566,7 @@ function MessengerPage() {
         setConversations(prev => {
             const updated = prev.map(c =>
                 c.id === activeConversation.id
-                    ? { ...c, last_message_preview: content, last_message_at: new Date().toISOString() }
+                    ? { ...c, last_message_preview: finalContent, last_message_at: new Date().toISOString() }
                     : c
             );
             // Re-sort by last_message_at (most recent first)
@@ -3491,7 +3588,7 @@ function MessengerPage() {
                 },
                 body: JSON.stringify({
                     conversationId: activeConversation.id,
-                    content: content,
+                    content: finalContent,
                 }),
             });
             const sendResult = await sendResp.json();
@@ -3639,6 +3736,42 @@ function MessengerPage() {
     const handleEditCancel = () => {
         setEditingMessage(null);
         setEditText('');
+    };
+
+    // Handle reply — sets the reply state with the message being replied to
+    const handleReplyMessage = (message) => {
+        setReplyToMessage(message);
+        setEditingMessage(null); // Cancel any active edit
+    };
+
+    // Handle unsend — delete for everyone with undo feedback
+    const handleUnsendMessage = async (messageId) => {
+        // Save the message content for potential undo
+        const originalMessage = messages.find(m => m.id === messageId);
+        if (!originalMessage) return;
+
+        // Immediately hide from UI (optimistic)
+        setMessages(prev => prev.map(m =>
+            m.id === messageId ? { ...m, is_deleted: true, content: 'This message was unsent' } : m
+        ));
+
+        setToast({ type: 'info', message: 'Message Unsent' });
+
+        // Delete via API
+        try {
+            const { error } = await supabase.rpc('fn_delete_message', {
+                p_message_id: messageId,
+                p_user_id: user.id,
+            });
+            if (error) throw error;
+        } catch (e) {
+            console.error('Unsend error:', e);
+            // Restore on failure
+            setMessages(prev => prev.map(m =>
+                m.id === messageId ? originalMessage : m
+            ));
+            setToast({ type: 'error', message: 'Unsend Failed' });
+        }
     };
 
     // Handle forwarding a message to another conversation
@@ -4275,25 +4408,34 @@ function MessengerPage() {
         }
 
         // Notify the other user that call ended (subscribe, send, then cleanup)
+        // BUG-2 FIX: Send on BOTH channel patterns to avoid signal:sender vs signal:receiver mismatch
         if (activeConversation?.otherUser?.id) {
-            try {
-                const channel = supabase.channel(`call-signal:${activeConversation.otherUser.id}`);
-                await new Promise((resolve) => {
-                    const timeout = setTimeout(resolve, 2000); // Don't block UI for too long
-                    channel.subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            clearTimeout(timeout);
-                            resolve();
-                        }
+            const otherUserId = activeConversation.otherUser.id;
+            const channelNames = [
+                `call-signal:${otherUserId}`,   // Other user's listener channel
+                `call-signal:${user?.id}`,       // Own channel (callee may be listening here)
+            ];
+            for (const chName of channelNames) {
+                try {
+                    const channel = supabase.channel(chName);
+                    await new Promise((resolve) => {
+                        const timeout = setTimeout(resolve, 2000);
+                        channel.subscribe((status) => {
+                            if (status === 'SUBSCRIBED') {
+                                clearTimeout(timeout);
+                                resolve();
+                            }
+                        });
                     });
-                });
-                await channel.send({
-                    type: 'broadcast',
-                    event: 'call_ended',
-                    payload: { enderId: user?.id }
-                });
-                setTimeout(() => supabase.removeChannel(channel), 1000);
-            } catch (e) {
+                    await channel.send({
+                        type: 'broadcast',
+                        event: 'call_ended',
+                        payload: { enderId: user?.id }
+                    });
+                    setTimeout(() => supabase.removeChannel(channel), 1000);
+                } catch (e) {
+                    // Non-blocking — best-effort notification
+                }
             }
         }
 
@@ -5548,6 +5690,8 @@ function MessengerPage() {
                                                         onEdit={handleEditMessage}
                                                         onForward={handleForwardMessage}
                                                         onCallBack={startCall}
+                                                        onReply={handleReplyMessage}
+                                                        onUnsend={handleUnsendMessage}
                                                         currentUserId={user.id}
                                                     />
                                                 </Fragment>
@@ -5611,6 +5755,26 @@ function MessengerPage() {
                                     </div>
                                 )}
                                 {/* Message Input */}
+                                {/* Reply banner — shows when replying to a message */}
+                                {replyToMessage && (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                        padding: '8px 16px', background: isDarkMode ? '#1a3a5c' : '#E7F3FF',
+                                        borderTop: `1px solid ${C.border}`,
+                                        borderLeft: `3px solid ${C.blue}`,
+                                    }}>
+                                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                                            <div style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>Replying To {replyToMessage.profiles?.username || 'Message'}</div>
+                                            <div style={{
+                                                fontSize: 13, color: C.textSec,
+                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                            }}>
+                                                {(replyToMessage.content || '').replace(/\[REPLY:[^\]]+\]\s*/, '').slice(0, 80)}
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setReplyToMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 18 }}>×</button>
+                                    </div>
+                                )}
                                 {/* Edit bar — shows when editing a message */}
                                 {editingMessage && (
                                     <div style={{

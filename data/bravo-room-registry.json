@@ -1,20 +1,21 @@
 {
   "metadata": {
-    "generated": "2026-04-06T05:18:21.543672+00:00",
-    "total_venues": 156
+    "generated": "2026-04-06T05:27:23.439736+00:00",
+    "total_venues": 149,
+    "non_us_excluded": [
+      "alea-glasgow",
+      "alea-nottingham",
+      "casino-niagara",
+      "elements-casino-brantford",
+      "fallsview-casino-resort",
+      "norwegian-cruise-lines-poker-challenge",
+      "rendezvous-brighton"
+    ]
   },
   "venues": [
     {
       "slug": "agua-caliente-casino",
       "url": "https://www.bravopokerlive.com/venues/agua-caliente-casino/"
-    },
-    {
-      "slug": "alea-glasgow",
-      "url": "https://www.bravopokerlive.com/venues/alea-glasgow/"
-    },
-    {
-      "slug": "alea-nottingham",
-      "url": "https://www.bravopokerlive.com/venues/alea-nottingham/"
     },
     {
       "slug": "american-place-casino",
@@ -125,10 +126,6 @@
       "url": "https://www.bravopokerlive.com/venues/casino-miami/"
     },
     {
-      "slug": "casino-niagara",
-      "url": "https://www.bravopokerlive.com/venues/casino-niagara/"
-    },
-    {
       "slug": "century-casino-cape-girardeau",
       "url": "https://www.bravopokerlive.com/venues/century-casino-cape-girardeau/"
     },
@@ -181,20 +178,12 @@
       "url": "https://www.bravopokerlive.com/venues/desert-diamond-white-tanks/"
     },
     {
-      "slug": "elements-casino-brantford",
-      "url": "https://www.bravopokerlive.com/venues/elements-casino-brantford/"
-    },
-    {
       "slug": "elk-valley-casino",
       "url": "https://www.bravopokerlive.com/venues/elk-valley-casino/"
     },
     {
       "slug": "empire-casino",
       "url": "https://www.bravopokerlive.com/venues/empire-casino/"
-    },
-    {
-      "slug": "fallsview-casino-resort",
-      "url": "https://www.bravopokerlive.com/venues/fallsview-casino-resort/"
     },
     {
       "slug": "firekeepers-casino-hotel",
@@ -457,10 +446,6 @@
       "url": "https://www.bravopokerlive.com/venues/mount-airy-casino/"
     },
     {
-      "slug": "norwegian-cruise-lines-poker-challenge",
-      "url": "https://www.bravopokerlive.com/venues/norwegian-cruise-lines-poker-challenge/"
-    },
-    {
       "slug": "oneida-casino",
       "url": "https://www.bravopokerlive.com/venues/oneida-casino/"
     },
@@ -503,10 +488,6 @@
     {
       "slug": "red-rock-casino",
       "url": "https://www.bravopokerlive.com/venues/red-rock-casino/"
-    },
-    {
-      "slug": "rendezvous-brighton",
-      "url": "https://www.bravopokerlive.com/venues/rendezvous-brighton/"
     },
     {
       "slug": "resorts-world-catskills",

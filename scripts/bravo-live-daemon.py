@@ -192,25 +192,43 @@ def sb_delete(table, query):
 # ============================================================
 # BRAVO VENUE SLUG REGISTRY
 # ============================================================
+# Non-US venues to permanently exclude (UK, Canada, cruise ships)
+# These cause timeouts and are outside our USA-only scope.
+NON_US_EXCLUDED = {
+    'alea-glasgow', 'alea-nottingham',           # UK
+    'elements-casino-brantford',                  # Canada
+    'fallsview-casino-resort', 'casino-niagara',  # Canada (Niagara Falls, ON)
+    'rendezvous-brighton',                        # UK
+    'norwegian-cruise-lines-poker-challenge',     # Cruise ship
+}
+
 def load_bravo_slugs():
-    """Load venue slugs from locked-in registry."""
+    """Load venue slugs from locked-in registry (USA only)."""
     registry_path = BASE_DIR / 'data' / 'bravo-room-registry.json'
     if registry_path.exists():
         with open(registry_path) as f:
             data = json.load(f)
-            return [v['slug'] for v in data.get('venues', [])]
+            return [v['slug'] for v in data.get('venues', []) if v['slug'] not in NON_US_EXCLUDED]
     return []
 
 def discover_bravo_slugs(page):
-    """Extract venue slugs from Bravo homepage (fallback)."""
+    """Extract venue slugs from Bravo homepage, filtering non-US venues."""
     page.goto('https://www.bravopokerlive.com/')
     page.wait_for_load_state('networkidle', timeout=15000)
     html = page.content()
-    slugs = sorted(set(re.findall(r'/venues/([a-z0-9-]+)/', html)))
-    log.info(f'Discovered {len(slugs)} Bravo venue slugs')
-    # Save for next time
+    all_slugs = sorted(set(re.findall(r'/venues/([a-z0-9-]+)/', html)))
+    slugs = [s for s in all_slugs if s not in NON_US_EXCLUDED]
+    excluded = [s for s in all_slugs if s in NON_US_EXCLUDED]
+    if excluded:
+        log.info(f'  🚫 Filtered {len(excluded)} non-US venues: {excluded}')
+    log.info(f'Discovered {len(slugs)} USA venue slugs (from {len(all_slugs)} total)')
+    # Save for next time (only USA venues)
     reg = {
-        'metadata': {'generated': datetime.now(timezone.utc).isoformat(), 'total_venues': len(slugs)},
+        'metadata': {
+            'generated': datetime.now(timezone.utc).isoformat(),
+            'total_venues': len(slugs),
+            'non_us_excluded': sorted(NON_US_EXCLUDED),
+        },
         'venues': [{'slug': s, 'url': f'https://www.bravopokerlive.com/venues/{s}/'} for s in slugs]
     }
     (BASE_DIR / 'data').mkdir(exist_ok=True)

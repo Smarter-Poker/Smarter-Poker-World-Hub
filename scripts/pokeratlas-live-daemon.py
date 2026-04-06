@@ -234,8 +234,7 @@ PA_ALL_REGION_SLUGS = [
     'south-dakota', 'north-dakota', 'nebraska', 'arkansas',
     'alabama', 'georgia', 'tennessee', 'kentucky',
     'hawaii', 'alaska', 'washington-dc',
-    # Canada
-    'alberta-canada', 'british-columbia-canada', 'ontario-canada',
+    # Canada removed — USA only
 ]
 
 # Track last full discovery time

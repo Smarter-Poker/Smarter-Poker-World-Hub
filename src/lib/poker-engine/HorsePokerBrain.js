@@ -4751,8 +4751,50 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             return { type: 'fold' };
         }
 
-        // Facing a raise? Consider 3-bet (#28)
+        // ═══ FACING A RAISE? 3-BET / 4-BET / FLAT / FOLD DECISION ═══
         if (toCall > bb * 2 && canRaise) {
+            const raiseSize = toCall / bb; // Size of the raise in BBs
+
+            // ═══ FACING A 3-BET (raise was 8-15 BB = likely a 3-bet over our open) ═══
+            if (raiseSize >= 7 && raiseSize <= 20) {
+                // 4-bet with premium hands (QQ+, AKs)
+                if (adjustedStrength >= 90) {
+                    // 4-bet size: ~2.2x the 3-bet
+                    const fourBetSize = Math.round(toCall * 2.2);
+                    const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(fourBetSize, raiseAction?.maxAmount || fourBetSize));
+                    return { type: raiseAction.type, amount: clamped };
+                }
+                // 4-bet bluff occasionally with strong suited hands (suited Ax, suited connectors)
+                if (adjustedStrength >= 40 && adjustedStrength < 55 && handStr.endsWith('s') && stackBB >= 50) {
+                    if (Math.random() < 0.12 + aggressionBias / 60) {
+                        const fourBetBluff = Math.round(toCall * 2.2);
+                        const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(fourBetBluff, raiseAction?.maxAmount || fourBetBluff));
+                        return { type: raiseAction.type, amount: clamped };
+                    }
+                }
+                // Flat call with strong hands that play well postflop (JJ, TT, AQs, KQs)
+                if (adjustedStrength >= 75 && adjustedStrength < 90 && canCall) {
+                    return { type: 'call' };
+                }
+                // Fold everything else vs 3-bet
+                if (adjustedStrength < 75) {
+                    return canCheck ? { type: 'check' } : { type: 'fold' };
+                }
+            }
+
+            // ═══ FACING A 4-BET / 5-BET (raise > 20 BB) ═══
+            if (raiseSize > 20) {
+                // Only continue with premium (KK+, AKs)
+                if (adjustedStrength >= 92 && canRaise) {
+                    return { type: 'all_in' }; // Jam vs 4-bet with premiums
+                }
+                if (adjustedStrength >= 85 && canCall) {
+                    return { type: 'call' }; // Flat QQ, AKo vs 4-bet
+                }
+                return canCheck ? { type: 'check' } : { type: 'fold' };
+            }
+
+            // ═══ FACING A STANDARD RAISE (2-7 BB) ═══
             const threeBet = get3BetStrategy(position, adjustedStrength, toCall, bb, stackBB);
             if (threeBet.should3Bet) {
                 const amount = Math.max(raiseAction?.minAmount || toCall * 2.5, threeBet.size3Bet);
@@ -4766,20 +4808,31 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             }
         }
 
-        // ═══ UPGRADED: Open raise uses position-specific threshold ═══
+        // ═══ OPEN RAISE — POSITION + STACK-DEPTH AWARE SIZING ═══
         if (adjustedStrength >= 80 && canRaise) {
-            // Premium: raise bigger for value
-            const premiumSize = position === 'UTG' || position === 'MP' ? 2.5 : 2.2 + Math.random() * 0.5;
-            const minRaise = raiseAction?.minAmount || (toCall * 2);
-            const size = Math.min(minRaise * premiumSize, raiseAction?.maxAmount || minRaise * 3);
-            return { type: raiseAction.type, amount: Math.round(size) };
+            // Premium: raise bigger for value, more from EP (where we have tighter range perception)
+            // Also size up with limpers already in the pot
+            const numLimpers = Math.max(0, Math.round((potSize / bb - 1.5) / 1)); // Approximate limper count
+            const basePremiumSize = position === 'UTG' || position === 'MP' ? 3.0 : 2.5;
+            const limperAdjust = numLimpers * 0.5; // +0.5 BB per limper
+            const premiumBBs = basePremiumSize + limperAdjust + (Math.random() * 0.5 - 0.25); // Small noise
+            const size = Math.round(bb * premiumBBs);
+            const clamped = Math.max(raiseAction?.minAmount || bb * 2, Math.min(size, raiseAction?.maxAmount || size));
+            return { type: raiseAction.type, amount: clamped };
         }
         if (adjustedStrength >= openThreshold) {
             const openFreq = 0.4 + aggressionBias / 30 + (position === 'BTN' ? 0.25 : position === 'CO' ? 0.15 : 0);
             if (canRaise && (toCall <= bb || Math.random() < openFreq)) {
-                const openSize = position === 'BTN' ? 2.2 : position === 'SB' ? 3.0 : 2.5;
-                const minRaise = raiseAction?.minAmount || (bb * openSize);
-                return { type: raiseAction.type, amount: Math.round(Math.min(minRaise * openSize, raiseAction?.maxAmount || minRaise * 3)) };
+                // ═══ POSITION-AWARE OPEN SIZING ═══
+                // BTN: smaller (2.2x) because we're in position and want calls
+                // SB: bigger (3.0x) because we're OOP and want folds or to build pot
+                // EP: standard (2.5x) — balanced
+                const numLimpers = Math.max(0, Math.round((potSize / bb - 1.5) / 1));
+                const positionSize = { BTN: 2.2, CO: 2.3, HJ: 2.5, MP: 2.5, UTG: 2.5, SB: 3.0, BB: 3.0 };
+                const openBBs = (positionSize[position] || 2.5) + (numLimpers * 0.5);
+                const size = Math.round(bb * openBBs);
+                const clamped = Math.max(raiseAction?.minAmount || bb * 2, Math.min(size, raiseAction?.maxAmount || size));
+                return { type: raiseAction.type, amount: clamped };
             }
             if (canCall) return { type: 'call' };
             if (canCheck) return { type: 'check' };
@@ -4911,7 +4964,8 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
     // ╔══════════════════════════════════════════════════════════════════════╗
     // ║  FLOP/TURN DECISION ENGINE — UPGRADED WITH BOARD TEXTURE,         ║
-    // ║  RIO GUARD, MULTI-STREET PLANNING, AND PROPER BARREL STRATEGY     ║
+    // ║  RIO GUARD, OPPONENT-AWARE C-BET, PROBE BET, DELAYED C-BET,      ║
+    // ║  MULTI-STREET PLANNING, AND PROPER BARREL STRATEGY                ║
     // ╚══════════════════════════════════════════════════════════════════════╝
 
     // ═══ BOARD TEXTURE ANALYSIS (drives bet sizing and frequency) ═══
@@ -4927,11 +4981,26 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
         const bs = bCards.map(c => c[1]);
         return new Set(bs).size === 1;
     })() : false;
+    // ═══ BOARD CONNECTIVITY (new) ═══
+    const boardIsConnected = bCards ? (() => {
+        const br = bCards.map(c => RANKS.indexOf(c[0])).sort((a, b) => a - b);
+        let connected = 0;
+        for (let i = 1; i < br.length; i++) { if (br[i] - br[i - 1] <= 2) connected++; }
+        return connected >= 2; // At least 2 close-rank cards = connected
+    })() : false;
+    // ═══ BOARD RANK PROFILE (new) ═══
+    const boardIsLow = bCards ? bCards.every(c => RANKS.indexOf(c[0]) < 8) : false; // All cards below 8
+    const boardIsHigh = boardHighCards >= 2; // 2+ broadway cards
 
     // ═══ MODULE 27: REVERSE IMPLIED ODDS GUARD (for fallback) ═══
     const fbRioGuard = drawEquity.outs > 0
         ? detectReverseImplied(drawEquity.outs, potOdds, stackBB, numPlayers, isWetBoard)
         : { shouldBlock: false };
+
+    // ═══ OPPONENT READS FOR FLOP/TURN (reuse opponentAdjustment) ═══
+    const oppOverfolds = opponentAdjustment.foldMod > 0;
+    const oppIsSticky = opponentAdjustment.callMod > 0 || opponentAdjustment.callMod < -2; // Calls too much
+    const oppIsPassive = opponentAdjustment.callMod < 0 && opponentAdjustment.foldMod <= 0;
 
     // ── FLOP/TURN: NO BET TO FACE ──
     if (canCheck && toCall === 0) {
@@ -4941,23 +5010,89 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             return { type: 'check' };
         }
 
-        // ═══ C-BET STRATEGY — UPGRADED WITH BOARD TEXTURE AWARENESS ═══
+        // ═══ C-BET STRATEGY — WORLD-CLASS WITH OPPONENT + BOARD AWARENESS ═══
         const wasPreAggressor = gameState.wasAggressor || false;
         if (wasPreAggressor && street === 'flop') {
             const cbetStrat = getCBetStrategy(true, isIP, boardWetness, numPlayers);
-            if (cbetStrat.shouldCbet && canRaise) {
-                // ═══ SIZING BY BOARD TEXTURE ═══
-                // Dry boards → small c-bet (33% pot), wet boards → larger (66-75%)
+
+            // ═══ OPPONENT-AWARE C-BET FREQUENCY ═══
+            // Against over-folders: c-bet more with any two cards
+            // Against calling stations: only c-bet for value
+            let cbetFreqMod = 0;
+            if (oppOverfolds) cbetFreqMod += 0.20; // Print money vs folders
+            if (oppIsSticky) {
+                // Against sticky callers, only c-bet with strong hands
+                if (effectiveStrength < 50 && !handEval.hasFlushDraw && !handEval.hasOESD) {
+                    return { type: 'check' }; // Don't c-bet bluff into a calling station
+                }
+                cbetFreqMod -= 0.10; // Less frequent, but bigger when we do
+            }
+
+            if ((cbetStrat.shouldCbet || cbetFreqMod > 0.15) && canRaise) {
+                // ═══ SIZING BY BOARD TEXTURE + OPPONENT TYPE ═══
                 let cbetFrac;
                 if (isDryBoard) {
-                    cbetFrac = 0.33; // Small c-bet on dry boards — polarized range
+                    // Dry boards → small c-bet (25-33% pot) — high frequency, low cost
+                    cbetFrac = boardIsPaired ? 0.25 : 0.33;
+                    // Against sticky opponents on dry boards → use bigger sizing for value
+                    if (oppIsSticky && effectiveStrength >= 55) cbetFrac = 0.50;
                 } else if (boardIsMonotone) {
-                    cbetFrac = effectiveStrength >= 60 ? 0.50 : 0; // Only bet strong on monotone
-                    if (cbetFrac === 0) return { type: 'check' }; // Check back draws on mono
+                    // Monotone: only bet strong hands, check back most draws
+                    cbetFrac = effectiveStrength >= 60 ? 0.50 : 0;
+                    if (cbetFrac === 0) return { type: 'check' };
+                } else if (isWetBoard) {
+                    // Wet boards → larger c-bet (55-75%) to deny equity
+                    cbetFrac = effectiveStrength >= 55 ? 0.66 : 0.55;
+                    // With strong draws on wet boards → bet bigger (we have equity even if called)
+                    if (handEval.hasFlushDraw || handEval.hasOESD) cbetFrac = 0.60;
                 } else {
                     cbetFrac = getOptimalBetSize(handEval.category, street, potSize, effectiveStrength < 30);
                 }
+
+                // ═══ RANGE ADVANTAGE C-BET (new) ═══
+                // On low, unconnected boards → PFR has massive range advantage → c-bet very wide
+                if (boardIsLow && !boardIsConnected && !boardIsMonotone) {
+                    cbetFrac = 0.25; // Tiny sizing, very high frequency
+                    cbetFreqMod += 0.15;
+                }
+                // On high, connected boards → caller's range has equity → check more
+                if (boardIsHigh && boardIsConnected) {
+                    if (effectiveStrength < 50) {
+                        return { type: 'check' }; // Give up c-bet on bad texture for our hand
+                    }
+                }
+
                 const betSize = Math.round(potSize * cbetFrac);
+                const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                return { type: raiseAction.type, amount };
+            }
+        }
+
+        // ═══ DELAYED C-BET (new) — Bet the turn after checking the flop ═══
+        // If we had initiative preflop but checked the flop, bet the turn to represent strength
+        if (wasPreAggressor && street === 'turn' && !gameState.betOnFlop && canRaise) {
+            // Delayed c-bet is effective because opponent expects us to give up
+            // Use it with medium+ hands or when a scare card falls
+            if (effectiveStrength >= 45 || (effectiveStrength >= 25 && Math.random() < 0.25 + aggressionBias / 40)) {
+                const delayFrac = isDryBoard ? 0.50 : 0.60;
+                const betSize = Math.round(potSize * delayFrac);
+                const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                return { type: raiseAction.type, amount };
+            }
+        }
+
+        // ═══ PROBE BET (new) — Bet when the preflop raiser checks behind ═══
+        // If opponent was the preflop aggressor and checked the flop, probe bet the turn
+        if (!wasPreAggressor && street === 'turn' && canRaise) {
+            // Opponent checked flop = weakness. Probe bet to take it down.
+            // More effective on scare cards and against tight opponents
+            let probeFreq = 0.25 + aggressionBias / 40;
+            if (oppOverfolds) probeFreq += 0.15;
+            if (numPlayers >= 3) probeFreq *= 0.5; // Less probe multiway
+
+            if (effectiveStrength >= 30 && Math.random() < probeFreq) {
+                const probeFrac = effectiveStrength >= 55 ? 0.55 : 0.40; // Bigger with value
+                const betSize = Math.round(potSize * probeFrac);
                 const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
                 return { type: raiseAction.type, amount };
             }
@@ -4971,16 +5106,32 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             // 2. Good draws (>= 8 outs) → semi-bluff barrel
             // 3. Scare card that helps our range → barrel as bluff
             if (effectiveStrength >= 65) {
-                const sizeFrac = isDryBoard ? 0.55 : 0.70;
+                let sizeFrac = isDryBoard ? 0.55 : 0.70;
+                // Against callers → bigger sizing for value extraction
+                if (oppIsSticky && effectiveStrength >= 70) sizeFrac = Math.min(0.80, sizeFrac + 0.10);
                 const betSize = Math.round(potSize * sizeFrac);
                 const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
                 return { type: raiseAction.type, amount };
             }
             // Semi-bluff barrel with strong draws
-            if (drawEquity.outs >= 8 && Math.random() < (0.45 + aggressionBias / 30) * multiway.bluffReduction) {
-                const betSize = Math.round(potSize * 0.55);
-                const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
-                return { type: raiseAction.type, amount };
+            if (drawEquity.outs >= 8) {
+                let barrelFreq = (0.45 + aggressionBias / 30) * multiway.bluffReduction;
+                // Against over-folders, barrel more aggressively
+                if (oppOverfolds) barrelFreq = Math.min(0.75, barrelFreq + 0.15);
+                if (Math.random() < barrelFreq) {
+                    const betSize = Math.round(potSize * 0.55);
+                    const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                    return { type: raiseAction.type, amount };
+                }
+            }
+            // ═══ BLUFF BARREL (new) — Bet turn with nothing when card favors our range ═══
+            if (effectiveStrength < 25 && !oppIsSticky && Math.random() < 0.18 * multiway.bluffReduction) {
+                // Only bluff-barrel on good runout cards (overcards, board pairs)
+                if (boardIsLow || boardIsPaired) {
+                    const betSize = Math.round(potSize * 0.55);
+                    const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
+                    return { type: raiseAction.type, amount };
+                }
             }
         }
 
@@ -5003,7 +5154,9 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             if (boardIsMonotone && !handEval.hasFlushDraw) {
                 return { type: 'check' }; // Don't bluff into monotone without flush draw
             }
-            const semiBluffFreq = 0.45 + aggressionBias / 30;
+            let semiBluffFreq = 0.45 + aggressionBias / 30;
+            // Against sticky opponents, semi-bluff less (they call anyway)
+            if (oppIsSticky) semiBluffFreq *= 0.70;
             if (canRaise && Math.random() < semiBluffFreq * multiway.bluffReduction) {
                 // Larger semi-bluff on wet boards (deny equity), smaller on dry
                 const sizeFrac = isWetBoard ? 0.66 : 0.45;
@@ -5015,7 +5168,8 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
         // Medium hands: bet on dry boards (range advantage)
         if (effectiveStrength >= 40 && isDryBoard && canRaise) {
-            const aggressionChance = 0.35 + aggressionBias / 50;
+            let aggressionChance = 0.35 + aggressionBias / 50;
+            if (oppOverfolds) aggressionChance += 0.12; // Print money vs folders
             if (Math.random() < aggressionChance * multiway.bluffReduction) {
                 const betSize = Math.round(potSize * 0.33);
                 const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
@@ -5068,13 +5222,18 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
     // Drawing hands: use equity math (#29)
     if (drawEquity.outs > 0 && drawEquity.shouldCall(potOdds)) {
-        // ═══ UPGRADED: Semi-bluff raise with 12+ outs ═══
-        if (canRaise && drawEquity.outs >= 12 && Math.random() < 0.35 * multiway.bluffReduction) {
+        // ═══ UPGRADED: Semi-bluff raise with 12+ outs or nut draws ═══
+        if (canRaise && (drawEquity.outs >= 12 || drawEquity.isNutDraw) && Math.random() < 0.35 * multiway.bluffReduction) {
             // Big draws (combo draws) should raise to deny equity + build pot
             const raiseSize = Math.round(toCall * 2.5);
             const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
             return { type: raiseAction.type, amount };
         }
+        if (canCall) return { type: 'call' };
+    }
+
+    // ═══ IMPLIED ODDS DRAWS (new) — Call with strong draws even without direct odds ═══
+    if (drawEquity.outs >= 9 && drawEquity.shouldCallWithImplied && drawEquity.shouldCallWithImplied(potOdds, stackBB)) {
         if (canCall) return { type: 'call' };
     }
 
@@ -5091,7 +5250,10 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     // ═══ UPGRADED: Float in position with marginal equity ═══
     // IP floating is a valid strategy — call flop bets light to take away turn/river
     if (isIP && street === 'flop' && effectiveStrength >= 20 && potOdds < 0.22 && numPlayers <= 3) {
-        if (canCall && Math.random() < 0.25 + aggressionBias / 50) {
+        let floatFreq = 0.25 + aggressionBias / 50;
+        // Float more against passive opponents who give up on the turn
+        if (oppIsPassive) floatFreq += 0.12;
+        if (canCall && Math.random() < floatFreq) {
             return { type: 'call' }; // Float flop IP
         }
     }
@@ -6275,25 +6437,43 @@ function getCBetStrategy(wasPreAggressor, isInPosition, boardWetness, numPlayers
  * @returns {{ should3Bet: boolean, size3Bet: number, isBluff3Bet: boolean }}
  */
 function get3BetStrategy(position, handStrength, facingRaise, bb, stackBB) {
-    // 3-bet value range (premium hands)
-    const value3BetThreshold = { BTN: 80, CO: 82, HJ: 85, MP: 88, UTG: 90, SB: 78, BB: 76 };
+    // 3-bet value range (premium hands) — tighter in EP, wider in LP
+    const value3BetThreshold = { BTN: 78, CO: 80, HJ: 84, MP: 87, UTG: 90, SB: 76, BB: 74 };
     const bluff3BetThreshold = { BTN: 35, CO: 40, HJ: 45, MP: 50, UTG: 55, SB: 38, BB: 35 };
 
     const valueThreshold = value3BetThreshold[position] || 85;
     const bluffFloor = bluff3BetThreshold[position] || 45;
 
+    // ═══ 3-BET SIZING — IP vs OOP ═══
+    // In position: 3-bet to ~3x the raise (smaller, keeps pot manageable)
+    // Out of position: 3-bet to ~3.5x-4x (larger, compensate for OOP disadvantage)
+    const ipPositions = new Set(['BTN', 'CO', 'HJ']);
+    const isIP = ipPositions.has(position);
+    const baseMult = isIP ? 3.0 : 3.5;
+
+    // ═══ SHORT-STACK 3-BET JAM ═══
+    // With <25 BB, 3-bet should be all-in (no point making it small)
+    if (stackBB <= 25 && handStrength >= valueThreshold) {
+        return { should3Bet: true, size3Bet: stackBB * bb, isBluff3Bet: false, isJam: true };
+    }
+
     // Value 3-bet
     if (handStrength >= valueThreshold) {
-        const size = Math.round(facingRaise * 3.2);
+        const size = Math.round(facingRaise * (baseMult + Math.random() * 0.3)); // +/- 0.3x noise
         return { should3Bet: true, size3Bet: size, isBluff3Bet: false };
     }
 
-    // Bluff 3-bet range (hands just below calling range — fold equity play)
+    // ═══ LIGHT 3-BET (bluff) — fold equity play ═══
+    // Hands just below calling range that have good blocker/equity properties
     if (handStrength >= bluffFloor - 10 && handStrength < bluffFloor) {
-        // Only bluff 3-bet with enough stack
-        if (stackBB >= 40 && Math.random() < 0.25) {
-            const size = Math.round(facingRaise * 3);
-            return { should3Bet: true, size3Bet: size, isBluff3Bet: true };
+        // Only bluff 3-bet with enough stack and not too deep (keeps SPR manageable)
+        if (stackBB >= 35 && stackBB <= 120) {
+            // Higher frequency from BTN/SB (these positions face wider opens)
+            const bluff3BetFreq = isIP ? 0.20 : (position === 'SB' ? 0.28 : 0.15);
+            if (Math.random() < bluff3BetFreq) {
+                const size = Math.round(facingRaise * baseMult);
+                return { should3Bet: true, size3Bet: size, isBluff3Bet: true };
+            }
         }
     }
 
@@ -6312,9 +6492,27 @@ function getDrawEquity(handEval, street) {
 
     if (handEval.hasFlushDraw) outs += 9;  // 9 outs for flush draw
     if (handEval.hasOESD) outs += 8;        // 8 outs for OESD
-    if (handEval.hasGutshot) outs += 4;     // 4 outs for gutshot
-    // Reduce for overlap (flush draw + OESD share some outs)
+    if (handEval.hasGutshot && !handEval.hasOESD) outs += 4;  // 4 outs for gutshot (only if not already OESD)
+    // Reduce for overlap (flush draw + OESD share some outs — ~2 cards can complete both)
     if (handEval.hasFlushDraw && handEval.hasOESD) outs -= 2;
+    if (handEval.hasFlushDraw && handEval.hasGutshot && !handEval.hasOESD) outs -= 1;
+
+    // ═══ BACKDOOR DRAW OUTS (new) ═══
+    // Backdoor flush draw on flop = ~1.5 effective outs (3 runner-runner combos)
+    // Only count on flop since backdoors need 2 cards
+    if (handEval.hasBackdoorFlush && street === 'flop' && !handEval.hasFlushDraw) {
+        outs += 1.5; // ~4.2% additional equity
+    }
+
+    // ═══ MADE HAND + DRAW: Add improvement outs ═══
+    // Top pair can improve to two pair (3 outs) or trips (2 outs)
+    if (handEval.category === 'top_pair' || handEval.category === 'overpair') {
+        outs += 2; // Improvement outs (set or better)
+    }
+    // Second/third pair can improve to two pair or trips
+    if (handEval.category === 'second_pair' || handEval.category === 'third_pair') {
+        outs += 2;
+    }
 
     // Approximate equity: outs × multiplier
     // Flop (2 cards to come): outs × 4 - (outs - 8) = rough %
@@ -6328,10 +6526,28 @@ function getDrawEquity(handEval, street) {
         equity = 0; // No more cards — no draw equity
     }
 
+    // ═══ NUT DRAW PREMIUM ═══
+    // Nut flush draws and nut straight draws are worth more because they win bigger pots
+    const isNutDraw = handEval.hasFlushDraw && handEval.category !== 'flush'; // Will be nut flush
+    const nutPremium = isNutDraw ? 0.03 : 0; // ~3% implied odds premium for nut draws
+
     return {
-        equity: equity / 100,
-        outs,
-        shouldCall: (potOdds) => (equity / 100) >= potOdds
+        equity: Math.min(0.65, equity / 100 + nutPremium),
+        outs: Math.round(outs * 10) / 10, // Round to 1 decimal
+        isNutDraw,
+        shouldCall: (potOdds) => (equity / 100 + nutPremium) >= potOdds,
+        // ═══ IMPLIED ODDS ADJUSTED CALL (new) ═══
+        // For nut draws and big draws, calling is profitable even when direct odds are short
+        shouldCallWithImplied: (potOdds, stackBB) => {
+            const directOK = (equity / 100 + nutPremium) >= potOdds;
+            if (directOK) return true;
+            // Implied odds: if we're deep enough and the draw is strong, we get paid on later streets
+            if (stackBB >= 40 && outs >= 9) {
+                const impliedMultiplier = isNutDraw ? 1.35 : 1.20; // Nut draws get bigger implied odds
+                return (equity / 100 * impliedMultiplier + nutPremium) >= potOdds;
+            }
+            return false;
+        }
     };
 }
 
@@ -7131,6 +7347,38 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             if (potOdds >= 0.20) {
                 finalAction = 'fold';
                 finalAmount = null;
+            }
+        }
+
+        // ═══ GUARDRAIL: NEVER FOLD THE NUTS ═══
+        // Safety check: if we have a very strong hand (set+, flush+, straight+) never fold
+        if (finalAction === 'fold' && handEval.strength >= 75) {
+            console.log(`[HorseBrain] 🛡️ GUARDRAIL: Preventing fold with strength=${handEval.strength} (${handEval.category})`);
+            finalAction = 'call';
+            finalAmount = null;
+        }
+
+        // ═══ GUARDRAIL: DON'T RAISE WITH GARBAGE ═══
+        // Safety check: if we have nothing and the decision says raise, don't unless it's a valid bluff
+        if ((finalAction === 'raise' || finalAction === 'bet') && handEval.strength < 15 && drawEq.outs < 6) {
+            // Only allow bluffs at a capped frequency — never raise junk by accident
+            if (Math.random() > 0.25) { // 75% of the time, convert garbage raises to checks
+                finalAction = facingBet ? 'fold' : 'check';
+                finalAmount = null;
+            }
+        }
+
+        // ═══ GUARDRAIL: STREET-AWARE SIZING BOUNDS ═══
+        // Ensure bet/raise amounts are sane relative to the pot
+        if (finalAmount && (finalAction === 'raise' || finalAction === 'bet')) {
+            const guardRaiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+            const minSensible = Math.round(potSize * 0.20); // Never bet less than 20% pot
+            const maxSensible = Math.round(potSize * 2.50); // Never bet more than 250% pot (overbet limit)
+            if (finalAmount < minSensible && guardRaiseAction) {
+                finalAmount = Math.max(guardRaiseAction.minAmount || 1, minSensible);
+            }
+            if (finalAmount > maxSensible && guardRaiseAction) {
+                finalAmount = Math.min(guardRaiseAction.maxAmount || maxSensible, maxSensible);
             }
         }
 
