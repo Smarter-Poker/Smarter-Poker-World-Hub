@@ -1141,8 +1141,8 @@ export default function PokerNearMePage() {
             // GPS takes priority — clear any saved city selection
             localStorage.removeItem('pnm_last_selected_city');
         } catch (e) { /* storage full */ }
-        // Re-fetch location-dependent data (daily tournaments); venues handled by userLocation useEffect
-        setTimeout(() => { fetchAllData({ includeVenues: false }); }, 0);
+        // Re-fetch location-dependent data (daily tournaments, tours); venues handled by userLocation useEffect
+        setTimeout(() => { fetchAllData({ includeVenues: false, overrideLocation: loc }); }, 0);
         // Resolve city/state asynchronously and persist label
         reverseGeocode(loc.lat, loc.lng).then(label => {
             if (label) {
@@ -1250,9 +1250,9 @@ export default function PokerNearMePage() {
         replayTutorial,
     });
 
-    const fetchAllData = async ({ includeVenues = false, silent = false } = {}) => {
+    const fetchAllData = async ({ includeVenues = false, silent = false, overrideLocation = null } = {}) => {
         if (!silent) setLoading(true);
-        const fetches = [fetchTours(), fetchSeries(), fetchDailyTournaments()];
+        const fetches = [fetchTours(overrideLocation), fetchSeries(), fetchDailyTournaments()];
         if (includeVenues) {
             fetches.push(fetchVenues({ silent }));
         }
@@ -1324,8 +1324,9 @@ export default function PokerNearMePage() {
         if (!silent) setVenueLoading(false);
     };
 
-    const fetchTours = async () => {
+    const fetchTours = async (overrideLocation = null) => {
         try {
+            const loc = overrideLocation || userLocation;
             const params = new URLSearchParams({ include_series: 'true', limit: '999' });
             if (filters.tourType !== 'all') {
                 params.set('type', filters.tourType);
@@ -1335,9 +1336,9 @@ export default function PokerNearMePage() {
             }
             
             // Add location for distance-based sorting on the backend
-            if (userLocation) {
-                params.set('lat', userLocation.lat.toString());
-                params.set('lng', userLocation.lng.toString());
+            if (loc) {
+                params.set('lat', loc.lat.toString());
+                params.set('lng', loc.lng.toString());
             } else if (selectedCity && selectedCity.latitude && selectedCity.longitude) {
                 params.set('lat', selectedCity.latitude.toString());
                 params.set('lng', selectedCity.longitude.toString());

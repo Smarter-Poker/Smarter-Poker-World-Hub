@@ -49,6 +49,10 @@ export default function MapTabPanel({
     }
 
     // Apply sidebar filters
+    if (filters.venueType && filters.venueType !== 'all') {
+        filteredVenues = filteredVenues.filter(v => v.venue_type === filters.venueType || (filters.venueType === 'tour_stop' && v.venue_type === 'poker_tour') || (filters.venueType === 'card_room' && v.venue_type === 'poker_club'));
+    }
+
     if (filters.gameType === 'cash') {
         filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
     } else if (filters.gameType === 'mtt') {
@@ -191,6 +195,22 @@ export default function MapTabPanel({
                             <option value={250}>250 Mi</option>
                             <option value={500}>500 Mi</option>
                             <option value="Any">Any</option>
+                        </select>
+                    </div>
+
+                    {/* Venue Type */}
+                    <div className="sidebar-filter-group">
+                        <label className="sidebar-label">Venue Type</label>
+                        <select
+                            value={filters.venueType}
+                            onChange={e => setFilters(p => ({ ...p, venueType: e.target.value }))}
+                            className="sidebar-select"
+                        >
+                            <option value="all">All Locations</option>
+                            <option value="casino">Casino</option>
+                            <option value="card_room">Card Room / Poker Club</option>
+                            <option value="charity">Charity Room</option>
+                            <option value="tour_stop">Poker Tour</option>
                         </select>
                     </div>
 

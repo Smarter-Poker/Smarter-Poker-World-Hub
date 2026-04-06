@@ -4,299 +4,299 @@
     "state": "IL",
     "type": "operator",
     "url": "https://chicagocharitablegames.com",
-    "last_scraped": "2026-04-06T20:24:28.887597+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085711+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://rcgpoker.com": {
     "org_name": "Rockford Charitable Games (RCG Poker)",
     "state": "IL",
     "type": "operator",
     "url": "https://rcgpoker.com",
-    "last_scraped": "2026-04-06T20:24:28.887607+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085716+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://windycity.poker": {
     "org_name": "Windy City Poker Championship",
     "state": "IL",
     "type": "operator",
     "url": "https://windycity.poker",
-    "last_scraped": "2026-04-06T20:24:28.887609+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085718+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://centralillinoischaritablegames.com": {
     "org_name": "Central Illinois Charitable Games (CICG Poker)",
     "state": "IL",
     "type": "operator",
     "url": "https://centralillinoischaritablegames.com",
-    "last_scraped": "2026-04-06T20:24:28.887611+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085720+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://playpokerchicago.com": {
     "org_name": "Play Poker Chicago",
-    "state": "IL",
-    "type": "operator",
+    "state": "",
+    "type": "",
     "url": "https://playpokerchicago.com",
-    "last_scraped": "2026-04-06T20:24:28.887612+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
-    "last_http_status": 200,
-    "scrape_count": 1
+    "last_scraped": "2026-04-06T20:59:14.085721+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
+    "last_http_status": 422,
+    "scrape_count": 2
   },
   "https://chicagopokerclub.net": {
     "org_name": "Chicagoland Poker",
     "state": "IL",
     "type": "operator",
     "url": "https://chicagopokerclub.net",
-    "last_scraped": "2026-04-06T20:24:28.887614+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085723+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://e3games.org": {
     "org_name": "E3 Gaming \u2014 Westgate Poker Room",
     "state": "",
     "type": "",
     "url": "https://e3games.org",
-    "last_scraped": "2026-04-06T20:24:28.887615+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085724+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": null,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://monroeboatclub.org": {
     "org_name": "Monroe Boat Club (MBC-A Charity Poker)",
     "state": "MI",
     "type": "operator",
     "url": "https://monroeboatclub.org",
-    "last_scraped": "2026-04-06T20:24:28.887617+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085725+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://micga.org": {
     "org_name": "Michigan Charitable Gaming Association",
     "state": "MI",
     "type": "directory",
     "url": "https://micga.org",
-    "last_scraped": "2026-04-06T20:24:28.887618+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085727+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://bigstackpokerclub.com": {
     "org_name": "Big Stack Poker Club",
     "state": "OH",
     "type": "operator",
     "url": "https://bigstackpokerclub.com",
-    "last_scraped": "2026-04-06T20:24:28.887619+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085728+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://sharktankpokerclub.com": {
     "org_name": "Shark Tank Poker Club",
     "state": "OH",
     "type": "operator",
     "url": "https://sharktankpokerclub.com",
-    "last_scraped": "2026-04-06T20:24:28.887621+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085729+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://thereservepoker.com": {
     "org_name": "The Reserve Poker Club",
     "state": "OH",
     "type": "operator",
     "url": "https://thereservepoker.com",
-    "last_scraped": "2026-04-06T20:24:28.887622+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085731+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://riverroompoker.com": {
     "org_name": "River Room Players Club",
     "state": "OH",
     "type": "operator",
     "url": "https://riverroompoker.com",
-    "last_scraped": "2026-04-06T20:24:28.887623+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085732+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://lionspoker.org": {
     "org_name": "Westfield Lions Club Poker",
     "state": "IN",
     "type": "operator",
     "url": "https://lionspoker.org",
-    "last_scraped": "2026-04-06T20:24:28.887625+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085733+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://opsocialclub.com": {
     "org_name": "OP Social Club / Outlaw Poker",
     "state": "IN",
     "type": "operator",
     "url": "https://opsocialclub.com",
-    "last_scraped": "2026-04-06T20:24:28.887626+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085734+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://queensclubinc.org": {
     "org_name": "Queens Club Inc.",
     "state": "NC",
     "type": "operator",
     "url": "https://queensclubinc.org",
-    "last_scraped": "2026-04-06T20:24:28.887627+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085736+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://highstaxpoker.net": {
     "org_name": "High Stax Poker",
     "state": "NC",
     "type": "operator",
     "url": "https://highstaxpoker.net",
-    "last_scraped": "2026-04-06T20:24:28.887628+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085737+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://kontenderspoker.com": {
     "org_name": "Kontenders Poker League",
     "state": "NC",
     "type": "operator",
     "url": "https://kontenderspoker.com",
-    "last_scraped": "2026-04-06T20:24:28.887630+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085738+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://concordnhcasino.com": {
     "org_name": "Concord Casino",
     "state": "NH",
     "type": "venue",
     "url": "https://concordnhcasino.com",
-    "last_scraped": "2026-04-06T20:24:28.887631+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085740+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://thegatecitycasino.com": {
     "org_name": "Gate City Casino",
     "state": "NH",
     "type": "venue",
     "url": "https://thegatecitycasino.com",
-    "last_scraped": "2026-04-06T20:24:28.887632+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085741+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://popspoker.com": {
     "org_name": "Pop's Poker",
     "state": "VA",
     "type": "operator",
     "url": "https://popspoker.com",
-    "last_scraped": "2026-04-06T20:24:28.887633+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085742+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://rvacharitypoker.org": {
     "org_name": "RVA Charity Poker",
     "state": "VA",
     "type": "operator",
     "url": "https://rvacharitypoker.org",
-    "last_scraped": "2026-04-06T20:24:28.887634+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085744+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://evloscharitypoker.com": {
     "org_name": "Evlos Charity Poker",
     "state": "MD",
     "type": "operator",
     "url": "https://evloscharitypoker.com",
-    "last_scraped": "2026-04-06T20:24:28.887636+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085745+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://acescharitypoker.org": {
     "org_name": "ACES Charity Poker",
     "state": "GA",
     "type": "operator",
     "url": "https://acescharitypoker.org",
-    "last_scraped": "2026-04-06T20:24:28.887637+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085746+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://texascardhouse.com": {
     "org_name": "Texas Card House Austin",
     "state": "TX",
     "type": "venue",
     "url": "https://texascardhouse.com",
-    "last_scraped": "2026-04-06T20:24:28.887638+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085748+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://thelodgeatx.com": {
     "org_name": "The Lodge Card Club",
     "state": "",
     "type": "",
     "url": "https://thelodgeatx.com",
-    "last_scraped": "2026-04-06T20:24:28.887640+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085749+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": null,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://tgtpoker.com": {
     "org_name": "TGT Poker & Racebook",
     "state": "FL",
     "type": "venue",
     "url": "https://tgtpoker.com",
-    "last_scraped": "2026-04-06T20:24:28.887641+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085750+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://charityseriesofpoker.org": {
     "org_name": "Charity Series of Poker (CSOP)",
     "state": "MULTI",
     "type": "operator",
     "url": "https://charityseriesofpoker.org",
-    "last_scraped": "2026-04-06T20:24:28.887642+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085751+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://pokerforgood.org": {
     "org_name": "Poker For Good",
     "state": "MULTI",
     "type": "operator",
     "url": "https://pokerforgood.org",
-    "last_scraped": "2026-04-06T20:24:28.887643+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085753+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": 200,
-    "scrape_count": 1
+    "scrape_count": 2
   },
   "https://www.pokeratlas.com/poker-room/westgate-poker-room-comstock-park": {
     "org_name": "Westgate Poker Room",
     "state": "MI",
     "type": "pokeratlas_room",
     "url": "https://www.pokeratlas.com/poker-room/westgate-poker-room-comstock-park",
-    "last_scraped": "2026-04-06T20:24:28.887645+00:00",
-    "last_batch_id": "1f797e73-3064-4cf9-a817-fa44e4bb1d91",
+    "last_scraped": "2026-04-06T20:59:14.085754+00:00",
+    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": null,
-    "scrape_count": 1
+    "scrape_count": 2
   }
 }
