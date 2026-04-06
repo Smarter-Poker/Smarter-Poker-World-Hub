@@ -1514,7 +1514,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
 
             <Avatar
                 src={otherUser?.avatar_url}
-                name={otherUser?.username || otherUser?.name}
+                name={otherUser?.username || otherUser?.display_name || otherUser?.full_name || otherUser?.name}
                 size={56}
                 online={isOtherOnline}
             />
@@ -1535,7 +1535,7 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
                             <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z" />
                         </svg>
                     )}
-                    {otherUser?.username || otherUser?.name || 'Unknown'}
+                    {otherUser?.username || otherUser?.display_name || otherUser?.full_name || otherUser?.name || 'Unknown'}
                 </div>
                 <div style={{
                     fontSize: 13,
@@ -2590,7 +2590,7 @@ function MessengerPage() {
             // Batch 1: All other participants across all conversations
             const { data: allParticipants } = await supabase
                 .from('social_conversation_participants')
-                .select('conversation_id, user_id, profiles(id, username, avatar_url, is_vip)')
+                .select('conversation_id, user_id, profiles(id, username, display_name, full_name, avatar_url, is_vip)')
                 .in('conversation_id', conversationIds)
                 .neq('user_id', userId);
 
@@ -4003,7 +4003,7 @@ function MessengerPage() {
                                 >
                                     <Avatar src={conv.otherUser?.avatar_url} name={conv.otherUser?.username} size={36} />
                                     <div>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.username || conv.otherUser?.full_name}</div>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{conv.otherUser?.username || conv.otherUser?.display_name || conv.otherUser?.full_name}</div>
                                     </div>
                                 </button>
                             ))}
@@ -4580,8 +4580,9 @@ function MessengerPage() {
                                     if (!searchQuery) return true;
                                     const q = searchQuery.toLowerCase();
                                     const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
+                                    const otherDisplayName = conv.otherUser?.display_name?.toLowerCase() || '';
                                     const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
-                                    return otherName.includes(q) || otherUsername.includes(q);
+                                    return otherName.includes(q) || otherDisplayName.includes(q) || otherUsername.includes(q);
                                 }).sort((a, b) => {
                                     // Pinned conversations always sort to top (using localStorage-backed state)
                                     const aPinned = pinnedConvoIds.includes(a.id);
