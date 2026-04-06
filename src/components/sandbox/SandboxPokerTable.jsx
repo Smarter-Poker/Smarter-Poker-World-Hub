@@ -221,7 +221,7 @@ export default function SandboxPokerTable({
 
             {/* Center info on the table felt */}
             <div style={{
-                position: 'absolute', top: '50%', left: '50%',
+                position: 'absolute', top: '56%', left: '50%',
                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
             }}>
                 {/* Pot Display */}

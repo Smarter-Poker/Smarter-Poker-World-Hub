@@ -529,6 +529,16 @@ export default function PokerToursPage() {
 
             let venueMatch = findVenueCoords(stop);
 
+            // Best fix: If findVenueCoords failed but the API already provided exact coordinates for the tour, use them!
+            if (!venueMatch && tour.latitude && tour.longitude) {
+                venueMatch = {
+                    latitude: tour.latitude,
+                    longitude: tour.longitude,
+                    city: stop.city || (tour.city || (tour.headquarters || '').split(',')[0]?.trim() || ''),
+                    state: stop.state || (tour.state || (tour.headquarters || '').split(',')[1]?.trim() || '')
+                };
+            }
+
             // Ultimate fallback if findVenueCoords still failed: manually check CITY_COORDS using headquarters
             if (!venueMatch && tour.headquarters) {
                 const hqKey = tour.headquarters.toLowerCase().trim();
@@ -708,7 +718,13 @@ export default function PokerToursPage() {
             const maxMiles = parseInt(distanceFilter, 10);
             if (!isNaN(maxMiles)) {
                 result = result.filter(t => {
-                    // Check stops_2026 and series_2026 (registry data with venue/location)
+                    // 1. If the API itself provided distance or coordinates directly on the tour, trust it!
+                    if (t.latitude && t.longitude) {
+                        const dist = haversineDistance(userLocation.lat, userLocation.lng, t.latitude, t.longitude);
+                        if (dist <= maxMiles) return true;
+                    }
+
+                    // 2. Check stops_2026 and series_2026 (registry data with venue/location)
                     const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
                     for (const stop of allStops) {
                         const coords = findVenueCoords(stop);
@@ -717,7 +733,7 @@ export default function PokerToursPage() {
                             if (dist <= maxMiles) return true;
                         }
                     }
-                    // Also check upcoming_series (API data) — resolve by venue/name/location
+                    // 3. Also check upcoming_series (API data) — resolve by venue/name/location
                     const upcomingSeries = t.upcoming_series || [];
                     for (const s of upcomingSeries) {
                         const coords = findVenueCoords({

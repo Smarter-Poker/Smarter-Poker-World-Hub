@@ -583,6 +583,61 @@ export const MENU_CONFIGS = {
 
 
 
+    'sandbox': (user, state, handlers) => {
+        const gridItems1 = [
+            { label: `Quiz ${state.quizMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleQuiz },
+            { label: `Coach ${state.coachMode ? 'ON' : 'OFF'}`, onClick: handlers.onToggleCoach },
+            { label: 'Ranges 🎯', onClick: handlers.onRanges },
+            { label: 'Villains 👤', onClick: handlers.onVillains },
+        ];
+        
+        const gridItems2 = [
+            { label: 'Undo', onClick: handlers.onUndo },
+            { label: 'Reset', onClick: handlers.onReset },
+            { label: 'Replay 🎬', onClick: handlers.onReplay },
+        ];
+        
+        if (state.hasResults) {
+            gridItems2.push({ label: 'Results', onClick: handlers.onResults });
+            gridItems2.push({ label: 'Share', onClick: handlers.onShare });
+        }
+        
+        return {
+            menuItems: [
+                createMenuItem.section('Tools'),
+                createMenuItem.grid(gridItems1),
+                createMenuItem.divider(),
+                
+                createMenuItem.section('Actions'),
+                createMenuItem.grid(gridItems2),
+                createMenuItem.divider(),
+                
+                createMenuItem.section('Saves & Lore'),
+                createMenuItem.action(state.saveStatus === 'saving' ? 'Saving...' : state.saveStatus === 'saved' ? 'Saved' : 'Save Session', handlers.onSave, null, false, false),
+                createMenuItem.action('Sessions', handlers.onSessions),
+                createMenuItem.action('Folders', handlers.onFolders),
+                createMenuItem.action(`Log (${state.sessionLogCount || 0})`, handlers.onLog),
+                createMenuItem.action('Templates', handlers.onTemplates),
+                createMenuItem.action('Save Spot', handlers.onSaveSpot),
+                createMenuItem.action('Report', handlers.onReport),
+                createMenuItem.divider(),
+                
+                createMenuItem.section('Pro Features'),
+                createMenuItem.action('⚡ God Mode', handlers.onGodMode),
+                createMenuItem.action('📥 Pro Import', handlers.onProImport),
+                createMenuItem.action('⚙️ Custom Spot', handlers.onCustomSpot),
+                createMenuItem.action('⚡ Drill', handlers.onDrill),
+                createMenuItem.toggle('🌡️ Heatmap', state.showHeatmap, handlers.onToggleHeatmap),
+                createMenuItem.toggle('🔒 Node Locks', state.showNodeLocks, handlers.onToggleNodeLocks),
+                createMenuItem.toggle('🔊 Sound', state.soundEnabled, handlers.onToggleSound),
+            ],
+            bottomLinks: [
+                { label: 'Play Tutorial', icon: MenuIcons.help, onClick: handlers.onPlayTutorial, action: true },
+                { label: 'Hub', href: '/hub' }
+            ]
+        };
+    },
+
     'preflop-charts': (user, state, handlers) => ({
         menuItems: [
             createMenuItem.section('Training Modes'),

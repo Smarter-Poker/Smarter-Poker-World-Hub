@@ -1141,30 +1141,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       {mapReady && (
         <MapPreferenceChooser position="top-right" />
       )}
-      {/* Navigate to Nearest venue button */}
-      {mapReady && nearestVenue && userLocation && (
-        <button
-          className="navigate-nearest-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            openNativeMaps({
-              address: [nearestVenue.address, nearestVenue.name, nearestVenue.city, nearestVenue.state].filter(Boolean).join(' '),
-              lat: parseFloat(nearestVenue.latitude),
-              lng: parseFloat(nearestVenue.longitude),
-              mode: 'directions',
-            });
-          }}
-          title={`Navigate to ${nearestVenue.name}`}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="3 11 22 2 13 21 11 13 3 11" />
-          </svg>
-          <span className="navigate-nearest-text">
-            Nearest: {nearestVenue.name?.length > 20 ? nearestVenue.name.substring(0, 18) + '...' : nearestVenue.name}
-            {nearestVenue._distanceMi != null && ` (${nearestVenue._distanceMi < 1 ? '<1' : nearestVenue._distanceMi.toFixed(1)} mi)`}
-          </span>
-        </button>
-      )}
+
       {/* Visible venue count badge */}
       {mapReady && visibleCount > 0 && (
         <div className="map-venue-count-badge">

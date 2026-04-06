@@ -14903,10 +14903,17 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
         const profile = observer.opponents.get(actorStr);
         profile.lastSeen = Date.now();
 
+        // ═══ Phase 45 FIX: capture pre-action streetAgg BEFORE bet/raise sets it.
+        // probeBetOpportunity and donkBetOpportunity checks need to know if this
+        // is the FIRST aggressive action on the street, but the aggressor tracking
+        // below sets hand.streetAggressors[street] before those checks run. ═══
+        const hand = observer.currentHand || null;
+        const preActionStreetAgg = hand ? (hand.streetAggressors[street] || null) : null;
+
         // ── Record in current-hand model ──
-        if (observer.currentHand) {
-            const hand = observer.currentHand;
+        if (hand) {
             hand.street = street;
+
             if (!hand.playerActions.has(actorStr)) {
                 hand.playerActions.set(actorStr, []);
             }
@@ -15107,10 +15114,11 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
             }
             // ═══ Phase 43 FIX: was counting ALL non-aggressor actions as donk opportunities.
             // A donk opportunity only exists when acting FIRST on a street (bet or check, no prior bet). ═══
+            // ═══ Phase 45 FIX: use preActionStreetAgg instead of hand.streetAggressors[street]
+            // because a 'bet' action sets the aggressor BEFORE this check runs. ═══
             if (!isPFR && !wasLastStreetAggressor && (action === 'bet' || action === 'check')) {
                 // Only count if no one has bet on this street yet (i.e., this is a leading action)
-                const streetAgg = hand ? hand.streetAggressors[street] : null;
-                if (!streetAgg) {
+                if (!preActionStreetAgg) {
                     profile.donkBetOpportunity++;
                 }
             }
@@ -15122,12 +15130,12 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
                     profile.probeBetCount++;
                 }
             }
-            // ═══ Phase 43 FIX: was counting ALL actions as probe opportunities — only count when
-            // acting first on the street (bet or check) with no prior street aggression ═══
+            // ═══ Phase 43+45 FIX: was counting ALL actions as probe opportunities — only count when
+            // acting first on the street (bet or check) with no prior street aggression.
+            // Phase 45: use preActionStreetAgg to avoid race condition where bet sets aggressor first. ═══
             if (hand && (action === 'bet' || action === 'check')) {
                 const prevStreet = street === 'turn' ? 'flop' : street === 'river' ? 'turn' : null;
-                const streetAgg = hand.streetAggressors[street];
-                if (prevStreet && !hand.streetAggressors[prevStreet] && !streetAgg) {
+                if (prevStreet && !hand.streetAggressors[prevStreet] && !preActionStreetAgg) {
                     profile.probeBetOpportunity++;
                 }
             }
