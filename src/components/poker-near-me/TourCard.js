@@ -81,7 +81,11 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                 </svg>
             </button>
             <div className="card-header">
-                <TourBadge tourCode={shortCode} />
+                {tour.logo_url ? (
+                    <img src={tour.logo_url} alt={shortCode} style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.9)', padding: 2, border: '1px solid rgba(255,255,255,0.1)' }} />
+                ) : (
+                    <TourBadge tourCode={shortCode} />
+                )}
                 <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || (isVenueEntry ? 'Tour' : tour.venue_type || tour.tour_type)}</span>
             </div>
             <h4 className="tour-name">{displayName}</h4>
