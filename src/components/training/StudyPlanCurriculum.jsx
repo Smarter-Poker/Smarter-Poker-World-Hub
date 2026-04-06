@@ -122,9 +122,9 @@ export default function StudyPlanCurriculum() {
   // Find recommended next
   const recommended = useMemo(() => {
     for (const level of CURRICULUM) {
-      for (const module of level.modules) {
-        if (progress[module.id] !== 'completed') {
-          return { level, module };
+      for (const mod of level.modules) {
+        if (progress[mod.id] !== 'completed') {
+          return { level, module: mod };
         }
       }
     }
