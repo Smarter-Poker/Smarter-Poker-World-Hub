@@ -1,0 +1,167 @@
+{
+  "timestamp": "2026-04-06T20:20:49Z",
+  "total_checked": 15,
+  "verified_count": 6,
+  "not_found_count": 9,
+  "error_count": 0,
+  "verified": [
+    {
+      "id": 1819,
+      "name": "Resorts World Las Vegas",
+      "state": "NV",
+      "venue_type": "casino",
+      "has_tournaments": true,
+      "evidence": [
+        "tournament_mention"
+      ],
+      "checked_urls": [
+        "https://www.rwlasvegas.com",
+        "https://www.rwlasvegas.com/poker",
+        "https://www.rwlasvegas.com/poker/tournaments",
+        "https://www.rwlasvegas.com/poker-room"
+      ],
+      "source_url": "https://www.rwlasvegas.com/poker-room"
+    },
+    {
+      "id": 1834,
+      "name": "Mohegan Sun",
+      "state": "CT",
+      "venue_type": "casino",
+      "has_tournaments": true,
+      "evidence": [
+        "tournament_mention"
+      ],
+      "checked_urls": [
+        "http://www.mohegansun.com",
+        "http://www.mohegansun.com/poker"
+      ],
+      "source_url": "http://www.mohegansun.com/poker"
+    },
+    {
+      "id": 1835,
+      "name": "Foxwoods Resort Casino",
+      "state": "CT",
+      "venue_type": "casino",
+      "has_tournaments": true,
+      "evidence": [
+        "structure",
+        "satellite"
+      ],
+      "checked_urls": [
+        "http://www.foxwoods.com",
+        "http://www.foxwoods.com/poker"
+      ],
+      "source_url": "http://www.foxwoods.com/poker"
+    },
+    {
+      "id": 1841,
+      "name": "Hard Rock Tulsa",
+      "state": "OK",
+      "venue_type": "casino",
+      "has_tournaments": true,
+      "evidence": [
+        "tournament_mention"
+      ],
+      "checked_urls": [
+        "http://www.hardrockcasinotulsa.com",
+        "http://www.hardrockcasinotulsa.com/poker",
+        "http://www.hardrockcasinotulsa.com/poker/tournaments",
+        "http://www.hardrockcasinotulsa.com/poker-room",
+        "http://www.hardrockcasinotulsa.com/poker-room/tournaments",
+        "http://www.hardrockcasinotulsa.com/tournaments",
+        "http://www.hardrockcasinotulsa.com/poker-tournaments",
+        "http://www.hardrockcasinotulsa.com/promotions"
+      ],
+      "source_url": "http://www.hardrockcasinotulsa.com/promotions"
+    },
+    {
+      "id": 1842,
+      "name": "WinStar World Casino",
+      "state": "OK",
+      "venue_type": "casino",
+      "has_tournaments": true,
+      "evidence": [
+        "tournament_mention"
+      ],
+      "checked_urls": [
+        "https://www.winstar.com",
+        "https://www.winstar.com/poker"
+      ],
+      "source_url": "https://www.winstar.com/poker"
+    },
+    {
+      "id": 1846,
+      "name": "JACK Cleveland Casino",
+      "state": "OH",
+      "venue_type": "casino",
+      "has_tournaments": true,
+      "evidence": [
+        "satellite",
+        "guaranteed",
+        "buyin_mention"
+      ],
+      "checked_urls": [
+        "https://www.jackentertainment.com/cleveland",
+        "https://www.jackentertainment.com/cleveland/poker"
+      ],
+      "source_url": "https://www.jackentertainment.com/cleveland/poker"
+    }
+  ],
+  "not_found": [
+    {
+      "id": 1823,
+      "name": "Graton Resort & Casino",
+      "state": "CA",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1824,
+      "name": "Thunder Valley Casino",
+      "state": "CA",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1833,
+      "name": "Parx Casino",
+      "state": "PA",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1837,
+      "name": "Live! Casino Maryland",
+      "state": "MD",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1838,
+      "name": "Horseshoe Baltimore",
+      "state": "MD",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1844,
+      "name": "Horseshoe Hammond",
+      "state": "IN",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1851,
+      "name": "Beau Rivage",
+      "state": "MS",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1857,
+      "name": "Casino M8trix",
+      "state": "CA",
+      "venue_type": "casino"
+    },
+    {
+      "id": 1866,
+      "name": "Pala Casino Spa Resort",
+      "state": "CA",
+      "venue_type": "casino"
+    }
+  ],
+  "errors": []
+}

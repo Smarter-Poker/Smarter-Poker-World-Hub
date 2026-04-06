@@ -753,7 +753,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       dragging: true,
       tap: true,
       touchZoom: true,
-      scrollWheelZoom: true,
+      scrollWheelZoom: !!fullHeight,
       doubleClickZoom: true,
       boxZoom: true,
     });

@@ -1779,7 +1779,6 @@
 .map-preview-card:not(.map-preview-fullscreen) > div:last-child {
     height: 100% !important;
     min-height: 100% !important;
-    pointer-events: none;
 }
 .map-preview-expand-badge {
     position: absolute;

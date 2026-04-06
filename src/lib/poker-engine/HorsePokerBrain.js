@@ -14015,11 +14015,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 }
             }
         } catch (_) { }
+    }
 
-        // ─── 5c. APPLY TILT DEGRADATION ───
-        // After all overlays have refined the decision, tilt degrades it.
-        // This models realistic mistakes tilted players make: overcalling, spew raises,
-        // overbet jams, oversizing, and giving up. Uses the Advanced module's tilt level.
+    // ─── 5c. APPLY TILT DEGRADATION ───
+    // Phase 47 FIX: Moved OUTSIDE the raise/bet/call gate so tilt affects ALL actions
+    // including check→spew-bet and fold→overcall. Previously gated behind
+    // if(finalAction === raise|bet|call), meaning tilted horses played perfectly on check/fold.
+    // After all overlays have refined the decision, tilt degrades it.
+    // This models realistic mistakes tilted players make: overcalling, spew raises,
+    // overbet jams, oversizing, and giving up. Uses the Advanced module's tilt level.
+    if (finalAction) {
         try {
             const adv = await getAdvancedModule();
             if (adv?.getTiltLevel) {
