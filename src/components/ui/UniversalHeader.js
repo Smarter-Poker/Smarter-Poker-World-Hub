@@ -54,7 +54,8 @@ export default function UniversalHeader({
     onSearchClick = null,
     onMenuClick = null,  // Callback for hamburger menu click
     onSettingsClick = null,  // Override for settings gear — opens page-specific settings instead of global
-    onBackClick = null // Override for back navigation
+    onBackClick = null, // Override for back navigation
+    hideLeftIcon = false // Allows hiding the left icon (e.g. when page has an in-page back button)
 }) {
     const router = useRouter();
 
@@ -897,16 +898,18 @@ export default function UniversalHeader({
                             <img src="/images/btn-hamburger.png" alt="Menu" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         </button>
                     )}
-                    <button
-                        onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => router.push('/hub'))}
-                        className="header-img-btn header-nav-btn"
-                    >
-                        <img
-                            src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub.png'}
-                            alt={pageDepth >= 2 ? 'Back' : 'Hub'}
-                            style={{ height: '100%', width: '100%', objectFit: 'contain' }}
-                        />
-                    </button>
+                    {!hideLeftIcon && (
+                        <button
+                            onClick={onBackClick ? onBackClick : (pageDepth >= 2 ? handleBack : () => router.push('/hub'))}
+                            className="header-img-btn header-nav-btn"
+                        >
+                            <img
+                                src={pageDepth >= 2 ? '/images/btn-back.png' : '/images/btn-hub.png'}
+                                alt={pageDepth >= 2 ? 'Back' : 'Hub'}
+                                style={{ height: '100%', width: '100%', objectFit: 'contain' }}
+                            />
+                        </button>
+                    )}
                 </div>
 
                 {/* CENTER: Brand Text — centered between nav and icons */}
