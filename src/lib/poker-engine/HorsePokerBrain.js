@@ -17730,6 +17730,9 @@ module.exports = {
     getRiverStrategy,
     getDeepStackAdjustment,
     getOptimalBetSize,
+    getGeometricSizing,
+    handleDonkBet,
+    applyTiltDegradation,
     shouldAutoSeat,
 
     // Phase 5: Analytics & Meta-Game

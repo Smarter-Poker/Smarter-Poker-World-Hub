@@ -581,6 +581,258 @@ test('weak hand rarely check-raises', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ getOptimalBetSize ══');
+// ═══════════════════════════════════════════════════════════
+
+const gobs = brain.getOptimalBetSize;
+
+test('nutted hand sizes big', () => {
+    const r = gobs('quads', 'river', 100, false, { handStrength: 95, stackBB: 100 });
+    expect(r).toBeGreaterThan(0.80);
+});
+
+test('bluff sizing on river is large', () => {
+    const r = gobs('high_card', 'river', 100, true, { handStrength: 10, stackBB: 100 });
+    expect(r).toBeGreaterThan(0.60);
+});
+
+test('merged range on wet flop capped', () => {
+    const r = gobs('top_pair', 'flop', 100, false, {
+        handStrength: 50, boardWetness: 'wet', stackBB: 100, isInPosition: false, numPlayers: 3
+    });
+    // Should be between 0.20 and 2.0
+    expect(r).toBeGreaterThanOrEqual(0.20);
+    expect(r).toBeLessThanOrEqual(2.0);
+});
+
+test('dry board sizes smaller than wet board', () => {
+    const dry = gobs('top_pair', 'flop', 100, false, {
+        handStrength: 55, boardWetness: 'dry', stackBB: 100
+    });
+    const wet = gobs('top_pair', 'flop', 100, false, {
+        handStrength: 55, boardWetness: 'wet', stackBB: 100
+    });
+    expect(dry).toBeLessThan(wet);
+});
+
+test('calling station gets larger value bets', () => {
+    const balanced = gobs('set', 'flop', 100, false, {
+        handStrength: 80, oppTendency: 'balanced', oppConfidence: 0.5, stackBB: 100
+    });
+    const station = gobs('set', 'flop', 100, false, {
+        handStrength: 80, oppTendency: 'calling-station', oppConfidence: 0.5, stackBB: 100
+    });
+    expect(station).toBeGreaterThanOrEqual(balanced);
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ getGeometricSizing ══');
+// ═══════════════════════════════════════════════════════════
+
+const ggs = brain.getGeometricSizing;
+
+test('SPR < 2 jams', () => {
+    const r = ggs(100, 150, 2, true);
+    expect(r.isJammable).toBe(true);
+    expect(r.sizeFraction).toBe(999);
+});
+
+test('3 streets remaining gives reasonable sizing', () => {
+    const r = ggs(20, 200, 3, true);
+    // Should plan to get 200 chips in over 3 streets starting with 20 pot
+    expect(r.sizeFraction).toBeGreaterThan(0.25);
+    expect(r.sizeFraction).toBeLessThanOrEqual(1.50);
+    expect(r.projectedPotByStreet.length).toBe(3);
+});
+
+test('not targeting all-in gives standard sizing', () => {
+    const r = ggs(20, 200, 2, false);
+    expect(r.isJammable).toBe(false);
+    expect(r.sizeFraction).toBeLessThanOrEqual(0.66);
+});
+
+test('zero streets returns default', () => {
+    const r = ggs(100, 200, 0, true);
+    expect(r.sizeFraction).toBe(0.66);
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ handleDonkBet ══');
+// ═══════════════════════════════════════════════════════════
+
+const hdb = brain.handleDonkBet;
+
+test('returns null when not a donk scenario', () => {
+    const r = hdb({ heroIsAggressor: false, street: 'flop', facingBet: true, handStrength: 60 });
+    expect(r).toBeNull();
+});
+
+test('returns null on preflop', () => {
+    const r = hdb({ heroIsAggressor: true, street: 'preflop', facingBet: true, handStrength: 60 });
+    expect(r).toBeNull();
+});
+
+test('returns null on river', () => {
+    const r = hdb({ heroIsAggressor: true, street: 'river', facingBet: true, handStrength: 60 });
+    expect(r).toBeNull();
+});
+
+test('strong hand vs donk produces raise or call', () => {
+    // Run multiple times since it's probabilistic
+    let actions = new Set();
+    for (let i = 0; i < 50; i++) {
+        const r = hdb({
+            heroIsAggressor: true, street: 'flop', facingBet: true,
+            handStrength: 80, handCategory: 'set', drawOuts: 0,
+            position: 'BTN', potSize: 20, toCall: 8, bb: 2,
+            canRaise: true, canCall: true, raiseAction: { type: 'raise', minAmount: 16, maxAmount: 100 },
+            aggressionBias: 5, oppTendency: 'balanced', oppConfidence: 0,
+            oppCallFreq: 0.50, boardWetness: 'medium', numPlayers: 2
+        });
+        if (r) actions.add(r.type);
+    }
+    // Should produce at least raise or call
+    if (actions.size === 0) throw new Error('handleDonkBet returned null for every strong hand trial');
+    if (actions.has('fold')) throw new Error('handleDonkBet folded a strong hand');
+});
+
+test('medium hand calls small donk', () => {
+    const r = hdb({
+        heroIsAggressor: true, street: 'flop', facingBet: true,
+        handStrength: 40, handCategory: 'second_pair', drawOuts: 0,
+        position: 'BTN', potSize: 20, toCall: 5, bb: 2,
+        canRaise: true, canCall: true, raiseAction: { type: 'raise', minAmount: 10, maxAmount: 100 },
+        aggressionBias: 0, oppTendency: 'balanced', oppConfidence: 0,
+        oppCallFreq: 0.50, boardWetness: 'medium', numPlayers: 2
+    });
+    // Should call (hand >= 30)
+    if (!r) throw new Error('handleDonkBet returned null for medium hand');
+    expect(r.type).toBe('call');
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ applyTiltDegradation ══');
+// ═══════════════════════════════════════════════════════════
+
+const atd = brain.applyTiltDegradation;
+
+test('calm player has no tilt effect', () => {
+    const r = atd('fold', null, 0, 30, [{ type: 'fold' }, { type: 'call' }], 20, 0);
+    expect(r.action).toBe('fold');
+    expect(r.wasTilted).toBe(false);
+});
+
+test('low tilt also no effect', () => {
+    const r = atd('call', 10, 1, 50, [{ type: 'call' }, { type: 'fold' }], 20, 0);
+    expect(r.action).toBe('call');
+    expect(r.wasTilted).toBe(false);
+});
+
+test('max tilt causes errors sometimes', () => {
+    let tilted = 0;
+    for (let i = 0; i < 200; i++) {
+        const r = atd('fold', null, 10, 30, [
+            { type: 'fold' }, { type: 'call' }, { type: 'raise', minAmount: 10, maxAmount: 100 }
+        ], 20, 5);
+        if (r.wasTilted) tilted++;
+    }
+    // At tilt=10, errorChance=40%, then 50% chance of overcall = ~20% tilted
+    expect(tilted).toBeGreaterThan(5);  // At least some tilt errors
+    expect(tilted).toBeLessThan(150);   // Not every hand
+});
+
+test('tilt never produces invalid action type', () => {
+    const legal = [
+        { type: 'fold' }, { type: 'call' },
+        { type: 'raise', minAmount: 10, maxAmount: 100 }
+    ];
+    for (let i = 0; i < 200; i++) {
+        const r = atd('fold', null, 10, 40, legal, 20, 5);
+        if (!['fold', 'call', 'raise', 'bet', 'check', 'all_in'].includes(r.action)) {
+            throw new Error(`Invalid tilt action: ${r.action}`);
+        }
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ makeFallbackDecision (preflop) ══');
+// ═══════════════════════════════════════════════════════════
+
+const mfd = brain.makeFallbackDecision;
+
+test('premium hand opens from any position', () => {
+    const legalActions = [
+        { type: 'fold' }, { type: 'call' },
+        { type: 'raise', minAmount: 4, maxAmount: 200 }
+    ];
+    // AA from UTG should always open
+    const r = mfd('test-horse-1', {
+        handStr: 'AA', position: 'UTG', street: 'preflop',
+        potSize: 3, toCall: 2, stackBB: 100, bb: 2,
+        holeCards: ['As', 'Ah'], board: [], numPlayers: 6
+    }, legalActions, { callMod: 0, foldMod: 0 });
+    expect(r.type).toBe('raise');
+});
+
+test('short stack push with decent hand', () => {
+    const legalActions = [
+        { type: 'fold' }, { type: 'call' },
+        { type: 'raise', minAmount: 4, maxAmount: 20 }
+    ];
+    // 6bb stack with decent hand from BTN → should push or fold
+    const r = mfd('test-horse-2', {
+        handStr: 'ATs', position: 'BTN', street: 'preflop',
+        potSize: 3, toCall: 2, stackBB: 6, bb: 2,
+        holeCards: ['Ah', 'Th'], board: [], numPlayers: 6
+    }, legalActions, { callMod: 0, foldMod: 0 });
+    // Should jam (all_in) with ATs at 6bb from BTN
+    expect(r.type).toBe('all_in');
+});
+
+test('trash hand folds from EP', () => {
+    const legalActions = [
+        { type: 'fold' }, { type: 'call' },
+        { type: 'raise', minAmount: 4, maxAmount: 200 }
+    ];
+    const r = mfd('test-horse-3', {
+        handStr: '72o', position: 'UTG', street: 'preflop',
+        potSize: 3, toCall: 2, stackBB: 100, bb: 2,
+        holeCards: ['7h', '2d'], board: [], numPlayers: 6
+    }, legalActions, { callMod: 0, foldMod: 0 });
+    // 72o from UTG should fold or check
+    if (r.type === 'raise') throw new Error('Should not open 72o from UTG');
+});
+
+test('postflop strong hand bets', () => {
+    const legalActions = [
+        { type: 'check' },
+        { type: 'bet', minAmount: 2, maxAmount: 200 }
+    ];
+    // Set on flop, no bet to face → should bet for value
+    const r = mfd('test-horse-4', {
+        handStr: 'TT', position: 'BTN', street: 'flop',
+        potSize: 15, toCall: 0, stackBB: 100, bb: 2,
+        holeCards: ['Th', 'Td'], board: ['Tc', '5d', '2h'],
+        numPlayers: 2, wasAggressor: true
+    }, legalActions, { callMod: 0, foldMod: 0 });
+    expect(r.type).toBe('bet');
+    expect(r.amount).toBeGreaterThan(0);
+});
+
+test('postflop weak hand folds to large bet', () => {
+    const legalActions = [
+        { type: 'fold' }, { type: 'call' }
+    ];
+    const r = mfd('test-horse-5', {
+        handStr: '72o', position: 'BB', street: 'flop',
+        potSize: 30, toCall: 25, stackBB: 80, bb: 2,
+        holeCards: ['7h', '2d'], board: ['Ac', 'Kd', 'Qs'],
+        numPlayers: 2
+    }, legalActions, { callMod: 0, foldMod: 0 });
+    expect(r.type).toBe('fold');
+});
+
+// ═══════════════════════════════════════════════════════════
 // SUMMARY
 // ═══════════════════════════════════════════════════════════
 
