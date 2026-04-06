@@ -94,6 +94,9 @@ export default function PokerToursPage() {
     const [selectedType, setSelectedType] = useState('all');
     const [selectedRegion, setSelectedRegion] = useState('all');
     const [sortBy, setSortBy] = useState('priority');
+    const [dateRange, setDateRange] = useState('all');
+    const searchInputRef = useRef(null);
+    const [searchFocused, setSearchFocused] = useState(false);
     const [favorites, setFavorites] = useState(() => {
         if (typeof window === 'undefined') return {};
         try {
@@ -461,6 +464,22 @@ export default function PokerToursPage() {
         return Array.from(regions).sort();
     }, [tours]);
 
+    // ─── Date range cutoff computation ───
+    const dateRangeCutoff = useMemo(() => {
+        if (dateRange === 'all') return null;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const daysMap = {
+            '7d': 7, '14d': 14, '30d': 30, '60d': 60, '90d': 90,
+            '6m': 180, '1y': 365,
+        };
+        const days = daysMap[dateRange];
+        if (!days) return null;
+        const cutoff = new Date(now);
+        cutoff.setDate(cutoff.getDate() + days);
+        return { start: now, end: cutoff };
+    }, [dateRange]);
+
     // ─── Filtered & sorted tours ───
     const filteredTours = useMemo(() => {
         let result = [...tours];
@@ -479,14 +498,53 @@ export default function PokerToursPage() {
             );
         }
 
-        // Search
+        // Deep search — search across tour name, code, headquarters, AND all stops/venues/locations
         if (searchQuery.trim()) {
             const q = searchQuery.toLowerCase().trim();
-            result = result.filter(t =>
-                (t.tour_name || '').toLowerCase().includes(q) ||
-                (t.tour_code || '').toLowerCase().includes(q) ||
-                (t.headquarters || '').toLowerCase().includes(q)
-            );
+            result = result.filter(t => {
+                // Tour-level fields
+                if ((t.tour_name || '').toLowerCase().includes(q)) return true;
+                if ((t.tour_code || '').toLowerCase().includes(q)) return true;
+                if ((t.headquarters || '').toLowerCase().includes(q)) return true;
+                // Search through all stops and series
+                const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || []), ...(t.upcoming_series || [])];
+                for (const stop of allStops) {
+                    if ((stop.name || '').toLowerCase().includes(q)) return true;
+                    if ((stop.venue || '').toLowerCase().includes(q)) return true;
+                    if ((stop.location || '').toLowerCase().includes(q)) return true;
+                    if ((stop.city || '').toLowerCase().includes(q)) return true;
+                    if ((stop.state || '').toLowerCase().includes(q)) return true;
+                    if ((stop.short_name || '').toLowerCase().includes(q)) return true;
+                    if ((stop.dates || '').toLowerCase().includes(q)) return true;
+                }
+                // Search regions
+                if ((t.regions || []).some(r => r.toLowerCase().includes(q))) return true;
+                return false;
+            });
+        }
+
+        // Date range filter — keep tours with at least one stop in range
+        if (dateRangeCutoff) {
+            const { start: rangeStart, end: rangeEnd } = dateRangeCutoff;
+            result = result.filter(t => {
+                const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
+                // Also check upcoming_series (API-provided pre-parsed dates)
+                const upcomingSeries = t.upcoming_series || [];
+                for (const s of upcomingSeries) {
+                    if (s.start_date) {
+                        const sDate = new Date(s.start_date);
+                        const eDate = s.end_date ? new Date(s.end_date) : sDate;
+                        if (eDate >= rangeStart && sDate <= rangeEnd) return true;
+                    }
+                }
+                for (const stop of allStops) {
+                    const dates = parseStopDates(stop.dates);
+                    if (!dates) continue;
+                    // Stop overlaps with range if stop.end >= rangeStart AND stop.start <= rangeEnd
+                    if (dates.end >= rangeStart && dates.start <= rangeEnd) return true;
+                }
+                return false;
+            });
         }
 
         // Sort
@@ -519,7 +577,7 @@ export default function PokerToursPage() {
         }
 
         return result;
-    }, [tours, selectedType, selectedRegion, searchQuery, sortBy, parseStopDates]);
+    }, [tours, selectedType, selectedRegion, searchQuery, sortBy, parseStopDates, dateRangeCutoff]);
 
     // ─── Favorites toggle ───
     const toggleFavorite = useCallback((tourCode, e) => {
@@ -571,6 +629,62 @@ export default function PokerToursPage() {
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER TOURS</h1>
                     <p className="pnm-subtitle">{tours.length} Tours &bull; {availableTypes.length} Types &bull; 2026 Season</p>
+
+                    {/* ═══ MAIN SEARCH BAR — Prominent, PNM-style ═══ */}
+                    <form className="tours-search-bar" onSubmit={e => e.preventDefault()}>
+                        <div className={`tours-search-wrap${searchFocused ? ' focused' : ''}`}>
+                            <svg className="tours-search-bar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                className="tours-search-bar-input"
+                                placeholder="Search Tours, Venues, Cities, States..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                onFocus={() => setSearchFocused(true)}
+                                onBlur={() => setSearchFocused(false)}
+                                autoComplete="off"
+                                aria-label="Search poker tours, venues, and cities"
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    className="tours-search-clear"
+                                    onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+                                    aria-label="Clear search"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    </form>
+
+                    {/* ═══ DATE RANGE FILTER — Pill Row ═══ */}
+                    <div className="tours-date-pills">
+                        {[
+                            { key: 'all', label: 'All Dates' },
+                            { key: '7d', label: 'Next 7 Days' },
+                            { key: '14d', label: 'Next 2 Weeks' },
+                            { key: '30d', label: 'Next 30 Days' },
+                            { key: '60d', label: 'Next 2 Months' },
+                            { key: '90d', label: 'Next 3 Months' },
+                            { key: '6m', label: 'Next 6 Months' },
+                            { key: '1y', label: 'Next Year' },
+                        ].map(opt => (
+                            <button
+                                key={opt.key}
+                                className={`tours-date-pill${dateRange === opt.key ? ' active' : ''}`}
+                                onClick={() => setDateRange(opt.key)}
+                                aria-pressed={dateRange === opt.key}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
@@ -677,16 +791,31 @@ export default function PokerToursPage() {
                         <div className="tours-results-bar">
                             <div className="tours-results-count">
                                 <strong>{filteredTours.length}</strong> {filteredTours.length === 1 ? 'Tour' : 'Tours'} Found
+                                {searchQuery && <span className="tours-results-query"> for "{searchQuery}"</span>}
+                                {dateRange !== 'all' && <span className="tours-results-query"> &bull; {{
+                                    '7d': 'Next 7 Days', '14d': 'Next 2 Weeks', '30d': 'Next 30 Days',
+                                    '60d': 'Next 2 Months', '90d': 'Next 3 Months', '6m': 'Next 6 Months', '1y': 'Next Year'
+                                }[dateRange]}</span>}
                             </div>
-                            <div className="tours-results-sort">
-                                <span>Sort:</span>
-                                <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                                    <option value="priority">Priority</option>
-                                    <option value="date">Next Upcoming Date</option>
-                                    <option value="name">Name A-Z</option>
-                                    <option value="type">Tour Type</option>
-                                    <option value="series">Upcoming Series</option>
-                                </select>
+                            <div className="tours-results-actions">
+                                {(searchQuery || dateRange !== 'all' || selectedType !== 'all' || selectedRegion !== 'all') && (
+                                    <button
+                                        className="tours-clear-all-btn"
+                                        onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); }}
+                                    >
+                                        Clear All Filters
+                                    </button>
+                                )}
+                                <div className="tours-results-sort">
+                                    <span>Sort:</span>
+                                    <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                        <option value="priority">Priority</option>
+                                        <option value="date">Next Upcoming Date</option>
+                                        <option value="name">Name A-Z</option>
+                                        <option value="type">Tour Type</option>
+                                        <option value="series">Upcoming Series</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -935,6 +1064,110 @@ export default function PokerToursPage() {
                         font-weight: 500;
                     }
 
+                    /* ═══ MAIN SEARCH BAR ═══ */
+                    .tours-search-bar {
+                        max-width: 680px;
+                        margin: 16px auto 0;
+                        width: 100%;
+                        padding: 0 16px;
+                    }
+                    .tours-search-wrap {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 0 16px;
+                        height: 52px;
+                        background: rgba(6, 21, 37, 0.7);
+                        backdrop-filter: blur(16px);
+                        -webkit-backdrop-filter: blur(16px);
+                        border: 1.5px solid rgba(212,168,83,0.2);
+                        border-radius: 14px;
+                        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+                    }
+                    .tours-search-wrap.focused {
+                        border-color: rgba(212,168,83,0.5);
+                        box-shadow: 0 0 24px rgba(212,168,83,0.15), 0 4px 20px rgba(0,0,0,0.25);
+                    }
+                    .tours-search-bar-icon {
+                        flex-shrink: 0;
+                        color: rgba(212,168,83,0.5);
+                        transition: color 0.3s;
+                    }
+                    .tours-search-wrap.focused .tours-search-bar-icon {
+                        color: #d4a853;
+                    }
+                    .tours-search-bar-input {
+                        flex: 1;
+                        background: transparent;
+                        border: none;
+                        color: #e2e8f0;
+                        font-size: 15px;
+                        font-family: inherit;
+                        font-weight: 500;
+                        outline: none;
+                        min-width: 0;
+                        letter-spacing: 0.2px;
+                    }
+                    .tours-search-bar-input::placeholder {
+                        color: rgba(148,163,184,0.4);
+                        font-weight: 400;
+                    }
+                    .tours-search-clear {
+                        flex-shrink: 0;
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50%;
+                        border: none;
+                        background: rgba(255,255,255,0.08);
+                        color: rgba(148,163,184,0.6);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .tours-search-clear:hover {
+                        background: rgba(239,68,68,0.15);
+                        color: #ef4444;
+                    }
+
+                    /* ═══ DATE RANGE PILLS ═══ */
+                    .tours-date-pills {
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: center;
+                        gap: 8px;
+                        margin: 14px auto 0;
+                        max-width: 720px;
+                        padding: 0 16px;
+                    }
+                    .tours-date-pill {
+                        padding: 7px 16px;
+                        border-radius: 20px;
+                        border: 1.5px solid rgba(148,163,184,0.15);
+                        background: rgba(0,0,0,0.3);
+                        color: rgba(200,214,229,0.65);
+                        font-size: 12px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+                        white-space: nowrap;
+                        letter-spacing: 0.3px;
+                    }
+                    .tours-date-pill:hover {
+                        border-color: rgba(212,168,83,0.3);
+                        background: rgba(212,168,83,0.06);
+                        color: rgba(212,168,83,0.85);
+                    }
+                    .tours-date-pill.active {
+                        border-color: rgba(212,168,83,0.5);
+                        background: linear-gradient(135deg, rgba(212,168,83,0.15), rgba(184,134,11,0.08));
+                        color: #d4a853;
+                        box-shadow: 0 0 12px rgba(212,168,83,0.1), inset 0 0 8px rgba(212,168,83,0.05);
+                    }
+
                     /* ═══ SIDEBAR + MAIN LAYOUT ═══ */
                     .pnm-layout {
                         display: flex;
@@ -1129,6 +1362,34 @@ export default function PokerToursPage() {
                     .tours-results-count strong {
                         color: #d4a853;
                         font-weight: 800;
+                    }
+                    .tours-results-query {
+                        color: rgba(212,168,83,0.6);
+                        font-style: italic;
+                        font-size: 13px;
+                    }
+                    .tours-results-actions {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .tours-clear-all-btn {
+                        padding: 6px 14px;
+                        border-radius: 6px;
+                        border: 1px solid rgba(239,68,68,0.25);
+                        background: rgba(239,68,68,0.08);
+                        color: rgba(239,68,68,0.8);
+                        font-size: 12px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        white-space: nowrap;
+                    }
+                    .tours-clear-all-btn:hover {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.4);
+                        color: #ef4444;
                     }
                     .tours-results-sort {
                         display: flex;
@@ -1498,6 +1759,21 @@ export default function PokerToursPage() {
                             font-size: clamp(20px, 5.5vw, 28px);
                             letter-spacing: clamp(1px, 0.4vw, 2px);
                         }
+                        .tours-search-bar { padding: 0 10px; margin-top: 12px; }
+                        .tours-search-wrap { height: 46px; border-radius: 12px; padding: 0 12px; }
+                        .tours-search-bar-input { font-size: 14px; }
+                        .tours-date-pills {
+                            gap: 6px;
+                            padding: 0 10px;
+                            margin-top: 10px;
+                            justify-content: flex-start;
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                            scrollbar-width: none;
+                            flex-wrap: nowrap;
+                        }
+                        .tours-date-pills::-webkit-scrollbar { display: none; }
+                        .tours-date-pill { padding: 6px 12px; font-size: 11px; }
                         .pnm-layout { flex-direction: column; }
                         .pnm-sidebar {
                             width: 100%;
@@ -1556,6 +1832,8 @@ export default function PokerToursPage() {
                             grid-template-columns: 1fr;
                         }
                         .tour-card-name { font-size: 15px; }
+                        .tours-results-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
+                        .tours-results-actions { width: 100%; justify-content: space-between; }
                     }
 
                     @media (max-width: 480px) {
