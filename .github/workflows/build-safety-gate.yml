@@ -1,11 +1,11 @@
 name: Build Safety Gate
 
-# Runs on EVERY push and PR — no exceptions
+# Runs on pushes to main and PRs targeting main — NOT all branches
 on:
   push:
-    branches: ['**']
+    branches: ['main']
   pull_request:
-    branches: ['**']
+    branches: ['main']
 
 # Cancel previous runs on same branch (saves GitHub Actions minutes)
 concurrency:
