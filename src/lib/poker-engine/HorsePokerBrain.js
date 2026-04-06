@@ -8116,7 +8116,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     // Aggressive opp → check to induce raise, then re-raise
                     if (liveRead.aggFreq > 0.50 && !isIP && handEval.strength >= 80) {
                         // Consider trapping instead of value betting
-                        if (Math.random() < 0.35) return canCheck ? { type: 'check' } : { type: 'fold' };
+                        if (Math.random() < 0.35 && canCheck) return { type: 'check' }; // Trap — NEVER fold a monster
                     }
                     // Snap-call timing = committed → bigger sizing
                     if (currentActionTimingTell === 'snap_call') sizeFrac = Math.min(0.90, sizeFrac + 0.06);
@@ -8520,29 +8520,6 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppTendency === 'weak-tight' && oppConfidence > 0.35) {
                         bluffFrac = 0.90 + Math.random() * 0.30;
                     }
-                    // ═══ LIVE-READ RIVER BLUFF SIZING (Phase 30) ═══
-                    if (liveRead && liveRead.confidence >= 0.20) {
-                        // Extreme folder → overbet bluff for max fold equity
-                        if (liveRead.foldFreq > 0.55) bluffFrac = Math.min(1.30, bluffFrac + 0.15);
-                        // Station → minimize loss: smaller bluff (or the freq already blocked us)
-                        if (liveRead.callFreq > 0.55) bluffFrac = Math.max(0.35, bluffFrac - 0.15);
-                        // High fold-to-raise → overbet bluffs are hugely profitable
-                        if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) {
-                            bluffFrac = Math.min(1.50, bluffFrac + 0.20);
-                        }
-                        // Tank-called turn = marginal → big river bluff folds them out
-                        if (currentActionTimingTell === 'tank_call') {
-                            bluffFrac = Math.min(1.20, bluffFrac + 0.15);
-                        }
-                        // Snap-called turn = strong → smaller bluff (or don't bluff at all)
-                        if (currentActionTimingTell === 'snap_call') {
-                            bluffFrac = Math.max(0.45, bluffFrac - 0.10);
-                        }
-                        // Live nit detection: overbet bluff for max fold equity
-                        if (liveRead.aggFreq < 0.18 && liveRead.foldFreq > 0.50) {
-                            bluffFrac = Math.min(1.40, bluffFrac + 0.20);
-                        }
-                    }
                     // ═══ BLOCKER-AWARE BLUFF SIZING ═══
                     // With premium blockers, can go bigger (opponent is less likely to have nuts)
                     if (blockerCount >= 2 && oppFoldFreq > 0.40) {
@@ -8571,6 +8548,10 @@ function makeTurnRiverHeuristicDecision(params) {
                         // Snap-called turn = strong → smaller bluff (or don't bluff, already freq-capped)
                         if (currentActionTimingTell === 'snap_call') {
                             bluffFrac = Math.max(0.45, bluffFrac - 0.10);
+                        }
+                        // Live nit detection: passive + foldy → overbet bluff for max fold equity
+                        if (liveRead.aggFreq < 0.18 && liveRead.foldFreq > 0.50) {
+                            bluffFrac = Math.min(1.40, bluffFrac + 0.20);
                         }
                     }
 
@@ -10057,7 +10038,7 @@ function makeFlopHeuristicDecision(params) {
                     // Station on monotone = DON'T bluff, size up value bets
                     if (flopLiveRead.callFreq > 0.55) {
                         if (handEval.strength >= 75) monoSizeFrac = Math.min(0.60, monoSizeFrac + 0.08);
-                        if (!monoBetGate) monoBetGate = false; // Keep gate closed for non-monsters vs stations
+                        if (handEval.strength < 75 && !heroHasNutFD) monoBetGate = false; // Close gate for non-monsters vs stations
                     }
                     // Aggressive opponent on monotone = they'll raise → only bet the nuts
                     if (flopLiveRead.aggFreq > 0.45 && handEval.strength < 75 && !heroHasNutFD) {
