@@ -5802,7 +5802,9 @@ function evaluatePostflopHand(holeCards, board) {
             for (let i = uniqueFlush.length - 1; i >= 4; i--) {
                 if (uniqueFlush[i] - uniqueFlush[i - 4] === 4) {
                     const sfRanks = uniqueFlush.slice(i - 4, i + 1);
-                    if (heroRanks.some(r => sfRanks.includes(r) && heroSuits[heroRanks.indexOf(r)] === flushSuit)) {
+                    // ═══ Phase 44 FIX: was using heroRanks.indexOf(r) which always returns first index
+                // — with pocket pairs of different suits, this checks the wrong suit card. Use (r, i) indexed callback. ═══
+                if (heroRanks.some((r, i) => sfRanks.includes(r) && heroSuits[i] === flushSuit)) {
                         strength = 99; category = 'straight_flush';
                         if (sfRanks[4] === 12) { strength = 100; category = 'royal_flush'; } // Royal!
                     }
@@ -5812,7 +5814,8 @@ function evaluatePostflopHand(holeCards, board) {
             // Wheel straight flush (A-2-3-4-5 of same suit)
             if (category === 'high_card' && uniqueFlush.includes(12) && uniqueFlush.includes(0) &&
                 uniqueFlush.includes(1) && uniqueFlush.includes(2) && uniqueFlush.includes(3)) {
-                if (heroRanks.some(r => [12, 0, 1, 2, 3].includes(r) && heroSuits[heroRanks.indexOf(r)] === flushSuit)) {
+                // ═══ Phase 44 FIX: same indexOf bug as above — use indexed callback ═══
+                if (heroRanks.some((r, i) => [12, 0, 1, 2, 3].includes(r) && heroSuits[i] === flushSuit)) {
                     strength = 98; category = 'straight_flush';
                 }
             }
@@ -5891,7 +5894,9 @@ function evaluatePostflopHand(holeCards, board) {
                     if (boardStraightCards.length >= 4) strength -= 5; // One-card straight
                     foundStraight = true;
                 }
-                break;
+                // ═══ Phase 44 FIX: was `break` unconditionally — if hero doesn't contribute to the
+                // highest straight, we must keep looking for lower straights hero IS part of ═══
+                if (foundStraight) break;
             }
         }
         // Wheel straight (A-2-3-4-5)
@@ -15100,8 +15105,14 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
             if ((action === 'bet') && !isPFR && !wasLastStreetAggressor) {
                 profile.donkBetCount++;
             }
-            if (!isPFR && !wasLastStreetAggressor) {
-                profile.donkBetOpportunity++; // They had the option to donk
+            // ═══ Phase 43 FIX: was counting ALL non-aggressor actions as donk opportunities.
+            // A donk opportunity only exists when acting FIRST on a street (bet or check, no prior bet). ═══
+            if (!isPFR && !wasLastStreetAggressor && (action === 'bet' || action === 'check')) {
+                // Only count if no one has bet on this street yet (i.e., this is a leading action)
+                const streetAgg = hand ? hand.streetAggressors[street] : null;
+                if (!streetAgg) {
+                    profile.donkBetOpportunity++;
+                }
             }
 
             // ── Probe bet (betting when previous street checked through) ──
@@ -15111,9 +15122,12 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
                     profile.probeBetCount++;
                 }
             }
-            if (hand) {
+            // ═══ Phase 43 FIX: was counting ALL actions as probe opportunities — only count when
+            // acting first on the street (bet or check) with no prior street aggression ═══
+            if (hand && (action === 'bet' || action === 'check')) {
                 const prevStreet = street === 'turn' ? 'flop' : street === 'river' ? 'turn' : null;
-                if (prevStreet && !hand.streetAggressors[prevStreet]) {
+                const streetAgg = hand.streetAggressors[street];
+                if (prevStreet && !hand.streetAggressors[prevStreet] && !streetAgg) {
                     profile.probeBetOpportunity++;
                 }
             }
