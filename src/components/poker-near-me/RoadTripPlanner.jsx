@@ -5,7 +5,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles } from './pnm-utils';
-import { openNativeMaps } from '../../utils/openNativeMaps';
+import { openNativeMaps, openMultiStopRoute } from '../../utils/openNativeMaps';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
 
@@ -390,14 +390,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                         </button>
                         <button
                             onClick={() => {
-                                if (!routeResult?.stops?.length) return;
-                                const first = routeResult.stops[0];
-                                openNativeMaps({ address: first.name, lat: first.lat, lng: first.lng, mode: 'directions' });
+                                if (!routeResult?.stops?.length || routeResult.stops.length < 2) return;
+                                openMultiStopRoute(routeResult.stops);
                             }}
                             style={{ flex: 1, padding: '8px 12px', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.25)', borderRadius: 8, color: '#d4a853', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
-                            Start Navigation
+                            Start Full Route ({routeResult?.stops?.length || 0} Stops)
                         </button>
                     </div>
 

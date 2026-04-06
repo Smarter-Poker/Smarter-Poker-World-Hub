@@ -18,7 +18,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { addVenueFavorite, removeVenueFavorite } from '../../../src/services/pokerNearMeFavorites';
 import { formatGameType } from '../../../src/utils/pokerFormatters';
-import { openNativeMaps as openNativeMapsUtil, buildVenueAddress } from '../../../src/utils/openNativeMaps';
+import { openNativeMaps as openNativeMapsUtil, buildVenueAddress, getMapProviderName } from '../../../src/utils/openNativeMaps';
 import dynamic from 'next/dynamic';
 
 const BestTimeToGoWidget = dynamic(
@@ -1119,9 +1119,13 @@ export default function VenueDetailPage() {
     finally { setClaimSubmitting(false); }
   };
 
-  var openNativeMaps = function () {
+  var openNativeMaps = function (mode) {
     if (!venue) return;
-    openNativeMapsUtil({ address: buildVenueAddress(venue) });
+    if (mode === 'directions' && venue.latitude && venue.longitude) {
+      openNativeMapsUtil({ address: buildVenueAddress(venue), lat: parseFloat(venue.latitude), lng: parseFloat(venue.longitude), mode: 'directions' });
+    } else {
+      openNativeMapsUtil({ address: buildVenueAddress(venue), mode: 'search' });
+    }
   };
 
   // Group daily tournament schedules by day
@@ -1473,7 +1477,7 @@ export default function VenueDetailPage() {
                   <div className="info-content">
                     <span className="info-label">Address</span>
                     {venue.address ? (
-                      <a href="#" onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps(); }} className="info-value info-link">
+                      <a href="#" onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }} className="info-value info-link">
                         {venue.address}
                         {venue.city && (', ' + venue.city)}
                         {venue.state && (', ' + venue.state)}
@@ -1755,13 +1759,24 @@ export default function VenueDetailPage() {
                 </div>
                 <div className="map-actions">
                   <button
-                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps(); }}
+                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('directions'); }}
                     className="directions-btn"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="3 11 22 2 13 21 11 13 3 11" />
                     </svg>
                     Get Directions
+                  </button>
+                  <button
+                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps('search'); }}
+                    className="viewmap-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                      <line x1="8" y1="2" x2="8" y2="18" />
+                      <line x1="16" y1="6" x2="16" y2="22" />
+                    </svg>
+                    View on Map
                   </button>
                   {venue.address && (
                     <span className="map-address-text">
@@ -4301,6 +4316,30 @@ export default function VenueDetailPage() {
         }
         .directions-btn:hover {
           background: rgba(0, 212, 255, 0.25);
+        }
+        .viewmap-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(148, 163, 184, 0.2);
+          border-radius: 8px;
+          color: rgba(148, 163, 184, 0.7);
+          font-size: 13px;
+          font-weight: 600;
+          font-family: inherit;
+          text-decoration: none;
+          transition: all 0.2s;
+          cursor: pointer;
+          flex-shrink: 0;
+          -webkit-appearance: none;
+          appearance: none;
+        }
+        .viewmap-btn:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: rgba(255, 255, 255, 0.9);
+          border-color: rgba(148, 163, 184, 0.35);
         }
         .map-address-text {
           font-size: 13px;
