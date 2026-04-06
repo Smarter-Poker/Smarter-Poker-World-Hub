@@ -7938,10 +7938,30 @@ function makeTurnRiverHeuristicDecision(params) {
                 }
 
                 // ═══ COMMITMENT-DRIVEN THIN VALUE ═══
-                // If we've invested heavily, thin value betting completes the pot-building story.
-                // Checking looks weak after heavy investment → bet to deny opponent free showdown.
                 if (isHeavilyCommitted && narrative.barrelsInARow >= 1) {
                     thinValueFreq = Math.min(0.85, thinValueFreq + 0.08);
+                }
+
+                // ═══ LIVE-READ THIN VALUE FREQUENCY (Phase 20) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Calling station → thin value ALL DAY (they pay off everything)
+                    if (liveRead.callFreq > 0.55) thinValueFreq = Math.min(0.88, thinValueFreq + 0.10);
+                    // Tight folder → thin value less (they fold marginals, only call with better)
+                    if (liveRead.foldFreq > 0.55 && handEval.strength < 65) {
+                        thinValueFreq = Math.max(0.30, thinValueFreq - 0.10);
+                    }
+                    // High check-raise % → check instead to induce (risky to thin value into CR)
+                    if (liveRead.checkRaisePct !== null && liveRead.checkRaisePct > 0.12 && !isIP) {
+                        thinValueFreq = Math.max(0.25, thinValueFreq - 0.10);
+                    }
+                    // Low WTSD → they give up without showdown → our thin value gets folds (good)
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) {
+                        thinValueFreq += 0.05; // More folds = more profitable thin value
+                    }
+                    // Timing: snap-call previous street = committed → thin value is risky
+                    if (currentActionTimingTell === 'snap_call' && handEval.strength < 62) {
+                        thinValueFreq = Math.max(0.30, thinValueFreq - 0.08);
+                    }
                 }
 
                 thinValueFreq = Math.max(0.10, Math.min(0.88, thinValueFreq));
@@ -8027,10 +8047,20 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (is4BetPot) blockFreq = 0; // Never block bet in 4-bet pots
 
                 // ═══ COMMITMENT-DRIVEN BLOCK BET ═══
-                // If heavily committed, block bet can deny opponent the option to overbet bluff us.
-                // It also completes our investment and gets to showdown cheaply.
                 if (isHeavilyCommitted && !is3BetPot) {
-                    blockFreq += 0.06; // We're invested — block to protect our equity
+                    blockFreq += 0.06;
+                }
+
+                // ═══ LIVE-READ BLOCK BET (Phase 20) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Aggressive opponent → block bet MORE to deny their big bluffs
+                    if (liveRead.aggFreq > 0.40) blockFreq += 0.10;
+                    // Passive opponent → block less (they won't bluff, just check back)
+                    if (liveRead.aggFreq < 0.20) blockFreq -= 0.06;
+                    // High overbet frequency → block bet denies overbet opportunity
+                    if (liveRead.overbetPct !== null && liveRead.overbetPct > 0.10) blockFreq += 0.08;
+                    // Calling station → block bet IS a thin value bet → they call anything
+                    if (liveRead.callFreq > 0.55) blockFreq += 0.06;
                 }
 
                 blockFreq = Math.max(0, Math.min(0.55, blockFreq));
@@ -8039,6 +8069,11 @@ function makeTurnRiverHeuristicDecision(params) {
                     // Against very aggressive opponents, slightly bigger block to commit them
                     if (oppTendency === 'bluffy' && oppConfidence > 0.3) {
                         blockFrac = Math.min(0.40, blockFrac + 0.05);
+                    }
+                    // ═══ LIVE-READ BLOCK SIZING (Phase 20) ═══
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        if (liveRead.callFreq > 0.55) blockFrac = Math.min(0.38, blockFrac + 0.04);
+                        if (liveRead.foldFreq > 0.50) blockFrac = Math.max(0.20, blockFrac - 0.04);
                     }
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * blockFrac)) };
                 }
@@ -9751,16 +9786,46 @@ function makeFlopHeuristicDecision(params) {
 
                 // ── 3-bet pot: stab less (opponent has stronger range, but we have range advantage) ──
                 if (is3BetPot) {
-                    stabFreq *= 0.65; // Reduce stabs significantly
-                    stabSize = Math.max(0.28, stabSize - 0.05); // Smaller sizing
-                    // Exception: if we have range advantage in 3-bet pot, maintain some stab frequency
+                    stabFreq *= 0.65;
+                    stabSize = Math.max(0.28, stabSize - 0.05);
                     if (rangeAdvantage === 'pfr' && handEval.strength >= 35) {
                         stabFreq = Math.max(stabFreq, 0.20);
                     }
                 }
-                if (is4BetPot) stabFreq = 0; // Never stab air in 4-bet pots
+                if (is4BetPot) stabFreq = 0;
 
-                stabFreq = Math.max(0, Math.min(0.45, stabFreq));
+                // ═══ LIVE-READ IP FLOP STAB (Phase 20) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Opponent folds a lot → stab wider + smaller (efficient)
+                    if (flopLiveRead.foldFreq > 0.50) {
+                        stabFreq += 0.10;
+                        stabSize = Math.max(0.25, stabSize - 0.05);
+                    }
+                    // Opponent calls a lot → only stab with equity
+                    if (flopLiveRead.callFreq > 0.60) {
+                        stabFreq -= 0.08;
+                        if (handEval.strength < 35) stabFreq -= 0.10; // Definitely don't stab air
+                    }
+                    // Opponent check-raises a lot → stab less with air, more with value
+                    if (flopLiveRead.checkRaisePct !== null && flopLiveRead.checkRaisePct > 0.12) {
+                        if (handEval.strength < 30) stabFreq -= 0.10; // Air gets punished
+                        if (handEval.strength >= 45) stabFreq += 0.05; // They CR into our value
+                        stabSize = Math.max(0.25, stabSize - 0.04); // Smaller to control loss if CR'd
+                    }
+                    // Low WTSD → they give up → stab more
+                    if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd < 0.22) stabFreq += 0.06;
+                    // Timing: opponent snap-checked to us → weakness → stab more
+                    if (flopLiveRead.inHandActions?.lastAction?.action === 'check') {
+                        const la = flopLiveRead.inHandActions.lastAction;
+                        if (la.timing && la.street === 'flop') {
+                            const avg = flopLiveRead.timingProfile?.flop?.avgMs || flopLiveRead.avgDecisionMs;
+                            if (avg && avg > 0 && la.timing / avg < 0.40) stabFreq += 0.08;
+                            if (avg && avg > 0 && la.timing / avg > 1.8) stabFreq -= 0.06;
+                        }
+                    }
+                }
+
+                stabFreq = Math.max(0, Math.min(0.50, stabFreq));
                 if (Math.random() < stabFreq) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * stabSize)) };
                 }
