@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
@@ -57,6 +58,8 @@ export default function HomeGamesPage() {
     const userId = user?.id;
 
     // Data states
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
     const [venues, setVenues] = useState([]);
     const [allHomeGames, setAllHomeGames] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -69,6 +72,7 @@ export default function HomeGamesPage() {
     const [sortBy, setSortBy] = useState('default');
     const [favorites, setFavorites] = useState({});
     const [showLocationModal, setShowLocationModal] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     // Filters
     const [filters, setFilters] = useState({
@@ -299,7 +303,12 @@ export default function HomeGamesPage() {
             <div className="space-bg"><div className="space-overlay" /></div>
 
             <div className="hg-page">
-                <UniversalHeader pageDepth={2} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
+
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                />
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="hg-title-bar">

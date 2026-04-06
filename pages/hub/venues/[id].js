@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { supabase } from '../../../src/lib/supabase';
@@ -222,6 +223,7 @@ export default function VenueDetailPage() {
   const bus = useTrainingBus();
 
   // Global Favorite Status (Poker Near Me)
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -1203,7 +1205,13 @@ export default function VenueDetailPage() {
 
       <UniversalHeader 
         pageDepth={2} 
+        onMenuClick={() => setMenuOpen(true)}
         onBackClick={() => router.push('/hub/poker-near-me')}
+      />
+
+      <HamburgerMenu
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
       />
 
       <div className="venue-page">

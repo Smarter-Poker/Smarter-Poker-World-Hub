@@ -112,6 +112,7 @@ function getSeriesTypeBadge(type) {
 export default function TourDetailPage() {
   const router = useRouter();
   const { code } = router.query;
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const [isFollowed, setIsFollowed] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
@@ -268,7 +269,13 @@ export default function TourDetailPage() {
 
       <UniversalHeader 
         pageDepth={2} 
+        onMenuClick={() => setMenuOpen(true)}
         onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=tours')}
+      />
+
+      <HamburgerMenu
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
       />
 
       <div className="tour-page">

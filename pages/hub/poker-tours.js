@@ -954,7 +954,7 @@ export default function PokerToursPage() {
                 <div className="space-overlay" />
 
                 {/* Header */}
-                <UniversalHeader pageDepth={2} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu

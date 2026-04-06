@@ -134,7 +134,7 @@ function getLocationParts(series) {
 export default function SeriesDetailPage() {
   const router = useRouter();
   const { id } = router.query;
-
+  const [menuOpen, setMenuOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [expandedEvent, setExpandedEvent] = useState(null);
@@ -263,6 +263,7 @@ export default function SeriesDetailPage() {
         />
         <UniversalHeader 
           pageDepth={2} 
+          onMenuClick={() => setMenuOpen(true)}
           onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
         />
         <div className="series-page">
@@ -283,6 +284,7 @@ export default function SeriesDetailPage() {
         <Head><title>Series Not Found | Smarter.Poker</title></Head>
         <UniversalHeader 
           pageDepth={2} 
+          onMenuClick={() => setMenuOpen(true)}
           onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
         />
         <div className="series-page">
@@ -315,7 +317,13 @@ export default function SeriesDetailPage() {
       </Head>
       <UniversalHeader 
         pageDepth={2} 
+        onMenuClick={() => setMenuOpen(true)}
         onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
+      />
+
+      <HamburgerMenu
+          isOpen={menuOpen}
+          onClose={() => setMenuOpen(false)}
       />
 
       <div className="series-page">
