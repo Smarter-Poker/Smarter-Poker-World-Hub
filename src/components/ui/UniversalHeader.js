@@ -516,42 +516,24 @@ export default function UniversalHeader({
         if (backInProgressRef.current) return;
         backInProgressRef.current = true;
 
-        // Snapshot the current pathname BEFORE calling back().
-        // This lets us distinguish real cross-page navigation from
-        // same-page shallow popstate events (replaceState / router.replace).
-        const originPath = window.location.pathname;
-
+        // Simple and correct: use the browser's native back.
+        // The previous broken logic tried to detect "same-page" popstate events
+        // (shallow route changes with only query params differing) and redirected
+        // to /hub — which broke Back navigation for pages using tab query params
+        // (e.g. Poker Near Me ?tab=live → ?tab=venues).
+        // The Hub button is a SEPARATE element that already navigates to /hub.
+        // The Back button should ALWAYS go to the previous history entry.
         if (window.history.length > 1) {
-            const onPopState = () => {
-                window.removeEventListener('popstate', onPopState);
-                // Check if we actually left the page.
-                // If popstate fired but pathname is unchanged, the browser
-                // just popped a replaceState entry (same page, different query).
-                // That's not a real "go back" — fall through to /hub.
-                if (window.location.pathname === originPath) {
-                    window.location.href = '/hub';
-                }
-                // else: pathname changed — real navigation happened, nothing to do.
-                backInProgressRef.current = false;
-            };
-            window.addEventListener('popstate', onPopState);
-
             window.history.back();
-
-            // Safety net: if popstate never fires (no history entry at all),
-            // clean up and navigate to /hub after 300ms.
-            setTimeout(() => {
-                window.removeEventListener('popstate', onPopState);
-                if (backInProgressRef.current) {
-                    backInProgressRef.current = false;
-                    window.location.href = '/hub';
-                }
-            }, 300);
         } else {
-            // No history at all — navigate to hub
-            backInProgressRef.current = false;
+            // No history at all — navigate to hub as last resort
             window.location.href = '/hub';
         }
+
+        // Release the guard after a short delay to prevent double-clicks
+        setTimeout(() => {
+            backInProgressRef.current = false;
+        }, 500);
     };
 
     return (

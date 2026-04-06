@@ -38,8 +38,9 @@ function parseVoiceQuery(transcript) {
 
     // Extract venue type
     if (/\bcasino\b/.test(lower)) result.filters.venueType = 'casino';
-    else if (/\bcard.?room\b/.test(lower)) result.filters.venueType = 'card_room';
+    else if (/\bcard.?room\b/.test(lower)) result.filters.venueType = 'poker_club';
     else if (/\bclub\b|poker.?club/.test(lower)) result.filters.venueType = 'poker_club';
+    else if (/\btour\b/.test(lower)) result.filters.venueType = 'poker_tour';
 
     // Extract city name (look for "in {city}" or "near {city}")
     const cityMatch = lower.match(/(?:in|near|around)\s+([a-z\s]+?)(?:\s*$|,|\s+within|\s+\d)/);

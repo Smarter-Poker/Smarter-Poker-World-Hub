@@ -664,7 +664,7 @@ export default function LiveGamesFeed({
                 {/* Venue Card */}
                 <div style={{ 
                     background: 'rgba(13,17,23,0.95)', 
-                    border: `1px solid ${heat.border}`, 
+                    border: '2px solid rgba(255,255,255,0.85)', 
                     borderRadius: 14, 
                     overflow: 'hidden', 
                     padding: '16px 18px 14px',
@@ -917,18 +917,7 @@ export default function LiveGamesFeed({
                 </button>
             </div>
 
-            {/* ─── GPS LOCATION BANNER ─── */}
-            {effectiveLocation && (locationCity || locationState) && (
-                <div style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', marginBottom: 10,
-                    background: 'linear-gradient(90deg, rgba(63,185,80,0.06), rgba(63,185,80,0.02), rgba(63,185,80,0.06))',
-                    borderBottom: '1px solid rgba(63,185,80,0.1)', fontSize: 12, color: 'rgba(200,214,229,0.6)', fontWeight: 600,
-                }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                    <span style={{ color: '#3fb950' }}>Location Active</span>
-                    <span style={{ color: 'rgba(200,214,229,0.35)' }}>{locationCity}{locationState ? `, ${locationState}` : ''}</span>
-                </div>
-            )}
+            {/* GPS Location Banner removed — now displayed at top of sidebar in parent page */}
 
             {/* ─── STALE DATA BANNER ─── */}
             {isDataStale && !selectedVenue && (

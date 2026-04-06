@@ -75,6 +75,38 @@
     margin-bottom: 10px;
 }
 
+/* ═══ LOCATION ACTIVE BANNER (top of sidebar) ═══ */
+.sidebar-location-active {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin: 0 6px 6px;
+    background: linear-gradient(90deg, rgba(63,185,80,0.08), rgba(63,185,80,0.03), rgba(63,185,80,0.08));
+    border: 1px solid rgba(63,185,80,0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: rgba(200,214,229,0.6);
+    font-weight: 600;
+    animation: locationActivePulse 3s ease-in-out infinite;
+}
+@keyframes locationActivePulse {
+    0%, 100% { border-color: rgba(63,185,80,0.2); box-shadow: 0 0 0 rgba(63,185,80,0); }
+    50% { border-color: rgba(63,185,80,0.35); box-shadow: 0 0 8px rgba(63,185,80,0.08); }
+}
+.sidebar-location-active-clear {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.3);
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+.sidebar-location-active-clear:hover { color: #ef4444; }
+
 .sidebar-tab {
     display: flex;
     align-items: center;

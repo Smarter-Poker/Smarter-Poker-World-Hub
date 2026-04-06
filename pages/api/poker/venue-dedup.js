@@ -33,6 +33,7 @@ const VENUE_ALIASES = {
   'Turning Stone Resort Casino': ['Turning Stone', 'Turning Stone Poker Room'],
   'Rivers Casino Pittsburgh': ['Rivers Casino', 'Rivers Pittsburgh'],
   'PokerGO Studio': ['PokerGO', 'ARIA PokerGO Studio'],
+  'Potawatomi Casino': ['Potawatomi Hotel & Casino', 'Potawatomi Casino Resort', 'Potawatomi Casino Hotel', 'Potawatomi Hotel and Casino'],
 };
 
 // Build reverse lookup

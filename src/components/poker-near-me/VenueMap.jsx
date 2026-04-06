@@ -23,27 +23,33 @@ import MapPreferenceChooser from './MapPreferenceChooser';
 // ─── Constants ───
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
-  card_room: 'Card Room',
+  card_room: 'Poker Club',
   poker_club: 'Poker Club',
   home_game: 'Home Game',
-  charity: 'Charity Room'
+  charity: 'Charity',
+  tour_stop: 'Poker Tour',
+  poker_tour: 'Poker Tour'
 };
 
 // Venue type → marker color
 const VENUE_TYPE_COLORS = {
   casino: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)', badgeBg: 'rgba(212,168,83,0.15)', label: 'Gold' },
-  card_room: { fill: '#00d4ff', glow: 'rgba(0,212,255,0.5)', badgeBg: 'rgba(0,212,255,0.15)', label: 'Cyan' },
+  card_room: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', badgeBg: 'rgba(34,197,94,0.15)', label: 'Green' },
   poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', badgeBg: 'rgba(34,197,94,0.15)', label: 'Green' },
-  charity: { fill: '#a855f7', glow: 'rgba(168,85,247,0.5)', badgeBg: 'rgba(168,85,247,0.15)', label: 'Purple' },
+  charity: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.5)', badgeBg: 'rgba(59,130,246,0.15)', label: 'Blue' },
   home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.5)', badgeBg: 'rgba(255,255,255,0.15)', label: 'White' },
+  tour_stop: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)', badgeBg: 'rgba(239,68,68,0.15)', label: 'Red' },
+  poker_tour: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)', badgeBg: 'rgba(239,68,68,0.15)', label: 'Red' },
 };
 const DEFAULT_VENUE_COLOR = VENUE_TYPE_COLORS.casino;
 
 const GEOFENCE_RADII = {
   casino: 500,
-  card_room: 300,
+  card_room: 200,
   poker_club: 200,
   charity: 200,
+  tour_stop: 300,
+  poker_tour: 300,
 };
 const DEFAULT_GEOFENCE_RADIUS = 300;
 
@@ -1035,9 +1041,9 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   // Legend items
   const legendItems = [
     { type: 'casino', label: 'Casino', color: '#d4a853' },
-    { type: 'card_room', label: 'Card Room', color: '#00d4ff' },
     { type: 'poker_club', label: 'Poker Club', color: '#22c55e' },
-    { type: 'charity', label: 'Charity', color: '#a855f7' },
+    { type: 'tour_stop', label: 'Poker Tour', color: '#ef4444' },
+    { type: 'charity', label: 'Charity', color: '#3b82f6' },
     { type: 'home_game', label: 'Home Game', color: '#ffffff' },
   ];
 

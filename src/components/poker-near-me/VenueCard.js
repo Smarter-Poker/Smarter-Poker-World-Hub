@@ -20,12 +20,14 @@ const formatMoney = (amount) => {
 
 const VENUE_TYPE_LABELS = {
     casino: 'Casino',
-    card_room: 'Card Room',
+    card_room: 'Poker Club',
     poker_club: 'Poker Club',
     home_game: 'Home Game',
-    charity: 'Charity Room',
+    charity: 'Charity',
     series: 'Poker Series',
     tour: 'Poker Tour',
+    tour_stop: 'Poker Tour',
+    poker_tour: 'Poker Tour',
 };
 
 const VENUE_TYPE_ICONS = {
@@ -68,11 +70,13 @@ const VENUE_TYPE_ICONS = {
 
 const VENUE_TYPE_COLORS = {
     casino: { bg: 'rgba(212,168,83,0.10)', color: '#d4a853', border: 'rgba(212,168,83,0.28)', accent: '#d4a853' },
-    card_room: { bg: 'rgba(59,130,246,0.10)', color: '#60a5fa', border: 'rgba(59,130,246,0.28)', accent: '#60a5fa' },
-    poker_club: { bg: 'rgba(139,92,246,0.10)', color: '#a78bfa', border: 'rgba(139,92,246,0.28)', accent: '#a78bfa' },
-    home_game: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
-    charity: { bg: 'rgba(236,72,153,0.10)', color: '#f472b6', border: 'rgba(236,72,153,0.28)', accent: '#f472b6' },
-    tour: { bg: 'rgba(245,158,11,0.10)', color: '#f59e0b', border: 'rgba(245,158,11,0.28)', accent: '#f59e0b' },
+    card_room: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
+    poker_club: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
+    home_game: { bg: 'rgba(139,92,246,0.10)', color: '#a78bfa', border: 'rgba(139,92,246,0.28)', accent: '#a78bfa' },
+    charity: { bg: 'rgba(59,130,246,0.10)', color: '#60a5fa', border: 'rgba(59,130,246,0.28)', accent: '#60a5fa' },
+    tour: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
+    tour_stop: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
+    poker_tour: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
     series: { bg: 'rgba(6,182,212,0.10)', color: '#06b6d4', border: 'rgba(6,182,212,0.28)', accent: '#06b6d4' },
 };
 

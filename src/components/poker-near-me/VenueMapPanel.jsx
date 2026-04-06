@@ -13,19 +13,23 @@ import { openNativeMaps } from '../../utils/openNativeMaps';
 // ─── Venue type → marker color ───
 const VENUE_TYPE_COLORS = {
   casino: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)' },
-  card_room: { fill: '#00d4ff', glow: 'rgba(0,212,255,0.5)' },
+  card_room: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
   poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
-  charity: { fill: '#a855f7', glow: 'rgba(168,85,247,0.5)' },
+  charity: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.5)' },
   home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.5)' },
+  tour_stop: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
+  poker_tour: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
 };
 const DEFAULT_VENUE_COLOR = VENUE_TYPE_COLORS.casino;
 
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
-  card_room: 'Card Room',
+  card_room: 'Poker Club',
   poker_club: 'Poker Club',
   home_game: 'Home Game',
-  charity: 'Charity Room'
+  charity: 'Charity',
+  tour_stop: 'Poker Tour',
+  poker_tour: 'Poker Tour'
 };
 
 // ─── Custom CSS for logo pins ───
@@ -425,26 +429,21 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         .bindPopup('<div style="padding:8px 12px;"><b style="color:#fff;font-size:14px;">Your Location</b></div>');
     }
 
-    // Fit bounds to show relevant area
-    if (userLocation && radiusMiles && radiusMiles !== 'any' && radiusMiles !== 'Any') {
-      const zoom = radiusToZoom(radiusMiles);
-      map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
-    } else if (validVenues.length > 0) {
+    // Fit bounds to show ALL venue markers — auto-expands when search widens
+    if (validVenues.length > 0) {
       const bounds = L.latLngBounds(validVenues.map(v => [v.latitude, v.longitude]));
       if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13, animate: true, duration: 0.6 });
+    } else if (userLocation) {
+      // No venues — just center on user
+      const zoom = radiusMiles && radiusMiles !== 'any' && radiusMiles !== 'Any'
+        ? radiusToZoom(radiusMiles) : 10;
+      map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
     }
   }, [venues, userLocation, radiusMiles]);
 
-  // ═══ DYNAMIC RADIUS ZOOM — Adjust zoom when radius filter changes ═══
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map || !mapReady) return;
-    if (!userLocation || !radiusMiles || radiusMiles === 'any' || radiusMiles === 'Any') return;
-
-    const zoom = radiusToZoom(radiusMiles);
-    map.setView([userLocation.lat, userLocation.lng], zoom, { animate: true, duration: 0.6 });
-  }, [radiusMiles, userLocation, mapReady]);
+  // Dynamic radius zoom is now handled by the Phase 2 markers effect above
+  // (venues prop changes when radius filter changes, triggering fitBounds)
 
   return (
     <div style={{ position: 'relative', height: '100%' }}>

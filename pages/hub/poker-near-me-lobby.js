@@ -1536,7 +1536,11 @@ export default function PokerNearMeLobby() {
         // Apply filters
         let svResults = venues;
         if (svState !== 'all') svResults = svResults.filter(v => v.state === svState);
-        if (svVenueType !== 'all') svResults = svResults.filter(v => v.venue_type === svVenueType);
+        if (svVenueType !== 'all') svResults = svResults.filter(v => {
+          if (svVenueType === 'poker_club') return v.venue_type === 'poker_club' || v.venue_type === 'card_room';
+          if (svVenueType === 'poker_tour') return v.venue_type === 'poker_tour' || v.venue_type === 'tour_stop' || v.venue_type === 'tour';
+          return v.venue_type === svVenueType;
+        });
         if (svGameType !== 'all') {
           svResults = svResults.filter(v => {
             const games = (v.games_offered || []).join(' ').toLowerCase();
@@ -1609,7 +1613,7 @@ export default function PokerNearMeLobby() {
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'series',l:'Series'},{k:'tour',l:'Tour'}].map(t => (
+                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'poker_tour',l:'Poker Tour'},{k:'series',l:'Series'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, svVenueType: t.k }))}
                       style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: svVenueType === t.k ? '1.5px solid #d4a853' : '1px solid rgba(48,54,61,0.6)', background: svVenueType === t.k ? 'rgba(212,168,83,0.12)' : 'rgba(22,27,34,0.6)', color: svVenueType === t.k ? '#d4a853' : '#8b949e' }}>{t.l}</button>
                   ))}
@@ -1928,7 +1932,11 @@ export default function PokerNearMeLobby() {
         // Filter venues
         let nmResults = venues;
         if (nmState !== 'all') nmResults = nmResults.filter(v => v.state === nmState);
-        if (nmVenueType !== 'all') nmResults = nmResults.filter(v => v.venue_type === nmVenueType);
+        if (nmVenueType !== 'all') nmResults = nmResults.filter(v => {
+          if (nmVenueType === 'poker_club') return v.venue_type === 'poker_club' || v.venue_type === 'card_room';
+          if (nmVenueType === 'poker_tour') return v.venue_type === 'poker_tour' || v.venue_type === 'tour_stop' || v.venue_type === 'tour';
+          return v.venue_type === nmVenueType;
+        });
         if (nmGameType !== 'all') {
           nmResults = nmResults.filter(v => {
             const g = (v.games_offered || []).join(' ').toLowerCase();
@@ -2009,7 +2017,7 @@ export default function PokerNearMeLobby() {
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 5 }}>Venue Type</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'card_room',l:'Card Room'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'series',l:'Series'},{k:'tour',l:'Tour'}].map(t => (
+                  {[{k:'all',l:'All'},{k:'casino',l:'Casino'},{k:'poker_club',l:'Poker Club'},{k:'home_game',l:'Home Game'},{k:'charity',l:'Charity'},{k:'poker_tour',l:'Poker Tour'},{k:'series',l:'Series'}].map(t => (
                     <button key={t.k} onClick={() => setFilters(prev => ({ ...prev, nmVenueType: t.k }))}
                       style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: nmVenueType === t.k ? '1.5px solid #d4a853' : '1px solid rgba(48,54,61,0.6)', background: nmVenueType === t.k ? 'rgba(212,168,83,0.12)' : 'rgba(22,27,34,0.6)', color: nmVenueType === t.k ? '#d4a853' : '#8b949e', transition: 'all 0.15s' }}>{t.l}</button>
                   ))}

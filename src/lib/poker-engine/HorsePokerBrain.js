@@ -6733,6 +6733,24 @@ function makeTurnRiverHeuristicDecision(params) {
                 // High SPR = bluffs have better risk:reward (small bet relative to stacks)
                 bluffFreq *= sprStrategy.bluffMult;
 
+                // ═══ COMMITMENT-DRIVEN BLUFF ADJUSTMENT ═══
+                // If we're already heavily invested, bluffing the turn is LESS valuable:
+                // - We've already spent chips, so folding loses our investment
+                // - But bluffing ADDS more investment with no equity
+                // - Better to check and see a free river (if IP) or fold to pressure
+                // Exception: if our story demands a barrel, bluff to maintain credibility
+                if (isHeavilyCommitted && narrative.barrelsInARow < 1) {
+                    bluffFreq *= 0.50; // Heavily committed with no story → don't bluff
+                }
+                if (isModeratelyCommitted && turnBluffBlockerCount === 0) {
+                    bluffFreq *= 0.70; // Moderate investment + no blockers → reduce bluffs
+                }
+
+                // ═══ 3-BET POT TURN BLUFF ═══
+                // 3-bet pots: opponent has a strong range → bluffs succeed less often
+                if (is3BetPot) bluffFreq *= 0.45; // Nearly halve bluffs
+                if (is4BetPot) bluffFreq = 0; // Never bluff on turn in 4-bet pots
+
                 // GTO cap: turn bluffs should not exceed ~38% even with max blockers + favorable reads
                 bluffFreq = Math.max(0, Math.min(0.38, bluffFreq));
 
@@ -6983,6 +7001,8 @@ function makeTurnRiverHeuristicDecision(params) {
             // VALUE CHECK-RAISE: Monsters (sets+, strong two pair)
             if (handEval.strength >= 70) {
                 let crFreq = 0.35;
+                // ═══ OOP CHECK-RAISE BOOST: systematic position adjustment ═══
+                crFreq += posFreqMod.oopCheckRaiseBoost; // OOP check-raises more by design
                 // Against bluffy opponents, check-raise more often (they bet wide, so we trap wide)
                 if (oppTendency === 'bluffy' && oppConfidence > 0.3) crFreq = 0.50;
                 // Against calling stations, check-raise bigger (they call raises too)
@@ -6995,8 +7015,12 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (boardWet === 'wet') crFreq += 0.05;
                 // Dry boards: can slow-play more, less urgency to check-raise
                 if (boardWet === 'dry' && scareLevel === 0) crFreq -= 0.05;
+                // ═══ 3-BET POT: Check-raise more for value (opponent's range connects often) ═══
+                if (is3BetPot) crFreq += 0.08;
+                // ═══ COMMITMENT: If heavily invested, check-raise to protect investment ═══
+                if (isHeavilyCommitted) crFreq += 0.05;
 
-                crFreq = Math.max(0.15, Math.min(0.60, crFreq));
+                crFreq = Math.max(0.15, Math.min(0.65, crFreq));
                 if (Math.random() < crFreq) {
                     // Geometric sizing: check-raise size that sets up river jam
                     const potAfterCR = potSize + toCall * 2; // pot after we call + their bet
@@ -7017,6 +7041,7 @@ function makeTurnRiverHeuristicDecision(params) {
             // SEMI-BLUFF CHECK-RAISE: Strong draws (12+ outs, nut draws)
             if (drawEq.outs >= 12 && handEval.strength < 55) {
                 let semiCRFreq = 0.25 + aggressionBias / 40;
+                semiCRFreq += posFreqMod.oopCheckRaiseBoost; // OOP systematic boost
                 // Nut draws: check-raise more aggressively
                 if (handEval.hasFlushDraw && blocksNutFlush) semiCRFreq += 0.10; // We have NFD
                 if (handEval.hasOESD && drawEq.outs >= 14) semiCRFreq += 0.08; // Combo draw
@@ -7026,6 +7051,8 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) semiCRFreq = 0;
                 // Narrative: if we've been passive, CR is unexpected = more fold equity
                 if (narrative.heroCheckedFlop && !narrative.heroBetFlop) semiCRFreq += 0.06;
+                // ═══ 3-BET POT: Less semi-bluff CR (opponent's range is strong, less fold equity) ═══
+                if (is3BetPot) semiCRFreq *= 0.60;
                 semiCRFreq = Math.max(0, Math.min(0.50, semiCRFreq));
 
                 if (Math.random() < semiCRFreq) {
@@ -7039,7 +7066,7 @@ function makeTurnRiverHeuristicDecision(params) {
             if (handEval.strength < 15 && aggressionBias > 3 && !multiway) {
                 const crBlockerCount = [blocksNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
                 if (crBlockerCount >= 1) {
-                    let bluffCRFreq = 0.08 + aggressionBias / 60;
+                    let bluffCRFreq = 0.08 + aggressionBias / 60 + posFreqMod.oopCheckRaiseBoost * 0.5;
                     // Need blockers to value range
                     if (crBlockerCount >= 2) bluffCRFreq += 0.08;
                     // Against over-folders, bluff CR is profitable
@@ -7188,12 +7215,38 @@ function makeTurnRiverHeuristicDecision(params) {
                     overbetMax += 0.10;
                 }
 
+                // ═══ 3-BET POT OVERBET ADJUSTMENT ═══
+                // In 3-bet pots, the pot is already large → overbets are less necessary
+                // and opponent's range is narrower → they're less likely to have a hand
+                // that can call a massive overbet. Use standard value sizing instead.
+                if (is3BetPot) {
+                    overbetMax = Math.max(0.15, overbetMax * 0.60); // Reduce overbet sizing
+                }
+                if (is4BetPot) {
+                    // In 4-bet pots, just jam (SPR is tiny)
+                    if (spr <= 3) return { type: 'all_in' };
+                    overbetMax = Math.max(0.10, overbetMax * 0.40);
+                }
+
+                // ═══ COMMITMENT-DRIVEN OVERBET ═══
+                // If we're heavily committed, an overbet completes the investment.
+                // Opponent also reads us as committed → they expect a big bet → overbet is natural.
+                if (isHeavilyCommitted && narrative.barrelsInARow >= 1) {
+                    overbetMax += 0.08; // Our investment demands follow-through
+                }
+
+                // ═══ POLARIZATION OVERBET ═══
+                // Polarized range → bigger overbets (we're either nutted or bluffing)
+                // Merged range → smaller overbets (our range is condensed)
+                overbetMax *= (riverRangeType === 'polarized' ? 1.10 : 0.75);
+
                 const overbetFrac = 1.0 + Math.random() * overbetMax;
                 // Against nits, use smaller sizing (they fold to overbets)
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
                     const nitFrac = 0.66 + Math.random() * 0.14; // 66-80% to get called
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * nitFrac)) };
                 }
+                console.log(`[HorseBrain] 💰 RIVER OVERBET: str=${handEval.strength} max=${Math.round(overbetMax * 100)}% polar=${riverRangeType} 3bet=${is3BetPot}`);
                 return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * overbetFrac)) };
             }
 

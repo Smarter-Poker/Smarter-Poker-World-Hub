@@ -29,8 +29,8 @@ const STAKES_OPTIONS = [
 const VENUE_TYPES = [
     { value: 'all', label: 'All Venues' },
     { value: 'casino', label: 'Casino' },
-    { value: 'card_room', label: 'Card Room' },
     { value: 'poker_club', label: 'Poker Club' },
+    { value: 'poker_tour', label: 'Poker Tours' },
     { value: 'charity', label: 'Charity' }
 ];
 

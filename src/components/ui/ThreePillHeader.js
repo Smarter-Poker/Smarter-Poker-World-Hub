@@ -384,12 +384,23 @@ export default function ThreePillHeader({
     // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
     // Handled by useDiamondBalance hook
 
+    // Guard against rapid double-click on back button
+    const backInProgressRef = useRef(false);
+
     const handleBack = () => {
-        if (typeof window !== 'undefined' && window.history.length > 1) {
-            router.back();
+        if (typeof window === 'undefined') return;
+        if (backInProgressRef.current) return;
+        backInProgressRef.current = true;
+
+        if (window.history.length > 1) {
+            window.history.back();
         } else {
-            router.push('/hub');
+            window.location.href = '/hub';
         }
+
+        setTimeout(() => {
+            backInProgressRef.current = false;
+        }, 500);
     };
 
     // Shared icon button style
