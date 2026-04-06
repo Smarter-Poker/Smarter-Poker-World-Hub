@@ -16521,9 +16521,15 @@ async function processHandResult(handData, bb = 2) {
                 recordColdCall(oppId);
             }
             // ─── MODULE 28: COLD-CALL TRAP DETECTOR — postflop barrels ───
-            if (opp.lastAction === 'bet' && handData.street && handData.street !== 'preflop') {
-                const oppFolded = opp.folded || false;
-                recordBarrelVsColdCall(oppId, oppFolded);
+            // Phase 47 FIX: Was checking opp.lastAction === 'bet' (opponent's bets) but should
+            // track when the HORSE barrels against a cold-caller and whether the cold-caller folded.
+            // Old code made every active cold-caller always flagged as a trap (oppFolded always false
+            // because the opponent just bet, so winRate=0 < 0.35 → isTrap always true).
+            if (handData.street && handData.street !== 'preflop') {
+                const heroBet = player.lastAction === 'bet' || player.lastAction === 'raise';
+                if (heroBet) {
+                    recordBarrelVsColdCall(oppId, opp.folded || false);
+                }
             }
 
             // ─── MODULE 30: ANGLE-SHOOT TIMING DETECTOR ───

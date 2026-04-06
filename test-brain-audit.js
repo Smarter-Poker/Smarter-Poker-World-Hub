@@ -1911,6 +1911,118 @@ test('isMechanicalIsolator: not triggered with varied sizing', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47c: Performance stats + additional modules ══');
+// ═══════════════════════════════════════════════════════════
+
+const recordPerfAction = brain.recordPerformanceAction;
+const getPerfStats = brain.getPerformanceStats;
+const recordPerfResult = brain.recordPerformanceResult;
+const getAdaptiveStrat = brain.getAdaptiveStrategy;
+const shouldAutoSeat = brain.shouldAutoSeat;
+const getOOPGuard = brain.getOOPPositionalGuard;
+const evalDonk = brain.evaluateDonkBet;
+const detectRevImplied = brain.detectReverseImplied;
+
+// ── recordPerformanceAction + getPerformanceStats ──
+
+test('getPerformanceStats: empty returns zeros', () => {
+    const r = getPerfStats('nobody-perf-999');
+    expect(r.handsPlayed).toBe(0);
+    expect(r.vpip).toBe(0);
+});
+
+test('getPerformanceStats: tracks VPIP and PFR correctly', () => {
+    recordPerfAction('test-perf-1', 'preflop', 'raise', true); // vpip + pfr
+    recordPerfAction('test-perf-1', 'preflop', 'call', true);  // vpip only
+    recordPerfAction('test-perf-1', 'preflop', 'fold', false); // neither
+    const r = getPerfStats('test-perf-1');
+    expect(r.handsPlayed).toBe(3);
+    expect(r.vpip).toBe(67); // 2/3 = 66.6... rounds to 67
+    expect(r.pfr).toBe(33);  // 1/3 = 33.3... rounds to 33
+});
+
+test('recordPerformanceResult: tracks wins and BB', () => {
+    recordPerfResult('test-perf-1', true, 10);
+    recordPerfResult('test-perf-1', false, -5);
+    const r = getPerfStats('test-perf-1');
+    expect(r.wins).toBe(1);
+    expect(r.losses).toBe(1);
+    // winRate = totalWonBB / handsPlayed = 5/3 = 1.67
+    expect(r.winRate).toBeGreaterThan(1);
+});
+
+// ── shouldAutoSeat ──
+
+test('shouldAutoSeat: no horses returns false', () => {
+    const r = shouldAutoSeat({ seats: [{ player: { id: 'human-1' } }], minPlayers: 2 }, []);
+    expect(r.shouldSeat).toBe(false);
+});
+
+test('shouldAutoSeat: below min players returns true', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = shouldAutoSeat(
+            { seats: [{ player: { id: 'human-1' } }], minPlayers: 2 },
+            ['horse-a', 'horse-b']
+        );
+        expect(r.shouldSeat).toBe(true);
+        expect(r.horseId).toBe('horse-a');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('shouldAutoSeat: at capacity returns false', () => {
+    const r = shouldAutoSeat(
+        { seats: [{ player: { id: 'h1' } }, { player: { id: 'h2' } }], minPlayers: 2 },
+        ['horse-a']
+    );
+    expect(r.shouldSeat).toBe(false);
+});
+
+// ── getOOPPositionalGuard ──
+
+test('getOOPPositionalGuard: IP returns no guard', () => {
+    const r = getOOPGuard(true, false, 50, 'turn');
+    expect(r.shouldGuard).toBe(false);
+    expect(r.equityBoost).toBe(0);
+});
+
+test('getOOPPositionalGuard: OOP no initiative boosts equity threshold', () => {
+    const r = getOOPGuard(false, false, 50, 'river');
+    expect(r.equityBoost).toBe(12); // river boost
+    expect(r.shouldGuard).toBe(true); // 50 < (50 + 12)
+});
+
+test('getOOPPositionalGuard: OOP with initiative OK', () => {
+    const r = getOOPGuard(false, true, 50, 'turn');
+    expect(r.shouldGuard).toBe(false);
+});
+
+// ── evaluateDonkBet ──
+
+test('evaluateDonkBet: not a donk if not IP', () => {
+    const r = evalDonk(10, 50, false, 60);
+    expect(r.action).toBe('none');
+});
+
+test('evaluateDonkBet: strong equity raises', () => {
+    const r = evalDonk(15, 50, true, 70);
+    expect(r.action).toBe('raise');
+});
+
+test('evaluateDonkBet: weak equity folds', () => {
+    const r = evalDonk(15, 50, true, 30);
+    expect(r.action).toBe('fold');
+});
+
+test('evaluateDonkBet: medium equity calls', () => {
+    const r = evalDonk(15, 50, true, 50);
+    expect(r.action).toBe('call');
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
