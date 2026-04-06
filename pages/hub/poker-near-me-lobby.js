@@ -435,7 +435,9 @@ export default function PokerNearMeLobby() {
   // ─── Fetch tours (venue_type = 'tour' from poker_venues table) ───
   const fetchTours = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?venue_type=tour&limit=200');
+      let url = '/api/poker/venues?venue_type=tour&limit=200';
+      if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=500`;
+      const data = await cachedFetch(url);
       const tourData = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setTours(tourData);
     } catch (err) {
@@ -443,7 +445,7 @@ export default function PokerNearMeLobby() {
     } finally {
       setToursLoaded(true);
     }
-  }, []);
+  }, [userLocation]);
 
   // ─── Fetch favorites ───
   const fetchFavorites = useCallback(async () => {
@@ -474,7 +476,9 @@ export default function PokerNearMeLobby() {
   // ─── Fetch series (venue_type = 'series' from poker_venues table) ───
   const fetchSeries = useCallback(async () => {
     try {
-      const data = await cachedFetch('/api/poker/venues?venue_type=series&limit=200');
+      let url = '/api/poker/venues?venue_type=series&limit=200';
+      if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=500`;
+      const data = await cachedFetch(url);
       const seriesData = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setSeries(seriesData);
     } catch (err) {
@@ -482,7 +486,7 @@ export default function PokerNearMeLobby() {
     } finally {
       setSeriesLoaded(true);
     }
-  }, []);
+  }, [userLocation]);
 
   // ─── Fetch daily tournaments ───
   const fetchDaily = useCallback(async (dayFilter = '') => {
@@ -1552,12 +1556,26 @@ export default function PokerNearMeLobby() {
             </div>
 
             {/* ─── RESULTS (only after search) ─── */}
-            {svHasSearched ? (
+            {(() => {
+              // Filter tours & series by distance for Search results
+              const svNearbyTours = userLocation ? tours.filter(t => {
+                if (!t.latitude || !t.longitude) return false;
+                const d = haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude);
+                return svRadius === 'any' || d <= Number(svRadius);
+              }).sort((a, b) => haversineMiles(userLocation.lat, userLocation.lng, a.latitude, a.longitude) - haversineMiles(userLocation.lat, userLocation.lng, b.latitude, b.longitude)) : [];
+              const svNearbySeries = userLocation ? series.filter(s => {
+                if (!s.latitude || !s.longitude) return false;
+                const d = haversineMiles(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
+                return svRadius === 'any' || d <= Number(svRadius);
+              }).sort((a, b) => haversineMiles(userLocation.lat, userLocation.lng, a.latitude, a.longitude) - haversineMiles(userLocation.lat, userLocation.lng, b.latitude, b.longitude)) : [];
+              const svNearbyCount = svNearbyTours.length + svNearbySeries.length;
+              return svHasSearched ? (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, color: '#c9d1d9' }}>
                       <span style={{ color: '#d4a853', fontWeight: 800 }}>{svResults.length}</span> venue{svResults.length !== 1 ? 's' : ''}
+                      {svNearbyCount > 0 && <span> · <span style={{ color: '#f59e0b', fontWeight: 700 }}>{svNearbyCount}</span> tour{svNearbyCount !== 1 ? 's/series' : ''}</span>}
                       {userLocation && svRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{svRadius} mi</span></span>}
                     </span>
                     {/* Active filter chips */}
@@ -1602,6 +1620,46 @@ export default function PokerNearMeLobby() {
                     <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, or Selecting a Different State.</p>
                   </div>
                 )}
+                {/* ═══ NEARBY TOURS & SERIES ═══ */}
+                {svNearbyCount > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 14px', background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(212,168,83,0.06))', borderRadius: 12, border: '1px solid rgba(245,158,11,0.2)' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', letterSpacing: '0.3px' }}>Poker Tours & Series Nearby</div>
+                        <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>{svNearbyTours.length} tour{svNearbyTours.length !== 1 ? 's' : ''} · {svNearbySeries.length} series within {svRadius === 'any' ? 'range' : svRadius + ' mi'}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gap: 12 }}>
+                      {svNearbyTours.map((t, i) => {
+                        const td = userLocation ? haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude) : null;
+                        return (
+                          <div key={`sv-tour-${t.id || t.tour_code || i}`} style={{ position: 'relative' }}>
+                            {td !== null && td < 99999 && (
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>
+                                {td < 1 ? `${(td * 5280).toFixed(0)} ft` : `${td.toFixed(1)} mi`}
+                              </div>
+                            )}
+                            <TourCard tour={t} />
+                          </div>
+                        );
+                      })}
+                      {svNearbySeries.map((s, i) => {
+                        const sd = userLocation ? haversineMiles(userLocation.lat, userLocation.lng, s.latitude, s.longitude) : null;
+                        return (
+                          <div key={`sv-series-${s.id || i}`} style={{ position: 'relative' }}>
+                            {sd !== null && sd < 99999 && (
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(210,168,255,0.15)', border: '1px solid rgba(210,168,255,0.3)', fontSize: 11, fontWeight: 700, color: '#d2a8ff' }}>
+                                {sd < 1 ? `${(sd * 5280).toFixed(0)} ft` : `${sd.toFixed(1)} mi`}
+                              </div>
+                            )}
+                            <SeriesCard series={s} index={i} onNavigate={(path) => router.push(path)} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '30px 16px' }}>
@@ -1616,6 +1674,7 @@ export default function PokerNearMeLobby() {
                 </div>
               </div>
             )}
+            )()}
           </div>
         );
         break;
@@ -1906,11 +1965,25 @@ export default function PokerNearMeLobby() {
             </div>
 
             {/* ═══ RESULTS — only after Search clicked ═══ */}
-            {nmSearched ? (
+            {(() => {
+              // Filter tours & series by distance for Near Me results
+              const nearbyTours = userLocation ? tours.filter(t => {
+                if (!t.latitude || !t.longitude) return false;
+                const d = haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude);
+                return nmRadius === 'any' || d <= Number(nmRadius);
+              }).sort((a, b) => haversineMiles(userLocation.lat, userLocation.lng, a.latitude, a.longitude) - haversineMiles(userLocation.lat, userLocation.lng, b.latitude, b.longitude)) : [];
+              const nearbySeries = userLocation ? series.filter(s => {
+                if (!s.latitude || !s.longitude) return false;
+                const d = haversineMiles(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
+                return nmRadius === 'any' || d <= Number(nmRadius);
+              }).sort((a, b) => haversineMiles(userLocation.lat, userLocation.lng, a.latitude, a.longitude) - haversineMiles(userLocation.lat, userLocation.lng, b.latitude, b.longitude)) : [];
+              const nearbyTourSeriesCount = nearbyTours.length + nearbySeries.length;
+              return nmSearched ? (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(22,27,34,0.8)', borderRadius: 10, border: '1px solid rgba(48,54,61,0.6)' }}>
                   <span style={{ fontSize: 13, color: '#c9d1d9' }}>
                     <span style={{ color: '#d4a853', fontWeight: 800 }}>{nmResults.length}</span> venue{nmResults.length !== 1 ? 's' : ''}
+                    {nearbyTourSeriesCount > 0 && <span> · <span style={{ color: '#f59e0b', fontWeight: 700 }}>{nearbyTourSeriesCount}</span> tour{nearbyTourSeriesCount !== 1 ? 's/series' : ''}</span>}
                     {userLocation && nmRadius !== 'any' && <span> within <span style={{ color: '#3fb950' }}>{nmRadius} mi</span></span>}
                     {nmTournaments.length > 0 && <span> · <span style={{ color: '#d2a8ff', fontWeight: 700 }}>{nmTournaments.length}</span> tournaments</span>}
                   </span>
@@ -1951,6 +2024,46 @@ export default function PokerNearMeLobby() {
                     <p style={{ fontSize: 13 }}>Try Expanding Distance, Changing Venue Type, or Selecting a Different State.</p>
                   </div>
                 )}
+                {/* ═══ NEARBY TOURS & SERIES ═══ */}
+                {nearbyTourSeriesCount > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 14px', background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(212,168,83,0.06))', borderRadius: 12, border: '1px solid rgba(245,158,11,0.2)' }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', letterSpacing: '0.3px' }}>Poker Tours & Series Nearby</div>
+                        <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>{nearbyTours.length} tour{nearbyTours.length !== 1 ? 's' : ''} · {nearbySeries.length} series within {nmRadius === 'any' ? 'range' : nmRadius + ' mi'}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gap: 12 }}>
+                      {nearbyTours.map((t, i) => {
+                        const td = userLocation ? haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude) : null;
+                        return (
+                          <div key={`tour-${t.id || t.tour_code || i}`} style={{ position: 'relative' }}>
+                            {td !== null && td < 99999 && (
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>
+                                {td < 1 ? `${(td * 5280).toFixed(0)} ft` : `${td.toFixed(1)} mi`}
+                              </div>
+                            )}
+                            <TourCard tour={t} />
+                          </div>
+                        );
+                      })}
+                      {nearbySeries.map((s, i) => {
+                        const sd = userLocation ? haversineMiles(userLocation.lat, userLocation.lng, s.latitude, s.longitude) : null;
+                        return (
+                          <div key={`series-${s.id || i}`} style={{ position: 'relative' }}>
+                            {sd !== null && sd < 99999 && (
+                              <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, padding: '3px 8px', borderRadius: 6, background: 'rgba(210,168,255,0.15)', border: '1px solid rgba(210,168,255,0.3)', fontSize: 11, fontWeight: 700, color: '#d2a8ff' }}>
+                                {sd < 1 ? `${(sd * 5280).toFixed(0)} ft` : `${sd.toFixed(1)} mi`}
+                              </div>
+                            )}
+                            <SeriesCard series={s} index={i} onNavigate={(path) => router.push(path)} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               /* ═══ LANDING STATE — before search ═══ */
@@ -1969,6 +2082,7 @@ export default function PokerNearMeLobby() {
                 </div>
               </div>
             )}
+            )()}
           </div>
         );
         break;

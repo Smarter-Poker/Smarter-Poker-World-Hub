@@ -387,3 +387,11 @@ export function radiusToZoom(radiusMiles) {
     return 4;
 }
 
+/**
+ * Escape HTML special characters for safe injection into innerHTML strings.
+ * Prevents XSS via venue names, tour names, or other user-facing data.
+ */
+export function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}

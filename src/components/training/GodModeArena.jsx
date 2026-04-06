@@ -297,6 +297,36 @@ import PostFlopAggression from './PostFlopAggression';
 import PreFlopMistakes from './PreFlopMistakes';
 import CommonLeaksGuide from './CommonLeaksGuide';
 import WinConditionPlanner from './WinConditionPlanner';
+
+// ═══ PHASE 53: Flop X/R, Turn Probe, River Bluff Catch, Position ═══
+import FlopCheckRaise from './FlopCheckRaise';
+import TurnProbeGuide from './TurnProbeGuide';
+import RiverBluffCatcher from './RiverBluffCatcher';
+import PositionalAwareness from './PositionalAwareness';
+
+// ═══ PHASE 54: Stack:Blind, Push/Fold, Chip Chop, ICM Deals ═══
+import StackToBlindRatio from './StackToBlindRatio';
+import PushFoldChart from './PushFoldChart';
+import ChipChopCalc from './ChipChopCalc';
+import ICMDealMaker from './ICMDealMaker';
+
+// ═══ PHASE 55: Mixed Strategy, Freq Bench, Indifference, GTO vs Exploit ═══
+import MixedStrategyGuide from './MixedStrategyGuide';
+import FreqBenchmarks from './FreqBenchmarks';
+import IndifferenceCalc from './IndifferenceCalc';
+import GTOvsExploit from './GTOvsExploit';
+
+// ═══ PHASE 56: Combinatorics, Range vs Range, EQ Distribution, EV Calc ═══
+import HandCombinatorics from './HandCombinatorics';
+import RangeVsRange from './RangeVsRange';
+import EquityDistribution from './EquityDistribution';
+import EVCalculatorGuide from './EVCalculatorGuide';
+
+// ═══ PHASE 57: Session Review, Leak Analyzer, Study Plan, Progress ═══
+import SessionReviewTool from './SessionReviewTool';
+import LeakAnalyzer from './LeakAnalyzer';
+import StudyPlanCreator from './StudyPlanCreator';
+import ProgressDashboard from './ProgressDashboard';
 // ═══ Phase 3 Engines: Real-time scoring + diamond rewards ═══
 import { SessionScorer, calculateSessionDiamonds, getScoreGrade } from '../../engines/GTOScoreEngine';
 

@@ -16,7 +16,7 @@
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { radiusToZoom } from './pnm-utils';
+import { radiusToZoom, escapeHtml } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 
 // ─── Constants ───
@@ -30,11 +30,11 @@ const VENUE_TYPE_LABELS = {
 
 // Venue type → marker color
 const VENUE_TYPE_COLORS = {
-  casino: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)', label: 'Gold' },
-  card_room: { fill: '#00d4ff', glow: 'rgba(0,212,255,0.5)', label: 'Cyan' },
-  poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', label: 'Green' },
-  charity: { fill: '#a855f7', glow: 'rgba(168,85,247,0.5)', label: 'Purple' },
-  home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.5)', label: 'White' },
+  casino: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)', badgeBg: 'rgba(212,168,83,0.15)', label: 'Gold' },
+  card_room: { fill: '#00d4ff', glow: 'rgba(0,212,255,0.5)', badgeBg: 'rgba(0,212,255,0.15)', label: 'Cyan' },
+  poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', badgeBg: 'rgba(34,197,94,0.15)', label: 'Green' },
+  charity: { fill: '#a855f7', glow: 'rgba(168,85,247,0.5)', badgeBg: 'rgba(168,85,247,0.15)', label: 'Purple' },
+  home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.5)', badgeBg: 'rgba(255,255,255,0.15)', label: 'White' },
 };
 const DEFAULT_VENUE_COLOR = VENUE_TYPE_COLORS.casino;
 
@@ -143,6 +143,12 @@ const LEAFLET_CUSTOM_CSS = `
   50% { transform: scale(2.2); opacity: 0; }
 }
 
+/* ═══ VENUE PIN — Remove Leaflet default white border from divIcons ═══ */
+.venue-map-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* ═══ VENUE LABEL — Hide at low zoom ═══ */
 .venue-labels-hidden .venue-pin-label {
   display: none !important;
@@ -246,11 +252,7 @@ function truncateName(name, maxLen) {
   return short.slice(0, maxLen - 1).trim() + '…';
 }
 
-// ─── Helper: Escape HTML for safe injection into popup strings ───
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+// escapeHtml imported from pnm-utils.js
 
 // ─── Helper: Create venue marker icon (Tour-style round circle with label) ───
 function createVenueIcon(L, venue, overrideColor) {
@@ -453,7 +455,7 @@ function buildPopupHtml(venue) {
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-      <span style="padding:3px 10px;border-radius:6px;background:rgba(${colors.fill === '#d4a853' ? '212,168,83' : colors.fill === '#00d4ff' ? '0,212,255' : colors.fill === '#22c55e' ? '34,197,94' : colors.fill === '#a855f7' ? '168,85,247' : '255,255,255'},0.15);color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
+      <span style="padding:3px 10px;border-radius:6px;background:${colors.badgeBg || 'rgba(212,168,83,0.15)'};color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
       ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${hours}</span>` : ''}
     </div>
     ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${games}</div>` : ''}
@@ -478,6 +480,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const userMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
   const onOpenIframeModalRef = useRef(onOpenIframeModal);
+  const mountedRef = useRef(true);
   const [mapReady, setMapReady] = useState(false);
 
   // Keep the ref current without triggering re-init
@@ -538,13 +541,14 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         await loadScript('https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js');
 
         const checkReady = (attempts = 0) => {
+          if (!mountedRef.current) return; // Component unmounted — stop polling
           if (window.L && window.L.MarkerClusterGroup) {
             setMapReady(true);
           } else if (attempts < 50) {
             setTimeout(() => checkReady(attempts + 1), 100);
           } else {
             console.warn('MarkerClusterGroup never loaded after 5s — continuing without clustering');
-            if (window.L) setMapReady(true);
+            if (window.L && mountedRef.current) setMapReady(true);
           }
         };
         checkReady();
@@ -762,6 +766,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     }
 
     return () => {
+      mountedRef.current = false;
       container.removeEventListener('click', handlePopupClicks);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -812,9 +817,17 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       marker._venueCircle = circle;
       marker._venueData = venue;
       
-      // Hover preview integration
+      // Hover preview on desktop
       marker.on('mouseover', function() {
         marker.openPopup();
+      });
+
+      // Touch preview on mobile — first tap opens popup instead of requiring double tap
+      marker.on('click', function(e) {
+        if ('ontouchstart' in window) {
+          e.originalEvent?.preventDefault?.();
+          marker.openPopup();
+        }
       });
 
       clusterGroup.addLayer(marker);

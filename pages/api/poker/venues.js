@@ -374,8 +374,11 @@ export default async function handler(req, res) {
                   if (effectiveType) {
                       q = q.eq('venue_type', effectiveType);
                   } else if (!search && !id) {
-                      // Prevent pagination truncation by excluding tours/series from the default venues list
-                      q = q.not('venue_type', 'in', '("tour","series")');
+                      // Include tours/series when GPS search is active (filtered by radius anyway)
+                      // Exclude from non-GPS paginated lists to prevent clutter
+                      if (!lat || !lng) {
+                          q = q.not('venue_type', 'in', '("tour","series")');
+                      }
                   }
                   if (tournaments === 'true') q = q.eq('has_tournaments', true);
                   if (featured === 'true') q = q.eq('is_featured', true);
