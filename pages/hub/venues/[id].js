@@ -1118,11 +1118,19 @@ export default function VenueDetailPage() {
     finally { setClaimSubmitting(false); }
   };
 
-  var googleMapsUrl = venue
-    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(
-      [venue.address, venue.city, venue.state].filter(Boolean).join(', ')
-    )
-    : '#';
+  var openNativeMaps = function () {
+    var addr = encodeURIComponent(
+      [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(', ')
+    );
+    var ua = navigator.userAgent || '';
+    if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
+      window.open('https://maps.apple.com/?q=' + addr, '_blank');
+    } else if (/Android/i.test(ua)) {
+      window.location.href = 'geo:0,0?q=' + addr;
+    } else {
+      window.open('https://www.google.com/maps/search/?api=1&query=' + addr, '_blank');
+    }
+  };
 
   // Group daily tournament schedules by day
   var getGroupedSchedules = function () {
@@ -1473,7 +1481,7 @@ export default function VenueDetailPage() {
                   <div className="info-content">
                     <span className="info-label">Address</span>
                     {venue.address ? (
-                      <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="info-value info-link">
+                      <a href="#" onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps(); }} className="info-value info-link">
                         {venue.address}
                         {venue.city && (', ' + venue.city)}
                         {venue.state && (', ' + venue.state)}
@@ -1754,17 +1762,15 @@ export default function VenueDetailPage() {
                   <div ref={mapContainerRef} className="venue-map-container" />
                 </div>
                 <div className="map-actions">
-                  <a
-                    href={googleMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={function(e) { e.preventDefault(); e.stopPropagation(); openNativeMaps(); }}
                     className="directions-btn"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="3 11 22 2 13 21 11 13 3 11" />
                     </svg>
                     Get Directions
-                  </a>
+                  </button>
                   {venue.address && (
                     <span className="map-address-text">
                       {venue.address}{venue.city ? ', ' + venue.city : ''}{venue.state ? ', ' + venue.state : ''}
@@ -4293,6 +4299,7 @@ export default function VenueDetailPage() {
           color: #00D4FF;
           font-size: 14px;
           font-weight: 700;
+          font-family: inherit;
           text-decoration: none;
           transition: all 0.2s;
           cursor: pointer;

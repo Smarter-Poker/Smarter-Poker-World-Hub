@@ -432,7 +432,7 @@ function buildTourPopupHtml(venue) {
     ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${venue.dates}</div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="fsp-trigger" data-url="/hub/tours/${venue.tour_code}" data-title="${venue.tour_name || venue.tour_code}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;border:none;cursor:pointer;">View Tour</button>
-      <a href="https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}" target="_blank" rel="noopener" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;">Directions</a>
+      <button class="directions-trigger" data-addr="${encodeURIComponent((venue.city || '') + ', ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;">Directions</button>
     </div>
   </div>`;
 }
@@ -475,7 +475,7 @@ function buildPopupHtml(venue) {
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="fsp-trigger" data-url="${detailPath}" data-title="${venue.name || 'Venue Details'}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;border:none;cursor:pointer;">View Details</button>
-      <a href="https://www.google.com/maps/dir/?api=1&destination=${venue.latitude},${venue.longitude}" target="_blank" rel="noopener" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;transition:all 0.15s;">Directions</a>
+      <button class="directions-trigger" data-addr="${encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;transition:all 0.15s;">Directions</button>
     </div>
   </div>`;
 }
@@ -589,6 +589,23 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
           onOpenIframeModal(url, title);
         } else {
           window.location.href = url;
+        }
+      }
+      // Directions button — open native maps app based on device
+      const dirTrigger = e.target.closest('.directions-trigger');
+      if (dirTrigger) {
+        e.preventDefault();
+        e.stopPropagation();
+        const addr = dirTrigger.getAttribute('data-addr') || '';
+        const lat = dirTrigger.getAttribute('data-lat');
+        const lng = dirTrigger.getAttribute('data-lng');
+        const ua = navigator.userAgent || '';
+        if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
+          window.open('https://maps.apple.com/?daddr=' + lat + ',' + lng + '&q=' + addr, '_blank');
+        } else if (/Android/i.test(ua)) {
+          window.location.href = 'geo:' + lat + ',' + lng + '?q=' + addr;
+        } else {
+          window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng, '_blank');
         }
       }
     };

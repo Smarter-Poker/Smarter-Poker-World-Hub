@@ -112,8 +112,8 @@ export function ExternalLinkProvider({ children }) {
             );
             if (isMapUrl) return;
 
-            // CRITICAL: Skip tel: and mailto: protocol links
-            if (href.startsWith('tel:') || href.startsWith('mailto:')) return;
+            // CRITICAL: Skip tel:, mailto:, and geo: protocol links
+            if (href.startsWith('tel:') || href.startsWith('mailto:') || href.startsWith('geo:')) return;
 
             // HendonMob URLs will open in ArticleReaderModal with proxy support
 
