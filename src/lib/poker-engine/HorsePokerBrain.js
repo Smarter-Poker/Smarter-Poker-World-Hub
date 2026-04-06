@@ -6479,6 +6479,65 @@ function makeTurnRiverHeuristicDecision(params) {
                 return { type: 'check' };
             }
 
+            // ═══ TURN PROBE BET FRAMEWORK (Non-Aggressor IP) ═══
+            // When we're the caller and IP, opponent checked to us on the turn.
+            // A probe bet takes advantage of our position to:
+            // 1. Steal the pot with weak hands on favorable cards
+            // 2. Extract thin value from opponent's capped checking range
+            // 3. Deny free cards to opponent's draws
+            if (!heroIsAggressor && isIP && canRaise && !multiway) {
+                let probeFreq = 0;
+                let probeSizing = 0.50; // Default probe = half pot
+
+                // ═══ SCARE CARD PROBE ═══
+                // Turn card that scares opponent (overcard, flush card, board pair)
+                // → probe to represent the scare card
+                if (scareLevel >= 1 && handEval.strength >= 20) {
+                    probeFreq = 0.30 + aggressionBias / 40;
+                    if (scareLevel >= 2) probeFreq += 0.10;
+                    // Board evolution: if runout favors our perceived range, probe more
+                    if (boardEvolution.evolution === 'caller_favorable') probeFreq += 0.08;
+                    probeSizing = scareLevel >= 2 ? 0.55 : 0.45;
+                }
+
+                // ═══ OPPONENT WEAKNESS PROBE ═══
+                // Opponent checked to us after they were the aggressor → sign of weakness
+                if (heroIsAggressor === false && oppStreetAggression !== 'very_heavy') {
+                    if (handEval.strength >= 30 && handEval.strength < 55) {
+                        probeFreq = Math.max(probeFreq, 0.25);
+                        // Against weak-tight, probe with anything
+                        if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
+                            probeFreq = Math.max(probeFreq, 0.40);
+                        }
+                        probeSizing = 0.40; // Smaller probe for thin value
+                    }
+                }
+
+                // ═══ DRAW DENIAL PROBE ═══
+                // On wet boards, probe to charge opponent's draws
+                if (boardWet === 'wet' && handEval.strength >= 35 && handEval.strength < 65) {
+                    probeFreq = Math.max(probeFreq, 0.35);
+                    probeSizing = Math.max(probeSizing, 0.55); // Bigger to charge
+                }
+
+                // ═══ BOARD EVOLUTION PROBE ═══
+                // Bricked draws on turn → opponent's semi-bluffs missed → probe to take pot
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                    probeFreq += 0.08;
+                }
+
+                // Against callers, probe less (they call everything)
+                if (oppCallFreq > 0.65 && oppConfidence > 0.3 && handEval.strength < 45) {
+                    probeFreq = 0; // Don't probe into a calling station with air
+                }
+
+                probeFreq = Math.max(0, Math.min(0.50, probeFreq));
+                if (probeFreq > 0.05 && Math.random() < probeFreq) {
+                    console.log(`[HorseBrain] 🔍 TURN PROBE: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency} size=${Math.round(probeSizing * 100)}%`);
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeSizing)) };
+                }
+            }
+
             // ── BLUFF: Bet missed draws on favorable boards to represent improvement ──
             if (handEval.strength < 20 && canRaise && !multiway) {
                 let bluffFreq = 0.18 + aggressionBias / 50 + posFreqMod.ipBluffBoost + posFreqMod.turnBarrelOOPPenalty;
@@ -6868,6 +6927,34 @@ function makeTurnRiverHeuristicDecision(params) {
         const turnEval = evaluatePostflopHand(holeCards, turnBoard);
         const turnToRiverDelta = handEval.strength - turnEval.strength; // Did river help or hurt?
 
+        // ═══ RIVER RANGE POLARIZATION ENGINE ═══
+        // GTO principle: on the river, betting ranges should be either POLARIZED or MERGED.
+        // POLARIZED: Bet with nuts + bluffs, check everything in between.
+        //   → Correct sizing: large (66%+ pot), overbets with nuts.
+        //   → When: IP, deep SPR, dry board, opponent has capped range.
+        // MERGED: Bet with a wide range of medium+ hands for thin value.
+        //   → Correct sizing: small (25-50% pot).
+        //   → When: Shallow SPR, opponent weak range, multiway.
+        const riverRangeType = (() => {
+            // Strong polarization signals
+            if (spr <= 3) return 'merged'; // Low SPR: merged (no room for polarized)
+            if (isIP && heroHasNutAdvantage && !multiway) return 'polarized';
+            if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) return 'polarized';
+            if (narrative.barrelsInARow >= 2 && narrative.storyIsConsistent) return 'polarized';
+            // Merged signals
+            if (multiway) return 'merged';
+            if (isLimpedPot) return 'merged';
+            if (!heroIsAggressor && heroRangeCapped) return 'merged';
+            if (oppRangeStrength === 'weak') return 'merged';
+            // Default: polarized IP, merged OOP
+            return isIP ? 'polarized' : 'merged';
+        })();
+
+        // Polarization-driven sizing modifier
+        const polarSizeMod = riverRangeType === 'polarized' ? 1.15 : 0.80;
+        // Polarization-driven bluff frequency (polarized = more bluffs in range)
+        const polarBluffMod = riverRangeType === 'polarized' ? 1.15 : 0.60;
+
         // ═══ NOT FACING A BET ═══
         if (!facingBet) {
 
@@ -6922,7 +7009,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
             // ── MONSTERS (non-nut): Standard value bet 66-80% pot ──
             if (handEval.strength >= 75 && canRaise) {
-                let sizeFrac = multiway ? Math.max(0.50, 0.60 + mwAdj.adjustSizing * 0.01) : 0.72;
+                let sizeFrac = (multiway ? Math.max(0.50, 0.60 + mwAdj.adjustSizing * 0.01) : 0.72) * polarSizeMod;
                 // Multiway: tighter value range means we can size up more
                 if (multiway && mwAdj.valueBetThreshold > 0) {
                     sizeFrac = Math.min(0.80, sizeFrac + 0.08); // Multiway value = bigger sizing
@@ -7171,14 +7258,18 @@ function makeTurnRiverHeuristicDecision(params) {
                 // ═══ HEAVY POT CAUTION ═══
                 if (oppStreetAggression === 'very_heavy') bluffProbability -= 0.10;
 
-                // ═══ SPR-DRIVEN BLUFF ADJUSTMENT (RIVER) ═══
-                bluffProbability *= sprStrategy.bluffMult;
+                // ═══ SPR + POLARIZATION BLUFF ADJUSTMENT (RIVER) ═══
+                bluffProbability *= sprStrategy.bluffMult * polarBluffMod;
 
                 // GTO cap: river bluffs should not exceed ~35% even with max blockers + reads
                 bluffProbability = Math.max(0, Math.min(0.35, bluffProbability));
 
                 if (Math.random() < bluffProbability) {
-                    let bluffFrac = 0.66 + Math.random() * 0.14;
+                    // Polarized range: use larger bluff sizing (mirrors our value bets)
+                    // Merged range: smaller bluffs (consistent with thin value sizing)
+                    let bluffFrac = riverRangeType === 'polarized'
+                        ? (0.70 + Math.random() * 0.20) // 70-90% for polarized
+                        : (0.40 + Math.random() * 0.15); // 40-55% for merged
                     if (oppTendency === 'weak-tight' && oppConfidence > 0.35) {
                         bluffFrac = 0.90 + Math.random() * 0.30;
                     }
@@ -7950,6 +8041,27 @@ function makeFlopHeuristicDecision(params) {
         return canCall ? { type: 'call' } : { type: 'fold' };
     }
 
+    // ═══ LIMPED POT FACING BET (FLOP) ═══
+    // In limped pots, a bet means someone hit something. Ranges are wide,
+    // so the bettor could have anything from bottom pair to a monster.
+    // Defense strategy: tighter (no c-bet dynamics to exploit), value-heavy.
+    if (flopIsLimpedPot && facingBet) {
+        // Strong hands: raise for value (their range is wide, they'll pay off)
+        if (handEval.strength >= 70 && canRaise) {
+            return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 2.5)) };
+        }
+        // Medium-strong: call (pot is small, don't inflate without the nuts)
+        if (handEval.strength >= 45 && canCall) {
+            return { type: 'call' };
+        }
+        // Draws: call if cheap
+        if (drawEq.outs >= 8 && betToPot <= 0.50 && canCall) {
+            return { type: 'call' };
+        }
+        // Weak: fold (don't fight for a small limped pot with nothing)
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
     // ── MONSTERS: Raise for value (slow-play option) ──
     if (handEval.strength >= 80 && canRaise) {
         // Slow-play on dry boards (opponent will keep bluffing)
@@ -8007,6 +8119,42 @@ function makeFlopHeuristicDecision(params) {
             bluffCRFreq = Math.max(0, Math.min(0.20, bluffCRFreq));
             if (Math.random() < bluffCRFreq) {
                 return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 3.0)) };
+            }
+        }
+    }
+
+    // ═══ OOP FLOAT DEFENSE SYSTEM ═══
+    // When OOP facing a c-bet, we need to defend enough to prevent exploitation.
+    // GTO says we should defend ~60-65% of our range vs a 66% pot c-bet.
+    // Our defense range = check-calls + check-raises.
+    // Key principle: defend with (1) made hands, (2) draws, (3) some backdoor equity.
+    if (!isIP && !multiway) {
+        const flopMDF = potSize / (potSize + toCall); // Minimum defense frequency
+        const flopDefenseTarget = flopMDF * 0.75; // We aim to defend ~75% of MDF
+
+        // ═══ FLOAT DEFENSE: Peel with backdoor equity + overcards ═══
+        // These hands have no immediate equity but can improve on turn/river.
+        // GTO defends with: BDFD + overcard, gutshot + overcard, low pair + BDFD
+        if (handEval.strength >= 15 && handEval.strength < 30) {
+            const hasBackdoorEquity = handEval.hasBackdoorFlush || handEval.hasGutshot;
+            const hasOvercards = holeCards.some(c => RANKS.indexOf(c[0]) > Math.max(...board.map(b => RANKS.indexOf(b[0]))));
+
+            if (hasBackdoorEquity || hasOvercards) {
+                let floatDefenseFreq = 0.30;
+                // Small c-bet = defend wider
+                if (betToPot <= 0.33) floatDefenseFreq += 0.15;
+                else if (betToPot <= 0.50) floatDefenseFreq += 0.08;
+                // Large c-bet = defend tighter
+                if (betToPot >= 0.75) floatDefenseFreq -= 0.12;
+                // Against heavy c-bettors = defend wider (they're bluffing more)
+                if (oppCbetFreq > 0.70 && oppConfidence > 0.3) floatDefenseFreq += 0.10;
+                // Board texture: wet = more profitable to defend (draws available)
+                if (boardWetness === 'wet') floatDefenseFreq += 0.06;
+
+                floatDefenseFreq = Math.max(0.10, Math.min(0.50, floatDefenseFreq));
+                if (Math.random() < floatDefenseFreq && canCall) {
+                    return { type: 'call' }; // Float defense with backdoor equity
+                }
             }
         }
     }
