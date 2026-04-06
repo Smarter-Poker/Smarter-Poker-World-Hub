@@ -59,12 +59,19 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
     fetch('/api/poker/live-tables')
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.data) {
+        if (data.venues) {
           const map = {};
-          data.data.forEach(g => {
-            const vId = String(g.venue_id);
-            if (!map[vId]) map[vId] = [];
-            map[vId].push(g);
+          data.venues.forEach(v => {
+            // Map by bravo_slug or venue_name since venue_id isn't in this API
+            const key = v.bravo_slug || v.venue_name;
+            if (!map[key]) map[key] = [];
+            v.games.forEach(g => {
+              map[key].push({
+                tables_running: g.tables_running || 0,
+                players_waiting: g.players_waiting || 0,
+                game_name: g.game || g.game_name || 'Unknown',
+              });
+            });
           });
           setLiveData(map);
         }

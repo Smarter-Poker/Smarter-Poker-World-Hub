@@ -271,6 +271,11 @@ def load_pa_regions():
 def extract_games_from_region(html, region_slug, fallback_venue_name=None):
     """Extract cash game data from a PokerAtlas region cash-games page.
 
+    Returns data in the SAME structure as Bravo's extract_live_data():
+      - live_games: games with tables actively running
+      - waitlist: games with players waiting but no tables yet
+    This ensures both daemons feed identical schemas into venue_live_tables.
+
     HTML structure (from production analysis):
     <li class="cash-games-list-item cds-item">
       <a href="/poker-cash-game/venue-slug-game-type-stakes">
@@ -293,6 +298,9 @@ def extract_games_from_region(html, region_slug, fallback_venue_name=None):
               <li class="inline-list-item">
                 <span class="label">Runs:</span> Always
               </li>
+              <li class="inline-list-item">
+                <span class="label">Players Waiting:</span> 5
+              </li>
             </ul>
           </div>
         </div>
@@ -303,7 +311,7 @@ def extract_games_from_region(html, region_slug, fallback_venue_name=None):
     rhash = hashlib.sha256(body).hexdigest()
     now = datetime.now(timezone.utc).isoformat()
 
-    venues = {}  # venue_name -> { games: [...] }
+    venues = {}  # venue_name -> { live_games: [...], waitlist: [...] }
 
     # Split by cash-games-list-item to process each item
     items = re.split(r'<li\s+class="cash-games-list-item\s+cds-item\s*">', html)
@@ -354,27 +362,67 @@ def extract_games_from_region(html, region_slug, fallback_venue_name=None):
         if runs_match:
             runs = re.sub(r'<[^>]+>', '', runs_match.group(1)).strip()
 
+        # Extract players waiting (if present on the page)
+        waiting_match = re.search(
+            r'<span\s+class="label">(?:Players\s+)?Wait(?:ing|list)?:?</span>\s*(\d+)',
+            item, re.DOTALL | re.IGNORECASE
+        )
+        players_waiting = 0
+        if waiting_match:
+            players_waiting = int(waiting_match.group(1))
+
         # Convert "runs" to a table estimate
         tables_estimate = runs_to_tables(runs)
 
-        # Group by venue
+        # Group by venue — using Bravo-compatible live_games + waitlist structure
         if venue_name not in venues:
             venues[venue_name] = {
                 'venue_name': venue_name,
+                'venue_slug': re.sub(r'[^a-z0-9]+', '-', venue_name.lower()).strip('-'),
                 'region_slug': region_slug,
                 'scrape_timestamp': now,
                 'scrape_html_hash': rhash,
-                'games': [],
+                'live_games': [],
+                'waitlist': [],
+                '_seen_games': set(),  # Dedup guard for overlapping regions
             }
 
-        venues[venue_name]['games'].append({
-            'game': game_name,
-            'buyin': buyin,
-            'runs': runs,
-            'tables_estimate': tables_estimate,
-        })
+        # DEDUP: Skip if we already have this game for this venue
+        game_key = game_name.lower().strip()
+        if game_key in venues[venue_name]['_seen_games']:
+            continue
+        venues[venue_name]['_seen_games'].add(game_key)
 
-    return list(venues.values()), rhash, now
+        # Classify into live_games vs waitlist (matching Bravo's structure)
+        if tables_estimate > 0:
+            venues[venue_name]['live_games'].append({
+                'game': game_name,
+                'tables': tables_estimate,
+                'buyin': buyin,
+                'runs': runs,
+            })
+        # If players are waiting OR the game is listed with no tables, add to waitlist
+        if players_waiting > 0:
+            venues[venue_name]['waitlist'].append({
+                'game': game_name,
+                'players_waiting': players_waiting,
+            })
+        elif tables_estimate == 0:
+            # Game listed but not currently running — catalog entry
+            venues[venue_name]['live_games'].append({
+                'game': game_name,
+                'tables': 0,
+                'buyin': buyin,
+                'runs': runs,
+            })
+
+    # Clean up internal state before returning
+    result = []
+    for v in venues.values():
+        del v['_seen_games']
+        result.append(v)
+
+    return result, rhash, now
 
 
 def runs_to_tables(runs_text):
@@ -407,6 +455,89 @@ def runs_to_tables(runs_text):
         return 0  # Not currently running
     else:
         return 1  # Default
+
+
+# ============================================================
+# PAYLOAD BUILDER (mirrors Bravo's build_payload_from_results)
+# ============================================================
+def build_payload_from_results(venue_results, batch_id):
+    """Build Supabase payload from extracted venue data.
+
+    Mirrors Bravo's build_payload_from_results() to ensure consistent
+    data structure in venue_live_tables across both sources.
+
+    Logic:
+      1. For each live_game, check waitlist for matching game names
+         and attach players_waiting count.
+      2. Waitlist-only games (not in live_games) get separate records
+         with tables_running=0.
+      3. Dedup by game name within each venue.
+    """
+    payload = []
+    for venue_data in venue_results:
+        venue_name = venue_data['venue_name']
+        venue_slug = venue_data.get('venue_slug') or re.sub(r'[^a-z0-9]+', '-', venue_name.lower()).strip('-')
+
+        # Build waitlist lookup: game_name_lower -> players_waiting
+        waitlist_map = {}
+        for w in venue_data.get('waitlist', []):
+            key = w['game'].lower().strip()
+            waitlist_map[key] = w.get('players_waiting', 0)
+
+        seen_games = set()
+
+        # 1. Live games (tables > 0) — merge waitlist counts
+        for game in venue_data.get('live_games', []):
+            game_key = game['game'].lower().strip()
+            if game_key in seen_games:
+                continue
+            seen_games.add(game_key)
+
+            players_waiting = waitlist_map.pop(game_key, 0)
+            payload.append({
+                'venue_name': venue_name,
+                'game_name': game['game'],
+                'tables_running': game.get('tables', 0),
+                'players_waiting': players_waiting,
+                'scrape_timestamp': venue_data['scrape_timestamp'],
+                'scrape_html_hash': venue_data['scrape_html_hash'],
+                'scrape_batch_id': batch_id,
+                'data_quality': 'scraped_verified',
+                'source': 'pokeratlas',
+                'bravo_slug': f'pa-{venue_slug}',
+                'buyin_range': game.get('buyin', ''),
+                'runs_schedule': game.get('runs', ''),
+            })
+
+        # 2. Waitlist-only games (not already matched to a live game)
+        for game_key, players_waiting in waitlist_map.items():
+            if game_key in seen_games:
+                continue
+            seen_games.add(game_key)
+
+            # Find the original game name (preserve casing)
+            original_name = game_key
+            for w in venue_data.get('waitlist', []):
+                if w['game'].lower().strip() == game_key:
+                    original_name = w['game']
+                    break
+
+            payload.append({
+                'venue_name': venue_name,
+                'game_name': original_name,
+                'tables_running': 0,
+                'players_waiting': players_waiting,
+                'scrape_timestamp': venue_data['scrape_timestamp'],
+                'scrape_html_hash': venue_data['scrape_html_hash'],
+                'scrape_batch_id': batch_id,
+                'data_quality': 'scraped_verified',
+                'source': 'pokeratlas',
+                'bravo_slug': f'pa-{venue_slug}',
+                'buyin_range': '',
+                'runs_schedule': '',
+            })
+
+    return payload
 
 
 # ============================================================
@@ -729,14 +860,15 @@ def save_history_snapshot(batch_id, all_venues):
         now = datetime.now(timezone.utc).isoformat()
         rows = []
         for vdata in all_venues:
-            total_tables = sum(g['tables_estimate'] for g in vdata['games'])
-            venue_slug = re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
+            total_tables = sum(g['tables'] for g in vdata['live_games'])
+            total_waiting = sum(w['players_waiting'] for w in vdata['waitlist'])
+            venue_slug = vdata.get('venue_slug') or re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
             rows.append({
                 'bravo_slug': f'pa-{venue_slug}',
                 'venue_name': vdata['venue_name'],
                 'total_tables': total_tables,
-                'total_waiting': 0,
-                'game_count': len(vdata['games']),
+                'total_waiting': total_waiting,
+                'game_count': len(vdata['live_games']),
                 'source': 'pokeratlas',
                 'snapshot_time': now,
                 'batch_id': batch_id,
@@ -765,24 +897,40 @@ def save_game_history_snapshot(batch_id, all_venues):
     
     This is ADDITIVE — writes to a separate table (game_live_history)
     and never touches venue_live_history. Safe to fail silently.
+    Uses same live_games + waitlist structure as Bravo.
     """
     try:
         now = datetime.now(timezone.utc).isoformat()
         rows = []
         for vdata in all_venues:
-            venue_slug = re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
-            for game in vdata['games']:
+            venue_slug = vdata.get('venue_slug') or re.sub(r'[^a-z0-9]+', '-', vdata['venue_name'].lower()).strip('-')
+            for game in vdata['live_games']:
                 rows.append({
                     'bravo_slug': f'pa-{venue_slug}',
                     'venue_name': vdata['venue_name'],
                     'game_type': game['game'],
                     'stakes': game.get('buyin', ''),
-                    'tables': game.get('tables_estimate', 1),
+                    'tables': game.get('tables', 0),
                     'waiting': 0,
                     'source': 'pokeratlas',
                     'snapshot_time': now,
                     'batch_id': batch_id,
                 })
+            # Include waitlist-only games (not already in live_games)
+            live_names = [g['game'].lower() for g in vdata['live_games']]
+            for w in vdata['waitlist']:
+                if w['game'].lower() not in live_names:
+                    rows.append({
+                        'bravo_slug': f'pa-{venue_slug}',
+                        'venue_name': vdata['venue_name'],
+                        'game_type': w['game'],
+                        'stakes': '',
+                        'tables': 0,
+                        'waiting': w['players_waiting'],
+                        'source': 'pokeratlas',
+                        'snapshot_time': now,
+                        'batch_id': batch_id,
+                    })
         if rows:
             body = json.dumps(rows).encode()
             req = urllib.request.Request(
@@ -943,10 +1091,11 @@ def run_scrape_cycle(mgr):
         venues, rhash, now = extract_games_from_region(html, slug)
 
         if venues:
-            total_games = sum(len(v['games']) for v in venues)
+            total_games = sum(len(v['live_games']) for v in venues)
+            total_waiting = sum(len(v['waitlist']) for v in venues)
             log.info(
                 f'  [{i+1}/{len(regions)}] ✅ {slug[:30]:30} | '
-                f'{len(venues)} rooms | {total_games} games'
+                f'{len(venues)} rooms | {total_games} games | {total_waiting} waitlist'
             )
             all_venues.extend(venues)
         else:
@@ -969,7 +1118,7 @@ def run_scrape_cycle(mgr):
         if html and html != 'REDIRECT':
             venues, rhash, now = extract_games_from_region(html, orphan['region'], fallback_venue_name=orphan['name'])
             if venues:
-                total_games = sum(len(v['games']) for v in venues)
+                total_games = sum(len(v['live_games']) for v in venues)
                 log.info(f"  [Orphan {i+1}/{len(PA_ORPHAN_VENUES)}] ✅ {orphan['name'][:30]:30} | {total_games} games")
                 all_venues.extend(venues)
             else:
@@ -979,7 +1128,7 @@ def run_scrape_cycle(mgr):
         
         time.sleep(RATE_LIMIT_DELAY)
 
-    # Build Supabase payload
+    # Build Supabase payload — using Bravo-compatible build_payload_from_results()
     log.info(f'💾 Saving {len(all_venues)} venue records to Supabase...')
 
     # DEDUPLICATION: Fetch Bravo venue names to skip duplicates
@@ -1000,37 +1149,21 @@ def run_scrape_cycle(mgr):
     except Exception as e:
         log.warning(f'  Dedup: Could not load Bravo venues: {e}')
 
-    payload = []
+    # Filter out venues that already have Bravo data
+    filtered_venues = []
     skipped_dupes = 0
     for venue_data in all_venues:
         venue_name = venue_data['venue_name']
-        # Skip if venue exists in Bravo (exact or normalized match)
         normalized = re.sub(r'[^a-z0-9]', '', venue_name.lower())
         if venue_name in bravo_names or normalized in bravo_names_normalized:
             skipped_dupes += 1
             continue
-
-        # Generate unique slug per venue (not per region!)
-        venue_slug = re.sub(r'[^a-z0-9]+', '-', venue_name.lower()).strip('-')
-        for game in venue_data['games']:
-            record = {
-                'venue_name': venue_name,
-                'game_name': game['game'],
-                'tables_running': 0,
-                'players_waiting': 0,
-                'scrape_timestamp': venue_data['scrape_timestamp'],
-                'scrape_html_hash': venue_data['scrape_html_hash'],
-                'scrape_batch_id': batch_id,
-                'data_quality': 'scraped_verified',
-                'source': 'pokeratlas',
-                'bravo_slug': f'pa-{venue_slug}',
-                'buyin_range': game.get('buyin', ''),
-                'runs_schedule': game.get('runs', ''),
-            }
-            payload.append(record)
+        filtered_venues.append(venue_data)
 
     if skipped_dupes:
         log.info(f'  Dedup: Skipped {skipped_dupes} venues (already in Bravo)')
+
+    payload = build_payload_from_results(filtered_venues, batch_id)
 
     saved = 0
     if payload:
@@ -1038,10 +1171,10 @@ def run_scrape_cycle(mgr):
         if sb_upsert('venue_live_tables', payload):
             saved = len(payload)
             sb_delete('venue_live_tables', f'scrape_batch_id=neq.{batch_id}&source=eq.pokeratlas')
-            # Save historical snapshot for trend analysis (#5)
-            save_history_snapshot(batch_id, all_venues)
-            # Save per-game history for game-type heatmaps (#10)
-            save_game_history_snapshot(batch_id, all_venues)
+            # Save historical snapshot for trend analysis
+            save_history_snapshot(batch_id, filtered_venues)
+            # Save per-game history for game-type heatmaps
+            save_game_history_snapshot(batch_id, filtered_venues)
 
     # Save evidence
     evidence = {
@@ -1066,7 +1199,7 @@ def run_scrape_cycle(mgr):
             'cycle_start': cycle_start.isoformat(),
             'duration_seconds': int((datetime.now(timezone.utc) - cycle_start).total_seconds()),
             'venues_scraped': len(all_venues),
-            'venues_with_data': len([v for v in all_venues if v['games']]),
+            'venues_with_data': len([v for v in all_venues if v['live_games']]),
             'errors': errors,
             'records_saved': saved,
         }).encode()
@@ -1087,7 +1220,8 @@ def run_scrape_cycle(mgr):
             'venues': [{
                 'venue_name': v['venue_name'],
                 'region': v['region_slug'],
-                'games': v['games'],
+                'live_games': v['live_games'],
+                'waitlist': v['waitlist'],
             } for v in all_venues],
         }, f, indent=2, default=str)
 

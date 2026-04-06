@@ -39,7 +39,7 @@ export default function VenueGameAlerts({ userId, venues = [] }) {
         (d.venues || []).forEach(v => {
           (v.games || []).forEach(g => {
             if (g.tables_running > 0) {
-              games.push({ venue: v.venue_name, game: g.game_name, tables: g.tables_running });
+              games.push({ venue: v.venue_name, game: g.game || g.game_name, tables: g.tables_running });
             }
           });
         });
