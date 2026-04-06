@@ -388,18 +388,11 @@ export default function PokerNearMePage() {
     const [currentTutorialTab, setCurrentTutorialTab] = useState(null);
 
     // Trigger tab tutorial on first visit to each tab
-    // DISABLED on mobile/tablet — tutorials block the entire mobile view
+    // DISABLED: Tutorials should no longer auto-play per new standard.
+    // They are now exclusively accessible via the Hamburger Menu.
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth < 900) return; // skip on mobile + tablet
-        if (activeTab && !tabTutorialsSeen[activeTab] && PNM_TAB_TUTORIALS[activeTab]) {
-            // Small delay to let the tab content render first
-            const timer = setTimeout(() => {
-                setCurrentTutorialTab(activeTab);
-                setShowTabTutorial(true);
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [activeTab, tabTutorialsSeen]);
+        // Auto-play disabled
+    }, []);
 
     const handleTutorialDismiss = useCallback(() => {
         setShowTabTutorial(false);

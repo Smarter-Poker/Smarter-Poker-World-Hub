@@ -584,10 +584,10 @@ export default function VirtualSandbox() {
   };
 
   // Check first visit for onboarding
+  // DISABLED: Tutorials should no longer auto-play per new standard.
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const seen = localStorage.getItem('sandbox-tour-seen');
-      if (!seen) setShowTour(true);
+        // Auto-play disabled
     }
   }, []);
 
@@ -1512,6 +1512,7 @@ export default function VirtualSandbox() {
               <button onClick={() => { setShowStudyFolders(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.3)', color: '#4599FF', cursor: 'pointer' }}>📁 Folders</button>
               <button onClick={() => { setShowSaveHand(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>💾 Save Spot</button>
               <button onClick={() => { setShowShareScenario(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)', color: '#ec4899', cursor: 'pointer' }}>🔗 Share</button>
+              <button onClick={() => { setShowTour(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer' }}>❓ Tour</button>
 
               <button onClick={() => { setShowGodMode(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#c4b5fd', cursor: 'pointer' }}>⚡ God Mode</button>
               <button onClick={() => { setShowSolverImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.15)', border: '1px solid rgba(245,166,35,0.4)', color: '#F5A623', cursor: 'pointer' }}>📥 Pro Import</button>

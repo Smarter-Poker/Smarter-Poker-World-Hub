@@ -285,15 +285,7 @@ export default function PokerNearMeLobby() {
   const [totalVenueCount, setTotalVenueCount] = useState(0);
   const [todaysTournamentCount, setTodaysTournamentCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState(null);
-  const [showTutorial, setShowTutorial] = useState(() => {
-    if (typeof window !== 'undefined') {
-      // DISABLE auto-tutorial on mobile/tablet — it blocks the entire view
-      // Users can still replay from the hamburger menu
-      if (window.innerWidth < 900) return false;
-      return !localStorage.getItem('pnm_lobby_tutorial_seen');
-    }
-    return false;
-  });
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // ─── Location State ───
   const [userLocation, setUserLocation] = useState(null);

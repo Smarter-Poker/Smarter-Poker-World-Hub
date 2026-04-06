@@ -568,6 +568,36 @@ export default async function handler(req, res) {
                                   if (schedGames.length > 0) {
                                       jsonVenue.games_offered = [...new Set([...(jsonVenue.games_offered || []), ...schedGames])];
                                   }
+
+                                  // Added Charity Date Logic for Linked Pages
+                                  if (sp.page_type === 'charity') {
+                                      let isOpenToday = false;
+                                      let nextEvent = null;
+                                      const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                      const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+                                      const todayIdx = new Date(localCurrentTime).getDay();
+                                      const todayKey = DAYS_ORDER[todayIdx];
+                                      
+                                      if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
+                                          isOpenToday = true;
+                                      } else {
+                                          for (let i = 1; i <= 7; i++) {
+                                              const nextIdx = (todayIdx + i) % 7;
+                                              const nextDayStr = DAYS_ORDER[nextIdx];
+                                              const nextDayData = schedule[nextDayStr];
+                                              if (nextDayData && nextDayData.open && nextDayData.location) {
+                                                  const dayLabel = nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1);
+                                                  nextEvent = {
+                                                      day: dayLabel,
+                                                      location: nextDayData.location.trim()
+                                                  };
+                                                  break;
+                                              }
+                                          }
+                                      }
+                                      jsonVenue.is_today = isOpenToday;
+                                      jsonVenue.next_event = nextEvent;
+                                  }
                               } else {
                                   // Linked venue not in JSON dataset — try Supabase poker_venues
                                   missedLinkedPages.push(sp);
@@ -605,6 +635,36 @@ export default async function handler(req, res) {
                               const primaryLocStr = sp.location_city + (sp.location_state ? ', ' + sp.location_state : '');
                               const primaryCoords = geocoded[primaryLocStr] || geocoded[sp.location_city] || null;
 
+                              // Calculate Charity Open/Next Event Status
+                              let isOpenToday = false;
+                              let nextEvent = null;
+                              let todayLocation = null;
+                              if (sp.page_type === 'charity') {
+                                  const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                  const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+                                  const todayIdx = new Date(localCurrentTime).getDay();
+                                  const todayKey = DAYS_ORDER[todayIdx];
+                                  if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
+                                      isOpenToday = true;
+                                      todayLocation = schedule[todayKey].location.trim();
+                                  } else {
+                                      // Find the next available event date
+                                      for (let i = 1; i <= 7; i++) {
+                                          const nextIdx = (todayIdx + i) % 7;
+                                          const nextDayStr = DAYS_ORDER[nextIdx];
+                                          const nextDayData = schedule[nextDayStr];
+                                          if (nextDayData && nextDayData.open && nextDayData.location) {
+                                              const dayLabel = nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1);
+                                              nextEvent = {
+                                                  day: dayLabel,
+                                                  location: nextDayData.location.trim()
+                                              };
+                                              break;
+                                          }
+                                      }
+                                  }
+                              }
+
                               unlinkedPages.push({
                                   ...sp,
                                   _enrichedFromPokerVenue: pv || null,
@@ -640,10 +700,10 @@ export default async function handler(req, res) {
                               const isFeatured = sp._resolvedIsFeatured || false;
 
                               if (sp.page_type === 'charity') {
-                                  // Only process if they have a schedule and are explicitly open today
-                                  const dayData = schedule[todayKey];
-                                  if (dayData && dayData.open && dayData.location) {
-                                      const locKey = dayData.location.trim();
+                                  // Unlinked charities: display if they have an event today OR a future event
+                                  if (sp._charityIsOpenToday || sp._charityNextEvent) {
+                                      const isOpen = sp._charityIsOpenToday;
+                                      const locKey = isOpen ? sp._charityTodayLocation : sp._charityNextEvent.location;
                                       const coords = geocoded[locKey] || null;
                                       
                                       // Inherit the latitude/longitude if missing from coords dictionary
@@ -664,12 +724,13 @@ export default async function handler(req, res) {
                                           follower_count: sp.follower_count || 0,
                                           latitude: resolveLat,
                                           longitude: resolveLng,
-                                          games_offered: dayData.games || schedGames || [],
+                                          games_offered: schedGames || [],
                                           has_tournaments: hasTourneys,
                                           is_featured: isFeatured,
                                           schedule_location: locKey,
                                           schedule_day: todayKey,
-                                          is_today: true,
+                                          is_today: isOpen,
+                                          next_event: sp._charityNextEvent
                                       });
                                   }
                               } else {

@@ -5215,7 +5215,9 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     // ║  VALUE, BLOCK BETS, AND OPPONENT-AWARE CALL/FOLD LOGIC           ║
     // ╚══════════════════════════════════════════════════════════════════════╝
     if (street === 'river') {
-        const foldThreshold = 35 + opponentAdjustment.foldMod - opponentAdjustment.callMod;
+        // ═══ Phase 39B FIX: add bluffAware adjustment (was relying on inverted callMod=5 for bluffers) ═══
+        const foldThreshold = 35 + opponentAdjustment.foldMod - opponentAdjustment.callMod
+            - (opponentAdjustment.bluffAware ? 5 : 0); // Call down more vs known bluffers
         const potOddsR = toCall > 0 ? toCall / (potSize + toCall) : 0;
 
         // ═══ FACING A BET ON THE RIVER ═══
@@ -5245,13 +5247,14 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             }
 
             // ── BLUFF-CATCH with medium hands (30-55 strength) ──
-            // If opponent bluffs a lot (callMod > 0), call with wider range
+            // ═══ Phase 39B FIX: callMod > 0 now correctly = station, not bluffer ═══
+            // If opponent bluffs a lot (bluffAware), call with wider range
             // If opponent is tight, fold marginal more often
             if (effectiveStrength >= 30) {
                 // Determine bluff-catch frequency based on hand strength and pot odds
                 const bluffCatchEq = effectiveStrength / 100;
                 const neededEquity = potOddsR;
-                const oppIsBluffy = opponentAdjustment.bluffAware || opponentAdjustment.callMod > 0;
+                const oppIsBluffy = opponentAdjustment.bluffAware;
 
                 // Call if equity exceeds pot odds, or if opponent likely bluffing
                 if (bluffCatchEq >= neededEquity || (oppIsBluffy && effectiveStrength >= foldThreshold - 5)) {
@@ -5320,7 +5323,8 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     const isDryBoard = boardWetness === 'dry';
     const isWetBoard = boardWetness === 'wet';
     // High cards on board reduce range advantage for PFR
-    const boardHighCards = (bCards || []).filter(c => RANKS.indexOf(c[0]) >= 10).length; // J+ = index 9+
+    // ═══ Phase 39B FIX: was >= 10 (Q+) but comment said J+ — J is index 9, not 10 ═══
+    const boardHighCards = (bCards || []).filter(c => RANKS.indexOf(c[0]) >= 9).length; // J+ = index 9+
     const boardIsPaired = bCards ? (() => {
         const br = bCards.map(c => c[0]);
         return new Set(br).size < br.length;
@@ -5347,7 +5351,9 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
     // ═══ OPPONENT READS FOR FLOP/TURN (reuse opponentAdjustment) ═══
     const oppOverfolds = opponentAdjustment.foldMod > 0;
-    const oppIsSticky = opponentAdjustment.callMod > 0 || opponentAdjustment.callMod < -2; // Calls too much
+    // ═══ Phase 39B FIX: was `callMod > 0 || callMod < -2` — callMod < -2 means TIGHT (doesn't call),
+    //     not sticky. This made tight opponents incorrectly "sticky", preventing bluffs against them. ═══
+    const oppIsSticky = opponentAdjustment.callMod > 0; // Calls too much (positive = station)
     const oppIsPassive = opponentAdjustment.callMod < 0 && opponentAdjustment.foldMod <= 0;
 
     // ── FLOP/TURN: NO BET TO FACE ──
@@ -8155,8 +8161,10 @@ function makeTurnRiverHeuristicDecision(params) {
     if (street === 'river') {
         const oppFoldMod = opponentAdjustment.foldMod || 0;
         const oppCallMod = opponentAdjustment.callMod || 0;
-        const oppBluffy = opponentAdjustment.bluffAware || oppCallMod > 0 || oppTendency === 'bluffy';
-        const foldThreshold = 30 + oppFoldMod - oppCallMod;
+        // ═══ Phase 39B FIX: oppCallMod > 0 now means station (not bluffer), remove from bluffy check ═══
+        const oppBluffy = opponentAdjustment.bluffAware || oppTendency === 'bluffy';
+        // ═══ Phase 39B FIX: add bluffAware to fold threshold (was relying on inverted callMod) ═══
+        const foldThreshold = 30 + oppFoldMod - (opponentAdjustment.bluffAware ? 5 : 0);
 
         // ═══ COMPUTE TURN-TO-RIVER EQUITY DELTA ═══
         // On river we have both turn and flop evals for comparison
@@ -9820,7 +9828,7 @@ function makeFlopHeuristicDecision(params) {
     }) : { strengthPenalty: 0, bluffReduction: 1.0, valueBetThreshold: 0, cbetFreqMod: 0, callWidthMod: 0, adjustSizing: 0 };
     const boardIsPaired = new Set(board.map(c => c[0])).size < 3;
     const boardIsTrips = new Set(board.map(c => c[0])).size === 1;
-    const boardHighCards = board.filter(c => RANKS.indexOf(c[0]) >= 9).length; // T+ = index 9+
+    const boardHighCards = board.filter(c => RANKS.indexOf(c[0]) >= 9).length; // J+ = index 9 (T is index 8)
     const boardIsHigh = boardHighCards >= 2; // Broadway-heavy
     const boardIsLow = board.every(c => RANKS.indexOf(c[0]) < 8); // All below 9
     const boardIsMedium = !boardIsHigh && !boardIsLow;
@@ -12811,11 +12819,14 @@ function handleDonkBet(params) {
 
     // CALL: Medium hands — donk bets are usually weak, our medium hands have showdown value
     if (handStrength >= 30 && canCall) {
+        // ═══ Phase 39C FIX: both branches returned null (dead code). Now differentiated: ═══
         // Against large donk bets (>75% pot), only call with stronger hands
         if (betToPot >= 0.75 && handStrength < 50) {
-            // Live data: if rare donk bettor uses large sizing → they REALLY have it
+            // Live data: rare donk bettor using large sizing → they REALLY have it → defer (likely fold)
             if (liveDonkFreq !== null && liveDonkFreq < 0.10 && liveDonkConf >= 0.20) return null;
-            return null; // Fall through to normal logic
+            // Non-rare donk bettor: large donks are often weak stabs → still call with 40+
+            if (handStrength >= 40) return { type: 'call' };
+            return null; // Below 40 with large donk → defer to main logic
         }
         // Tank donk + rare donk bettor = strong → be cautious with marginal hands
         if (donkTimingTell === 'tank_donk' && handStrength < 45 && liveDonkFreq !== null && liveDonkFreq < 0.15) {
@@ -13218,18 +13229,24 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     .limit(1)
                     .maybeSingle();
                 if (readData) {
-                    // If opponent bluffs a lot, call more (lower fold threshold)
+                    // ═══ Phase 39B FIX: callMod sign convention was INVERTED ═══
+                    // Old code set callMod=5 for bluffers and callMod=-3 for stations,
+                    // but ALL downstream code uses callMod>0 to mean "opponent is a station".
+                    // This caused bluffers to be treated as stations (no c-bet bluffs)
+                    // and stations to be treated as tight (engine bluffed them MORE).
+                    // Fix: bluffAware handles bluff detection, callMod only tracks station tendency.
+
+                    // If opponent bluffs a lot → set bluffAware flag (callMod stays 0)
                     if (readData.bluff_frequency > 0.35) {
-                        opponentAdjustment.callMod = 5;
                         opponentAdjustment.bluffAware = true;
                     }
-                    // If opponent rarely bluffs, fold more marginal spots
+                    // If opponent rarely bluffs → fold more marginal spots
                     if (readData.bluff_frequency < 0.15) {
                         opponentAdjustment.foldMod = 5;
                     }
-                    // If opponent is a calling station, value bet thinner
+                    // If opponent is a calling station → positive callMod (matches downstream sign convention)
                     if (readData.call_frequency > 0.55) {
-                        opponentAdjustment.callMod = -3;
+                        opponentAdjustment.callMod = 5;
                     }
                 }
             }
@@ -13816,8 +13833,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         // + MODULE 29 (Bomb Pot) all feed into the fold threshold
         const imageExposedFoldMod = imageExposed ? 5 : 0;  // Module 20: tighter when exposed
         const bombPotFoldMod = bombPotInfo.equityThresholdBoost || 0; // Module 29: tighter in bomb pots
+        // ═══ Phase 39B FIX: add bluffAware (was relying on inverted callMod for bluff detection) ═══
         const foldThreshold = 15
             + opponentAdjustment.foldMod - opponentAdjustment.callMod
+            - (opponentAdjustment.bluffAware ? 5 : 0)  // Call down more vs known bluffers
             + sandwichedFoldMod        // Module 5: +10 when sandwiched
             + gearFoldMod              // Module 11: range rotation fold adjustment
             + imageExposedFoldMod      // Module 20: +5 when image is exposed
