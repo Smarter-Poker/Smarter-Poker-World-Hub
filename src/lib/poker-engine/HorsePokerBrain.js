@@ -6911,6 +6911,24 @@ function makeTurnRiverHeuristicDecision(params) {
                 const isVulnerable = boardWet === 'wet' || drawEq.outs >= 4; // Can be outdrawn
                 const isProtected = boardWet === 'dry' && scareLevel === 0; // Safe to check
 
+                // ═══ LIVE-READ MEDIUM HAND POT CONTROL (Phase 22) ═══
+                let liveCallStationMod = 0;
+                let liveFolderMod = 0;
+                let liveCheckRaiseThreat = false;
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Stations: bet thinner for value, they call with worse
+                    if (liveRead.callFreq > 0.55) liveCallStationMod = 0.12;
+                    if (liveRead.callFreq > 0.65) liveCallStationMod = 0.18;
+                    // Folders: don't bother betting medium hands
+                    if (liveRead.foldFreq > 0.55) liveFolderMod = -0.10;
+                    // Check-raise threats: be careful betting medium IP
+                    if (liveRead.checkRaisePct !== null && liveRead.checkRaisePct > 0.12) {
+                        liveCheckRaiseThreat = true;
+                    }
+                    // Aggressive opponents: check back more for pot control
+                    if (liveRead.aggFreq > 0.45 && handEval.strength < 42) liveFolderMod -= 0.08;
+                }
+
                 // ═══ BET vs CHECK DECISION TREE ═══
 
                 // 1. Against weak ranges: thin value bet (they call with worse)
@@ -6919,8 +6937,14 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppCallFreq > 0.55 && oppConfidence > 0.3) thinBetFreq = 0.50;
                     // Narrative: if we bet flop, continued story makes this credible
                     if (narrative.heroBetFlop) thinBetFreq += 0.06;
+                    // Live-read: stations = bet more, check-raise threat = bet less
+                    thinBetFreq += liveCallStationMod;
+                    thinBetFreq += liveFolderMod;
+                    if (liveCheckRaiseThreat && handEval.strength < 42) thinBetFreq -= 0.12;
+                    let thinBetSizing = 0.40;
+                    if (liveRead && liveRead.confidence >= 0.20 && liveRead.callFreq > 0.60) thinBetSizing = 0.48;
                     if (Math.random() < thinBetFreq) {
-                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.40)) };
+                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * thinBetSizing)) };
                     }
                 }
 
@@ -6930,13 +6954,24 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (boardWet === 'wet' && drawEq.outs >= 6) protectFreq = 0.40;
                     // If we've been barreling, continue (credible)
                     if (narrative.heroBetFlop && narrative.storyIsConsistent) protectFreq += 0.08;
+                    // Live-read: bet more for protection vs stations, less vs check-raisers
+                    protectFreq += liveCallStationMod * 0.5;
+                    if (liveCheckRaiseThreat) protectFreq -= 0.10;
+                    let protectSizing = 0.45;
+                    if (liveRead && liveRead.confidence >= 0.20 && liveRead.callFreq > 0.55) protectSizing = 0.52;
                     if (Math.random() < protectFreq) {
-                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.45)) };
+                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * protectSizing)) };
                     }
                 }
 
                 // 3. Protected medium hands on dry boards: check for pot control
                 if (isProtected && hasShowdownValue) {
+                    // Live-read override: vs extreme stations, bet even on dry boards
+                    if (liveCallStationMod >= 0.18 && handEval.strength >= 42 && canRaise) {
+                        if (Math.random() < 0.30) {
+                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.35)) };
+                        }
+                    }
                     // Check back is optimal — our hand plays well at showdown
                     // and opponent's calling range beats us
                     return { type: 'check' };
@@ -8399,6 +8434,28 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (betToPot >= 2.0) riverRaiseCallFreq -= 0.05; // Massive overbet raise = usually nuts
                 if (betToPot <= 0.70) riverRaiseCallFreq += 0.08; // Small raise = often thin/bluff
 
+                // ═══ LIVE-READ RIVER FACING-RAISE (Phase 22) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Aggressive opponents bluff-raise rivers more
+                    if (liveRead.aggFreq > 0.45) riverRaiseCallFreq += 0.08;
+                    if (liveRead.aggFreq > 0.55) riverRaiseCallFreq += 0.05;
+                    if (liveRead.aggFreq < 0.20) riverRaiseCallFreq -= 0.10;
+                    // High bluff rate = call more vs river raise
+                    if (liveRead.bluffRate !== null && liveRead.bluffRate > 0.30) riverRaiseCallFreq += 0.10;
+                    if (liveRead.bluffRate !== null && liveRead.bluffRate < 0.10) riverRaiseCallFreq -= 0.08;
+                    // WTSD: low = they only get here with the goods
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) riverRaiseCallFreq -= 0.08;
+                    if (liveRead.wtsd !== null && liveRead.wtsd > 0.32) riverRaiseCallFreq += 0.06;
+                    // Fold-to-raise: if they rarely fold to raises they're value-heavy
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct < 0.25) riverRaiseCallFreq -= 0.06;
+                    // Timing tells: snap aggression on river = polarized (strong or pure bluff)
+                    if (currentActionTimingTell === 'snap_aggression') {
+                        if (bcBlockerCount >= 2) riverRaiseCallFreq += 0.10;
+                        else riverRaiseCallFreq -= 0.04;
+                    }
+                    if (currentActionTimingTell === 'tank_aggression') riverRaiseCallFreq += 0.06;
+                }
+
                 riverRaiseCallFreq = Math.max(0.02, Math.min(0.55, riverRaiseCallFreq));
                 if (Math.random() < riverRaiseCallFreq) {
                     console.log(`[HorseBrain] 🦸 RIVER vs RAISE CALL: str=${handEval.strength} blockers=${bcBlockerCount} freq=${Math.round(riverRaiseCallFreq * 100)}%`);
@@ -8410,9 +8467,17 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── DRAWS / WEAK HANDS: Almost always fold to river raise ──
             // River raises are incredibly strong — folding weak hands is correct
             const weakBlockerCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
-            if (handEval.strength >= 40 && weakBlockerCount >= 2 && oppTendency === 'bluffy') {
-                // Only hero-call raise with premium blockers vs known bluffer
-                if (Math.random() < 0.10) return canCall ? { type: 'call' } : { type: 'fold' };
+            let weakHeroCallFreq = 0.10;
+            if (oppTendency === 'bluffy') weakHeroCallFreq = 0.15;
+            // ═══ LIVE-READ WEAK HAND vs RIVER RAISE (Phase 22) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                if (liveRead.aggFreq > 0.50) weakHeroCallFreq += 0.06;
+                if (liveRead.bluffRate !== null && liveRead.bluffRate > 0.35) weakHeroCallFreq += 0.08;
+                if (liveRead.aggFreq < 0.20) weakHeroCallFreq = 0.02;
+            }
+            if (handEval.strength >= 40 && weakBlockerCount >= 2) {
+                // Hero-call raise with premium blockers vs known/live-read bluffer
+                if (Math.random() < weakHeroCallFreq) return canCall ? { type: 'call' } : { type: 'fold' };
             }
             return canCheck ? { type: 'check' } : { type: 'fold' };
         }

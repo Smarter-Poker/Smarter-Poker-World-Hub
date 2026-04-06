@@ -183,6 +183,7 @@ export default function PokerNearMePage() {
     const { user } = useAvatar();
     const bus = eventBus;
     const userId = user?.id;
+    const fetchSequenceRef = useRef(0);
 
     // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
     useVenueRealtime(() => {
@@ -1315,7 +1316,14 @@ export default function PokerNearMePage() {
             if (filters.hasMixed) params.set('hasMixed', 'true');
 
             const url = '/api/poker/venues?' + params;
+            const currentSeq = ++fetchSequenceRef.current;
             const json = await fetchWithRetry(url);
+            
+            // [HARDENING] Prevent Race Condition: discard if a newer fetch was initiated
+            if (fetchSequenceRef.current !== currentSeq) {
+                return;
+            }
+            
             const data = json.data;
             let filteredData = data || [];
 
@@ -1323,11 +1331,11 @@ export default function PokerNearMePage() {
             // Update stats from response
             if (json.total) {
                 const stateSet = new Set(filteredData.map(v => v.state).filter(Boolean));
-                setDbStats(prev => ({
-                    ...prev,
-                    total: json.total,
-                    states: stateSet.size || prev.states
-                }));
+                setDbStats(prev => {
+                    const newStates = stateSet.size || prev.states;
+                    if (prev.total === json.total && prev.states === newStates) return prev;
+                    return { ...prev, total: json.total, states: newStates };
+                });
             }
             if (filteredData.length > 0 && filteredData[0].distance_mi) {
                 setNearestDistance(filteredData[0].distance_mi);
