@@ -156,15 +156,15 @@ export default function PokerNearMeLobby() {
   //       All listeners MUST use eventBus.on() directly.
   useEffect(() => {
     // --- Semantic Entry Reset ---
-    // When hitting the lobby natively, enforce default 'any' radius to improve discovery
+    // When hitting the lobby natively, enforce default 50-mile radius
     try {
         if (!sessionStorage.getItem('pnm-radius-set-this-session')) {
             const savedStr = localStorage.getItem('poker-near-me-search-filters');
             let parsed = savedStr ? JSON.parse(savedStr) : {};
-            parsed.radius = 'any';
+            parsed.radius = 50;
             localStorage.setItem('poker-near-me-search-filters', JSON.stringify(parsed));
-            // Force Lobby's default pod memory to 'any' immediately
-            setFilters(prev => ({ ...prev, nmRadius: 'any' }));
+            // Force Lobby's default pod memory to 50mi immediately
+            setFilters(prev => ({ ...prev, nmRadius: '50' }));
             sessionStorage.setItem('pnm-radius-set-this-session', 'true');
         }
     } catch (e) {

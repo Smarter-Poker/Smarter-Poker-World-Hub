@@ -462,8 +462,9 @@ export default function PokerNearMePage() {
                 const saved = localStorage.getItem('poker-near-me-search-filters');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    // Reverted: We do not maliciously override radius here because it breaks Back-Button persistence.
-                    // The 50-mile enforcement on entry is now handled upstream via Lobby initialization.
+                    // ENFORCE 50-mile default on every page entry — this is the expected behavior
+                    // when the Poker Near Me icon is clicked. Users can expand from 50mi once on the page.
+                    parsed.radius = 50;
                     return { ...parsed };
                 }
             } catch (e) { console.error(e); }
