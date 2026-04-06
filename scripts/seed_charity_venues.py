@@ -741,34 +741,30 @@ def seed_venues(dry_run=False):
             inserted += 1
             continue
 
+        # Add import for upsert utility (inline to avoid refactor complexity)
+        import sys
+        from pathlib import Path
         try:
-            body = json.dumps(clean).encode()
-            req = urllib.request.Request(
-                f'{SUPABASE_URL}/rest/v1/poker_venues',
-                data=body, method='POST', headers=headers,
-            )
-            resp = urllib.request.urlopen(req)
-            resp_data = resp.read().decode()
+            sys.path.append(str(Path(__file__).parent.resolve()))
+            from utils.venue_upsert import upsert_venue_python
+        except Exception as e:
+            print(f"Failed to load upsert utility: {e}")
+            return 0, 0, 0
+
+        result = upsert_venue_python(SUPABASE_URL, SERVICE_KEY, clean)
+        
+        if result == "inserted" or result == "updated":
             inserted += 1
             state = clean.get('state', '?')
             name = clean.get('name', '?')
             city = clean.get('city', '?')
             print(f'  ✅ [{state}] {name} — {city}')
-        except urllib.error.HTTPError as e:
-            err_body = ''
-            try:
-                err_body = e.read().decode()
-            except Exception:
-                pass
-            if '23505' in err_body or 'duplicate' in err_body.lower():
-                skipped += 1
-                print(f'  ⏭️  Duplicate: {venue["name"]}')
-            else:
-                failed += 1
-                print(f'  ❌ Failed ({e.code}): {venue["name"]} — {err_body[:300]}')
-        except Exception as e:
+        elif result == "skipped":
+            skipped += 1
+            print(f'  ⏭️  Duplicate: {venue["name"]}')
+        else:
             failed += 1
-            print(f'  ❌ Error: {venue["name"]} — {str(e)[:200]}')
+        # End try/except, exceptions caught inside `upsert_venue_python`
 
     return inserted, skipped, failed
 
