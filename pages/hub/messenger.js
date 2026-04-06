@@ -3026,19 +3026,28 @@ function MessengerPage() {
         // Notify caller that we accepted (subscribe, send, then cleanup)
         try {
             const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
-            await new Promise((resolve, reject) => {
-                channel.subscribe((status) => {
-                    if (status === 'SUBSCRIBED') resolve();
-                    else if (status === 'CHANNEL_ERROR') reject(new Error('Channel error'));
+            try {
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
+                    channel.subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            clearTimeout(timeout);
+                            resolve();
+                        } else if (status === 'CHANNEL_ERROR') {
+                            clearTimeout(timeout);
+                            reject(new Error('Channel error'));
+                        }
+                    });
                 });
-            });
-            await channel.send({
-                type: 'broadcast',
-                event: 'call_accepted',
-                payload: { accepterId: user.id }
-            });
-            // Cleanup after a short delay
-            setTimeout(() => supabase.removeChannel(channel), 1000);
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'call_accepted',
+                    payload: { accepterId: user.id }
+                });
+            } finally {
+                // Cleanup after a short delay
+                setTimeout(() => supabase.removeChannel(channel), 1000);
+            }
         } catch (e) {
         }
 
@@ -3075,19 +3084,28 @@ function MessengerPage() {
         // Notify caller that we declined (subscribe, send, then cleanup)
         try {
             const channel = supabase.channel(`call-signal:${incomingCall.callerId}`);
-            await new Promise((resolve, reject) => {
-                channel.subscribe((status) => {
-                    if (status === 'SUBSCRIBED') resolve();
-                    else if (status === 'CHANNEL_ERROR') reject(new Error('Channel error'));
+            try {
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
+                    channel.subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            clearTimeout(timeout);
+                            resolve();
+                        } else if (status === 'CHANNEL_ERROR') {
+                            clearTimeout(timeout);
+                            reject(new Error('Channel error'));
+                        }
+                    });
                 });
-            });
-            await channel.send({
-                type: 'broadcast',
-                event: 'call_declined',
-                payload: { declinerId: user?.id, reason }
-            });
-            // Cleanup after a short delay
-            setTimeout(() => supabase.removeChannel(channel), 1000);
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'call_declined',
+                    payload: { declinerId: user?.id, reason }
+                });
+            } finally {
+                // Cleanup after a short delay
+                setTimeout(() => supabase.removeChannel(channel), 1000);
+            }
         } catch (e) {
         }
 
@@ -4359,33 +4377,35 @@ function MessengerPage() {
         // CRITICAL: Must subscribe before sending broadcast
         try {
             const channel = supabase.channel(`call-signal:${otherUser.id}`);
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
-                channel.subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        clearTimeout(timeout);
-                        resolve();
-                    } else if (status === 'CHANNEL_ERROR') {
-                        clearTimeout(timeout);
-                        reject(new Error('Channel error'));
+            try {
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Channel timeout')), 5000);
+                    channel.subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            clearTimeout(timeout);
+                            resolve();
+                        } else if (status === 'CHANNEL_ERROR') {
+                            clearTimeout(timeout);
+                            reject(new Error('Channel error'));
+                        }
+                    });
+                });
+
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'incoming_call',
+                    payload: {
+                        callerId: user.id,
+                        callerName: callerName,
+                        callerAvatar: callerAvatar,
+                        callType: type,
+                        roomName: roomName,
                     }
                 });
-            });
-
-            await channel.send({
-                type: 'broadcast',
-                event: 'incoming_call',
-                payload: {
-                    callerId: user.id,
-                    callerName: callerName,
-                    callerAvatar: callerAvatar,
-                    callType: type,
-                    roomName: roomName,
-                }
-            });
-
-            // Cleanup channel after a delay (receiver has their own listener)
-            setTimeout(() => supabase.removeChannel(channel), 2000);
+            } finally {
+                // Cleanup channel after a delay (receiver has their own listener)
+                setTimeout(() => supabase.removeChannel(channel), 2000);
+            }
 
             // 📱 Create pending call in database (for offline users)
             try {

@@ -4934,7 +4934,15 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
                     if (adjustedStrength >= squeezeThreshold && canRaise) {
                         // Squeeze sizing: bigger than standard 3-bet (3.5-4.5x raise + 1x per caller)
-                        const squeezeBBs = (toCall / bb) * 3.5 + estimatedCallers * (toCall / bb) * 0.5;
+                        let squeezeMult = 3.5;
+                        // ═══ PHASE 17: LIVE-READ DRIVEN SQUEEZE SIZING ═══
+                        // Against over-folders: smaller squeeze (save chips, same fold equity)
+                        // Against calling stations: bigger squeeze (charge them)
+                        if (oppFoldTo3BetLive !== null && preflopLiveConf >= 0.15) {
+                            if (oppFoldTo3BetLive > 0.65) squeezeMult = 3.0; // Smaller — they fold anyway
+                            else if (oppFoldTo3BetLive < 0.40) squeezeMult = 4.0; // Bigger — charge them
+                        }
+                        const squeezeBBs = (toCall / bb) * squeezeMult + estimatedCallers * (toCall / bb) * 0.5;
                         const squeezeSize = Math.round(bb * squeezeBBs);
                         const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(squeezeSize, raiseAction?.maxAmount || squeezeSize));
                         // Squeeze frequency: not every time (balance)
@@ -4979,7 +4987,36 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             }
 
             if (should3Bet) {
-                const amount = Math.max(raiseAction?.minAmount || toCall * 2.5, threeBet.size3Bet);
+                let amount = Math.max(raiseAction?.minAmount || toCall * 2.5, threeBet.size3Bet);
+
+                // ═══ PHASE 17: LIVE-READ DRIVEN 3-BET SIZING ═══
+                // Adjust 3-bet size based on opponent's fold-to-3-bet and calling tendencies.
+                // Core principle: size for max EV — smaller when they always fold, bigger when they call wide.
+                if (preflopLiveRead && preflopLiveConf >= 0.15) {
+                    if (oppFoldTo3BetLive !== null) {
+                        if (oppFoldTo3BetLive > 0.70) {
+                            // They fold 70%+ → use MINIMUM sizing (save chips, same fold equity)
+                            amount = Math.max(raiseAction?.minAmount || toCall * 2.5, Math.round(toCall * 2.8));
+                        } else if (oppFoldTo3BetLive > 0.55) {
+                            // Standard fold rate → standard sizing
+                            // No adjustment needed
+                        } else if (oppFoldTo3BetLive < 0.40) {
+                            // They rarely fold → SIZE UP for max value when we have it
+                            if (!threeBet.isBluff3Bet) {
+                                amount = Math.round(amount * 1.15); // 15% bigger
+                            }
+                            // If bluff 3-betting into a caller → save chips with smaller size
+                            if (threeBet.isBluff3Bet) {
+                                amount = Math.max(raiseAction?.minAmount || toCall * 2.5, Math.round(toCall * 2.7));
+                            }
+                        }
+                    }
+                    // Against frequent 4-bettors: smaller 3-bet sizing (reduces loss when they 4-bet)
+                    if (opp3BetPctLive !== null && opp3BetPctLive > 0.12) {
+                        amount = Math.round(amount * 0.90);
+                    }
+                }
+
                 const clamped = Math.min(amount, raiseAction?.maxAmount || amount);
                 return { type: raiseAction.type, amount: Math.round(clamped) };
             }
@@ -8784,6 +8821,19 @@ function makeTurnRiverHeuristicDecision(params) {
                 }
                 // Polarization: check-raise bigger with polarized range
                 const crPolarMod = riverRangeType === 'polarized' ? 1.15 : 0.90;
+
+                // ═══ LIVE-READ RIVER VALUE CR ADJUSTMENTS ═══
+                valueCRFreq += liveCRBoost; // Pre-computed from c-bet %, fold-to-raise, timing tells
+                // River-specific: snap-call on river = they auto-called turn = may be on autopilot
+                if (currentActionTimingTell === 'snap_call') valueCRFreq += 0.06;
+                // Tank-call on river = they're agonizing = strong hand or hero call → be careful
+                if (currentActionTimingTell === 'tank_call') valueCRFreq -= 0.04;
+                // Live fold-to-raise data: high folders get check-raised more
+                if (liveRead && liveRead.confidence >= 0.20 && liveRead.foldToRaisePct !== null) {
+                    if (liveRead.foldToRaisePct > 0.55) valueCRFreq += 0.06;
+                    if (liveRead.foldToRaisePct < 0.25) valueCRFreq -= 0.05;
+                }
+
                 valueCRFreq = Math.max(0.30, Math.min(0.85, valueCRFreq));
 
                 if (Math.random() < valueCRFreq) {
@@ -8794,8 +8844,11 @@ function makeTurnRiverHeuristicDecision(params) {
                     else crMult = 2.5 * crPolarMod; // Deep: standard
                     // Against callers, size up
                     if (oppCallFreq > 0.60 && oppConfidence > 0.3) crMult = Math.min(4.0, crMult * 1.15);
+                    // Live-read sizing: adjust based on opponent tendencies
+                    crMult *= liveCRSizeMod; // Pre-computed: 1.12 vs callers, 0.92 vs folders
+                    crMult = Math.max(2.0, Math.min(4.5, crMult));
                     const crSize = Math.round(toCall * crMult);
-                    console.log(`[HorseBrain] 💎 RIVER VALUE CR: str=${handEval.strength} mult=${crMult.toFixed(1)}x polar=${riverRangeType}`);
+                    console.log(`[HorseBrain] 💎 RIVER VALUE CR: str=${handEval.strength} mult=${crMult.toFixed(1)}x polar=${riverRangeType} liveCR=${liveCRBoost.toFixed(2)}`);
                     return { type: raiseAction.type, amount: clampAmt(crSize) };
                 }
                 // If not check-raising, just call (we have the nuts)
@@ -8846,6 +8899,23 @@ function makeTurnRiverHeuristicDecision(params) {
                     // Large bet = they're committed → bluff c/r is risky
                     if (betToPot >= 0.75) bluffCRFreq -= 0.04;
 
+                    // ═══ LIVE-READ RIVER BLUFF CR ADJUSTMENTS ═══
+                    bluffCRFreq += liveCRBoost * 0.60; // Bluff CR uses dampened boost (60% of value)
+                    // Timing tells: snap-aggression from opp = they're confident → don't bluff
+                    if (currentActionTimingTell === 'snap_aggression') bluffCRFreq -= 0.06;
+                    // Tank bet from opponent = they agonized over betting → often thin value → bluff CR works
+                    if (currentActionTimingTell === 'deliberate') bluffCRFreq += 0.05;
+                    // Live fold-to-raise: high folders are prime bluff CR targets
+                    if (liveRead && liveRead.confidence >= 0.20 && liveRead.foldToRaisePct !== null) {
+                        if (liveRead.foldToRaisePct > 0.60) bluffCRFreq += 0.08;
+                        if (liveRead.foldToRaisePct < 0.30) bluffCRFreq -= 0.06;
+                    }
+                    // Live WTSD: players who rarely go to showdown fold to big river action
+                    if (liveRead && liveRead.confidence >= 0.20 && liveRead.wtsd !== null) {
+                        if (liveRead.wtsd < 0.22) bluffCRFreq += 0.05;
+                        if (liveRead.wtsd > 0.38) bluffCRFreq -= 0.06;
+                    }
+
                     // ═══ 3-BET POT: No bluff check-raises (ranges too strong) ═══
                     if (is3BetPot) bluffCRFreq *= 0.30;
                     if (is4BetPot) bluffCRFreq = 0;
@@ -8857,8 +8927,15 @@ function makeTurnRiverHeuristicDecision(params) {
                         let crMult = spr <= 5 ? 3.2 : 2.8;
                         // With nut flush blocker, can go bigger (opponent is less likely to have it)
                         if (blocksNutFlush) crMult = Math.min(4.0, crMult + 0.5);
+                        // Live-read bluff sizing: mirror value sizing for balance
+                        crMult *= liveCRSizeMod;
+                        // Against high fold-to-raise: smaller bluff CR saves chips (they fold anyway)
+                        if (liveRead && liveRead.confidence >= 0.20 && liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.60) {
+                            crMult = Math.max(2.2, crMult * 0.90); // Efficient bluff
+                        }
+                        crMult = Math.max(2.0, Math.min(4.5, crMult));
                         const crSize = Math.round(toCall * crMult);
-                        console.log(`[HorseBrain] 🎭 RIVER BLUFF CR: blockers=${crBlkCount} oppFold=${Math.round(oppFoldFreq * 100)}% freq=${Math.round(bluffCRFreq * 100)}%`);
+                        console.log(`[HorseBrain] 🎭 RIVER BLUFF CR: blockers=${crBlkCount} oppFold=${Math.round(oppFoldFreq * 100)}% freq=${Math.round(bluffCRFreq * 100)}% liveCR=${liveCRBoost.toFixed(2)}`);
                         return { type: raiseAction.type, amount: clampAmt(crSize) };
                     }
                 }
@@ -9173,6 +9250,44 @@ function makeFlopHeuristicDecision(params) {
         if (flopLiveRead.secondBarrelPct !== null && flopLiveRead.confidence >= 0.25) {
             // Their barrel rate tells us how THEY play turn — but we care about fold-to-barrel
             // Proxy: if they rarely barrel themselves, they often give up → we can barrel more
+        }
+
+        // ═══ PHASE 17: CHECK-RAISE AWARE C-BET SIZING ═══
+        // If opponent check-raises frequently, we need to SIZE DOWN our c-bets
+        // to reduce our loss when they pop us. This is a critical exploit-defense.
+        if (flopLiveRead.checkRaisePct !== null && flopLiveRead.confidence >= 0.20) {
+            if (flopLiveRead.checkRaisePct > 0.12) {
+                // Frequent check-raiser → size down c-bets significantly
+                liveCBetSizeMod -= 0.06;
+                // Also c-bet less with air (they punish light c-bets)
+                if (handEval.strength < 30) liveCBetMod -= 0.10;
+            } else if (flopLiveRead.checkRaisePct < 0.04) {
+                // Rarely check-raises → we can c-bet fearlessly, even size up
+                liveCBetSizeMod += 0.04;
+                liveCBetMod += 0.05;
+            }
+        }
+
+        // ═══ PHASE 17: FLOP CURRENT-ACTION TIMING TELL ═══
+        // If opponent checked slowly (long-tanked before checking), they considered betting
+        // → they have something but are trying to trap. Be cautious with light c-bets.
+        let flopTimingTell = 'unknown';
+        if (flopLiveRead.inHandActions && flopLiveRead.inHandActions.lastAction) {
+            const lastAct = flopLiveRead.inHandActions.lastAction;
+            if (lastAct.timing && lastAct.street === 'flop') {
+                const streetAvg = flopLiveRead.timingProfile?.flop?.avgMs || flopLiveRead.avgDecisionMs;
+                if (streetAvg && streetAvg > 0) {
+                    const ratio = lastAct.timing / streetAvg;
+                    if (ratio < 0.40 && lastAct.action === 'check') {
+                        flopTimingTell = 'snap_check'; // Quick check = weak, c-bet freely
+                        liveCBetMod += 0.06;
+                    } else if (ratio > 1.8 && lastAct.action === 'check') {
+                        flopTimingTell = 'tank_check'; // Slow check = trapping or strong draw
+                        liveCBetMod -= 0.08;
+                        liveCBetSizeMod -= 0.04; // Smaller if we do bet
+                    }
+                }
+            }
         }
     }
 
@@ -11184,7 +11299,9 @@ function handleDonkBet(params) {
         heroIsAggressor, street, facingBet, handStrength, handCategory,
         drawOuts, position, potSize, toCall, bb, canRaise, canCall,
         raiseAction, aggressionBias, oppTendency, oppConfidence,
-        oppCallFreq, boardWetness, numPlayers
+        oppCallFreq, boardWetness, numPlayers,
+        // ═══ LIVE-READ DATA (Phase 17) ═══
+        liveRead, tableId, primaryOppId
     } = params;
 
     // Only applies when: hero was PFA, we're on flop/turn, and opponent bet into us
@@ -11194,6 +11311,67 @@ function handleDonkBet(params) {
     const isIP = new Set(['BTN', 'CO', 'HJ']).has(position);
     const multiway = numPlayers >= 3;
 
+    // ═══ LIVE-READ DONK BET PROFILING ═══
+    // Extract live donk-bet frequency and opponent tendencies
+    let liveDonkFreq = null;    // How often this opponent donk bets (null = unknown)
+    let liveFoldToRaise = null; // How often they fold when raised
+    let liveCallFreq = null;    // Live call frequency
+    let liveDonkConf = 0;       // Confidence in live data
+    let donkTimingTell = 'unknown';
+
+    if (liveRead && liveRead.confidence >= 0.15) {
+        liveDonkConf = liveRead.confidence;
+        liveDonkFreq = liveRead.donkBetPct ?? null;
+        liveFoldToRaise = liveRead.foldToRaisePct ?? null;
+        liveCallFreq = liveRead.callFreq ?? null;
+
+        // Timing tell on the donk bet itself
+        if (liveRead.inHandActions && liveRead.inHandActions.lastAction) {
+            const lastAct = liveRead.inHandActions.lastAction;
+            if (lastAct.timing && lastAct.action === 'bet') {
+                const streetAvg = liveRead.timingProfile?.[street]?.avgMs || liveRead.avgDecisionMs;
+                if (streetAvg && streetAvg > 0) {
+                    const ratio = lastAct.timing / streetAvg;
+                    if (ratio < 0.40) donkTimingTell = 'snap_donk';       // Snap donk = usually weak/automatic
+                    else if (ratio > 2.0) donkTimingTell = 'tank_donk';   // Tank donk = strong or tough spot
+                    else if (ratio > 1.3) donkTimingTell = 'deliberate_donk'; // Thought about it = balanced
+                }
+            }
+        }
+    }
+
+    // ═══ DONK FREQUENCY EXPLOITATION ═══
+    // Players who donk frequently have weak, unbalanced ranges → raise more
+    // Players who donk rarely have strong, value-heavy ranges → respect it more
+    let liveRaiseBoost = 0;
+    let liveSizeMod = 1.0;
+
+    if (liveDonkFreq !== null && liveDonkConf >= 0.20) {
+        if (liveDonkFreq > 0.30) {
+            liveRaiseBoost += 0.12;  // Frequent donk bettor = weak range → raise more
+            liveSizeMod = 1.10;      // Size up slightly
+        } else if (liveDonkFreq > 0.20) {
+            liveRaiseBoost += 0.06;  // Moderate donk frequency
+        } else if (liveDonkFreq < 0.08) {
+            liveRaiseBoost -= 0.10;  // Rare donk bettor = they have it → respect
+            liveSizeMod = 0.90;
+        }
+    }
+
+    // Fold-to-raise exploitation
+    if (liveFoldToRaise !== null && liveDonkConf >= 0.20) {
+        if (liveFoldToRaise > 0.60) liveRaiseBoost += 0.10;  // They donk-fold often → bluff raise more
+        if (liveFoldToRaise < 0.25) liveRaiseBoost -= 0.08;  // They donk-call/raise → respect
+    }
+
+    // Timing tell exploitation
+    if (donkTimingTell === 'snap_donk') {
+        liveRaiseBoost += 0.08;  // Snap donk = weak/automatic → raise more
+        liveSizeMod *= 1.05;
+    } else if (donkTimingTell === 'tank_donk') {
+        liveRaiseBoost -= 0.06;  // Tank donk = they thought hard → may be strong
+    }
+
     // ═══ VS DONK BET STRATEGY ═══
 
     // RAISE: Strong hands — punish the donk bet range (they're usually weak)
@@ -11201,12 +11379,19 @@ function handleDonkBet(params) {
         let raiseFreq = 0.65;
         // Raise more in position (we have info advantage)
         if (isIP) raiseFreq += 0.10;
+        // Live-read frequency boost
+        raiseFreq += liveRaiseBoost;
+        raiseFreq = Math.max(0.40, Math.min(0.90, raiseFreq));
         // Against weak-tight opponents, raise bigger (they fold)
-        const raiseMult = (oppTendency === 'weak-tight' && oppConfidence > 0.3) ? 3.0 : 2.5;
+        let raiseMult = (oppTendency === 'weak-tight' && oppConfidence > 0.3) ? 3.0 : 2.5;
+        raiseMult *= liveSizeMod;
+        // Live call freq: size up vs stations
+        if (liveCallFreq !== null && liveCallFreq > 0.55) raiseMult = Math.min(3.5, raiseMult * 1.10);
+        raiseMult = Math.max(2.0, Math.min(4.0, raiseMult));
         if (Math.random() < raiseFreq) {
             const raiseSize = Math.round(toCall * raiseMult);
             const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
-            console.log(`[HorseBrain] 🎯 DONK BET RAISE: str=${handStrength} — punishing donk bet`);
+            console.log(`[HorseBrain] 🎯 DONK BET RAISE: str=${handStrength} liveBoost=${liveRaiseBoost.toFixed(2)} timing=${donkTimingTell}`);
             return { type: raiseAction.type, amount: clamped };
         }
         // Slowplay some monsters by just calling
@@ -11215,11 +11400,13 @@ function handleDonkBet(params) {
 
     // RAISE: Strong draws — semi-bluff raise the donk (fold equity + equity)
     if (drawOuts >= 9 && canRaise && !multiway) {
-        const semiFreq = 0.35 + aggressionBias / 40;
+        let semiFreq = 0.35 + aggressionBias / 40;
+        semiFreq += liveRaiseBoost * 0.70; // Dampened for semi-bluffs
+        semiFreq = Math.max(0.10, Math.min(0.65, semiFreq));
         if (Math.random() < semiFreq) {
-            const raiseSize = Math.round(toCall * 2.5);
+            let raiseSize = Math.round(toCall * 2.5 * liveSizeMod);
             const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
-            console.log(`[HorseBrain] 🎯 DONK BET SEMI-BLUFF RAISE: ${drawOuts} outs`);
+            console.log(`[HorseBrain] 🎯 DONK BET SEMI-BLUFF RAISE: ${drawOuts} outs liveBoost=${liveRaiseBoost.toFixed(2)}`);
             return { type: raiseAction.type, amount: clamped };
         }
     }
@@ -11230,10 +11417,23 @@ function handleDonkBet(params) {
         // Bluff raise more against known weak donk bettors
         if (oppTendency === 'weak-tight' && oppConfidence > 0.3) bluffRaiseFreq += 0.12;
         if (oppCallFreq > 0.60 && oppConfidence > 0.3) bluffRaiseFreq = 0; // Don't bluff callers
+        // Live-read bluff raise adjustments
+        bluffRaiseFreq += liveRaiseBoost * 0.80; // Dampened for bluffs
+        // Live data override: if they donk-fold a lot, bluff raise even medium donks
+        if (liveFoldToRaise !== null && liveFoldToRaise > 0.60 && liveDonkConf >= 0.25) {
+            bluffRaiseFreq += 0.10; // They donk-fold = free money
+        }
+        // Snap donk + high fold-to-raise = prime bluff raise spot
+        if (donkTimingTell === 'snap_donk' && liveFoldToRaise !== null && liveFoldToRaise > 0.50) {
+            bluffRaiseFreq += 0.08;
+        }
+        // But NEVER bluff callers even with live data
+        if (liveCallFreq !== null && liveCallFreq > 0.60) bluffRaiseFreq = 0;
+        bluffRaiseFreq = Math.max(0, Math.min(0.45, bluffRaiseFreq));
         if (Math.random() < bluffRaiseFreq) {
-            const raiseSize = Math.round(toCall * 2.8);
+            const raiseSize = Math.round(toCall * 2.8 * liveSizeMod);
             const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
-            console.log(`[HorseBrain] 🎯 DONK BET BLUFF RAISE: small donk (${Math.round(betToPot * 100)}% pot)`);
+            console.log(`[HorseBrain] 🎯 DONK BET BLUFF RAISE: ${Math.round(betToPot * 100)}%pot liveFTR=${liveFoldToRaise?.toFixed(2) ?? '?'} timing=${donkTimingTell}`);
             return { type: raiseAction.type, amount: clamped };
         }
     }
@@ -11241,7 +11441,15 @@ function handleDonkBet(params) {
     // CALL: Medium hands — donk bets are usually weak, our medium hands have showdown value
     if (handStrength >= 30 && canCall) {
         // Against large donk bets (>75% pot), only call with stronger hands
-        if (betToPot >= 0.75 && handStrength < 50) return null; // Fall through to normal logic
+        if (betToPot >= 0.75 && handStrength < 50) {
+            // Live data: if rare donk bettor uses large sizing → they REALLY have it
+            if (liveDonkFreq !== null && liveDonkFreq < 0.10 && liveDonkConf >= 0.20) return null;
+            return null; // Fall through to normal logic
+        }
+        // Tank donk + rare donk bettor = strong → be cautious with marginal hands
+        if (donkTimingTell === 'tank_donk' && handStrength < 45 && liveDonkFreq !== null && liveDonkFreq < 0.15) {
+            return null; // Let normal logic handle (may fold)
+        }
         return { type: 'call' };
     }
 
@@ -11249,7 +11457,9 @@ function handleDonkBet(params) {
     if (drawOuts >= 5 && canCall) {
         const drawEquity = drawOuts * (street === 'flop' ? 4 : 2) / 100;
         const potOdds = toCall / (potSize + toCall);
-        if (drawEquity >= potOdds - 0.05) return { type: 'call' };
+        // Live data: if they donk-fold often, implied odds increase (we can raise later)
+        const impliedOddsBonus = (liveFoldToRaise !== null && liveFoldToRaise > 0.50) ? 0.03 : 0;
+        if (drawEquity >= potOdds - 0.05 - impliedOddsBonus) return { type: 'call' };
     }
 
     return null; // Fall through to normal logic
@@ -12154,6 +12364,14 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 }
             } catch (_) { }
 
+            // ═══ LIVE-READ for donk bet response (Phase 17) ═══
+            let donkLiveRead = null;
+            if (primaryOppId && tableId) {
+                try {
+                    donkLiveRead = getLiveRead(profileId, tableId, primaryOppId);
+                } catch (_) { }
+            }
+
             const donkResult = handleDonkBet({
                 heroIsAggressor: true,
                 street,
@@ -12171,7 +12389,11 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 oppConfidence: donkOppConfidence,
                 oppCallFreq: donkOppCallFreq,
                 boardWetness: donkBoardWetness,
-                numPlayers
+                numPlayers,
+                // ═══ LIVE-READ DATA (Phase 17) ═══
+                liveRead: donkLiveRead,
+                tableId,
+                primaryOppId,
             });
 
             if (donkResult) {

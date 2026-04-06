@@ -15,7 +15,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
-import { useEventBus, busEmit, EventType } from '../../src/engine/EventBus';
+import { eventBus, busEmit, EventType } from '../../src/engine/EventBus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
@@ -181,7 +181,7 @@ function TourBadge({ tourCode, size = 'normal' }) {
 export default function PokerNearMePage() {
     const router = useRouter();
     const { user } = useAvatar();
-    const bus = useEventBus();
+    const bus = eventBus;
     const userId = user?.id;
 
     // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
@@ -945,7 +945,7 @@ export default function PokerNearMePage() {
             if (unsubUnfav) unsubUnfav();
             if (unsubMutate) unsubMutate();
         };
-    }, [bus]);
+    }, []);
 
     // --- NEW: Fetch promotion venue IDs on mount ---
     useEffect(() => {
