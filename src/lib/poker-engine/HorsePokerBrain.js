@@ -7297,6 +7297,29 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Board paired on turn — represent trips
                 if (newCardPairedBoard) bluffFreq += 0.05;
 
+                // ═══ PHASE 36C: BOARD EVOLUTION-DRIVEN TURN BLUFF ═══
+                // The turn card's impact on the board drives bluff credibility.
+                // Draw completing = aggressor can rep it. Bricked draws = opponent sticky.
+                if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
+                    bluffFreq += 0.10; // Turn completed a draw — we rep having it
+                }
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                    // Opponent's semi-bluffs are now air, BUT their calling range has
+                    // more showdown value → they're stickier → harder to bluff
+                    bluffFreq -= 0.06;
+                    // Exception: if we have blockers to value, still profitable
+                    if (turnBluffBlockerCount >= 2) bluffFreq += 0.04;
+                }
+                if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
+                    bluffFreq += 0.06; // Runout favors our perceived range → credible barrel
+                }
+                if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
+                    bluffFreq -= 0.08; // Runout helped their range → bad bluff spot
+                }
+                if (boardEvolution.evolution === 'static_brick' && heroIsAggressor) {
+                    bluffFreq += 0.04; // Brick = safe to continue barreling
+                }
+
                 // ═══ BOARD EVOLUTION-DRIVEN BLUFF CREDIBILITY ═══
                 // Runout that completes draws = we can represent them (credible bluff)
                 if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
@@ -7381,6 +7404,15 @@ function makeTurnRiverHeuristicDecision(params) {
                     // Against weak-tight, overbet to max fold equity
                     if (oppTendency === 'weak-tight' && oppConfidence > 0.3 && turnBluffBlockerCount >= 1) {
                         turnBluffFrac = 0.75 + Math.random() * 0.25; // 75-100% pot
+                    }
+                    // ═══ PHASE 36C: BOARD EVOLUTION-DRIVEN TURN BLUFF SIZING ═══
+                    // When repping a completed draw, size bigger (our "value" range would overbet)
+                    if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
+                        turnBluffFrac = Math.min(0.85, turnBluffFrac + 0.10);
+                    }
+                    // PFR-favorable runout + aggressor = size up for credibility
+                    if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
+                        turnBluffFrac = Math.min(0.80, turnBluffFrac + 0.06);
                     }
 
                     // ═══ PHASE 16: LIVE-READ DRIVEN BLUFF SIZING ═══
