@@ -15,9 +15,9 @@
  * - /public/data/us-mask-outer.json
  */
 
-import React, { useRef, useState, useEffect } from 'react';
-import { radiusToZoom, escapeHtml } from './pnm-utils';
-import { openNativeMaps } from '../../utils/openNativeMaps';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { radiusToZoom, escapeHtml, getOpenStatus } from './pnm-utils';
+import { openNativeMaps, getMapProviderName } from '../../utils/openNativeMaps';
 import MapPreferenceChooser from './MapPreferenceChooser';
 
 // ─── Constants ───
@@ -207,6 +207,66 @@ const LEAFLET_CUSTOM_CSS = `
   font-size: 11px;
   color: rgba(255,255,255,0.7);
   font-weight: 500;
+}
+
+/* ═══ NAVIGATE TO NEAREST BUTTON ═══ */
+.navigate-nearest-btn {
+  position: absolute;
+  bottom: 32px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(10,14,25,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212,168,83,0.3);
+  border-radius: 10px;
+  color: #d4a853;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Inter', -apple-system, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 0 1px rgba(212,168,83,0.2);
+  transition: all 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  max-width: 280px;
+}
+.navigate-nearest-btn:hover {
+  background: rgba(20,28,45,0.95);
+  border-color: rgba(212,168,83,0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7), 0 0 2px rgba(212,168,83,0.3);
+}
+.navigate-nearest-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ═══ VENUE COUNT BADGE ═══ */
+.map-venue-count-badge {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 5px 14px;
+  background: rgba(10,14,25,0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(212,168,83,0.15);
+  border-radius: 20px;
+  color: rgba(212,168,83,0.6);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Inter', -apple-system, sans-serif;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  pointer-events: none;
 }
 `;
 
@@ -441,6 +501,14 @@ function buildPopupHtml(venue) {
   const games = (venue.games_offered || []).slice(0, 3).join(', ');
   const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
 
+  // Open status
+  const openStatus = getOpenStatus(venue);
+  const openBadge = openStatus.isOpen
+    ? '<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.25);">OPEN</span>'
+    : openStatus.label === 'Closed'
+    ? '<span style="padding:2px 8px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:10px;font-weight:700;border:1px solid rgba(239,68,68,0.2);">CLOSED</span>'
+    : '';
+
   // Build venue logo/initials badge
   const logoUrl = venue.logo_url || venue.logoUrl || venue.profile_photo_url || venue.cover_photo_url || venue.image_url || '';
   const initials = (venue.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
@@ -448,16 +516,34 @@ function buildPopupHtml(venue) {
     ? `<img src="${logoUrl}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid rgba(212,168,83,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
     : `<div style="display:flex;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`;
 
+  // Phone call button
+  const phoneBtn = venue.phone ? `<a href="tel:${venue.phone}" class="popup-call-trigger" style="padding:8px 10px;border-radius:8px;background:rgba(34,197,94,0.08);color:rgba(34,197,94,0.8);font-size:11px;font-weight:600;border:1px solid rgba(34,197,94,0.15);text-align:center;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Call</a>` : '';
+
+  // Address line
+  const addrLine = venue.address
+    ? `<div style="font-size:10px;color:rgba(148,163,184,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(venue.address)}</div>`
+    : '';
+
+  // Distance (if computed)
+  const distLine = venue._distanceMi != null
+    ? `<span style="font-size:10px;color:rgba(148,163,184,0.45);margin-left:auto;">${venue._distanceMi < 1 ? '<1 mi' : venue._distanceMi.toFixed(1) + ' mi'}</span>`
+    : '';
+
   return `<div style="min-width:230px;max-width:320px;padding:16px 18px 14px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
       ${logoBadge}
-      <div>
-        <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;">${escapeHtml(venue.name)}</div>
-        <div style="font-size:11px;color:rgba(148,163,184,0.7);margin-top:2px;">${venue.city || ''}, ${venue.state || ''}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(venue.name)}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+          <span style="font-size:11px;color:rgba(148,163,184,0.7);">${venue.city || ''}, ${venue.state || ''}</span>
+          ${distLine}
+        </div>
       </div>
     </div>
+    ${addrLine}
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
       <span style="padding:3px 10px;border-radius:6px;background:${colors.badgeBg || 'rgba(212,168,83,0.15)'};color:${colors.fill};font-size:11px;font-weight:600;letter-spacing:0.3px;">${typeBadge}</span>
+      ${openBadge}
       ${hours ? `<span style="font-size:11px;color:rgba(148,163,184,0.6);">· ${hours}</span>` : ''}
     </div>
     ${games ? `<div style="font-size:11px;color:rgba(148,163,184,0.6);margin-bottom:8px;">Games: ${games}</div>` : ''}
@@ -465,10 +551,10 @@ function buildPopupHtml(venue) {
       <div style="padding:4px 10px;border-radius:6px;background:${trust.bg};color:${trust.color};font-size:11px;font-weight:700;">Trust: ${trust.label}</div>
       <div style="font-size:11px;color:rgba(148,163,184,0.5);">${venue.trust_score || '—'}/5</div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(venue.name) || 'Venue Details'}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;border:none;cursor:pointer;">View Details</button>
-      <button class="directions-trigger" data-addr="${encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;transition:all 0.15s;">Directions</button>
-      <button class="viewmap-trigger" data-addr="${encodeURIComponent((venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}" style="padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);color:rgba(148,163,184,0.6);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.08);text-align:center;cursor:pointer;transition:all 0.15s;">View on Map</button>
+      <button class="directions-trigger" data-addr="${encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 12px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;transition:all 0.15s;">Directions</button>
+      ${phoneBtn}
     </div>
   </div>`;
 }
@@ -476,6 +562,8 @@ function buildPopupHtml(venue) {
 // ─── Main Map Component ───
 export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
+  const [nearestVenue, setNearestVenue] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(0);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const clusterGroupRef = useRef(null);
@@ -802,6 +890,23 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
     const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
 
+    // Compute distances from user location if available
+    if (userLocation) {
+      validVenues.forEach(function(v) {
+        const dlat = (v.latitude - userLocation.lat) * 69;
+        const dlng = (v.longitude - userLocation.lng) * 69 * Math.cos(userLocation.lat * Math.PI / 180);
+        v._distanceMi = Math.sqrt(dlat * dlat + dlng * dlng);
+      });
+      // Find nearest venue
+      const sorted = [...validVenues].sort((a, b) => (a._distanceMi || 9999) - (b._distanceMi || 9999));
+      if (sorted.length > 0) {
+        setNearestVenue(sorted[0]);
+      }
+    }
+
+    // Update visible count
+    setVisibleCount(validVenues.length);
+
     validVenues.forEach(function(venue) {
       // Use tour logo markers for tour stops, standard markers for everything else
       const isTourStop = venue.venue_type === 'tour_stop' && venue.tour_code;
@@ -996,6 +1101,36 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       {/* Map Preference Chooser — gear icon */}
       {mapReady && (
         <MapPreferenceChooser position="top-right" />
+      )}
+      {/* Navigate to Nearest venue button */}
+      {mapReady && nearestVenue && userLocation && (
+        <button
+          className="navigate-nearest-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            openNativeMaps({
+              address: [nearestVenue.address, nearestVenue.name, nearestVenue.city, nearestVenue.state].filter(Boolean).join(' '),
+              lat: parseFloat(nearestVenue.latitude),
+              lng: parseFloat(nearestVenue.longitude),
+              mode: 'directions',
+            });
+          }}
+          title={`Navigate to ${nearestVenue.name}`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="3 11 22 2 13 21 11 13 3 11" />
+          </svg>
+          <span className="navigate-nearest-text">
+            Nearest: {nearestVenue.name?.length > 20 ? nearestVenue.name.substring(0, 18) + '...' : nearestVenue.name}
+            {nearestVenue._distanceMi != null && ` (${nearestVenue._distanceMi < 1 ? '<1' : nearestVenue._distanceMi.toFixed(1)} mi)`}
+          </span>
+        </button>
+      )}
+      {/* Visible venue count badge */}
+      {mapReady && visibleCount > 0 && (
+        <div className="map-venue-count-badge">
+          {visibleCount} venue{visibleCount !== 1 ? 's' : ''}
+        </div>
       )}
     </div>
   );

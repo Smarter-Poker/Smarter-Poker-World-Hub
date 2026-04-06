@@ -92,9 +92,19 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
     const [calculating, setCalculating] = useState(false);
     const [error, setError] = useState(null);
     const [mapExpanded, setMapExpanded] = useState(true);
+    const [savedTripsOpen, setSavedTripsOpen] = useState(false);
+    const [savedTrips, setSavedTrips] = useState([]);
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const originAutoRef = useRef(false);
+
+    // Load saved trips from localStorage
+    useEffect(() => {
+        try {
+            const trips = JSON.parse(localStorage.getItem('pnm_saved_trips') || '[]');
+            setSavedTrips(trips);
+        } catch { /* silent */ }
+    }, []);
 
     // Auto-populate origin with GPS city on first mount (one-time only)
     useEffect(() => {
@@ -328,6 +338,63 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 </button>
 
                 {error && <div className="rtp-error">{error}</div>}
+
+                {/* Saved Trips Collapsible */}
+                {savedTrips.length > 0 && (
+                    <div className="rtp-saved-trips">
+                        <button
+                            className="rtp-saved-trips-toggle"
+                            onClick={() => setSavedTripsOpen(p => !p)}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Saved Trips ({savedTrips.length})
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto', transform: savedTripsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                        </button>
+                        {savedTripsOpen && (
+                            <div className="rtp-saved-trips-list">
+                                {savedTrips.map((trip, i) => (
+                                    <div key={i} className="rtp-saved-trip-item">
+                                        <div className="rtp-saved-trip-route">
+                                            <span className="rtp-saved-trip-from">{trip.origin || '?'}</span>
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.5)" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                                            <span className="rtp-saved-trip-to">{trip.destination || '?'}</span>
+                                        </div>
+                                        <div className="rtp-saved-trip-meta">
+                                            {trip.corridorMi && <span>{trip.corridorMi} mi corridor</span>}
+                                            {trip.waypoints?.length > 0 && <span>{trip.waypoints.length} stop{trip.waypoints.length > 1 ? 's' : ''}</span>}
+                                            <span>{new Date(trip.savedAt).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="rtp-saved-trip-actions">
+                                            <button
+                                                onClick={() => {
+                                                    setOrigin(trip.origin || '');
+                                                    setDestination(trip.destination || '');
+                                                    setWaypoints(trip.waypoints || []);
+                                                    setCorridorMi(trip.corridorMi || 50);
+                                                    setDateRange(trip.dateRange || { start: '', end: '' });
+                                                    setSavedTripsOpen(false);
+                                                }}
+                                                className="rtp-saved-trip-load"
+                                            >
+                                                Load
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const updated = savedTrips.filter((_, idx) => idx !== i);
+                                                    setSavedTrips(updated);
+                                                    try { localStorage.setItem('pnm_saved_trips', JSON.stringify(updated)); } catch { /* silent */ }
+                                                }}
+                                                className="rtp-saved-trip-delete"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Results */}
@@ -361,8 +428,10 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                     const trip = { origin, destination, waypoints, corridorMi, dateRange, savedAt: new Date().toISOString() };
                                     const saved = JSON.parse(localStorage.getItem('pnm_saved_trips') || '[]');
                                     saved.unshift(trip);
-                                    localStorage.setItem('pnm_saved_trips', JSON.stringify(saved.slice(0, 10)));
-                                    alert('Trip saved! You can reload this page to find your saved trips.');
+                                    const updated = saved.slice(0, 10);
+                                    localStorage.setItem('pnm_saved_trips', JSON.stringify(updated));
+                                    setSavedTrips(updated);
+                                    alert('Trip saved!');
                                 } catch { alert('Failed to save trip.'); }
                             }}
                             style={{ flex: 1, padding: '8px 12px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
@@ -532,6 +601,19 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-series-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
         .rtp-series-dates { font-size: 12px; color: rgba(148,163,184,0.5); }
         .rtp-series-venue { font-size: 12px; color: #d4a853; margin-top: 2px; }
+        .rtp-saved-trips { margin-top: 14px; border: 1.5px solid rgba(148,163,184,0.1); border-radius: 10px; overflow: hidden; }
+        .rtp-saved-trips-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 14px; background: linear-gradient(180deg, rgba(18,28,45,0.5), rgba(10,16,28,0.6)); border: none; color: rgba(148,163,184,0.6); font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trips-toggle:hover { color: #d4a853; background: rgba(212,168,83,0.05); }
+        .rtp-saved-trips-list { padding: 6px; }
+        .rtp-saved-trip-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-bottom: 1px solid rgba(148,163,184,0.06); }
+        .rtp-saved-trip-item:last-child { border-bottom: none; }
+        .rtp-saved-trip-route { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #e2e8f0; }
+        .rtp-saved-trip-meta { display: flex; gap: 12px; font-size: 10px; color: rgba(148,163,184,0.4); }
+        .rtp-saved-trip-actions { display: flex; gap: 6px; margin-top: 4px; }
+        .rtp-saved-trip-load { padding: 4px 12px; border-radius: 6px; background: rgba(212,168,83,0.1); border: 1px solid rgba(212,168,83,0.2); color: #d4a853; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trip-load:hover { background: rgba(212,168,83,0.2); }
+        .rtp-saved-trip-delete { padding: 4px 12px; border-radius: 6px; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); color: rgba(239,68,68,0.6); font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; -webkit-appearance: none; appearance: none; }
+        .rtp-saved-trip-delete:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>
