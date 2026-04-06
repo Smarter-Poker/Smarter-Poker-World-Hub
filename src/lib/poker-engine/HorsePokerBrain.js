@@ -6058,9 +6058,101 @@ function makeTurnRiverHeuristicDecision(params) {
     // Calling frequency (passive players call more, aggressive players raise more)
     const callFreq = isPassive ? 0.70 : isAggressive ? 0.45 : 0.55;
 
+    // ═══ POSITION-AWARE FREQUENCY MODIFIERS ═══
+    // GTO solvers show massive frequency differences between IP and OOP.
+    // IP: bets more often, bluffs more, thin values more, checks back less
+    // OOP: checks more, check-raises more, block-bets more, folds to bets more
+    const posFreqMod = {
+        // IP modifiers (applied when isIP is true)
+        ipValueBetBoost: isIP ? 0.08 : 0,        // IP values thinner (position guarantees showdown)
+        ipBluffBoost: isIP ? 0.06 : 0,            // IP bluffs more (can realize equity on later streets)
+        ipThinValueBoost: isIP ? 0.10 : 0,        // IP thin values way more (worst case checks back river)
+        ipCallWidth: isIP ? 0.05 : 0,             // IP calls wider (can outplay later streets)
+        // OOP modifiers (applied when !isIP)
+        oopCheckFreqBoost: !isIP ? 0.10 : 0,      // OOP checks more (trapping + pot control)
+        oopBlockBetBoost: !isIP ? 0.08 : 0,       // OOP block-bets more (deny big bets from IP)
+        oopCheckRaiseBoost: !isIP ? 0.06 : 0,     // OOP check-raises more (only way to get value vs IP)
+        oopFoldMoreVsBig: !isIP ? 0.05 : 0,       // OOP folds more to large bets (can't see free cards)
+        // Street adjustments
+        riverBluffIPBoost: isIP && street === 'river' ? 0.05 : 0, // River bluffs IP = last chance
+        turnBarrelOOPPenalty: !isIP && street === 'turn' ? -0.06 : 0, // OOP barreling turn = risky
+    };
+
     // ── SPR COMMITMENT ──
     const isPotCommitted = spr < 3;
     const isDeep = spr > 8;
+
+    // ═══ SPR-DRIVEN STRATEGY FRAMEWORK ═══
+    // Stack-to-pot ratio fundamentally changes correct strategy.
+    // Low SPR: commit with top pair+, shove draws, no bluffs
+    // Medium SPR: standard sizing, geometric planning, balanced bluffs
+    // High SPR: smaller bets, more speculation, set-mining, deep implied odds
+    const sprStrategy = {
+        // Sizing adjustments (multiply against base sizing)
+        sizeMult: spr < 3 ? 1.5 : spr < 6 ? 1.15 : spr < 12 ? 1.0 : 0.85,
+        // Value bet threshold (lower SPR = commit with weaker hands)
+        valueThreshold: spr < 3 ? 40 : spr < 6 ? 50 : spr < 12 ? 55 : 60,
+        // Bluff reduction at low SPR (bluffs are too expensive relative to pot)
+        bluffMult: spr < 3 ? 0.20 : spr < 6 ? 0.65 : spr < 12 ? 1.0 : 1.10,
+        // Call width (low SPR = call wider, we're committed)
+        callWidthBonus: spr < 3 ? 0.15 : spr < 6 ? 0.08 : 0,
+        // Draw chase threshold (high SPR = implied odds justify chasing)
+        drawOddsBonus: spr > 12 ? 0.08 : spr > 8 ? 0.04 : 0,
+        // Thin value willingness (medium SPR is sweet spot)
+        thinValueMult: spr < 3 ? 0.50 : spr < 6 ? 0.80 : spr < 12 ? 1.0 : 0.90,
+        // Overbet willingness (low-medium SPR: overbet to jam, high SPR: no)
+        overbetMult: spr < 3 ? 1.5 : spr < 6 ? 1.2 : spr < 12 ? 1.0 : 0.70,
+    };
+
+    // ═══ EDGE CASE: LIMPED POT DETECTION ═══
+    // In limped pots: nobody has range advantage, ranges are wide, no c-bet dynamics.
+    // Everyone connected somewhere — be more cautious with bluffs, tighter with value.
+    const isLimpedPot = !heroIsAggressor && oppStreetAggression === 'light' && potSize / bb <= numPlayers * 2.5;
+    if (isLimpedPot) {
+        // Limped pot adjustments — applied to sprStrategy and posFreqMod
+        sprStrategy.bluffMult *= 0.50;         // Halve bluff frequency (ranges are wide, someone has it)
+        sprStrategy.thinValueMult *= 0.75;     // Thin value is riskier (opponents have weird hands)
+        sprStrategy.sizeMult *= 0.85;          // Bet smaller (pot is small, don't build it unnecessarily)
+    }
+
+    // ═══ EDGE CASE: VERY SHORT STACK (< 15BB) ═══
+    // Push/fold mode: no postflop fancy play, just shove strong hands and fold weak ones.
+    if (stackBB < 15 && !facingBet && canRaise && street !== 'river') {
+        // Short stack not facing a bet: shove any hand worth playing
+        if (handEval.strength >= sprStrategy.valueThreshold - 10) {
+            return { type: 'all_in' };
+        }
+        // Semi-bluff shoves with strong draws
+        if (drawEq.outs >= 12 && Math.random() < 0.60) {
+            return { type: 'all_in' };
+        }
+    }
+    if (stackBB < 15 && facingBet) {
+        // Short stack facing a bet: call/fold only, no raising (unless nuts)
+        if (handEval.strength >= 70 && canRaise) {
+            return { type: 'all_in' }; // Jam with strong hands
+        }
+        if (handEval.strength >= sprStrategy.valueThreshold - 5 && canCall) {
+            return { type: 'call' }; // Call with decent hands
+        }
+        // Strong draws facing reasonable bet: call for implied odds
+        if (drawEq.outs >= 10 && betToPot <= 0.60 && canCall) {
+            return { type: 'call' };
+        }
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // ═══ EDGE CASE: VERY DEEP STACKS (> 200BB) ═══
+    // Deep stack play: speculative hands gain value, avoid bloating pots without nuts.
+    // Implied odds are massive — set-mining and draw-chasing become highly profitable.
+    if (stackBB > 200) {
+        // Deep stack: increase draw chasing willingness
+        sprStrategy.drawOddsBonus += 0.06;
+        // Deep stack: reduce thin value betting (opponent can outplay us)
+        sprStrategy.thinValueMult *= 0.85;
+        // Deep stack: reduce overbet willingness (too much at risk)
+        sprStrategy.overbetMult *= 0.60;
+    }
 
     // ═══ EXPLOIT-LOOP INTENSIFIER ═══
     // When high-confidence reads exist, try to exploit BEFORE the standard decision tree.
@@ -6250,8 +6342,13 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── STRONG HANDS (top pair+, overpair) → Continue betting on safe runouts ──
             if (handEval.strength >= 55 && scareLevel <= 1 && canRaise) {
                 // Double barrel: size for protection on wet boards, thinner on dry
-                let sizeFrac = boardWet === 'dry' ? 0.45 : boardWet === 'wet' ? 0.66 : 0.55;
+                // SPR-adjusted: low SPR = bigger (commit), high SPR = smaller (pot control)
+                let sizeFrac = (boardWet === 'dry' ? 0.45 : boardWet === 'wet' ? 0.66 : 0.55) * sprStrategy.sizeMult;
                 let betFreq = multiway ? Math.max(0.40, 0.60 + mwAdj.cbetFreqMod) : aggrFreq;
+
+                // ═══ POSITION-AWARE BARREL FREQUENCY ═══
+                betFreq += posFreqMod.ipValueBetBoost; // IP bets more for thin value
+                betFreq += posFreqMod.turnBarrelOOPPenalty; // OOP barrel penalty
 
                 // ═══ BOARD EVOLUTION-DRIVEN BARREL SIZING ═══
                 // Dynamic boards = charge more (opponent's range is more uncertain)
@@ -6384,7 +6481,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
             // ── BLUFF: Bet missed draws on favorable boards to represent improvement ──
             if (handEval.strength < 20 && canRaise && !multiway) {
-                let bluffFreq = 0.18 + aggressionBias / 50;
+                let bluffFreq = 0.18 + aggressionBias / 50 + posFreqMod.ipBluffBoost + posFreqMod.turnBarrelOOPPenalty;
 
                 // ═══ BLOCKER-BASED TURN BLUFF WEIGHTING ═══
                 // Turn bluffs with blockers are far more profitable — opponent has fewer
@@ -6448,12 +6545,17 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Against calling stations, don't bluff
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) bluffFreq = 0;
 
+                // ═══ SPR-DRIVEN BLUFF ADJUSTMENT ═══
+                // Low SPR = bluffs are too expensive (committing chips with air)
+                // High SPR = bluffs have better risk:reward (small bet relative to stacks)
+                bluffFreq *= sprStrategy.bluffMult;
+
                 // GTO cap: turn bluffs should not exceed ~38% even with max blockers + favorable reads
                 bluffFreq = Math.max(0, Math.min(0.38, bluffFreq));
 
                 if (Math.random() < bluffFreq) {
                     // ═══ BLOCKER-AWARE TURN BLUFF SIZING ═══
-                    let turnBluffFrac = 0.55;
+                    let turnBluffFrac = 0.55 * sprStrategy.sizeMult; // SPR-adjusted
                     // With premium blockers, can go bigger (opponent folds more)
                     if (turnBluffBlockerCount >= 2 && oppFoldFreq > 0.40) {
                         turnBluffFrac = 0.66 + Math.random() * 0.14; // 66-80% pot
@@ -6607,7 +6709,9 @@ function makeTurnRiverHeuristicDecision(params) {
             }
 
             // Direct odds: call if equity exceeds pot odds
-            if (drawEquityPct >= potOdds - 0.05) {
+            // SPR bonus: deep stacks = implied odds make marginal draws profitable
+            const sprDrawBonus = sprStrategy.drawOddsBonus;
+            if (drawEquityPct >= potOdds - 0.05 - sprDrawBonus) {
                 // Semi-bluff raise with massive combo draws (14+ outs)
                 if (canRaise && drawEq.outs >= 14 && Math.random() < 0.40 * (multiway ? mwAdj.bluffReduction : 1.0)) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 2.5)) };
@@ -6776,7 +6880,7 @@ function makeTurnRiverHeuristicDecision(params) {
             if (handEval.strength >= 90 && canRaise) {
                 // Nut hands should overbet (100-150% pot) to extract max value
                 // Against calling stations, overbet BIGGER (they pay off)
-                let overbetMax = 0.50;
+                let overbetMax = 0.50 * sprStrategy.overbetMult; // SPR-adjusted: low SPR = bigger overbets
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) overbetMax = 0.80; // Up to 180% pot
 
                 // ═══ NARRATIVE-DRIVEN OVERBET SIZING ═══
@@ -6854,6 +6958,8 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (scareLevel >= 3) return canCheck ? { type: 'check' } : { type: 'fold' };
                 // Thin value frequency: higher IP, lower multiway
                 let thinValueFreq = multiway ? Math.max(0.30, 0.50 + mwAdj.cbetFreqMod) : (isIP ? 0.72 : 0.60);
+                thinValueFreq += posFreqMod.ipThinValueBoost; // IP thin values significantly more
+                thinValueFreq *= sprStrategy.thinValueMult; // SPR: low = less thin value (committed), high = cautious
 
                 // ═══ OPPONENT-AWARE THIN VALUE ═══
                 // Against calling stations, thin value bet MORE (they call too light)
@@ -6924,10 +7030,11 @@ function makeTurnRiverHeuristicDecision(params) {
                 return canCheck ? { type: 'check' } : { type: 'fold' };
             }
 
-            // ── BLOCK BET: 25-33% pot with showdown value (IP only) ──
-            // Purpose: deny opponent a big bluff opportunity
-            if (isIP && handEval.strength >= 35 && handEval.strength < 55 && canRaise && !multiway) {
-                let blockFreq = 0.28;
+            // ── BLOCK BET: 25-33% pot with showdown value ──
+            // Purpose: deny opponent a big bluff opportunity (IP) or probe for information (OOP)
+            // GTO: OOP also block-bets to deny IP a free bluff opportunity
+            if (handEval.strength >= 35 && handEval.strength < 55 && canRaise && !multiway) {
+                let blockFreq = isIP ? 0.28 : (0.20 + posFreqMod.oopBlockBetBoost);
                 // Block bet more against aggressive opponents (deny them a big bluff)
                 if (oppTendency === 'bluffy' && oppConfidence > 0.3) blockFreq = 0.45;
 
@@ -6986,7 +7093,10 @@ function makeTurnRiverHeuristicDecision(params) {
             // For b% pot bet: bluff frequency = b/(1+b) of betting range.
             // 66% pot → ~40% bluffs in betting range. 100% pot → 50%. 150% pot → 60%.
             if (handEval.strength < 15 && canRaise && !multiway) {
-                let bluffProbability = 0;
+                // ═══ POSITION-AWARE RIVER BLUFF BASE ═══
+                // IP starts with a slight bluff bonus (information advantage, guaranteed showdown)
+                // OOP bluffs are riskier (opponent can raise us off our bluff)
+                let bluffProbability = posFreqMod.ipBluffBoost + posFreqMod.riverBluffIPBoost;
 
                 // ═══ BLOCKER-BASED BLUFF WEIGHTING ═══
                 // Each blocker type has a different EV impact on bluffing.
@@ -7060,6 +7170,9 @@ function makeTurnRiverHeuristicDecision(params) {
 
                 // ═══ HEAVY POT CAUTION ═══
                 if (oppStreetAggression === 'very_heavy') bluffProbability -= 0.10;
+
+                // ═══ SPR-DRIVEN BLUFF ADJUSTMENT (RIVER) ═══
+                bluffProbability *= sprStrategy.bluffMult;
 
                 // GTO cap: river bluffs should not exceed ~35% even with max blockers + reads
                 bluffProbability = Math.max(0, Math.min(0.35, bluffProbability));
@@ -7228,6 +7341,10 @@ function makeTurnRiverHeuristicDecision(params) {
         if (oppBluffFreq < 0.15 && oppConfidence > 0.3) {
             dynFoldThreshold = Math.min(45, dynFoldThreshold + Math.round(oppConfidence * 8));
         }
+        // ═══ SPR-DRIVEN FOLD THRESHOLD ═══
+        // Low SPR: call wider (we're pot-committed, folding loses too much equity)
+        // High SPR: fold threshold stays normal (plenty of room to maneuver)
+        dynFoldThreshold = Math.max(15, dynFoldThreshold - Math.round(sprStrategy.callWidthBonus * 30));
 
         if (handEval.strength >= dynFoldThreshold) {
             // FACTOR 1: Direct equity vs pot odds
@@ -7313,6 +7430,12 @@ function makeTurnRiverHeuristicDecision(params) {
             // Start from MDF: we NEED to call some % to prevent exploitation
             // MDF tells us how often we need to defend to make opponent's bluffs breakeven
             let heroCallProb = 0;
+
+            // ═══ POSITION-AWARE HERO CALL BASE ═══
+            // IP hero calls wider (already closed action, no position disadvantage)
+            // OOP hero calls tighter (especially vs large bets — can't see free cards)
+            heroCallProb += posFreqMod.ipCallWidth;
+            if (!isIP && betToPot >= 0.75) heroCallProb -= posFreqMod.oopFoldMoreVsBig;
 
             // If we're under-defending (folding more than 1-MDF), bump up calling
             const targetDefenseFreq = mdf; // e.g., 0.60 for 66% pot bet
@@ -7557,6 +7680,26 @@ function makeFlopHeuristicDecision(params) {
         oppConfidence = Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.35 : 0;
     }
 
+    // ═══ SESSION MODEL OVERLAY (FLOP) ═══
+    // Blend real-time session reads into flop opponent profile
+    const flopSessionRead = getOpponentSessionRead(profileId);
+    if (flopSessionRead && flopSessionRead.confidence >= 0.15) {
+        const sw = Math.min(0.60, flopSessionRead.confidence);
+        const lw = 1.0 - sw;
+        oppFoldFreq = lw * oppFoldFreq + sw * flopSessionRead.foldFreq;
+        oppCallFreq = lw * oppCallFreq + sw * flopSessionRead.callFreq;
+        if (flopSessionRead.bluffRate !== null) {
+            oppBluffFreq = lw * oppBluffFreq + sw * flopSessionRead.bluffRate;
+        }
+        if (flopSessionRead.cbetRate !== null) {
+            oppCbetFreq = lw * oppCbetFreq + sw * flopSessionRead.cbetRate;
+        }
+        if (flopSessionRead.confidence >= 0.30 && flopSessionRead.sessionTendency !== 'balanced') {
+            oppTendency = flopSessionRead.sessionTendency;
+        }
+        oppConfidence = Math.min(0.90, oppConfidence + flopSessionRead.confidence * 0.3);
+    }
+
     // ── RANGE ADVANTAGE ASSESSMENT ──
     // PFR has range advantage on high boards (broadway cards favor premium hands)
     // Caller has range advantage on low, connected boards (suited connectors, small pairs)
@@ -7575,6 +7718,10 @@ function makeFlopHeuristicDecision(params) {
 
     const isPotCommitted = spr <= 2;
 
+    // ═══ LIMPED POT DETECTION (FLOP) ═══
+    // If nobody raised preflop and pot is small, ranges are wide — adjust strategy.
+    const flopIsLimpedPot = !heroIsAggressor && potSize / bb <= numPlayers * 2.5;
+
     // ══════════════════════════════════════════════════════════
     //  NOT FACING A BET
     // ══════════════════════════════════════════════════════════
@@ -7583,6 +7730,31 @@ function makeFlopHeuristicDecision(params) {
         // ── POT COMMITTED: Jam with decent+ hands ──
         if (isPotCommitted && handEval.strength >= 40 && canRaise) {
             return { type: 'all_in' };
+        }
+
+        // ═══ LIMPED POT FLOP STRATEGY ═══
+        // In limped pots, nobody has range advantage. Bet for value with strong hands,
+        // check medium hands (showdown value in a small pot), and rarely bluff.
+        if (flopIsLimpedPot && !isPotCommitted) {
+            // Strong hands: bet for value (others limped wide, they'll pay off)
+            if (handEval.strength >= 65 && canRaise) {
+                const limpValueFrac = boardWetness === 'wet' ? 0.60 : 0.45;
+                return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * limpValueFrac)) };
+            }
+            // Medium hands: mostly check (pot is small, showdown value is fine)
+            if (handEval.strength >= 35 && handEval.strength < 65) {
+                // Only bet on wet boards for protection
+                if (boardWetness === 'wet' && handEval.strength >= 50 && canRaise && Math.random() < 0.30) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.50)) };
+                }
+                return { type: 'check' };
+            }
+            // Strong draws: semi-bluff at reduced frequency
+            if (drawEq.outs >= 10 && canRaise && Math.random() < 0.25) {
+                return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.50)) };
+            }
+            // Weak hands: check (don't bluff into a multi-way limped pot)
+            return canCheck ? { type: 'check' } : { type: 'fold' };
         }
 
         // ════════════════════════════════════════
@@ -11839,6 +12011,38 @@ async function processHandResult(handData, bb = 2) {
                 if (read && read.handsObserved >= 10) {
                     saveOpponentRead(pid, String(opp.id), read).catch(() => { });
                 }
+            }
+        }
+
+        // ═══ OPPONENT SESSION MODEL — Record all opponent actions from this hand ═══
+        // This feeds the real-time session reads used in turn/river heuristic decisions.
+        const allOpponents = (handData.players || []).filter(op => String(op.id || op.playerId) !== pid);
+        for (const opp of allOpponents) {
+            const oppId = String(opp.id || opp.playerId);
+
+            // Record their last known action on each street
+            if (opp.actions && Array.isArray(opp.actions)) {
+                for (const act of opp.actions) {
+                    recordOpponentAction(oppId, act.street || 'unknown', act.type || act.action || 'unknown', {
+                        betToPot: act.amount && act.potSize ? act.amount / Math.max(1, act.potSize) : undefined,
+                        handStrength: act.handStrength || undefined,
+                        position: opp.position || undefined,
+                    });
+                }
+            } else if (opp.lastAction) {
+                // Fallback: record at least the final action
+                recordOpponentAction(oppId, handData.lastStreet || 'river', opp.lastAction, {
+                    betToPot: opp.lastBetSize && handData.potSize ? opp.lastBetSize / Math.max(1, handData.potSize) : undefined,
+                    position: opp.position || undefined,
+                });
+            }
+
+            // Record showdown if opponent showed cards
+            if (opp.showedCards || opp.handStrength !== undefined) {
+                const oppWon = winners.some(w => String(w.playerId) === oppId);
+                const oppStr = opp.handStrength || 0;
+                const wasBluff = oppStr < 30 && (opp.lastAction === 'raise' || opp.lastAction === 'bet' || opp.lastAction === 'all_in');
+                recordOpponentShowdown(oppId, oppWon, oppStr, wasBluff);
             }
         }
 
