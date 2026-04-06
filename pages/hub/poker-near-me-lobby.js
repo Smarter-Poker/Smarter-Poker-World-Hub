@@ -2629,9 +2629,34 @@ export default function PokerNearMeLobby() {
       />
 
       <div className="pnm-lobby-page">
-        {/* Universal header */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30 }}>
-          <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+        {/* Universal header and Back button layer */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, pointerEvents: 'none' }}>
+          <div style={{ pointerEvents: 'auto' }}>
+            <UniversalHeader pageDepth={1} onMenuClick={() => setMenuOpen(true)} />
+          </div>
+          
+          {/* In-page back button — brushed metal style */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px 16px',
+            pointerEvents: 'auto'
+          }}>
+            <img
+              src="/images/btn-back.png"
+              alt="Back To Hub"
+              onClick={() => window.location.href = '/hub'}
+              style={{
+                height: 36,
+                cursor: 'pointer',
+                transition: 'opacity 0.15s, transform 0.15s',
+                opacity: 0.9,
+                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.04)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1)'; }}
+            />
+          </div>
         </div>
 
         {/* Hamburger menu */}

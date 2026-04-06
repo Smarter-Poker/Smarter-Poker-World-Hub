@@ -132,7 +132,7 @@ function getVenueUrl(venue) {
     return '/hub/venues/' + venue.id;
 }
 
-export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, onFavorite, onNavigate, checkinCount, reviewStats, predictionData, index = 0 }) {
+export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, onFavorite, onNavigate, checkinCount, reviewStats, index = 0 }) {
     if (!venue) return null;
     const trust = getTrustLevel(venue.trust_score || 0);
     const detailUrl = getVenueUrl(venue);

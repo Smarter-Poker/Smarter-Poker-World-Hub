@@ -315,26 +315,7 @@ export default function PokerNearMePage() {
         return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
     }, []);
 
-    // ─── Batch fetch venue predictions for "Best Time to Go" card badges ───
-    const [venuePredictionsMap, setVenuePredictionsMap] = useState({});
-    const venuePredictionsRef = useRef(venuePredictionsMap);
-    venuePredictionsRef.current = venuePredictionsMap;
-    useEffect(() => {
-        if (venues.length === 0) return;
-        const newIds = venues
-            .map(v => v.id)
-            .filter(id => id && !venuePredictionsRef.current[String(id)])
-            .slice(0, 50);
-        if (newIds.length === 0) return;
-        fetch('/api/poker/venue-predictions-batch?venue_ids=' + newIds.join(','))
-            .then(r => r.json())
-            .then(j => {
-                if (j.success && j.predictions) {
-                    setVenuePredictionsMap(prev => ({ ...prev, ...j.predictions }));
-                }
-            })
-            .catch(() => { /* silent */ });
-    }, [venues]);
+
 
     // Review panel state (Feature #9)
     const [reviewVenue, setReviewVenue] = useState(null);
@@ -1857,7 +1838,6 @@ export default function PokerNearMePage() {
             filters={filters}
             clearFilters={clearFilters}
             pnmReviewStatsMap={pnmReviewStatsMap}
-            venuePredictionsMap={venuePredictionsMap}
             router={router}
             onMapVenueClick={onMapVenueClick}
             iframeModal={iframeModal}
@@ -1908,7 +1888,6 @@ export default function PokerNearMePage() {
                 venueMaxGtd={venueMaxGtd}
                 promotionVenueIds={promotionVenueIds}
                 pnmReviewStatsMap={pnmReviewStatsMap}
-                venuePredictionsMap={venuePredictionsMap}
                 setActiveTab={setActiveTab}
                 router={router}
             />

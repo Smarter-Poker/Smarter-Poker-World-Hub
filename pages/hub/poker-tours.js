@@ -99,7 +99,7 @@ export default function PokerToursPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('all');
     const [selectedRegion, setSelectedRegion] = useState('all');
-    const [sortBy, setSortBy] = useState('priority');
+    const [sortBy, setSortBy] = useState('distance');
     const [dateRange, setDateRange] = useState('all');
     const [buyinFilter, setBuyinFilter] = useState('all');
     const [distanceFilter, setDistanceFilter] = useState('all');
@@ -762,6 +762,46 @@ export default function PokerToursPage() {
 
         // Sort
         switch (sortBy) {
+            case 'distance':
+                if (userLocation && userLocation.lat && userLocation.lng) {
+                    result.sort((a, b) => {
+                        const getMinDist = (t) => {
+                            let minD = Infinity;
+                            const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
+                            for (const stop of allStops) {
+                                const coords = findVenueCoords(stop);
+                                if (coords && coords.latitude && coords.longitude) {
+                                    const d = haversineDistance(userLocation.lat, userLocation.lng, coords.latitude, coords.longitude);
+                                    if (d < minD) minD = d;
+                                }
+                            }
+                            const upcomingSeries = t.upcoming_series || [];
+                            for (const s of upcomingSeries) {
+                                const coords = findVenueCoords({
+                                    venue: s.venue || s.short_name || '',
+                                    location: s.location || '',
+                                    name: s.short_name || s.name || '',
+                                });
+                                if (coords && coords.latitude && coords.longitude) {
+                                    const d = haversineDistance(userLocation.lat, userLocation.lng, coords.latitude, coords.longitude);
+                                    if (d < minD) minD = d;
+                                }
+                            }
+                            return minD;
+                        };
+                        const distA = getMinDist(a);
+                        const distB = getMinDist(b);
+                        // Fallback to priority if no location matches for either
+                        if (distA === Infinity && distB === Infinity) {
+                            return (a.priority || 99) - (b.priority || 99);
+                        }
+                        return distA - distB;
+                    });
+                } else {
+                    // Fallback to priority if no user location
+                    result.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+                }
+                break;
             case 'priority': result.sort((a, b) => (a.priority || 99) - (b.priority || 99)); break;
             case 'date': 
                 result.sort((a, b) => {
@@ -1074,6 +1114,7 @@ export default function PokerToursPage() {
                                     value={sortBy}
                                     onChange={e => setSortBy(e.target.value)}
                                 >
+                                    <option value="distance">Nearest to You</option>
                                     <option value="priority">Priority</option>
                                     <option value="date">Next Upcoming Date</option>
                                     <option value="name">Name A-Z</option>
@@ -1089,7 +1130,7 @@ export default function PokerToursPage() {
                                         <span>{activeFilterCount} Active Filter{activeFilterCount > 1 ? 's' : ''}</span>
                                         <button
                                             className="sidebar-clear-btn"
-                                            onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('priority'); }}
+                                            onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('distance'); }}
                                         >
                                             Reset All
                                         </button>
@@ -1135,7 +1176,7 @@ export default function PokerToursPage() {
                                 {activeFilterCount > 0 && (
                                     <button
                                         className="tours-clear-all-btn"
-                                        onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('priority'); }}
+                                        onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('distance'); }}
                                     >
                                         Clear All ({activeFilterCount})
                                     </button>
@@ -1143,6 +1184,7 @@ export default function PokerToursPage() {
                                 <div className="tours-results-sort">
                                     <span>Sort:</span>
                                     <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                        <option value="distance">Nearest to You</option>
                                         <option value="priority">Priority</option>
                                         <option value="date">Next Upcoming Date</option>
                                         <option value="name">Name A-Z</option>
@@ -1168,7 +1210,7 @@ export default function PokerToursPage() {
                                 <p>No tours match your current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}{distanceFilter !== 'all' ? ` within ${distanceFilter} miles` : ''}.</p>
                                 <button
                                     className="tours-empty-reset"
-                                    onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('priority'); }}
+                                    onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('distance'); }}
                                 >
                                     Reset All Filters
                                 </button>
