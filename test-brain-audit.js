@@ -697,17 +697,24 @@ test('strong hand vs donk produces raise or call', () => {
 });
 
 test('medium hand calls small donk', () => {
-    const r = hdb({
-        heroIsAggressor: true, street: 'flop', facingBet: true,
-        handStrength: 40, handCategory: 'second_pair', drawOuts: 0,
-        position: 'BTN', potSize: 20, toCall: 5, bb: 2,
-        canRaise: true, canCall: true, raiseAction: { type: 'raise', minAmount: 10, maxAmount: 100 },
-        aggressionBias: 0, oppTendency: 'balanced', oppConfidence: 0,
-        oppCallFreq: 0.50, boardWetness: 'medium', numPlayers: 2
-    });
-    // Should call (hand >= 30)
-    if (!r) throw new Error('handleDonkBet returned null for medium hand');
-    expect(r.type).toBe('call');
+    // Fix: mock random high to avoid raise branches
+    const origRandom = Math.random;
+    Math.random = () => 0.99;
+    try {
+        const r = hdb({
+            heroIsAggressor: true, street: 'flop', facingBet: true,
+            handStrength: 40, handCategory: 'second_pair', drawOuts: 0,
+            position: 'BTN', potSize: 20, toCall: 5, bb: 2,
+            canRaise: true, canCall: true, raiseAction: { type: 'raise', minAmount: 10, maxAmount: 100 },
+            aggressionBias: 0, oppTendency: 'balanced', oppConfidence: 0,
+            oppCallFreq: 0.50, boardWetness: 'medium', numPlayers: 2
+        });
+        // Should call (hand >= 30)
+        if (!r) throw new Error('handleDonkBet returned null for medium hand');
+        expect(r.type).toBe('call');
+    } finally {
+        Math.random = origRandom;
+    }
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -1103,6 +1110,203 @@ test('makeFlopHeuristicDecision: returns valid action structure', () => {
     expect(r).not.toBeNull();
     expect(r).toHaveProperty('type');
     // type should be one of the valid action types
+    expect(['check', 'bet', 'call', 'raise', 'fold', 'all_in']).toContain(r.type);
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 46: makeTurnRiverHeuristicDecision ══');
+// ═══════════════════════════════════════════════════════════
+
+const mtrhd = brain.makeTurnRiverHeuristicDecision;
+
+// Helper: build base params for makeTurnRiverHeuristicDecision
+function turnRiverParams(overrides = {}) {
+    return {
+        street: overrides.street || 'turn',
+        holeCards: overrides.holeCards || ['Ah', 'Kd'],
+        board: overrides.board || ['Kc', '7d', '3s', '2h'],
+        handStr: overrides.handStr || 'AhKd',
+        position: overrides.position || 'BTN',
+        stackBB: overrides.stackBB || 100,
+        potSize: overrides.potSize || 40,
+        toCall: overrides.toCall !== undefined ? overrides.toCall : 0,
+        bb: overrides.bb || 2,
+        numPlayers: overrides.numPlayers || 2,
+        legalActions: overrides.legalActions || [
+            { type: 'check' },
+            { type: 'bet', min: 4, max: 200 }
+        ],
+        profileId: overrides.profileId || 'test-horse',
+        aggressionBias: overrides.aggressionBias !== undefined ? overrides.aggressionBias : 5,
+        loosenessBias: overrides.loosenessBias || 0,
+        opponentAdjustment: overrides.opponentAdjustment || { callMod: 0, foldMod: 0 },
+        enrichedOpponentRead: overrides.enrichedOpponentRead || null,
+        oppStreetAggression: overrides.oppStreetAggression || 'moderate',
+        heroIsAggressor: overrides.heroIsAggressor !== undefined ? overrides.heroIsAggressor : true,
+        counterStrategyMode: overrides.counterStrategyMode || 'standard',
+        streetNarrative: overrides.streetNarrative || null,
+        tableId: 'test-table',
+        primaryOppId: null,
+        ...overrides
+    };
+}
+
+test('makeTurnRiverHeuristicDecision: null guard on bad street', () => {
+    const r = mtrhd({ street: 'flop', holeCards: ['Ah', 'Kd'], board: ['Kc', '7d', '3s', '2h'] });
+    expect(r).toBeNull();
+});
+
+test('makeTurnRiverHeuristicDecision: null guard on short board', () => {
+    const r = mtrhd({ street: 'turn', holeCards: ['Ah', 'Kd'], board: ['Kc', '7d', '3s'] });
+    expect(r).toBeNull();
+});
+
+test('makeTurnRiverHeuristicDecision: turn pot committed jam', () => {
+    // Stack 3bb = 6, pot = 50, SPR ~ 0.12 → pot committed
+    const r = mtrhd(turnRiverParams({
+        street: 'turn',
+        stackBB: 3,
+        potSize: 50,
+        toCall: 0,
+        holeCards: ['Ah', 'Kd'],
+        board: ['Kc', '7d', '3s', '2h'],
+        legalActions: [
+            { type: 'check' },
+            { type: 'bet', min: 4, max: 6 }
+        ]
+    }));
+    expect(r).not.toBeNull();
+    expect(['all_in', 'bet']).toContain(r.type);
+});
+
+test('makeTurnRiverHeuristicDecision: turn monster value bets', () => {
+    // Set of kings on turn, not facing bet → should value bet
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = mtrhd(turnRiverParams({
+            street: 'turn',
+            holeCards: ['Kh', 'Kd'],   // Set of kings
+            board: ['Kc', '7d', '3s', '2h'],
+            toCall: 0,
+            potSize: 40,
+        }));
+        expect(r).not.toBeNull();
+        expect(r.type).toBe('bet');
+        expect(r.amount).toBeGreaterThan(0);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeTurnRiverHeuristicDecision: turn facing bet fold trash', () => {
+    // Complete air on turn facing a bet → fold
+    const r = mtrhd(turnRiverParams({
+        street: 'turn',
+        holeCards: ['2d', '4c'],   // Total air on K-7-3-9 board
+        board: ['Kc', '7d', '3s', '9h'],
+        toCall: 25,
+        potSize: 40,
+        legalActions: [
+            { type: 'call' },
+            { type: 'raise', min: 50, max: 200 },
+            { type: 'fold' }
+        ]
+    }));
+    expect(r).not.toBeNull();
+    expect(r.type).toBe('fold');
+});
+
+test('makeTurnRiverHeuristicDecision: river pot committed call', () => {
+    // Low SPR on river facing a bet, decent hand → should call (pot committed)
+    const r = mtrhd(turnRiverParams({
+        street: 'river',
+        holeCards: ['Ah', 'Kd'],
+        board: ['Kc', '7d', '3s', '2h', '9c'],
+        stackBB: 4,
+        potSize: 50,
+        toCall: 5,
+        legalActions: [
+            { type: 'call' },
+            { type: 'raise', min: 10, max: 8 },
+            { type: 'fold' }
+        ]
+    }));
+    expect(r).not.toBeNull();
+    // Top pair AK strength ~48, pot committed → should call
+    expect(['call', 'all_in']).toContain(r.type);
+});
+
+test('makeTurnRiverHeuristicDecision: river nut hand bets or jams', () => {
+    // Full house (AA on A77) on river, not facing bet → should value bet or all-in
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = mtrhd(turnRiverParams({
+            street: 'river',
+            holeCards: ['Ah', 'Ad'],  // Set of aces → full house on paired board
+            board: ['Ac', '7d', '7s', '2h', '3c'],
+            toCall: 0,
+            potSize: 80,
+            legalActions: [
+                { type: 'check' },
+                { type: 'bet', min: 4, max: 400 }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        // Nut-level hand should bet or jam (all_in is valid for nuts)
+        expect(['bet', 'all_in']).toContain(r.type);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeTurnRiverHeuristicDecision: river fold trash facing big bet', () => {
+    const r = mtrhd(turnRiverParams({
+        street: 'river',
+        holeCards: ['2d', '4c'],
+        board: ['Kc', 'Qd', 'Js', '9h', '3c'],
+        toCall: 40,
+        potSize: 50,
+        legalActions: [
+            { type: 'call' },
+            { type: 'raise', min: 80, max: 200 },
+            { type: 'fold' }
+        ]
+    }));
+    expect(r).not.toBeNull();
+    expect(r.type).toBe('fold');
+});
+
+test('makeTurnRiverHeuristicDecision: short stack jam on turn', () => {
+    // Very short stack (10bb), strong hand, not facing bet → should shove
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = mtrhd(turnRiverParams({
+            street: 'turn',
+            stackBB: 10,
+            holeCards: ['Ah', 'Kd'],  // Top pair top kicker (str ~48)
+            board: ['Kc', '7d', '3s', '2h'],
+            toCall: 0,
+            potSize: 30,
+            legalActions: [
+                { type: 'check' },
+                { type: 'bet', min: 4, max: 20 }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        // Short stack + decent hand + not facing bet → all_in
+        expect(r.type).toBe('all_in');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeTurnRiverHeuristicDecision: returns valid action structure', () => {
+    const r = mtrhd(turnRiverParams());
+    expect(r).not.toBeNull();
+    expect(r).toHaveProperty('type');
     expect(['check', 'bet', 'call', 'raise', 'fold', 'all_in']).toContain(r.type);
 });
 

@@ -6439,6 +6439,10 @@ function makeTurnRiverHeuristicDecision(params) {
     let oppTimingTell = null;
     let oppExploits = [];
     let oppInHandActions = null;
+    // Phase 46 FIX: moved declarations OUTSIDE the liveRead block so they're accessible
+    // throughout the entire function (was causing ReferenceError when no live read)
+    let currentActionTimingTell = 'unknown';
+    let currentActionTimingMs = null;
 
     if (liveRead && liveRead.confidence >= 0.10) {
         // ═══ LIVE-READ NaN/INTEGRITY GUARD (Phase 32) ═══
@@ -6501,8 +6505,9 @@ function makeTurnRiverHeuristicDecision(params) {
         //   tank_aggression → marginal value or considering bluff
         //   tank_call → drawing hand or marginal made hand
         //   snap_aggression → polarized (nuts or auto-bluff)
-        let currentActionTimingTell = 'unknown';
-        let currentActionTimingMs = null;
+        // Phase 46 FIX: changed from let→assignment (outer let is in function scope now)
+        currentActionTimingTell = 'unknown';
+        currentActionTimingMs = null;
         if (liveRead.inHandActions && liveRead.inHandActions.lastAction) {
             const lastAct = liveRead.inHandActions.lastAction;
             currentActionTimingMs = lastAct.timing || null;
@@ -6757,6 +6762,13 @@ function makeTurnRiverHeuristicDecision(params) {
         sprStrategy.callWidthBonus = Math.max(sprStrategy.callWidthBonus, 0.05);
     }
 
+    // Helper to clamp bet/raise amounts
+    // Phase 46 FIX: Moved BEFORE exploit intensifier (was used before definition → ReferenceError)
+    const clampAmt = (amt) => {
+        if (!raiseAction) return amt;
+        return Math.max(raiseAction.minAmount || 1, Math.min(amt, raiseAction.maxAmount || amt));
+    };
+
     // ═══ EXPLOIT-LOOP INTENSIFIER ═══
     // When high-confidence reads exist, try to exploit BEFORE the standard decision tree.
     // This maximizes EV vs identified weak players.
@@ -6790,12 +6802,6 @@ function makeTurnRiverHeuristicDecision(params) {
     // In counter-exploit modes, adjust strategy to be less readable
     const inStealthMode = counterStrategyMode === 'stealth' || counterStrategyMode === 'anti_bot_stealth';
     const inAntiBot = counterStrategyMode === 'anti_bot' || counterStrategyMode === 'anti_bot_stealth';
-
-    // Helper to clamp bet/raise amounts
-    const clampAmt = (amt) => {
-        if (!raiseAction) return amt;
-        return Math.max(raiseAction.minAmount || 1, Math.min(amt, raiseAction.maxAmount || amt));
-    };
 
     // ═══ MULTI-STREET NARRATIVE ADJUSTMENTS ═══
     // Use our prior street actions to keep our betting line believable.
