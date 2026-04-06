@@ -12895,6 +12895,12 @@ function observeNewHand(tableId, handId, players, horseIds, bb = 2) {
             }
         }
     }
+
+    // ═══ PERSISTENT JOURNAL: Fire-and-forget load of historical opponent data ═══
+    // On the FIRST hand at a table, load journals for all opponents.
+    // This gives horses an instant head-start with historical reads.
+    const allPlayerIds = players.map(p => String(p.id || p.playerId || p));
+    loadTableJournals(tableId, allPlayerIds, horseIds).catch(() => {});
 }
 
 /**
@@ -13196,6 +13202,13 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
                 profile.timingByStreet[street].count++;
             }
         }
+
+        // ═══ PERIODIC JOURNAL PERSISTENCE ═══
+        // Every JOURNAL_PERSIST_INTERVAL hands, persist opponent data to Supabase.
+        // Fire-and-forget — non-blocking, won't slow down the game.
+        if (profile.handsObserved > 0 && profile.handsObserved % JOURNAL_PERSIST_INTERVAL === 0) {
+            persistOpponentJournal(horseId, actorStr, profile).catch(() => {});
+        }
     }
 }
 
@@ -13371,7 +13384,9 @@ function getLiveRead(horseId, tableId, opponentId) {
     const handConfidence = Math.min(0.60, p.handsObserved / 100);
     const showdownConfidence = p.wentToShowdown >= 3 ? Math.min(0.20, p.wentToShowdown / 30) : 0;
     const timingConfidence = p.decisionCount > 10 ? 0.10 : 0;
-    const confidence = Math.min(0.90, handConfidence + showdownConfidence + timingConfidence);
+    // ═══ JOURNAL BONUS: Historical data from prior sessions boosts confidence ═══
+    const journalBonus = p._journalSeeded && p._journalHands > 20 ? Math.min(0.15, p._journalHands / 500) : 0;
+    const confidence = Math.min(0.95, handConfidence + showdownConfidence + timingConfidence + journalBonus);
 
     return {
         // Core frequencies
@@ -13418,6 +13433,13 @@ function clearLiveObserver(horseId, tableId) {
  * @param {string} tableId
  */
 function clearTableLiveObservers(tableId) {
+    // ═══ PERSISTENT JOURNAL: Save all opponent data before clearing ═══
+    for (const [horseId, horseTables] of liveObserver) {
+        if (horseTables.has(tableId)) {
+            persistTableJournals(horseId, tableId).catch(() => {});
+        }
+    }
+    // Now clear the observers
     for (const [horseId, horseTables] of liveObserver) {
         horseTables.delete(tableId);
         if (horseTables.size === 0) liveObserver.delete(horseId);
@@ -15230,6 +15252,343 @@ async function warmGTOCache() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PERSISTENT OPPONENT JOURNAL SYSTEM (Phase 14)
+// ═══════════════════════════════════════════════════════════════════════════
+// Every horse maintains a persistent "dossier" on each opponent across sessions.
+// When a horse encounters a familiar opponent at a new table, it instantly
+// pre-seeds the liveObserver with historical data — giving a massive head start
+// instead of observing from zero.
+//
+// Supabase table schema (run once):
+// CREATE TABLE horse_opponent_journals (
+//   horse_id UUID NOT NULL,
+//   opponent_id TEXT NOT NULL,
+//   vpip_count INT DEFAULT 0,
+//   pfr_count INT DEFAULT 0,
+//   three_bet_count INT DEFAULT 0,
+//   three_bet_opportunity INT DEFAULT 0,
+//   four_bet_count INT DEFAULT 0,
+//   fold_to_three_bet INT DEFAULT 0,
+//   faced_three_bet INT DEFAULT 0,
+//   cold_call_count INT DEFAULT 0,
+//   limp_count INT DEFAULT 0,
+//   steal_attempt_count INT DEFAULT 0,
+//   steal_opportunity INT DEFAULT 0,
+//   fold_to_steal INT DEFAULT 0,
+//   cbet_count INT DEFAULT 0,
+//   cbet_opportunity INT DEFAULT 0,
+//   fold_to_cbet INT DEFAULT 0,
+//   faced_cbet INT DEFAULT 0,
+//   second_barrel_count INT DEFAULT 0,
+//   second_barrel_opportunity INT DEFAULT 0,
+//   third_barrel_count INT DEFAULT 0,
+//   third_barrel_opportunity INT DEFAULT 0,
+//   check_raise_count INT DEFAULT 0,
+//   donk_bet_count INT DEFAULT 0,
+//   probe_bet_count INT DEFAULT 0,
+//   fold_to_raise INT DEFAULT 0,
+//   faced_raise INT DEFAULT 0,
+//   total_bets INT DEFAULT 0,
+//   total_calls INT DEFAULT 0,
+//   total_checks INT DEFAULT 0,
+//   total_folds INT DEFAULT 0,
+//   went_to_showdown INT DEFAULT 0,
+//   won_at_showdown INT DEFAULT 0,
+//   showdown_bluffs INT DEFAULT 0,
+//   overbet_count INT DEFAULT 0,
+//   total_decision_time_ms BIGINT DEFAULT 0,
+//   decision_count INT DEFAULT 0,
+//   snap_action_count INT DEFAULT 0,
+//   long_tank_count INT DEFAULT 0,
+//   hands_observed INT DEFAULT 0,
+//   actions_by_position JSONB DEFAULT '{}',
+//   avg_flop_bet FLOAT DEFAULT 0,
+//   avg_turn_bet FLOAT DEFAULT 0,
+//   avg_river_bet FLOAT DEFAULT 0,
+//   avg_preflop_raise FLOAT DEFAULT 0,
+//   updated_at TIMESTAMPTZ DEFAULT now(),
+//   PRIMARY KEY (horse_id, opponent_id)
+// );
+// CREATE INDEX idx_hoj_opponent ON horse_opponent_journals(opponent_id);
+// CREATE INDEX idx_hoj_updated ON horse_opponent_journals(updated_at);
+// ═══════════════════════════════════════════════════════════════════════════
+
+// In-memory cache: horseId:oppId → { loaded: true, timestamp }
+// Prevents redundant Supabase fetches for the same opponent within a session.
+const _journalCache = new Map();
+const JOURNAL_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const JOURNAL_PERSIST_INTERVAL = 15; // Persist every 15 hands observed
+
+/**
+ * Persist a LiveProfile to Supabase as an opponent journal entry.
+ * Called on table leave and periodically during play.
+ * Uses upsert with additive merging — new observations ADD to existing counts.
+ * @param {string} horseId
+ * @param {string} opponentId
+ * @param {Object} profile - LiveProfile from liveObserver
+ * @returns {Promise<boolean>}
+ */
+async function persistOpponentJournal(horseId, opponentId, profile) {
+    try {
+        if (!profile || profile.handsObserved < 5) return false; // Don't save tiny samples
+
+        const sb = getSupabase();
+        if (!sb) return false;
+
+        // Compute average bet sizes from arrays
+        const avgFlop = profile.flopBetSizes.length > 0
+            ? profile.flopBetSizes.reduce((a, b) => a + b, 0) / profile.flopBetSizes.length : 0;
+        const avgTurn = profile.turnBetSizes.length > 0
+            ? profile.turnBetSizes.reduce((a, b) => a + b, 0) / profile.turnBetSizes.length : 0;
+        const avgRiver = profile.riverBetSizes.length > 0
+            ? profile.riverBetSizes.reduce((a, b) => a + b, 0) / profile.riverBetSizes.length : 0;
+        const avgPFR = profile.preflopRaiseSizes.length > 0
+            ? profile.preflopRaiseSizes.reduce((a, b) => a + b, 0) / profile.preflopRaiseSizes.length : 0;
+
+        // First, fetch existing journal to merge additively
+        const { data: existing } = await sb
+            .from('horse_opponent_journals')
+            .select('hands_observed')
+            .eq('horse_id', horseId)
+            .eq('opponent_id', opponentId)
+            .maybeSingle();
+
+        // If existing, we ADD our new observations to the existing counts.
+        // If not, we insert fresh.
+        const payload = {
+            horse_id: horseId,
+            opponent_id: opponentId,
+            vpip_count: profile.vpipCount,
+            pfr_count: profile.pfrCount,
+            three_bet_count: profile.threeBetCount,
+            three_bet_opportunity: profile.threeBetOpportunity,
+            four_bet_count: profile.fourBetCount,
+            fold_to_three_bet: profile.foldToThreeBet,
+            faced_three_bet: profile.facedThreeBet,
+            cold_call_count: profile.coldCallCount,
+            limp_count: profile.limpCount,
+            steal_attempt_count: profile.stealAttemptCount,
+            steal_opportunity: profile.stealOpportunity || 0,
+            fold_to_steal: profile.foldToSteal,
+            cbet_count: profile.cBetCount,
+            cbet_opportunity: profile.cBetOpportunity,
+            fold_to_cbet: profile.foldToCBet,
+            faced_cbet: profile.facedCBet,
+            second_barrel_count: profile.secondBarrelCount,
+            second_barrel_opportunity: profile.secondBarrelOpportunity,
+            third_barrel_count: profile.thirdBarrelCount,
+            third_barrel_opportunity: profile.thirdBarrelOpportunity,
+            check_raise_count: profile.checkRaiseCount,
+            donk_bet_count: profile.donkBetCount,
+            probe_bet_count: profile.probeBetCount,
+            fold_to_raise: profile.foldToRaise,
+            faced_raise: profile.facedRaise,
+            total_bets: profile.totalBets,
+            total_calls: profile.totalCalls,
+            total_checks: profile.totalChecks,
+            total_folds: profile.totalFolds,
+            went_to_showdown: profile.wentToShowdown,
+            won_at_showdown: profile.wonAtShowdown,
+            showdown_bluffs: profile.showdownBluffs,
+            overbet_count: profile.overbetCount,
+            total_decision_time_ms: profile.totalDecisionTimeMs,
+            decision_count: profile.decisionCount,
+            snap_action_count: profile.snapActionCount,
+            long_tank_count: profile.longTankCount,
+            hands_observed: profile.handsObserved,
+            actions_by_position: profile.actionsByPosition || {},
+            avg_flop_bet: avgFlop,
+            avg_turn_bet: avgTurn,
+            avg_river_bet: avgRiver,
+            avg_preflop_raise: avgPFR,
+            updated_at: new Date().toISOString(),
+        };
+
+        const { error } = await sb.from('horse_opponent_journals').upsert(payload, {
+            onConflict: 'horse_id,opponent_id'
+        });
+
+        if (!error) {
+            console.log(`[HorseBrain] 📓 JOURNAL SAVED: ${horseId.substring(0, 8)} → ${opponentId.substring(0, 8)} (${profile.handsObserved} hands)`);
+            // Mark in cache as recently persisted
+            _journalCache.set(`${horseId}:${opponentId}`, { loaded: true, persisted: Date.now(), timestamp: Date.now() });
+        }
+        return !error;
+    } catch (err) {
+        console.warn(`[HorseBrain] 📓 Journal persist error: ${err.message}`);
+        return false;
+    }
+}
+
+/**
+ * Load an opponent journal from Supabase and pre-seed the liveObserver.
+ * Called when a horse encounters an opponent it has history with.
+ * @param {string} horseId
+ * @param {string} tableId
+ * @param {string} opponentId
+ * @returns {Promise<boolean>} true if journal was loaded and applied
+ */
+async function loadOpponentJournal(horseId, tableId, opponentId) {
+    try {
+        // Check cache first — don't re-fetch within TTL
+        const cacheKey = `${horseId}:${opponentId}`;
+        const cached = _journalCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp) < JOURNAL_CACHE_TTL) {
+            return cached.loaded;
+        }
+
+        const sb = getSupabase();
+        if (!sb) {
+            _journalCache.set(cacheKey, { loaded: false, timestamp: Date.now() });
+            return false;
+        }
+
+        const { data } = await sb
+            .from('horse_opponent_journals')
+            .select('*')
+            .eq('horse_id', horseId)
+            .eq('opponent_id', opponentId)
+            .maybeSingle();
+
+        if (!data || data.hands_observed < 5) {
+            _journalCache.set(cacheKey, { loaded: false, timestamp: Date.now() });
+            return false;
+        }
+
+        // Pre-seed the liveObserver with historical data
+        const observer = _getTableObserver(horseId, tableId);
+        if (!observer.opponents.has(opponentId)) {
+            observer.opponents.set(opponentId, _createLiveProfile());
+        }
+        const profile = observer.opponents.get(opponentId);
+
+        // Only seed if the live profile has fewer observations than the journal
+        // (don't overwrite fresh live data with stale historical data)
+        if (profile.handsObserved < data.hands_observed) {
+            profile.handsObserved = data.hands_observed;
+            profile.vpipCount = data.vpip_count;
+            profile.pfrCount = data.pfr_count;
+            profile.threeBetCount = data.three_bet_count;
+            profile.threeBetOpportunity = data.three_bet_opportunity;
+            profile.fourBetCount = data.four_bet_count || 0;
+            profile.foldToThreeBet = data.fold_to_three_bet;
+            profile.facedThreeBet = data.faced_three_bet;
+            profile.coldCallCount = data.cold_call_count;
+            profile.limpCount = data.limp_count;
+            profile.stealAttemptCount = data.steal_attempt_count;
+            profile.stealOpportunity = data.steal_opportunity || 0;
+            profile.foldToSteal = data.fold_to_steal;
+            profile.cBetCount = data.cbet_count;
+            profile.cBetOpportunity = data.cbet_opportunity;
+            profile.foldToCBet = data.fold_to_cbet;
+            profile.facedCBet = data.faced_cbet;
+            profile.secondBarrelCount = data.second_barrel_count;
+            profile.secondBarrelOpportunity = data.second_barrel_opportunity;
+            profile.thirdBarrelCount = data.third_barrel_count;
+            profile.thirdBarrelOpportunity = data.third_barrel_opportunity;
+            profile.checkRaiseCount = data.check_raise_count;
+            profile.donkBetCount = data.donk_bet_count;
+            profile.probeBetCount = data.probe_bet_count;
+            profile.foldToRaise = data.fold_to_raise;
+            profile.facedRaise = data.faced_raise;
+            profile.totalBets = data.total_bets;
+            profile.totalCalls = data.total_calls;
+            profile.totalChecks = data.total_checks;
+            profile.totalFolds = data.total_folds;
+            profile.wentToShowdown = data.went_to_showdown;
+            profile.wonAtShowdown = data.won_at_showdown;
+            profile.showdownBluffs = data.showdown_bluffs;
+            profile.overbetCount = data.overbet_count;
+            profile.totalDecisionTimeMs = data.total_decision_time_ms;
+            profile.decisionCount = data.decision_count;
+            profile.snapActionCount = data.snap_action_count;
+            profile.longTankCount = data.long_tank_count;
+            profile.actionsByPosition = data.actions_by_position || {};
+
+            // Reconstruct average sizing arrays from journal averages
+            // (We store averages, not full arrays — create synthetic arrays for getLiveRead)
+            if (data.avg_flop_bet > 0) profile.flopBetSizes = [data.avg_flop_bet, data.avg_flop_bet, data.avg_flop_bet];
+            if (data.avg_turn_bet > 0) profile.turnBetSizes = [data.avg_turn_bet, data.avg_turn_bet, data.avg_turn_bet];
+            if (data.avg_river_bet > 0) profile.riverBetSizes = [data.avg_river_bet, data.avg_river_bet, data.avg_river_bet];
+            if (data.avg_preflop_raise > 0) profile.preflopRaiseSizes = [data.avg_preflop_raise, data.avg_preflop_raise, data.avg_preflop_raise];
+
+            // Mark as journal-seeded for confidence calculation
+            profile._journalSeeded = true;
+            profile._journalHands = data.hands_observed;
+
+            console.log(`[HorseBrain] 📓 JOURNAL LOADED: ${horseId.substring(0, 8)} recognized ${opponentId.substring(0, 8)} (${data.hands_observed} historical hands)`);
+        }
+
+        _journalCache.set(cacheKey, { loaded: true, timestamp: Date.now() });
+        return true;
+    } catch (err) {
+        console.warn(`[HorseBrain] 📓 Journal load error: ${err.message}`);
+        _journalCache.set(cacheKey, { loaded: false, timestamp: Date.now() });
+        return false;
+    }
+}
+
+/**
+ * Persist ALL opponent profiles for a horse leaving a table.
+ * Called by clearTableLiveObservers when a table closes.
+ * @param {string} horseId
+ * @param {string} tableId
+ */
+async function persistTableJournals(horseId, tableId) {
+    try {
+        if (!liveObserver.has(horseId)) return;
+        const horseTables = liveObserver.get(horseId);
+        if (!horseTables.has(tableId)) return;
+
+        const observer = horseTables.get(tableId);
+        const promises = [];
+        for (const [oppId, profile] of observer.opponents) {
+            if (profile.handsObserved >= 5) {
+                promises.push(persistOpponentJournal(horseId, oppId, profile));
+            }
+        }
+        if (promises.length > 0) {
+            await Promise.allSettled(promises);
+            console.log(`[HorseBrain] 📓 JOURNALS BATCH SAVED: ${horseId.substring(0, 8)} table=${tableId.substring(0, 8)} (${promises.length} opponents)`);
+        }
+    } catch (err) {
+        console.warn(`[HorseBrain] 📓 Batch journal error: ${err.message}`);
+    }
+}
+
+/**
+ * Load journals for ALL non-horse players at a table.
+ * Called during observeNewHand when a new hand starts.
+ * Runs async (fire-and-forget) to avoid blocking the game.
+ * @param {string} tableId
+ * @param {Array<string>} playerIds - All player IDs at the table
+ * @param {Array<string>} horseIds - Horse IDs at the table
+ */
+async function loadTableJournals(tableId, playerIds, horseIds) {
+    try {
+        const horseSet = new Set(horseIds);
+        const opponents = playerIds.filter(id => !horseSet.has(String(id))).map(String);
+        if (opponents.length === 0) return;
+
+        const promises = [];
+        for (const horseId of horseIds) {
+            for (const oppId of opponents) {
+                const cacheKey = `${horseId}:${oppId}`;
+                const cached = _journalCache.get(cacheKey);
+                if (!cached || (Date.now() - cached.timestamp) >= JOURNAL_CACHE_TTL) {
+                    promises.push(loadOpponentJournal(horseId, tableId, oppId));
+                }
+            }
+        }
+        if (promises.length > 0) {
+            await Promise.allSettled(promises);
+        }
+    } catch (err) {
+        console.warn(`[HorseBrain] 📓 Table journal load error: ${err.message}`);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -15363,5 +15722,12 @@ module.exports = {
     liveObserver,  // Exposed for testing/debugging
     isHorseSync,
     getHorseIdsAtTable,
+
+    // ═══ PERSISTENT OPPONENT JOURNAL SYSTEM ═══
+    persistOpponentJournal,
+    loadOpponentJournal,
+    persistTableJournals,
+    loadTableJournals,
+    _journalCache,  // Exposed for testing/debugging
 };
 
