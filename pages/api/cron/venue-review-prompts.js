@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendPushNotification } from '../../../src/lib/pushAlerts';
+import { sendVanguardPushNotification } from '../../../src/lib/pushAlerts';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
             try {
                 const venueName = checkin.venues?.name || 'the venue';
 
-                await sendPushNotification(checkin.user_id, 'venue_review', {
+                await sendVanguardPushNotification(checkin.user_id, 'venue_review', {
                     title: '⭐ How was your session?',
                     body: `Rate your experience at ${venueName} and earn 50 Diamonds!`,
                     url: `/hub/venues/${checkin.venue_id}?action=review`,

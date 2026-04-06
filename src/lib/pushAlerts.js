@@ -153,3 +153,4 @@ function _loadPrefs() {
 export function getPrefs() {
   return _loadPrefs();
 }
+export const sendPushNotification = async () => {};

@@ -1,195 +1,31 @@
 {
-  "batch_id": "0f56723f-68cc-451c-9fa4-f86786c273d0",
+  "batch_id": "9038ab4e-88de-41f2-ba38-578867107755",
   "scraper_version": "v2-website-first",
-  "timestamp": "2026-04-05T05:35:10.351170+00:00",
+  "timestamp": "2026-04-06T04:38:32.756555+00:00",
   "results": [
     {
-      "venue_id": 1936,
-      "venue_name": "Casino 99",
+      "venue_id": 2633,
+      "venue_name": "Lodge Poker Series",
       "status": "uploaded",
       "method": "apple-touch-icon",
-      "source_url": "https://casino99chico.com/wp-content/uploads/2018/07/Casino-99-site-icon-300x300.png",
-      "dims": "300x300",
-      "size": 106004,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1936.png"
-    },
-    {
-      "venue_id": 2866,
-      "venue_name": "Casino Chico Casino",
-      "status": "uploaded",
-      "method": "apple-touch-icon",
-      "source_url": "https://i0.wp.com/casinochico.com/wp-content/uploads/2018/10/cropped-Casino-Chico-WB-Logo-Small.jpg?fit=180%2C180",
+      "source_url": "https://thelodgepokerclub.com/wp-content/uploads/2022/03/cropped-lodge-favicon-white-background-180x180.png",
       "dims": "180x180",
-      "size": 17271,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2866.png"
+      "size": 9624,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2633.png"
     },
     {
-      "venue_id": 2885,
-      "venue_name": "Seven Mile Casino Casino",
+      "venue_id": 3115,
+      "venue_name": "NAPT Poker Tour",
       "status": "uploaded",
-      "method": "apple-touch-icon",
-      "source_url": "https://sevenmilecasino.com/wp-content/uploads/2020/09/cropped-SM_StarFavicon-180x180.png",
-      "dims": "180x180",
-      "size": 10523,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2885.png"
+      "method": "img-logo-attr",
+      "source_url": "https://cms.rationalcdn.com/v3/assets/blteecf9626d9a38b03/bltd680d8a29fd8ab91/61b077b736ee4913aa009372/poker-menu.svg",
+      "dims": "256x256",
+      "size": 12624,
+      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3115.png"
     },
     {
-      "venue_id": 1928,
-      "venue_name": "Stones Gambling Hall",
-      "status": "uploaded",
-      "method": "apple-touch-icon",
-      "source_url": "https://www.stonesgamblinghall.com/wp-content/uploads/2023/03/apple-touch-icon.png",
-      "dims": "180x180",
-      "size": 12129,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1928.png"
-    },
-    {
-      "venue_id": 2861,
-      "venue_name": "500 Club Casino Casino",
-      "status": "website_error",
-      "error": "Page.goto: net::ERR_NAME_NOT_RESOLVED at http://www.500clubcasino.com/\nCall log:\n  - navigating to \"http://www.500clubcasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2202,
-      "venue_name": "Spotlight 29",
-      "status": "uploaded",
-      "method": "apple-touch-icon",
-      "source_url": "https://spotlight29.com/wp-content/uploads/sites/6/2024/11/cropped-Spotlight29Logo-180x180.webp",
-      "dims": "180x180",
-      "size": 36951,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2202.png"
-    },
-    {
-      "venue_id": 2223,
-      "venue_name": "Chukchansi Gold",
-      "status": "uploaded",
-      "method": "apple-touch-icon",
-      "source_url": "https://chukchansigold.com/wp-content/uploads/2025/07/cropped-chukchansi-gold-resort-and-casino-180x180.png",
-      "dims": "180x180",
-      "size": 8738,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2223.png"
-    },
-    {
-      "venue_id": 2623,
-      "venue_name": "Chukchansi Gold Poker Series",
-      "status": "upload_failed",
-      "method": "apple-touch-icon",
-      "source_url": "https://chukchansigold.com/wp-content/uploads/2025/07/cropped-chukchansi-gold-resort-and-casino-180x180.png",
-      "dims": "180x180",
-      "size": 8738,
-      "cdn_url": null
-    },
-    {
-      "venue_id": 1820,
-      "venue_name": "Commerce Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://commercecasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2617,
-      "venue_name": "LA Poker Classic (Commerce Casino)",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://www.commercecasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2189,
-      "venue_name": "Crystal Park Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://www.crystalparkcasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2227,
-      "venue_name": "Rolling Hills Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://www.rollinghillscasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2225,
-      "venue_name": "Elk Valley Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://www.elkvalleycasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2863,
-      "venue_name": "Aviator Casino Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://theaviatorcasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2746,
-      "venue_name": "San Diego Poker Series",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://www.sycuan.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2017,
-      "venue_name": "Sycuan Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://www.sycuan.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2872,
-      "venue_name": "El Dorado Hills Casino Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://www.edhcasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 1927,
-      "venue_name": "Oaks Card Club",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://www.oakscardclub.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2215,
-      "venue_name": "Club One Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://www.clubonecasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 1822,
-      "venue_name": "Hustler Casino",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"http://www.hustlercasino.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2678,
-      "venue_name": "Hustler Casino Live Poker Series",
-      "status": "website_error",
-      "error": "Page.goto: Timeout 15000ms exceeded.\nCall log:\n  - navigating to \"https://www.hustlercasinolive.com/\", waiting until \"domcontentloaded\"\n"
-    },
-    {
-      "venue_id": 2876,
-      "venue_name": "Larry Flynt's Lucky Lady Casino Casino",
-      "status": "uploaded",
-      "method": "apple-touch-icon",
-      "source_url": "https://luckyladyla.com/wp-content/uploads/2020/04/cropped-Icon2-01-180x180.png",
-      "dims": "180x180",
-      "size": 13681,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2876.png"
-    },
-    {
-      "venue_id": 2188,
-      "venue_name": "Normandie Casino",
-      "status": "uploaded",
-      "method": "apple-touch-icon",
-      "source_url": "https://luckyladyla.com/wp-content/uploads/2020/04/cropped-Icon2-01-180x180.png",
-      "dims": "180x180",
-      "size": 13681,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2188.png"
-    },
-    {
-      "venue_id": 1938,
-      "venue_name": "Garlic City Casino",
-      "status": "uploaded",
-      "method": "img-src-has-logo",
-      "source_url": "https://images.squarespace-cdn.com/content/v1/5e66b3ac88c0cc7cf42e77fb/0e88d863-9eb5-4964-975d-f5800102b4c5/GCC-Logo-WHT.png?format=1500w",
-      "dims": "686x303",
-      "size": 67492,
-      "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1938.png"
-    },
-    {
-      "venue_id": 2887,
-      "venue_name": "Towers Casino Casino",
+      "venue_id": 3116,
+      "venue_name": "Rough Riders Poker Tour",
       "status": "not_found"
     }
   ]

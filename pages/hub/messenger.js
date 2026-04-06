@@ -1595,19 +1595,6 @@ function ConversationItem({ conversation, isActive, onClick, currentUserId, onli
 function SearchBar({ value, onChange, onSearchUser, searchResults, onSelectUser, inputRef, composing }) {
     return (
         <div style={{ padding: '12px 16px', position: 'relative' }}>
-            {composing && (
-                <div style={{
-                    marginBottom: 12,
-                    padding: '8px 12px',
-                    background: 'linear-gradient(135deg, #0084FF 0%, #0066CC 100%)',
-                    borderRadius: 8,
-                    color: 'white',
-                    fontSize: 14,
-                    fontWeight: 500,
-                }}>
-                    New Message - Search for a user below
-                </div>
-            )}
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -3347,7 +3334,7 @@ function MessengerPage() {
                 const { data } = await supabase
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
-                    .ilike('username', `%${escaped}%`)
+                    .or(`username.ilike.%${escaped}%,full_name.ilike.%${escaped}%`)
                     .neq('id', user?.id)
                     .limit(10);
 

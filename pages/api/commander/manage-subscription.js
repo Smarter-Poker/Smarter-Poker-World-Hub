@@ -1,6 +1,6 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
-import { verifyCommanderStaff } from '../../../src/lib/commander/auth';
+import { verifyStaffSession } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 let _supabase = null;
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     }
 
     // Must be Owner or Admin
-    const authReq = await verifyCommanderStaff(req, res, ['all', 'admin', 'manage_billing']);
+    const authReq = await verifyStaffSession(req, res, ['all', 'admin', 'manage_billing']);
     if (!authReq.allow) return;
 
     const { venue_id, user_id, user } = authReq;

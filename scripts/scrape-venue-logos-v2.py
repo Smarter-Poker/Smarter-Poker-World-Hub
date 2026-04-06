@@ -422,11 +422,10 @@ def run(start=0, count=25):
         sys.exit(1)
     
     # Load venues
-    with open(PROJECT_ROOT / 'public' / 'data' / 'all-venues.json') as f:
-        data = json.load(f)
-    all_venues = data.get('venues', [])
+    with open(PROJECT_ROOT / 'tmp' / 'needs_logo.json') as f:
+        all_venues = json.load(f)
     
-    # Filter to venues that need logo scraping (use the 123 scraped IDs)
+    # Filter to venues that need logo scraping
     # For this test, just take a slice
     venues = [v for v in all_venues if v.get('website')]
     venues = venues[start:start + count]

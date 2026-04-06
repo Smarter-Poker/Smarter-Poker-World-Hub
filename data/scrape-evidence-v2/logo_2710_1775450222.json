@@ -1,0 +1,14 @@
+{
+  "venue_id": 2710,
+  "venue_name": "Wind Creek Bethlehem Poker Series",
+  "source_website": "https://windcreek.com/sites/default/files/2024-10/wind-creek-logo-bethlehem.svg",
+  "extraction_method": "img-logo-attr",
+  "image_hash": "4596242bbf606fd5b751af655d8f453f20a45bf07e8fbda93230cf115c0e0a80",
+  "image_bytes": 39853,
+  "image_dims": "256x256",
+  "timestamp": "2026-04-06T04:37:02.826153+00:00",
+  "batch_id": "d6f03658-c316-4aa7-a35f-b3543589100d",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2710.png"
+}

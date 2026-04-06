@@ -1,0 +1,14 @@
+{
+  "venue_id": 2633,
+  "venue_name": "Lodge Poker Series",
+  "source_website": "https://thelodgepokerclub.com/wp-content/uploads/2022/03/cropped-lodge-favicon-white-background-180x180.png",
+  "extraction_method": "apple-touch-icon",
+  "image_hash": "df16d066744c8fad9a719acc6e310c111f9cd17807405230c7019f530be1bc5d",
+  "image_bytes": 9624,
+  "image_dims": "180x180",
+  "timestamp": "2026-04-06T04:38:15.461754+00:00",
+  "batch_id": "9038ab4e-88de-41f2-ba38-578867107755",
+  "scraper_version": "v2-website-first",
+  "data_quality": "logo_verified",
+  "cdn_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2633.png"
+}
