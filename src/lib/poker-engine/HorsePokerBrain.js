@@ -8570,22 +8570,75 @@ function makeFlopHeuristicDecision(params) {
         }
 
         // ── BB DONK-BET: Lead into PFR on range-favoring boards ──
+        // ═══ 3-BET POT AWARENESS: Donk less in 3-bet pots (PFR's range is much stronger)
+        // ═══ RANGE ADVANTAGE: Donk more when board favors caller's range
         if (!isIP && canRaise && !multiway) {
+
+            // ── 3-bet/4-bet pot donk modifiers ──
+            // In 3-bet pots, PFR has a capped but strong range — donk less frequently
+            // In 4-bet pots, never donk (PFR has premiums, just check-raise or check-call)
+            let donkPotMod = 0;
+            let donkSizeMod = 0;
+            if (is4BetPot) {
+                donkPotMod = -1.0; // Effectively kills all donking
+            } else if (is3BetPot) {
+                donkPotMod = -0.15; // Reduce donk frequency
+                donkSizeMod = -0.08; // Smaller sizes (SPR is lower)
+            }
+
+            // ── Range advantage donk modifiers ──
+            // When board favors caller's range (low, connected), donk MORE
+            // When board favors PFR's range (high, broadway-heavy), donk LESS
+            let donkRangeMod = 0;
+            if (rangeAdvantage === 'caller') {
+                donkRangeMod = 0.12; // Board hits our range — lead out
+            } else if (rangeAdvantage === 'pfr') {
+                donkRangeMod = -0.10; // Board hits their range — check to them
+            }
+
             // Two pair+ on low/connected boards → donk for value
             if (handEval.strength >= 65 && (boardIsLow || boardIsConnected) && !boardIsHigh) {
-                let donkFreq = 0.40;
-                if (oppCbetFreq > 0.70 && oppConfidence > 0.3) donkFreq = 0.55; // Deny their c-bet equity
+                let donkFreq = 0.40 + donkPotMod + donkRangeMod;
+                if (oppCbetFreq > 0.70 && oppConfidence > 0.3) donkFreq += 0.15; // Deny their c-bet equity
+                // In 3-bet pots with caller range advantage, still donk strong hands
+                if (is3BetPot && rangeAdvantage === 'caller' && handEval.strength >= 75) {
+                    donkFreq = Math.max(donkFreq, 0.35); // Floor: don't let modifiers kill value donks
+                }
+                donkFreq = Math.max(0, Math.min(0.70, donkFreq));
                 if (Math.random() < donkFreq) {
-                    const sizeFrac = 0.50 + (boardWet === 'wet' ? 0.08 : 0);
+                    let sizeFrac = 0.50 + (boardWet === 'wet' ? 0.08 : 0) + donkSizeMod;
+                    // Range advantage caller → slightly larger (they'll discount our range)
+                    if (rangeAdvantage === 'caller') sizeFrac += 0.05;
+                    sizeFrac = Math.max(0.33, Math.min(0.65, sizeFrac));
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
             }
             // Strong draws on wet boards → donk as semi-bluff
             if (drawEq.outs >= 10 && boardWet === 'wet' && handEval.strength >= 20) {
-                let semiDonkFreq = 0.25 + aggressionBias / 40;
+                let semiDonkFreq = 0.25 + aggressionBias / 40 + donkPotMod + donkRangeMod;
                 if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiDonkFreq += 0.10;
+                // In 3-bet pots with big draws (14+ outs), still semi-donk occasionally
+                if (is3BetPot && drawEq.outs >= 14) {
+                    semiDonkFreq = Math.max(semiDonkFreq, 0.18);
+                }
+                semiDonkFreq = Math.max(0, Math.min(0.50, semiDonkFreq));
                 if (Math.random() < semiDonkFreq) {
-                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.55)) };
+                    let semiDonkSize = 0.55 + donkSizeMod;
+                    // Range advantage caller with draws → bigger to deny equity + fold equity
+                    if (rangeAdvantage === 'caller' && drawEq.outs >= 12) semiDonkSize += 0.05;
+                    semiDonkSize = Math.max(0.35, Math.min(0.65, semiDonkSize));
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * semiDonkSize)) };
+                }
+            }
+            // ── Protection donk: medium hands on scary boards (NEW) ──
+            // When we have top pair on a board that favors our range, lead to protect
+            // Only in single-raised pots or 3-bet pots where we have range advantage
+            if (handEval.strength >= 45 && handEval.strength < 65 && boardWet === 'wet' && rangeAdvantage === 'caller' && !is3BetPot) {
+                let protDonkFreq = 0.15 + aggressionBias / 60;
+                if (oppCbetFreq > 0.65 && oppConfidence > 0.3) protDonkFreq += 0.08;
+                protDonkFreq = Math.max(0, Math.min(0.35, protDonkFreq));
+                if (Math.random() < protDonkFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.40)) };
                 }
             }
         }
