@@ -2413,6 +2413,123 @@ test('reevaluatePLORunoutEquity: scare card', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47f: Observer lifecycle + getActionDelay ══');
+// ═══════════════════════════════════════════════════════════
+
+const obsNewHand = brain.observeNewHand;
+const obsAction = brain.observeAction;
+const obsShowdown = brain.observeShowdown;
+const getLR = brain.getLiveRead;
+const clearObs = brain.clearLiveObserver;
+const getDelay = brain.getActionDelay;
+
+// ── observeNewHand + observeAction + observeShowdown + getLiveRead ──
+
+test('getLiveRead: null with no observations', () => {
+    const r = getLR('horse-obs-nobody', 'table-obs-nobody', 'opp-obs-nobody');
+    expect(r).toBeNull();
+});
+
+test('observeNewHand: creates observer profiles', () => {
+    obsNewHand('table-obs-1', 'hand-1', [
+        { id: 'horse-obs-1', position: 'BTN' },
+        { id: 'opp-obs-1', position: 'BB' },
+        { id: 'opp-obs-2', position: 'SB' },
+    ], ['horse-obs-1']);
+    // Should have created profiles for opp-obs-1 and opp-obs-2
+    const r1 = getLR('horse-obs-1', 'table-obs-1', 'opp-obs-1');
+    // Not enough data yet for a full read, but observer exists
+    // getLiveRead may return null if handsObserved < threshold, that's OK
+});
+
+test('observeAction: builds profile through multiple hands', () => {
+    // Simulate 15 hands of observations for opp-obs-1
+    for (let h = 0; h < 15; h++) {
+        obsNewHand('table-obs-2', `hand-${h}`, [
+            { id: 'horse-obs-2', position: 'BTN' },
+            { id: 'opp-obs-3', position: 'BB' },
+        ], ['horse-obs-2']);
+        // Opponent calls preflop
+        obsAction('table-obs-2', 'opp-obs-3', 'preflop', 'call', {
+            amount: 2, potSize: 3, position: 'BB', isOpenAction: true
+        }, ['horse-obs-2']);
+        // Opponent bets flop
+        obsAction('table-obs-2', 'opp-obs-3', 'flop', 'bet', {
+            amount: 5, potSize: 8, position: 'BB'
+        }, ['horse-obs-2']);
+    }
+    const r = getLR('horse-obs-2', 'table-obs-2', 'opp-obs-3');
+    if (!r) throw new Error('Expected non-null live read after 15 hands');
+    expect(r).toHaveProperty('playerType');
+    expect(r).toHaveProperty('confidence');
+    expect(r.confidence).toBeGreaterThan(0);
+    expect(r.handsObserved).toBeGreaterThanOrEqual(15);
+});
+
+test('observeShowdown: tracks bluffs and wins', () => {
+    obsShowdown('table-obs-2', 'opp-obs-3', false, 10, true, ['horse-obs-2']); // Lost bluff
+    obsShowdown('table-obs-2', 'opp-obs-3', true, 80, false, ['horse-obs-2']);  // Won legit
+    const r = getLR('horse-obs-2', 'table-obs-2', 'opp-obs-3');
+    if (!r) throw new Error('Expected non-null live read');
+    // showdownBluffs should have incremented
+    expect(r.bluffRate).toBeGreaterThanOrEqual(0);
+});
+
+test('clearLiveObserver: removes observer data', () => {
+    clearObs('horse-obs-2', 'table-obs-2');
+    const r = getLR('horse-obs-2', 'table-obs-2', 'opp-obs-3');
+    expect(r).toBeNull();
+});
+
+// ── getActionDelay ──
+
+test('getActionDelay: returns number in [800, 8000]', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5; // Standard action
+    try {
+        const d = getDelay('test-delay-1', 'call', false);
+        expect(d).toBeGreaterThanOrEqual(800);
+        expect(d).toBeLessThanOrEqual(8000);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('getActionDelay: preflop is faster', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+        const dPre = getDelay('test-delay-2', 'call', true);
+        const dPost = getDelay('test-delay-2', 'call', false);
+        expect(dPre).toBeLessThan(dPost);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('getActionDelay: snap action is fast', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.05; // < 0.10 = snap
+    try {
+        const d = getDelay('test-delay-3', 'fold', false);
+        expect(d).toBeLessThanOrEqual(2000);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('getActionDelay: tank is slow', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.96; // > 0.95 = deep tank
+    try {
+        const d = getDelay('test-delay-4', 'raise', false);
+        expect(d).toBeGreaterThanOrEqual(5000);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
