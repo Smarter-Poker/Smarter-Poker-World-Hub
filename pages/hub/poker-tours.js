@@ -95,6 +95,8 @@ export default function PokerToursPage() {
     const [selectedRegion, setSelectedRegion] = useState('all');
     const [sortBy, setSortBy] = useState('priority');
     const [dateRange, setDateRange] = useState('all');
+    const [buyinFilter, setBuyinFilter] = useState('all');
+    const [distanceFilter, setDistanceFilter] = useState('all');
     const searchInputRef = useRef(null);
     const [searchFocused, setSearchFocused] = useState(false);
     const [favorites, setFavorites] = useState(() => {
@@ -103,6 +105,82 @@ export default function PokerToursPage() {
             return JSON.parse(localStorage.getItem('pnm_tour_favorites') || '{}');
         } catch { return {}; }
     });
+
+    // ─── URL Deep-link: read ?q= and ?range= on mount ───
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q');
+        const range = params.get('range');
+        const type = params.get('type');
+        if (q) setSearchQuery(q);
+        if (range && ['7d','14d','30d','60d','90d','6m','1y'].includes(range)) {
+            setDateRange(range);
+            setSortBy('date');
+        }
+        if (type && ['major','circuit','high_roller','regional','grassroots','charity'].includes(type)) {
+            setSelectedType(type);
+        }
+    }, []);
+
+    // ─── URL sync: update URL when filters change (without page reload) ───
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams();
+        if (searchQuery) params.set('q', searchQuery);
+        if (dateRange !== 'all') params.set('range', dateRange);
+        if (selectedType !== 'all') params.set('type', selectedType);
+        const qs = params.toString();
+        const newUrl = window.location.pathname + (qs ? '?' + qs : '');
+        if (newUrl !== window.location.pathname + window.location.search) {
+            window.history.replaceState(null, '', newUrl);
+        }
+    }, [searchQuery, dateRange, selectedType]);
+
+    // ─── Keyboard shortcut: Cmd/Ctrl+K to focus search ───
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+            // Escape to clear search
+            if (e.key === 'Escape' && searchQuery) {
+                setSearchQuery('');
+                searchInputRef.current?.blur();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [searchQuery]);
+
+    // ─── Auto-sort by date when date range is selected ───
+    const handleDateRangeChange = useCallback((range) => {
+        setDateRange(range);
+        if (range !== 'all') {
+            setSortBy('date');
+        }
+    }, []);
+
+    // ─── Distance filter: auto-request geolocation when radius selected ───
+    const handleDistanceChange = useCallback((val) => {
+        setDistanceFilter(val);
+        if (val !== 'all' && !userLocation && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => { alert('Location access is required for distance filtering. Please enable location services.'); setDistanceFilter('all'); }
+            );
+        }
+    }, [userLocation]);
+
+    // ─── Haversine distance calculation (miles) ───
+    const haversineDistance = useCallback((lat1, lng1, lat2, lng2) => {
+        const R = 3959; // Earth radius in miles
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }, []);
 
     // ─── Fetch tours data ───
     useEffect(() => {
@@ -523,6 +601,43 @@ export default function PokerToursPage() {
             });
         }
 
+        // Buy-in range filter
+        if (buyinFilter !== 'all') {
+            const ranges = {
+                'low':    { min: 0,     max: 400 },
+                'mid':    { min: 400,   max: 1500 },
+                'high':   { min: 1500,  max: 10000 },
+                'super':  { min: 10000, max: Infinity },
+            };
+            const range = ranges[buyinFilter];
+            if (range) {
+                result = result.filter(t => {
+                    const min = t.typical_buyins?.min || 0;
+                    const max = t.typical_buyins?.max || min;
+                    // Tour's buyin range overlaps with filter range
+                    return max >= range.min && min <= range.max;
+                });
+            }
+        }
+
+        // Distance filter — keep tours with at least one stop within radius
+        if (distanceFilter !== 'all' && userLocation) {
+            const maxMiles = parseInt(distanceFilter, 10);
+            if (!isNaN(maxMiles)) {
+                result = result.filter(t => {
+                    const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
+                    for (const stop of allStops) {
+                        const coords = findVenueCoords(stop);
+                        if (coords && coords.latitude && coords.longitude) {
+                            const dist = haversineDistance(userLocation.lat, userLocation.lng, coords.latitude, coords.longitude);
+                            if (dist <= maxMiles) return true;
+                        }
+                    }
+                    return false;
+                });
+            }
+        }
+
         // Date range filter — keep tours with at least one stop in range
         if (dateRangeCutoff) {
             const { start: rangeStart, end: rangeEnd } = dateRangeCutoff;
@@ -577,7 +692,87 @@ export default function PokerToursPage() {
         }
 
         return result;
-    }, [tours, selectedType, selectedRegion, searchQuery, sortBy, parseStopDates, dateRangeCutoff]);
+    }, [tours, selectedType, selectedRegion, searchQuery, sortBy, parseStopDates, dateRangeCutoff, buyinFilter, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
+
+    // ─── Compute total matching stops across filtered tours ───
+    const totalMatchingStops = useMemo(() => {
+        let count = 0;
+        const today = new Date(); today.setHours(0,0,0,0);
+        filteredTours.forEach(t => {
+            const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
+            allStops.forEach(s => {
+                const dates = parseStopDates(s.dates);
+                if (!dates) return;
+                if (dates.end >= today) {
+                    if (!dateRangeCutoff || (dates.end >= dateRangeCutoff.start && dates.start <= dateRangeCutoff.end)) {
+                        count++;
+                    }
+                }
+            });
+            // Also count upcoming_series
+            (t.upcoming_series || []).forEach(s => {
+                if (s.start_date) {
+                    const sDate = new Date(s.start_date);
+                    const eDate = s.end_date ? new Date(s.end_date) : sDate;
+                    if (eDate >= today) {
+                        if (!dateRangeCutoff || (eDate >= dateRangeCutoff.start && sDate <= dateRangeCutoff.end)) {
+                            count++;
+                        }
+                    }
+                }
+            });
+        });
+        return count;
+    }, [filteredTours, parseStopDates, dateRangeCutoff]);
+
+    // ─── Compute matching stops for a given tour (for highlighting) ───
+    const getMatchingStops = useCallback((tour) => {
+        if (!searchQuery.trim() && !dateRangeCutoff) return null;
+        const q = searchQuery.toLowerCase().trim();
+        const allStops = [...(tour.stops_2026 || []), ...(tour.series_2026 || [])];
+        const today = new Date(); today.setHours(0,0,0,0);
+        const matched = [];
+
+        for (const stop of allStops) {
+            const dates = parseStopDates(stop.dates);
+            if (!dates || dates.end < today) continue;
+
+            let dateMatch = true;
+            if (dateRangeCutoff) {
+                dateMatch = dates.end >= dateRangeCutoff.start && dates.start <= dateRangeCutoff.end;
+            }
+            if (!dateMatch) continue;
+
+            let textMatch = !q; // If no search query, all date-matching stops pass
+            if (q) {
+                textMatch = [
+                    stop.name, stop.venue, stop.location, stop.city, stop.state, stop.short_name, stop.dates
+                ].some(field => (field || '').toLowerCase().includes(q));
+            }
+
+            if (textMatch || dateMatch) {
+                matched.push({
+                    ...stop,
+                    start_date: dates.start.toISOString().split('T')[0],
+                    end_date: dates.end.toISOString().split('T')[0],
+                    isSearchMatch: textMatch && !!q,
+                });
+            }
+        }
+        return matched.length > 0 ? matched.sort((a, b) => a.start_date.localeCompare(b.start_date)) : null;
+    }, [searchQuery, dateRangeCutoff, parseStopDates]);
+
+    // ─── Count active filters ───
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (searchQuery) count++;
+        if (dateRange !== 'all') count++;
+        if (selectedType !== 'all') count++;
+        if (selectedRegion !== 'all') count++;
+        if (buyinFilter !== 'all') count++;
+        if (distanceFilter !== 'all') count++;
+        return count;
+    }, [searchQuery, dateRange, selectedType, selectedRegion, buyinFilter, distanceFilter]);
 
     // ─── Favorites toggle ───
     const toggleFavorite = useCallback((tourCode, e) => {
@@ -630,7 +825,7 @@ export default function PokerToursPage() {
                     <h1 className="pnm-title">POKER TOURS</h1>
                     <p className="pnm-subtitle">{tours.length} Tours &bull; {availableTypes.length} Types &bull; 2026 Season</p>
 
-                    {/* ═══ MAIN SEARCH BAR — Prominent, PNM-style ═══ */}
+                    {/* ═══ MAIN SEARCH BAR + DATE DROPDOWN ═══ */}
                     <form className="tours-search-bar" onSubmit={e => e.preventDefault()}>
                         <div className={`tours-search-wrap${searchFocused ? ' focused' : ''}`}>
                             <svg className="tours-search-bar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -640,7 +835,7 @@ export default function PokerToursPage() {
                                 ref={searchInputRef}
                                 type="text"
                                 className="tours-search-bar-input"
-                                placeholder="Search Tours, Venues, Cities, States..."
+                                placeholder="Search Tours, Venues, Cities, States... (Ctrl+K)"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
                                 onFocus={() => setSearchFocused(true)}
@@ -660,31 +855,40 @@ export default function PokerToursPage() {
                                     </svg>
                                 </button>
                             )}
+                            {/* Date Range Dropdown — integrated into search bar */}
+                            <div className="tours-date-divider" />
+                            <select
+                                className="tours-date-select"
+                                value={dateRange}
+                                onChange={e => handleDateRangeChange(e.target.value)}
+                                aria-label="Filter by date range"
+                            >
+                                <option value="all">All Dates</option>
+                                <option value="7d">Next 7 Days</option>
+                                <option value="14d">Next 2 Weeks</option>
+                                <option value="30d">Next 30 Days</option>
+                                <option value="60d">Next 2 Months</option>
+                                <option value="90d">Next 3 Months</option>
+                                <option value="6m">Next 6 Months</option>
+                                <option value="1y">Next Year</option>
+                            </select>
+                            {/* Distance Radius Dropdown */}
+                            <div className="tours-date-divider" />
+                            <select
+                                className="tours-date-select tours-distance-select"
+                                value={distanceFilter}
+                                onChange={e => handleDistanceChange(e.target.value)}
+                                aria-label="Filter by distance"
+                            >
+                                <option value="all">Any Distance</option>
+                                <option value="50">Within 50 Miles</option>
+                                <option value="100">Within 100 Miles</option>
+                                <option value="250">Within 250 Miles</option>
+                                <option value="500">Within 500 Miles</option>
+                                <option value="1000">Within 1,000 Miles</option>
+                            </select>
                         </div>
                     </form>
-
-                    {/* ═══ DATE RANGE FILTER — Pill Row ═══ */}
-                    <div className="tours-date-pills">
-                        {[
-                            { key: 'all', label: 'All Dates' },
-                            { key: '7d', label: 'Next 7 Days' },
-                            { key: '14d', label: 'Next 2 Weeks' },
-                            { key: '30d', label: 'Next 30 Days' },
-                            { key: '60d', label: 'Next 2 Months' },
-                            { key: '90d', label: 'Next 3 Months' },
-                            { key: '6m', label: 'Next 6 Months' },
-                            { key: '1y', label: 'Next Year' },
-                        ].map(opt => (
-                            <button
-                                key={opt.key}
-                                className={`tours-date-pill${dateRange === opt.key ? ' active' : ''}`}
-                                onClick={() => setDateRange(opt.key)}
-                                aria-pressed={dateRange === opt.key}
-                            >
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
                 </div>
 
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
@@ -722,20 +926,21 @@ export default function PokerToursPage() {
 
                         {/* ─── FILTERS ─── */}
                         <div className="sidebar-filters">
-                            {/* Search */}
-                            <form className="sidebar-search-form" onSubmit={e => e.preventDefault()}>
-                                <svg className="sidebar-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                                </svg>
-                                <input
-                                    type="text"
-                                    className="sidebar-search-input"
-                                    placeholder="Search Tours..."
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                    autoComplete="off"
-                                />
-                            </form>
+                            {/* Buy-In Filter */}
+                            <div className="sidebar-filter-group">
+                                <label>Buy-In Range</label>
+                                <select
+                                    className="sidebar-select"
+                                    value={buyinFilter}
+                                    onChange={e => setBuyinFilter(e.target.value)}
+                                >
+                                    <option value="all">All Buy-Ins</option>
+                                    <option value="low">Low ($0 - $400)</option>
+                                    <option value="mid">Mid ($400 - $1,500)</option>
+                                    <option value="high">High ($1,500 - $10K)</option>
+                                    <option value="super">Super High ($10K+)</option>
+                                </select>
+                            </div>
 
                             {/* Region Filter */}
                             <div className="sidebar-filter-group">
@@ -767,6 +972,21 @@ export default function PokerToursPage() {
                                     <option value="series">Upcoming Series</option>
                                 </select>
                             </div>
+
+                            {/* Active Filters Summary */}
+                            {activeFilterCount > 0 && (
+                                <div className="sidebar-active-filters">
+                                    <div className="sidebar-active-filters-header">
+                                        <span>{activeFilterCount} Active Filter{activeFilterCount > 1 ? 's' : ''}</span>
+                                        <button
+                                            className="sidebar-clear-btn"
+                                            onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('priority'); }}
+                                        >
+                                            Reset All
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </aside>
 
@@ -790,20 +1010,25 @@ export default function PokerToursPage() {
                         {/* ═══ RESULTS BAR ═══ */}
                         <div className="tours-results-bar">
                             <div className="tours-results-count">
-                                <strong>{filteredTours.length}</strong> {filteredTours.length === 1 ? 'Tour' : 'Tours'} Found
-                                {searchQuery && <span className="tours-results-query"> for "{searchQuery}"</span>}
+                                <strong>{filteredTours.length}</strong> {filteredTours.length === 1 ? 'Tour' : 'Tours'}
+                                {totalMatchingStops > 0 && <span className="tours-stops-count"> &bull; {totalMatchingStops} Upcoming Stop{totalMatchingStops !== 1 ? 's' : ''}</span>}
+                                {searchQuery && <span className="tours-results-query"> &mdash; "{searchQuery}"</span>}
                                 {dateRange !== 'all' && <span className="tours-results-query"> &bull; {{
                                     '7d': 'Next 7 Days', '14d': 'Next 2 Weeks', '30d': 'Next 30 Days',
                                     '60d': 'Next 2 Months', '90d': 'Next 3 Months', '6m': 'Next 6 Months', '1y': 'Next Year'
                                 }[dateRange]}</span>}
+                                {buyinFilter !== 'all' && <span className="tours-results-query"> &bull; {{
+                                    'low': 'Low Stakes', 'mid': 'Mid Stakes', 'high': 'High Stakes', 'super': 'Super High'
+                                }[buyinFilter]}</span>}
+                                {distanceFilter !== 'all' && <span className="tours-results-query"> &bull; Within {distanceFilter} Miles</span>}
                             </div>
                             <div className="tours-results-actions">
-                                {(searchQuery || dateRange !== 'all' || selectedType !== 'all' || selectedRegion !== 'all') && (
+                                {activeFilterCount > 0 && (
                                     <button
                                         className="tours-clear-all-btn"
-                                        onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); }}
+                                        onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('priority'); }}
                                     >
-                                        Clear All Filters
+                                        Clear All ({activeFilterCount})
                                     </button>
                                 )}
                                 <div className="tours-results-sort">
@@ -828,10 +1053,16 @@ export default function PokerToursPage() {
                         ) : filteredTours.length === 0 ? (
                             <div className="tours-empty">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
-                                    <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                                 </svg>
                                 <h3>No Matching Tours</h3>
-                                <p>Try adjusting your filters or search query.</p>
+                                <p>No tours match your current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
+                                <button
+                                    className="tours-empty-reset"
+                                    onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('priority'); }}
+                                >
+                                    Reset All Filters
+                                </button>
                             </div>
                         ) : (
                             <div className="tours-grid">
@@ -965,27 +1196,43 @@ export default function PokerToursPage() {
                                                 </div>
                                             )}
 
-                                            {/* Upcoming Series */}
-                                            {series.length > 0 && (
-                                                <div className="tour-card-series">
-                                                    <div className="tour-series-header">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                                        </svg>
-                                                        Upcoming Stops ({series.length})
-                                                    </div>
-                                                    {series.slice(0, 3).map((s, i) => (
-                                                        <div key={i} className="tour-series-item">
-                                                            <span className="tour-series-name">{s.short_name || s.name || 'TBD'}</span>
-                                                            <span className="tour-series-dates">
-                                                                {s.dates ? s.dates : (
-                                                                    formatDate(s.start_date) + (s.end_date ? ' – ' + formatDate(s.end_date) : '')
-                                                                )}
-                                                            </span>
+                                            {/* Upcoming Series — with search-highlighted stops */}
+                                            {(() => {
+                                                const matchedStops = getMatchingStops(tour);
+                                                const displayStops = matchedStops || (series.length > 0 ? series : null);
+                                                if (!displayStops || displayStops.length === 0) return null;
+
+                                                const isHighlighted = !!matchedStops && (searchQuery || dateRange !== 'all');
+                                                const headerLabel = isHighlighted
+                                                    ? `Matching Stops (${displayStops.length})`
+                                                    : `Upcoming Stops (${displayStops.length})`;
+
+                                                return (
+                                                    <div className={`tour-card-series${isHighlighted ? ' highlighted' : ''}`}>
+                                                        <div className="tour-series-header">
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isHighlighted ? '#d4a853' : 'currentColor'} strokeWidth="2">
+                                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                                            </svg>
+                                                            {headerLabel}
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                                        {displayStops.slice(0, 5).map((s, i) => (
+                                                            <div key={i} className={`tour-series-item${s.isSearchMatch ? ' search-match' : ''}`}>
+                                                                <span className="tour-series-name">{s.short_name || s.name || s.venue || 'TBD'}</span>
+                                                                <span className="tour-series-dates">
+                                                                    {s.dates ? s.dates : (
+                                                                        formatDate(s.start_date) + (s.end_date ? ' – ' + formatDate(s.end_date) : '')
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                        {displayStops.length > 5 && (
+                                                            <div className="tour-series-more">
+                                                                +{displayStops.length - 5} more stop{displayStops.length - 5 > 1 ? 's' : ''}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })()}
 
                                             {/* Card Footer */}
                                             <div className="tour-card-footer">
@@ -1132,40 +1379,30 @@ export default function PokerToursPage() {
                         color: #ef4444;
                     }
 
-                    /* ═══ DATE RANGE PILLS ═══ */
-                    .tours-date-pills {
-                        display: flex;
-                        flex-wrap: wrap;
-                        justify-content: center;
-                        gap: 8px;
-                        margin: 14px auto 0;
-                        max-width: 720px;
-                        padding: 0 16px;
+                    /* ═══ DATE DROPDOWN (inside search bar) ═══ */
+                    .tours-date-divider {
+                        width: 1px;
+                        height: 28px;
+                        background: rgba(212,168,83,0.2);
+                        flex-shrink: 0;
                     }
-                    .tours-date-pill {
-                        padding: 7px 16px;
-                        border-radius: 20px;
-                        border: 1.5px solid rgba(148,163,184,0.15);
-                        background: rgba(0,0,0,0.3);
-                        color: rgba(200,214,229,0.65);
-                        font-size: 12px;
+                    .tours-date-select {
+                        flex-shrink: 0;
+                        background: transparent;
+                        border: none;
+                        color: #d4a853;
+                        font-size: 13px;
                         font-weight: 600;
                         font-family: inherit;
                         cursor: pointer;
-                        transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
-                        white-space: nowrap;
-                        letter-spacing: 0.3px;
+                        outline: none;
+                        padding: 6px 4px;
+                        appearance: auto;
+                        min-width: 120px;
                     }
-                    .tours-date-pill:hover {
-                        border-color: rgba(212,168,83,0.3);
-                        background: rgba(212,168,83,0.06);
-                        color: rgba(212,168,83,0.85);
-                    }
-                    .tours-date-pill.active {
-                        border-color: rgba(212,168,83,0.5);
-                        background: linear-gradient(135deg, rgba(212,168,83,0.15), rgba(184,134,11,0.08));
-                        color: #d4a853;
-                        box-shadow: 0 0 12px rgba(212,168,83,0.1), inset 0 0 8px rgba(212,168,83,0.05);
+                    .tours-date-select option {
+                        background: #0c1423;
+                        color: #e2e8f0;
                     }
 
                     /* ═══ SIDEBAR + MAIN LAYOUT ═══ */
@@ -1314,6 +1551,39 @@ export default function PokerToursPage() {
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }
+
+                    /* Sidebar Active Filters */
+                    .sidebar-active-filters {
+                        margin-top: 6px;
+                        padding: 8px;
+                        background: rgba(212,168,83,0.06);
+                        border: 1px solid rgba(212,168,83,0.15);
+                        border-radius: 8px;
+                    }
+                    .sidebar-active-filters-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        font-size: 11px;
+                        color: rgba(212,168,83,0.7);
+                        font-weight: 600;
+                    }
+                    .sidebar-clear-btn {
+                        background: none;
+                        border: 1px solid rgba(239,68,68,0.25);
+                        color: rgba(239,68,68,0.7);
+                        font-size: 10px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-clear-btn:hover {
+                        background: rgba(239,68,68,0.1);
+                        color: #ef4444;
+                    }
                     .sidebar-select {
                         width: 100%;
                         padding: 7px 8px;
@@ -1362,6 +1632,11 @@ export default function PokerToursPage() {
                     .tours-results-count strong {
                         color: #d4a853;
                         font-weight: 800;
+                    }
+                    .tours-stops-count {
+                        color: rgba(34,197,94,0.7);
+                        font-weight: 600;
+                        font-size: 13px;
                     }
                     .tours-results-query {
                         color: rgba(212,168,83,0.6);
@@ -1569,6 +1844,15 @@ export default function PokerToursPage() {
                         background: rgba(0,0,0,0.2);
                         border: 1px solid rgba(148,163,184,0.06);
                         border-radius: 8px;
+                        transition: all 0.3s;
+                    }
+                    .tour-card-series.highlighted {
+                        background: rgba(212,168,83,0.06);
+                        border-color: rgba(212,168,83,0.2);
+                        box-shadow: inset 0 0 12px rgba(212,168,83,0.05);
+                    }
+                    .tour-card-series.highlighted .tour-series-header {
+                        color: rgba(212,168,83,0.8);
                     }
                     .tour-series-header {
                         display: flex;
@@ -1603,6 +1887,28 @@ export default function PokerToursPage() {
                         color: rgba(34,197,94,0.7);
                         font-weight: 600;
                         white-space: nowrap;
+                    }
+                    .tour-series-item.search-match {
+                        background: rgba(212,168,83,0.08);
+                        border-radius: 4px;
+                        padding: 4px 6px;
+                        margin: 2px -6px;
+                    }
+                    .tour-series-item.search-match .tour-series-name {
+                        color: #d4a853;
+                        font-weight: 700;
+                    }
+                    .tour-series-item.search-match .tour-series-dates {
+                        color: rgba(212,168,83,0.8);
+                    }
+                    .tour-series-more {
+                        font-size: 11px;
+                        color: rgba(148,163,184,0.4);
+                        text-align: center;
+                        padding-top: 6px;
+                        border-top: 1px solid rgba(148,163,184,0.06);
+                        margin-top: 4px;
+                        font-style: italic;
                     }
 
                     /* Card Footer */
@@ -1716,6 +2022,25 @@ export default function PokerToursPage() {
                         font-size: 13px;
                         color: rgba(148,163,184,0.5);
                         margin: 0;
+                        max-width: 400px;
+                    }
+                    .tours-empty-reset {
+                        margin-top: 8px;
+                        padding: 10px 24px;
+                        border-radius: 8px;
+                        border: 1.5px solid rgba(212,168,83,0.3);
+                        background: rgba(212,168,83,0.08);
+                        color: #d4a853;
+                        font-size: 13px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        transition: all 0.25s;
+                    }
+                    .tours-empty-reset:hover {
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.5);
+                        box-shadow: 0 0 16px rgba(212,168,83,0.1);
                     }
 
                     /* ═══ SPACE BACKGROUND ═══ */
@@ -1761,19 +2086,8 @@ export default function PokerToursPage() {
                         }
                         .tours-search-bar { padding: 0 10px; margin-top: 12px; }
                         .tours-search-wrap { height: 46px; border-radius: 12px; padding: 0 12px; }
-                        .tours-search-bar-input { font-size: 14px; }
-                        .tours-date-pills {
-                            gap: 6px;
-                            padding: 0 10px;
-                            margin-top: 10px;
-                            justify-content: flex-start;
-                            overflow-x: auto;
-                            -webkit-overflow-scrolling: touch;
-                            scrollbar-width: none;
-                            flex-wrap: nowrap;
-                        }
-                        .tours-date-pills::-webkit-scrollbar { display: none; }
-                        .tours-date-pill { padding: 6px 12px; font-size: 11px; }
+                        .tours-search-bar-input { font-size: 13px; }
+                        .tours-date-select { font-size: 12px; min-width: 100px; }
                         .pnm-layout { flex-direction: column; }
                         .pnm-sidebar {
                             width: 100%;
@@ -1821,12 +2135,8 @@ export default function PokerToursPage() {
                             gap: 6px;
                             align-items: flex-start;
                         }
-                        .sidebar-search-form {
-                            flex: 1;
-                            min-width: 160px;
-                            margin-bottom: 0;
-                        }
-                        .sidebar-filter-group { margin-bottom: 0; }
+                        .sidebar-filter-group { margin-bottom: 0; flex: 1; min-width: 120px; }
+                        .sidebar-active-filters { flex-basis: 100%; }
                         .pnm-main { padding: 0 10px 40px; }
                         .tours-grid {
                             grid-template-columns: 1fr;
