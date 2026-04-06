@@ -221,6 +221,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const recordingTimerRef = useRef(null);
+    const recordingMaxTimerRef = useRef(null); // Fix: track the 60-second force-stop timer
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
     const gifSearchTimer = useRef(null);
@@ -383,7 +384,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
             }, 1000);
 
             // Max recording: 60 seconds
-            setTimeout(() => {
+            recordingMaxTimerRef.current = setTimeout(() => {
                 if (mediaRecorderRef.current?.state === 'recording') {
                     stopRecording();
                 }
@@ -399,6 +400,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
         }
         setIsRecording(false);
         clearInterval(recordingTimerRef.current);
+        if (recordingMaxTimerRef.current) clearTimeout(recordingMaxTimerRef.current);
         if (navigator.vibrate) navigator.vibrate(15);
     };
 
@@ -414,6 +416,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend,
         setIsRecording(false);
         setRecordingDuration(0);
         clearInterval(recordingTimerRef.current);
+        if (recordingMaxTimerRef.current) clearTimeout(recordingMaxTimerRef.current);
     };
 
     const formatRecordingTime = (s) => {
@@ -4502,21 +4505,24 @@ function MessengerPage() {
             for (const chName of channelNames) {
                 try {
                     const channel = supabase.channel(chName);
-                    await new Promise((resolve) => {
-                        const timeout = setTimeout(resolve, 2000);
-                        channel.subscribe((status) => {
-                            if (status === 'SUBSCRIBED') {
-                                clearTimeout(timeout);
-                                resolve();
-                            }
+                    try {
+                        await new Promise((resolve) => {
+                            const timeout = setTimeout(resolve, 2000);
+                            channel.subscribe((status) => {
+                                if (status === 'SUBSCRIBED') {
+                                    clearTimeout(timeout);
+                                    resolve();
+                                }
+                            });
                         });
-                    });
-                    await channel.send({
-                        type: 'broadcast',
-                        event: 'call_ended',
-                        payload: { enderId: user?.id }
-                    });
-                    setTimeout(() => supabase.removeChannel(channel), 1000);
+                        await channel.send({
+                            type: 'broadcast',
+                            event: 'call_ended',
+                            payload: { enderId: user?.id }
+                        });
+                    } finally {
+                        setTimeout(() => supabase.removeChannel(channel), 1000);
+                    }
                 } catch (e) {
                     // Non-blocking — best-effort notification
                 }
