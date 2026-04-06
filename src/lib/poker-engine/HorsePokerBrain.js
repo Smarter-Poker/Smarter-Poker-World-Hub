@@ -17740,6 +17740,10 @@ module.exports = {
     getGeometricSizing,
     handleDonkBet,
     applyTiltDegradation,
+    analyzeBoardEvolution,
+    getSPRStrategy,
+    getCBetStrategy,
+    get3BetStrategy,
     shouldAutoSeat,
 
     // Phase 5: Analytics & Meta-Game

@@ -1311,6 +1311,133 @@ test('makeTurnRiverHeuristicDecision: returns valid action structure', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 46: analyzeBoardEvolution + helpers ══');
+// ═══════════════════════════════════════════════════════════
+
+const abe = brain.analyzeBoardEvolution;
+const getSPR = brain.getSPRStrategy;
+const getCBet = brain.getCBetStrategy;
+const get3Bet = brain.get3BetStrategy;
+
+// ── analyzeBoardEvolution ──
+
+test('analyzeBoardEvolution: null guard', () => {
+    const r = abe(null, 'turn');
+    expect(r.evolution).toBe('unknown');
+});
+
+test('analyzeBoardEvolution: flop returns neutral (no evolution)', () => {
+    const r = abe(['Kc', '7d', '3s'], 'flop');
+    expect(r.evolution).toBe('neutral');
+    expect(r.drawsCompleted.length).toBe(0);
+});
+
+test('analyzeBoardEvolution: turn overcard detected', () => {
+    const r = abe(['7c', '5d', '3s', 'Ah'], 'turn');
+    expect(r.overcard).toBe(true);
+    expect(r.pfrImpact).toBeGreaterThan(0);
+});
+
+test('analyzeBoardEvolution: turn flush completion', () => {
+    // Flop has 2 hearts, turn completes 3rd heart
+    const r = abe(['Kh', '7h', '3s', '2h'], 'turn');
+    expect(r.flushCompleted).toBe(true);
+    expect(r.drawsCompleted).toContain('flush');
+    expect(r.callerImpact).toBeGreaterThan(0);
+});
+
+test('analyzeBoardEvolution: turn board pairing', () => {
+    const r = abe(['Kc', '7d', '3s', '7h'], 'turn');
+    expect(r.boardPaired).toBe(true);
+});
+
+test('analyzeBoardEvolution: turn low card on high board = brick', () => {
+    // High flop (K-Q-J), low turn (2) = brick → drier
+    const r = abe(['Kc', 'Qd', 'Js', '2h'], 'turn');
+    expect(r.boardGotDrier).toBe(true);
+    expect(r.pfrImpact).toBeGreaterThan(0);
+});
+
+// ── getSPRStrategy ──
+
+test('getSPRStrategy: zero pot returns deep', () => {
+    const r = getSPR(200, 0);
+    expect(r.strategy).toBe('deep');
+    expect(r.spr).toBe(999);
+});
+
+test('getSPRStrategy: low SPR = committed', () => {
+    const r = getSPR(30, 20);
+    expect(r.strategy).toBe('committed');
+    expect(r.commitThreshold).toBe(40);
+});
+
+test('getSPRStrategy: standard SPR', () => {
+    const r = getSPR(200, 20);
+    expect(r.strategy).toBe('standard');
+    expect(r.spr).toBe(10);
+});
+
+test('getSPRStrategy: deep SPR', () => {
+    const r = getSPR(400, 20);
+    expect(r.strategy).toBe('deep');
+    expect(r.commitThreshold).toBe(75);
+});
+
+// ── getCBetStrategy ──
+
+test('getCBetStrategy: non-aggressor never c-bets', () => {
+    const r = getCBet(false, true, 'dry', 2);
+    expect(r.shouldCbet).toBe(false);
+    expect(r.frequency).toBe(0);
+});
+
+test('getCBetStrategy: IP dry board has high frequency', () => {
+    const r = getCBet(true, true, 'dry', 2);
+    expect(r.frequency).toBe(0.75);
+    expect(r.sizeFraction).toBe(0.33);
+});
+
+test('getCBetStrategy: OOP wet board has lower frequency', () => {
+    const r = getCBet(true, false, 'wet', 2);
+    expect(r.frequency).toBe(0.35);
+    expect(r.sizeFraction).toBe(0.75);
+});
+
+test('getCBetStrategy: multiway reduces frequency', () => {
+    const r = getCBet(true, true, 'dry', 3);
+    // 3-way: freq * 0.5 = 0.75 * 0.5 = 0.375
+    expect(r.frequency).toBeCloseTo(0.375, 2);
+});
+
+// ── get3BetStrategy ──
+
+test('get3BetStrategy: premium hand 3-bets from BTN', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = get3Bet('BTN', 85, 6, 2, 100);
+        expect(r.should3Bet).toBe(true);
+        expect(r.isBluff3Bet).toBe(false);
+        expect(r.size3Bet).toBeGreaterThan(0);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('get3BetStrategy: weak hand does not 3-bet', () => {
+    const r = get3Bet('BTN', 20, 6, 2, 100);
+    expect(r.should3Bet).toBe(false);
+});
+
+test('get3BetStrategy: short stack jam with premium', () => {
+    const r = get3Bet('BTN', 85, 6, 2, 20);
+    expect(r.should3Bet).toBe(true);
+    expect(r.isJam).toBe(true);
+    expect(r.size3Bet).toBe(40); // 20bb * 2
+});
+
+// ═══════════════════════════════════════════════════════════
 // SUMMARY
 // ═══════════════════════════════════════════════════════════
 
