@@ -115,14 +115,10 @@ export default function PokerToursPage() {
 
     // ─── URL Deep-link: read all filter params on mount ───
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const params = new URLSearchParams(window.location.search);
-        const q = params.get('q');
-        const range = params.get('range');
-        const type = params.get('type');
-        const distance = params.get('distance');
-        const buyin = params.get('buyin');
-        const region = params.get('region');
+        if (!router.isReady || isInitialized) return;
+        
+        const { q, range, type, distance, buyin, region } = router.query;
+        
         if (q) setSearchQuery(q);
         if (range && ['7d','14d','30d','60d','90d','6m','1y'].includes(range)) {
             setDateRange(range);
@@ -141,26 +137,28 @@ export default function PokerToursPage() {
             setSelectedRegion(region);
         }
         
-        // Let the state updates complete before allowing URL sync
-        setTimeout(() => setIsInitialized(true), 0);
-    }, []);
+        setIsInitialized(true);
+    }, [router.isReady, router.query, isInitialized]);
 
     // ─── URL sync: update URL when filters change (without page reload) ───
     useEffect(() => {
-        if (!isInitialized || typeof window === 'undefined') return;
-        const params = new URLSearchParams();
-        if (searchQuery) params.set('q', searchQuery);
-        if (dateRange !== 'all') params.set('range', dateRange);
-        if (selectedType !== 'all') params.set('type', selectedType);
-        if (distanceFilter !== 'all') params.set('distance', distanceFilter);
-        if (buyinFilter !== 'all') params.set('buyin', buyinFilter);
-        if (selectedRegion !== 'all') params.set('region', selectedRegion);
-        const qs = params.toString();
-        const newUrl = window.location.pathname + (qs ? '?' + qs : '');
-        if (newUrl !== window.location.pathname + window.location.search) {
-            window.history.replaceState(null, '', newUrl);
+        if (!isInitialized || !router.isReady) return;
+        
+        const params = {};
+        if (searchQuery) params.q = searchQuery;
+        if (dateRange !== 'all') params.range = dateRange;
+        if (selectedType !== 'all') params.type = selectedType;
+        if (distanceFilter !== 'all') params.distance = distanceFilter;
+        if (buyinFilter !== 'all') params.buyin = buyinFilter;
+        if (selectedRegion !== 'all') params.region = selectedRegion;
+
+        const url = new URL(window.location);
+        url.search = new URLSearchParams(params).toString();
+        
+        if (url.search !== window.location.search) {
+            router.replace(url, undefined, { shallow: true });
         }
-    }, [isInitialized, searchQuery, dateRange, selectedType, distanceFilter, buyinFilter, selectedRegion]);
+    }, [searchQuery, dateRange, selectedType, distanceFilter, buyinFilter, selectedRegion, isInitialized, router.isReady, router]);
 
     // ─── Keyboard shortcut: Cmd/Ctrl+K to focus search ───
     useEffect(() => {
