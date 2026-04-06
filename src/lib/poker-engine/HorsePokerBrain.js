@@ -5559,7 +5559,8 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             oppCbetFreq: 0.60, // Default, would need tracking for better data
             oppCallFreq: 0.50,
             heroIsAggressor: gameState.wasAggressor || false,
-            potSize, toCall, stackBB
+            potSize, toCall, stackBB,
+            liveRead: preflopLiveRead || null  // Phase 28: pass live-read to OOP matrix
         });
 
         // ═══ OOP CHECK-RAISE BOOST: posFreqMod integration (main pipeline) ═══
@@ -6561,7 +6562,8 @@ function makeTurnRiverHeuristicDecision(params) {
             isIP, heroIsAggressor,
             boardWetness: boardWet,
             drawOuts: drawEq.outs,
-            numPlayers
+            numPlayers,
+            liveRead  // Phase 28: pass live-read to exploit intensifier
         });
         if (exploitResult.exploiting && exploitResult.action) {
             console.log(`[HorseBrain] 🎯 EXPLOIT INTENSIFIER: ${exploitResult.exploit} → ${exploitResult.action}`);
@@ -7486,7 +7488,8 @@ function makeTurnRiverHeuristicDecision(params) {
                 oppTendency, oppConfidence, oppCallFreq,
                 oppCbetFreq: 0.60,
                 heroIsAggressor,
-                potSize, toCall, stackBB
+                potSize, toCall, stackBB,
+                liveRead  // Phase 28: pass live-read to OOP matrix
             });
 
             // ═══ OOP CHECK-RAISE BOOST: posFreqMod integration ═══
@@ -7626,6 +7629,15 @@ function makeTurnRiverHeuristicDecision(params) {
             // Against calling stations, implied odds are HIGHER (they pay off when we hit)
             let impliedOddsThreshold = 0.50;
             if (oppCallFreq > 0.55 && oppConfidence > 0.25) impliedOddsThreshold = 0.60;
+            // ═══ LIVE-READ TURN IMPLIED ODDS (Phase 28) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // Stations: better implied odds
+                if (liveRead.callFreq > 0.55) impliedOddsThreshold += 0.08;
+                // High WTSD: they go to showdown → great implied odds
+                if (liveRead.wtsd !== null && liveRead.wtsd > 0.30) impliedOddsThreshold += 0.06;
+                // Folders: worse implied (they fold when board completes)
+                if (liveRead.foldFreq > 0.55) impliedOddsThreshold -= 0.08;
+            }
             if (isDeep && drawEq.outs >= 9 && (handEval.hasFlushDraw || drawEq.outs >= 12)) {
                 if (canCall && betToPot < impliedOddsThreshold) return { type: 'call' };
             }
@@ -8611,7 +8623,8 @@ function makeTurnRiverHeuristicDecision(params) {
                 oppTendency, oppConfidence, oppCallFreq,
                 oppCbetFreq: 0.60,
                 heroIsAggressor,
-                potSize, toCall, stackBB
+                potSize, toCall, stackBB,
+                liveRead  // Phase 28: pass live-read to OOP matrix
             });
 
             // ═══ OOP CHECK-RAISE BOOST: posFreqMod integration (river) ═══
@@ -10984,7 +10997,8 @@ function getOOPDecisionMatrix(params) {
         heroIsAggressor = false,
         potSize = 0,
         toCall = 0,
-        stackBB = 100
+        stackBB = 100,
+        liveRead = null  // Phase 28: direct live-read access
     } = params;
 
     const multiway = numPlayers >= 3;
@@ -10995,43 +11009,79 @@ function getOOPDecisionMatrix(params) {
     // ═══ TIER 1: NUTTED HANDS (strength >= 75) ═══
     // Check-raise for max value, or slowplay vs aggressive opponents
     if (handStrength >= 75) {
-        // Against bluffy opponents: check-call to let them barrel (they'll bluff again)
+        // ═══ LIVE-READ OOP NUTTED HANDS (Phase 28) ═══
+        let liveSlowplayBoost = 0;
+        let liveCRBoost = 0;
+        let liveSizeMod = 1.0;
+        if (liveRead && liveRead.confidence >= 0.20) {
+            // Aggressive: slowplay more (they'll bet into us)
+            if (liveRead.aggFreq > 0.45) liveSlowplayBoost += 0.12;
+            if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.65) liveSlowplayBoost += 0.08;
+            // Second barrel high: they keep firing → trap is profitable
+            if (liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct > 0.50) liveSlowplayBoost += 0.08;
+            // Passive: don't slowplay (they check behind)
+            if (liveRead.aggFreq < 0.20) { liveSlowplayBoost -= 0.15; liveCRBoost += 0.10; }
+            // Stations: CR bigger
+            if (liveRead.callFreq > 0.55) liveSizeMod = 1.15;
+            // Folders: CR smaller
+            if (liveRead.foldFreq > 0.55) liveSizeMod = 0.88;
+        }
+
+        // Against bluffy/aggro opponents: check-call to let them barrel
+        let slowplayFreq = 0.60 + liveSlowplayBoost;
         if (oppTendency === 'bluffy' && oppConfidence > 0.3 && street !== 'river') {
-            return {
-                action: 'check_call', frequency: 0.60,
-                sizeFraction: 0, reason: 'slowplay_vs_bluffy'
-            };
+            if (Math.random() < Math.min(0.80, slowplayFreq)) {
+                return {
+                    action: 'check_call', frequency: slowplayFreq,
+                    sizeFraction: 0, reason: 'slowplay_vs_bluffy'
+                };
+            }
         }
         // River with nuts: check-raise always
         if (street === 'river') {
+            let crFreq = 0.70 + aggressionBias / 50 + liveCRBoost;
             return {
-                action: 'check_raise', frequency: 0.70 + aggressionBias / 50,
-                sizeFraction: 3.0, reason: 'river_value_checkraise'
+                action: 'check_raise', frequency: Math.min(0.90, crFreq),
+                sizeFraction: 3.0 * liveSizeMod, reason: 'river_value_checkraise'
             };
         }
         // Wet board: check-raise for protection
         if (boardWetness === 'wet') {
             return {
-                action: 'check_raise', frequency: 0.65,
-                sizeFraction: 3.5, reason: 'protect_nuts_on_wet'
+                action: 'check_raise', frequency: 0.65 + liveCRBoost,
+                sizeFraction: 3.5 * liveSizeMod, reason: 'protect_nuts_on_wet'
             };
         }
         // Dry board: mix check-call and check-raise (deception)
+        let dryCRFreq = 0.45 + liveCRBoost;
         return {
-            action: Math.random() < 0.45 ? 'check_raise' : 'check_call',
-            frequency: 0.55,
-            sizeFraction: 2.8, reason: 'mix_nutted_on_dry'
+            action: Math.random() < dryCRFreq ? 'check_raise' : 'check_call',
+            frequency: 0.55 + liveCRBoost,
+            sizeFraction: 2.8 * liveSizeMod, reason: 'mix_nutted_on_dry'
         };
     }
 
     // ═══ TIER 2: STRONG HANDS (55-74) — two pair, overpair, top pair good kicker ═══
     if (handStrength >= 55) {
+        // ═══ LIVE-READ OOP STRONG HANDS (Phase 28) ═══
+        let liveStrongCRMod = 0;
+        if (liveRead && liveRead.confidence >= 0.20) {
+            // High c-bet: CR more to deny bluffs
+            if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.65) liveStrongCRMod += 0.08;
+            // High fold-to-raise: CR more (fold equity + value)
+            if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.50) liveStrongCRMod += 0.06;
+            // Station: don't CR with just strong (they call, we might be behind)
+            if (liveRead.callFreq > 0.60 && handStrength < 65) liveStrongCRMod -= 0.08;
+        }
         // Against heavy c-bettors: check-raise to deny their bluffs
-        if (oppCbetFreq > 0.70 && oppConfidence > 0.3 && !multiway) {
-            return {
-                action: 'check_raise', frequency: 0.40 + aggressionBias / 50,
-                sizeFraction: 3.0, reason: 'checkraise_heavy_cbettor'
-            };
+        if ((oppCbetFreq > 0.70 && oppConfidence > 0.3) ||
+            (liveRead && liveRead.confidence >= 0.20 && liveRead.cBetPct !== null && liveRead.cBetPct > 0.70)) {
+            if (!multiway) {
+                return {
+                    action: 'check_raise', frequency: Math.min(0.65, 0.40 + aggressionBias / 50 + liveStrongCRMod),
+                    sizeFraction: 3.0, reason: 'checkraise_heavy_cbettor'
+                };
+            }
         }
         // Multiway: just check-call (too many hands behind)
         if (multiway) {
@@ -11080,11 +11130,21 @@ function getOOPDecisionMatrix(params) {
             };
         }
         // Against weak-tight: lead bet (they check back too much)
-        if (oppTendency === 'weak-tight' && oppConfidence > 0.3 && !multiway && toCall === 0) {
-            return {
-                action: 'lead', frequency: 0.35 + aggressionBias / 50,
-                sizeFraction: 0.50, reason: 'lead_vs_passive'
-            };
+        // ═══ LIVE-READ OOP MEDIUM LEAD (Phase 28) ═══
+        let leadFreqBoost = 0;
+        if (liveRead && liveRead.confidence >= 0.20) {
+            // Passive: they check back → lead to build pot
+            if (liveRead.aggFreq < 0.25) leadFreqBoost += 0.10;
+            // Low c-bet: they won't bet → we must lead for value
+            if (liveRead.cBetPct !== null && liveRead.cBetPct < 0.40) leadFreqBoost += 0.08;
+        }
+        if ((oppTendency === 'weak-tight' && oppConfidence > 0.3) || leadFreqBoost >= 0.10) {
+            if (!multiway && toCall === 0) {
+                return {
+                    action: 'lead', frequency: Math.min(0.55, 0.35 + aggressionBias / 50 + leadFreqBoost),
+                    sizeFraction: 0.50, reason: 'lead_vs_passive'
+                };
+            }
         }
         // Default: check-call
         return {
@@ -11097,15 +11157,26 @@ function getOOPDecisionMatrix(params) {
     if (hasStrongDraw) {
         // Strong draw (flush draw, OESD): check-raise semi-bluff or check-call
         if (!multiway && street !== 'river') {
-            const crFreq = 0.30 + aggressionBias / 40;
+            let crFreq = 0.30 + aggressionBias / 40;
             // Against weak-tight: check-raise more (they fold)
-            const adjustedFreq = (oppTendency === 'weak-tight' && oppConfidence > 0.3)
-                ? crFreq + 0.12
-                : crFreq;
-            if (Math.random() < adjustedFreq) {
+            if (oppTendency === 'weak-tight' && oppConfidence > 0.3) crFreq += 0.12;
+            // ═══ LIVE-READ OOP DRAW CR (Phase 28) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // High fold-to-raise: semi-bluff CR is printing
+                if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.50) crFreq += 0.10;
+                // Station: don't semi-bluff CR (no fold equity)
+                if (liveRead.callFreq > 0.60) crFreq = Math.min(crFreq, 0.08);
+                // Low WTSD: they fold later streets → prefer flat to realize equity
+                if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) crFreq -= 0.06;
+            }
+            crFreq = Math.max(0, Math.min(0.55, crFreq));
+            if (Math.random() < crFreq) {
+                let sizeFrac = 3.2;
+                // Live fold-to-raise: smaller CR (efficient)
+                if (liveRead && liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) sizeFrac = 2.6;
                 return {
-                    action: 'check_raise', frequency: adjustedFreq,
-                    sizeFraction: 3.2, reason: 'semi_bluff_checkraise'
+                    action: 'check_raise', frequency: crFreq,
+                    sizeFraction: sizeFrac, reason: 'semi_bluff_checkraise'
                 };
             }
         }
@@ -11138,6 +11209,15 @@ function getOOPDecisionMatrix(params) {
             let bluffCRFreq = 0.08 + aggressionBias / 60;
             if (oppCbetFreq > 0.75 && oppConfidence > 0.3) bluffCRFreq += 0.06;
             if (oppTendency === 'weak-tight' && oppConfidence > 0.3) bluffCRFreq += 0.05;
+            // ═══ LIVE-READ OOP BLUFF CR (Phase 28) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // High fold-to-raise: bluff CR is profitable
+                if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) bluffCRFreq += 0.08;
+                // High c-bet: their range is wide → bluff CR more
+                if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.70) bluffCRFreq += 0.05;
+                // Station: never bluff CR
+                if (liveRead.callFreq > 0.55) bluffCRFreq = 0;
+            }
             if (bluffCRFreq > 0.05 && Math.random() < bluffCRFreq) {
                 return {
                     action: 'check_raise', frequency: bluffCRFreq,
@@ -11848,23 +11928,32 @@ function applyExploitIntensifier(params) {
         currentAction, currentAmount, handStrength, handCategory,
         street, potSize, toCall, bb, canRaise, canCall, raiseAction,
         oppTendency, oppConfidence, oppBluffFreq, oppCallFreq, oppFoldFreq,
-        isIP, heroIsAggressor, boardWetness, drawOuts, numPlayers
+        isIP, heroIsAggressor, boardWetness, drawOuts, numPlayers,
+        liveRead = null  // Phase 28: direct live-read access
     } = params;
 
     // Only engage when we have HIGH confidence reads (40+ hands observed)
-    if (oppConfidence < 0.50) return { action: null, exploiting: false, exploit: 'none' };
+    // ═══ LIVE-READ EXPLOIT GATE (Phase 28) ═══
+    // With live-read, we can exploit EARLIER (lower confidence threshold)
+    const liveConfident = liveRead && liveRead.confidence >= 0.30;
+    const effectiveConfidence = liveConfident ? Math.max(oppConfidence, 0.50) : oppConfidence;
+    if (effectiveConfidence < 0.50) return { action: null, exploiting: false, exploit: 'none' };
 
     const facingBet = toCall > 0;
     const multiway = numPlayers >= 3;
 
     // ═══ EXPLOIT 1: OVER-FOLDER ═══
     // Opponent folds > 55% → print money by betting any two cards
-    if (oppFoldFreq > 0.55 && oppConfidence >= 0.55) {
+    // ═══ LIVE-READ OVER-FOLDER (Phase 28) ═══
+    const effectiveFoldFreq = (liveConfident && liveRead.foldFreq > oppFoldFreq) ? liveRead.foldFreq : oppFoldFreq;
+    if (effectiveFoldFreq > 0.55 && effectiveConfidence >= 0.55) {
         // Bluff more on every street when not facing a bet
         if (!facingBet && handStrength < 25 && canRaise && !multiway) {
-            const exploitBluffFreq = 0.40 + (oppFoldFreq - 0.55) * 2.0; // Scales up to ~70%
+            const exploitBluffFreq = 0.40 + (effectiveFoldFreq - 0.55) * 2.0; // Scales up to ~70%
             if (Math.random() < Math.min(0.70, exploitBluffFreq)) {
-                const sizeFrac = 0.50 + Math.random() * 0.15; // 50-65% pot
+                // Live-read sizing: SMALLER vs folders (save chips, same fold equity)
+                let sizeFrac = 0.50 + Math.random() * 0.15; // 50-65% pot
+                if (liveConfident && liveRead.foldFreq > 0.60) sizeFrac = 0.38 + Math.random() * 0.10; // 38-48% pot
                 console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: over-folder bluff (foldFreq=${(oppFoldFreq * 100).toFixed(0)}%)`);
                 return {
                     action: raiseAction.type,
@@ -11888,7 +11977,9 @@ function applyExploitIntensifier(params) {
 
     // ═══ EXPLOIT 2: CALLING STATION ═══
     // Opponent calls > 60% → maximize value, never bluff
-    if (oppCallFreq > 0.60 && oppConfidence >= 0.50) {
+    // ═══ LIVE-READ CALLING STATION (Phase 28) ═══
+    const effectiveCallFreq = (liveConfident && liveRead.callFreq > oppCallFreq) ? liveRead.callFreq : oppCallFreq;
+    if (effectiveCallFreq > 0.60 && effectiveConfidence >= 0.50) {
         // Value bet thinner — they call with garbage
         if (!facingBet && handStrength >= 35 && handStrength < 55 && canRaise && !multiway) {
             const thinValueFreq = 0.55 + (oppCallFreq - 0.60) * 1.5;
@@ -11924,7 +12015,10 @@ function applyExploitIntensifier(params) {
 
     // ═══ EXPLOIT 3: PROLIFIC BLUFFER ═══
     // Opponent bluffs > 40% → call them down light, let them hang themselves
-    if (oppBluffFreq > 0.40 && oppConfidence >= 0.50) {
+    // ═══ LIVE-READ BLUFFER (Phase 28) ═══
+    const effectiveBluffFreq = (liveConfident && liveRead.bluffRate !== null && liveRead.bluffRate > oppBluffFreq)
+        ? liveRead.bluffRate : oppBluffFreq;
+    if (effectiveBluffFreq > 0.40 && effectiveConfidence >= 0.50) {
         // Widen calling range dramatically
         if (facingBet && handStrength >= 20 && handStrength < 50 && canCall) {
             const exploitCallFreq = 0.50 + (oppBluffFreq - 0.40) * 2.0;
@@ -11949,11 +12043,19 @@ function applyExploitIntensifier(params) {
 
     // ═══ EXPLOIT 4: WEAK-TIGHT / NIT ═══
     // Opponent is weak-tight → steal everything, respect their bets
-    if (oppTendency === 'weak-tight' && oppConfidence >= 0.55) {
+    // ═══ LIVE-READ NIT DETECTION (Phase 28) ═══
+    const liveNit = liveConfident && liveRead.aggFreq < 0.18 && liveRead.foldFreq > 0.50;
+    if ((oppTendency === 'weak-tight' && oppConfidence >= 0.55) || liveNit) {
         // Steal pots relentlessly
         if (!facingBet && handStrength < 30 && canRaise && !multiway) {
-            if (Math.random() < 0.45) {
-                const sizeFrac = 0.55 + Math.random() * 0.15;
+            let nitStealFreq = 0.45;
+            // Live-read: smaller sizing vs extreme folders
+            let sizeFrac = 0.55 + Math.random() * 0.15;
+            if (liveConfident && liveRead.foldFreq > 0.60) {
+                nitStealFreq = 0.55; // Steal even more
+                sizeFrac = 0.40 + Math.random() * 0.10; // Cheaper steals
+            }
+            if (Math.random() < nitStealFreq) {
                 console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: steal vs nit`);
                 return {
                     action: raiseAction.type,
@@ -11969,6 +12071,34 @@ function applyExploitIntensifier(params) {
                 return {
                     action: 'fold', amount: null,
                     exploiting: true, exploit: 'nit_respect'
+                };
+            }
+        }
+    }
+
+    // ═══ EXPLOIT 5: ONE-AND-DONE (Live-Read Exclusive) ═══
+    // Opponent c-bets high but rarely double-barrels → call flop, steal turn
+    if (liveConfident && liveRead.cBetPct !== null && liveRead.cBetPct > 0.60 &&
+        liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct < 0.30) {
+        // On the flop facing a c-bet: always call with anything (they'll give up on turn)
+        if (facingBet && street === 'flop' && handStrength >= 10 && canCall && !multiway) {
+            if (Math.random() < 0.65) {
+                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: one-and-done float (cbet=${(liveRead.cBetPct * 100).toFixed(0)}% barrel=${(liveRead.secondBarrelPct * 100).toFixed(0)}%)`);
+                return {
+                    action: 'call', amount: null,
+                    exploiting: true, exploit: 'one_and_done_float'
+                };
+            }
+        }
+        // On the turn when they checked: stab to take the pot
+        if (!facingBet && street === 'turn' && canRaise && !multiway && handStrength < 40) {
+            if (Math.random() < 0.55) {
+                const sizeFrac = 0.45 + Math.random() * 0.10;
+                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: one-and-done stab (cbet=${(liveRead.cBetPct * 100).toFixed(0)}% barrel=${(liveRead.secondBarrelPct * 100).toFixed(0)}%)`);
+                return {
+                    action: raiseAction.type,
+                    amount: Math.round(potSize * sizeFrac),
+                    exploiting: true, exploit: 'one_and_done_stab'
                 };
             }
         }
