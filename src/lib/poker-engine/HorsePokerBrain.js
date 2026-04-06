@@ -9979,6 +9979,15 @@ function makeFlopHeuristicDecision(params) {
             if (handEval.strength >= 65 && (boardIsLow || boardIsConnected) && !boardIsHigh) {
                 let donkFreq = 0.40 + donkPotMod + donkRangeMod;
                 if (oppCbetFreq > 0.70 && oppConfidence > 0.3) donkFreq += 0.15; // Deny their c-bet equity
+                // ═══ LIVE-READ FLOP VALUE DONK (Phase 25) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // High c-bet: donk to deny (they'll bet anyway, but we control sizing)
+                    if (flopLiveRead.cBetPct !== null && flopLiveRead.cBetPct > 0.65) donkFreq += 0.10;
+                    // Passive: donk more (they won't bet if we check)
+                    if (flopLiveRead.aggFreq < 0.25) donkFreq += 0.08;
+                    // Stations: donk bigger for value
+                    if (flopLiveRead.callFreq > 0.55) donkFreq += 0.06;
+                }
                 // In 3-bet pots with caller range advantage, still donk strong hands
                 if (is3BetPot && rangeAdvantage === 'caller' && handEval.strength >= 75) {
                     donkFreq = Math.max(donkFreq, 0.35); // Floor: don't let modifiers kill value donks
@@ -9996,6 +10005,12 @@ function makeFlopHeuristicDecision(params) {
             if (drawEq.outs >= 10 && boardWet === 'wet' && handEval.strength >= 20) {
                 let semiDonkFreq = 0.25 + aggressionBias / 40 + donkPotMod + donkRangeMod;
                 if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiDonkFreq += 0.10;
+                // ═══ LIVE-READ FLOP SEMI-BLUFF DONK (Phase 25) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    if (flopLiveRead.foldFreq > 0.45) semiDonkFreq += 0.08;
+                    if (flopLiveRead.callFreq > 0.60) semiDonkFreq -= 0.10;
+                    if (flopLiveRead.foldToRaisePct !== null && flopLiveRead.foldToRaisePct > 0.50) semiDonkFreq += 0.06;
+                }
                 // In 3-bet pots with big draws (14+ outs), still semi-donk occasionally
                 if (is3BetPot && drawEq.outs >= 14) {
                     semiDonkFreq = Math.max(semiDonkFreq, 0.18);
@@ -10035,6 +10050,19 @@ function makeFlopHeuristicDecision(params) {
                 if (oppTendency === 'bluffy' && oppConfidence > 0.3 && handEval.strength >= 75) {
                     valueBetFreq = 0.55; // Against aggro, consider checking to induce
                 }
+                // ═══ LIVE-READ FLOP IP VALUE BET (Phase 25) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Stations: bet more (they call with worse)
+                    if (flopLiveRead.callFreq > 0.55) valueBetFreq = Math.min(0.85, valueBetFreq + 0.08);
+                    // Aggressive: check monsters to induce
+                    if (flopLiveRead.aggFreq > 0.45 && handEval.strength >= 75) valueBetFreq -= 0.12;
+                    // Check-raise threats: bet smaller or check strong hands to trap
+                    if (flopLiveRead.checkRaisePct !== null && flopLiveRead.checkRaisePct > 0.12 && handEval.strength >= 75) {
+                        valueBetFreq -= 0.10; // Check to induce CR
+                    }
+                    // Folders: bet wide (they give up)
+                    if (flopLiveRead.foldFreq > 0.50) valueBetFreq = Math.min(0.88, valueBetFreq + 0.06);
+                }
 
                 // ── 3-bet pot IP value bet: higher freq (ranges are narrow, top pair is premium) ──
                 if (is3BetPot) {
@@ -10066,6 +10094,11 @@ function makeFlopHeuristicDecision(params) {
                     if (rangeAdvantage === 'caller') sizeFrac -= 0.04;
                     // Against callers, size up for value
                     if (oppCallFreq > 0.55 && oppConfidence > 0.3) sizeFrac = Math.min(0.75, sizeFrac + 0.08);
+                    // ═══ LIVE-READ FLOP IP VALUE SIZING (Phase 25) ═══
+                    if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                        if (flopLiveRead.callFreq > 0.60) sizeFrac = Math.min(0.80, sizeFrac + 0.08);
+                        if (flopLiveRead.foldFreq > 0.55 && handEval.strength < 70) sizeFrac = Math.max(0.30, sizeFrac - 0.08);
+                    }
                     // Geometric sizing: plan multi-street value
                     const geoIP = getGeometricSizing(potSize, heroStack, street === 'flop' ? 2 : 1, true);
                     if (geoIP.isJammable && handEval.strength >= 75 && spr >= 3) {
@@ -10101,6 +10134,16 @@ function makeFlopHeuristicDecision(params) {
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) stabFreq += 0.08;
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) stabFreq -= 0.10; // Don't stab into calling stations
                 if (oppTendency === 'bluffy' && oppConfidence > 0.3) stabFreq -= 0.06; // They'll check-raise
+                // ═══ LIVE-READ FLOP IP STAB (Phase 25) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    if (flopLiveRead.foldFreq > 0.50) stabFreq += 0.10;
+                    if (flopLiveRead.callFreq > 0.60) stabFreq -= 0.10;
+                    if (flopLiveRead.checkRaisePct !== null && flopLiveRead.checkRaisePct > 0.12) {
+                        stabFreq -= 0.08;
+                        stabSize -= 0.04; // Smaller to reduce CR damage
+                    }
+                    if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd < 0.22) stabFreq += 0.06;
+                }
 
                 // ── Range advantage stab modifier ──
                 if (rangeAdvantage === 'pfr') stabFreq += 0.08; // Board favors us → stab wider
