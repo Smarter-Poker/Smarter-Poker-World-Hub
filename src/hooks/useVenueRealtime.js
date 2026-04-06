@@ -34,8 +34,7 @@ export default function useVenueRealtime(onUpdate) {
         // [HARDENING] Use a deterministic channel name so Supabase natively multiplexes 
         // multiple hook invocations (e.g., from different components on the same page)
         // onto a single WebSocket topic, preventing "Too Many Channels" quota errors.
-        const channelId = Math.random().toString(36).substring(2, 10);
-        const channelName = `global-venues-sync-${channelId}`;
+        const channelName = `global-venues-sync`;
         
         const channel = client.channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_venues' }, debouncedUpdate)
@@ -51,7 +50,13 @@ export default function useVenueRealtime(onUpdate) {
         return () => {
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             if (channelRef.current) {
-                try { client.removeChannel(channelRef.current); } catch { /* ignore */ }
+                try { 
+                    client.removeChannel(channelRef.current); 
+                } catch (e) { 
+                    console.warn('[Realtime] Cleanup warning:', e);
+                } finally {
+                    channelRef.current = null;
+                }
             }
         };
     }, []);

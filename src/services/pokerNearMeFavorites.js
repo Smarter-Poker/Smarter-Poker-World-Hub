@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { busEmit } from '../engine/EventBus';
 
 /**
  * Get all favorite venues for a user
@@ -42,6 +43,9 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
         throw error;
     }
 
+    // Broadcast update globally
+    busEmit.venueSaved(venueId, venueData.name || null);
+
     return data || null;
 }
 
@@ -61,6 +65,9 @@ export async function removeVenueFavorite(userId, venueId) {
         console.error('Error removing venue favorite:', error);
         throw error;
     }
+
+    // Broadcast update globally
+    busEmit.venueUnsaved(venueId);
 
     return true;
 }

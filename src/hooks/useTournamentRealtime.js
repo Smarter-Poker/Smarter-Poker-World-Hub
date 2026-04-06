@@ -87,8 +87,8 @@ export default function useTournamentRealtime(tournamentId, onUpdate) {
                 channelRef.current = null;
             }
 
-            // Use full tournament ID for unique channel names
-            const channelName = `td-${tournamentId}-${Date.now()}`;
+            // Use deterministic tournament ID for multiplexing
+            const channelName = `td-sync-${tournamentId}`;
 
             const channel = client
                 .channel(channelName)
