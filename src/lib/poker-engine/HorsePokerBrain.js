@@ -13447,6 +13447,38 @@ function cleanupLiveObservers() {
 // Auto-cleanup every 5 minutes
 setInterval(cleanupLiveObservers, 5 * 60 * 1000);
 
+/**
+ * LRU eviction: cap opponent profiles per table observer.
+ * Prevents unbounded memory growth on long-running servers.
+ */
+const MAX_OPPONENTS_PER_TABLE = 50;
+const MAX_TABLES_PER_HORSE = 8;
+
+function _evictLRUProfiles(observer) {
+    if (observer.opponents.size <= MAX_OPPONENTS_PER_TABLE) return;
+    const sorted = [...observer.opponents.entries()].sort((a, b) => a[1].lastSeen - b[1].lastSeen);
+    const toEvict = sorted.length - MAX_OPPONENTS_PER_TABLE;
+    for (let i = 0; i < toEvict; i++) {
+        observer.opponents.delete(sorted[i][0]);
+    }
+}
+
+function _evictLRUTables(horseTables) {
+    if (horseTables.size <= MAX_TABLES_PER_HORSE) return;
+    const entries = [...horseTables.entries()];
+    const withLastSeen = entries.map(([tid, obs]) => {
+        let newest = 0;
+        for (const p of obs.opponents.values()) {
+            if (p.lastSeen > newest) newest = p.lastSeen;
+        }
+        return { tid, newest };
+    }).sort((a, b) => a.newest - b.newest);
+    const toEvict = withLastSeen.length - MAX_TABLES_PER_HORSE;
+    for (let i = 0; i < toEvict; i++) {
+        horseTables.delete(withLastSeen[i].tid);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // END ALWAYS-ON LIVE OBSERVER SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
