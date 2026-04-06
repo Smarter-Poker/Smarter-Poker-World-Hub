@@ -2494,7 +2494,7 @@ function GodModeArenaInner({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'solutions', label: 'Solutions' }, { id: 'drills', label: 'Drills' }, { id: 'import', label: 'Import' }, { id: 'tournament', label: 'MTT' }, { id: 'postflop', label: 'Postflop' }, { id: 'sizing', label: 'Sizing' }, { id: 'curriculum', label: 'Study Plan' }, { id: 'reports', label: 'Reports' }, { id: 'equity', label: 'Equity' }, { id: 'nodelock', label: 'Node Lock' }, { id: 'quiz', label: 'Quiz' }, { id: 'compare', label: 'Compare' }, { id: 'rvr', label: 'RvR' }, { id: 'evtree', label: 'EV Tree' }, { id: 'bankroll', label: 'Bankroll' }, { id: 'spotfilter', label: 'Spot Filter' }, { id: 'hud', label: 'HUD' }, { id: 'notes', label: 'Notes' }, { id: 'leaks', label: 'Leaks' }, { id: 'dynamics', label: 'Dynamics' }, { id: 'runouts', label: 'Runouts' }, { id: 'mastery', label: 'Mastery' }, { id: 'mixed', label: 'Mixed' }, { id: 'replay', label: 'Replay' }, { id: 'textures', label: 'Textures' }, { id: 'charts', label: 'Charts' }, { id: 'strength', label: 'Strength' }, { id: 'exploits', label: 'Exploits' }, { id: 'chipev', label: 'ChipEV' }, { id: 'flopcat', label: 'Flop Cat' }, { id: 'potodds', label: 'Pot Odds' }, { id: 'stacks', label: 'Stacks' }, { id: 'bluffcat', label: 'Bluff Cat' }, { id: 'tilt', label: 'Tilt' }, { id: 'oracle', label: 'Oracle' }, { id: 'winrate', label: 'Win Rate' }, { id: 'posheat', label: 'Pos Heat' }, { id: 'goals', label: 'Goals' }, { id: 'rangemem', label: 'Range Mem' }, { id: 'multitable', label: 'Multi-Tbl' }, { id: 'cbet', label: 'C-Bet' }, { id: 'variance', label: 'Variance' }, { id: 'xraise', label: 'X-Raise' }, { id: 'handquiz', label: 'Hand Quiz' }, { id: 'rangelib', label: 'Range Lib' }, { id: 'boardquiz', label: 'Board Quiz' }, { id: 'posprofit', label: 'Pos Profit' }, { id: 'fticm', label: 'FT ICM' }, { id: 'overbet', label: 'Overbet' }, { id: 'headsup', label: 'Heads-Up' }, { id: 'timed', label: 'Timed' }, { id: 'squeeze', label: 'Squeeze' }, { id: 'float', label: 'Float' }, { id: 'blockers', label: 'Blockers' }, { id: 'tlife', label: 'MTT Life' }, { id: 'polar', label: 'Polarize' }, { id: 'thinval', label: 'Thin Value' }, { id: 'streets', label: 'Streets' }, { id: 'defense', label: 'Defense' }, { id: 'preflopsim', label: 'PF Sim' }, { id: 'spr', label: 'SPR' }, { id: 'blinddef', label: 'Blinds' }, { id: 'drawodds', label: 'Draw Odds' }, { id: 'foldeq', label: 'Fold Eq' }, { id: 'donk', label: 'Donk Bet' }, { id: 'mwstrat', label: 'MW Strat' }, { id: 'probe', label: 'Probe' }, { id: 'posquiz', label: 'Pos Quiz' }, { id: 'stackoff', label: 'Stack Off' }, { id: 'betpat', label: 'Bet Patterns' }, { id: 'turnbarrel', label: 'Turn Barrel' }, { id: 'shortstack', label: 'Short Stack' }, { id: 'rangebuild', label: 'Range Build' }, { id: 'capped', label: 'Capped' }, { id: 'bubble', label: 'Bubble' }, { id: 'handread', label: 'Hand Read' }, { id: 'geosizing', label: 'Geo Size' }, { id: 'massdata', label: 'Mass Data' }, { id: 'rivermatrix', label: 'River' }, { id: 'payjump', label: 'Pay Jumps' }, { id: 'xrsize', label: 'X/R Size' }, { id: 'cbetmatrix', label: 'C-Bet Map' }, { id: 'turnimpact', label: 'Turn Impact' }, { id: 'bvr', label: 'B:V Ratio' }, { id: 'slowplay', label: 'Slow Play' }, { id: 'kelly', label: 'Kelly' }, { id: 'pfequity', label: 'PF Equity' }, { id: 'glossary', label: 'Glossary' }, { id: 'potgeo', label: 'Pot Geo' }, { id: 'exploit', label: 'Exploit' }, { id: 'bluffcatch', label: 'Bluff Catch' }, { id: 'stackdepth', label: 'Depth' }, { id: 'xrstrat', label: 'X/R Strat' }, { id: 'obetrain', label: 'Overbet+' }, { id: 'msplan', label: 'MS Plan' }, { id: 'rvrsim', label: 'RvR Sim' }, { id: 'boardcov', label: 'Coverage' }, { id: 'fticmguide', label: 'FT ICM+' }, { id: 'leakfind', label: 'Leak Find' }, { id: 'hustrat', label: 'HU Strat' }, { id: '3bdef', label: '3B Def' }, { id: 'tiltfix', label: 'Tilt Fix' }, { id: 'eqreal', label: 'EQ Real' }, { id: 'combos', label: 'Combos' }, { id: 'sqzplay', label: 'Squeeze' }, { id: 'sessrev', label: 'Review+' }, { id: 'impodds', label: 'Implied' }, { id: 'posprof', label: 'Pos $' }, { id: 'cbguide', label: 'C-Bet+' }, { id: 'nutadv', label: 'Nut Adv' }, { id: 'pfchart', label: 'PF Chart' }, { id: 'mdfcalc', label: 'MDF' }, { id: '4bet', label: '4-Bet' }, { id: 'rivpol', label: 'Polarize+' }, { id: 'mttstage', label: 'MTT Stage' }, { id: 'betopt', label: 'Size Opt' }, { id: 'handrank', label: 'Rankings' }, { id: 'rngbal', label: 'Balance' }, { id: 'pfquiz', label: 'PF Quiz+' }, { id: 'seatsel', label: 'Seat Sel' }, { id: 'tribarrel', label: '3-Barrel' }, { id: 'potctrl', label: 'Pot Ctrl' }, { id: 'epguide', label: 'EP Guide' }, { id: 'chkbhd', label: 'Check IP' }, { id: 'blindbat', label: 'Blinds+' }, { id: 'rivsize', label: 'Riv Size' }, { id: 'tblimg', label: 'Image' }, { id: 'dblbarrel', label: '2-Barrel' }, { id: 'potcommit', label: 'Committed' }, { id: 'rngadv', label: 'Range Adv' }, { id: 'fishexp', label: 'Fish Exp' }, { id: 'smallball', label: 'Small Ball' }, { id: 'trapplay', label: 'Trap' }, { id: 'boardpair', label: 'Paired' }, { id: 'effstack', label: 'Eff Stack' }, { id: 'semibluff', label: 'Semi-Bluff' }, { id: 'valsize', label: 'Val Size' }, { id: 'opptend', label: 'Opp Tend' }, { id: 'mental', label: 'Mental' }, { id: 'pfllimp', label: 'Limp' }, { id: 'resteal', label: 'Resteal' }, { id: 'costrat', label: 'Cutoff' }, { id: 'btnplay', label: 'Button' }, { id: 'utgrange', label: 'UTG' }, { id: 'hjstrat', label: 'HiJack' }, { id: 'sbstrat', label: 'Sm Blind' }, { id: 'bbdef', label: 'BB Def' }, { id: 'floating', label: 'Float+' }, { id: 'probeblf', label: 'Probe' }, { id: 'xrtiming', label: 'X/R Time' }, { id: 'delaycb', label: 'Delay CB' }, { id: 'multitbl', label: 'Multi-Tbl+' }, { id: 'brmgmt', label: 'Bankroll+' }, { id: 'tblselect', label: 'Table Sel' }, { id: 'stakesldr', label: 'Stakes' }, { id: '3bpot', label: '3B Pot' }, { id: '4bpot', label: '4B Pot' }, { id: 'srpguide', label: 'SRP' }, { id: 'sqzpot', label: 'Sqz Pot' }, { id: 'turnxr', label: 'Turn X/R' }, { id: 'rivobet', label: 'Riv OB' }, { id: 'donkdef', label: 'Donk Def' }, { id: 'mergerng', label: 'Range Type' }, { id: 'balance', label: 'Balance+' }, { id: 'nodelock', label: 'Node Lock+' }, { id: 'polarizer', label: 'Polarizer' }, { id: 'eqbucket', label: 'EQ Bucket' }, { id: 'obbluff', label: 'OB Bluff' }, { id: 'valowned', label: 'Val Own' }, { id: 'chkcall', label: 'Chk-Call' }, { id: 'betfold', label: 'Bet-Fold' }, { id: 'potodds2', label: 'Pot Odds+' }, { id: 'drawplay', label: 'Draw Play' }, { id: 'nutblock', label: 'Nut Block' }, { id: 'cappeddet', label: 'Capped+' }, { id: 'mwcheck', label: 'MW Pot' }, { id: 'isoraise', label: 'Iso Raise' }, { id: 'latereg', label: 'Late Reg' }, { id: 'antesteal', label: 'Ante Steal' }, { id: 'turntex', label: 'Turn Tex' }, { id: 'rivimpact', label: 'Riv Impact' }, { id: 'rit', label: 'Run Twice' }, { id: 'allinev', label: 'AI EV' }, { id: 'pfagg', label: 'PF Agg' }, { id: 'pfmistake', label: 'PF Mistakes' }, { id: 'leakplug', label: 'Leak Plug' }, { id: 'wincond', label: 'Win Cond' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'solver', label: 'Solver' }, { id: 'analysis', label: 'Analysis' }, { id: 'gametree', label: 'Game Tree' }, { id: 'ranges', label: 'Ranges' }, { id: 'builder', label: 'Builder' }, { id: 'boards', label: 'Boards' }, { id: 'icm', label: 'ICM' }, { id: 'multiway', label: 'Multiway' }, { id: 'opponents', label: 'Opponents' }, { id: '3bet', label: '3-Bet' }, { id: 'solutions', label: 'Solutions' }, { id: 'drills', label: 'Drills' }, { id: 'import', label: 'Import' }, { id: 'tournament', label: 'MTT' }, { id: 'postflop', label: 'Postflop' }, { id: 'sizing', label: 'Sizing' }, { id: 'curriculum', label: 'Study Plan' }, { id: 'reports', label: 'Reports' }, { id: 'equity', label: 'Equity' }, { id: 'nodelock', label: 'Node Lock' }, { id: 'quiz', label: 'Quiz' }, { id: 'compare', label: 'Compare' }, { id: 'rvr', label: 'RvR' }, { id: 'evtree', label: 'EV Tree' }, { id: 'bankroll', label: 'Bankroll' }, { id: 'spotfilter', label: 'Spot Filter' }, { id: 'hud', label: 'HUD' }, { id: 'notes', label: 'Notes' }, { id: 'leaks', label: 'Leaks' }, { id: 'dynamics', label: 'Dynamics' }, { id: 'runouts', label: 'Runouts' }, { id: 'mastery', label: 'Mastery' }, { id: 'mixed', label: 'Mixed' }, { id: 'replay', label: 'Replay' }, { id: 'textures', label: 'Textures' }, { id: 'charts', label: 'Charts' }, { id: 'strength', label: 'Strength' }, { id: 'exploits', label: 'Exploits' }, { id: 'chipev', label: 'ChipEV' }, { id: 'flopcat', label: 'Flop Cat' }, { id: 'potodds', label: 'Pot Odds' }, { id: 'stacks', label: 'Stacks' }, { id: 'bluffcat', label: 'Bluff Cat' }, { id: 'tilt', label: 'Tilt' }, { id: 'oracle', label: 'Oracle' }, { id: 'winrate', label: 'Win Rate' }, { id: 'posheat', label: 'Pos Heat' }, { id: 'goals', label: 'Goals' }, { id: 'rangemem', label: 'Range Mem' }, { id: 'multitable', label: 'Multi-Tbl' }, { id: 'cbet', label: 'C-Bet' }, { id: 'variance', label: 'Variance' }, { id: 'xraise', label: 'X-Raise' }, { id: 'handquiz', label: 'Hand Quiz' }, { id: 'rangelib', label: 'Range Lib' }, { id: 'boardquiz', label: 'Board Quiz' }, { id: 'posprofit', label: 'Pos Profit' }, { id: 'fticm', label: 'FT ICM' }, { id: 'overbet', label: 'Overbet' }, { id: 'headsup', label: 'Heads-Up' }, { id: 'timed', label: 'Timed' }, { id: 'squeeze', label: 'Squeeze' }, { id: 'float', label: 'Float' }, { id: 'blockers', label: 'Blockers' }, { id: 'tlife', label: 'MTT Life' }, { id: 'polar', label: 'Polarize' }, { id: 'thinval', label: 'Thin Value' }, { id: 'streets', label: 'Streets' }, { id: 'defense', label: 'Defense' }, { id: 'preflopsim', label: 'PF Sim' }, { id: 'spr', label: 'SPR' }, { id: 'blinddef', label: 'Blinds' }, { id: 'drawodds', label: 'Draw Odds' }, { id: 'foldeq', label: 'Fold Eq' }, { id: 'donk', label: 'Donk Bet' }, { id: 'mwstrat', label: 'MW Strat' }, { id: 'probe', label: 'Probe' }, { id: 'posquiz', label: 'Pos Quiz' }, { id: 'stackoff', label: 'Stack Off' }, { id: 'betpat', label: 'Bet Patterns' }, { id: 'turnbarrel', label: 'Turn Barrel' }, { id: 'shortstack', label: 'Short Stack' }, { id: 'rangebuild', label: 'Range Build' }, { id: 'capped', label: 'Capped' }, { id: 'bubble', label: 'Bubble' }, { id: 'handread', label: 'Hand Read' }, { id: 'geosizing', label: 'Geo Size' }, { id: 'massdata', label: 'Mass Data' }, { id: 'rivermatrix', label: 'River' }, { id: 'payjump', label: 'Pay Jumps' }, { id: 'xrsize', label: 'X/R Size' }, { id: 'cbetmatrix', label: 'C-Bet Map' }, { id: 'turnimpact', label: 'Turn Impact' }, { id: 'bvr', label: 'B:V Ratio' }, { id: 'slowplay', label: 'Slow Play' }, { id: 'kelly', label: 'Kelly' }, { id: 'pfequity', label: 'PF Equity' }, { id: 'glossary', label: 'Glossary' }, { id: 'potgeo', label: 'Pot Geo' }, { id: 'exploit', label: 'Exploit' }, { id: 'bluffcatch', label: 'Bluff Catch' }, { id: 'stackdepth', label: 'Depth' }, { id: 'xrstrat', label: 'X/R Strat' }, { id: 'obetrain', label: 'Overbet+' }, { id: 'msplan', label: 'MS Plan' }, { id: 'rvrsim', label: 'RvR Sim' }, { id: 'boardcov', label: 'Coverage' }, { id: 'fticmguide', label: 'FT ICM+' }, { id: 'leakfind', label: 'Leak Find' }, { id: 'hustrat', label: 'HU Strat' }, { id: '3bdef', label: '3B Def' }, { id: 'tiltfix', label: 'Tilt Fix' }, { id: 'eqreal', label: 'EQ Real' }, { id: 'combos', label: 'Combos' }, { id: 'sqzplay', label: 'Squeeze' }, { id: 'sessrev', label: 'Review+' }, { id: 'impodds', label: 'Implied' }, { id: 'posprof', label: 'Pos $' }, { id: 'cbguide', label: 'C-Bet+' }, { id: 'nutadv', label: 'Nut Adv' }, { id: 'pfchart', label: 'PF Chart' }, { id: 'mdfcalc', label: 'MDF' }, { id: '4bet', label: '4-Bet' }, { id: 'rivpol', label: 'Polarize+' }, { id: 'mttstage', label: 'MTT Stage' }, { id: 'betopt', label: 'Size Opt' }, { id: 'handrank', label: 'Rankings' }, { id: 'rngbal', label: 'Balance' }, { id: 'pfquiz', label: 'PF Quiz+' }, { id: 'seatsel', label: 'Seat Sel' }, { id: 'tribarrel', label: '3-Barrel' }, { id: 'potctrl', label: 'Pot Ctrl' }, { id: 'epguide', label: 'EP Guide' }, { id: 'chkbhd', label: 'Check IP' }, { id: 'blindbat', label: 'Blinds+' }, { id: 'rivsize', label: 'Riv Size' }, { id: 'tblimg', label: 'Image' }, { id: 'dblbarrel', label: '2-Barrel' }, { id: 'potcommit', label: 'Committed' }, { id: 'rngadv', label: 'Range Adv' }, { id: 'fishexp', label: 'Fish Exp' }, { id: 'smallball', label: 'Small Ball' }, { id: 'trapplay', label: 'Trap' }, { id: 'boardpair', label: 'Paired' }, { id: 'effstack', label: 'Eff Stack' }, { id: 'semibluff', label: 'Semi-Bluff' }, { id: 'valsize', label: 'Val Size' }, { id: 'opptend', label: 'Opp Tend' }, { id: 'mental', label: 'Mental' }, { id: 'pfllimp', label: 'Limp' }, { id: 'resteal', label: 'Resteal' }, { id: 'costrat', label: 'Cutoff' }, { id: 'btnplay', label: 'Button' }, { id: 'utgrange', label: 'UTG' }, { id: 'hjstrat', label: 'HiJack' }, { id: 'sbstrat', label: 'Sm Blind' }, { id: 'bbdef', label: 'BB Def' }, { id: 'floating', label: 'Float+' }, { id: 'probeblf', label: 'Probe' }, { id: 'xrtiming', label: 'X/R Time' }, { id: 'delaycb', label: 'Delay CB' }, { id: 'multitbl', label: 'Multi-Tbl+' }, { id: 'brmgmt', label: 'Bankroll+' }, { id: 'tblselect', label: 'Table Sel' }, { id: 'stakesldr', label: 'Stakes' }, { id: '3bpot', label: '3B Pot' }, { id: '4bpot', label: '4B Pot' }, { id: 'srpguide', label: 'SRP' }, { id: 'sqzpot', label: 'Sqz Pot' }, { id: 'turnxr', label: 'Turn X/R' }, { id: 'rivobet', label: 'Riv OB' }, { id: 'donkdef', label: 'Donk Def' }, { id: 'mergerng', label: 'Range Type' }, { id: 'balance', label: 'Balance+' }, { id: 'nodelock', label: 'Node Lock+' }, { id: 'polarizer', label: 'Polarizer' }, { id: 'eqbucket', label: 'EQ Bucket' }, { id: 'obbluff', label: 'OB Bluff' }, { id: 'valowned', label: 'Val Own' }, { id: 'chkcall', label: 'Chk-Call' }, { id: 'betfold', label: 'Bet-Fold' }, { id: 'potodds2', label: 'Pot Odds+' }, { id: 'drawplay', label: 'Draw Play' }, { id: 'nutblock', label: 'Nut Block' }, { id: 'cappeddet', label: 'Capped+' }, { id: 'mwcheck', label: 'MW Pot' }, { id: 'isoraise', label: 'Iso Raise' }, { id: 'latereg', label: 'Late Reg' }, { id: 'antesteal', label: 'Ante Steal' }, { id: 'turntex', label: 'Turn Tex' }, { id: 'rivimpact', label: 'Riv Impact' }, { id: 'rit', label: 'Run Twice' }, { id: 'allinev', label: 'AI EV' }, { id: 'pfagg', label: 'PF Agg' }, { id: 'pfmistake', label: 'PF Mistakes' }, { id: 'leakplug', label: 'Leak Plug' }, { id: 'wincond', label: 'Win Cond' }, { id: 'flopxr', label: 'Flop X/R' }, { id: 'trnprobe', label: 'Trn Probe' }, { id: 'rivbluff', label: 'Riv Catch' }, { id: 'posaware', label: 'Position+' }, { id: 'sbr', label: 'Stk:Blind' }, { id: 'pushfold', label: 'Push/Fold' }, { id: 'chipchop', label: 'Chip Chop' }, { id: 'icmdeal', label: 'ICM Deal' }, { id: 'mixedstrat', label: 'Mixed' }, { id: 'freqbench', label: 'Freq Bench' }, { id: 'indiff', label: 'Indiff' }, { id: 'gtoexp', label: 'GTO/Exp' }, { id: 'handcombo', label: 'Combos+' }, { id: 'rvr2', label: 'RvR+' }, { id: 'eqdist', label: 'EQ Dist' }, { id: 'evcalc', label: 'EV Calc' }, { id: 'sessrev', label: 'Sess Rev' }, { id: 'leakanal', label: 'Leak Ana' }, { id: 'studyplan', label: 'Study+' }, { id: 'progress', label: 'Progress' }, { id: 'analytics', label: 'Analytics' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -5521,6 +5521,86 @@ function GodModeArenaInner({
 
                     {reviewTab === 'wincond' && (<>
                         <WinConditionPlanner />
+                    </>)}
+
+                    {reviewTab === 'flopxr' && (<>
+                        <FlopCheckRaise />
+                    </>)}
+
+                    {reviewTab === 'trnprobe' && (<>
+                        <TurnProbeGuide />
+                    </>)}
+
+                    {reviewTab === 'rivbluff' && (<>
+                        <RiverBluffCatcher />
+                    </>)}
+
+                    {reviewTab === 'posaware' && (<>
+                        <PositionalAwareness />
+                    </>)}
+
+                    {reviewTab === 'sbr' && (<>
+                        <StackToBlindRatio />
+                    </>)}
+
+                    {reviewTab === 'pushfold' && (<>
+                        <PushFoldChart />
+                    </>)}
+
+                    {reviewTab === 'chipchop' && (<>
+                        <ChipChopCalc />
+                    </>)}
+
+                    {reviewTab === 'icmdeal' && (<>
+                        <ICMDealMaker />
+                    </>)}
+
+                    {reviewTab === 'mixedstrat' && (<>
+                        <MixedStrategyGuide />
+                    </>)}
+
+                    {reviewTab === 'freqbench' && (<>
+                        <FreqBenchmarks />
+                    </>)}
+
+                    {reviewTab === 'indiff' && (<>
+                        <IndifferenceCalc />
+                    </>)}
+
+                    {reviewTab === 'gtoexp' && (<>
+                        <GTOvsExploit />
+                    </>)}
+
+                    {reviewTab === 'handcombo' && (<>
+                        <HandCombinatorics />
+                    </>)}
+
+                    {reviewTab === 'rvr2' && (<>
+                        <RangeVsRange />
+                    </>)}
+
+                    {reviewTab === 'eqdist' && (<>
+                        <EquityDistribution />
+                    </>)}
+
+                    {reviewTab === 'evcalc' && (<>
+                        <EVCalculatorGuide />
+                    </>)}
+
+                    {reviewTab === 'sessrev' && (<>
+                        <SessionReviewTool />
+                    </>)}
+
+                    {reviewTab === 'leakanal' && (<>
+                        <LeakAnalyzer />
+                    </>)}
+
+                    {reviewTab === 'studyplan' && (<>
+                        <StudyPlanCreator />
+                    </>)}
+
+                    {reviewTab === 'progress' && (<>
+                        <ProgressDashboard />
                     </>)}
 
                     {/* ACTION BUTTONS */}
