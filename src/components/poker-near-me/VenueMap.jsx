@@ -825,7 +825,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
       clusterGroup.addLayer(marker);
     });
-  }, [venues, uniformColor, onVenueClick, mapReady]);
+  }, [venues, uniformColor, mapReady]);
 
   // Update user location marker
   useEffect(() => {

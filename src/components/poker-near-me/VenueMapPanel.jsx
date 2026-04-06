@@ -166,7 +166,11 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const userMarkerRef = useRef(null);
   const mountedRef = useRef(true);
   const leafletRef = useRef(null);
+  const onVenueSelectRef = useRef(onVenueSelect);
   const [mapReady, setMapReady] = useState(false);
+
+  // Keep callback ref current without triggering marker re-render
+  useEffect(() => { onVenueSelectRef.current = onVenueSelect; }, [onVenueSelect]);
 
   // Inject custom CSS once
   useEffect(() => {
@@ -323,8 +327,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           { className: 'pnm-popup', maxWidth: 280 }
         );
 
-      if (onVenueSelect) {
-        marker.on('click', () => onVenueSelect(v));
+      if (onVenueSelectRef.current) {
+        marker.on('click', () => onVenueSelectRef.current(v));
       }
 
       layer.addLayer(marker);
@@ -358,7 +362,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
       if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);
       map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
     }
-  }, [venues, userLocation, onVenueSelect, radiusMiles]);
+  }, [venues, userLocation, radiusMiles]);
 
   // ═══ DYNAMIC RADIUS ZOOM — Adjust zoom when radius filter changes ═══
   useEffect(() => {
