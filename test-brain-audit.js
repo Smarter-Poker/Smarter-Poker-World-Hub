@@ -4666,6 +4666,26 @@ test('Skill Evolution: drift capped at +10', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// PHASE 48e BUG #7 REGRESSION: boardWetness 'semi_wet' fix
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #7 REGRESSION: evaluateBoardWetness never returns semi_wet', () => {
+    const evalBW = brain.evaluateBoardWetness;
+    // Two-tone board with flush draw — should return 'medium' or 'wet', NOT 'semi_wet'
+    const twoTone = [{ rank: 12, suit: 'h' }, { rank: 7, suit: 'h' }, { rank: 3, suit: 'd' }];
+    const result = evalBW(twoTone);
+    const valid = ['dry', 'medium', 'wet'];
+    expect(valid.includes(result)).toBe(true);
+    expect(result !== 'semi_wet').toBe(true);
+});
+
+test('BUG #7 REGRESSION: monotone board = wet', () => {
+    const evalBW = brain.evaluateBoardWetness;
+    const mono = [{ rank: 12, suit: 'h' }, { rank: 7, suit: 'h' }, { rank: 3, suit: 'h' }];
+    expect(evalBW(mono)).toBe('wet');
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

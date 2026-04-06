@@ -9861,7 +9861,9 @@ function makeFlopHeuristicDecision(params) {
     const boardHasFlushDraw = maxSuitCount >= 2;
 
     // ═══ UPGRADED MULTIWAY ADJUSTMENTS (FLOP) ═══
-    const boardWetness = boardIsMonotone ? 'wet' : boardHasFlushDraw ? 'semi_wet' : 'dry';
+    // Phase 48e FIX #7: was 'semi_wet' — not a recognized value anywhere in the system.
+    // Standard vocabulary: 'dry', 'medium', 'wet'. Flush-draw boards are 'medium' (consistent with evaluateBoardWetness).
+    const boardWetness = boardIsMonotone ? 'wet' : boardHasFlushDraw ? 'medium' : 'dry';
     const mwAdj = multiway ? getMultiwayAdjustment(numPlayers, {
         position, street: 'flop', boardWetness, heroIsAggressor
     }) : { strengthPenalty: 0, bluffReduction: 1.0, valueBetThreshold: 0, cbetFreqMod: 0, callWidthMod: 0, adjustSizing: 0 };
@@ -17780,9 +17782,6 @@ module.exports = {
     handleDonkBet,
     applyTiltDegradation,
     analyzeBoardEvolution,
-    getSPRStrategy,
-    getCBetStrategy,
-    get3BetStrategy,
     shouldAutoSeat,
 
     // Phase 5: Analytics & Meta-Game
