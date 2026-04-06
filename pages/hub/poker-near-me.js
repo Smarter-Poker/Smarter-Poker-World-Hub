@@ -2064,37 +2064,26 @@ export default function PokerNearMePage() {
                     onMenuClick={() => setMenuOpen(true)} 
                 />
 
-                {/* In-page back button — navigates to Lobby */}
+                {/* In-page back button — brushed metal style */}
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     padding: '8px 16px',
-                    background: 'rgba(0,0,0,0.4)',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
                 }}>
-                    <button
+                    <img
+                        src="/images/btn-back.png"
+                        alt="Back To Lobby"
                         onClick={() => window.location.href = '/hub/poker-near-me-lobby'}
                         style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            borderRadius: 8,
-                            padding: '6px 14px',
-                            color: 'rgba(255,255,255,0.8)',
-                            fontSize: 13,
-                            fontWeight: 600,
+                            height: 36,
                             cursor: 'pointer',
-                            fontFamily: 'inherit',
-                            transition: 'all 0.15s',
+                            transition: 'opacity 0.15s, transform 0.15s',
+                            opacity: 0.9,
+                            filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
                         }}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="15 18 9 12 15 6" />
-                        </svg>
-                        Back To Lobby
-                    </button>
+                        onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.04)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1)'; }}
+                    />
                 </div>
 
                 {/* Hamburger Menu */}
