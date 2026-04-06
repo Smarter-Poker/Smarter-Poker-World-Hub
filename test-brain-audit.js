@@ -1438,15 +1438,300 @@ test('get3BetStrategy: short stack jam with premium', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// SUMMARY
+console.log('\n══ PHASE 47: getDecision master pipeline ══');
 // ═══════════════════════════════════════════════════════════
 
-console.log('\n══════════════════════════════════════');
-console.log(`RESULTS: ${passed} passed, ${failed} failed`);
-if (errors.length > 0) {
-    console.log('\nFAILED TESTS:');
-    errors.forEach(e => console.log(`  ❌ ${e.name}: ${e.error}`));
+// getDecision is async — we need an async test runner
+const asyncTests = [];
+function asyncTest(name, fn) {
+    asyncTests.push({ name, fn });
 }
-console.log('══════════════════════════════════════\n');
 
-process.exit(failed > 0 ? 1 : 0);
+const getDecision = brain.getDecision;
+
+// Helper: minimal engine state for getDecision
+function mkEngineState(overrides = {}) {
+    return {
+        players: overrides.players || [
+            { id: 'horse-1', holeCards: [{ rank: 'A', suit: 'h' }, { rank: 'K', suit: 'd' }], stack: 200, position: 'BTN', folded: false, invested: 0 },
+            { id: 'opp-1', holeCards: [{ rank: '2', suit: 'c' }, { rank: '3', suit: 's' }], stack: 200, position: 'BB', folded: false, invested: 0 },
+        ],
+        communityCards: overrides.communityCards || [],
+        phase: overrides.phase || 'preflop',
+        potTotal: overrides.potTotal || 6,
+        currentBet: overrides.currentBet || 0,
+        tableId: overrides.tableId || 'test-table-gd',
+        lastRaiser: overrides.lastRaiser || null,
+        ...overrides,
+    };
+}
+
+function mkLegal(types) {
+    return types.map(t => {
+        if (t === 'check') return { type: 'check' };
+        if (t === 'fold') return { type: 'fold' };
+        if (t === 'call') return { type: 'call' };
+        if (t === 'bet') return { type: 'bet', minAmount: 4, maxAmount: 200 };
+        if (t === 'raise') return { type: 'raise', minAmount: 8, maxAmount: 200 };
+        if (t === 'all_in') return { type: 'all_in', amount: 200 };
+        return { type: t };
+    });
+}
+
+// --- Test 1: getDecision returns valid structure ---
+asyncTest('getDecision returns {action, delayMs}', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5; // Suppress chaos/randomness
+    try {
+        const result = await getDecision(
+            'horse-1',
+            mkEngineState(),
+            mkLegal(['check', 'bet']),
+            { bigBlind: 2 }
+        );
+        expect(result).toHaveProperty('action');
+        expect(result).toHaveProperty('delayMs');
+        expect(result.action).toHaveProperty('type');
+        const validTypes = ['check', 'fold', 'call', 'raise', 'bet', 'all_in'];
+        if (!validTypes.includes(result.action.type)) throw new Error(`Invalid action type: ${result.action.type}`);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 2: getDecision with no legal actions returns fold ---
+asyncTest('getDecision with empty legal actions returns fold', async () => {
+    const result = await getDecision('horse-1', mkEngineState(), [], { bigBlind: 2 });
+    expect(result.action.type).toBe('fold');
+    expect(result.delayMs).toBe(500);
+});
+
+// --- Test 3: getDecision with no hole cards returns check/fold ---
+asyncTest('getDecision with no hole cards returns check or fold', async () => {
+    const state = mkEngineState({
+        players: [
+            { id: 'horse-1', holeCards: null, stack: 200, position: 'BTN', folded: false, invested: 0 },
+            { id: 'opp-1', holeCards: [{ rank: '2', suit: 'c' }, { rank: '3', suit: 's' }], stack: 200, position: 'BB', folded: false },
+        ],
+    });
+    const result = await getDecision('horse-1', state, mkLegal(['check', 'bet']), { bigBlind: 2 });
+    if (result.action.type !== 'check' && result.action.type !== 'fold') {
+        throw new Error(`Expected check or fold, got ${result.action.type}`);
+    }
+});
+
+// --- Test 4: Flop heuristic fires (no GTO module) ---
+asyncTest('getDecision flop uses heuristic engine', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.99; // suppress chaos, suppress random bets
+    try {
+        const state = mkEngineState({
+            phase: 'flop',
+            communityCards: [{ rank: 'K', suit: 'c' }, { rank: '7', suit: 'd' }, { rank: '3', suit: 's' }],
+            potTotal: 20,
+            currentBet: 0,
+            lastRaiser: 'horse-1', // hero is aggressor
+        });
+        const result = await getDecision('horse-1', state, mkLegal(['check', 'bet']), { bigBlind: 2 });
+        // AK on K73 is top pair — should bet or check (not fold since we're not facing a bet)
+        if (result.action.type === 'fold') throw new Error('Should not fold top pair on flop');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 5: Turn/river heuristic fires ---
+asyncTest('getDecision turn uses heuristic engine', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.99;
+    try {
+        const state = mkEngineState({
+            phase: 'turn',
+            communityCards: [{ rank: 'K', suit: 'c' }, { rank: '7', suit: 'd' }, { rank: '3', suit: 's' }, { rank: '2', suit: 'h' }],
+            potTotal: 40,
+            currentBet: 0,
+            lastRaiser: 'horse-1',
+        });
+        const result = await getDecision('horse-1', state, mkLegal(['check', 'bet']), { bigBlind: 2 });
+        if (result.action.type === 'fold') throw new Error('Should not fold top pair on turn');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 6: River with trash hand facing big bet folds ---
+asyncTest('getDecision river folds trash facing big bet', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.99; // suppress chaos
+    try {
+        const state = mkEngineState({
+            phase: 'river',
+            players: [
+                { id: 'horse-1', holeCards: [{ rank: '2', suit: 'h' }, { rank: '4', suit: 'd' }], stack: 200, position: 'BTN', folded: false, invested: 0 },
+                { id: 'opp-1', holeCards: [{ rank: 'A', suit: 'c' }, { rank: 'A', suit: 's' }], stack: 200, position: 'BB', folded: false },
+            ],
+            communityCards: [{ rank: 'K', suit: 'c' }, { rank: 'Q', suit: 'd' }, { rank: 'J', suit: 's' }, { rank: '9', suit: 'h' }, { rank: '8', suit: 'c' }],
+            potTotal: 100,
+            currentBet: 80,
+        });
+        const result = await getDecision('horse-1', state, mkLegal(['fold', 'call', 'raise']), { bigBlind: 2 });
+        expect(result.action.type).toBe('fold');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 7: Preflop fallback produces valid action ---
+asyncTest('getDecision preflop produces valid action', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.99;
+    try {
+        const result = await getDecision(
+            'horse-1',
+            mkEngineState({ phase: 'preflop', potTotal: 3, currentBet: 2 }),
+            mkLegal(['fold', 'call', 'raise']),
+            { bigBlind: 2 }
+        );
+        const validTypes = ['fold', 'call', 'raise', 'bet', 'check', 'all_in'];
+        if (!validTypes.includes(result.action.type)) throw new Error(`Invalid: ${result.action.type}`);
+        expect(result.delayMs).toBeGreaterThanOrEqual(800);
+        expect(result.delayMs).toBeLessThanOrEqual(7000);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 8: delayMs is clamped to [800, 7000] ---
+asyncTest('getDecision delayMs is in [800, 7000]', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+        const result = await getDecision('horse-1', mkEngineState(), mkLegal(['check', 'bet']), { bigBlind: 2 });
+        expect(result.delayMs).toBeGreaterThanOrEqual(800);
+        expect(result.delayMs).toBeLessThanOrEqual(7000);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 9: Guardrail — never fold the nuts postflop ---
+asyncTest('getDecision guardrail: never fold strong hand postflop', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.99;
+    try {
+        // AA on A-A-K board = quads, strength ~95+
+        const state = mkEngineState({
+            phase: 'flop',
+            players: [
+                { id: 'horse-1', holeCards: [{ rank: 'A', suit: 'h' }, { rank: 'A', suit: 'd' }], stack: 200, position: 'BTN', folded: false, invested: 0 },
+                { id: 'opp-1', holeCards: [{ rank: '2', suit: 'c' }, { rank: '3', suit: 's' }], stack: 200, position: 'BB', folded: false },
+            ],
+            communityCards: [{ rank: 'A', suit: 'c' }, { rank: 'A', suit: 's' }, { rank: 'K', suit: 'd' }],
+            potTotal: 100,
+            currentBet: 80,
+        });
+        const result = await getDecision('horse-1', state, mkLegal(['fold', 'call', 'raise']), { bigBlind: 2 });
+        if (result.action.type === 'fold') throw new Error('Should never fold quads');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 10: bet/raise amounts are always clamped ---
+asyncTest('getDecision clamps bet amounts to legal range', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+        const state = mkEngineState({
+            phase: 'flop',
+            communityCards: [{ rank: 'K', suit: 'c' }, { rank: '7', suit: 'd' }, { rank: '3', suit: 's' }],
+            potTotal: 20,
+            currentBet: 0,
+            lastRaiser: 'horse-1',
+        });
+        const legal = [{ type: 'check' }, { type: 'bet', minAmount: 10, maxAmount: 50 }];
+        const result = await getDecision('horse-1', state, legal, { bigBlind: 2 });
+        if (result.action.type === 'bet') {
+            if (result.action.amount < 10) throw new Error(`Amount ${result.action.amount} below min 10`);
+            if (result.action.amount > 50) throw new Error(`Amount ${result.action.amount} above max 50`);
+        }
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 11: Donk bet handler fires when hero was PFA and facing bet ---
+asyncTest('getDecision donk handler responds to donk bet', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.99;
+    try {
+        // Hero was the preflop raiser (lastRaiser = 'horse-1'), now facing a bet on flop
+        const state = mkEngineState({
+            phase: 'flop',
+            communityCards: [{ rank: 'K', suit: 'c' }, { rank: '7', suit: 'd' }, { rank: '3', suit: 's' }],
+            potTotal: 30,
+            currentBet: 10,
+            lastRaiser: 'horse-1',
+        });
+        // AK on K73 facing 10-chip donk bet — should call or raise, not fold
+        const result = await getDecision('horse-1', state, mkLegal(['fold', 'call', 'raise']), { bigBlind: 2 });
+        if (result.action.type === 'fold') throw new Error('Should not fold top pair facing donk bet');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// --- Test 12: SPR trap detector folds marginal hand facing large bet ---
+asyncTest('getDecision SPR trap folds marginal hand', async () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.99;
+    try {
+        // Middle pair (9h on K93 board), hero has 30bb, pot is 60, facing 50 chip bet
+        // This creates a low SPR pot-commit situation with a marginal hand
+        const state = mkEngineState({
+            phase: 'turn',
+            players: [
+                { id: 'horse-1', holeCards: [{ rank: '9', suit: 'h' }, { rank: '2', suit: 'd' }], stack: 60, position: 'BTN', folded: false, invested: 0 },
+                { id: 'opp-1', holeCards: [{ rank: 'A', suit: 'c' }, { rank: 'A', suit: 's' }], stack: 200, position: 'BB', folded: false },
+            ],
+            communityCards: [{ rank: 'K', suit: 'c' }, { rank: '9', suit: 'd' }, { rank: '3', suit: 's' }, { rank: 'J', suit: 'h' }],
+            potTotal: 80,
+            currentBet: 50,
+        });
+        const result = await getDecision('horse-1', state, mkLegal(['fold', 'call']), { bigBlind: 2 });
+        // Second pair with bad kicker facing 50 into 80 — should fold (SPR trap or guardrail)
+        expect(result.action.type).toBe('fold');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// ASYNC TEST RUNNER + SUMMARY
+// ═══════════════════════════════════════════════════════════
+
+async function runAsyncTests() {
+    for (const t of asyncTests) {
+        try {
+            await t.fn();
+            passed++;
+            console.log(`  ✅ ${t.name}`);
+        } catch (e) {
+            failed++;
+            errors.push({ name: t.name, error: e.message });
+            console.log(`  ❌ ${t.name}: ${e.message}`);
+        }
+    }
+
+    console.log('\n══════════════════════════════════════');
+    console.log(`RESULTS: ${passed} passed, ${failed} failed`);
+    if (errors.length > 0) {
+        console.log('\nFAILED TESTS:');
+        errors.forEach(e => console.log(`  ❌ ${e.name}: ${e.error}`));
+    }
+    console.log('══════════════════════════════════════\n');
+
+    process.exit(failed > 0 ? 1 : 0);
+}
+
+runAsyncTests();
