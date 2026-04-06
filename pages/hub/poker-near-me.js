@@ -976,6 +976,7 @@ export default function PokerNearMePage() {
     // --- NEW: Helper functions ---
     const toggleFavorite = useCallback(async (type, id, e, itemData = {}) => {
         if (e) { e.stopPropagation(); e.preventDefault(); }
+        if (!id) return;
         const key = type + '-' + id;
         const isCurrentlyFavorited = favorites[key];
 

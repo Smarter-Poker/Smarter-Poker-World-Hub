@@ -29,11 +29,11 @@ export async function getVenueFavorites(userId) {
 export async function addVenueFavorite(userId, venueId, venueData = {}) {
     const { data, error } = await supabase
         .from('poker_near_me_favorites')
-        .insert({
+        .upsert({
             user_id: userId,
             venue_id: venueId,
             venue_name: venueData.name || null
-        })
+        }, { onConflict: 'user_id,venue_id' })
         .select()
         .maybeSingle();
 
