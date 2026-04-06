@@ -1119,6 +1119,7 @@ export default function VenueDetailPage() {
   };
 
   var openNativeMaps = function () {
+    if (!venue) return;
     var addr = encodeURIComponent(
       [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(', ')
     );

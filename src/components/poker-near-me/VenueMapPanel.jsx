@@ -83,34 +83,37 @@ function truncateName(name, maxLen) {
   return short.slice(0, maxLen - 1).trim() + '…';
 }
 
-// ─── Create logo-based venue icon ───
+// ─── Create logo-based venue icon (Tour-style round circle) ───
 function createVenueIcon(L, venue) {
   const colors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
-  const label = truncateName(venue.name, 18);
+  const label = truncateName(venue.name, 20);
   const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   const logoUrl = venue?.logo_url || venue?.logoUrl || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 
-  const logoHtml = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;background:#fff;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;width:100%;height:100%;background:#0a0a15;color:${colors.fill};font-size:12px;font-weight:900;align-items:center;justify-content:center;border-radius:50%;">${initials}</div>`
-    : `<div style="width:100%;height:100%;background:#0a0a15;color:${colors.fill};font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border-radius:50%;">${initials}</div>`;
+  // Logo or initials — matches the Poker Tours round-circle style
+  const innerContent = logoUrl
+    ? `<img src="${logoUrl}" alt="" style="width:30px;height:30px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+       <div style="display:none;font-size:12px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`
+    : `<div style="font-size:12px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`;
+
+  // Name label — dark pill badge underneath (same style as tour pins)
+  const labelHtml = escapedLabel
+    ? `<div class="vmp-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:2px 7px;border-radius:12px;font-size:9px;font-weight:800;white-space:nowrap;border:1px solid ${colors.fill}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.3px;z-index:999;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${escapedLabel}</div>`
+    : '';
 
   return L.divIcon({
     className: 'vmp-venue-marker',
-    html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center;">
-      <div style="position:relative; width:40px; height:40px; filter:drop-shadow(0 3px 5px rgba(0,0,0,0.8)); margin-bottom: 4px;">
-         <div style="position:absolute; width:100%; height:100%; background:${colors.fill}; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border: 2px solid rgba(255,255,255,1); box-sizing:border-box; box-shadow: inset 0 0 6px rgba(0,0,0,0.4);"></div>
-         <div style="position:absolute; top:3px; left:3px; width:34px; height:34px; border-radius:50%; overflow:hidden; background:#0a0a15; display:flex; justify-content:center; align-items:center; z-index:2; border: 1.5px solid ${colors.fill}; box-sizing:border-box;">
-            ${logoHtml}
-         </div>
+    html: `<div style="position:relative;width:40px;height:40px;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${colors.fill};box-shadow:0 0 12px ${colors.fill}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        ${innerContent}
       </div>
-      ${escapedLabel ? `<div class="vmp-pin-label">${escapedLabel}</div>` : ''}
+      ${labelHtml}
     </div>`,
-    iconSize: [40, 48],
-    iconAnchor: [20, 46],
-    popupAnchor: [0, -44],
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -22],
   });
 }
 

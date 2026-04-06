@@ -142,29 +142,7 @@ const LEAFLET_CUSTOM_CSS = `
   50% { transform: scale(2.2); opacity: 0; }
 }
 
-/* ═══ VENUE LABEL (Google Maps-style) ═══ */
-.venue-pin-label {
-  position: absolute;
-  left: 50%;
-  top: 100%;
-  transform: translateX(-50%);
-  margin-top: 2px;
-  white-space: nowrap;
-  font-family: 'Inter', -apple-system, sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1), 0 0 8px rgba(0,0,0,0.7);
-  letter-spacing: 0.2px;
-  pointer-events: none;
-  max-width: 130px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  line-height: 1.2;
-  transition: opacity 0.3s;
-}
-/* Hide labels at low zoom — managed via JS class toggle */
+/* ═══ VENUE LABEL — Hide at low zoom ═══ */
 .venue-labels-hidden .venue-pin-label {
   display: none !important;
 }
@@ -267,36 +245,39 @@ function truncateName(name, maxLen) {
   return short.slice(0, maxLen - 1).trim() + '…';
 }
 
-// ─── Helper: Create venue marker icon (Google Maps-style pin with label) ───
+// ─── Helper: Create venue marker icon (Tour-style round circle with label) ───
 function createVenueIcon(L, venue, overrideColor) {
   const colors = overrideColor
     ? { fill: overrideColor, glow: overrideColor + '80' }
     : (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR);
-  const label = truncateName(venue.name, 20);
+  const label = truncateName(venue.name, 22);
   const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   
   const logoUrl = venue?.logo_url || venue?.logoUrl || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 
-  const logoHtml = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;background:#fff;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;width:100%;height:100%;background:#0a0a15;color:${colors.fill};font-size:13px;font-weight:900;align-items:center;justify-content:center;border-radius:50%;">${initials}</div>`
-    : `<div style="width:100%;height:100%;background:#0a0a15;color:${colors.fill};font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;border-radius:50%;">${initials}</div>`;
+  // Logo or initials — matches the Poker Tours round-circle style
+  const innerContent = logoUrl
+    ? `<img src="${logoUrl}" alt="" style="width:34px;height:34px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+       <div style="display:none;font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`
+    : `<div style="font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`;
+
+  // Name label — dark pill badge underneath (same style as tour pins)
+  const labelHtml = escapedLabel
+    ? `<div class="venue-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:800;white-space:nowrap;border:1px solid ${colors.fill}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.3px;z-index:999;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${escapedLabel}</div>`
+    : '';
 
   return L.divIcon({
     className: 'venue-map-marker',
-    html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center;">
-      <div style="position:relative; width:44px; height:44px; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.8)); margin-bottom: 6px;">
-         <div style="position:absolute; width:100%; height:100%; background:${colors.fill}; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border: 2.5px solid rgba(255,255,255,1); box-sizing:border-box; box-shadow: inset 0 0 8px rgba(0,0,0,0.4);"></div>
-         <div style="position:absolute; top:3px; left:3px; width:38px; height:38px; border-radius:50%; overflow:hidden; background:#0a0a15; display:flex; justify-content:center; align-items:center; z-index:2; border: 1.5px solid ${colors.fill}; box-sizing:border-box;">
-            ${logoHtml}
-         </div>
+    html: `<div style="position:relative;width:44px;height:44px;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${colors.fill};box-shadow:0 0 12px ${colors.fill}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        ${innerContent}
       </div>
-      ${escapedLabel ? `<div class="venue-pin-label" style="transform:translateY(-2px);">${escapedLabel}</div>` : ''}
+      ${labelHtml}
     </div>`,
-    iconSize: [44, 52],
-    iconAnchor: [22, 50],
-    popupAnchor: [0, -48],
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -24],
   });
 }
 
@@ -590,6 +571,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         } else {
           window.location.href = url;
         }
+        return;
       }
       // Directions button — open native maps app based on device
       const dirTrigger = e.target.closest('.directions-trigger');
@@ -601,7 +583,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         const lng = dirTrigger.getAttribute('data-lng');
         const ua = navigator.userAgent || '';
         if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
-          window.open('https://maps.apple.com/?daddr=' + lat + ',' + lng + '&q=' + addr, '_blank');
+          window.open('https://maps.apple.com/?daddr=' + lat + ',' + lng, '_blank');
         } else if (/Android/i.test(ua)) {
           window.location.href = 'geo:' + lat + ',' + lng + '?q=' + addr;
         } else {
