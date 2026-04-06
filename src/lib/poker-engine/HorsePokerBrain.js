@@ -10579,6 +10579,21 @@ function makeFlopHeuristicDecision(params) {
         if (oppBluffFreq > 0.35 && oppConfidence > 0.3) {
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
+        // ═══ LIVE-READ FLOP MEDIUM HAND CALL (Phase 27) ═══
+        if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+            // Live bluffer: call with medium hands
+            if (flopLiveRead.bluffRate !== null && flopLiveRead.bluffRate > 0.30) {
+                return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+            // Live passive player big betting: fold more medium hands
+            if (flopLiveRead.aggFreq < 0.18 && betToPot >= 0.60 && handEval.strength < 40) {
+                return canCheck ? { type: 'check' } : { type: 'fold' };
+            }
+            // One-and-done: call to steal turn
+            if (flopLiveRead.secondBarrelPct !== null && flopLiveRead.secondBarrelPct < 0.30 && handEval.strength >= 25) {
+                return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+        }
         // ── Range advantage call modifier ──
         // When board favors our range, medium hands have more showdown value
         if (rangeAdvantage === 'caller' && !heroIsAggressor && handEval.strength >= 32 && betToPot <= 0.55) {
@@ -10602,6 +10617,20 @@ function makeFlopHeuristicDecision(params) {
         if (oppCbetFreq > 0.65 && oppConfidence > 0.3) floatFreq += 0.08; // Wide c-bets = float more
         if (oppTendency === 'bluffy' && oppConfidence > 0.3) floatFreq -= 0.06; // They'll double barrel
         if (oppCallFreq > 0.60 && oppConfidence > 0.3) floatFreq -= 0.04; // Sticky opponents
+        // ═══ LIVE-READ FLOP FLOAT (Phase 27) ═══
+        if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+            // ONE-AND-DONE: c-bets lot but rarely double barrels → FLOAT HEAVEN
+            if (flopLiveRead.cBetPct !== null && flopLiveRead.cBetPct > 0.60 &&
+                flopLiveRead.secondBarrelPct !== null && flopLiveRead.secondBarrelPct < 0.35) {
+                floatFreq += 0.15;
+            }
+            // Low WTSD: they give up easily → float profitably
+            if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd < 0.22) floatFreq += 0.08;
+            // High WTSD: they don't fold → don't float
+            if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd > 0.35) floatFreq -= 0.08;
+            // High second barrel: they keep firing → float less
+            if (flopLiveRead.secondBarrelPct !== null && flopLiveRead.secondBarrelPct > 0.55) floatFreq -= 0.08;
+        }
 
         // ── Board texture for floating ──
         // Dry boards: float more (turn cards are more likely to be scare cards we can bluff)
