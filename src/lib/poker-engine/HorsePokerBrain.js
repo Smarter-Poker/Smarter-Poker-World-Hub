@@ -6241,11 +6241,46 @@ function makeTurnRiverHeuristicDecision(params) {
         oppInHandActions = liveRead.inHandActions;
 
         // ═══ TIMING TELL INTEGRATION ═══
-        // Snap-actions suggest auto-pilot or strong hands (instacall = strong draw or made hand)
-        // Long tanks suggest difficult decisions (marginal hands, close bluff spots)
+        // Two layers: (1) overall pattern and (2) THIS specific action's timing.
         if (liveRead.snapFreq !== null && liveRead.longTankFreq !== null) {
-            if (liveRead.snapFreq > 0.50) oppTimingTell = 'fast_player'; // Plays quickly
+            if (liveRead.snapFreq > 0.50) oppTimingTell = 'fast_player';
             else if (liveRead.longTankFreq > 0.25) oppTimingTell = 'slow_player';
+        }
+
+        // ═══ PHASE 15: CURRENT ACTION TIMING TELL ═══
+        // Compare opponent's decision time on THIS action vs their personal baseline.
+        // Deviation from baseline is the real tell:
+        //   snap_call on river → very strong (or auto-fold-if-raised)
+        //   tank_aggression → marginal value or considering bluff
+        //   tank_call → drawing hand or marginal made hand
+        //   snap_aggression → polarized (nuts or auto-bluff)
+        let currentActionTimingTell = 'unknown';
+        let currentActionTimingMs = null;
+        if (liveRead.inHandActions && liveRead.inHandActions.lastAction) {
+            const lastAct = liveRead.inHandActions.lastAction;
+            currentActionTimingMs = lastAct.timing || null;
+
+            if (currentActionTimingMs !== null && liveRead.timingProfile) {
+                const streetAvg = liveRead.timingProfile[street]?.avgMs || liveRead.avgDecisionMs;
+                if (streetAvg && streetAvg > 0) {
+                    const ratio = currentActionTimingMs / streetAvg;
+                    if (ratio < 0.40) {
+                        currentActionTimingTell = lastAct.action === 'call' ? 'snap_call'
+                            : (lastAct.action === 'raise' || lastAct.action === 'bet') ? 'snap_aggression'
+                            : 'snap_action';
+                    } else if (ratio > 2.0) {
+                        currentActionTimingTell = lastAct.action === 'call' ? 'tank_call'
+                            : (lastAct.action === 'raise' || lastAct.action === 'bet') ? 'tank_aggression'
+                            : 'tank_action';
+                    } else if (ratio > 1.5) {
+                        currentActionTimingTell = 'deliberate';
+                    }
+                } else if (currentActionTimingMs < 3000) {
+                    currentActionTimingTell = 'snap_action';
+                } else if (currentActionTimingMs > 15000) {
+                    currentActionTimingTell = 'tank_action';
+                }
+            }
         }
 
         // ═══ EXPLOIT PATTERN APPLICATION ═══
@@ -7013,6 +7048,21 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.25) bluffFreq += 0.08;
                 // Against calling stations, don't bluff
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) bluffFreq = 0;
+
+                // ═══ PHASE 15: CURRENT-ACTION TIMING TELL → BLUFF ADJUSTMENT ═══
+                // Opponent's timing on THIS action tells us how they feel about their hand.
+                if (currentActionTimingTell !== 'unknown' && oppConfidence >= 0.20) {
+                    if (currentActionTimingTell === 'tank_call') {
+                        // Tank-call on prior street = marginal hand → barrel them off
+                        bluffFreq += 0.08;
+                    } else if (currentActionTimingTell === 'snap_call') {
+                        // Snap-call = committed/strong → reduce bluffing
+                        bluffFreq -= 0.06;
+                    } else if (currentActionTimingTell === 'deliberate') {
+                        // Took a bit long = not auto-strength → slight barrel boost
+                        bluffFreq += 0.03;
+                    }
+                }
 
                 // ═══ SPR-DRIVEN BLUFF ADJUSTMENT ═══
                 // Low SPR = bluffs are too expensive (committing chips with air)
@@ -7819,6 +7869,22 @@ function makeTurnRiverHeuristicDecision(params) {
                 // ═══ HEAVY POT CAUTION ═══
                 if (oppStreetAggression === 'very_heavy') bluffProbability -= 0.10;
 
+                // ═══ PHASE 15: CURRENT-ACTION TIMING TELL → RIVER BLUFF ═══
+                if (currentActionTimingTell !== 'unknown' && oppConfidence >= 0.20) {
+                    if (currentActionTimingTell === 'tank_call') {
+                        // Tank-called the turn = marginal hand, likely folds to river pressure
+                        bluffProbability += 0.10;
+                    } else if (currentActionTimingTell === 'snap_call') {
+                        // Snap-called = strong hand, not folding to river bluff
+                        bluffProbability -= 0.08;
+                    } else if (currentActionTimingTell === 'tank_aggression') {
+                        // Tank-bet the turn = unsure, might fold to check-raise or river pressure
+                        bluffProbability += 0.05;
+                    } else if (currentActionTimingTell === 'deliberate') {
+                        bluffProbability += 0.03;
+                    }
+                }
+
                 // ═══ SPR + POLARIZATION BLUFF ADJUSTMENT (RIVER) ═══
                 bluffProbability *= sprStrategy.bluffMult * polarBluffMod;
 
@@ -8140,6 +8206,37 @@ function makeTurnRiverHeuristicDecision(params) {
         if (oppTimingTell === 'fast_player' && oppConfidence > 0.2) {
             // Fast players tend to play less optimally → call slightly wider
             dynFoldThreshold = Math.max(15, dynFoldThreshold - 2);
+        }
+
+        // ═══ PHASE 15: CURRENT ACTION TIMING TELL — FOLD THRESHOLD ═══
+        // This is the timing of THIS SPECIFIC action, compared to their baseline.
+        // Much more powerful than overall player speed — reveals hand-specific tells.
+        if (currentActionTimingTell !== 'unknown' && oppConfidence >= 0.20) {
+            if (currentActionTimingTell === 'snap_call') {
+                // Snap-call on turn/river = strong made hand or committed draw
+                // Don't try to bluff them off → raise threshold for value-only
+                dynFoldThreshold = Math.max(15, dynFoldThreshold - 1);
+            } else if (currentActionTimingTell === 'snap_aggression') {
+                // Snap-bet or snap-raise = polarized (auto-bluff or nut hand)
+                // With blockers → call wider. Without → fold tighter.
+                if (hasAnyBlocker) {
+                    dynFoldThreshold = Math.max(15, dynFoldThreshold - 4);
+                } else {
+                    dynFoldThreshold = Math.min(50, dynFoldThreshold + 1);
+                }
+            } else if (currentActionTimingTell === 'tank_aggression') {
+                // Long tank then bet/raise = marginal value or thin bluff
+                // They were UNSURE → call wider, their range is weak
+                dynFoldThreshold = Math.max(15, dynFoldThreshold - 3);
+            } else if (currentActionTimingTell === 'tank_call') {
+                // Long tank then call = drawing or marginal
+                // If we can barrel again, their range is capped
+                dynFoldThreshold = Math.max(18, dynFoldThreshold - 1);
+            } else if (currentActionTimingTell === 'deliberate') {
+                // Slightly longer than average = genuine decision
+                // Slight fold threshold reduction (they're not super strong)
+                dynFoldThreshold = Math.max(18, dynFoldThreshold - 1);
+            }
         }
 
         // ═══ IN-HAND ACTION SEQUENCE — FOLD THRESHOLD ═══
