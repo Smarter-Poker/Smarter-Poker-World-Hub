@@ -40,6 +40,10 @@ def upsert_venue_python(supabase_url, service_key, venue):
         existing_venues = []
 
     clean = {k: v for k, v in venue.items() if v is not None and v != ''}
+    # Force canonical base name to prevent flip-flopping between location-specific names
+    if 'name' in clean:
+        clean['name'] = base_name
+            
     if 'is_active' in clean:
         clean['is_active'] = True
 

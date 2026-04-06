@@ -271,26 +271,37 @@ export default function TourDetailPage() {
         pageDepth={1} 
       />
 
-      {/* In-page back button — brushed metal style */}
+      {/* In-page back button — navigates to PNM Tours */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         padding: '8px 16px',
+        background: 'rgba(0,0,0,0.4)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <img
-          src="/images/btn-back.png"
-          alt="Back To Tours"
+        <button
           onClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=tours')}
           style={{
-            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 8,
+            padding: '6px 14px',
+            color: 'rgba(255,255,255,0.8)',
+            fontSize: 13,
+            fontWeight: 600,
             cursor: 'pointer',
-            transition: 'opacity 0.15s, transform 0.15s',
-            opacity: 0.9,
-            filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))',
+            fontFamily: 'inherit',
+            transition: 'all 0.15s',
           }}
-          onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.04)'; }}
-          onMouseOut={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1)'; }}
-        />
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back To Tours
+        </button>
       </div>
 
       <div className="tour-page">
@@ -381,7 +392,73 @@ export default function TourDetailPage() {
               </div>
             </section>
 
-                        {/* Upcoming Series Section */}
+            {/* About Section */}
+            <section className="tour-about">
+              <h2 className="section-title">About</h2>
+              <div className="about-grid">
+                {tour.official_website && (
+                  <div className="about-item">
+                    <span className="about-label">Official Website</span>
+                    <a
+                      href={tour.official_website.startsWith('http') ? tour.official_website : ('https://' + tour.official_website)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="about-link"
+                    >
+                      {tour.official_website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '4px' }}>
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+                  </div>
+                )}
+
+                {tour.established && (
+                  <div className="about-item">
+                    <span className="about-label">Established</span>
+                    <span className="about-value">{tour.established}</span>
+                  </div>
+                )}
+
+                {tour.typical_buyins && (tour.typical_buyins.min != null || tour.typical_buyins.max != null) && (
+                  <div className="about-item">
+                    <span className="about-label">Typical Buy-In Range</span>
+                    <span className="about-value">
+                      {tour.typical_buyins.min != null && tour.typical_buyins.max != null
+                        ? (formatMoney(tour.typical_buyins.min) + ' - ' + formatMoney(tour.typical_buyins.max))
+                        : tour.typical_buyins.min != null
+                          ? ('From ' + formatMoney(tour.typical_buyins.min))
+                          : ('Up to ' + formatMoney(tour.typical_buyins.max))}
+                      {tour.typical_buyins.main_event && (
+                        <span className="main-event-buyin">{' (Main Event: ' + formatMoney(tour.typical_buyins.main_event) + ')'}</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {tour.regions && tour.regions.length > 0 && (
+                  <div className="about-item about-item-full">
+                    <span className="about-label">Regions</span>
+                    <div className="regions-list">
+                      {tour.regions.map((region, idx) => (
+                        <span key={idx} className="region-tag">{region}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {tour.notes && (
+                  <div className="about-item about-item-full">
+                    <span className="about-label">Notes</span>
+                    <p className="about-notes">{tour.notes}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Upcoming Series Section */}
             <section className="tour-series">
               <h2 className="section-title">
                 Upcoming Stops
@@ -518,72 +595,6 @@ export default function TourDetailPage() {
                 </div>
               </section>
             )}
-
-{/* About Section */}
-            <section className="tour-about">
-              <h2 className="section-title">About</h2>
-              <div className="about-grid">
-                {tour.official_website && (
-                  <div className="about-item">
-                    <span className="about-label">Official Website</span>
-                    <a
-                      href={tour.official_website.startsWith('http') ? tour.official_website : ('https://' + tour.official_website)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="about-link"
-                    >
-                      {tour.official_website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '4px' }}>
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </a>
-                  </div>
-                )}
-
-                {tour.established && (
-                  <div className="about-item">
-                    <span className="about-label">Established</span>
-                    <span className="about-value">{tour.established}</span>
-                  </div>
-                )}
-
-                {tour.typical_buyins && (tour.typical_buyins.min != null || tour.typical_buyins.max != null) && (
-                  <div className="about-item">
-                    <span className="about-label">Typical Buy-In Range</span>
-                    <span className="about-value">
-                      {tour.typical_buyins.min != null && tour.typical_buyins.max != null
-                        ? (formatMoney(tour.typical_buyins.min) + ' - ' + formatMoney(tour.typical_buyins.max))
-                        : tour.typical_buyins.min != null
-                          ? ('From ' + formatMoney(tour.typical_buyins.min))
-                          : ('Up to ' + formatMoney(tour.typical_buyins.max))}
-                      {tour.typical_buyins.main_event && (
-                        <span className="main-event-buyin">{' (Main Event: ' + formatMoney(tour.typical_buyins.main_event) + ')'}</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-
-                {tour.regions && tour.regions.length > 0 && (
-                  <div className="about-item about-item-full">
-                    <span className="about-label">Regions</span>
-                    <div className="regions-list">
-                      {tour.regions.map((region, idx) => (
-                        <span key={idx} className="region-tag">{region}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {tour.notes && (
-                  <div className="about-item about-item-full">
-                    <span className="about-label">Notes</span>
-                    <p className="about-notes">{tour.notes}</p>
-                  </div>
-                )}
-              </div>
-            </section>
 
             {/* Activity Feed Section */}
             <section className="tour-activity">

@@ -46,6 +46,10 @@ async function upsertVenue(supabase, venueData) {
             cleanData[key] = value;
         }
     }
+    // Force canonical base name to prevent flip-flopping
+    if ('name' in cleanData) {
+        cleanData['name'] = baseName;
+    }
     if ('is_active' in cleanData) {
         cleanData['is_active'] = true;
     }

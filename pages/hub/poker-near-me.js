@@ -1340,6 +1340,15 @@ export default function PokerNearMePage() {
             if (searchQuery) {
                 params.set('search', searchQuery);
             }
+            
+            // Add location for distance-based sorting on the backend
+            if (userLocation) {
+                params.set('lat', userLocation.lat.toString());
+                params.set('lng', userLocation.lng.toString());
+            } else if (selectedCity && selectedCity.latitude && selectedCity.longitude) {
+                params.set('lat', selectedCity.latitude.toString());
+                params.set('lng', selectedCity.longitude.toString());
+            }
 
             const url = '/api/poker/tours?' + params;
             const json = await cachedFetch(url);

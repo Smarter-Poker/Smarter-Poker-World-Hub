@@ -7,110 +7,115 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Known duplicate pairs based on Base Name
-const DUPLICATES = [
-    { target: 'Central Illinois Charitable Games', primaryId: null }, // Find by base name
-    { target: 'Chicago Charitable Games', primaryId: null },
-    { target: 'ACES Charity Poker', primaryId: null },
-    { target: 'Lodge ', primaryId: null }, // Lodge Championship vs Lodge Poker
+// Manual mapping of Obsolete IDs to Primary IDs
+const MERGE_MAP = [
+    // ── IL Charitable Games ──
+    { primaryId: 2805, obsolete: [2959] }, // Central Illinois Charitable Games
+    { primaryId: 2802, obsolete: [2960] }, // Chicago Charitable Games
+
+    // ── ACES Charity Poker ──
+    // Merge Atmosphere Sports Bar & Del Rio into the base one
+    { primaryId: 2817, obsolete: [2818] },
+
+    // ── Lodge Series ──
+    // 2658, 2633, 2718 are all series that take place at Lodge Poker Club (1828).
+    // The user told us to merge them. The smartest move is to merge the 'series' venues into the 
+    // actual physical venue where they take place [1828 Lodge Poker Club]!
+    { primaryId: 1828, obsolete: [2633, 2658, 2718] }
 ];
 
-function getBaseName(name) {
-    let base = name;
-    if (base.includes(' - ')) base = base.split(' - ')[0];
-    if (base.includes(' — ')) base = base.split(' — ')[0];
-    base = base.trim();
-    if (base.toLowerCase().startsWith('lodge ')) return 'Lodge';
-    return base;
-}
-
 async function mergeDuplicateVenues(isDryRun = false) {
-    console.log(`\n=== MERGING DUPLICATE VENUES ${isDryRun ? '(DRY RUN)' : ''} ===`);
-
-    const { data: venues, error } = await supabase
-        .from('poker_venues')
-        .select('id, name, city, state, created_at')
-        .order('id', { ascending: true }); // oldest first
-
-    if (error) {
-        console.error("Error fetching venues:", error.message);
-        return;
-    }
-
-    // Group by base name
-    const groups = {};
-    for (const v of venues) {
-        const base = getBaseName(v.name);
-        if (!groups[base]) groups[base] = [];
-        groups[base].push(v);
-    }
+    console.log(`\n=== MERGING EXPLICIT DUPLICATES ${isDryRun ? '(DRY RUN)' : ''} ===`);
 
     let mergedCount = 0;
 
-    for (const [baseName, group] of Object.entries(groups)) {
-        if (group.length > 1) {
-            // Found a duplicate group!
-            // First item (oldest) becomes the primary
-            const primary = group[0];
-            const obsolete = group.slice(1);
+    for (const group of MERGE_MAP) {
+        const { primaryId, obsolete } = group;
 
-            console.log(`\n🔍 Found duplicates for base name "${baseName}":`);
-            console.log(`  🌟 Primary Venue: [${primary.id}] ${primary.name}`);
+        // Fetch primary
+        const { data: primary, error } = await supabase
+            .from('poker_venues')
+            .select('id, name')
+            .eq('id', primaryId)
+            .single();
 
-            for (const obs of obsolete) {
-                console.log(`  🗑️  Obsolete Venue to merge: [${obs.id}] ${obs.name}`);
+        if (error || !primary) {
+            console.error(`❌ Could not find primary venue ${primaryId}`);
+            continue;
+        }
 
-                // Merge actions
-                const tablesWithVenueFk = [
-                    'venue_daily_tournaments',
-                    'venue_tournaments',
-                    'live_game_tracker',
-                    'check_ins',
-                    'venue_followers',
-                    'venue_reviews'
-                ];
+        console.log(`\n🌟 Primary Venue: [${primary.id}] ${primary.name}`);
 
-                for (const table of tablesWithVenueFk) {
-                    // Check if table exists / has data to update
-                    const { count } = await supabase
-                        .from(table)
-                        .select('id', { count: 'exact', head: true })
-                        .eq('venue_id', obs.id);
-                    
-                    if (count > 0) {
-                        console.log(`       -> Found ${count} records in '${table}'`);
-                        if (!isDryRun) {
-                            const { error: updErr } = await supabase
-                                .from(table)
-                                .update({ venue_id: primary.id })
-                                .eq('venue_id', obs.id);
-                            
-                            if (updErr) console.error(`       ❌ Error updating ${table}:`, updErr.message);
-                            else console.log(`       ✅ Merged foreign keys in '${table}'`);
-                        }
+        for (const obsId of obsolete) {
+            const { data: obsVenue } = await supabase
+                .from('poker_venues')
+                .select('id, name')
+                .eq('id', obsId)
+                .single();
+            
+            if (!obsVenue) {
+                console.log(`  ⚠️ Obsolete venue [${obsId}] not found. Skipping.`);
+                continue;
+            }
+
+            console.log(`  🗑️  Obsolete Venue: [${obsVenue.id}] ${obsVenue.name}`);
+
+            const tablesWithVenueFk = [
+                'venue_daily_tournaments',
+                'venue_tournaments',
+                'live_game_tracker',
+                'check_ins',
+                'venue_followers',
+                'poker_near_me_favorites', // Correct favorites table
+                'venue_reviews'
+            ];
+
+            for (const table of tablesWithVenueFk) {
+                const { count } = await supabase
+                    .from(table)
+                    .select('id', { count: 'exact', head: true })
+                    .eq('venue_id', obsVenue.id);
+                
+                if (count > 0) {
+                    console.log(`       -> Found ${count} records in '${table}'`);
+                    if (!isDryRun) {
+                        const { error: updErr } = await supabase
+                            .from(table)
+                            .update({ venue_id: primary.id })
+                            .eq('venue_id', obsVenue.id);
+                        
+                        if (updErr) console.error(`       ❌ Error updating ${table}:`, updErr.message);
+                        else console.log(`       ✅ Merged foreign keys in '${table}'`);
                     }
                 }
+            }
 
-                if (!isDryRun) {
-                    const { error: delErr } = await supabase
-                        .from('poker_venues')
-                        .delete()
-                        .eq('id', obs.id);
-                    
-                    if (delErr) console.error(`       ❌ Error deleting venue:`, delErr.message);
-                    else {
-                        console.log(`       ✅ Deleted duplicate venue [${obs.id}]`);
-                        mergedCount++;
-                    }
+            if (!isDryRun) {
+                const { error: delErr } = await supabase
+                    .from('poker_venues')
+                    .delete()
+                    .eq('id', obsVenue.id);
+                
+                if (delErr) console.error(`       ❌ Error deleting venue:`, delErr.message);
+                else {
+                    console.log(`       ✅ Deleted duplicate venue [${obsVenue.id}]`);
+                    mergedCount++;
                 }
             }
         }
     }
 
-    console.log(`\n=== DONE ${isDryRun ? '(DRY RUN)' : ''} ===`);
+    // Rename ACES Charity Poker base venue to just "ACES Charity Poker" since it moves
     if (!isDryRun) {
-        console.log(`Merged and deleted ${mergedCount} obsolete venues.`);
+        const { error } = await supabase
+            .from('poker_venues')
+            .update({ name: 'ACES Charity Poker' })
+            .eq('id', 2817);
+        if (!error) console.log(`\n✅ Renamed ACES venue [2817] to "ACES Charity Poker"`);
     }
+
+    console.log(`\n=== DONE ${isDryRun ? '(DRY RUN)' : ''} ===`);
+    if (!isDryRun) console.log(`Merged and deleted ${mergedCount} obsolete venues.`);
 }
 
 const args = process.argv.slice(2);
