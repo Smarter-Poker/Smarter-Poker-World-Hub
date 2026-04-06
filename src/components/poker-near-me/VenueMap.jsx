@@ -17,6 +17,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { radiusToZoom } from './pnm-utils';
+import { openNativeMaps } from '../../utils/openNativeMaps';
 
 // ─── Constants ───
 const VENUE_TYPE_LABELS = {
@@ -588,17 +589,10 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       if (dirTrigger) {
         e.preventDefault();
         e.stopPropagation();
-        const addr = dirTrigger.getAttribute('data-addr') || '';
-        const lat = dirTrigger.getAttribute('data-lat');
-        const lng = dirTrigger.getAttribute('data-lng');
-        const ua = navigator.userAgent || '';
-        if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
-          window.open('https://maps.apple.com/?daddr=' + lat + ',' + lng, '_blank');
-        } else if (/Android/i.test(ua)) {
-          window.location.href = 'geo:' + lat + ',' + lng + '?q=' + addr;
-        } else {
-          window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng, '_blank');
-        }
+        const addr = decodeURIComponent(dirTrigger.getAttribute('data-addr') || '');
+        const lat = parseFloat(dirTrigger.getAttribute('data-lat'));
+        const lng = parseFloat(dirTrigger.getAttribute('data-lng'));
+        openNativeMaps({ address: addr, lat, lng, mode: 'directions' });
       }
     };
     

@@ -18,6 +18,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit } from '../../../src/engine/EventBus';
 import { addVenueFavorite, removeVenueFavorite } from '../../../src/services/pokerNearMeFavorites';
 import { formatGameType } from '../../../src/utils/pokerFormatters';
+import { openNativeMaps as openNativeMapsUtil, buildVenueAddress } from '../../../src/utils/openNativeMaps';
 import dynamic from 'next/dynamic';
 
 const BestTimeToGoWidget = dynamic(
@@ -1120,17 +1121,7 @@ export default function VenueDetailPage() {
 
   var openNativeMaps = function () {
     if (!venue) return;
-    var addr = encodeURIComponent(
-      [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(', ')
-    );
-    var ua = navigator.userAgent || '';
-    if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
-      window.open('https://maps.apple.com/?q=' + addr, '_blank');
-    } else if (/Android/i.test(ua)) {
-      window.location.href = 'geo:0,0?q=' + addr;
-    } else {
-      window.open('https://www.google.com/maps/search/?api=1&query=' + addr, '_blank');
-    }
+    openNativeMapsUtil({ address: buildVenueAddress(venue) });
   };
 
   // Group daily tournament schedules by day

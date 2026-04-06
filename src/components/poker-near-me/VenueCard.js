@@ -11,6 +11,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
 import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData } from './pnm-utils';
+import { openNativeMaps } from '../../utils/openNativeMaps';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
@@ -267,18 +268,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 onClick={e => {
                     e.preventDefault();
                     e.stopPropagation();
-                    const addr = encodeURIComponent((venue.address || '') + ', ' + (venue.city || '') + ', ' + (venue.state || ''));
-                    const ua = navigator.userAgent || '';
-                    if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
-                        // iOS — open Apple Maps
-                        window.open('https://maps.apple.com/?q=' + addr, '_blank');
-                    } else if (/Android/i.test(ua)) {
-                        // Android — geo: URI opens default maps app
-                        window.location.href = 'geo:0,0?q=' + addr;
-                    } else {
-                        // Desktop fallback — Google Maps in new tab
-                        window.open('https://www.google.com/maps/search/?api=1&query=' + addr, '_blank');
-                    }
+                    openNativeMaps({ address: [venue.address, venue.city, venue.state].filter(Boolean).join(', ') });
                 }}
                 title="Open In Maps"
             >
@@ -601,15 +591,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <button className="vc3-icon-btn" onClick={e => {
                             e.stopPropagation();
                             e.preventDefault();
-                            const addr = encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''));
-                            const ua = navigator.userAgent || '';
-                            if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
-                                window.open('https://maps.apple.com/?q=' + addr, '_blank');
-                            } else if (/Android/i.test(ua)) {
-                                window.location.href = 'geo:0,0?q=' + addr;
-                            } else {
-                                window.open('https://www.google.com/maps/search/?api=1&query=' + addr, '_blank');
-                            }
+                            openNativeMaps({ address: [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(' ') });
                         }} title="Directions">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polygon points="3 11 22 2 13 21 11 13 3 11" />

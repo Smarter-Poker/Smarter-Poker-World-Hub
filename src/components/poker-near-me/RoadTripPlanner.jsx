@@ -5,6 +5,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { getVenueLogoUrl, getVenueLogoFallback } from './pnm-utils';
 import { haversineMiles } from './pnm-utils';
+import { openNativeMaps } from '../../utils/openNativeMaps';
 
 const CORRIDOR_OPTIONS = [25, 50, 100];
 
@@ -387,6 +388,17 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                             Share Trip
                         </button>
+                        <button
+                            onClick={() => {
+                                if (!routeResult?.stops?.length) return;
+                                const first = routeResult.stops[0];
+                                openNativeMaps({ address: first.name, lat: first.lat, lng: first.lng, mode: 'directions' });
+                            }}
+                            style={{ flex: 1, padding: '8px 12px', background: 'rgba(212,168,83,0.08)', border: '1px solid rgba(212,168,83,0.25)', borderRadius: 8, color: '#d4a853', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
+                            Start Navigation
+                        </button>
                     </div>
 
                     {/* Map — collapsible on mobile */}
@@ -421,6 +433,18 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                                     <div className="rtp-venue-tags">
                                         {v.venue_type && <span className="rtp-tag type">{v.venue_type.replace('_', ' ')}</span>}
                                         {v.trust_score && <span className="rtp-tag trust">Trust: {v.trust_score}/5</span>}
+                                        <button
+                                            className="rtp-tag rtp-nav-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openNativeMaps({
+                                                    address: [v.address, v.name, v.city, v.state].filter(Boolean).join(', '),
+                                                    lat: parseFloat(v.latitude),
+                                                    lng: parseFloat(v.longitude),
+                                                    mode: 'directions'
+                                                });
+                                            }}
+                                        >Navigate</button>
                                     </div>
                                 </div>
                                 );
@@ -501,6 +525,8 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         .rtp-tag { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
         .rtp-tag.type { background: rgba(99,102,241,0.2); color: #818cf8; }
         .rtp-tag.trust { background: rgba(212,168,83,0.12); color: #d4a853; }
+        .rtp-nav-btn { background: rgba(212,168,83,0.15); color: #d4a853; border: 1px solid rgba(212,168,83,0.3); cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
+        .rtp-nav-btn:hover { background: rgba(212,168,83,0.3); border-color: rgba(212,168,83,0.5); }
         .rtp-more { padding: 14px; text-align: center; color: rgba(148,163,184,0.5); font-size: 13px; }
         .rtp-series-section { margin-top: 20px; }
         .rtp-series-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; margin-bottom: 8px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
