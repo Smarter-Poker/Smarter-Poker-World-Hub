@@ -6717,7 +6717,22 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── MONSTERS (set+, two pair on safe board) → Value bet ──
             if (handEval.strength >= 75 && canRaise) {
                 // Slowplay traps: sometimes check monsters OOP to induce bluffs
-                const trapFreq = (oppTendency === 'bluffy' && oppConfidence > 0.3) ? 0.40 : 0.25;
+                let trapFreq = (oppTendency === 'bluffy' && oppConfidence > 0.3) ? 0.40 : 0.25;
+                // ═══ LIVE-READ TURN TRAP (Phase 23) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Aggressive opponents: trap MORE (they bet into us)
+                    if (liveRead.aggFreq > 0.45) trapFreq += 0.10;
+                    if (liveRead.aggFreq > 0.55) trapFreq += 0.06;
+                    // Passive opponents: trap LESS (they check behind, no value)
+                    if (liveRead.aggFreq < 0.20) trapFreq -= 0.12;
+                    // High c-bet: they'll fire again, trap is profitable
+                    if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.65) trapFreq += 0.08;
+                    // High second barrel: they'll keep going
+                    if (liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct > 0.50) trapFreq += 0.06;
+                    // Timing: snap aggression = auto-bet, they'll fire if we check
+                    if (currentActionTimingTell === 'snap_aggression') trapFreq += 0.08;
+                }
+                trapFreq = Math.max(0.05, Math.min(0.60, trapFreq));
                 if (!isIP && scareLevel === 0 && Math.random() < trapFreq && !multiway) {
                     return { type: 'check' }; // Check-raise trap
                 }
@@ -6745,6 +6760,15 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Against nits, go slightly smaller to keep them in
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
                     sizeFrac = Math.max(0.45, sizeFrac * 0.85);
+                }
+                // ═══ LIVE-READ TURN MONSTER SIZING (Phase 23) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Live station overrides static reads — go even bigger
+                    if (liveRead.callFreq > 0.60) sizeFrac = Math.min(1.05, sizeFrac + 0.10);
+                    // Live folder — keep sizing down to prevent folds
+                    if (liveRead.foldFreq > 0.55) sizeFrac = Math.max(0.40, sizeFrac - 0.08);
+                    // High WTSD: they'll call big — maximize value
+                    if (liveRead.wtsd !== null && liveRead.wtsd > 0.30) sizeFrac = Math.min(1.0, sizeFrac + 0.06);
                 }
 
                 return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
@@ -6884,10 +6908,25 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.25) {
                     semiFreq = Math.min(0.75, semiFreq + 0.12);
                 }
+                // ═══ LIVE-READ TURN SEMI-BLUFF DRAW (Phase 23) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Folders: semi-bluff aggressively
+                    if (liveRead.foldFreq > 0.50) semiFreq += 0.10;
+                    // Fold-to-raise: direct semi-bluff profitability
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.50) semiFreq += 0.08;
+                    // Calling stations: check more (realize equity, no fold equity)
+                    if (liveRead.callFreq > 0.60) semiFreq -= 0.15;
+                    // Low WTSD: they give up — barrel draws for fold equity
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) semiFreq += 0.08;
+                }
                 // In stealth mode, randomize sizing more to avoid patterns
                 if (Math.random() < semiFreq * (multiway ? mwAdj.bluffReduction : 1.0)) {
                     let sizeFrac = drawEq.outs >= 14 ? 0.65 : 0.50; // Bigger with combo draws
                     if (inStealthMode) sizeFrac += (Math.random() * 0.10 - 0.05); // +/- 5% noise
+                    // Live-read sizing: smaller vs folders (saves chips when called)
+                    if (liveRead && liveRead.confidence >= 0.20 && liveRead.foldFreq > 0.55) {
+                        sizeFrac = Math.max(0.38, sizeFrac - 0.08);
+                    }
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
             }
@@ -6895,8 +6934,20 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── SCARE CARD: Slow down with non-nuts ──
             if (scareLevel >= 2 && handEval.strength < 65) {
                 // But if opponent is weak-tight, they're scared too — bet sometimes to steal
-                if (oppTendency === 'weak-tight' && oppConfidence > 0.3 && canRaise && Math.random() < 0.25) {
-                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.50)) };
+                let scareStealFreq = 0.25;
+                // ═══ LIVE-READ SCARE CARD EXPLOIT (Phase 23) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Live folders: barrel scare cards more
+                    if (liveRead.foldFreq > 0.50) scareStealFreq += 0.12;
+                    // Live WTSD low: they shut down on scary runouts
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) scareStealFreq += 0.08;
+                    // Stations: don't bluff scare cards
+                    if (liveRead.callFreq > 0.55) scareStealFreq -= 0.15;
+                }
+                if ((oppTendency === 'weak-tight' && oppConfidence > 0.3) || scareStealFreq > 0.30) {
+                    if (canRaise && Math.random() < scareStealFreq) {
+                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.50)) };
+                    }
                 }
                 return { type: 'check' };
             }
@@ -7628,6 +7679,17 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (oppTendency === 'bluffy' && oppConfidence > 0.3) crFreq = 0.50;
                 // Against calling stations, check-raise bigger (they call raises too)
                 if (oppCallFreq > 0.55 && oppConfidence > 0.3) crFreq = 0.45;
+                // ═══ LIVE-READ TURN VALUE CR (Phase 23) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Aggro opponents bet wide — CR traps print
+                    if (liveRead.aggFreq > 0.45) crFreq += 0.08;
+                    // High c-bet rate: they'll fire, perfect for CR
+                    if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.60) crFreq += 0.06;
+                    // Passive opponents rarely bet — CR is less valuable
+                    if (liveRead.aggFreq < 0.20) crFreq -= 0.10;
+                    // Timing: snap bet = auto-cbet, easy CR target
+                    if (currentActionTimingTell === 'snap_aggression') crFreq += 0.06;
+                }
                 // Narrative: if we checked flop and now check-raise turn = classic trap line
                 if (narrative.heroCheckedFlop) crFreq += 0.08;
                 // Narrative: if we've been passive, sudden aggression gets paid
@@ -7672,6 +7734,16 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiCRFreq += 0.10;
                 // Against calling stations, don't semi-bluff CR (they call)
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) semiCRFreq = 0;
+                // ═══ LIVE-READ TURN SEMI-BLUFF CR (Phase 23) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Live fold-to-raise: semi-bluff CR is very profitable
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.50) semiCRFreq += 0.10;
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct < 0.25) semiCRFreq -= 0.12;
+                    // Live calling station: hard block on semi-bluff CR
+                    if (liveRead.callFreq > 0.65) semiCRFreq = Math.min(semiCRFreq, 0.05);
+                    // Timing: snap bet = weak auto-cbet, prime target
+                    if (currentActionTimingTell === 'snap_aggression') semiCRFreq += 0.06;
+                }
                 // Narrative: if we've been passive, CR is unexpected = more fold equity
                 if (narrative.heroCheckedFlop && !narrative.heroBetFlop) semiCRFreq += 0.06;
                 // ═══ 3-BET POT: Less semi-bluff CR (opponent's range is strong, less fold equity) ═══
@@ -7697,6 +7769,17 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffCRFreq += 0.10;
                     // Against calling stations, never bluff CR
                     if (oppCallFreq > 0.55 && oppConfidence > 0.3) bluffCRFreq = 0;
+                    // ═══ LIVE-READ TURN BLUFF CR (Phase 23) ═══
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // Live fold-to-raise is THE stat for bluff CRs
+                        if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) bluffCRFreq += 0.10;
+                        if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct < 0.30) bluffCRFreq = Math.min(bluffCRFreq, 0.02);
+                        // Live station auto-block
+                        if (liveRead.callFreq > 0.60) bluffCRFreq = 0;
+                        // WTSD: low = they fold a lot on later streets
+                        if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) bluffCRFreq += 0.06;
+                        if (liveRead.wtsd !== null && liveRead.wtsd > 0.35) bluffCRFreq = Math.min(bluffCRFreq, 0.03);
+                    }
                     // Narrative: credible line helps
                     if (narrative.heroCheckedFlop && heroIsAggressor) bluffCRFreq += 0.04; // Delayed trap line
                     // Scare card on turn helps
@@ -7725,7 +7808,31 @@ function makeTurnRiverHeuristicDecision(params) {
             if (narrative.barrelsInARow >= 2 && handEval.strength < 45 && oppConfidence > 0.3) {
                 const hasBlockers = blocksTopSet || blocksOverpair || blocksNutFlush;
                 if (!hasBlockers && oppTendency !== 'bluffy') {
+                    // ═══ LIVE-READ TURN MEDIUM HAND FOLD (Phase 23) ═══
+                    // Override: if opponent is a known bluffer, don't fold medium hands
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        if (liveRead.aggFreq > 0.45 || (liveRead.bluffRate !== null && liveRead.bluffRate > 0.30)) {
+                            // Don't auto-fold vs aggro player — peel with medium hands
+                            return canCall ? { type: 'call' } : { type: 'fold' };
+                        }
+                        // Very tight player double-barreling = strong — fold even wider
+                        if (liveRead.aggFreq < 0.20 && handEval.strength < 42) {
+                            return canCheck ? { type: 'check' } : { type: 'fold' };
+                        }
+                    }
                     console.log(`[HorseBrain] 📖 TURN MEDIUM FOLD: double-barrel, medium hand (${handEval.strength}), no blockers`);
+                    return canCheck ? { type: 'check' } : { type: 'fold' };
+                }
+            }
+            // ═══ LIVE-READ TURN MEDIUM CALL ADJUSTMENT (Phase 23) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // Against one-and-done players: call more (they'll check river)
+                if (liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct < 0.30) {
+                    // Always peel vs one-and-done with any medium hand
+                    return canCall ? { type: 'call' } : { type: 'fold' };
+                }
+                // Against aggressive barrelors: tighten up
+                if (liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct > 0.60 && handEval.strength < 42) {
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
             }

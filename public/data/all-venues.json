@@ -10397,7 +10397,7 @@
     "scrape_timestamp": "2026-03-26T01:18:05.641169+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "1fb23d23-fa17-477a-9ebe-a12b979b21d6",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1987.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1987-1775494966648.jpg"
   },
   {
     "id": 1988,
@@ -12532,7 +12532,7 @@
     "scrape_timestamp": "2026-03-30T03:28:36.412865+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2140.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2140-1775494966648.jpg"
   },
   {
     "id": 2141,
@@ -13502,7 +13502,7 @@
     "scrape_timestamp": "2026-03-29T19:13:56.516222+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "30299214-fc10-43da-9d4d-a5639dc8bc38",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2159.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2159-1775494966648.jpg"
   },
   {
     "id": 2160,
@@ -14173,7 +14173,7 @@
     "scrape_timestamp": "2026-03-30T03:30:47.965595+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2172.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2172-1775494966648.png"
   },
   {
     "id": 2173,
@@ -26189,7 +26189,7 @@
     "scrape_timestamp": "2026-03-30T03:33:11.166269+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2635.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2635-1775494966648.jpg"
   },
   {
     "id": 2636,
@@ -37253,76 +37253,6 @@
     "scrape_confidence": "unverified",
     "scrape_batch_id": "328af537-bf3e-4fd7-bf84-510ef8048dbe",
     "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2854.png"
-  },
-  {
-    "id": 2856,
-    "name": "PokerAtlas TableCaptain",
-    "venue_type": "poker_club",
-    "city": "Las Vegas",
-    "state": "NV",
-    "phone": "(702) 910-2300",
-    "website": "http://www.pokeratlas.com/table-captain",
-    "games_offered": null,
-    "stakes_cash": null,
-    "poker_tables": null,
-    "trust_score": 4,
-    "is_featured": false,
-    "lat": null,
-    "lng": null,
-    "address": "3150 Paradise Rd",
-    "country": "US",
-    "hours_weekday": null,
-    "hours_weekend": null,
-    "is_active": true,
-    "email": null,
-    "tournament_schedule": [],
-    "last_verified_at": null,
-    "latitude": 64.9908866,
-    "longitude": -141.3354845,
-    "pokeratlas_url": "https://www.pokeratlas.com/poker-room/patc-las-vegas",
-    "pokeratlas_slug": "patc-las-vegas",
-    "scrape_url": "https://www.pokeratlas.com/poker-room/patc-las-vegas",
-    "scrape_source": "pokeratlas",
-    "last_scraped": "2026-04-05T07:52:28.309+00:00",
-    "scrape_status": "no_data",
-    "captain_enabled": false,
-    "captain_tier": "free",
-    "captain_activated_at": null,
-    "commission_type": "time",
-    "accepts_home_games": false,
-    "auto_text_enabled": true,
-    "waitlist_settings": {},
-    "tournament_settings": {},
-    "staff_pin_required": true,
-    "primary_contact_id": null,
-    "cover_photo_url": null,
-    "profile_photo_url": null,
-    "tagline": null,
-    "about": null,
-    "follower_count": 0,
-    "social_links": {},
-    "slug": "patc-las-vegas",
-    "has_tournaments": false,
-    "poker_atlas_url": null,
-    "hours": null,
-    "last_scraped_at": null,
-    "commander_enabled": false,
-    "commander_tier": "free",
-    "commander_activated_at": null,
-    "source": null,
-    "is_claimed": false,
-    "claimed_by": null,
-    "claimed_at": null,
-    "social_hub_page_id": null,
-    "social_hub_page_url": null,
-    "registration_completed_at": null,
-    "onboarding_step": 0,
-    "data_quality": "scraped_verified",
-    "scrape_html_hash": "b1cbc3da1188d7cf23a94855b62711db513bc9b2e4d5c6750fbd19164fa7a5bf",
-    "scrape_timestamp": "2026-04-02T03:26:51.22337+00:00",
-    "scrape_confidence": "unverified",
-    "scrape_batch_id": "328af537-bf3e-4fd7-bf84-510ef8048dbe",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2856.png"
   },
   {
     "id": 2857,
