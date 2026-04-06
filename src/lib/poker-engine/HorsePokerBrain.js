@@ -8626,6 +8626,34 @@ function makeTurnRiverHeuristicDecision(params) {
         // ═══ FACING A BET ON RIVER ═══
         // This is THE most important decision in poker.
 
+        // ═══ RIVER POLARIZATION-AWARE FACING-BET FRAMEWORK ═══
+        // MUST be computed BEFORE facingRiverRaise block which uses polarCallMod.
+        const oppRangeIsPolarized = (() => {
+            if (betToPot >= 0.80) return true;
+            if (betToPot >= 1.2) return true;
+            if (oppTendency === 'bluffy' && oppConfidence > 0.3) return true;
+            if (boardEvolution.drawsCompleted.length > 0) return true;
+            if (oppStreetAggression === 'very_heavy') return true;
+            if (liveRead && liveRead.confidence >= 0.20) {
+                if (liveRead.aggFreq > 0.50 && liveRead.overbetPct !== null && liveRead.overbetPct > 0.10) return true;
+                if (liveRead.bluffRate !== null && liveRead.bluffRate > 0.35) return true;
+            }
+            return false;
+        })();
+
+        const liveNitMerged = liveRead && liveRead.confidence >= 0.25 &&
+            liveRead.aggFreq < 0.20 && liveRead.foldFreq > 0.45;
+        const oppRangeIsMerged = !oppRangeIsPolarized && (
+            betToPot <= 0.45 ||
+            (oppTendency === 'weak-tight' && oppConfidence > 0.3) ||
+            liveNitMerged ||
+            boardEvolution.evolution === 'static_brick' ||
+            oppStreetAggression === 'light'
+        );
+
+        const polarCallMod = oppRangeIsPolarized ? 0.08 : oppRangeIsMerged ? -0.06 : 0;
+        const polarRaiseMod = oppRangeIsPolarized ? -0.08 : oppRangeIsMerged ? 0.08 : 0;
+
         // ═══ FACING A RAISE ON RIVER (Hero bet, got raised) ═══
         // The most polarized spot in poker. Opponent raises our river bet = the NUTS or a bluff.
         // Our response depends on: hand strength, blockers, opponent profile, board texture.
@@ -8760,55 +8788,8 @@ function makeTurnRiverHeuristicDecision(params) {
             // check_call falls through to existing river logic
         }
 
-        // ═══ RIVER POLARIZATION-AWARE FACING-BET FRAMEWORK ═══
-        // The opponent's likely range type (polarized vs merged) fundamentally changes
-        // how we should respond to their bets.
-        //
-        // POLARIZED opponent (big bet, known aggro, draws completed):
-        //   → Their range = nuts OR bluffs → our medium hands are bluff-catchers
-        //   → Call MORE with bluff-catchers (especially with blockers)
-        //   → Raise LESS (they're either folding bluffs or snapping with the nuts)
-        //
-        // MERGED opponent (small bet, passive, dry runout):
-        //   → Their range = mostly thin value/medium hands
-        //   → Fold MORE with marginals (they rarely bluff, just have a decent hand)
-        //   → Raise MORE for value (their range can't withstand pressure)
-        //
-        const oppRangeIsPolarized = (() => {
-            // Big bets are inherently polarized
-            if (betToPot >= 0.80) return true;
-            // Overbets are very polarized
-            if (betToPot >= 1.2) return true;
-            // Known aggressive opponents bet polar ranges
-            if (oppTendency === 'bluffy' && oppConfidence > 0.3) return true;
-            // Draws completed → polarized (they have the draw or they're bluffing)
-            if (boardEvolution.drawsCompleted.length > 0) return true;
-            // Triple barrel is polar (committed value or committed bluff)
-            if (oppStreetAggression === 'very_heavy') return true;
-            // ═══ LIVE-READ POLARIZATION DETECTION (Phase 24) ═══
-            if (liveRead && liveRead.confidence >= 0.20) {
-                // Very aggressive + overbets = polarized player
-                if (liveRead.aggFreq > 0.50 && liveRead.overbetPct !== null && liveRead.overbetPct > 0.10) return true;
-                // High bluff rate = polarized (they're either nutted or bluffing)
-                if (liveRead.bluffRate !== null && liveRead.bluffRate > 0.35) return true;
-            }
-            return false;
-        })();
-
-        // ═══ LIVE-READ MERGED RANGE DETECTION (Phase 30) ═══
-        const liveNitMerged = liveRead && liveRead.confidence >= 0.25 &&
-            liveRead.aggFreq < 0.20 && liveRead.foldFreq > 0.45;
-        const oppRangeIsMerged = !oppRangeIsPolarized && (
-            betToPot <= 0.45 ||
-            (oppTendency === 'weak-tight' && oppConfidence > 0.3) ||
-            liveNitMerged ||
-            boardEvolution.evolution === 'static_brick' ||
-            oppStreetAggression === 'light'
-        );
-
-        // Polarization call/fold modifiers for use throughout river facing-bet decisions
-        const polarCallMod = oppRangeIsPolarized ? 0.08 : oppRangeIsMerged ? -0.06 : 0;
-        const polarRaiseMod = oppRangeIsPolarized ? -0.08 : oppRangeIsMerged ? 0.08 : 0;
+        // (polarCallMod, polarRaiseMod, oppRangeIsPolarized, oppRangeIsMerged
+        //  are defined above the facingRiverRaise block — Phase 35 fix)
 
         // ── MONSTERS: Raise for value ──
         if (handEval.strength >= 85 && canRaise) {
