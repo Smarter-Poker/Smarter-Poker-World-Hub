@@ -432,20 +432,117 @@ export default function PokerNearMeLobby() {
     fetchVenues(searchQuery, page + 1, true);
   }, [fetchVenues, searchQuery, page]);
 
-  // ─── Fetch tours (venue_type = 'tour' from poker_venues table) ───
+  // ─── Fetch tours (traveling tours from poker_tours API) ───
   const fetchTours = useCallback(async () => {
     try {
-      let url = '/api/poker/venues?venue_type=tour&limit=200';
-      if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=500`;
+      let url = '/api/poker/tours?include_series=true';
+      // We don't apply userLocation radius here because tours are traveling; we filter them locally based on upcoming stops.
       const data = await cachedFetch(url);
-      const tourData = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+      const tourData = data?.data || data?.tours || (Array.isArray(data) ? data : []);
       setTours(tourData);
     } catch (err) {
       console.error('Failed to fetch tours:', err);
     } finally {
       setToursLoaded(true);
     }
-  }, [userLocation]);
+  }, []);
+
+  // ─── Fallback city coordinates for common poker tour locations ───
+  const CITY_COORDS = useMemo(() => ({
+      'las vegas, nv': { lat: 36.1699, lng: -115.1398 },
+      'hollywood, fl': { lat: 26.0112, lng: -80.1495 },
+      'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
+      'lincoln, ca': { lat: 38.8916, lng: -121.2930 },
+      'durant, ok': { lat: 33.9943, lng: -96.3709 },
+      'tampa, fl': { lat: 27.9506, lng: -82.4572 },
+      'bell gardens, ca': { lat: 33.9653, lng: -118.1514 },
+      'elgin, il': { lat: 42.0354, lng: -88.2826 },
+      'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
+      'tunica, ms': { lat: 34.6846, lng: -90.3829 },
+      'biloxi, ms': { lat: 30.3960, lng: -88.8853 },
+      'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
+      'san diego, ca': { lat: 32.7157, lng: -117.1611 },
+      'portland, or': { lat: 45.5155, lng: -122.6789 },
+      'council bluffs, ia': { lat: 41.2619, lng: -95.8608 },
+      'black hawk, co': { lat: 39.7969, lng: -105.4903 },
+      'choctaw, ok': { lat: 35.4976, lng: -97.2687 },
+      'shreveport, la': { lat: 32.5252, lng: -93.7502 },
+      'new orleans, la': { lat: 29.9511, lng: -90.0715 },
+      'kinder, la': { lat: 30.4855, lng: -92.8510 },
+      'gulfport, ms': { lat: 30.3674, lng: -89.0928 },
+      'marksville, la': { lat: 31.1268, lng: -92.0632 },
+      'oklahoma city, ok': { lat: 35.4676, lng: -97.5164 },
+      'minneapolis, mn': { lat: 44.9778, lng: -93.2650 },
+      'kansas city, mo': { lat: 39.0997, lng: -94.5786 },
+      'st. louis, mo': { lat: 38.6270, lng: -90.1994 },
+      'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
+      'phoenix, az': { lat: 33.4484, lng: -112.0740 },
+      'chicago, il': { lat: 41.8781, lng: -87.6298 },
+      'detroit, mi': { lat: 42.3314, lng: -83.0458 },
+      'bismarck, nd': { lat: 46.8083, lng: -100.7837 },
+      'fargo, nd': { lat: 46.8772, lng: -96.7898 },
+      'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
+      'thackerville, ok': { lat: 33.7918, lng: -97.1303 },
+      'gary, in': { lat: 41.5934, lng: -87.3464 },
+      'mount pleasant, mi': { lat: 43.5978, lng: -84.7753 },
+      'prior lake, mn': { lat: 44.7133, lng: -93.4227 },
+      'welch, mn': { lat: 44.5669, lng: -92.7233 },
+      'charleston, wv': { lat: 38.3498, lng: -81.6326 },
+      'temecula, ca': { lat: 33.4936, lng: -117.1484 },
+      'west palm beach, fl': { lat: 26.7153, lng: -80.0534 },
+      'jacksonville, fl': { lat: 30.3322, lng: -81.6557 },
+      'austin, tx': { lat: 30.2672, lng: -97.7431 },
+      'round rock, tx': { lat: 30.5083, lng: -97.6789 },
+      'houston, tx': { lat: 29.7604, lng: -95.3698 },
+      'san jose, ca': { lat: 37.3382, lng: -121.8863 },
+      'commerce, ca': { lat: 33.9975, lng: -118.1597 },
+      'bossier city, la': { lat: 32.5160, lng: -93.7321 },
+      'fort yates, nd': { lat: 46.0886, lng: -100.6301 },
+      'mandan, nd': { lat: 46.8267, lng: -100.8891 },
+      'dickinson, nd': { lat: 46.8792, lng: -102.7896 },
+      'belcourt, nd': { lat: 48.8411, lng: -99.7457 },
+      'philadelphia, pa': { lat: 39.9526, lng: -75.1652 },
+      'choctaw, ms': { lat: 32.7693, lng: -89.1170 },
+      'robinsonville, ms': { lat: 34.8213, lng: -90.3155 },
+      'verona, ny': { lat: 43.1311, lng: -75.5721 },
+      'dallas, tx': { lat: 32.7767, lng: -96.7970 },
+      'stateline, nv': { lat: 38.9669, lng: -119.9405 },
+      'rohnert park, ca': { lat: 38.3396, lng: -122.7011 },
+  }), []);
+
+  const getNearestTourDistance = useCallback((tour, userLoc) => {
+      if (!userLoc) return null;
+      let minDistance = 99999;
+      // 1. If tour inherently has coordinates
+      if (tour.latitude && tour.longitude) {
+          minDistance = haversineMiles(userLoc.lat, userLoc.lng, tour.latitude, tour.longitude);
+      }
+      
+      // 2. Check all upcoming series locations
+      const allStops = [
+          ...(tour.upcoming_series || []),
+          ...(tour.stops_2026 || []),
+          ...(tour.series_2026 || [])
+      ];
+      
+      for (const stop of allStops) {
+          const locStr = (stop.location || stop.city || '').toLowerCase();
+          const cityParts = locStr.includes(',') ? locStr.split(',') : [locStr];
+          const cityKey = locStr.trim();
+          
+          let coords = CITY_COORDS[cityKey];
+          if (!coords && cityParts[0]) {
+              const justCity = cityParts[0].trim();
+              coords = Object.entries(CITY_COORDS).find(([k]) => k.startsWith(justCity + ','))?.[1];
+          }
+          
+          if (coords) {
+              const d = haversineMiles(userLoc.lat, userLoc.lng, coords.lat, coords.lng);
+              if (d < minDistance) minDistance = d;
+          }
+      }
+      return minDistance === 99999 ? null : minDistance;
+  }, [CITY_COORDS]);
 
   // ─── Fetch favorites ───
   const fetchFavorites = useCallback(async () => {
@@ -1559,10 +1656,10 @@ export default function PokerNearMeLobby() {
             {(() => {
               // Filter tours & series by distance for Search results
               const svNearbyTours = userLocation ? tours.filter(t => {
-                if (!t.latitude || !t.longitude) return false;
-                const d = haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude);
+                const d = getNearestTourDistance(t, userLocation);
+                if (d === null) return false;
                 return svRadius === 'any' || d <= Number(svRadius);
-              }).sort((a, b) => haversineMiles(userLocation.lat, userLocation.lng, a.latitude, a.longitude) - haversineMiles(userLocation.lat, userLocation.lng, b.latitude, b.longitude)) : [];
+              }).sort((a, b) => getNearestTourDistance(a, userLocation) - getNearestTourDistance(b, userLocation)) : [];
               const svNearbySeries = userLocation ? series.filter(s => {
                 if (!s.latitude || !s.longitude) return false;
                 const d = haversineMiles(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
@@ -1632,7 +1729,7 @@ export default function PokerNearMeLobby() {
                     </div>
                     <div style={{ display: 'grid', gap: 12 }}>
                       {svNearbyTours.map((t, i) => {
-                        const td = userLocation ? haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude) : null;
+                        const td = userLocation ? getNearestTourDistance(t, userLocation) : null;
                         return (
                           <div key={`sv-tour-${t.id || t.tour_code || i}`} style={{ position: 'relative' }}>
                             {td !== null && td < 99999 && (
@@ -1968,10 +2065,10 @@ export default function PokerNearMeLobby() {
             {(() => {
               // Filter tours & series by distance for Near Me results
               const nearbyTours = userLocation ? tours.filter(t => {
-                if (!t.latitude || !t.longitude) return false;
-                const d = haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude);
+                const d = getNearestTourDistance(t, userLocation);
+                if (d === null) return false;
                 return nmRadius === 'any' || d <= Number(nmRadius);
-              }).sort((a, b) => haversineMiles(userLocation.lat, userLocation.lng, a.latitude, a.longitude) - haversineMiles(userLocation.lat, userLocation.lng, b.latitude, b.longitude)) : [];
+              }).sort((a, b) => getNearestTourDistance(a, userLocation) - getNearestTourDistance(b, userLocation)) : [];
               const nearbySeries = userLocation ? series.filter(s => {
                 if (!s.latitude || !s.longitude) return false;
                 const d = haversineMiles(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
@@ -2036,7 +2133,7 @@ export default function PokerNearMeLobby() {
                     </div>
                     <div style={{ display: 'grid', gap: 12 }}>
                       {nearbyTours.map((t, i) => {
-                        const td = userLocation ? haversineMiles(userLocation.lat, userLocation.lng, t.latitude, t.longitude) : null;
+                        const td = userLocation ? getNearestTourDistance(t, userLocation) : null;
                         return (
                           <div key={`tour-${t.id || t.tour_code || i}`} style={{ position: 'relative' }}>
                             {td !== null && td < 99999 && (
@@ -2134,10 +2231,18 @@ export default function PokerNearMeLobby() {
         let filteredTours = tours;
         if (tourSearch) {
           const lower = tourSearch.toLowerCase();
-          filteredTours = filteredTours.filter(t => (t.name || '').toLowerCase().includes(lower) || (t.city || '').toLowerCase().includes(lower) || (t.state || '').toLowerCase().includes(lower));
+          filteredTours = filteredTours.filter(t => {
+            if ((t.tour_name || t.name || '').toLowerCase().includes(lower) || (t.tour_code || '').toLowerCase().includes(lower) || (t.headquarters || '').toLowerCase().includes(lower)) return true;
+            const allStops = [...(t.upcoming_series || []), ...(t.stops_2026 || []), ...(t.series_2026 || [])];
+            return allStops.some(s => (s.name || s.venue || s.location || s.city || '').toLowerCase().includes(lower));
+          });
         }
         if (tourState !== 'all') {
-          filteredTours = filteredTours.filter(t => t.state === tourState);
+          filteredTours = filteredTours.filter(t => {
+            if ((t.headquarters || '').includes(tourState) || (t.state === tourState)) return true;
+            const allStops = [...(t.upcoming_series || []), ...(t.stops_2026 || []), ...(t.series_2026 || [])];
+            return allStops.some(s => (s.location || s.state || '').includes(tourState));
+          });
         }
         component = (
           <div>

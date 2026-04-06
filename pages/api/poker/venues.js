@@ -727,11 +727,14 @@ export default async function handler(req, res) {
                   };
               });
 
-              // Filter venues WITH coordinates by radius
-              const withinRadius = venues.filter(v => v.distance_mi != null && v.distance_mi <= maxRadius);
+              // Filter venues WITH coordinates by radius (allow tours/series to bypass to be filtered client-side via host venues)
+              const withinRadius = venues.filter(v => 
+                  (v.distance_mi != null && v.distance_mi <= maxRadius) || 
+                  ['tour', 'series'].includes(v.venue_type)
+              );
 
               // Sort distance-first
-              withinRadius.sort((a, b) => a.distance_mi - b.distance_mi);
+              withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
               
               // Only include noCoords if no explicit GPS filter was requested OR if they matched explicit search params
               // Since this block is inside hasGps, we drop un-locatable venues from a localized radius search
@@ -838,12 +841,12 @@ export default async function handler(req, res) {
               });
           }
 
-          // --- USER RULE: STRICT SERIES DEDUPLICATION & "RUNNING TODAY" ENFORCEMENT ---
-          // "poker series should ONLY BE DISPLAYED. IF THEY ARE RUNNING THAT DAY."
-          // "even when that does happen, the tournament series should pop up, not the venue."
-          // "REMOVE ANY AND ALL DUPLICATES... SHOWS RIVERS CASINO TWICE"
+          // === USER RULE: STRICT SERIES DEDUPLICATION & "RUNNING TODAY" ENFORCEMENT ===
+          // (Note: To fix the "missing upcoming tours" bug, we ONLY apply the running-today
+          // suppression logic to default venue queries, and BYPASS it when 'tour' or 'series' 
+          // are explicitly requested via effectiveType).
           
-          if (venues.length > 0) {
+          if (venues.length > 0 && !['tour', 'series'].includes(effectiveType)) {
               // Decouple node execution time from UTC to standardize "running today" on US timelines
               const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
               const todayIdx = new Date(localCurrentTime).getDay();
