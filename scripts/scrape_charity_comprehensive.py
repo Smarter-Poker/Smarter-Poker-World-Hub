@@ -704,11 +704,15 @@ def build_tournament_records(results, venue_id_map):
 
         prov = r.get('provenance', {})
         for t in r.get('tournaments', []):
+            # buy_in is a REQUIRED field inside Supabase schema
+            buyin_val = t.get('buy_in') if t.get('buy_in') is not None else 0
+
             record = {
                 'venue_id': venue_id,
+                'venue_name': name,
                 'day_of_week': t['day_of_week'],
-                'start_time': t.get('start_time'),
-                'buy_in': t.get('buy_in'),
+                'start_time': t.get('start_time') or 'TBA',
+                'buy_in': buyin_val,
                 'game_type': t.get('game_type', 'NLH'),
                 'guaranteed': t.get('guaranteed'),
                 'starting_stack': t.get('starting_stack'),
