@@ -7124,6 +7124,28 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppTendency === 'weak-tight' && oppConfidence > 0.3 && turnBluffBlockerCount >= 1) {
                         turnBluffFrac = 0.75 + Math.random() * 0.25; // 75-100% pot
                     }
+
+                    // ═══ PHASE 16: LIVE-READ DRIVEN BLUFF SIZING ═══
+                    // Size bluffs for MAXIMUM fold equity based on what we know about opponent.
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // Against folders: size UP → maximize fold equity
+                        if (liveRead.foldFreq > 0.50) {
+                            turnBluffFrac = Math.min(0.90, turnBluffFrac + 0.12);
+                        }
+                        // Against stations: size DOWN → minimize loss when caught
+                        if (liveRead.callFreq > 0.55) {
+                            turnBluffFrac = Math.max(0.40, turnBluffFrac - 0.10);
+                        }
+                        // Opponent folds to raises a lot → go bigger
+                        if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) {
+                            turnBluffFrac = Math.min(0.95, turnBluffFrac + 0.10);
+                        }
+                        // Tank-call from opponent on prior street → they're marginal → size up
+                        if (currentActionTimingTell === 'tank_call') {
+                            turnBluffFrac = Math.min(0.85, turnBluffFrac + 0.08);
+                        }
+                    }
+
                     console.log(`[HorseBrain] 🎭 TURN BLUFF: ${handStr} blockers=${turnBluffBlockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(turnBluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * turnBluffFrac)) };
                 }
@@ -7519,7 +7541,34 @@ function makeTurnRiverHeuristicDecision(params) {
             // Opponent only bet turn after checking flop → weaker range, float more
             if (!narrative.heroBetFlop && narrative.checkBehindCount >= 1) floatFreq += 0.08;
 
-            floatFreq = Math.max(0, Math.min(0.40, floatFreq));
+            // ═══ PHASE 16: LIVE-READ DRIVEN FLOAT STRATEGY ═══
+            // Float is extremely profitable against "one-and-done" players
+            // who c-bet flop but check turn. We call their c-bet, then take the pot.
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // ONE-AND-DONE: c-bets a lot but rarely double-barrels → FLOAT HEAVILY
+                if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.60 &&
+                    liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct < 0.35) {
+                    floatFreq = Math.min(0.55, floatFreq + 0.18); // Massive float boost
+                }
+                // Opponent gives up easily (low WTSD) → float more
+                if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) {
+                    floatFreq = Math.min(0.50, floatFreq + 0.12);
+                }
+                // Opponent goes to showdown a lot → don't float (they'll call us down)
+                if (liveRead.wtsd !== null && liveRead.wtsd > 0.35) {
+                    floatFreq = Math.max(0.05, floatFreq - 0.10);
+                }
+                // Tank-bet from opponent → unsure → float more (they'll check next street)
+                if (currentActionTimingTell === 'tank_aggression') {
+                    floatFreq = Math.min(0.50, floatFreq + 0.10);
+                }
+                // Snap-bet → confident/auto-play → float less (they might barrel again)
+                if (currentActionTimingTell === 'snap_aggression') {
+                    floatFreq = Math.max(0.10, floatFreq - 0.06);
+                }
+            }
+
+            floatFreq = Math.max(0, Math.min(0.55, floatFreq));
             if (Math.random() < floatFreq) return canCall ? { type: 'call' } : { type: 'fold' };
         }
 
@@ -8015,6 +8064,32 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (blockerCount >= 2 && oppFoldFreq > 0.40) {
                         bluffFrac = Math.max(bluffFrac, 0.80 + Math.random() * 0.40); // 80-120% pot
                     }
+
+                    // ═══ PHASE 16: LIVE-READ DRIVEN RIVER BLUFF SIZING ═══
+                    // The river is where sizing MATTERS MOST — wrong size = burning money.
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // Against folders: SIZE UP for max fold equity
+                        if (liveRead.foldFreq > 0.50) {
+                            bluffFrac = Math.min(1.30, bluffFrac + 0.15);
+                        }
+                        // Against stations: SIZE DOWN to lose less when called
+                        if (liveRead.callFreq > 0.55) {
+                            bluffFrac = Math.max(0.35, bluffFrac - 0.15);
+                        }
+                        // Opponent has high fold-to-raise → overbet bluffs are profitable
+                        if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) {
+                            bluffFrac = Math.min(1.50, bluffFrac + 0.20);
+                        }
+                        // Tank-called turn = marginal → big river bluff folds them out
+                        if (currentActionTimingTell === 'tank_call') {
+                            bluffFrac = Math.min(1.20, bluffFrac + 0.15);
+                        }
+                        // Snap-called turn = strong → smaller bluff (or don't bluff, already freq-capped)
+                        if (currentActionTimingTell === 'snap_call') {
+                            bluffFrac = Math.max(0.45, bluffFrac - 0.10);
+                        }
+                    }
+
                     console.log(`[HorseBrain] 🎭 RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] count=${blockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(bluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * bluffFrac)) };
                 }
