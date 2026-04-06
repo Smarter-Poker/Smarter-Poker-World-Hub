@@ -8658,6 +8658,13 @@ function makeTurnRiverHeuristicDecision(params) {
             if (boardEvolution.drawsCompleted.length > 0) return true;
             // Triple barrel is polar (committed value or committed bluff)
             if (oppStreetAggression === 'very_heavy') return true;
+            // ═══ LIVE-READ POLARIZATION DETECTION (Phase 24) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // Very aggressive + overbets = polarized player
+                if (liveRead.aggFreq > 0.50 && liveRead.overbetPct !== null && liveRead.overbetPct > 0.10) return true;
+                // High bluff rate = polarized (they're either nutted or bluffing)
+                if (liveRead.bluffRate !== null && liveRead.bluffRate > 0.35) return true;
+            }
             return false;
         })();
 
@@ -8681,6 +8688,12 @@ function makeTurnRiverHeuristicDecision(params) {
             if (oppRangeIsMerged) valueMult = Math.min(1.30, valueMult + 0.15);
             // ═══ POLARIZATION: vs polarized, smaller raise (they're snap-folding bluffs anyway) ═══
             if (oppRangeIsPolarized) valueMult = Math.max(0.65, valueMult - 0.10);
+            // ═══ LIVE-READ RIVER MONSTER SIZING (Phase 24) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                if (liveRead.callFreq > 0.60) valueMult = Math.min(1.40, valueMult + 0.15);
+                if (liveRead.foldFreq > 0.55) valueMult = Math.max(0.55, valueMult - 0.12);
+                if (liveRead.wtsd !== null && liveRead.wtsd > 0.30) valueMult = Math.min(1.35, valueMult + 0.10);
+            }
             const raiseSize = Math.round(toCall + potSize * valueMult);
             return { type: raiseAction.type, amount: clampAmt(raiseSize) };
         }
@@ -8693,7 +8706,20 @@ function makeTurnRiverHeuristicDecision(params) {
             // If a known weak-tight player is betting big on the river in a heavy pot, RESPECT IT
             if (oppTendency === 'weak-tight' && oppConfidence > 0.4 &&
                 betToPot >= 0.75 && oppRangeStrength === 'polarized' && handEval.strength < 70 && !is3BetPot) {
-                console.log(`[HorseBrain] 🎯 RIVER LAYDOWN: opp=weak-tight, big bet in heavy pot, strength=${handEval.strength}`);
+                // ═══ LIVE-READ RIVER LAYDOWN OVERRIDE (Phase 24) ═══
+                // If live data says they're actually aggressive, don't auto-fold
+                if (liveRead && liveRead.confidence >= 0.25 && liveRead.aggFreq > 0.40) {
+                    // Override: aggro player, don't fold strong hands
+                } else {
+                    console.log(`[HorseBrain] 🎯 RIVER LAYDOWN: opp=weak-tight, big bet in heavy pot, strength=${handEval.strength}`);
+                    return canCheck ? { type: 'check' } : { type: 'fold' };
+                }
+            }
+            // ═══ LIVE-READ RIVER TIGHT PLAYER LAYDOWN (Phase 24) ═══
+            // New: live data can INDEPENDENTLY trigger a laydown even without static weak-tight tag
+            if (liveRead && liveRead.confidence >= 0.30 && liveRead.aggFreq < 0.15 &&
+                betToPot >= 0.80 && handEval.strength < 68 && !is3BetPot) {
+                console.log(`[HorseBrain] 🎯 RIVER LIVE LAYDOWN: opp aggFreq=${liveRead.aggFreq.toFixed(2)}, big bet, str=${handEval.strength}`);
                 return canCheck ? { type: 'check' } : { type: 'fold' };
             }
 
@@ -8711,6 +8737,17 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (narrative.checkBehindCount >= 1) raiseFreq += 0.08;
                 // Narrative: we've been barreling → raise is credible continuation
                 if (narrative.barrelsInARow >= 1 && narrative.storyIsConsistent) raiseFreq += 0.06;
+                // ═══ LIVE-READ RIVER VALUE RAISE (Phase 24) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Stations = raise more (they call raises with worse)
+                    if (liveRead.callFreq > 0.55) raiseFreq += 0.10;
+                    // High WTSD = they go to showdown → raise for value
+                    if (liveRead.wtsd !== null && liveRead.wtsd > 0.30) raiseFreq += 0.06;
+                    // Aggressive opponents may 3-bet — be cautious
+                    if (liveRead.aggFreq > 0.50) raiseFreq -= 0.08;
+                    // Fold-to-raise: low = they call a lot of raises
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct < 0.30) raiseFreq += 0.08;
+                }
                 // ═══ POLARIZATION: raise more vs merged (they fold too much to raises) ═══
                 raiseFreq += polarRaiseMod;
                 raiseFreq = Math.max(0.10, Math.min(0.55, raiseFreq));
@@ -8762,6 +8799,23 @@ function makeTurnRiverHeuristicDecision(params) {
         // If opponent rarely bluffs, raise threshold (fold more marginal hands)
         if (oppBluffFreq < 0.15 && oppConfidence > 0.3) {
             dynFoldThreshold = Math.min(45, dynFoldThreshold + Math.round(oppConfidence * 8));
+        }
+        // ═══ LIVE-READ DYNAMIC FOLD THRESHOLD (Phase 24) ═══
+        if (liveRead && liveRead.confidence >= 0.20) {
+            // Live bluff rate overrides static — direct fold threshold adjustment
+            if (liveRead.bluffRate !== null && liveRead.bluffRate > 0.35) {
+                dynFoldThreshold = Math.max(15, dynFoldThreshold - 6);
+            }
+            if (liveRead.bluffRate !== null && liveRead.bluffRate < 0.12) {
+                dynFoldThreshold = Math.min(48, dynFoldThreshold + 6);
+            }
+            // Live aggFreq: very aggressive = lower threshold (they barrel too much)
+            if (liveRead.aggFreq > 0.50) dynFoldThreshold = Math.max(15, dynFoldThreshold - 4);
+            // Live passivity: very passive river bet = strong → raise threshold
+            if (liveRead.aggFreq < 0.18) dynFoldThreshold = Math.min(50, dynFoldThreshold + 5);
+            // WTSD: low = they rarely bluff river → fold more
+            if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) dynFoldThreshold = Math.min(48, dynFoldThreshold + 4);
+            if (liveRead.wtsd !== null && liveRead.wtsd > 0.35) dynFoldThreshold = Math.max(18, dynFoldThreshold - 4);
         }
         // ═══ SPR-DRIVEN FOLD THRESHOLD ═══
         // Low SPR: call wider (we're pot-committed, folding loses too much equity)
