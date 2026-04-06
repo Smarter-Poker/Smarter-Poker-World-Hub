@@ -77,7 +77,7 @@ export default function OverbetBluffGuide() {
               </div>
             </div>
             <div style={{ fontSize: 11, color: '#22c55e', textAlign: 'center', marginTop: 6, fontWeight: 700 }}>
-              ✅ +EV Bluff ({spot.foldEq}% fold > {spot.neededFoldEq}% needed)
+              ✅ +EV Bluff ({spot.foldEq}% fold &gt; {spot.neededFoldEq}% needed)
             </div>
           </motion.div>
         )}
