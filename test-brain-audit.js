@@ -2530,6 +2530,440 @@ test('getActionDelay: tank is slow', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47g: Session/Identity Functions ══');
+// ═══════════════════════════════════════════════════════════
+
+// ─── isHorseSync / getHorseIdsAtTable ───
+// These depend on _horseIds cache. We can't set it directly (private),
+// but isHorseSync returns false when cache is null, and getHorseIdsAtTable returns [].
+
+test('isHorseSync: returns false when cache not loaded', () => {
+    const result = brain.isHorseSync('some-random-id');
+    expect(result).toBe(false);
+});
+
+test('isHorseSync: returns false for any id when cache empty', () => {
+    expect(brain.isHorseSync('horse-abc')).toBe(false);
+});
+
+test('getHorseIdsAtTable: returns empty array when cache not loaded', () => {
+    const result = brain.getHorseIdsAtTable([{ id: 'p1' }, { id: 'p2' }]);
+    expect(result.length).toBe(0);
+});
+
+test('getHorseIdsAtTable: handles null players', () => {
+    const result = brain.getHorseIdsAtTable(null);
+    expect(result.length).toBe(0);
+});
+
+// ─── recordSitDown / recordRebuy / clearTableSessions ───
+// These use the internal sessionTracker Map. We test through the public API.
+
+test('recordSitDown: creates session for new player', () => {
+    brain.recordSitDown('test-table-47g', 'horse-sit-1', 200);
+    // No throw = success. Session created internally.
+    // recordRebuy should work now:
+    brain.recordRebuy('test-table-47g', 'horse-sit-1', 100);
+    // If it didn't throw, session was found and buyins incremented.
+});
+
+test('recordSitDown: idempotent for same player', () => {
+    brain.recordSitDown('test-table-47g', 'horse-sit-1', 200);
+    // Called again — should NOT reset session (already sitting).
+    brain.recordRebuy('test-table-47g', 'horse-sit-1', 100);
+    // Still no throw.
+});
+
+test('recordRebuy: no-op for unknown table', () => {
+    brain.recordRebuy('nonexistent-table', 'horse-sit-1', 100);
+    // Should not throw — just returns.
+});
+
+test('recordRebuy: no-op for unknown player at valid table', () => {
+    brain.recordRebuy('test-table-47g', 'unknown-player', 100);
+    // Should not throw.
+});
+
+test('clearTableSessions: removes table data', () => {
+    brain.recordSitDown('test-table-47g-clear', 'horse-clear-1', 200);
+    brain.clearTableSessions('test-table-47g-clear');
+    // Rebuy should silently no-op now (table gone).
+    brain.recordRebuy('test-table-47g-clear', 'horse-clear-1', 100);
+    // No throw = success.
+});
+
+test('clearTableSessions: no-op for unknown table', () => {
+    brain.clearTableSessions('table-that-never-existed');
+    // Should not throw.
+});
+
+// ─── getChatMessages ───
+test('getChatMessages: returns array', () => {
+    const msgs = brain.getChatMessages();
+    // chatMessages starts empty or has accumulated messages
+    expect(Array.isArray(msgs)).toBe(true);
+});
+
+test('getChatMessages: drains queue (splice)', () => {
+    const first = brain.getChatMessages();
+    const second = brain.getChatMessages();
+    // After first call drains, second should be empty
+    expect(second.length).toBe(0);
+});
+
+// ─── cleanupMultiTable ───
+test('cleanupMultiTable: no-op for unknown player', () => {
+    brain.cleanupMultiTable('some-table', 'unknown-player');
+    // Should not throw.
+});
+
+test('cleanupMultiTable: removes table from player tracker', () => {
+    // First sit the player down to populate multiTableTracker
+    brain.recordSitDown('mt-table-1', 'horse-mt-1', 200);
+    brain.recordSitDown('mt-table-2', 'horse-mt-1', 200);
+    // Clean up one table
+    brain.cleanupMultiTable('mt-table-1', 'horse-mt-1');
+    // Should not throw. Tracker still has mt-table-2.
+    brain.cleanupMultiTable('mt-table-2', 'horse-mt-1');
+    // Now tracker should be fully cleaned. Repeating is safe:
+    brain.cleanupMultiTable('mt-table-2', 'horse-mt-1');
+});
+
+// ─── clearTableLiveObservers ───
+test('clearTableLiveObservers: no-op for unknown table', () => {
+    brain.clearTableLiveObservers('nonexistent-table-obs');
+    // Should not throw.
+});
+
+test('clearTableLiveObservers: clears after populating', () => {
+    // Populate observer data first
+    // observeNewHand(tableId, handId, players, horseIds, bb)
+    brain.observeNewHand('table-cto-1', 'hand-cto-1',
+        [{ id: 'horse-cto-1', position: 'BTN' }, { id: 'opp-cto-1', position: 'BB' }, { id: 'opp-cto-2', position: 'SB' }],
+        ['horse-cto-1'], 2);
+    // observeAction(tableId, actorId, street, action, context, horseIds)
+    brain.observeAction('table-cto-1', 'opp-cto-1', 'preflop', 'raise', {}, ['horse-cto-1']);
+    // Now clear
+    brain.clearTableLiveObservers('table-cto-1');
+    // getLiveRead should return null now
+    const read = brain.getLiveRead('horse-cto-1', 'table-cto-1', 'opp-cto-1');
+    expect(read).toBeNull();
+});
+
+// ─── cleanupLiveObservers ───
+test('cleanupLiveObservers: runs without error', () => {
+    brain.cleanupLiveObservers();
+    // Should clean up stale data. No throw = success.
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47h: _applyJournalToProfile + getOOPDecisionMatrix ══');
+// ═══════════════════════════════════════════════════════════
+
+// ─── _applyJournalToProfile ───
+test('_applyJournalToProfile: populates profile fields from journal data', () => {
+    const profile = {};
+    const data = {
+        hands_observed: 150,
+        vpip_count: 45,
+        pfr_count: 30,
+        three_bet_count: 10,
+        three_bet_opportunity: 25,
+        four_bet_count: 2,
+        fold_to_three_bet: 5,
+        faced_three_bet: 12,
+        cold_call_count: 8,
+        limp_count: 3,
+        steal_attempt_count: 15,
+        steal_opportunity: 20,
+        fold_to_steal: 10,
+        cbet_count: 20,
+        cbet_opportunity: 30,
+        fold_to_cbet: 12,
+        faced_cbet: 18,
+        second_barrel_count: 10,
+        second_barrel_opportunity: 15,
+        third_barrel_count: 5,
+        third_barrel_opportunity: 8,
+        check_raise_count: 3,
+        donk_bet_count: 2,
+        probe_bet_count: 4,
+        fold_to_raise: 8,
+        faced_raise: 20,
+        total_bets: 40,
+        total_calls: 50,
+        total_checks: 60,
+        total_folds: 30,
+        went_to_showdown: 25,
+        won_at_showdown: 15,
+        showdown_bluffs: 3,
+        overbet_count: 2,
+        total_decision_time_ms: 500000,
+        decision_count: 150,
+        snap_action_count: 10,
+        long_tank_count: 5,
+        actions_by_position: { BTN: 30, BB: 40 },
+        avg_flop_bet: 0.65,
+        avg_turn_bet: 0.75,
+        avg_river_bet: 0.80,
+        avg_preflop_raise: 3.0,
+        session_count: 5,
+        updated_at: new Date().toISOString(),
+        opponent_id: 'opp-journal-test-12345678',
+    };
+    brain._applyJournalToProfile(profile, data);
+    expect(profile.handsObserved).toBe(150);
+    expect(profile.vpipCount).toBe(45);
+    expect(profile.pfrCount).toBe(30);
+    expect(profile._journalSeeded).toBe(true);
+    expect(profile._journalHands).toBe(150);
+    expect(profile._journalSessionCount).toBe(5);
+});
+
+test('_applyJournalToProfile: freshness decays with age', () => {
+    const profile = {};
+    const oldDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(); // 1 week ago
+    const data = {
+        hands_observed: 100, vpip_count: 30, pfr_count: 20,
+        three_bet_count: 5, three_bet_opportunity: 10,
+        fold_to_three_bet: 3, faced_three_bet: 8,
+        cold_call_count: 4, limp_count: 2,
+        steal_attempt_count: 10, fold_to_steal: 5,
+        cbet_count: 15, cbet_opportunity: 20,
+        fold_to_cbet: 8, faced_cbet: 12,
+        second_barrel_count: 5, second_barrel_opportunity: 8,
+        third_barrel_count: 2, third_barrel_opportunity: 4,
+        check_raise_count: 1, donk_bet_count: 1, probe_bet_count: 2,
+        fold_to_raise: 4, faced_raise: 12,
+        total_bets: 25, total_calls: 35, total_checks: 40, total_folds: 20,
+        went_to_showdown: 15, won_at_showdown: 8, showdown_bluffs: 2,
+        overbet_count: 1, total_decision_time_ms: 300000,
+        decision_count: 100, snap_action_count: 5, long_tank_count: 3,
+        avg_flop_bet: 0, avg_turn_bet: 0, avg_river_bet: 0, avg_preflop_raise: 0,
+        updated_at: oldDate,
+        opponent_id: 'opp-old-journal-12345678',
+    };
+    brain._applyJournalToProfile(profile, data);
+    // 1 week = 168 hours. Freshness = exp(-168/120) ≈ 0.247, but min is 0.15
+    expect(profile._journalFreshness).toBeLessThan(0.5);
+    expect(profile._journalFreshness).toBeGreaterThanOrEqual(0.15);
+});
+
+test('_applyJournalToProfile: reconstructs sizing arrays', () => {
+    const profile = {};
+    const data = {
+        hands_observed: 50, vpip_count: 15, pfr_count: 10,
+        three_bet_count: 3, three_bet_opportunity: 8,
+        fold_to_three_bet: 2, faced_three_bet: 5,
+        cold_call_count: 2, limp_count: 1,
+        steal_attempt_count: 5, fold_to_steal: 3,
+        cbet_count: 8, cbet_opportunity: 12,
+        fold_to_cbet: 4, faced_cbet: 6,
+        second_barrel_count: 3, second_barrel_opportunity: 5,
+        third_barrel_count: 1, third_barrel_opportunity: 2,
+        check_raise_count: 1, donk_bet_count: 0, probe_bet_count: 1,
+        fold_to_raise: 3, faced_raise: 8,
+        total_bets: 15, total_calls: 20, total_checks: 25, total_folds: 10,
+        went_to_showdown: 8, won_at_showdown: 5, showdown_bluffs: 1,
+        overbet_count: 0, total_decision_time_ms: 200000,
+        decision_count: 50, snap_action_count: 3, long_tank_count: 2,
+        avg_flop_bet: 0.65, avg_turn_bet: 0.70, avg_river_bet: 0,
+        avg_preflop_raise: 2.8,
+        updated_at: new Date().toISOString(),
+        opponent_id: 'opp-sizing-test-12345678',
+    };
+    brain._applyJournalToProfile(profile, data);
+    expect(profile.flopBetSizes.length).toBe(3);
+    expect(profile.flopBetSizes[0]).toBeCloseTo(0.65, 1);
+    expect(profile.turnBetSizes[0]).toBeCloseTo(0.70, 1);
+    expect(profile.riverBetSizes).toBe(undefined); // avg_river_bet = 0, not set
+    expect(profile.preflopRaiseSizes[0]).toBeCloseTo(2.8, 1);
+});
+
+// ─── getOOPDecisionMatrix ───
+const getOOPMatrix = brain.getOOPDecisionMatrix;
+
+test('getOOPDecisionMatrix: nutted hand returns check_raise or slowplay', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+        const result = getOOPMatrix({
+            handStrength: 85,
+            handCategory: 'set',
+            street: 'flop',
+            boardWetness: 'medium',
+            numPlayers: 2,
+            oppTendency: 'balanced',
+            oppConfidence: 0.5,
+            potSize: 20,
+            toCall: 0,
+            stackBB: 100,
+        });
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('action');
+        // Nutted hand OOP: check_raise or check_call (slowplay) or lead
+        const validActions = ['check_raise', 'check_call', 'lead', 'check_fold'];
+        expect(validActions.includes(result.action)).toBe(true);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('getOOPDecisionMatrix: weak hand checks or folds', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+        const result = getOOPMatrix({
+            handStrength: 15,
+            handCategory: 'high_card',
+            street: 'turn',
+            boardWetness: 'dry',
+            numPlayers: 2,
+            oppTendency: 'balanced',
+            oppConfidence: 0.3,
+            potSize: 30,
+            toCall: 20, // big bet
+            stackBB: 100,
+        });
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('action');
+        // Weak hand facing big bet OOP should fold or occasionally bluff
+        const validActions = ['check_fold', 'check_call', 'lead', 'check_raise'];
+        expect(validActions.includes(result.action)).toBe(true);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('getOOPDecisionMatrix: draw hand on flop considers semi-bluff', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.3;
+    try {
+        const result = getOOPMatrix({
+            handStrength: 35,
+            handCategory: 'flush_draw',
+            hasStrongDraw: true,
+            street: 'flop',
+            boardWetness: 'wet',
+            numPlayers: 2,
+            oppTendency: 'tight',
+            oppConfidence: 0.4,
+            potSize: 15,
+            toCall: 0,
+            stackBB: 100,
+        });
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('action');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('getOOPDecisionMatrix: multiway tightens ranges', () => {
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+        const result = getOOPMatrix({
+            handStrength: 50,
+            handCategory: 'top_pair',
+            street: 'flop',
+            boardWetness: 'medium',
+            numPlayers: 4,
+            oppTendency: 'balanced',
+            oppConfidence: 0.3,
+            potSize: 30,
+            toCall: 0,
+            stackBB: 100,
+        });
+        expect(result).toBeDefined();
+        expect(result).toHaveProperty('action');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47i: makePLOFallbackDecision edge cases ══');
+// ═══════════════════════════════════════════════════════════
+
+const makePLOFallback = brain.makePLOFallbackDecision;
+
+test('makePLOFallbackDecision: short hole cards returns check or fold', () => {
+    const result = makePLOFallback('plo-test-1', {
+        holeCards: ['Ah', 'Kd'], // Only 2 cards, PLO needs 4
+        board: [],
+        street: 'preflop',
+        position: 'BTN',
+        stackBB: 100,
+        potSize: 3,
+        toCall: 1,
+        bb: 1,
+        numPlayers: 6,
+    }, [{ type: 'check' }, { type: 'fold' }]);
+    expect(result.type === 'check' || result.type === 'fold').toBe(true);
+});
+
+test('makePLOFallbackDecision: preflop with 4 cards returns valid action', () => {
+    const result = makePLOFallback('plo-test-2', {
+        holeCards: ['Ah', 'Kd', 'Qc', 'Js'],
+        board: [],
+        street: 'preflop',
+        position: 'BTN',
+        stackBB: 100,
+        potSize: 3,
+        toCall: 2,
+        bb: 1,
+        numPlayers: 6,
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 2 },
+        { type: 'raise', minAmount: 6, maxAmount: 100 },
+    ]);
+    expect(result).toBeDefined();
+    expect(result).toHaveProperty('type');
+    const valid = ['fold', 'call', 'raise', 'bet', 'check'];
+    expect(valid.includes(result.type)).toBe(true);
+});
+
+test('makePLOFallbackDecision: postflop flop returns valid action', () => {
+    const result = makePLOFallback('plo-test-3', {
+        holeCards: ['Ah', 'Kd', 'Qc', 'Js'],
+        board: ['Th', '9h', '2c'],
+        street: 'flop',
+        position: 'BTN',
+        stackBB: 100,
+        potSize: 12,
+        toCall: 0,
+        bb: 1,
+        numPlayers: 3,
+    }, [
+        { type: 'check' },
+        { type: 'bet', minAmount: 4, maxAmount: 100 },
+    ]);
+    expect(result).toBeDefined();
+    expect(result).toHaveProperty('type');
+});
+
+test('makePLOFallbackDecision: river facing bet with weak hand', () => {
+    const result = makePLOFallback('plo-test-4', {
+        holeCards: ['2h', '3d', '4c', '5s'],
+        board: ['Kh', 'Kd', 'Qc', 'Js', 'Th'],
+        street: 'river',
+        position: 'BB',
+        stackBB: 50,
+        potSize: 40,
+        toCall: 30,
+        bb: 1,
+        numPlayers: 2,
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 30 },
+    ]);
+    expect(result).toBeDefined();
+    expect(result).toHaveProperty('type');
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

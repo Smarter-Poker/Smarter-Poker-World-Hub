@@ -17845,5 +17845,9 @@ module.exports = {
     loadTableJournals,
     _journalCache,  // Exposed for testing/debugging
     _applyJournalToProfile, // Shared journal → profile seeder
+
+    // Exposed for testing (Phase 47g)
+    getOOPDecisionMatrix,
+    makePLOFallbackDecision,
 };
 
