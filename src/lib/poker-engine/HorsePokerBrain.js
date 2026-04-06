@@ -3479,58 +3479,79 @@ function detectPLOWrapDraw(holeRanks, boardRanks) {
         return { wrapType: 'none', wrapOuts: 0, isWrap: false, wrapStrength: 0 };
     }
 
-    // Get unique ranks sorted
-    const allRanks = [...new Set([...holeRanks, ...boardRanks])].sort((a, b) => a - b);
+    // ── Phase 48c FIX: Correct PLO wrap detection using exact 2-from-hand / 3-from-board rule ──
+    // The old proximity-based heuristic (counting hole cards within 4 of a board card)
+    // was completely broken — it assigned 9-20 phantom outs to hands with ZERO actual
+    // straight draws. Example: 2-3-4-8 on A-K-Q board got 9 outs (should be 0).
+    //
+    // New approach: for each possible turn card rank (0-12), simulate it appearing on
+    // the board and check if any NEW 5-card straight becomes possible under PLO rules
+    // (exactly 2 hole cards + exactly 3 board cards).
 
-    // Find the longest consecutive run that uses at least one board card and one hole card
-    let maxWrapOuts = 0;
-    let wrapType = 'none';
-
-    // Check all possible 5-card straight combinations
-    for (let i = 0; i <= allRanks.length - 5; i++) {
-        const window = allRanks.slice(i, i + 5);
-        const isConsecutive = window[4] - window[0] <= 5; // Within a 5-wide window
-        if (!isConsecutive) continue;
-
-        // Count how many of the 5 ranks are board cards
-        const onBoard = window.filter(r => boardRanks.includes(r)).length;
-        // Count how many outs we need (ranks missing from current combo)
-        const currentRanks = new Set([...holeRanks.slice(0, 2), ...boardRanks]); // PLO: 2-card rule approximation
-        const missing = window.filter(r => !boardRanks.includes(r) && !holeRanks.includes(r));
-
-        if (missing.length === 1) {
-            // Gutshot or open-ender: many hole cards hit this
-            const outsContributed = 4 - (boardRanks.filter(r => missing[0] === r).length);
-            maxWrapOuts = Math.max(maxWrapOuts, outsContributed);
-        } else if (missing.length === 0) {
-            // Made straight — not a draw
-            continue;
+    // Step 1: Pre-compute which straights are already MADE before any new card
+    const madeHighs = new Set();
+    for (let high = 12; high >= 4; high--) {
+        const needed = [high, high - 1, high - 2, high - 3, high - 4];
+        const bO = needed.filter(r => boardRanks.includes(r) && !holeRanks.includes(r));
+        const hO = needed.filter(r => !boardRanks.includes(r) && holeRanks.includes(r));
+        const bth = needed.filter(r => boardRanks.includes(r) && holeRanks.includes(r));
+        const miss = needed.filter(r => !boardRanks.includes(r) && !holeRanks.includes(r));
+        if (miss.length > 0) continue;
+        // All 5 ranks present — check if PLO 2/3 split is achievable
+        if (hO.length <= 2 && bO.length <= 3) {
+            const nbh = 2 - hO.length;
+            const nbb = 3 - bO.length;
+            if (nbh >= 0 && nbb >= 0 && nbh + nbb <= bth.length) {
+                madeHighs.add(high);
+            }
         }
     }
 
-    // Classify by exact out count (PLO wrap categories)
-    // 20-out wrap: holding 4 consecutive ranks around a 3-card board window
-    const hSorted = [...holeRanks].sort((a, b) => a - b);
-    const bSorted = [...boardRanks].sort((a, b) => a - b);
+    // Step 2: For each candidate turn/river rank, check if it enables a NEW straight
+    const completingRanks = new Set();
+    for (let cardRank = 0; cardRank <= 12; cardRank++) {
+        const newBoard = [...boardRanks, cardRank];
 
-    // Simplified exact wrap detection by gap analysis
-    let wrapOuts = maxWrapOuts;
+        for (let high = 12; high >= 4; high--) {
+            if (madeHighs.has(high)) continue; // Already made before this card
 
-    // Count sequential pairs in hole cards vs board
-    const combinations = holeRanks.filter(h => {
-        return bSorted.some(b => Math.abs(h - b) <= 4);
-    }).length;
+            const needed = [high, high - 1, high - 2, high - 3, high - 4];
+            const bO = needed.filter(r => newBoard.includes(r) && !holeRanks.includes(r));
+            const hO = needed.filter(r => !newBoard.includes(r) && holeRanks.includes(r));
+            const bth = needed.filter(r => newBoard.includes(r) && holeRanks.includes(r));
+            const miss = needed.filter(r => !newBoard.includes(r) && !holeRanks.includes(r));
 
-    if (combinations >= 4) { wrapOuts = 20; wrapType = 'mega_wrap_20'; }
-    else if (combinations === 3) { wrapOuts = 17; wrapType = 'big_wrap_17'; }
-    else if (combinations === 2) { wrapOuts = 13; wrapType = 'wrap_13'; }
-    else if (combinations === 1) { wrapOuts = 9; wrapType = 'gutshot_wrap_9'; }
+            if (miss.length > 0) continue;
+            if (hO.length > 2 || bO.length > 3) continue;
+            const nbh = 2 - hO.length;
+            const nbb = 3 - bO.length;
+            if (nbh < 0 || nbb < 0 || nbh + nbb > bth.length) continue;
 
-    const isWrap = wrapOuts >= 9;
-    // Wrap strength: scales with outs, capped at 100
-    const wrapStrength = Math.min(100, wrapOuts * 4.5);
+            // This card enables a new straight under PLO rules
+            completingRanks.add(cardRank);
+            break; // One straight is enough to confirm this rank is an out
+        }
+    }
 
-    return { wrapType, wrapOuts, isWrap, wrapStrength };
+    // Step 3: Calculate actual outs (subtract cards already in play)
+    let actualOuts = 0;
+    for (const rank of completingRanks) {
+        let available = 4; // 4 suits
+        available -= holeRanks.filter(r => r === rank).length;
+        available -= boardRanks.filter(r => r === rank).length;
+        actualOuts += Math.max(0, available);
+    }
+
+    let wrapType = 'none';
+    if (actualOuts >= 20) wrapType = 'mega_wrap_20';
+    else if (actualOuts >= 16) wrapType = 'big_wrap_17';
+    else if (actualOuts >= 12) wrapType = 'wrap_13';
+    else if (actualOuts >= 4) wrapType = 'small_wrap';
+
+    const isWrap = actualOuts >= 9;
+    const wrapStrength = Math.min(100, actualOuts * 4.5);
+
+    return { wrapType, wrapOuts: actualOuts, isWrap, wrapStrength };
 }
 
 // ── 8b. ADAPTIVE BET SIZER ──
@@ -7509,45 +7530,35 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Board paired on turn — represent trips
                 if (newCardPairedBoard) bluffFreq += 0.05;
 
-                // ═══ PHASE 36C: BOARD EVOLUTION-DRIVEN TURN BLUFF ═══
+                // ═══ PHASE 36C: BOARD EVOLUTION-DRIVEN TURN BLUFF (merged — was duplicated) ═══
                 // The turn card's impact on the board drives bluff credibility.
-                // Draw completing = aggressor can rep it. Bricked draws = opponent sticky.
+                // Draw completing = aggressor can rep it. Bricked draws = mixed effect.
                 if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
                     bluffFreq += 0.10; // Turn completed a draw — we rep having it
                 }
                 if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
-                    // Opponent's semi-bluffs are now air, BUT their calling range has
-                    // more showdown value → they're stickier → harder to bluff
-                    bluffFreq -= 0.06;
-                    // Exception: if we have blockers to value, still profitable
-                    if (turnBluffBlockerCount >= 2) bluffFreq += 0.04;
+                    // Two competing effects:
+                    // (1) Opponent's semi-bluffs are now air → their overall range is weaker
+                    // (2) Their CALLING range has more showdown value → they're stickier
+                    // Net: slight negative unless we have blockers to their value hands
+                    if (turnBluffBlockerCount >= 2) {
+                        bluffFreq += 0.02; // Blockers + bricked draws = still profitable
+                    } else {
+                        bluffFreq -= 0.03; // Stickier calling range outweighs weaker overall range
+                    }
                 }
                 if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
                     bluffFreq += 0.06; // Runout favors our perceived range → credible barrel
                 }
                 if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
-                    bluffFreq -= 0.08; // Runout helped their range → bad bluff spot
+                    bluffFreq -= 0.10; // Runout helped their range → bad bluff spot
                 }
-                if (boardEvolution.evolution === 'static_brick' && heroIsAggressor) {
-                    bluffFreq += 0.04; // Brick = safe to continue barreling
-                }
-
-                // ═══ BOARD EVOLUTION-DRIVEN BLUFF CREDIBILITY ═══
-                // Runout that completes draws = we can represent them (credible bluff)
-                if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
-                    bluffFreq += 0.10; // Draws got there — credible to rep
-                }
-                // Board bricked draws = opponent's semi-bluffs missed → they fold more
-                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
-                    bluffFreq += 0.06; // Opponent's missed draws = weak range
-                }
-                // Static brick = opponent expects us to barrel anyway → less fold equity
-                if (boardEvolution.evolution === 'static_brick' && !heroIsAggressor) {
-                    bluffFreq -= 0.06; // Blank card, non-aggressor bluff is uncredible
-                }
-                // Caller-favorable runout AND we're the aggressor = terrible bluff spot
-                if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
-                    bluffFreq -= 0.10; // Board helped their range, not ours
+                if (boardEvolution.evolution === 'static_brick') {
+                    if (heroIsAggressor) {
+                        bluffFreq += 0.04; // Brick = safe to continue barreling
+                    } else {
+                        bluffFreq -= 0.06; // Blank card, non-aggressor bluff is uncredible
+                    }
                 }
 
                 // Against over-folders, bluff more
@@ -17877,5 +17888,8 @@ module.exports = {
     evaluatePLO8Low,
     getPLOEquityRealization,
     detectScareCard,
+
+    // Exposed for testing (Phase 48c) — wrap draw detector
+    detectPLOWrapDraw,
 };
 
