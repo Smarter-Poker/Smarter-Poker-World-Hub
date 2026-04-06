@@ -11669,6 +11669,27 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             }
         } catch (_) { }
 
+        // ═══ PHASE 15: JOURNAL → ENRICHED FALLBACK (Flop) ═══
+        if (!flopEnrichedRead && primaryOppId) {
+            const flopJournalRead = getLiveRead(profileId, tableId, primaryOppId);
+            if (flopJournalRead && flopJournalRead.confidence >= 0.15) {
+                const jl = flopJournalRead;
+                let tendency = 'balanced';
+                if (jl.playerType === 'nit' || jl.playerType === 'weak-tight') tendency = 'weak-tight';
+                else if (jl.playerType === 'LAG' || jl.playerType === 'maniac') tendency = 'bluffy';
+                else if (jl.playerType === 'calling_station') tendency = 'calling-station';
+                flopEnrichedRead = {
+                    bluffFrequency: jl.bluffRate ?? (jl.aggFreq > 0.45 ? 0.35 : jl.aggFreq > 0.30 ? 0.25 : 0.15),
+                    callFrequency: jl.callFreq ?? 0.50,
+                    foldFrequency: jl.foldFreq ?? 0.35,
+                    tendency,
+                    handsObserved: jl.confidence * 100,
+                    confidence: jl.confidence,
+                    _source: 'journal_fallback',
+                };
+            }
+        }
+
         const flopHeroIsAggressor = engineState.lastRaiser === profileId;
 
         const flopDecision = makeFlopHeuristicDecision({
@@ -11722,6 +11743,36 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 enrichedOpponentRead = adv.getOpponentRead(profileId, primaryOppId);
             }
         } catch (_) { }
+
+        // ═══ PHASE 15: JOURNAL → ENRICHED FALLBACK ═══
+        // When the Advanced module has NO data for this opponent, synthesize
+        // an enrichedOpponentRead from the live observer (which may include journal data).
+        // This means turn/river decisions ALWAYS have opponent profiling available,
+        // even for opponents we've never played before this session (but played in prior sessions).
+        if (!enrichedOpponentRead && primaryOppId) {
+            const journalLiveRead = getLiveRead(profileId, tableId, primaryOppId);
+            if (journalLiveRead && journalLiveRead.confidence >= 0.15) {
+                // Synthesize an enrichedOpponentRead from live/journal data
+                const jl = journalLiveRead;
+                let tendency = 'balanced';
+                if (jl.playerType === 'nit' || jl.playerType === 'weak-tight') tendency = 'weak-tight';
+                else if (jl.playerType === 'LAG' || jl.playerType === 'maniac') tendency = 'bluffy';
+                else if (jl.playerType === 'calling_station') tendency = 'calling-station';
+                else if (jl.playerType === 'TAG') tendency = 'balanced';
+
+                enrichedOpponentRead = {
+                    bluffFrequency: jl.bluffRate ?? (jl.aggFreq > 0.45 ? 0.35 : jl.aggFreq > 0.30 ? 0.25 : 0.15),
+                    callFrequency: jl.callFreq ?? 0.50,
+                    foldFrequency: jl.foldFreq ?? 0.35,
+                    valueFrequency: jl.aggFreq ?? 0.33,
+                    tendency,
+                    handsObserved: jl.confidence * 100, // Approximate — confidence=0.60 → 60 "equivalent" hands
+                    confidence: jl.confidence,
+                    _source: 'journal_fallback',
+                };
+                console.log(`[HorseBrain] 📓 JOURNAL→ENRICHED FALLBACK: ${primaryOppId.substring(0, 8)} type=${jl.playerType} tendency=${tendency} conf=${Math.round(jl.confidence * 100)}%`);
+            }
+        }
 
         // ═══ MULTI-STREET ACTION INFERENCE ═══
         // Infer opponent strength from how the pot was built across streets.
@@ -13385,7 +13436,15 @@ function getLiveRead(horseId, tableId, opponentId) {
     const showdownConfidence = p.wentToShowdown >= 3 ? Math.min(0.20, p.wentToShowdown / 30) : 0;
     const timingConfidence = p.decisionCount > 10 ? 0.10 : 0;
     // ═══ JOURNAL BONUS: Historical data from prior sessions boosts confidence ═══
-    const journalBonus = p._journalSeeded && p._journalHands > 20 ? Math.min(0.15, p._journalHands / 500) : 0;
+    // PHASE 15: Applies data decay — older journal data contributes less.
+    // Multi-session data is more reliable: bonus scales with session_count.
+    let journalBonus = 0;
+    if (p._journalSeeded && p._journalHands > 20) {
+        const baseBonus = Math.min(0.15, p._journalHands / 500);
+        const freshness = p._journalFreshness ?? 1.0; // 1.0 = fresh, 0.15 = very stale
+        const sessionMultiplier = Math.min(1.5, 1.0 + ((p._journalSessionCount || 1) - 1) * 0.10); // More sessions = more reliable
+        journalBonus = baseBonus * freshness * sessionMultiplier;
+    }
     const confidence = Math.min(0.95, handConfidence + showdownConfidence + timingConfidence + journalBonus);
 
     return {
@@ -15348,7 +15407,7 @@ async function persistOpponentJournal(horseId, opponentId, profile) {
         // First, fetch existing journal to merge additively
         const { data: existing } = await sb
             .from('horse_opponent_journals')
-            .select('hands_observed')
+            .select('hands_observed, session_count')
             .eq('horse_id', horseId)
             .eq('opponent_id', opponentId)
             .maybeSingle();
@@ -15404,12 +15463,38 @@ async function persistOpponentJournal(horseId, opponentId, profile) {
             updated_at: new Date().toISOString(),
         };
 
+        // PHASE 15: Compute player type from current data for persistence
+        const totalActions = profile.totalBets + profile.totalCalls + profile.totalChecks + profile.totalFolds;
+        let detectedType = 'unknown';
+        if (profile.handsObserved >= 10 && totalActions > 0) {
+            const v = profile.vpipCount / profile.handsObserved;
+            const p_ = profile.pfrCount / profile.handsObserved;
+            const af = totalActions > 0 ? profile.totalBets / totalActions : 0.33;
+            if (v < 0.18 && p_ < 0.12) detectedType = 'nit';
+            else if (v < 0.24 && p_ >= 0.16 && af >= 0.38) detectedType = 'TAG';
+            else if (v >= 0.28 && p_ >= 0.20 && af >= 0.42) detectedType = 'LAG';
+            else if (v >= 0.35 && af < 0.28) detectedType = 'calling_station';
+            else if (v >= 0.45 && af >= 0.48) detectedType = 'maniac';
+            else detectedType = 'balanced';
+        }
+        payload.last_known_player_type = detectedType;
+
+        // PHASE 15: Increment session_count on conflict (existing row = new session seeing same opponent)
         const { error } = await sb.from('horse_opponent_journals').upsert(payload, {
             onConflict: 'horse_id,opponent_id'
         });
 
+        // After upsert, increment session_count if this is an existing record
+        if (!error && existing && existing.hands_observed > 0) {
+            await sb.from('horse_opponent_journals')
+                .update({ session_count: (existing.session_count || 1) + 1 })
+                .eq('horse_id', horseId)
+                .eq('opponent_id', opponentId)
+                .catch(() => {}); // Fire-and-forget session count bump
+        }
+
         if (!error) {
-            console.log(`[HorseBrain] 📓 JOURNAL SAVED: ${horseId.substring(0, 8)} → ${opponentId.substring(0, 8)} (${profile.handsObserved} hands)`);
+            console.log(`[HorseBrain] 📓 JOURNAL SAVED: ${horseId.substring(0, 8)} → ${opponentId.substring(0, 8)} (${profile.handsObserved} hands, type=${detectedType})`);
             // Mark in cache as recently persisted
             _journalCache.set(`${horseId}:${opponentId}`, { loaded: true, persisted: Date.now(), timestamp: Date.now() });
         }
@@ -15465,57 +15550,7 @@ async function loadOpponentJournal(horseId, tableId, opponentId) {
         // Only seed if the live profile has fewer observations than the journal
         // (don't overwrite fresh live data with stale historical data)
         if (profile.handsObserved < data.hands_observed) {
-            profile.handsObserved = data.hands_observed;
-            profile.vpipCount = data.vpip_count;
-            profile.pfrCount = data.pfr_count;
-            profile.threeBetCount = data.three_bet_count;
-            profile.threeBetOpportunity = data.three_bet_opportunity;
-            profile.fourBetCount = data.four_bet_count || 0;
-            profile.foldToThreeBet = data.fold_to_three_bet;
-            profile.facedThreeBet = data.faced_three_bet;
-            profile.coldCallCount = data.cold_call_count;
-            profile.limpCount = data.limp_count;
-            profile.stealAttemptCount = data.steal_attempt_count;
-            profile.stealOpportunity = data.steal_opportunity || 0;
-            profile.foldToSteal = data.fold_to_steal;
-            profile.cBetCount = data.cbet_count;
-            profile.cBetOpportunity = data.cbet_opportunity;
-            profile.foldToCBet = data.fold_to_cbet;
-            profile.facedCBet = data.faced_cbet;
-            profile.secondBarrelCount = data.second_barrel_count;
-            profile.secondBarrelOpportunity = data.second_barrel_opportunity;
-            profile.thirdBarrelCount = data.third_barrel_count;
-            profile.thirdBarrelOpportunity = data.third_barrel_opportunity;
-            profile.checkRaiseCount = data.check_raise_count;
-            profile.donkBetCount = data.donk_bet_count;
-            profile.probeBetCount = data.probe_bet_count;
-            profile.foldToRaise = data.fold_to_raise;
-            profile.facedRaise = data.faced_raise;
-            profile.totalBets = data.total_bets;
-            profile.totalCalls = data.total_calls;
-            profile.totalChecks = data.total_checks;
-            profile.totalFolds = data.total_folds;
-            profile.wentToShowdown = data.went_to_showdown;
-            profile.wonAtShowdown = data.won_at_showdown;
-            profile.showdownBluffs = data.showdown_bluffs;
-            profile.overbetCount = data.overbet_count;
-            profile.totalDecisionTimeMs = data.total_decision_time_ms;
-            profile.decisionCount = data.decision_count;
-            profile.snapActionCount = data.snap_action_count;
-            profile.longTankCount = data.long_tank_count;
-            profile.actionsByPosition = data.actions_by_position || {};
-
-            // Reconstruct average sizing arrays from journal averages
-            // (We store averages, not full arrays — create synthetic arrays for getLiveRead)
-            if (data.avg_flop_bet > 0) profile.flopBetSizes = [data.avg_flop_bet, data.avg_flop_bet, data.avg_flop_bet];
-            if (data.avg_turn_bet > 0) profile.turnBetSizes = [data.avg_turn_bet, data.avg_turn_bet, data.avg_turn_bet];
-            if (data.avg_river_bet > 0) profile.riverBetSizes = [data.avg_river_bet, data.avg_river_bet, data.avg_river_bet];
-            if (data.avg_preflop_raise > 0) profile.preflopRaiseSizes = [data.avg_preflop_raise, data.avg_preflop_raise, data.avg_preflop_raise];
-
-            // Mark as journal-seeded for confidence calculation
-            profile._journalSeeded = true;
-            profile._journalHands = data.hands_observed;
-
+            _applyJournalToProfile(profile, data);
             console.log(`[HorseBrain] 📓 JOURNAL LOADED: ${horseId.substring(0, 8)} recognized ${opponentId.substring(0, 8)} (${data.hands_observed} historical hands)`);
         }
 
@@ -15560,6 +15595,10 @@ async function persistTableJournals(horseId, tableId) {
  * Load journals for ALL non-horse players at a table.
  * Called during observeNewHand when a new hand starts.
  * Runs async (fire-and-forget) to avoid blocking the game.
+ *
+ * PHASE 15: Uses BATCH SELECT — one query per horse instead of N queries per opponent.
+ * This reduces Supabase round-trips from (H × O) to H queries.
+ *
  * @param {string} tableId
  * @param {Array<string>} playerIds - All player IDs at the table
  * @param {Array<string>} horseIds - Horse IDs at the table
@@ -15570,22 +15609,142 @@ async function loadTableJournals(tableId, playerIds, horseIds) {
         const opponents = playerIds.filter(id => !horseSet.has(String(id))).map(String);
         if (opponents.length === 0) return;
 
-        const promises = [];
-        for (const horseId of horseIds) {
-            for (const oppId of opponents) {
+        const sb = getSupabase();
+        if (!sb) return;
+
+        // For each horse, batch-fetch ALL opponent journals in one query
+        const batchPromises = horseIds.map(async (horseId) => {
+            // Filter to only opponents not already in cache
+            const uncachedOpps = opponents.filter(oppId => {
                 const cacheKey = `${horseId}:${oppId}`;
                 const cached = _journalCache.get(cacheKey);
-                if (!cached || (Date.now() - cached.timestamp) >= JOURNAL_CACHE_TTL) {
-                    promises.push(loadOpponentJournal(horseId, tableId, oppId));
+                return !cached || (Date.now() - cached.timestamp) >= JOURNAL_CACHE_TTL;
+            });
+            if (uncachedOpps.length === 0) return;
+
+            try {
+                // BATCH SELECT: one query for all opponents of this horse
+                const { data: journals, error } = await sb
+                    .from('horse_opponent_journals')
+                    .select('*')
+                    .eq('horse_id', horseId)
+                    .in('opponent_id', uncachedOpps);
+
+                if (error) {
+                    console.warn(`[HorseBrain] 📓 Batch journal query error: ${error.message}`);
+                    return;
                 }
+
+                // Index results by opponent_id for fast lookup
+                const journalMap = new Map();
+                if (journals) {
+                    for (const j of journals) journalMap.set(j.opponent_id, j);
+                }
+
+                // Apply each journal to the live observer
+                for (const oppId of uncachedOpps) {
+                    const cacheKey = `${horseId}:${oppId}`;
+                    const data = journalMap.get(oppId);
+
+                    if (!data || data.hands_observed < 5) {
+                        _journalCache.set(cacheKey, { loaded: false, timestamp: Date.now() });
+                        continue;
+                    }
+
+                    // Pre-seed the liveObserver with historical data
+                    const observer = _getTableObserver(horseId, tableId);
+                    if (!observer.opponents.has(oppId)) {
+                        observer.opponents.set(oppId, _createLiveProfile());
+                    }
+                    const profile = observer.opponents.get(oppId);
+
+                    // Only seed if live profile has fewer observations
+                    if (profile.handsObserved < data.hands_observed) {
+                        _applyJournalToProfile(profile, data);
+                    }
+
+                    _journalCache.set(cacheKey, { loaded: true, timestamp: Date.now() });
+                }
+
+                if (journalMap.size > 0) {
+                    console.log(`[HorseBrain] 📓 BATCH JOURNAL LOAD: ${horseId.substring(0, 8)} loaded ${journalMap.size}/${uncachedOpps.length} opponents at table ${tableId.substring(0, 8)}`);
+                }
+            } catch (err) {
+                console.warn(`[HorseBrain] 📓 Batch journal error for horse ${horseId.substring(0, 8)}: ${err.message}`);
             }
-        }
-        if (promises.length > 0) {
-            await Promise.allSettled(promises);
-        }
+        });
+
+        await Promise.allSettled(batchPromises);
     } catch (err) {
         console.warn(`[HorseBrain] 📓 Table journal load error: ${err.message}`);
     }
+}
+
+/**
+ * PHASE 15: Shared helper — applies journal data to a LiveProfile.
+ * Used by both loadOpponentJournal (single) and loadTableJournals (batch).
+ * Also applies data decay: older journals get reduced confidence.
+ */
+function _applyJournalToProfile(profile, data) {
+    profile.handsObserved = data.hands_observed;
+    profile.vpipCount = data.vpip_count;
+    profile.pfrCount = data.pfr_count;
+    profile.threeBetCount = data.three_bet_count;
+    profile.threeBetOpportunity = data.three_bet_opportunity;
+    profile.fourBetCount = data.four_bet_count || 0;
+    profile.foldToThreeBet = data.fold_to_three_bet;
+    profile.facedThreeBet = data.faced_three_bet;
+    profile.coldCallCount = data.cold_call_count;
+    profile.limpCount = data.limp_count;
+    profile.stealAttemptCount = data.steal_attempt_count;
+    profile.stealOpportunity = data.steal_opportunity || 0;
+    profile.foldToSteal = data.fold_to_steal;
+    profile.cBetCount = data.cbet_count;
+    profile.cBetOpportunity = data.cbet_opportunity;
+    profile.foldToCBet = data.fold_to_cbet;
+    profile.facedCBet = data.faced_cbet;
+    profile.secondBarrelCount = data.second_barrel_count;
+    profile.secondBarrelOpportunity = data.second_barrel_opportunity;
+    profile.thirdBarrelCount = data.third_barrel_count;
+    profile.thirdBarrelOpportunity = data.third_barrel_opportunity;
+    profile.checkRaiseCount = data.check_raise_count;
+    profile.donkBetCount = data.donk_bet_count;
+    profile.probeBetCount = data.probe_bet_count;
+    profile.foldToRaise = data.fold_to_raise;
+    profile.facedRaise = data.faced_raise;
+    profile.totalBets = data.total_bets;
+    profile.totalCalls = data.total_calls;
+    profile.totalChecks = data.total_checks;
+    profile.totalFolds = data.total_folds;
+    profile.wentToShowdown = data.went_to_showdown;
+    profile.wonAtShowdown = data.won_at_showdown;
+    profile.showdownBluffs = data.showdown_bluffs;
+    profile.overbetCount = data.overbet_count;
+    profile.totalDecisionTimeMs = data.total_decision_time_ms;
+    profile.decisionCount = data.decision_count;
+    profile.snapActionCount = data.snap_action_count;
+    profile.longTankCount = data.long_tank_count;
+    profile.actionsByPosition = data.actions_by_position || {};
+
+    // Reconstruct synthetic sizing arrays from journal averages
+    if (data.avg_flop_bet > 0) profile.flopBetSizes = [data.avg_flop_bet, data.avg_flop_bet, data.avg_flop_bet];
+    if (data.avg_turn_bet > 0) profile.turnBetSizes = [data.avg_turn_bet, data.avg_turn_bet, data.avg_turn_bet];
+    if (data.avg_river_bet > 0) profile.riverBetSizes = [data.avg_river_bet, data.avg_river_bet, data.avg_river_bet];
+    if (data.avg_preflop_raise > 0) profile.preflopRaiseSizes = [data.avg_preflop_raise, data.avg_preflop_raise, data.avg_preflop_raise];
+
+    // Mark as journal-seeded for confidence calculation
+    profile._journalSeeded = true;
+    profile._journalHands = data.hands_observed;
+    profile._journalSessionCount = data.session_count || 1;
+
+    // PHASE 15: Data decay — older journals get a staleness penalty
+    // Fresh data (updated within 24h) = full weight. 7+ days old = decayed.
+    const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : Date.now();
+    const ageHours = (Date.now() - updatedAt) / (1000 * 60 * 60);
+    // Decay curve: 1.0 at 0h, ~0.85 at 24h, ~0.60 at 72h, ~0.30 at 168h (1 week)
+    profile._journalFreshness = Math.max(0.15, Math.exp(-ageHours / 120));
+
+    console.log(`[HorseBrain] 📓 JOURNAL APPLIED: ${data.opponent_id?.substring(0, 8)} (${data.hands_observed}h, ${data.session_count || 1} sessions, freshness=${Math.round(profile._journalFreshness * 100)}%)`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -15729,5 +15888,6 @@ module.exports = {
     persistTableJournals,
     loadTableJournals,
     _journalCache,  // Exposed for testing/debugging
+    _applyJournalToProfile, // Shared journal → profile seeder
 };
 
