@@ -589,9 +589,11 @@ export default function PokerNearMeLobby() {
   // ─── Fetch daily tournaments ───
   const fetchDaily = useCallback(async (dayFilter = '') => {
     try {
-      let url = '/api/poker/daily-tournaments?limit=200';
-      if (dayFilter) url += `&day=${encodeURIComponent(dayFilter)}`;
-      if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
+      let url = '/api/poker/daily-tournaments';
+      const params = [];
+      if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
+      if (userLocation) params.push(`lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`);
+      if (params.length > 0) url += '?' + params.join('&');
       const data = await cachedFetch(url);
       if (data?.data) setDailyTournaments(data.data);
       else if (data?.tournaments) setDailyTournaments(data.tournaments);

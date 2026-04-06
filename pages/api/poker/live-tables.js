@@ -225,6 +225,7 @@ export default async function handler(req, res) {
           _latestOriginStamp: new Date(row.scrape_timestamp).getTime(),
           _seenGames: new Set(),
           _hasBravoData: src === 'bravo',
+          _hasLiveIndicators: false, // true if any game has waitlist or is bravo-sourced
           _sources: new Set([src]),
         };
       }
@@ -269,15 +270,34 @@ export default async function handler(req, res) {
           runs: row.runs_schedule || null,
           data_quality: row.data_quality || null,
         });
+        // Track if this venue has real live indicators:
+        // Bravo data is always real-time; PA data is only "live" if players are actually waiting
+        if (src === 'bravo' || (row.players_waiting && row.players_waiting > 0)) {
+          venueData._hasLiveIndicators = true;
+        }
       } else {
         dedupedRows++;
       }
     }
 
-    const venues = Object.values(grouped).map(({ _seenGames, _latestOriginStamp, _hasBravoData, _sources, ...v }) => v);
-    const totalTables = venues.reduce(
-      (sum, v) => sum + v.games.reduce((s, g) => s + (g.tables_running || 0), 0), 0
-    );
+    // Separate venues with real-time live data vs catalog-only estimates
+    const venuesWithMeta = Object.values(grouped);
+    const venues = venuesWithMeta.map(({ _seenGames, _latestOriginStamp, _hasBravoData, _hasLiveIndicators, _sources, ...v }) => v);
+    
+    // LIVE tables: only count from venues with real-time indicators
+    // (Bravo-sourced data OR PokerAtlas venues with actual players waiting)
+    // This prevents catalog capacity estimates from inflating the "Live Tables" stat
+    let totalLiveTables = 0;
+    let totalCatalogTables = 0;
+    for (const vd of venuesWithMeta) {
+      const venueTables = vd.games.reduce((s, g) => s + (g.tables_running || 0), 0);
+      if (vd._hasLiveIndicators) {
+        totalLiveTables += venueTables;
+      } else {
+        totalCatalogTables += venueTables;
+      }
+    }
+    const totalTables = totalLiveTables; // Stats card shows only confirmed live tables
     const totalPlayersWaiting = venues.reduce(
       (sum, v) => sum + v.games.reduce((s, g) => s + (g.players_waiting || 0), 0), 0
     );
@@ -298,6 +318,8 @@ export default async function handler(req, res) {
           cross_source_merges: crossSourceMerges,
           duplicate_rows_removed: dedupedRows,
           final_venues: venues.length,
+          live_tables: totalLiveTables,
+          catalog_estimate_tables: totalCatalogTables,
         },
       },
       venues,

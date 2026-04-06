@@ -126,8 +126,9 @@ export default async function handler(req, res) {
               query = query.lte('buy_in', parseInt(maxBuyin, 10) || 100000);
           }
 
-          const parsedLimit = Math.min(parseInt(limit, 10) || 50, 200);
-          query = query.limit(parsedLimit);
+          // Fetch all matching rows (no artificial cap — dedup handles volume)
+          const parsedLimit = parseInt(limit, 10) || 999;
+          query = query.limit(999); // Fetch all for dedup, limit applied after
 
           const { data: dbTournaments, error } = await query;
           
@@ -154,15 +155,41 @@ export default async function handler(req, res) {
           const { data: dbToursEvents } = await toursQuery;
 
           let tournaments = [];
+          let rawCount = 0;
+          let dedupedCount = 0;
 
           if (!error && dbTournaments && dbTournaments.length > 0) {
+              rawCount = dbTournaments.length;
+              
+              // ═══════════════════════════════════════════════════════════
+              // DEDUP LAYER: Remove duplicate tournaments from multiple scrape runs
+              // Key: venue_name + start_time + game_type (normalized, case-insensitive)
+              // First occurrence wins (ordered by buy_in ascending from query)
+              // ═══════════════════════════════════════════════════════════
+              const seenKeys = new Set();
+              const dedupedTournaments = [];
+              for (const t of dbTournaments) {
+                  const key = [
+                      (t.venue_name || '').toLowerCase().trim(),
+                      (t.start_time || '').toLowerCase().trim(),
+                      (t.game_type || 'nlh').toLowerCase().trim(),
+                      (t.buy_in || 0).toString()
+                  ].join('|');
+                  if (!seenKeys.has(key)) {
+                      seenKeys.add(key);
+                      dedupedTournaments.push(t);
+                  } else {
+                      dedupedCount++;
+                  }
+              }
+              
               // Enrich with venue data from source of truth
               const venueMap = new Map();
               tournamentVenues.venues.forEach(v => {
                   venueMap.set(v.name.toLowerCase(), v);
               });
 
-              tournaments = dbTournaments.map(t => {
+              tournaments = dedupedTournaments.map(t => {
                   const venueInfo = venueMap.get(t.venue_name?.toLowerCase()) || {};
                   return {
                       ...t,
@@ -264,7 +291,13 @@ export default async function handler(req, res) {
                       ? Math.round(tournaments.reduce((sum, t) => sum + (t.buy_in || 0), 0) / tournaments.length)
                       : 0,
                   byType: countByField(tournaments, 'venueType'),
-                  byGameType: countByField(tournaments, 'game_type')
+                  byGameType: countByField(tournaments, 'game_type'),
+                  dedup: {
+                      raw_db_rows: rawCount,
+                      duplicates_removed: dedupedCount,
+                      charity_events: (dbCharityEvents || []).length,
+                      tour_events: (dbToursEvents || []).length,
+                  }
               }
           });
 
