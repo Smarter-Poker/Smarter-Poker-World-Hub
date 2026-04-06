@@ -283,6 +283,7 @@ export default function PokerNearMeLobby() {
   const [checkinCounts, setCheckinCounts] = useState({});
   const [liveGameCount, setLiveGameCount] = useState(0);
   const [totalVenueCount, setTotalVenueCount] = useState(0);
+  const [todaysTournamentCount, setTodaysTournamentCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [showTutorial, setShowTutorial] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -595,6 +596,10 @@ export default function PokerNearMeLobby() {
       if (data?.data) setDailyTournaments(data.data);
       else if (data?.tournaments) setDailyTournaments(data.tournaments);
       else if (Array.isArray(data)) setDailyTournaments(data);
+      // Use authoritative count from API (includes venue daily + charity + tour series events)
+      if (data?.stats?.total != null) {
+        setTodaysTournamentCount(data.stats.total);
+      }
     } catch (err) {
       console.error('Failed to fetch daily tournaments:', err);
     }
@@ -2204,9 +2209,55 @@ export default function PokerNearMeLobby() {
 
       case 'mapview': {
         const mapStateFilter = filters.mapState || 'all';
+        // ═══ MERGE TOUR STOPS INTO MAP — Convert tours to venue-like objects ═══
+        const tourMapPins = (tours || []).reduce((acc, tour) => {
+          // Direct tour coordinates
+          if (tour.latitude && tour.longitude) {
+            acc.push({
+              id: 'tour-' + (tour.id || tour.tour_code),
+              name: tour.name || tour.tour_name || tour.tour_code,
+              venue_type: 'tour_stop',
+              tour_code: tour.tour_code,
+              tour_name: tour.name || tour.tour_name,
+              logo_url: tour.logo_url,
+              latitude: tour.latitude,
+              longitude: tour.longitude,
+              city: tour.city || '',
+              state: tour.state || '',
+              is_running: tour.is_running,
+            });
+          }
+          // Upcoming series/stops with city coords
+          const allStops = [
+            ...(tour.upcoming_series || []),
+            ...(tour.stops_2026 || []),
+            ...(tour.series_2026 || []),
+          ];
+          allStops.forEach((stop, idx) => {
+            if (stop.latitude && stop.longitude) {
+              acc.push({
+                id: 'tour-stop-' + (tour.id || tour.tour_code) + '-' + idx,
+                name: stop.name || stop.venue || tour.name || tour.tour_code,
+                venue_type: 'tour_stop',
+                tour_code: tour.tour_code,
+                tour_name: tour.name || tour.tour_name,
+                logo_url: tour.logo_url,
+                latitude: stop.latitude,
+                longitude: stop.longitude,
+                city: stop.city || '',
+                state: stop.state || '',
+                stop_name: stop.name || stop.venue,
+                dates: stop.dates || '',
+                is_running: stop.is_running,
+              });
+            }
+          });
+          return acc;
+        }, []);
+        const allMapItems = [...venues, ...tourMapPins];
         const mapVenues = mapStateFilter !== 'all'
-          ? venues.filter(v => v.state === mapStateFilter)
-          : venues;
+          ? allMapItems.filter(v => v.state === mapStateFilter)
+          : allMapItems;
         component = (
           <div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -2552,8 +2603,9 @@ export default function PokerNearMeLobby() {
       liveGameCount: liveGameCount,
       tourCount: upcomingTours.length > 0 ? upcomingTours.length : (toursLoaded ? 0 : null),
       seriesCount: activeSeries.length,
-      // Daily Grind: today's tournaments only
-      dailyCount: todaysTournaments.length,
+      // Daily Grind: today's tournaments — authoritative count from API
+      // (includes venue daily tournaments + charity events + tour series events)
+      dailyCount: todaysTournamentCount || todaysTournaments.length,
       // Calendar: total upcoming events across all days (distinct from dailyCount)
       calendarCount: dailyTournaments.length,
       alertCount: upcomingTours.length, // alerts = upcoming tour events only
@@ -2564,7 +2616,7 @@ export default function PokerNearMeLobby() {
       mappableCount: userLocation ? nearbyVenues.filter(v => v.latitude && v.longitude).length : 0,
       lastFetchTime: lastFetchTime,
     };
-  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime, toursLoaded]);
+  }, [venues, tours, series, dailyTournaments, favorites, liveGameCount, userLocation, lastFetchTime, toursLoaded, todaysTournamentCount]);
 
   return (
     <>

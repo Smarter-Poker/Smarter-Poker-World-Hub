@@ -235,6 +235,29 @@ export default function PokerNearMePage() {
     const [dailyTournaments, setDailyTournaments] = useState([]);
     const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
 
+    // ═══ MERGE TOUR STOPS INTO MAP VENUES — so tours appear as red pins ═══
+    const allVenuesWithTours = useMemo(() => {
+        const tourPins = (tours || []).reduce((acc, tour) => {
+            if (tour.latitude && tour.longitude) {
+                acc.push({
+                    id: 'tour-' + (tour.id || tour.tour_code),
+                    name: tour.name || tour.tour_name || tour.tour_code,
+                    venue_type: 'tour_stop',
+                    tour_code: tour.tour_code,
+                    tour_name: tour.name || tour.tour_name,
+                    logo_url: tour.logo_url,
+                    latitude: tour.latitude,
+                    longitude: tour.longitude,
+                    city: tour.city || '',
+                    state: tour.state || '',
+                    is_running: tour.is_running,
+                });
+            }
+            return acc;
+        }, []);
+        return [...allVenuesForMap, ...tourPins];
+    }, [allVenuesForMap, tours]);
+
     // Live table count for map stats (fetched from live-tables API)
     const [liveTableCount, setLiveTableCount] = useState(0);
 
@@ -1850,7 +1873,7 @@ export default function PokerNearMePage() {
     const renderContent = () => {
         if (activeTab === 'map') return (
             <MapTabPanel
-                allVenuesForMap={allVenuesForMap}
+                allVenuesForMap={allVenuesWithTours}
                 mapFilters={mapFilters}
                 setMapFilters={setMapFilters}
                 filters={filters}

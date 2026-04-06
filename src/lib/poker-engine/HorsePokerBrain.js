@@ -8644,22 +8644,103 @@ function makeFlopHeuristicDecision(params) {
         }
 
         // ── IP VALUE BET: Bet strong hands when checked to ──
+        // ═══ UPGRADED: 3-bet pot, range advantage, opponent reads, geometric sizing ═══
         if (isIP && canRaise) {
             if (handEval.strength >= 60) {
                 let valueBetFreq = 0.65;
                 if (multiway) valueBetFreq = 0.50;
-                if (oppCallFreq > 0.55 && oppConfidence > 0.3) valueBetFreq = 0.75; // They call light
+
+                // ── Opponent reads ──
+                if (oppCallFreq > 0.55 && oppConfidence > 0.3) valueBetFreq = 0.75; // They call light → bet more
+                if (oppTendency === 'weak-tight' && oppConfidence > 0.3) valueBetFreq = 0.80; // They fold to aggression
+                if (oppTendency === 'bluffy' && oppConfidence > 0.3 && handEval.strength >= 75) {
+                    valueBetFreq = 0.55; // Against aggro, consider checking to induce
+                }
+
+                // ── 3-bet pot IP value bet: higher freq (ranges are narrow, top pair is premium) ──
+                if (is3BetPot) {
+                    valueBetFreq = Math.min(0.85, valueBetFreq + 0.10);
+                    if (is4BetPot && spr <= 3 && handEval.strength >= 65) {
+                        return { type: 'all_in' }; // 4-bet pot, low SPR, strong hand → jam
+                    }
+                }
+
+                // ── Range advantage: bet more when board favors PFR's range (we're PFR IP) ──
+                if (rangeAdvantage === 'pfr') valueBetFreq += 0.06;
+                if (rangeAdvantage === 'caller') valueBetFreq -= 0.06;
+
+                valueBetFreq = Math.max(0.30, Math.min(0.90, valueBetFreq));
                 if (Math.random() < valueBetFreq) {
-                    const sizeFrac = boardWet === 'wet' ? 0.60 : 0.45;
+                    // ── Dynamic sizing based on board texture + SPR + range ──
+                    let sizeFrac;
+                    if (boardWet === 'wet') {
+                        sizeFrac = 0.60 + (handEval.strength >= 80 ? 0.08 : 0); // Bigger with monsters on wet
+                    } else if (boardWet === 'dry') {
+                        sizeFrac = 0.40 + (handEval.strength >= 80 ? 0.05 : 0); // Smaller on dry
+                    } else {
+                        sizeFrac = 0.50;
+                    }
+                    // 3-bet pot sizing: smaller (SPR is lower, build geometrically)
+                    if (is3BetPot) sizeFrac = Math.max(0.33, sizeFrac - 0.08);
+                    // Range advantage: can go bigger when board favors us (less likely to get raised)
+                    if (rangeAdvantage === 'pfr') sizeFrac += 0.04;
+                    if (rangeAdvantage === 'caller') sizeFrac -= 0.04;
+                    // Against callers, size up for value
+                    if (oppCallFreq > 0.55 && oppConfidence > 0.3) sizeFrac = Math.min(0.75, sizeFrac + 0.08);
+                    // Geometric sizing: plan multi-street value
+                    const geoIP = getGeometricSizing(potSize, heroStack, street === 'flop' ? 2 : 1, true);
+                    if (geoIP.isJammable && handEval.strength >= 75 && spr >= 3) {
+                        sizeFrac = Math.max(sizeFrac, geoIP.sizeFraction);
+                    }
+                    sizeFrac = Math.max(0.25, Math.min(0.80, sizeFrac));
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
             }
-            // IP stab with marginal hands on dry boards
-            if (handEval.strength >= 25 && handEval.strength < 50 && boardWet === 'dry' && !multiway) {
-                let stabFreq = 0.25 + aggressionBias / 40;
+
+            // ── IP STAB: Marginal hands on boards where opponent likely missed ──
+            // ═══ UPGRADED: Board texture, 3-bet pot, range advantage, opponent session reads ═══
+            if (handEval.strength >= 20 && handEval.strength < 55 && !multiway) {
+                let stabFreq = 0;
+                let stabSize = 0.33;
+
+                if (boardWet === 'dry') {
+                    // Dry board: standard stab — opponent missed most of the time
+                    stabFreq = 0.28 + aggressionBias / 40;
+                    stabSize = 0.33;
+                } else if (boardWet === 'medium') {
+                    // Medium texture: stab less, but still profitable with some equity
+                    stabFreq = handEval.strength >= 35 ? (0.20 + aggressionBias / 50) : 0.10;
+                    stabSize = 0.40;
+                } else {
+                    // Wet board: only stab with some equity (draws, pairs)
+                    stabFreq = handEval.strength >= 40 ? (0.15 + aggressionBias / 60) : 0;
+                    stabSize = 0.45;
+                }
+
+                // ── Opponent reads for stabbing ──
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) stabFreq += 0.12;
+                if (oppTendency === 'weak-tight' && oppConfidence > 0.3) stabFreq += 0.08;
+                if (oppCallFreq > 0.65 && oppConfidence > 0.3) stabFreq -= 0.10; // Don't stab into calling stations
+                if (oppTendency === 'bluffy' && oppConfidence > 0.3) stabFreq -= 0.06; // They'll check-raise
+
+                // ── Range advantage stab modifier ──
+                if (rangeAdvantage === 'pfr') stabFreq += 0.08; // Board favors us → stab wider
+                if (rangeAdvantage === 'caller') stabFreq -= 0.06; // Board favors them → don't stab air
+
+                // ── 3-bet pot: stab less (opponent has stronger range, but we have range advantage) ──
+                if (is3BetPot) {
+                    stabFreq *= 0.65; // Reduce stabs significantly
+                    stabSize = Math.max(0.28, stabSize - 0.05); // Smaller sizing
+                    // Exception: if we have range advantage in 3-bet pot, maintain some stab frequency
+                    if (rangeAdvantage === 'pfr' && handEval.strength >= 35) {
+                        stabFreq = Math.max(stabFreq, 0.20);
+                    }
+                }
+                if (is4BetPot) stabFreq = 0; // Never stab air in 4-bet pots
+
+                stabFreq = Math.max(0, Math.min(0.45, stabFreq));
                 if (Math.random() < stabFreq) {
-                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.33)) };
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * stabSize)) };
                 }
             }
         }
@@ -8794,6 +8875,7 @@ function makeFlopHeuristicDecision(params) {
         const flopDefenseTarget = flopMDF * 0.75; // We aim to defend ~75% of MDF
 
         // ═══ FLOAT DEFENSE: Peel with backdoor equity + overcards ═══
+        // ═══ UPGRADED: 3-bet pot, range advantage, scare card awareness ═══
         // These hands have no immediate equity but can improve on turn/river.
         // GTO defends with: BDFD + overcard, gutshot + overcard, low pair + BDFD
         if (handEval.strength >= 15 && handEval.strength < 30) {
@@ -8810,9 +8892,30 @@ function makeFlopHeuristicDecision(params) {
                 // Against heavy c-bettors = defend wider (they're bluffing more)
                 if (oppCbetFreq > 0.70 && oppConfidence > 0.3) floatDefenseFreq += 0.10;
                 // Board texture: wet = more profitable to defend (draws available)
-                if (boardWetness === 'wet') floatDefenseFreq += 0.06;
+                if (boardWet === 'wet') floatDefenseFreq += 0.06;
 
-                floatDefenseFreq = Math.max(0.10, Math.min(0.50, floatDefenseFreq));
+                // ── 3-bet pot OOP float defense ──
+                // In 3-bet pots, opponent's c-bet range is stronger → defend tighter
+                // But: we still need to defend some to prevent exploitation
+                if (is3BetPot) {
+                    floatDefenseFreq *= 0.60; // Significant reduction — their range crushes backdoors
+                    // Exception: if board favors our range, defend more
+                    if (rangeAdvantage === 'caller') floatDefenseFreq += 0.08;
+                }
+                if (is4BetPot) {
+                    floatDefenseFreq = 0; // Never float with backdoors in 4-bet pots
+                }
+
+                // ── Range advantage defense modifier ──
+                // When board favors our calling range, defend wider (we have equity advantage)
+                if (rangeAdvantage === 'caller' && !is3BetPot) floatDefenseFreq += 0.06;
+                if (rangeAdvantage === 'pfr' && !heroIsAggressor) floatDefenseFreq -= 0.05;
+
+                // ── Board scare factor ──
+                // Connected boards give backdoor draws more value → defend wider
+                if (boardIsConnected && hasBackdoorEquity) floatDefenseFreq += 0.04;
+
+                floatDefenseFreq = Math.max(0, Math.min(0.50, floatDefenseFreq));
                 if (Math.random() < floatDefenseFreq && canCall) {
                     return { type: 'call' }; // Float defense with backdoor equity
                 }
@@ -8821,56 +8924,124 @@ function makeFlopHeuristicDecision(params) {
     }
 
     // ── DRAWING HANDS: Equity math + implied odds ──
+    // ═══ UPGRADED: 3-bet pot implied odds reduction, range advantage draw calls ═══
     if (drawEq.outs >= 6) {
         const drawEquityPct = Math.min(drawEq.outs * 2.2, 45) / 100;
 
         // Direct odds: call if equity exceeds pot odds
         if (drawEquityPct >= potOdds - 0.03) {
             // Semi-bluff raise with massive combo draws
-            if (canRaise && drawEq.outs >= 13 && !multiway && Math.random() < 0.35) {
-                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 2.5)) };
+            if (canRaise && drawEq.outs >= 13 && !multiway) {
+                let semiBluffRaiseFreq = 0.35;
+                // ── 3-bet pot: semi-bluff raise less (opponent won't fold strong range) ──
+                if (is3BetPot) semiBluffRaiseFreq *= 0.55;
+                if (is4BetPot) semiBluffRaiseFreq = 0; // Never semi-bluff raise in 4-bet pots
+                // Range advantage: raise more when board favors us
+                if (rangeAdvantage === 'caller' && !heroIsAggressor) semiBluffRaiseFreq += 0.08;
+                if (Math.random() < semiBluffRaiseFreq) {
+                    const semiRaiseMult = is3BetPot ? 2.2 : 2.5;
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * semiRaiseMult)) };
+                }
             }
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
 
         // Implied odds: call with strong draws when deep
-        if (stackBB >= 50 && drawEq.outs >= 9 && (handEval.hasFlushDraw || handEval.hasOESD)) {
+        // ── 3-bet pot implied odds: worse (shallower stacks, less to win) ──
+        if (drawEq.outs >= 9 && (handEval.hasFlushDraw || handEval.hasOESD)) {
             let impliedThreshold = 0.50;
-            if (oppCallFreq > 0.55 && oppConfidence > 0.3) impliedThreshold = 0.60;
-            if (betToPot < impliedThreshold) {
+            if (oppCallFreq > 0.55 && oppConfidence > 0.3) impliedThreshold = 0.60; // Better implied odds vs callers
+            // 3-bet pot: need better odds (stacks are shallower, implied odds worse)
+            if (is3BetPot) impliedThreshold -= 0.08; // Tighter threshold
+            if (is4BetPot) impliedThreshold -= 0.15; // Much tighter
+            // Deep stacks improve implied odds
+            if (stackBB >= 80) impliedThreshold += 0.08;
+            else if (stackBB >= 50) impliedThreshold += 0.04;
+            // Must be deep enough for implied odds to matter
+            if (spr >= 2 && betToPot < impliedThreshold) {
                 return canCall ? { type: 'call' } : { type: 'fold' };
             }
         }
 
-        // Backdoor draws: very cheap calls only
-        if (drawEq.outs >= 4 && drawEq.outs < 6 && betToPot <= 0.33) {
+        // Backdoor draws: very cheap calls only (never in 3-bet+ pots)
+        if (drawEq.outs >= 4 && drawEq.outs < 6 && betToPot <= 0.33 && !is3BetPot && !is4BetPot) {
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
     }
 
     // ── MEDIUM HANDS: Call or fold based on pot odds + opponent ──
+    // ═══ UPGRADED: 3-bet pot threshold adjustment, range advantage, opponent reads ═══
     if (handEval.strength >= 30) {
+        // ── 3-bet pot medium hand thresholds ──
+        // In 3-bet pots, medium hands are actually decent (ranges are narrow)
+        // Second pair in a 3-bet pot = roughly like top pair in a SRP
+        const medCallThreshold = is3BetPot ? 25 : is4BetPot ? 20 : 30;
+        const medSmallBetThreshold = is3BetPot ? 28 : 35;
+
         // Good pot odds → call
         if (potOdds < 0.25) {
             if (multiway && handEval.strength < 40) return canCheck ? { type: 'check' } : { type: 'fold' };
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
         // Small bet → call with most medium hands
-        if (betToPot <= 0.40 && handEval.strength >= 35) {
+        if (betToPot <= 0.40 && handEval.strength >= medSmallBetThreshold) {
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
         // Against known bluffers, call wider
         if (oppBluffFreq > 0.35 && oppConfidence > 0.3) {
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
+        // ── Range advantage call modifier ──
+        // When board favors our range, medium hands have more showdown value
+        if (rangeAdvantage === 'caller' && !heroIsAggressor && handEval.strength >= 32 && betToPot <= 0.55) {
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+        // ── 3-bet pot: call slightly wider with medium hands (opponent c-bets range) ──
+        if (is3BetPot && handEval.strength >= medCallThreshold && betToPot <= 0.50) {
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
     }
 
     // ── FLOAT in position (call with nothing, plan to take away later) ──
-    if (isIP && handEval.strength >= 15 && betToPot <= 0.50 && !multiway && aggressionBias > 0) {
+    // ═══ UPGRADED: 3-bet pot, board texture, opponent session reads, range advantage ═══
+    // IP float = calling with weak hands planning to steal on later streets.
+    // Only profitable with position + reads + appropriate board textures.
+    if (isIP && handEval.strength >= 12 && betToPot <= 0.55 && !multiway && aggressionBias > 0) {
         let floatFreq = 0.18 + aggressionBias / 40;
-        if (oppTendency === 'weak-tight' && oppConfidence > 0.3) floatFreq = 0.30;
+
+        // ── Opponent reads for floating ──
+        if (oppTendency === 'weak-tight' && oppConfidence > 0.3) floatFreq = 0.30; // They give up easily
         if (oppCbetFreq > 0.65 && oppConfidence > 0.3) floatFreq += 0.08; // Wide c-bets = float more
-        floatFreq = Math.max(0, Math.min(0.35, floatFreq));
+        if (oppTendency === 'bluffy' && oppConfidence > 0.3) floatFreq -= 0.06; // They'll double barrel
+        if (oppCallFreq > 0.60 && oppConfidence > 0.3) floatFreq -= 0.04; // Sticky opponents
+
+        // ── Board texture for floating ──
+        // Dry boards: float more (turn cards are more likely to be scare cards we can bluff)
+        if (boardWet === 'dry') floatFreq += 0.05;
+        // Wet boards with backdoor equity: slightly better float (we have outs)
+        if (boardWet === 'wet' && (handEval.hasBackdoorFlush || handEval.hasGutshot)) floatFreq += 0.04;
+        // High boards favor PFR → good float spot if we're not the aggressor (scare cards help us less)
+        if (boardIsHigh && heroIsAggressor) floatFreq += 0.04;
+
+        // ── Range advantage float modifier ──
+        if (rangeAdvantage === 'pfr' && heroIsAggressor) floatFreq += 0.04; // Board favors us
+        if (rangeAdvantage === 'caller' && heroIsAggressor) floatFreq -= 0.04; // Board favors them
+
+        // ── 3-bet pot: float much less (opponent's range is strong, we need real hands) ──
+        if (is3BetPot) {
+            floatFreq *= 0.35; // Severe reduction — their range is narrow and strong
+            // Only float with some equity in 3-bet pots
+            if (handEval.strength < 20 && !handEval.hasBackdoorFlush && !handEval.hasGutshot) {
+                floatFreq = 0; // No floating pure air in 3-bet pots
+            }
+        }
+        if (is4BetPot) floatFreq = 0; // Never float in 4-bet pots
+
+        // ── Bet size tells ──
+        if (betToPot <= 0.33) floatFreq += 0.06; // Tiny bet = weaker range → float more
+        if (betToPot >= 0.50) floatFreq -= 0.04; // Larger bet = more committed
+
+        floatFreq = Math.max(0, Math.min(0.40, floatFreq));
         if (Math.random() < floatFreq) {
             return canCall ? { type: 'call' } : { type: 'fold' };
         }

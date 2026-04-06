@@ -236,6 +236,11 @@ export default async function handler(req, res) {
       if (src === 'bravo' && !venueData._hasBravoData) {
         venueData.venue_name = cleanVenueName(row.venue_name);
         venueData._hasBravoData = true;
+        // Bravo just arrived — purge all previous PokerAtlas catalog games
+        // (PA "tables" are catalog estimates, not actual live counts)
+        venueData.games = [];
+        venueData._seenGames = new Set();
+        dedupedRows += venueData.games.length; // count purged PA rows
       }
       
       // If we already have Bravo data for this venue, skip PokerAtlas catalog rows 
