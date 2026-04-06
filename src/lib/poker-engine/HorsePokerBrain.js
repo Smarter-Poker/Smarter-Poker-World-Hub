@@ -212,6 +212,29 @@ async function isHorse(playerId) {
     return horses.has(String(playerId));
 }
 
+/**
+ * Synchronous check if a player ID is a horse (uses cache only).
+ * Returns false if cache is not yet loaded. Use isHorse() for async guaranteed check.
+ * @param {string} playerId
+ * @returns {boolean}
+ */
+function isHorseSync(playerId) {
+    return _horseIds ? _horseIds.has(String(playerId)) : false;
+}
+
+/**
+ * Get all horse IDs seated at a table from a player list.
+ * Uses the synchronous cache for zero-latency lookups on every action.
+ * @param {Array} players - [{id, ...}]
+ * @returns {string[]} Array of horse profile IDs at this table
+ */
+function getHorseIdsAtTable(players) {
+    if (!_horseIds || !players) return [];
+    return players
+        .map(p => String(p.id || p.playerId || p))
+        .filter(id => _horseIds.has(id));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TIMING SYSTEM (Human-like delays)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -5851,7 +5874,10 @@ function makeTurnRiverHeuristicDecision(params) {
         oppStreetAggression = 'unknown', // very_heavy/heavy/moderate/light
         heroIsAggressor = false,         // Was hero the preflop raiser?
         counterStrategyMode = 'standard', // From selectCounterStrategy()
-        streetNarrative = null           // Multi-street action memory
+        streetNarrative = null,          // Multi-street action memory
+        // ═══ ALWAYS-ON LIVE OBSERVER DATA ═══
+        tableId = 'unknown',
+        primaryOppId = null,
     } = params;
 
     if (street !== 'turn' && street !== 'river') return null;
@@ -6003,38 +6029,98 @@ function makeTurnRiverHeuristicDecision(params) {
     // Real-time session reads can override or refine long-term Supabase reads.
     // Session data is fresher — if someone is tilting or playing differently today,
     // the session model catches it faster than the long-term model.
-    const sessionRead = getOpponentSessionRead(profileId);
+    // ═══ BUG FIX: Was passing hero's profileId — now passes primaryOppId (the actual opponent) ═══
+    const sessionRead = primaryOppId ? getOpponentSessionRead(primaryOppId) : null;
     if (sessionRead && sessionRead.confidence >= 0.15) {
-        // Weight: session data blends with long-term reads. Higher session confidence = more weight.
-        const sw = Math.min(0.60, sessionRead.confidence); // Session weight (max 60%)
-        const lw = 1.0 - sw; // Long-term weight
-
-        // Blend frequencies
+        const sw = Math.min(0.60, sessionRead.confidence);
+        const lw = 1.0 - sw;
         oppFoldFreq = lw * oppFoldFreq + sw * sessionRead.foldFreq;
         oppCallFreq = lw * oppCallFreq + sw * sessionRead.callFreq;
-
-        // Session bluff rate overrides if we have showdown data
         if (sessionRead.bluffRate !== null) {
             oppBluffFreq = lw * oppBluffFreq + sw * sessionRead.bluffRate;
         }
-
-        // Session tendency override if high-confidence
         if (sessionRead.confidence >= 0.30 && sessionRead.sessionTendency !== 'balanced') {
             oppTendency = sessionRead.sessionTendency;
         }
-
-        // Boost overall confidence with session data
         oppConfidence = Math.min(0.90, oppConfidence + sessionRead.confidence * 0.3);
+    }
 
-        // Specific exploit detections from session
-        if (sessionRead.overbetRate > 0.15 && sessionRead.totalActions >= 20) {
-            // Opponent overbets a lot → they're polarized, call wider with blockers
-            // (This feeds into hero call engine downstream)
+    // ═══ ALWAYS-ON LIVE OBSERVER OVERLAY ═══
+    // The live observer tracks every single action in real-time across all hands.
+    // This is the freshest, most detailed data available — includes timing tells,
+    // position-aware stats, 3-bet frequencies, c-bet/fold-to-cbet, in-hand actions.
+    const liveRead = primaryOppId ? getLiveRead(profileId, tableId, primaryOppId) : null;
+    let oppCBetFreqLive = null;
+    let oppFoldToCBetLive = null;
+    let oppThreeBetPctLive = null;
+    let oppTimingTell = null;
+    let oppExploits = [];
+    let oppInHandActions = null;
+
+    if (liveRead && liveRead.confidence >= 0.10) {
+        // Live data gets highest priority — it's the most current
+        const livew = Math.min(0.70, liveRead.confidence); // Up to 70% weight
+        const prevw = 1.0 - livew;
+
+        // Override core frequencies with live data
+        oppFoldFreq = prevw * oppFoldFreq + livew * liveRead.foldFreq;
+        oppCallFreq = prevw * oppCallFreq + livew * liveRead.callFreq;
+        oppBluffFreq = liveRead.bluffRate !== null
+            ? prevw * oppBluffFreq + livew * liveRead.bluffRate
+            : oppBluffFreq;
+
+        // Player type override — live is most accurate for session behavior
+        if (liveRead.confidence >= 0.25 && liveRead.playerType !== 'unknown') {
+            oppTendency = liveRead.playerType;
         }
-        if (sessionRead.barrelRate !== null && sessionRead.barrelRate > 0.80) {
-            // Opponent always barrels → they're either value-heavy or bluff-heavy
-            // Session bluff rate disambiguates
+
+        // Boost confidence with live data
+        oppConfidence = Math.min(0.95, oppConfidence + liveRead.confidence * 0.4);
+
+        // ═══ EXTRACT ADVANCED LIVE STATS ═══
+        oppCBetFreqLive = liveRead.cBetPct;
+        oppFoldToCBetLive = liveRead.foldToCBetPct;
+        oppThreeBetPctLive = liveRead.threeBetPct;
+        oppExploits = liveRead.exploits || [];
+        oppInHandActions = liveRead.inHandActions;
+
+        // ═══ TIMING TELL INTEGRATION ═══
+        // Snap-actions suggest auto-pilot or strong hands (instacall = strong draw or made hand)
+        // Long tanks suggest difficult decisions (marginal hands, close bluff spots)
+        if (liveRead.snapFreq !== null && liveRead.longTankFreq !== null) {
+            if (liveRead.snapFreq > 0.50) oppTimingTell = 'fast_player'; // Plays quickly
+            else if (liveRead.longTankFreq > 0.25) oppTimingTell = 'slow_player';
         }
+
+        // ═══ EXPLOIT PATTERN APPLICATION ═══
+        // Auto-adjust strategy based on detected exploitable patterns
+        if (oppExploits.includes('overfolds_to_cbet')) {
+            // They fold to c-bets too much → c-bet wider, barrel more
+            oppFoldFreq = Math.max(oppFoldFreq, 0.55);
+        }
+        if (oppExploits.includes('overcbets')) {
+            // They c-bet too much → check-raise more, float wider
+            oppCallFreq = Math.min(oppCallFreq, 0.40); // Don't call too much — raise instead
+        }
+        if (oppExploits.includes('one_and_done')) {
+            // They c-bet but give up on turn → call flop c-bet wider, take pot on turn
+            oppFoldFreq = Math.max(oppFoldFreq, 0.50);
+        }
+        if (oppExploits.includes('station_to_showdown')) {
+            // They go to showdown too much → value bet thinner, don't bluff
+            oppCallFreq = Math.max(oppCallFreq, 0.65);
+            oppBluffFreq = Math.min(oppBluffFreq, 0.10);
+        }
+        if (oppExploits.includes('gives_up_easily')) {
+            // They don't go to showdown → bluff more, bet wider
+            oppFoldFreq = Math.max(oppFoldFreq, 0.55);
+        }
+        if (oppExploits.includes('frequent_check_raiser')) {
+            // They check-raise a lot → bet smaller for protection, check behind more
+            oppBluffFreq = Math.max(oppBluffFreq, 0.30);
+        }
+
+        console.log(`[HorseBrain] 👁️ LIVE READ: ${primaryOppId?.substring(0, 8)} type=${liveRead.playerType} hands=${liveRead.handsObserved} conf=${Math.round(liveRead.confidence * 100)}% exploits=[${oppExploits.join(',')}]`);
     }
 
     // ═══ STREET ACTION INFERENCE ═══
@@ -8208,7 +8294,10 @@ function makeFlopHeuristicDecision(params) {
         opponentAdjustment = { callMod: 0, foldMod: 0 },
         enrichedOpponentRead = null,
         heroIsAggressor = false,
-        counterStrategyMode = 'standard'
+        counterStrategyMode = 'standard',
+        // ═══ ALWAYS-ON LIVE OBSERVER DATA ═══
+        tableId = 'unknown',
+        primaryOppId = null,
     } = params;
 
     if (!holeCards || holeCards.length < 2 || !board || board.length < 3) return null;
@@ -8284,7 +8373,8 @@ function makeFlopHeuristicDecision(params) {
 
     // ═══ SESSION MODEL OVERLAY (FLOP) ═══
     // Blend real-time session reads into flop opponent profile
-    const flopSessionRead = getOpponentSessionRead(profileId);
+    // ═══ BUG FIX: Was passing hero's profileId — now passes primaryOppId ═══
+    const flopSessionRead = primaryOppId ? getOpponentSessionRead(primaryOppId) : null;
     if (flopSessionRead && flopSessionRead.confidence >= 0.15) {
         const sw = Math.min(0.60, flopSessionRead.confidence);
         const lw = 1.0 - sw;
@@ -8300,6 +8390,58 @@ function makeFlopHeuristicDecision(params) {
             oppTendency = flopSessionRead.sessionTendency;
         }
         oppConfidence = Math.min(0.90, oppConfidence + flopSessionRead.confidence * 0.3);
+    }
+
+    // ═══ ALWAYS-ON LIVE OBSERVER OVERLAY (FLOP) ═══
+    // The live observer has real-time data from every action this opponent has taken.
+    // Higher priority than session model because it includes timing tells + in-hand actions.
+    const flopLiveRead = primaryOppId ? getLiveRead(profileId, tableId, primaryOppId) : null;
+    if (flopLiveRead && flopLiveRead.confidence >= 0.10) {
+        const livew = Math.min(0.70, flopLiveRead.confidence);
+        const prevw = 1.0 - livew;
+
+        oppFoldFreq = prevw * oppFoldFreq + livew * flopLiveRead.foldFreq;
+        oppCallFreq = prevw * oppCallFreq + livew * flopLiveRead.callFreq;
+        if (flopLiveRead.bluffRate !== null) {
+            oppBluffFreq = prevw * oppBluffFreq + livew * flopLiveRead.bluffRate;
+        }
+        if (flopLiveRead.cBetPct !== null) {
+            oppCbetFreq = prevw * oppCbetFreq + livew * flopLiveRead.cBetPct;
+        }
+
+        // Player type from live observation
+        if (flopLiveRead.confidence >= 0.25 && flopLiveRead.playerType !== 'unknown') {
+            oppTendency = flopLiveRead.playerType;
+        }
+        oppConfidence = Math.min(0.95, oppConfidence + flopLiveRead.confidence * 0.4);
+
+        // ═══ LIVE EXPLOIT DETECTION (FLOP) ═══
+        const flopExploits = flopLiveRead.exploits || [];
+        if (flopExploits.includes('overfolds_to_cbet')) {
+            oppFoldFreq = Math.max(oppFoldFreq, 0.55);
+        }
+        if (flopExploits.includes('overcbets')) {
+            oppCbetFreq = Math.max(oppCbetFreq, 0.72);
+        }
+        if (flopExploits.includes('one_and_done')) {
+            // They c-bet but give up on turn → call flop wider, plan to take over on turn
+            oppFoldFreq = Math.max(oppFoldFreq, 0.50);
+        }
+        if (flopExploits.includes('station_to_showdown')) {
+            oppCallFreq = Math.max(oppCallFreq, 0.65);
+            oppBluffFreq = Math.min(oppBluffFreq, 0.10);
+        }
+        if (flopExploits.includes('frequent_check_raiser')) {
+            // Be careful about small c-bets — they'll check-raise us
+            oppBluffFreq = Math.max(oppBluffFreq, 0.28);
+        }
+        if (flopExploits.includes('overfolds_to_3bet')) {
+            // Useful context — they fold too much to 3-bets preflop
+            // (May carry over into postflop: passive tendencies)
+            oppFoldFreq = Math.max(oppFoldFreq, 0.48);
+        }
+
+        console.log(`[HorseBrain] 👁️ FLOP LIVE: ${primaryOppId?.substring(0, 8)} type=${flopLiveRead.playerType} cbet=${flopLiveRead.cBetPct !== null ? Math.round(flopLiveRead.cBetPct * 100) + '%' : '?'} foldCB=${flopLiveRead.foldToCBetPct !== null ? Math.round(flopLiveRead.foldToCBetPct * 100) + '%' : '?'} exploits=[${flopExploits.join(',')}]`);
     }
 
     // ── RANGE ADVANTAGE ASSESSMENT ──
@@ -11156,7 +11298,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             opponentAdjustment,
             enrichedOpponentRead: flopEnrichedRead,
             heroIsAggressor: flopHeroIsAggressor,
-            counterStrategyMode: counterStrategy.mode
+            counterStrategyMode: counterStrategy.mode,
+            // ═══ ALWAYS-ON: Pass table + opponent IDs for live observation data ═══
+            tableId,
+            primaryOppId,
         });
         if (flopDecision) {
             finalAction = flopDecision.type;
@@ -11232,7 +11377,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             heroIsAggressor,
             counterStrategyMode: counterStrategy.mode,
             // Multi-street narrative for line consistency
-            streetNarrative: trNarrative
+            streetNarrative: trNarrative,
+            // ═══ ALWAYS-ON: Pass table + opponent IDs for live observation data ═══
+            tableId,
+            primaryOppId,
         });
         if (trDecision) {
             finalAction = trDecision.type;
@@ -12173,6 +12321,750 @@ function getOpponentSessionRead(opponentId) {
         confidence: Math.min(0.80, totalActions / 80), // Confidence scales with sample size
     };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ██  ALWAYS-ON LIVE OBSERVER SYSTEM  ██
+// ═══════════════════════════════════════════════════════════════════════════
+// Every horse at every table is "always watching" — observing every single
+// action by every player in real-time, not just when it's their turn.
+//
+// ARCHITECTURE:
+//   liveObserver: Map<horseId, Map<tableId, TableObserver>>
+//   TableObserver: {
+//     opponents: Map<opponentId, LiveProfile>,  // Persistent stats across hands
+//     currentHand: InHandModel | null,          // Current hand tracking
+//   }
+//
+// FLOW:
+//   1. GameController emits observeAction() on EVERY player action
+//   2. ALL horses at the table receive the observation
+//   3. Each horse updates its own LiveProfile for that opponent
+//   4. When getDecision() fires, it calls getLiveRead(horseId, tableId, opponentId)
+//      to get the freshest, most detailed opponent profile available
+//
+// TRACKED DATA:
+//   - VPIP, PFR, 3-bet%, 4-bet%, fold-to-3bet
+//   - C-bet%, fold-to-cbet%, 2-barrel%, 3-barrel%
+//   - Check-raise%, donk-bet%, probe-bet%
+//   - Aggression factor (AF), aggression frequency
+//   - WTSD% (went to showdown), W$SD% (won money at showdown)
+//   - Average bet sizing per street
+//   - Timing tells: snap-action count, long-tank count, avg decision time
+//   - In-hand action sequence for current hand
+//   - Position-aware stats (EP/MP/CO/BTN/SB/BB)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const liveObserver = new Map(); // horseId → Map<tableId, TableObserver>
+
+/**
+ * Initialize or get a TableObserver for a horse at a table.
+ */
+function _getTableObserver(horseId, tableId) {
+    if (!liveObserver.has(horseId)) liveObserver.set(horseId, new Map());
+    const horseTables = liveObserver.get(horseId);
+    if (!horseTables.has(tableId)) {
+        horseTables.set(tableId, {
+            opponents: new Map(),
+            currentHand: null,
+        });
+    }
+    return horseTables.get(tableId);
+}
+
+/**
+ * Create a fresh LiveProfile for a new opponent.
+ */
+function _createLiveProfile() {
+    return {
+        // ── Core preflop stats ──
+        handsObserved: 0,
+        vpipCount: 0,
+        pfrCount: 0,
+        threeBetCount: 0,
+        threeBetOpportunity: 0,
+        fourBetCount: 0,
+        fourBetOpportunity: 0,
+        foldToThreeBet: 0,
+        facedThreeBet: 0,
+        coldCallCount: 0,
+        coldCallOpportunity: 0,
+        limpCount: 0,
+        stealAttemptCount: 0,    // Open-raise from CO/BTN/SB
+        stealOpportunity: 0,
+        foldToSteal: 0,
+        facedSteal: 0,
+
+        // ── Postflop stats ──
+        cBetCount: 0,
+        cBetOpportunity: 0,
+        foldToCBet: 0,
+        facedCBet: 0,
+        secondBarrelCount: 0,
+        secondBarrelOpportunity: 0,
+        thirdBarrelCount: 0,
+        thirdBarrelOpportunity: 0,
+        checkRaiseCount: 0,
+        checkRaiseOpportunity: 0,
+        donkBetCount: 0,
+        donkBetOpportunity: 0,
+        probeBetCount: 0,
+        probeBetOpportunity: 0,
+        foldToRaise: 0,       // Folded when raised postflop
+        facedRaise: 0,        // Faced a raise postflop
+
+        // ── Aggression tracking ──
+        totalBets: 0,          // bet + raise actions
+        totalCalls: 0,
+        totalChecks: 0,
+        totalFolds: 0,
+
+        // ── Showdown data ──
+        wentToShowdown: 0,
+        wonAtShowdown: 0,
+        showdownBluffs: 0,     // Showed weak hand after aggression
+        showdownHands: [],     // Recent showdown results (capped)
+
+        // ── Sizing tracking ──
+        preflopRaiseSizes: [],  // Recent preflop raise sizes (BB multiples)
+        flopBetSizes: [],       // Recent bet sizes (fraction of pot)
+        turnBetSizes: [],
+        riverBetSizes: [],
+        overbetCount: 0,
+
+        // ── Timing tells ──
+        totalDecisionTimeMs: 0,
+        decisionCount: 0,
+        snapActionCount: 0,     // Decided in < 3 seconds
+        longTankCount: 0,       // Decided in > 15 seconds
+        timingByStreet: {
+            preflop: { totalMs: 0, count: 0 },
+            flop: { totalMs: 0, count: 0 },
+            turn: { totalMs: 0, count: 0 },
+            river: { totalMs: 0, count: 0 },
+        },
+
+        // ── Position stats ──
+        actionsByPosition: {}, // { 'BTN': { vpip: 0, pfr: 0, hands: 0 }, ... }
+
+        // ── Meta ──
+        firstSeen: Date.now(),
+        lastSeen: Date.now(),
+    };
+}
+
+/**
+ * Create a fresh InHandModel for tracking the current hand.
+ */
+function _createInHandModel(handId, players) {
+    const model = {
+        handId,
+        street: 'preflop',
+        potSize: 0,
+        playerActions: new Map(), // playerId → [{ street, action, amount, timing, betToPot }]
+        preflopAggressor: null,    // Who was the last PFR?
+        lastAggressor: null,       // Who was the last aggressor on current street?
+        streetAggressors: { preflop: null, flop: null, turn: null, river: null },
+        raiseCount: { preflop: 0, flop: 0, turn: 0, river: 0 },
+        positions: new Map(),      // playerId → position string
+        isMultiway: players.length > 2,
+        actionTimestamps: new Map(), // playerId → last action timestamp (for timing tells)
+    };
+    for (const p of players) {
+        model.playerActions.set(String(p.id || p.playerId || p), []);
+        if (p.position) model.positions.set(String(p.id || p.playerId || p), p.position);
+    }
+    return model;
+}
+
+/**
+ * ██ OBSERVE NEW HAND — Called when a new hand starts at a table. ██
+ * Resets current-hand tracking for all horses watching this table.
+ *
+ * @param {string} tableId - Table identifier
+ * @param {string} handId - Unique hand identifier
+ * @param {Array} players - [{ id, position, stack }] — all players in the hand
+ * @param {Array} horseIds - Horse IDs seated at this table
+ * @param {number} bb - Big blind amount
+ */
+function observeNewHand(tableId, handId, players, horseIds, bb = 2) {
+    for (const horseId of horseIds) {
+        const observer = _getTableObserver(horseId, tableId);
+        observer.currentHand = _createInHandModel(handId, players);
+        observer.currentHand.bb = bb;
+
+        // Increment handsObserved for all opponents at the table
+        for (const p of players) {
+            const pid = String(p.id || p.playerId || p);
+            if (pid === horseId) continue; // Skip self
+            if (!observer.opponents.has(pid)) {
+                observer.opponents.set(pid, _createLiveProfile());
+            }
+            const profile = observer.opponents.get(pid);
+            profile.handsObserved++;
+            profile.lastSeen = Date.now();
+
+            // Track position stats
+            if (p.position) {
+                if (!profile.actionsByPosition[p.position]) {
+                    profile.actionsByPosition[p.position] = { vpip: 0, pfr: 0, hands: 0, threeBet: 0 };
+                }
+                profile.actionsByPosition[p.position].hands++;
+            }
+        }
+    }
+}
+
+/**
+ * ██ OBSERVE ACTION — Called on EVERY player action at the table. ██
+ * This is the core "always watching" function. Every horse at this table
+ * receives every action and updates its opponent profiles in real-time.
+ *
+ * @param {string} tableId - Table identifier
+ * @param {string} actorId - Player who took the action
+ * @param {string} street - 'preflop', 'flop', 'turn', 'river'
+ * @param {string} action - 'fold', 'check', 'call', 'raise', 'bet', 'all_in'
+ * @param {Object} context - {
+ *   amount: number,           // Bet/raise amount in chips
+ *   potSize: number,          // Pot size before this action
+ *   toCall: number,           // Amount needed to call
+ *   decisionTimeMs: number,   // How long the player took to decide
+ *   position: string,         // Actor's position (BTN, SB, BB, etc.)
+ *   isOpenAction: boolean,    // First voluntary action preflop?
+ *   facingRaiseCount: number, // How many raises before this action?
+ * }
+ * @param {Array} horseIds - All horse IDs watching this table
+ */
+function observeAction(tableId, actorId, street, action, context = {}, horseIds = []) {
+    const actorStr = String(actorId);
+    const {
+        amount = 0, potSize = 0, toCall = 0, decisionTimeMs = 0,
+        position = '', isOpenAction = false, facingRaiseCount = 0,
+    } = context;
+    const betToPot = potSize > 0 ? amount / potSize : 0;
+
+    for (const horseId of horseIds) {
+        if (horseId === actorStr) continue; // Don't observe self
+
+        const observer = _getTableObserver(horseId, tableId);
+        if (!observer.opponents.has(actorStr)) {
+            observer.opponents.set(actorStr, _createLiveProfile());
+        }
+        const profile = observer.opponents.get(actorStr);
+        profile.lastSeen = Date.now();
+
+        // ── Record in current-hand model ──
+        if (observer.currentHand) {
+            const hand = observer.currentHand;
+            hand.street = street;
+            if (!hand.playerActions.has(actorStr)) {
+                hand.playerActions.set(actorStr, []);
+            }
+            hand.playerActions.get(actorStr).push({
+                street, action, amount, betToPot, timing: decisionTimeMs, position,
+                timestamp: Date.now()
+            });
+
+            // Track raise counts per street
+            if (action === 'raise' || action === 'all_in') {
+                hand.raiseCount[street] = (hand.raiseCount[street] || 0) + 1;
+                hand.lastAggressor = actorStr;
+                hand.streetAggressors[street] = actorStr;
+                if (street === 'preflop') hand.preflopAggressor = actorStr;
+            }
+            if (action === 'bet') {
+                hand.lastAggressor = actorStr;
+                hand.streetAggressors[street] = actorStr;
+            }
+
+            // Track action timestamps for timing
+            hand.actionTimestamps.set(actorStr, Date.now());
+        }
+
+        // ═══════════════════════════════════════
+        // ██ PREFLOP STAT TRACKING ██
+        // ═══════════════════════════════════════
+        if (street === 'preflop') {
+            // VPIP: any voluntary action except posting blinds or folding
+            if (action !== 'fold' && action !== 'check') {
+                profile.vpipCount++;
+                if (position && profile.actionsByPosition[position]) {
+                    profile.actionsByPosition[position].vpip++;
+                }
+            }
+
+            // PFR: any raise or all-in preflop
+            if (action === 'raise' || action === 'all_in') {
+                profile.pfrCount++;
+                if (position && profile.actionsByPosition[position]) {
+                    profile.actionsByPosition[position].pfr++;
+                }
+
+                // Steal attempt tracking (open-raise from CO/BTN/SB)
+                if (isOpenAction && ['CO', 'BTN', 'SB', 'D'].includes(position)) {
+                    profile.stealAttemptCount++;
+                }
+
+                // 3-bet detection: raising when already facing a raise
+                if (facingRaiseCount === 1) {
+                    profile.threeBetCount++;
+                    if (position && profile.actionsByPosition[position]) {
+                        profile.actionsByPosition[position].threeBet++;
+                    }
+                }
+                // 4-bet detection
+                if (facingRaiseCount >= 2) {
+                    profile.fourBetCount++;
+                }
+
+                // Track preflop sizing
+                if (amount > 0 && observer.currentHand) {
+                    const bbAmt = observer.currentHand.bb || 2;
+                    profile.preflopRaiseSizes.push(amount / bbAmt);
+                    if (profile.preflopRaiseSizes.length > 30) {
+                        profile.preflopRaiseSizes = profile.preflopRaiseSizes.slice(-20);
+                    }
+                }
+            }
+
+            // Limp detection (just calling the big blind)
+            if (action === 'call' && facingRaiseCount === 0) {
+                profile.limpCount++;
+            }
+
+            // Cold call (calling a raise without having put money in yet)
+            if (action === 'call' && facingRaiseCount >= 1 && isOpenAction) {
+                profile.coldCallCount++;
+            }
+
+            // Fold to 3-bet
+            if (action === 'fold' && facingRaiseCount >= 2) {
+                profile.foldToThreeBet++;
+            }
+
+            // Facing 3-bet (had raised, now faces a re-raise)
+            if (facingRaiseCount >= 2) {
+                profile.facedThreeBet++;
+                if (facingRaiseCount >= 2) profile.threeBetOpportunity++;
+            }
+
+            // 3-bet opportunity (someone raised before us)
+            if (facingRaiseCount === 1) {
+                profile.threeBetOpportunity++;
+            }
+
+            // 4-bet opportunity
+            if (facingRaiseCount >= 2) {
+                profile.fourBetOpportunity++;
+            }
+
+            // Fold to steal
+            if (action === 'fold' && position && ['BB', 'SB'].includes(position)) {
+                const hand = observer.currentHand;
+                if (hand && hand.raiseCount.preflop === 1) {
+                    // Single raise from late position = steal attempt
+                    const raiserPos = hand.positions.get(hand.preflopAggressor);
+                    if (['CO', 'BTN', 'SB', 'D'].includes(raiserPos)) {
+                        profile.foldToSteal++;
+                    }
+                }
+            }
+            if (position && ['BB', 'SB'].includes(position)) {
+                const hand = observer.currentHand;
+                if (hand && hand.raiseCount.preflop === 1) {
+                    const raiserPos = hand.positions.get(hand.preflopAggressor);
+                    if (['CO', 'BTN', 'SB', 'D'].includes(raiserPos)) {
+                        profile.facedSteal++;
+                    }
+                }
+                profile.stealOpportunity++;
+            }
+
+            // Cold call opportunity
+            if (facingRaiseCount >= 1) {
+                profile.coldCallOpportunity++;
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // ██ POSTFLOP STAT TRACKING ██
+        // ═══════════════════════════════════════
+        if (street !== 'preflop') {
+            const hand = observer.currentHand;
+            const isPFR = hand && hand.preflopAggressor === actorStr;
+            const prevStreetAgg = hand ? hand.streetAggressors[
+                street === 'flop' ? 'preflop' : street === 'turn' ? 'flop' : 'turn'
+            ] : null;
+            const wasLastStreetAggressor = prevStreetAgg === actorStr;
+
+            // ── C-bet tracking ──
+            if (street === 'flop' && isPFR) {
+                profile.cBetOpportunity++;
+                if (action === 'bet' || action === 'raise') {
+                    profile.cBetCount++;
+                }
+            }
+
+            // ── Fold to C-bet ──
+            if (street === 'flop' && !isPFR && action === 'fold') {
+                const flopAggressor = hand ? hand.streetAggressors.flop : null;
+                if (flopAggressor && flopAggressor === hand.preflopAggressor) {
+                    profile.foldToCBet++;
+                }
+            }
+            if (street === 'flop' && !isPFR) {
+                const flopAggressor = hand ? hand.streetAggressors.flop : null;
+                if (flopAggressor && flopAggressor === hand.preflopAggressor) {
+                    profile.facedCBet++;
+                }
+            }
+
+            // ── Second barrel (turn bet after flop c-bet) ──
+            if (street === 'turn' && wasLastStreetAggressor) {
+                profile.secondBarrelOpportunity++;
+                if (action === 'bet' || action === 'raise') {
+                    profile.secondBarrelCount++;
+                }
+            }
+
+            // ── Third barrel (river bet after turn barrel) ──
+            if (street === 'river' && wasLastStreetAggressor) {
+                profile.thirdBarrelOpportunity++;
+                if (action === 'bet' || action === 'raise') {
+                    profile.thirdBarrelCount++;
+                }
+            }
+
+            // ── Check-raise detection ──
+            if (action === 'raise' && hand) {
+                const myActions = hand.playerActions.get(actorStr) || [];
+                const streetActions = myActions.filter(a => a.street === street);
+                if (streetActions.length >= 2 && streetActions[streetActions.length - 2].action === 'check') {
+                    profile.checkRaiseCount++;
+                }
+            }
+            // Check-raise opportunity: checked and someone bet after
+            if (action === 'check') {
+                profile.checkRaiseOpportunity++; // Approximate — refined at street end
+            }
+
+            // ── Donk bet detection (non-aggressor leading out) ──
+            if ((action === 'bet') && !isPFR && !wasLastStreetAggressor) {
+                profile.donkBetCount++;
+            }
+            if (!isPFR && !wasLastStreetAggressor) {
+                profile.donkBetOpportunity++; // They had the option to donk
+            }
+
+            // ── Probe bet (betting when previous street checked through) ──
+            if (action === 'bet' && hand) {
+                const prevStreet = street === 'turn' ? 'flop' : street === 'river' ? 'turn' : null;
+                if (prevStreet && !hand.streetAggressors[prevStreet]) {
+                    profile.probeBetCount++;
+                }
+            }
+            if (hand) {
+                const prevStreet = street === 'turn' ? 'flop' : street === 'river' ? 'turn' : null;
+                if (prevStreet && !hand.streetAggressors[prevStreet]) {
+                    profile.probeBetOpportunity++;
+                }
+            }
+
+            // ── Fold to raise (postflop) ──
+            if (action === 'fold' && facingRaiseCount >= 1) {
+                profile.foldToRaise++;
+            }
+            if (facingRaiseCount >= 1) {
+                profile.facedRaise++;
+            }
+
+            // ── Bet sizing tracking ──
+            if ((action === 'bet' || action === 'raise' || action === 'all_in') && betToPot > 0) {
+                const sizeArr = street === 'flop' ? profile.flopBetSizes
+                    : street === 'turn' ? profile.turnBetSizes
+                    : profile.riverBetSizes;
+                sizeArr.push(betToPot);
+                if (sizeArr.length > 25) sizeArr.splice(0, sizeArr.length - 20);
+                if (betToPot >= 1.0) profile.overbetCount++;
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // ██ UNIVERSAL ACTION TRACKING ██
+        // ═══════════════════════════════════════
+        if (action === 'fold') profile.totalFolds++;
+        else if (action === 'call') profile.totalCalls++;
+        else if (action === 'check') profile.totalChecks++;
+        else if (action === 'bet' || action === 'raise' || action === 'all_in') profile.totalBets++;
+
+        // ═══════════════════════════════════════
+        // ██ TIMING TELL TRACKING ██
+        // ═══════════════════════════════════════
+        if (decisionTimeMs > 0) {
+            profile.totalDecisionTimeMs += decisionTimeMs;
+            profile.decisionCount++;
+            if (decisionTimeMs < 3000) profile.snapActionCount++; // < 3s = snap
+            if (decisionTimeMs > 15000) profile.longTankCount++;  // > 15s = long tank
+
+            // Per-street timing
+            if (profile.timingByStreet[street]) {
+                profile.timingByStreet[street].totalMs += decisionTimeMs;
+                profile.timingByStreet[street].count++;
+            }
+        }
+    }
+}
+
+/**
+ * ██ OBSERVE SHOWDOWN — Called when cards are revealed at showdown. ██
+ *
+ * @param {string} tableId
+ * @param {string} playerId - Player who showed cards
+ * @param {boolean} won - Did they win the pot?
+ * @param {number} handStrength - Hand strength 0-100
+ * @param {boolean} wasBluff - Was their final action aggressive with a weak hand?
+ * @param {Array} horseIds - All horse IDs watching this table
+ */
+function observeShowdown(tableId, playerId, won, handStrength, wasBluff, horseIds = []) {
+    const pid = String(playerId);
+    for (const horseId of horseIds) {
+        if (horseId === pid) continue;
+        const observer = _getTableObserver(horseId, tableId);
+        if (!observer.opponents.has(pid)) continue;
+        const profile = observer.opponents.get(pid);
+
+        profile.wentToShowdown++;
+        if (won) profile.wonAtShowdown++;
+        if (wasBluff) profile.showdownBluffs++;
+
+        profile.showdownHands.push({ won, handStrength, wasBluff, timestamp: Date.now() });
+        if (profile.showdownHands.length > 40) {
+            profile.showdownHands = profile.showdownHands.slice(-25);
+        }
+    }
+}
+
+/**
+ * ██ GET LIVE READ — The master query function for live opponent data. ██
+ *
+ * Returns a comprehensive, real-time opponent profile that combines:
+ * - Cross-hand stats (VPIP, PFR, 3-bet, c-bet, etc.)
+ * - Timing tells (snap-actions, long-tanks)
+ * - In-hand action sequences for the current hand
+ * - Position-aware stats
+ * - Sizing tendencies
+ *
+ * @param {string} horseId - The horse requesting the read
+ * @param {string} tableId - Table they're at
+ * @param {string} opponentId - Opponent to read
+ * @returns {Object|null} Live opponent profile or null if insufficient data
+ */
+function getLiveRead(horseId, tableId, opponentId) {
+    if (!liveObserver.has(horseId)) return null;
+    const horseTables = liveObserver.get(horseId);
+    if (!horseTables.has(tableId)) return null;
+    const observer = horseTables.get(tableId);
+
+    const oppStr = String(opponentId);
+    if (!observer.opponents.has(oppStr)) return null;
+    const p = observer.opponents.get(oppStr);
+
+    // Need minimum observations for any meaningful read
+    if (p.handsObserved < 5) return null;
+
+    const totalActions = p.totalBets + p.totalCalls + p.totalChecks + p.totalFolds;
+    if (totalActions < 6) return null;
+
+    // ═══ CORE FREQUENCIES ═══
+    const vpipPct = p.handsObserved > 0 ? p.vpipCount / p.handsObserved : 0.30;
+    const pfrPct = p.handsObserved > 0 ? p.pfrCount / p.handsObserved : 0.15;
+    const threeBetPct = p.threeBetOpportunity > 3 ? p.threeBetCount / p.threeBetOpportunity : null;
+    const fourBetPct = p.fourBetOpportunity > 2 ? p.fourBetCount / p.fourBetOpportunity : null;
+    const foldToThreeBetPct = p.facedThreeBet > 3 ? p.foldToThreeBet / p.facedThreeBet : null;
+    const coldCallPct = p.coldCallOpportunity > 3 ? p.coldCallCount / p.coldCallOpportunity : null;
+    const limpPct = p.handsObserved > 5 ? p.limpCount / p.handsObserved : null;
+    const stealPct = p.stealOpportunity > 3 ? p.stealAttemptCount / p.stealOpportunity : null;
+    const foldToStealPct = p.facedSteal > 3 ? p.foldToSteal / p.facedSteal : null;
+
+    // ═══ POSTFLOP FREQUENCIES ═══
+    const cBetPct = p.cBetOpportunity > 3 ? p.cBetCount / p.cBetOpportunity : null;
+    const foldToCBetPct = p.facedCBet > 3 ? p.foldToCBet / p.facedCBet : null;
+    const secondBarrelPct = p.secondBarrelOpportunity > 2 ? p.secondBarrelCount / p.secondBarrelOpportunity : null;
+    const thirdBarrelPct = p.thirdBarrelOpportunity > 2 ? p.thirdBarrelCount / p.thirdBarrelOpportunity : null;
+    const checkRaisePct = p.checkRaiseOpportunity > 3 ? p.checkRaiseCount / p.checkRaiseOpportunity : null;
+    const donkBetPct = p.donkBetOpportunity > 3 ? p.donkBetCount / p.donkBetOpportunity : null;
+    const probeBetPct = p.probeBetOpportunity > 3 ? p.probeBetCount / p.probeBetOpportunity : null;
+    const foldToRaisePct = p.facedRaise > 3 ? p.foldToRaise / p.facedRaise : null;
+
+    // ═══ AGGRESSION ═══
+    const aggFreq = totalActions > 0 ? p.totalBets / totalActions : 0.33;
+    const foldFreq = totalActions > 0 ? p.totalFolds / totalActions : 0.33;
+    const callFreq = totalActions > 0 ? p.totalCalls / totalActions : 0.33;
+    // AF = (bets + raises) / calls. Standard poker aggression factor.
+    const aggressionFactor = p.totalCalls > 0 ? p.totalBets / p.totalCalls : p.totalBets > 0 ? 99 : 1;
+
+    // ═══ SHOWDOWN ═══
+    const wtsd = p.handsObserved > 5 ? p.wentToShowdown / p.handsObserved : null;
+    const wsd = p.wentToShowdown > 3 ? p.wonAtShowdown / p.wentToShowdown : null;
+    const bluffRate = p.wentToShowdown >= 3 ? p.showdownBluffs / p.wentToShowdown : null;
+
+    // ═══ SIZING TENDENCIES ═══
+    const avgFlopBet = p.flopBetSizes.length >= 3
+        ? p.flopBetSizes.reduce((a, b) => a + b, 0) / p.flopBetSizes.length : null;
+    const avgTurnBet = p.turnBetSizes.length >= 3
+        ? p.turnBetSizes.reduce((a, b) => a + b, 0) / p.turnBetSizes.length : null;
+    const avgRiverBet = p.riverBetSizes.length >= 3
+        ? p.riverBetSizes.reduce((a, b) => a + b, 0) / p.riverBetSizes.length : null;
+    const avgPreflopRaise = p.preflopRaiseSizes.length >= 3
+        ? p.preflopRaiseSizes.reduce((a, b) => a + b, 0) / p.preflopRaiseSizes.length : null;
+    const overbetFreq = p.totalBets > 5 ? p.overbetCount / p.totalBets : null;
+
+    // ═══ TIMING TELLS ═══
+    const avgDecisionMs = p.decisionCount > 0 ? p.totalDecisionTimeMs / p.decisionCount : null;
+    const snapFreq = p.decisionCount > 5 ? p.snapActionCount / p.decisionCount : null;
+    const longTankFreq = p.decisionCount > 5 ? p.longTankCount / p.decisionCount : null;
+    const timingProfile = {};
+    for (const [st, data] of Object.entries(p.timingByStreet)) {
+        timingProfile[st] = data.count > 0 ? { avgMs: data.totalMs / data.count, count: data.count } : null;
+    }
+
+    // ═══ PLAYER TYPE CLASSIFICATION ═══
+    let playerType = 'unknown';
+    if (p.handsObserved >= 10) {
+        if (vpipPct < 0.18 && pfrPct < 0.12) playerType = 'nit';
+        else if (vpipPct < 0.24 && pfrPct >= 0.16 && aggFreq >= 0.38) playerType = 'TAG';
+        else if (vpipPct >= 0.28 && pfrPct >= 0.20 && aggFreq >= 0.42) playerType = 'LAG';
+        else if (vpipPct >= 0.35 && aggFreq < 0.28) playerType = 'calling_station';
+        else if (vpipPct >= 0.45 && aggFreq >= 0.48) playerType = 'maniac';
+        else if (foldFreq >= 0.52) playerType = 'weak-tight';
+        else if (vpipPct >= 0.28 && vpipPct < 0.38 && aggFreq >= 0.30 && aggFreq < 0.42) playerType = 'loose-passive';
+        else playerType = 'balanced';
+    }
+
+    // ═══ EXPLOIT PATTERNS ═══
+    // Detect specific exploitable patterns from the data
+    const exploits = [];
+    if (foldToCBetPct !== null && foldToCBetPct > 0.65) exploits.push('overfolds_to_cbet');
+    if (cBetPct !== null && cBetPct > 0.75) exploits.push('overcbets');
+    if (foldToThreeBetPct !== null && foldToThreeBetPct > 0.70) exploits.push('overfolds_to_3bet');
+    if (threeBetPct !== null && threeBetPct > 0.12) exploits.push('over3bets');
+    if (wtsd !== null && wtsd > 0.35) exploits.push('station_to_showdown');
+    if (wtsd !== null && wtsd < 0.18) exploits.push('gives_up_easily');
+    if (checkRaisePct !== null && checkRaisePct > 0.12) exploits.push('frequent_check_raiser');
+    if (donkBetPct !== null && donkBetPct > 0.15) exploits.push('frequent_donker');
+    if (snapFreq !== null && snapFreq > 0.50) exploits.push('plays_too_fast');
+    if (longTankFreq !== null && longTankFreq > 0.25) exploits.push('slow_player');
+    if (overbetFreq !== null && overbetFreq > 0.15) exploits.push('frequent_overbetter');
+    if (limpPct !== null && limpPct > 0.10) exploits.push('limper');
+    if (foldToStealPct !== null && foldToStealPct > 0.70) exploits.push('overfolds_blinds');
+    if (secondBarrelPct !== null && secondBarrelPct < 0.30 && cBetPct !== null && cBetPct > 0.60) {
+        exploits.push('one_and_done'); // C-bets a lot but gives up on turn
+    }
+    if (foldToRaisePct !== null && foldToRaisePct > 0.60) exploits.push('overfolds_to_raise');
+
+    // ═══ IN-HAND CONTEXT ═══
+    let inHandActions = null;
+    if (observer.currentHand) {
+        const hand = observer.currentHand;
+        const actions = hand.playerActions.get(oppStr);
+        if (actions && actions.length > 0) {
+            inHandActions = {
+                actions: actions.map(a => ({ street: a.street, action: a.action, amount: a.amount, betToPot: a.betToPot, timing: a.timing })),
+                isAggressor: hand.preflopAggressor === oppStr,
+                lastAction: actions[actions.length - 1],
+                streetAggression: {
+                    preflop: hand.streetAggressors.preflop === oppStr,
+                    flop: hand.streetAggressors.flop === oppStr,
+                    turn: hand.streetAggressors.turn === oppStr,
+                    river: hand.streetAggressors.river === oppStr,
+                },
+            };
+        }
+    }
+
+    // ═══ CONFIDENCE ═══
+    // Scales with data quality: more hands + more showdowns = higher confidence
+    const handConfidence = Math.min(0.60, p.handsObserved / 100);
+    const showdownConfidence = p.wentToShowdown >= 3 ? Math.min(0.20, p.wentToShowdown / 30) : 0;
+    const timingConfidence = p.decisionCount > 10 ? 0.10 : 0;
+    const confidence = Math.min(0.90, handConfidence + showdownConfidence + timingConfidence);
+
+    return {
+        // Core frequencies
+        vpipPct, pfrPct, threeBetPct, fourBetPct, foldToThreeBetPct,
+        coldCallPct, limpPct, stealPct, foldToStealPct,
+        // Postflop
+        cBetPct, foldToCBetPct, secondBarrelPct, thirdBarrelPct,
+        checkRaisePct, donkBetPct, probeBetPct, foldToRaisePct,
+        // Aggression
+        aggFreq, foldFreq, callFreq, aggressionFactor,
+        // Showdown
+        wtsd, wsd, bluffRate,
+        // Sizing
+        avgFlopBet, avgTurnBet, avgRiverBet, avgPreflopRaise, overbetFreq,
+        // Timing
+        avgDecisionMs, snapFreq, longTankFreq, timingProfile,
+        // Classification
+        playerType, exploits,
+        // In-hand
+        inHandActions,
+        // Position stats
+        positionStats: p.actionsByPosition,
+        // Meta
+        handsObserved: p.handsObserved,
+        confidence,
+    };
+}
+
+/**
+ * Clean up stale live observer data for tables a horse has left.
+ * @param {string} horseId
+ * @param {string} tableId
+ */
+function clearLiveObserver(horseId, tableId) {
+    if (liveObserver.has(horseId)) {
+        const horseTables = liveObserver.get(horseId);
+        horseTables.delete(tableId);
+        if (horseTables.size === 0) liveObserver.delete(horseId);
+    }
+}
+
+/**
+ * Clean up all live observer data for a table (when table closes).
+ * @param {string} tableId
+ */
+function clearTableLiveObservers(tableId) {
+    for (const [horseId, horseTables] of liveObserver) {
+        horseTables.delete(tableId);
+        if (horseTables.size === 0) liveObserver.delete(horseId);
+    }
+}
+
+/**
+ * Auto-cleanup stale data across all observers.
+ * Call periodically (e.g., every 5 minutes) to prevent memory bloat.
+ */
+function cleanupLiveObservers() {
+    const staleThreshold = 45 * 60 * 1000; // 45 minutes
+    const now = Date.now();
+    for (const [horseId, horseTables] of liveObserver) {
+        for (const [tableId, observer] of horseTables) {
+            for (const [oppId, profile] of observer.opponents) {
+                if (now - profile.lastSeen > staleThreshold) {
+                    observer.opponents.delete(oppId);
+                }
+            }
+            if (observer.opponents.size === 0) horseTables.delete(tableId);
+        }
+        if (horseTables.size === 0) liveObserver.delete(horseId);
+    }
+}
+
+// Auto-cleanup every 5 minutes
+setInterval(cleanupLiveObservers, 5 * 60 * 1000);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// END ALWAYS-ON LIVE OBSERVER SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Record hero's action on this street for multi-street planning.
@@ -14042,5 +14934,17 @@ module.exports = {
     recordOpponentShowdown,
     getOpponentSessionRead,
     opponentSessionModel,  // Exposed for testing/debugging
+
+    // ═══ ALWAYS-ON LIVE OBSERVER SYSTEM ═══
+    observeNewHand,
+    observeAction,
+    observeShowdown,
+    getLiveRead,
+    clearLiveObserver,
+    clearTableLiveObservers,
+    cleanupLiveObservers,
+    liveObserver,  // Exposed for testing/debugging
+    isHorseSync,
+    getHorseIdsAtTable,
 };
 

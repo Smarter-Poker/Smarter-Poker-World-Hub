@@ -725,6 +725,8 @@ class GameController {
 
       // Clear AI session tracking
       HorsePokerBrain.clearTableSessions(tableId);
+      // Clear live observer data for this table
+      HorsePokerBrain.clearTableLiveObservers(tableId);
 
       // Update DB
       if (this.supabase) {
@@ -1120,6 +1122,117 @@ class GameController {
   _wireHorseAI(tableId) {
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ██  ALWAYS-ON LIVE OBSERVER — hand_start hook  ██
+    // Notify all horses at this table that a new hand is starting.
+    // This resets in-hand tracking and increments handsObserved.
+    // ═══════════════════════════════════════════════════════════════════
+    entry.table.on('hand_start', (data) => {
+      try {
+        const players = data.players || [];
+        const horseIds = HorsePokerBrain.getHorseIdsAtTable(players);
+        if (horseIds.length > 0) {
+          const bb = entry.config?.bigBlind || entry.table.bigBlind || 2;
+          HorsePokerBrain.observeNewHand(tableId, data.handId || `${tableId}_${data.handNumber}`, players, horseIds, bb);
+        }
+      } catch (err) {
+        console.error(`[LiveObserver] hand_start hook failed:`, err.message);
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ██  ALWAYS-ON LIVE OBSERVER — action_processed hook  ██
+    // Every single player action at this table is observed by ALL horses.
+    // This is the core "always watching" pipeline — zero latency, synchronous.
+    // ═══════════════════════════════════════════════════════════════════
+    entry.table.on('action_processed', (data) => {
+      try {
+        const game = entry.table.game;
+        if (!game || !data?.playerId || !data?.action) return;
+
+        const players = game.currentHand?.players || [];
+        const horseIds = HorsePokerBrain.getHorseIdsAtTable(players);
+        if (horseIds.length === 0) return;
+
+        const actorId = String(data.playerId);
+        const street = data.street || game.phase || 'preflop';
+        const actionType = data.action?.type || data.action || 'unknown';
+        const amount = data.action?.amount || 0;
+        const potSize = data.potTotal || game.potCalculator?.totalPot || 0;
+        const currentBet = data.currentBet || 0;
+
+        // Find the actor's position and calculate context
+        const actorPlayer = players.find(p => String(p.id) === actorId);
+        const position = actorPlayer?.position || '';
+
+        // Calculate timing: how long since the last action_required was emitted for this player
+        // (The ActionTimer tracks this, but we can approximate from the timestamp diff)
+        const timerEntry = entry.timer;
+        const decisionTimeMs = timerEntry?._lastActionDuration || 0;
+
+        // Determine context for preflop tracking
+        const isOpenAction = street === 'preflop' && !actorPlayer?.invested;
+        const raiseCount = game.bettingRound?.raiseCount || 0;
+
+        HorsePokerBrain.observeAction(
+          tableId,
+          actorId,
+          street,
+          actionType,
+          {
+            amount,
+            potSize,
+            toCall: Math.max(0, currentBet - (actorPlayer?.invested || 0)),
+            decisionTimeMs,
+            position,
+            isOpenAction,
+            facingRaiseCount: raiseCount,
+          },
+          horseIds
+        );
+      } catch (err) {
+        // Never let observer errors break the game loop
+        console.error(`[LiveObserver] action_processed hook failed:`, err.message);
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ██  ALWAYS-ON LIVE OBSERVER — showdown hook  ██
+    // When cards are revealed, feed showdown data to all observing horses.
+    // ═══════════════════════════════════════════════════════════════════
+    entry.table.on('showdown', (data) => {
+      try {
+        const game = entry.table.game;
+        const players = game?.currentHand?.players || [];
+        const horseIds = HorsePokerBrain.getHorseIdsAtTable(players);
+        if (horseIds.length === 0) return;
+
+        const showdownPlayers = data.players || [];
+        const winnerIds = new Set(
+          (data.winners || []).map(w => String(w.playerId || w))
+        );
+
+        for (const sp of showdownPlayers) {
+          const pid = String(sp.id);
+          const won = winnerIds.has(pid);
+          // Estimate hand strength from ranking (if available)
+          const handRank = sp.hand?.rank || 0;
+          // Convert rank to approximate strength: 1 (high card) = 15, 8 (straight flush) = 95
+          const handStrength = Math.min(95, 10 + handRank * 10);
+
+          // Detect bluff: aggressive final action + weak hand
+          const playerActions = game?.currentHand?.actions?.filter(a => String(a.playerId) === pid) || [];
+          const lastAction = playerActions[playerActions.length - 1];
+          const wasAggressive = lastAction && ['bet', 'raise', 'all_in'].includes(lastAction.action?.type);
+          const wasBluff = wasAggressive && handStrength < 35;
+
+          HorsePokerBrain.observeShowdown(tableId, pid, won, handStrength, wasBluff, horseIds);
+        }
+      } catch (err) {
+        console.error(`[LiveObserver] showdown hook failed:`, err.message);
+      }
+    });
 
     entry.table.on('action_required', (data) => {
       if (data?.playerId) {
