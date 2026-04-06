@@ -677,6 +677,11 @@
         top: 56px;
         z-index: 100;
     }
+    .sidebar-location-active {
+        margin: 0 10px 4px;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
     .sidebar-nav {
         flex-direction: row;
         overflow-x: auto;
