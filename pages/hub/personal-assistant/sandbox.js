@@ -67,6 +67,8 @@ import NodeLockExploits from '../../../src/components/sandbox/NodeLockExploits';
 import ImportHHModal from '../../../src/components/sandbox/ImportHHModal';
 import { idbSaveSessionLog, idbLoadSessionLog, idbSyncSavedHands, idbGetSavedHands } from '../../../src/utils/indexeddb-pwa';
 import BottomNavBar from '../../../src/components/ui/BottomNavBar';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -1475,68 +1477,56 @@ export default function VirtualSandbox() {
         }} />
       )}</AnimatePresence>
 
-      {/* ── STANDARD UNIVERSAL HEADER (same Back button as all other pages) ── */}
-      <UniversalHeader pageDepth={2} onMenuClick={() => setShowMenu(!showMenu)} />
+      {/* ── STANDARD UNIVERSAL HEADER ── */}
+      <UniversalHeader pageDepth={2} onMenuClick={() => setShowMenu(true)} />
 
-      {/* ── SANDBOX HAMBURGER DRAWER ── */}
-      <AnimatePresence>
-        {showMenu && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            style={{
-              position: 'fixed', top: 60, left: 0, right: 0, zIndex: 200,
-              background: '#18191A', borderBottom: '1px solid #3A3B3C',
-              padding: '12px 16px', boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-            }}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxWidth: 600, margin: '0 auto' }}>
-              <button onClick={() => { setQuizMode(!quizMode); setQuizRevealed(false); setUserGuess(null); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: quizMode ? 'rgba(139,92,246,0.2)' : '#3A3B3C', border: `1px solid ${quizMode ? 'rgba(139,92,246,0.3)' : '#4E4F50'}`, color: quizMode ? '#c4b5fd' : '#B0B3B8', cursor: 'pointer' }}>Quiz {quizMode ? 'ON' : 'OFF'}</button>
-              <button onClick={() => { setShowSessions(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Sessions</button>
-              <button onClick={() => { saveBookmark(); setShowMenu(false); }} disabled={saveStatus === 'saving'} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save'}</button>
-              {results && <button onClick={() => { setShowResults(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer' }}>Results</button>}
-              {results && <button onClick={() => { setShowShare(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer' }}>Share</button>}
-              <button onClick={() => { popUndo(); setShowMenu(false); }} disabled={undoStackRef.current.length === 0} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#E4E6EB', cursor: 'pointer' }}>Undo</button>
-              <button onClick={() => { resetAll(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>Reset</button>
-              <button onClick={() => { toggleCoachMode(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: coachMode ? 'rgba(167,139,250,0.15)' : '#3A3B3C', border: `1px solid ${coachMode ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: coachMode ? '#a78bfa' : '#E4E6EB', cursor: 'pointer' }}>Coach {coachMode ? 'ON' : 'OFF'}{coachMode && coachStreak > 0 ? ` 🔥${coachStreak}` : ''}</button>
-              <button onClick={() => { setShowSessionLog(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: sessionLog.length > 0 ? 'rgba(35,116,225,0.12)' : '#3A3B3C', border: `1px solid ${sessionLog.length > 0 ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`, color: sessionLog.length > 0 ? '#4599FF' : '#E4E6EB', cursor: 'pointer' }}>Log ({sessionLog.length})</button>
-              <button onClick={() => { toggleSound(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>Sound {soundEnabled ? 'ON' : 'OFF'}</button>
-              <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Templates</button>
-              <button onClick={() => { setShowRangeExplorer(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎯 Ranges</button>
-              <button onClick={() => { setDrillParams(null); setShowQuickDrill(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>⚡ Drill</button>
-              <button onClick={() => { setShowCustomDrill(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.15)', border: '1px solid rgba(0,230,118,0.4)', color: '#00cc6a', cursor: 'pointer' }}>⚙️ Custom Spot</button>
-              <button onClick={() => { setShowSessionReport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.3)', color: '#4599FF', cursor: 'pointer' }}>📋 Report</button>
-              {/* Wave 5 Menu Items */}
-              <button onClick={() => { setShowVillainPresets(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', cursor: 'pointer' }}>👤 Villains</button>
-              <button onClick={() => { setShowHandReplay(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎬 Replay</button>
-              {/* Wave 6 Menu Items */}
-              <button onClick={() => { setShowStudyFolders(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.3)', color: '#4599FF', cursor: 'pointer' }}>📁 Folders</button>
-              <button onClick={() => { setShowSaveHand(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>💾 Save Spot</button>
-              <button onClick={() => { setShowShareScenario(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)', color: '#ec4899', cursor: 'pointer' }}>🔗 Share</button>
-              <button onClick={() => { setShowTour(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer' }}>❓ Tour</button>
-
-              <button onClick={() => { setShowGodMode(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#c4b5fd', cursor: 'pointer' }}>⚡ God Mode</button>
-              <button onClick={() => { setShowSolverImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.15)', border: '1px solid rgba(245,166,35,0.4)', color: '#F5A623', cursor: 'pointer' }}>📥 Pro Import</button>
-              <button onClick={() => { setShowHeatmap(!showHeatmap); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: showHeatmap ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${showHeatmap ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: showHeatmap ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>🌡️ Heatmap {showHeatmap ? 'ON' : 'OFF'}</button>
-              <button onClick={() => { setShowNodeLocks(!showNodeLocks); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: showNodeLocks ? 'rgba(167,139,250,0.2)' : '#3A3B3C', border: `1px solid ${showNodeLocks ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: showNodeLocks ? '#a78bfa' : '#E4E6EB', cursor: 'pointer' }}>🔒 Node Locks</button>
-              <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
-              {/* Felt color dots row */}
-              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
-                <span style={{ fontSize: 9, color: '#65676B', fontWeight: 700, textTransform: 'uppercase' }}>Felt:</span>
-                {FELT_COLORS.map(f => (
-                  <button key={f.id} onClick={() => { changeFeltColor(f.id); setShowMenu(false); }}
-                    style={{ width: 22, height: 22, borderRadius: '50%', border: tableFelt === f.id ? '2px solid #4599FF' : '1px solid #4E4F50', background: f.id === 'default' ? '#18191A' : f.id === 'green' ? '#166534' : f.id === 'blue' ? '#1e3a5f' : '#7f1d1d', cursor: 'pointer', padding: 0 }}
-                    title={f.label}
-                  />
-                ))}
-                <motion.button onClick={() => { startVoiceInput(); setShowMenu(false); }} whileTap={{ scale: 0.85 }}
-                  style={{ width: 28, height: 28, borderRadius: '50%', padding: 0, border: 'none', background: isListening ? 'rgba(239,68,68,0.3)' : 'rgba(35,116,225,0.12)', color: isListening ? '#fca5a5' : '#4599FF', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >{isListening ? '...' : '🎤'}</motion.button>
-                <AccuracyBadge stats={quizScore} />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── STANDARD LEFT-SLIDE HAMBURGER MENU (matches all other pages) ── */}
+      <HamburgerMenu
+        isOpen={showMenu}
+        onClose={() => setShowMenu(false)}
+        direction="left"
+        theme="dark"
+        user={null}
+        showProfile={false}
+        menuItems={getMenuConfig('sandbox', null, {
+          quizMode,
+          coachMode,
+          hasResults: !!results,
+          saveStatus,
+          sessionLogCount: sessionLog.length,
+          showHeatmap,
+          showNodeLocks,
+          soundEnabled,
+        }, {
+          onToggleQuiz: () => { setQuizMode(!quizMode); setQuizRevealed(false); setUserGuess(null); },
+          onToggleCoach: () => toggleCoachMode(),
+          onRanges: () => setShowRangeExplorer(true),
+          onVillains: () => setShowVillainPresets(true),
+          onUndo: () => popUndo(),
+          onReset: () => resetAll(),
+          onReplay: () => setShowHandReplay(true),
+          onResults: () => setShowResults(true),
+          onShare: () => setShowShare(true),
+          onSave: () => saveBookmark(),
+          onSessions: () => setShowSessions(true),
+          onFolders: () => setShowStudyFolders(true),
+          onLog: () => setShowSessionLog(true),
+          onTemplates: () => { setShowTemplates(true); loadTemplates(); },
+          onSaveSpot: () => setShowSaveHand(true),
+          onReport: () => setShowSessionReport(true),
+          onGodMode: () => setShowGodMode(true),
+          onProImport: () => setShowSolverImport(true),
+          onCustomSpot: () => setShowCustomDrill(true),
+          onDrill: () => { setDrillParams(null); setShowQuickDrill(true); },
+          onToggleHeatmap: (val) => setShowHeatmap(val),
+          onToggleNodeLocks: (val) => setShowNodeLocks(val),
+          onToggleSound: (val) => toggleSound(),
+          onPlayTutorial: () => { setShowTour(true); setTourStep(0); },
+        }).menuItems}
+        bottomLinks={getMenuConfig('sandbox', null, {}, {
+          onPlayTutorial: () => { setShowTour(true); setTourStep(0); },
+        }).bottomLinks}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════════
           HORIZONTAL SANDBOX LAYOUT
@@ -1766,23 +1756,7 @@ export default function VirtualSandbox() {
         </div>
       </div>
 
-      {/* Quick Scenario Presets (only when empty) */}
-      {!heroHand.card1 && board.flop.length === 0 && (
-        <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '10px', marginBottom: '8px' }}>
-          <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Quick Start</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-            {QUICK_PRESETS.map((preset, i) => (
-              <button key={i} onClick={() => {
-                setHeroHand(preset.hand); setHeroPosition(preset.position);
-                setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
-                setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
-              }} style={{ padding: '6px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left' }}>
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Quick Start removed — users access presets from the hamburger menu */}
 
       {/* Preflop Range Chart — behind toggle */}
       {currentStreet === 'preflop' && (

@@ -1595,7 +1595,7 @@ export default function PokerNearMeLobby() {
               {/* GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
                 <button onClick={handleGpsClick} disabled={gpsLoading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1.5px solid rgba(212,168,83,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,255,255,0.4)' : '1.5px solid rgba(212,168,83,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,255,255,0.1)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffffff' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                   {gpsLoading ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" /></svg>
                   ) : (
@@ -1997,7 +1997,7 @@ export default function PokerNearMeLobby() {
               {/* Row 1: GPS + Distance */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
                 <button onClick={handleGpsClick} disabled={gpsLoading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,213,0,0.4)' : '1.5px solid rgba(212,168,83,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,213,0,0.1)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffd500' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: userLocation ? '1px solid #3fb950' : gpsLoading ? '1px solid rgba(255,255,255,0.4)' : '1.5px solid rgba(212,168,83,0.4)', background: userLocation ? 'rgba(63,185,80,0.15)' : gpsLoading ? 'rgba(255,255,255,0.1)' : 'rgba(212,168,83,0.08)', color: userLocation ? '#3fb950' : gpsLoading ? '#ffffff' : '#d4a853', fontSize: 13, fontWeight: 700, cursor: gpsLoading ? 'wait' : 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                   {gpsLoading ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="31" strokeDashoffset="10" /></svg>
                   ) : (

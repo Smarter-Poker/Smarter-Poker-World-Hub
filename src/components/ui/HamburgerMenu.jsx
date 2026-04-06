@@ -282,44 +282,88 @@ export default function HamburgerMenu({
                         padding: '0 16px',
                         marginBottom: 16
                     }}>
-                        {item.items.map((gridItem, gridIndex) => (
-                            <Link
-                                key={gridIndex}
-                                href={gridItem.href}
-                                onClick={() => {
-                                    if (gridItem.onClick) gridItem.onClick();
-                                    onClose();
-                                }}
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'flex-start',
-                                    padding: '14px 12px',
-                                    background: theme === 'light' ? '#fff' : colors.cardBg,
-                                    borderRadius: 8,
-                                    textDecoration: 'none',
-                                    border: `1px solid ${colors.border}`,
-                                    transition: 'transform 0.2s, box-shadow 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = 'none';
-                                }}
-                            >
-                                {gridItem.icon && (
-                                    <div style={{ width: 36, height: 36, marginBottom: 8 }}>
-                                        {gridItem.icon}
-                                    </div>
-                                )}
-                                <span style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>
-                                    {gridItem.label}
-                                </span>
-                            </Link>
-                        ))}
+                        {item.items.map((gridItem, gridIndex) => {
+                            // Support onClick-only grid items (e.g., sandbox actions)
+                            if (!gridItem.href) {
+                                return (
+                                    <button
+                                        key={gridIndex}
+                                        onClick={() => {
+                                            if (gridItem.onClick) gridItem.onClick();
+                                            onClose();
+                                        }}
+                                        style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            padding: '14px 12px',
+                                            background: theme === 'light' ? '#fff' : colors.cardBg,
+                                            borderRadius: 8,
+                                            border: `1px solid ${colors.border}`,
+                                            color: colors.text,
+                                            fontSize: 15,
+                                            fontWeight: 500,
+                                            cursor: 'pointer',
+                                            transition: 'transform 0.2s, box-shadow 0.2s',
+                                            textAlign: 'left',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
+                                    >
+                                        {gridItem.icon && (
+                                            <div style={{ width: 36, height: 36, marginBottom: 8 }}>
+                                                {gridItem.icon}
+                                            </div>
+                                        )}
+                                        <span>{gridItem.label}</span>
+                                    </button>
+                                );
+                            }
+                            return (
+                                <Link
+                                    key={gridIndex}
+                                    href={gridItem.href}
+                                    onClick={() => {
+                                        if (gridItem.onClick) gridItem.onClick();
+                                        onClose();
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'flex-start',
+                                        padding: '14px 12px',
+                                        background: theme === 'light' ? '#fff' : colors.cardBg,
+                                        borderRadius: 8,
+                                        textDecoration: 'none',
+                                        border: `1px solid ${colors.border}`,
+                                        transition: 'transform 0.2s, box-shadow 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = 'none';
+                                    }}
+                                >
+                                    {gridItem.icon && (
+                                        <div style={{ width: 36, height: 36, marginBottom: 8 }}>
+                                            {gridItem.icon}
+                                        </div>
+                                    )}
+                                    <span style={{ fontSize: 15, fontWeight: 500, color: colors.text }}>
+                                        {gridItem.label}
+                                    </span>
+                                </Link>
+                            );
+                        })}
                     </div>
                 );
 

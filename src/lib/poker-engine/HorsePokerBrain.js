@@ -10587,7 +10587,8 @@ function makeFlopHeuristicDecision(params) {
                         if (flopLiveRead.foldFreq > 0.55 && handEval.strength < 70) sizeFrac = Math.max(0.30, sizeFrac - 0.08);
                     }
                     // Geometric sizing: plan multi-street value
-                    const geoIP = getGeometricSizing(potSize, heroStack, street === 'flop' ? 2 : 1, true);
+                    // Phase 46 FIX: 'street' was undeclared — this function is always flop, so streetsLeft=2
+                    const geoIP = getGeometricSizing(potSize, heroStack, 2, true);
                     if (geoIP.isJammable && handEval.strength >= 75 && spr >= 3) {
                         sizeFrac = Math.max(sizeFrac, geoIP.sizeFraction);
                     }

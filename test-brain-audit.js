@@ -833,6 +833,279 @@ test('postflop weak hand folds to large bet', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 46: makeFlopHeuristicDecision ══');
+// ═══════════════════════════════════════════════════════════
+
+const mfhd = brain.makeFlopHeuristicDecision;
+
+// Helper: build base params for makeFlopHeuristicDecision
+function flopParams(overrides = {}) {
+    return {
+        holeCards: overrides.holeCards || ['Ah', 'Kd'],
+        board: overrides.board || ['Kc', '7d', '3s'],
+        handStr: overrides.handStr || 'AhKd',
+        position: overrides.position || 'BTN',
+        stackBB: overrides.stackBB || 100,
+        potSize: overrides.potSize || 20,
+        toCall: overrides.toCall !== undefined ? overrides.toCall : 0,
+        bb: overrides.bb || 2,
+        numPlayers: overrides.numPlayers || 2,
+        legalActions: overrides.legalActions || [
+            { type: 'check' },
+            { type: 'bet', min: 4, max: 200 }
+        ],
+        profileId: overrides.profileId || 'test-horse',
+        aggressionBias: overrides.aggressionBias !== undefined ? overrides.aggressionBias : 5,
+        loosenessBias: overrides.loosenessBias || 0,
+        opponentAdjustment: overrides.opponentAdjustment || { callMod: 0, foldMod: 0 },
+        enrichedOpponentRead: overrides.enrichedOpponentRead || null,
+        heroIsAggressor: overrides.heroIsAggressor !== undefined ? overrides.heroIsAggressor : true,
+        counterStrategyMode: overrides.counterStrategyMode || 'standard',
+        tableId: 'test-table',
+        primaryOppId: null,
+        ...overrides
+    };
+}
+
+test('makeFlopHeuristicDecision: null guard on bad input', () => {
+    const r = mfhd({ holeCards: null, board: null });
+    expect(r).toBeNull();
+});
+
+test('makeFlopHeuristicDecision: null guard on short board', () => {
+    const r = mfhd({ holeCards: ['Ah', 'Kd'], board: ['Kc', '7d'] });
+    expect(r).toBeNull();
+});
+
+test('makeFlopHeuristicDecision: pot committed jam with decent hand', () => {
+    // Stack = 3bb, pot = 30, SPR ≈ 0.2 → pot committed
+    // handEval.strength for AK on K73 board ≈ top pair ≈ 50+
+    const r = mfhd(flopParams({
+        stackBB: 3,
+        potSize: 30,
+        toCall: 0,
+        legalActions: [
+            { type: 'check' },
+            { type: 'bet', min: 4, max: 6 }
+        ]
+    }));
+    // With SPR this low and decent hand, should be all_in or bet
+    expect(r).not.toBeNull();
+    // The pot committed path returns { type: 'all_in' } if strength >= 40 and canRaise
+    expect(['all_in', 'bet']).toContain(r.type);
+});
+
+test('makeFlopHeuristicDecision: limped pot strong hand bets for value', () => {
+    // heroIsAggressor = false (limped pot), strong hand, not facing bet
+    // Mock random to always return 0 (always take the action)
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = mfhd(flopParams({
+            holeCards: ['Ah', 'Ad'],  // Overpair on 7-5-3 board ≈ strength 70+
+            board: ['7c', '5d', '3s'],
+            heroIsAggressor: false,
+            toCall: 0,
+            legalActions: [
+                { type: 'check' },
+                { type: 'bet', min: 4, max: 200 }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        // Limped pot with strong hand should bet for value
+        expect(r.type).toBe('bet');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeFlopHeuristicDecision: limped pot weak hand checks', () => {
+    const r = mfhd(flopParams({
+        holeCards: ['2h', '4d'],  // Total air on K-9-7 board
+        board: ['Kc', '9d', '7s'],
+        heroIsAggressor: false,
+        toCall: 0,
+        legalActions: [
+            { type: 'check' },
+            { type: 'bet', min: 4, max: 200 }
+        ]
+    }));
+    expect(r).not.toBeNull();
+    expect(r.type).toBe('check');
+});
+
+test('makeFlopHeuristicDecision: c-bet on high dry board as PFR (random=0)', () => {
+    // High dry board (K-7-3 rainbow), hero is PFR, not facing bet
+    // With random=0, should always c-bet
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = mfhd(flopParams({
+            holeCards: ['Ah', 'Qd'],  // AQ missed but PFR range advantage
+            board: ['Kc', '7d', '3s'],
+            heroIsAggressor: true,
+            toCall: 0,
+        }));
+        expect(r).not.toBeNull();
+        expect(r.type).toBe('bet');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeFlopHeuristicDecision: monster facing bet raises', () => {
+    // Monster hand (set of kings) facing a bet → should raise
+    const origRandom = Math.random;
+    Math.random = () => 0; // Ensure we don't slow-play
+    try {
+        const r = mfhd(flopParams({
+            holeCards: ['Kh', 'Kd'],  // Set of kings
+            board: ['Kc', '7d', '3s'],
+            toCall: 14,
+            potSize: 20,
+            legalActions: [
+                { type: 'call' },
+                { type: 'raise', min: 28, max: 200 },
+                { type: 'fold' }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        expect(r.type).toBe('raise');
+        expect(r.amount).toBeGreaterThan(28);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeFlopHeuristicDecision: facing bet fold trash', () => {
+    // Total air, facing large bet, no draws → fold
+    const r = mfhd(flopParams({
+        holeCards: ['2h', '4d'],  // Complete air on K-Q-9 board
+        board: ['Kc', 'Qd', '9s'],
+        toCall: 14,
+        potSize: 20,
+        legalActions: [
+            { type: 'call' },
+            { type: 'raise', min: 28, max: 200 },
+            { type: 'fold' }
+        ]
+    }));
+    expect(r).not.toBeNull();
+    expect(r.type).toBe('fold');
+});
+
+test('makeFlopHeuristicDecision: strong hand calls facing bet', () => {
+    // Top pair good kicker facing a bet → should call (not fold)
+    const origRandom = Math.random;
+    Math.random = () => 0.99; // High random to avoid raise branches
+    try {
+        const r = mfhd(flopParams({
+            holeCards: ['Ah', 'Kd'],
+            board: ['Kc', '7d', '3s'],
+            toCall: 10,
+            potSize: 20,
+            heroIsAggressor: false,
+            legalActions: [
+                { type: 'call' },
+                { type: 'raise', min: 20, max: 200 },
+                { type: 'fold' }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        expect(r.type).toBe('call');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeFlopHeuristicDecision: draw calls with proper odds', () => {
+    // Flush draw (9 outs) + overcards, facing half-pot bet → should call
+    const origRandom = Math.random;
+    Math.random = () => 0.99; // Avoid semi-bluff raise
+    try {
+        const r = mfhd(flopParams({
+            holeCards: ['Ah', 'Th'],   // Nut flush draw
+            board: ['Kh', '7h', '3c'],
+            toCall: 10,
+            potSize: 20,
+            heroIsAggressor: false,
+            legalActions: [
+                { type: 'call' },
+                { type: 'raise', min: 20, max: 200 },
+                { type: 'fold' }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        // With 9+ outs flush draw, equity ~40% vs pot odds ~33% → call
+        expect(r.type).toBe('call');
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeFlopHeuristicDecision: OOP check-raise semi-bluff with big draw (random=0)', () => {
+    // OOP, big combo draw (flush draw + OESD = ~15 outs), facing c-bet
+    const origRandom = Math.random;
+    Math.random = () => 0; // Always take the semi-bluff
+    try {
+        const r = mfhd(flopParams({
+            holeCards: ['9h', '8h'],   // Flush draw + OESD on Th-7h-2c
+            board: ['Th', '7h', '2c'],
+            position: 'BB',       // OOP
+            toCall: 10,
+            potSize: 20,
+            heroIsAggressor: false,
+            aggressionBias: 5,
+            legalActions: [
+                { type: 'call' },
+                { type: 'raise', min: 20, max: 200 },
+                { type: 'fold' }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        // With massive draw OOP, should check-raise (or at minimum call)
+        expect(['raise', 'call']).toContain(r.type);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeFlopHeuristicDecision: 4-bet pot low SPR jam with strong hand', () => {
+    // 4-bet pot, SPR ≈ 1.5, monster → should jam
+    const origRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const r = mfhd(flopParams({
+            holeCards: ['Ah', 'Ad'],
+            board: ['Kc', '7d', '3s'],
+            stackBB: 15,
+            potSize: 60,
+            toCall: 20,
+            bb: 2,
+            heroIsAggressor: true,
+            legalActions: [
+                { type: 'call' },
+                { type: 'raise', min: 40, max: 30 },
+                { type: 'fold' }
+            ]
+        }));
+        expect(r).not.toBeNull();
+        // SPR ~ 0.5, 4-bet pot implied, strength >= 65 → all_in or raise
+        expect(['all_in', 'raise', 'call']).toContain(r.type);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('makeFlopHeuristicDecision: returns valid action structure', () => {
+    const r = mfhd(flopParams());
+    expect(r).not.toBeNull();
+    expect(r).toHaveProperty('type');
+    // type should be one of the valid action types
+    expect(['check', 'bet', 'call', 'raise', 'fold', 'all_in']).toContain(r.type);
+});
+
+// ═══════════════════════════════════════════════════════════
 // SUMMARY
 // ═══════════════════════════════════════════════════════════
 

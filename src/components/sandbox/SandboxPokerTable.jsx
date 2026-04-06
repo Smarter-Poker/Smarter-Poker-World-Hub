@@ -219,9 +219,9 @@ export default function SandboxPokerTable({
                 >↻</motion.button>
             )}
 
-            {/* Center info on the table felt */}
+            {/* Center info on the table felt — positioned BELOW the community card row (38%) */}
             <div style={{
-                position: 'absolute', top: '56%', left: '50%',
+                position: 'absolute', top: '62%', left: '50%',
                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
             }}>
                 {/* Pot Display */}

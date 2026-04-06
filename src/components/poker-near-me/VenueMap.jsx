@@ -33,11 +33,11 @@ const VENUE_TYPE_LABELS = {
 
 // Venue type → marker color
 const VENUE_TYPE_COLORS = {
-  casino: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)', badgeBg: 'rgba(212,168,83,0.15)', label: 'Gold' },
+  casino: { fill: '#ffffff', glow: 'rgba(255,255,255,0.6)', badgeBg: 'rgba(255,255,255,0.15)', label: 'White' },
   card_room: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', badgeBg: 'rgba(34,197,94,0.15)', label: 'Green' },
   poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)', badgeBg: 'rgba(34,197,94,0.15)', label: 'Green' },
   charity: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.5)', badgeBg: 'rgba(59,130,246,0.15)', label: 'Blue' },
-  home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.5)', badgeBg: 'rgba(255,255,255,0.15)', label: 'White' },
+  home_game: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)', badgeBg: 'rgba(212,168,83,0.15)', label: 'Gold' },
   tour_stop: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)', badgeBg: 'rgba(239,68,68,0.15)', label: 'Red' },
   poker_tour: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)', badgeBg: 'rgba(239,68,68,0.15)', label: 'Red' },
 };
@@ -1068,11 +1068,11 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
 
   // Legend items
   const legendItems = [
-    { type: 'casino', label: 'Casino', color: '#d4a853' },
+    { type: 'casino', label: 'Casino', color: '#ffffff' },
     { type: 'poker_club', label: 'Poker Club', color: '#22c55e' },
     { type: 'tour_stop', label: 'Poker Tour', color: '#ef4444' },
     { type: 'charity', label: 'Charity', color: '#3b82f6' },
-    { type: 'home_game', label: 'Home Game', color: '#ffffff' },
+    { type: 'home_game', label: 'Home Game', color: '#d4a853' },
   ];
 
   return (

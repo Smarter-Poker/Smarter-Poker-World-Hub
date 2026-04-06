@@ -12,11 +12,11 @@ import { openNativeMaps } from '../../utils/openNativeMaps';
 
 // ─── Venue type → marker color ───
 const VENUE_TYPE_COLORS = {
-  casino: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)' },
+  casino: { fill: '#ffffff', glow: 'rgba(255,255,255,0.6)' },
   card_room: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
   poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
   charity: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.5)' },
-  home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.5)' },
+  home_game: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)' },
   tour_stop: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
   poker_tour: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
 };

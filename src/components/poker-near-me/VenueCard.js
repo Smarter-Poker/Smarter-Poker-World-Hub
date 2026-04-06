@@ -69,10 +69,10 @@ const VENUE_TYPE_ICONS = {
 };
 
 const VENUE_TYPE_COLORS = {
-    casino: { bg: 'rgba(212,168,83,0.10)', color: '#d4a853', border: 'rgba(212,168,83,0.28)', accent: '#d4a853' },
+    casino: { bg: 'rgba(255,255,255,0.10)', color: '#ffffff', border: 'rgba(255,255,255,0.28)', accent: '#ffffff' },
     card_room: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
     poker_club: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
-    home_game: { bg: 'rgba(139,92,246,0.10)', color: '#a78bfa', border: 'rgba(139,92,246,0.28)', accent: '#a78bfa' },
+    home_game: { bg: 'rgba(212,168,83,0.10)', color: '#d4a853', border: 'rgba(212,168,83,0.28)', accent: '#d4a853' },
     charity: { bg: 'rgba(59,130,246,0.10)', color: '#60a5fa', border: 'rgba(59,130,246,0.28)', accent: '#60a5fa' },
     tour: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
     tour_stop: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
@@ -306,7 +306,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* Home Game Schedule */}
             {venue.venue_type === 'home_game' && venue.schedule && (
                 <div className="vc3-schedule">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                     <span>{venue.schedule}</span>
                 </div>
             )}
@@ -673,14 +673,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-host-profile-link:hover { color: #d4a853; text-decoration: underline; }
                 .vc3-host-link { font-size: 10px; color: #d4a853; text-decoration: none; margin-left: auto; padding: 3px 8px; border: 1px solid rgba(212,168,83,0.3); border-radius: 6px; font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
                 .vc3-host-link:hover { background: rgba(212,168,83,0.15); }
-                .vc3-schedule { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(139,92,246,0.85); font-weight: 600; margin: 4px 0 6px; }
+                .vc3-schedule { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(212,168,83,0.85); font-weight: 600; margin: 4px 0 6px; }
                 .vc3-follow-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
-                .vc3-follow-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #C4B5FD; background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.3); text-decoration: none; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; }
-                .vc3-follow-btn:hover { background: rgba(139,92,246,0.25); box-shadow: 0 0 10px rgba(139,92,246,0.2); }
+                .vc3-follow-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #d4a853; background: rgba(212,168,83,0.12); border: 1px solid rgba(212,168,83,0.3); text-decoration: none; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; }
+                .vc3-follow-btn:hover { background: rgba(212,168,83,0.25); box-shadow: 0 0 10px rgba(212,168,83,0.2); }
                 .vc3-saves-count { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; }
                 .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
-                .vc3-pill-message { background: rgba(139,92,246,0.12); color: #a78bfa; border-color: rgba(139,92,246,0.25); }
-                .vc3-pill-message:hover { background: rgba(139,92,246,0.22); box-shadow: 0 0 12px rgba(139,92,246,0.15); }
+                .vc3-pill-message { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
+                .vc3-pill-message:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
                 .vc3-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
                 .vc3-badge { padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
                 .vc3-badge-featured { background: rgba(212,168,83,0.2); color: #d4a853; border: 1px solid rgba(212,168,83,0.35); }

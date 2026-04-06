@@ -160,10 +160,10 @@ function PlayerRatingDisplay({ avgRating, totalReviews, trustScore }) {
 function VenueTypeBadge({ type }) {
   const label = VENUE_TYPE_LABELS[type] || type || 'Venue';
   const colorMap = {
-    casino: { bg: 'rgba(0, 212, 255, 0.15)', border: '#00D4FF', text: '#00D4FF' },
+    casino: { bg: 'rgba(255, 255, 255, 0.15)', border: '#ffffff', text: '#ffffff' },
     card_room: { bg: 'rgba(59, 130, 246, 0.15)', border: '#3b82f6', text: '#3b82f6' },
     poker_club: { bg: 'rgba(139, 92, 246, 0.15)', border: '#8b5cf6', text: '#8b5cf6' },
-    home_game: { bg: 'rgba(34, 197, 94, 0.15)', border: '#22c55e', text: '#22c55e' },
+    home_game: { bg: 'rgba(212, 168, 83, 0.15)', border: '#d4a853', text: '#d4a853' },
     charity: { bg: 'rgba(236, 72, 153, 0.15)', border: '#ec4899', text: '#ec4899' },
   };
   const colors = colorMap[type] || { bg: 'rgba(255,255,255,0.1)', border: '#6b7280', text: '#9ca3af' };
@@ -756,7 +756,7 @@ export default function VenueDetailPage() {
 
     var goldIcon = L.divIcon({
       className: 'venue-detail-marker',
-      html: '<div style="width:20px;height:20px;border-radius:50%;background:#00D4FF;border:3px solid #fff;box-shadow:0 0 12px rgba(0,212,255,0.8);"></div>',
+      html: '<div style="width:20px;height:20px;border-radius:50%;background:#ffffff;border:3px solid #fff;box-shadow:0 0 12px rgba(255,255,255,0.8);"></div>',
       iconSize: [26, 26],
       iconAnchor: [13, 13],
     });
@@ -1947,7 +1947,7 @@ export default function VenueDetailPage() {
 
                 <div className="waitlist-board">
                   {waitlistData.map(function (wl, colIdx) {
-                    var tabColors = ['#FFD700', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+                    var tabColors = ['#ffffff', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
                     var tabColor = tabColors[colIdx % tabColors.length];
                     var gameLabel = (wl.stakes || '') + ' ' + formatGameType(wl.game_type);
 
@@ -2320,7 +2320,7 @@ export default function VenueDetailPage() {
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {venueLeaderboard.map(function (leader, idx) {
-                    var medal = idx === 0 ? '#FFD700' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : 'rgba(255,255,255,0.2)';
+                    var medal = idx === 0 ? '#ffffff' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : 'rgba(255,255,255,0.2)';
                     return (
                       <div key={leader.user_id} style={{
                         display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
@@ -3657,7 +3657,7 @@ export default function VenueDetailPage() {
         }
         .waitlist-player-row.called {
           animation: pulse-called 1.2s ease-in-out infinite;
-          color: #FFD700;
+          color: #ffffff;
           font-weight: 700;
         }
         @keyframes pulse-called {
