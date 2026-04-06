@@ -268,7 +268,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 onClick={e => {
                     e.preventDefault();
                     e.stopPropagation();
-                    openNativeMaps({ address: [venue.address, venue.city, venue.state].filter(Boolean).join(', ') });
+                    openNativeMaps({ address: [venue.address, venue.city, venue.state].filter(Boolean).join(', '), mode: 'search' });
                 }}
                 title="Open In Maps"
             >
@@ -591,7 +591,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <button className="vc3-icon-btn" onClick={e => {
                             e.stopPropagation();
                             e.preventDefault();
-                            openNativeMaps({ address: [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(' ') });
+                            openNativeMaps({ address: [venue.address, venue.name, venue.city, venue.state].filter(Boolean).join(' '), lat: parseFloat(venue.latitude), lng: parseFloat(venue.longitude), mode: 'directions' });
                         }} title="Directions">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polygon points="3 11 22 2 13 21 11 13 3 11" />
