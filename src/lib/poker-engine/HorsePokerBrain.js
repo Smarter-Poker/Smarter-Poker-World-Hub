@@ -696,16 +696,32 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     const holePairs = Object.entries(hRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
 
     // ── Full House ──
-    // Set in hole + board pair = full house
-    // Two hole pairs + board pair = full house
+    // Case A: Hole pair hits a board rank (making trips) AND another pair exists
+    // Case B: Board has trips AND we have any pocket pair (boat)
+    // Phase 48 FIX: Was returning full_house for ANY hole pair when board had a pair,
+    // even when the hole pair didn't connect to the board at all.
     for (const hp of holePairs) {
-        if (boardPairs.length > 0 || boardTrips.length > 0) {
-            const isTopSet = hp === boardTop;
+        // Case A: Our pair matches a board card → we have trips
+        if (bRanks.includes(hp)) {
+            // We have trips; any other pair on board completes the boat
+            const otherBoardPairs = boardPairs.filter(bp => bp !== hp);
+            if (otherBoardPairs.length > 0 || boardTrips.length > 0) {
+                const isTopSet = hp === boardTop;
+                return {
+                    strength: isTopSet ? 88 : 78,
+                    category: 'full_house',
+                    isNut: isTopSet,
+                    hasRedraw: isTopSet
+                };
+            }
+        }
+        // Case B: Board has trips and we have a pocket pair → boat
+        if (boardTrips.length > 0) {
             return {
-                strength: isTopSet ? 88 : 78,
+                strength: hp > boardTrips[0] ? 82 : 72,
                 category: 'full_house',
-                isNut: isTopSet,
-                hasRedraw: isTopSet
+                isNut: false,
+                hasRedraw: false
             };
         }
     }
@@ -17849,5 +17865,16 @@ module.exports = {
     // Exposed for testing (Phase 47g)
     getOOPDecisionMatrix,
     makePLOFallbackDecision,
+
+    // Exposed for testing (Phase 48) — PLO internals
+    evaluatePLOMadeHand,
+    classifyPLOPreflop,
+    countStraightOuts,
+    countFlushOuts,
+    getPLOSPRZone,
+    analyzePLOBoardTexture,
+    evaluatePLO8Low,
+    getPLOEquityRealization,
+    detectScareCard,
 };
 
