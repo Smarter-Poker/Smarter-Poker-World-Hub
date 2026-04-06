@@ -26,7 +26,7 @@ const FEATURE_PODS = [
   { id: 'calendar',  label: 'CALENDAR',      angle: 200, color: '#8b5cf6' },
   { id: 'daily',     label: 'DAILY',         angle: 240, color: '#22c55e' },
   { id: 'series',    label: 'SERIES',        angle: 280, color: '#f59e0b' },
-  { id: 'wallet',    label: 'REWARDS',       angle: 320, color: '#ffd700' },
+  { id: 'wallet',    label: 'REWARDS',       angle: 320, color: '#ffffff' },
 ];
 
 const POD_ORBIT_RADIUS = 5.5;

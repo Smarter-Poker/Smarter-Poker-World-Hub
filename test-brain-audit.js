@@ -994,20 +994,21 @@ test('makeFlopHeuristicDecision: facing bet fold trash', () => {
     expect(r.type).toBe('fold');
 });
 
-test('makeFlopHeuristicDecision: strong hand calls facing bet', () => {
-    // Top pair good kicker facing a bet → should call (not fold)
+test('makeFlopHeuristicDecision: strong hand calls facing small bet', () => {
+    // Top pair good kicker (strength 48) facing a small bet (betToPot=0.33) → should call
+    // Medium hand path: betToPot <= 0.40 and strength >= 35 → call
     const origRandom = Math.random;
     Math.random = () => 0.99; // High random to avoid raise branches
     try {
         const r = mfhd(flopParams({
             holeCards: ['Ah', 'Kd'],
             board: ['Kc', '7d', '3s'],
-            toCall: 10,
+            toCall: 7,    // betToPot = 7/20 = 0.35
             potSize: 20,
             heroIsAggressor: false,
             legalActions: [
                 { type: 'call' },
-                { type: 'raise', min: 20, max: 200 },
+                { type: 'raise', min: 14, max: 200 },
                 { type: 'fold' }
             ]
         }));
