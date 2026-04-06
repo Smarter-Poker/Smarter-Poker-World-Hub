@@ -8035,8 +8035,20 @@ function makeTurnRiverHeuristicDecision(params) {
 
                 const overbetFrac = 1.0 + Math.random() * overbetMax;
                 // Against nits, use smaller sizing (they fold to overbets)
-                if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
-                    const nitFrac = 0.66 + Math.random() * 0.14; // 66-80% to get called
+                // ═══ LIVE-READ NIT OVERBET SIZING (Phase 29) ═══
+                const liveNitOverbet = liveRead && liveRead.confidence >= 0.25 &&
+                    liveRead.aggFreq < 0.18 && liveRead.foldFreq > 0.50;
+                if ((oppTendency === 'weak-tight' && oppConfidence > 0.3) || liveNitOverbet) {
+                    let nitFrac = 0.66 + Math.random() * 0.14; // 66-80% to get called
+                    // ═══ LIVE-READ NIT SIZING REFINEMENT (Phase 29) ═══
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // Extreme folder → even smaller to get the call
+                        if (liveRead.foldFreq > 0.60) nitFrac = Math.max(0.55, nitFrac - 0.10);
+                        // If they have high WTSD despite being nitty, they'll call → size up
+                        if (liveRead.wtsd !== null && liveRead.wtsd > 0.28) nitFrac = Math.min(0.85, nitFrac + 0.06);
+                        // Snap-call timing = committed → size up
+                        if (currentActionTimingTell === 'snap_call') nitFrac = Math.min(0.90, nitFrac + 0.08);
+                    }
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * nitFrac)) };
                 }
                 console.log(`[HorseBrain] 💰 RIVER OVERBET: str=${handEval.strength} max=${Math.round(overbetMax * 100)}% polar=${riverRangeType} 3bet=${is3BetPot}`);
@@ -8052,6 +8064,26 @@ function makeTurnRiverHeuristicDecision(params) {
                 }
                 // Against calling stations, size up
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) sizeFrac = Math.min(0.85, sizeFrac + 0.10);
+
+                // ═══ LIVE-READ MONSTER SIZING (Phase 29) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Calling station → size UP for max value extraction
+                    if (liveRead.callFreq > 0.55) sizeFrac = Math.min(0.88, sizeFrac + 0.08);
+                    if (liveRead.callFreq > 0.65) sizeFrac = Math.min(0.92, sizeFrac + 0.05);
+                    // Folder → size DOWN to get the call
+                    if (liveRead.foldFreq > 0.55) sizeFrac = Math.max(0.50, sizeFrac - 0.10);
+                    // High WTSD → they go to showdown, size up
+                    if (liveRead.wtsd !== null && liveRead.wtsd > 0.30) sizeFrac = Math.min(0.88, sizeFrac + 0.06);
+                    // Aggressive opp → check to induce raise, then re-raise
+                    if (liveRead.aggFreq > 0.50 && !isIP && handEval.strength >= 80) {
+                        // Consider trapping instead of value betting
+                        if (Math.random() < 0.35) return canCheck ? { type: 'check' } : { type: 'fold' };
+                    }
+                    // Snap-call timing = committed → bigger sizing
+                    if (currentActionTimingTell === 'snap_call') sizeFrac = Math.min(0.90, sizeFrac + 0.06);
+                    // Tank-call timing = marginal → standard sizing is fine
+                    if (currentActionTimingTell === 'tank_call') sizeFrac = Math.max(0.55, sizeFrac - 0.04);
+                }
 
                 // ═══ NARRATIVE-DRIVEN MONSTER SIZING ═══
                 // Consistent aggression story → can size up (opponent expects continuation)
@@ -8495,12 +8527,51 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (narrative.heroCheckedTurn || narrative.checkBehindCount >= 1) {
                     // Opponent showed weakness by checking — lead for thin value/denial
                     let leadFreq = 0.15;
+                    let leadFrac = 0.30 + Math.random() * 0.10; // 30-40% pot
                     if (oppTendency === 'weak-tight' && oppConfidence > 0.3) leadFreq = 0.25;
                     if (turnToRiverDelta > 5) leadFreq += 0.06; // River helped us
                     if (turnToRiverDelta < -5) leadFreq -= 0.06; // River hurt us
-                    leadFreq = Math.max(0, Math.min(0.35, leadFreq));
+
+                    // ═══ LIVE-READ RIVER OOP LEAD (Phase 29) ═══
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // Passive opp checked back = very weak range → lead more
+                        if (liveRead.aggFreq < 0.25) leadFreq += 0.12;
+                        // Aggressive opp checked back = EXTREMELY weak → lead even more
+                        if (liveRead.aggFreq > 0.40) leadFreq += 0.15;
+                        // High fold freq → lead for denial, smaller sizing
+                        if (liveRead.foldFreq > 0.50) {
+                            leadFreq += 0.08;
+                            leadFrac = Math.max(0.25, leadFrac - 0.05);
+                        }
+                        // Calling station → only lead for value (str >= 42)
+                        if (liveRead.callFreq > 0.60 && handEval.strength < 42) {
+                            leadFreq = Math.max(0.05, leadFreq - 0.12);
+                        }
+                        if (liveRead.callFreq > 0.55 && handEval.strength >= 42) {
+                            leadFreq += 0.08;
+                            leadFrac = Math.min(0.45, leadFrac + 0.05); // Size up for value
+                        }
+                        // Low WTSD = gives up easily → lead to take the pot
+                        if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) leadFreq += 0.08;
+                        // High WTSD = sticky → only lead strong medium+
+                        if (liveRead.wtsd !== null && liveRead.wtsd > 0.32 && handEval.strength < 42) {
+                            leadFreq = Math.max(0.05, leadFreq - 0.08);
+                        }
+                        // One-and-done detection: high cBet but low secondBarrel → they gave up, take pot
+                        if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.60 &&
+                            liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct < 0.30) {
+                            leadFreq += 0.10; // They checked turn = gave up, river lead prints money
+                        }
+                        // Check-raise threat: if they might CR us, be careful
+                        if (liveRead.checkRaisePct !== null && liveRead.checkRaisePct > 0.12) {
+                            leadFreq = Math.max(0.08, leadFreq - 0.06);
+                            leadFrac = Math.max(0.25, leadFrac - 0.04); // Smaller to lose less if raised
+                        }
+                    }
+
+                    leadFreq = Math.max(0, Math.min(0.50, leadFreq));
                     if (Math.random() < leadFreq) {
-                        const leadFrac = 0.30 + Math.random() * 0.10; // 30-40% pot
+                        console.log(`[HorseBrain] 🎯 RIVER OOP LEAD: str=${handEval.strength} freq=${Math.round(leadFreq * 100)}% size=${Math.round(leadFrac * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                         return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * leadFrac)) };
                     }
                 }
@@ -9826,6 +9897,21 @@ function makeFlopHeuristicDecision(params) {
                 }
                 if (oppFoldFreq > 0.55 && oppConfidence > 0.3) cbetFreq = 0.90; // Print money
 
+                // ═══ LIVE-READ HIGH DRY C-BET (Phase 29) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Extreme folder on dry boards = print money with any two
+                    if (flopLiveRead.foldFreq > 0.60) cbetFreq = Math.min(0.95, cbetFreq + 0.10);
+                    // Station on dry board = only value c-bet, size up
+                    if (flopLiveRead.callFreq > 0.60) {
+                        if (handEval.strength < 30 && drawEq.outs < 6) cbetFreq = Math.max(0.15, cbetFreq - 0.20);
+                        else cbetFrac = Math.min(0.55, cbetFrac + 0.10);
+                    }
+                    // Check-raise threat on dry board = reduce with air
+                    if (flopLiveRead.checkRaisePct !== null && flopLiveRead.checkRaisePct > 0.12 && handEval.strength < 35) {
+                        cbetFreq = Math.max(0.25, cbetFreq - 0.15);
+                    }
+                }
+
                 cbetFreq = Math.max(0.10, Math.min(0.95, cbetFreq));
                 if (Math.random() < cbetFreq) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
@@ -9852,6 +9938,25 @@ function makeFlopHeuristicDecision(params) {
 
                 if (multiway) cbetFreq = Math.max(0.15, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
+
+                // ═══ LIVE-READ LOW CONNECTED C-BET (Phase 29) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Folder → can c-bet wider on connected boards (they give up sets/two-pair)
+                    if (flopLiveRead.foldFreq > 0.55) cbetFreq += 0.08;
+                    // Station → only value bet, never bluff connected boards vs callers
+                    if (flopLiveRead.callFreq > 0.55 && handEval.strength < 45 && drawEq.outs < 9) {
+                        cbetFreq = Math.max(0.05, cbetFreq - 0.15);
+                    }
+                    // Aggressive opp on connected board = check-raise risk → tighten bluffs
+                    if (flopLiveRead.aggFreq > 0.45 && handEval.strength < 40) {
+                        cbetFreq = Math.max(0.10, cbetFreq - 0.10);
+                    }
+                    // High WTSD → they're sticky, size up for value, down for bluffs
+                    if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd > 0.30 && handEval.strength >= 50) {
+                        cbetFrac = Math.min(0.65, cbetFrac + 0.06);
+                    }
+                }
+
                 cbetFreq = Math.max(0, Math.min(0.80, cbetFreq));
 
                 if (Math.random() < cbetFreq) {
@@ -9865,10 +9970,36 @@ function makeFlopHeuristicDecision(params) {
                 const heroHasFlushDraw = holeCards.some(c => c[1] === boardSuits[0]);
                 const heroHasNutFD = heroHasFlushDraw && holeCards.some(c => c[1] === boardSuits[0] && RANKS.indexOf(c[0]) >= 12);
 
-                if (handEval.strength >= 75 || (heroHasNutFD && handEval.strength >= 30)) {
-                    // Bet monsters and nut flush draws for value/semi-bluff
-                    const sizeFrac = handEval.strength >= 75 ? 0.50 : 0.40;
-                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
+                let monoSizeFrac = handEval.strength >= 75 ? 0.50 : 0.40;
+                let monoBetGate = handEval.strength >= 75 || (heroHasNutFD && handEval.strength >= 30);
+
+                // ═══ LIVE-READ MONOTONE C-BET (Phase 29) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Extreme folder on monotone = can c-bet wider (they don't have flush)
+                    if (flopLiveRead.foldFreq > 0.55 && handEval.strength >= 40) {
+                        monoBetGate = true; // Open the gate for medium+ hands vs folders
+                        monoSizeFrac = 0.33; // Small probe bet
+                    }
+                    // Station on monotone = DON'T bluff, size up value bets
+                    if (flopLiveRead.callFreq > 0.55) {
+                        if (handEval.strength >= 75) monoSizeFrac = Math.min(0.60, monoSizeFrac + 0.08);
+                        if (!monoBetGate) monoBetGate = false; // Keep gate closed for non-monsters vs stations
+                    }
+                    // Aggressive opponent on monotone = they'll raise → only bet the nuts
+                    if (flopLiveRead.aggFreq > 0.45 && handEval.strength < 75 && !heroHasNutFD) {
+                        monoBetGate = false;
+                    }
+                    // If opp doesn't have flush themselves (low WTSD + high fold) → exploit with stab
+                    if (flopLiveRead.foldFreq > 0.50 && flopLiveRead.wtsd !== null && flopLiveRead.wtsd < 0.25) {
+                        if (handEval.strength >= 35 && Math.random() < 0.30) {
+                            monoBetGate = true;
+                            monoSizeFrac = 0.30; // Small probe
+                        }
+                    }
+                }
+
+                if (monoBetGate) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * monoSizeFrac)) };
                 }
                 // Everything else: check (reverse implied odds, opponent has flush too often)
                 return { type: 'check' };
@@ -9886,6 +10017,25 @@ function makeFlopHeuristicDecision(params) {
                 if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
                 if (multiway) cbetFreq = Math.max(0.25, 0.45 + mwAdj.cbetFreqMod);
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq = 0.85;
+
+                // ═══ LIVE-READ PAIRED BOARD C-BET (Phase 29) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Folder on paired board = we always "have it", c-bet near 100%
+                    if (flopLiveRead.foldFreq > 0.55) cbetFreq = Math.min(0.92, cbetFreq + 0.08);
+                    // Station on paired board = they call with any pair, tighten range
+                    if (flopLiveRead.callFreq > 0.55 && handEval.strength < 40) {
+                        cbetFreq = Math.max(0.20, cbetFreq - 0.15);
+                    }
+                    // Station with trips+ = size up for value
+                    if (flopLiveRead.callFreq > 0.55 && handEval.strength >= 65) {
+                        cbetFrac = Math.min(0.50, cbetFrac + 0.10);
+                    }
+                    // Check-raise risk on paired boards (tricky opponents)
+                    if (flopLiveRead.checkRaisePct !== null && flopLiveRead.checkRaisePct > 0.15 && handEval.strength < 50) {
+                        cbetFreq = Math.max(0.20, cbetFreq - 0.12);
+                    }
+                }
+
                 cbetFreq = Math.max(0.10, Math.min(0.90, cbetFreq));
 
                 if (Math.random() < cbetFreq) {
@@ -9915,6 +10065,31 @@ function makeFlopHeuristicDecision(params) {
                     else cbetFrac = Math.min(0.75, cbetFrac + 0.08);
                 }
 
+                // ═══ LIVE-READ WET BOARD C-BET (Phase 29) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Station on wet board = NEVER bluff, only value + semi-bluff
+                    if (flopLiveRead.callFreq > 0.55 && handEval.strength < 40 && drawEq.outs < 8) {
+                        cbetFreq = Math.max(0.05, cbetFreq - 0.20);
+                    }
+                    // Station + strong hand = size up to charge draws
+                    if (flopLiveRead.callFreq > 0.55 && handEval.strength >= 55) {
+                        cbetFrac = Math.min(0.75, cbetFrac + 0.06);
+                    }
+                    // Folder on wet board = bigger size (they fold even good draws)
+                    if (flopLiveRead.foldFreq > 0.50) {
+                        cbetFreq += 0.08;
+                        cbetFrac = Math.min(0.72, cbetFrac + 0.04); // Slightly bigger to maximize fold eq
+                    }
+                    // Aggressive opp on wet board = check-raise city → be careful with mediocre hands
+                    if (flopLiveRead.aggFreq > 0.45 && handEval.strength >= 35 && handEval.strength < 55) {
+                        cbetFreq = Math.max(0.15, cbetFreq - 0.10);
+                    }
+                    // High WTSD on wet board = they're chasing draws → size up for protection
+                    if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd > 0.30 && handEval.strength >= 50) {
+                        cbetFrac = Math.min(0.75, cbetFrac + 0.06);
+                    }
+                }
+
                 if (multiway) { cbetFreq = Math.max(0.10, cbetFreq * (0.55 + mwAdj.cbetFreqMod)); cbetFrac = Math.min(0.75, cbetFrac + 0.05); }
                 cbetFreq = Math.max(0.05, Math.min(0.85, cbetFreq));
 
@@ -9941,6 +10116,29 @@ function makeFlopHeuristicDecision(params) {
 
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
+
+                // ═══ LIVE-READ DEFAULT C-BET (Phase 29) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Folder → c-bet wider, slightly smaller sizing
+                    if (flopLiveRead.foldFreq > 0.55) {
+                        cbetFreq += 0.08;
+                        cbetFrac = Math.max(0.33, cbetFrac - 0.06);
+                    }
+                    // Station → tighten bluffs, size up value
+                    if (flopLiveRead.callFreq > 0.55) {
+                        if (handEval.strength < 35 && drawEq.outs < 8) cbetFreq = Math.max(0.10, cbetFreq - 0.15);
+                        if (handEval.strength >= 50) cbetFrac = Math.min(0.65, cbetFrac + 0.06);
+                    }
+                    // Aggro opp → check-raise threat with weak hands
+                    if (flopLiveRead.aggFreq > 0.45 && handEval.strength < 35 && drawEq.outs < 6) {
+                        cbetFreq = Math.max(0.08, cbetFreq - 0.10);
+                    }
+                    // Check-raise threat → reduce bluff c-bets, keep value
+                    if (flopLiveRead.checkRaisePct !== null && flopLiveRead.checkRaisePct > 0.12 && handEval.strength < 45) {
+                        cbetFreq = Math.max(0.10, cbetFreq - 0.10);
+                    }
+                }
+
                 if (multiway) cbetFreq = Math.max(0.10, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 cbetFreq = Math.max(0.05, Math.min(0.80, cbetFreq));
 
