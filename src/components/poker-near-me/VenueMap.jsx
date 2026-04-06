@@ -66,6 +66,22 @@ function getTrustLevel(score) {
 
 // ─── Custom CSS for Leaflet elements ───
 const LEAFLET_CUSTOM_CSS = `
+/* ═══ LEAFLET CONTAINER — Enable map dragging on touch + mouse ═══ */
+.leaflet-container {
+  touch-action: none !important;
+  -ms-touch-action: none !important;
+  cursor: grab !important;
+}
+.leaflet-container:active {
+  cursor: grabbing !important;
+}
+.leaflet-container.leaflet-touch-drag {
+  touch-action: none !important;
+}
+.leaflet-map-pane,
+.leaflet-tile-pane {
+  touch-action: none !important;
+}
 /* ═══ PREMIUM MAP CONTROLS ═══ */
 .leaflet-control-zoom {
   border: none !important;
@@ -732,6 +748,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       maxBounds: usBounds.pad(0.05),
       maxBoundsViscosity: 1.0,
       minZoom: 4,
+      dragging: true,
+      tap: true,
+      touchZoom: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      boxZoom: true,
     });
 
     // Custom attribution — only "Powered By Smarter.Poker"

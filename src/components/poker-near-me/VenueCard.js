@@ -384,52 +384,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
             </div>
 
-            {/* === BEST TIME TO GO BADGE === */}
-            {predictionData && predictionData.has_data && predictionData.data_points >= 30 && (
-                <div className="vc3-bttg-badge" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl); }}>
-                    <div className="vc3-bttg-row">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2.2" style={{ flexShrink: 0 }}>
-                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        {predictionData.best_time && (
-                            <span className="vc3-bttg-peak">Best: {predictionData.best_time}</span>
-                        )}
-                        {predictionData.quiet_hours && (
-                            <span className="vc3-bttg-quiet">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                    <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-                                </svg>
-                                Quiet: {predictionData.quiet_hours}
-                            </span>
-                        )}
-                    </div>
-                    {predictionData.game_eta && predictionData.game_eta.length > 0 && (
-                        <div className="vc3-bttg-eta-row">
-                            {predictionData.game_eta.slice(0, 1).map((eta, idx) => (
-                                <span key={idx} className="vc3-bttg-eta-chip">
-                                    <span className="vc3-bttg-eta-game">{eta.game}</span>
-                                    {eta.label}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                    {predictionData.day_scores && predictionData.day_scores.some(s => s > 0) && (
-                        <div className="vc3-bttg-mini-bars">
-                            {predictionData.day_scores.map((score, idx) => (
-                                <div key={idx} className="vc3-bttg-mini-col">
-                                    <div className="vc3-bttg-mini-track">
-                                        <div className="vc3-bttg-mini-fill" style={{
-                                            height: `${Math.max(score, 4)}%`,
-                                            background: score >= 70 ? '#4ade80' : score >= 40 ? '#00D4FF' : 'rgba(255,255,255,0.2)',
-                                        }} />
-                                    </div>
-                                    <span className="vc3-bttg-mini-day">{['S','M','T','W','T','F','S'][idx]}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
+            {/* Best Time To Go data lives on the venue detail page only */}
 
             {/* === CROWD METER === */}
             {(hasLiveData || checkinCount > 0) && (
@@ -767,56 +722,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-pill-review:hover { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
                 .vc3-pill-details { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
                 .vc3-pill-details:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
-                /* === Best Time to Go Badge === */
-                .vc3-bttg-badge {
-                    margin: 6px 0 8px; padding: 8px 10px; border-radius: 10px;
-                    background: linear-gradient(135deg, rgba(0,212,255,0.06), rgba(0,212,255,0.02));
-                    border: 1px solid rgba(0,212,255,0.15);
-                    cursor: pointer; transition: all 0.2s;
-                }
-                .vc3-bttg-badge:hover { border-color: rgba(0,212,255,0.3); background: rgba(0,212,255,0.08); }
-                .vc3-bttg-row {
-                    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-                }
-                .vc3-bttg-peak {
-                    font-size: 12px; font-weight: 700; color: #4ade80;
-                    display: inline-flex; align-items: center; gap: 3px;
-                }
-                .vc3-bttg-quiet {
-                    font-size: 11px; font-weight: 600; color: #60a5fa;
-                    display: inline-flex; align-items: center; gap: 3px;
-                    padding-left: 4px; border-left: 1px solid rgba(255,255,255,0.1);
-                }
-                .vc3-bttg-eta-row {
-                    margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;
-                }
-                .vc3-bttg-eta-chip {
-                    font-size: 11px; color: rgba(255,255,255,0.6); display: inline-flex;
-                    align-items: center; gap: 4px;
-                }
-                .vc3-bttg-eta-game {
-                    padding: 1px 6px; border-radius: 4px; font-weight: 700; font-size: 10px;
-                    background: rgba(139,92,246,0.15); color: #a78bfa;
-                    border: 1px solid rgba(139,92,246,0.25);
-                }
-                .vc3-bttg-mini-bars {
-                    display: flex; gap: 3px; align-items: flex-end; height: 24px;
-                    margin-top: 6px; padding-top: 4px;
-                    border-top: 1px solid rgba(255,255,255,0.05);
-                }
-                .vc3-bttg-mini-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
-                .vc3-bttg-mini-track {
-                    width: 100%; height: 18px; border-radius: 2px;
-                    background: rgba(255,255,255,0.04); display: flex;
-                    align-items: flex-end; overflow: hidden;
-                }
-                .vc3-bttg-mini-fill {
-                    width: 100%; border-radius: 2px 2px 0 0;
-                    transition: height 0.5s ease-out; min-height: 1px;
-                }
-                .vc3-bttg-mini-day {
-                    font-size: 8px; color: rgba(255,255,255,0.3); font-weight: 600; line-height: 1;
-                }
+
+
 
                 @media (max-width: 480px) {
                     .vc3-actions { flex-direction: column; gap: 8px; }

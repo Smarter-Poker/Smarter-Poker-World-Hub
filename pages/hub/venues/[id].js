@@ -1202,9 +1202,41 @@ export default function VenueDetailPage() {
       </SEOHead>
 
       <UniversalHeader 
-        pageDepth={2} 
-        onBackClick={() => router.push('/hub/poker-near-me')}
+        pageDepth={1} 
       />
+
+      {/* In-page back button — navigates to Poker Near Me */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '8px 16px',
+        background: 'rgba(0,0,0,0.4)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+      }}>
+        <button
+          onClick={() => router.push('/hub/poker-near-me')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 8,
+            padding: '6px 14px',
+            color: 'rgba(255,255,255,0.8)',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            transition: 'all 0.15s',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back To Poker Near Me
+        </button>
+      </div>
 
       <div className="venue-page">
         {loading && (

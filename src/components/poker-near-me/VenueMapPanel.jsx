@@ -34,6 +34,23 @@ const VENUE_TYPE_LABELS = {
 
 // ─── Custom CSS for logo pins ───
 const LOGO_PIN_CSS = `
+/* ═══ LEAFLET CONTAINER — Enable map dragging on touch + mouse ═══ */
+.leaflet-container {
+  touch-action: none !important;
+  -ms-touch-action: none !important;
+  cursor: grab !important;
+}
+.leaflet-container:active {
+  cursor: grabbing !important;
+}
+.leaflet-container.leaflet-touch-drag {
+  touch-action: none !important;
+}
+/* Ensure map panes don't block interaction */
+.leaflet-map-pane,
+.leaflet-tile-pane {
+  touch-action: none !important;
+}
 /* ═══ VENUE LABEL (Google Maps-style) — VenueMapPanel ═══ */
 .vmp-pin-label {
   position: absolute;
@@ -314,6 +331,12 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         zoom: userLocation ? 10 : 5,
         zoomControl: true,
         attributionControl: false,
+        dragging: true,
+        tap: true,
+        touchZoom: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
       });
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
