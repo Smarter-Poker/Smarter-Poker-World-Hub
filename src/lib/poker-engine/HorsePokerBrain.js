@@ -5751,7 +5751,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
 function evaluatePostflopHand(holeCards, board) {
     if (!holeCards || holeCards.length < 2 || !board || board.length < 3) {
-        return { strength: 20, category: 'unknown', hasFlushDraw: false, hasOESD: false, hasGutshot: false };
+        return { strength: 20, category: 'unknown', hasFlushDraw: false, hasOESD: false, hasGutshot: false, hasBackdoorFlush: false };
     }
 
     const allCards = [...holeCards, ...board];
@@ -6019,7 +6019,8 @@ function evaluatePostflopHand(holeCards, board) {
         if (suitCount === 4) {
             hasFlushDraw = true;
             // ═══ NUT FLUSH DRAW BONUS ═══
-            const heroFlushRank = heroRanks[heroSuits.indexOf(suit)];
+            // ═══ Phase 38A FIX: Use MAX hero rank in flush suit (indexOf got the LOWER card for suited hands) ═══
+            const heroFlushRank = Math.max(...heroRanks.filter((r, idx) => heroSuits[idx] === suit));
             if (heroFlushRank >= 12) {
                 // Nut flush draw — worth more than non-nut
                 if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 36);
@@ -6030,27 +6031,58 @@ function evaluatePostflopHand(holeCards, board) {
         // ═══ BACKDOOR FLUSH DRAW ═══ (3 to a flush on flop — adds ~3-4% equity)
         if (suitCount === 3 && board.length === 3) {
             hasBackdoorFlush = true;
-            strength = Math.max(strength, strength + 2); // Small bonus
+            strength += 2; // Small bonus
         }
     }
 
-    // Straight draws
+    // ═══ Phase 38A FIX: Straight draw detection was SWAPPED — spread===3 was gutshot (should be OESD),
+    //     spread===4 was OESD (should be gutshot). Also added wheel draw detection. ═══
     const uniqueSorted = [...new Set(ranks)].sort((a, b) => a - b);
     for (let i = 0; i <= uniqueSorted.length - 4; i++) {
         const window = uniqueSorted.slice(i, i + 4);
-        if (window[3] - window[0] === 3 && heroRanks.some(r => window.includes(r))) {
-            hasGutshot = true;
-            if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 25);
-        }
-        if (window[3] - window[0] === 4 && heroRanks.some(r => window.includes(r))) {
-            // Check if it's an open-ender (both ends open)
+        const spread = window[3] - window[0];
+
+        if (spread === 3 && heroRanks.some(r => window.includes(r))) {
+            // 4 CONSECUTIVE ranks (e.g., 5-6-7-8) — need 1 card on either end to complete straight
             const lowEnd = window[0] - 1;
             const highEnd = window[3] + 1;
             if (lowEnd >= 0 && highEnd <= 12) {
-                hasOESD = true;
+                hasOESD = true; // Both ends open = OESD (8 outs)
                 if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 30);
             } else {
-                hasGutshot = true;
+                hasGutshot = true; // At rank boundary (A-high or 2-low) = only 1 end open
+                if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 25);
+            }
+        }
+        if (spread === 4 && heroRanks.some(r => window.includes(r))) {
+            // 4 ranks spanning 5 with 1 internal gap (e.g., 5-6-8-9) — gutshot (4 outs)
+            hasGutshot = true;
+            if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 25);
+        }
+    }
+
+    // ═══ Phase 38A: WHEEL STRAIGHT DRAW detection (A-low wraps missed by numeric sort) ═══
+    if (!hasOESD && !hasGutshot) {
+        const hasAce = ranks.includes(12);
+        if (hasAce) {
+            // Check for A-2-3-4 draw (need 5 to complete wheel) — gutshot
+            const wheelRanks = [0, 1, 2]; // 2, 3, 4
+            const wheelCount = wheelRanks.filter(r => ranks.includes(r)).length;
+            const heroInWheel = heroRanks.includes(12) || heroRanks.some(r => wheelRanks.includes(r));
+            if (wheelCount >= 3 && heroInWheel) {
+                // A-2-3-4 present — need 5 (rank 3) = gutshot
+                if (!ranks.includes(3)) {
+                    hasGutshot = true;
+                    if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 25);
+                }
+            } else if (wheelCount === 2 && heroInWheel && ranks.includes(3)) {
+                // A-x-x-4-5 pattern — check if we have 3 of A,2,3,4,5
+                const fullWheelRanks = [12, 0, 1, 2, 3]; // A,2,3,4,5
+                const fullWheelCount = fullWheelRanks.filter(r => ranks.includes(r)).length;
+                if (fullWheelCount >= 4) {
+                    hasGutshot = true;
+                    if (category === 'high_card' || category === 'no_pair') strength = Math.max(strength, 25);
+                }
             }
         }
     }
@@ -6086,10 +6118,10 @@ function evaluatePostflopHand(holeCards, board) {
 
     // ═══ PAIR + DRAW BONUS ═══ (new — pair + flush draw is stronger than either alone)
     if (hasFlushDraw && (category === 'top_pair' || category === 'second_pair' || category === 'overpair')) {
-        strength = Math.max(strength, strength + 5); // Pair + flush draw
+        strength += 5; // Pair + flush draw
     }
     if ((hasOESD || hasGutshot) && (category === 'top_pair' || category === 'second_pair')) {
-        strength = Math.max(strength, strength + 3); // Pair + straight draw
+        strength += 3; // Pair + straight draw
     }
 
     return { strength: Math.min(100, strength), category, hasFlushDraw, hasOESD, hasGutshot, hasBackdoorFlush };

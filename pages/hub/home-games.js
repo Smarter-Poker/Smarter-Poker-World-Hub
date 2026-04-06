@@ -58,8 +58,6 @@ export default function HomeGamesPage() {
     const userId = user?.id;
 
     // Data states
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
     const [venues, setVenues] = useState([]);
     const [allHomeGames, setAllHomeGames] = useState([]);
     const [loading, setLoading] = useState(true);
