@@ -7232,8 +7232,18 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (is3BetPot) bluffFreq *= 0.45; // Nearly halve bluffs
                 if (is4BetPot) bluffFreq = 0; // Never bluff on turn in 4-bet pots
 
-                // GTO cap: turn bluffs should not exceed ~38% even with max blockers + favorable reads
-                bluffFreq = Math.max(0, Math.min(0.38, bluffFreq));
+                // ═══ LIVE-READ TURN BLUFF FREQUENCY (Phase 21) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    if (liveRead.foldFreq > 0.55) bluffFreq += 0.06;
+                    if (liveRead.foldFreq < 0.30) bluffFreq -= 0.08;
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) bluffFreq += 0.06;
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) bluffFreq += 0.05;
+                    if (liveRead.wtsd !== null && liveRead.wtsd > 0.35) bluffFreq -= 0.06;
+                    if (liveRead.callFreq > 0.60) bluffFreq = Math.min(bluffFreq, 0.05);
+                }
+
+                // GTO cap: turn bluffs should not exceed ~40% even with max blockers + favorable reads
+                bluffFreq = Math.max(0, Math.min(0.40, bluffFreq));
 
                 if (Math.random() < bluffFreq) {
                     // ═══ BLOCKER-AWARE TURN BLUFF SIZING ═══
