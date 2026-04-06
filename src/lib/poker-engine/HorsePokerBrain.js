@@ -10235,8 +10235,20 @@ function makeFlopHeuristicDecision(params) {
     if (handEval.strength >= 80 && canRaise) {
         // Slow-play on dry boards (opponent will keep bluffing)
         // ═══ 3-BET POT: Never slow-play in 3-bet pots (SPR is low, need to build pot NOW) ═══
-        if (boardWet === 'dry' && !multiway && oppTendency === 'bluffy' && oppConfidence > 0.3 && !is3BetPot) {
-            if (Math.random() < 0.40) {
+        let flopTrapFreq = 0.40;
+        // ═══ LIVE-READ FLOP MONSTER TRAP (Phase 26) ═══
+        if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+            // Aggressive: trap more (they barrel wide)
+            if (flopLiveRead.aggFreq > 0.45) flopTrapFreq += 0.12;
+            // High c-bet + second barrel: they'll keep firing
+            if (flopLiveRead.cBetPct !== null && flopLiveRead.cBetPct > 0.65 &&
+                flopLiveRead.secondBarrelPct !== null && flopLiveRead.secondBarrelPct > 0.45) flopTrapFreq += 0.10;
+            // Passive: don't trap (they check behind)
+            if (flopLiveRead.aggFreq < 0.20) flopTrapFreq -= 0.20;
+        }
+        flopTrapFreq = Math.max(0.10, Math.min(0.60, flopTrapFreq));
+        if (boardWet === 'dry' && !multiway && (oppTendency === 'bluffy' || (flopLiveRead?.aggFreq > 0.40)) && !is3BetPot) {
+            if (Math.random() < flopTrapFreq) {
                 return canCall ? { type: 'call' } : { type: 'fold' }; // Trap
             }
         }
@@ -10247,6 +10259,11 @@ function makeFlopHeuristicDecision(params) {
         if (is4BetPot && spr <= 3) return { type: 'all_in' }; // 4-bet pot → just jam
         // Against callers, raise bigger
         if (oppCallFreq > 0.55 && oppConfidence > 0.3) raiseMult = Math.min(3.5, raiseMult * 1.10);
+        // ═══ LIVE-READ FLOP MONSTER SIZING (Phase 26) ═══
+        if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+            if (flopLiveRead.callFreq > 0.55) raiseMult = Math.min(3.8, raiseMult * 1.12);
+            if (flopLiveRead.foldFreq > 0.50) raiseMult = Math.max(2.2, raiseMult * 0.88);
+        }
         // Geometric: plan for 3 streets of value
         const geoFlop = getGeometricSizing(potSize + toCall * 2, heroStack - toCall, 2, true);
         if (geoFlop.isJammable && spr >= 3) {
@@ -10273,13 +10290,29 @@ function makeFlopHeuristicDecision(params) {
             let protectRaiseFreq = 0.30;
             if (drawEq.outs >= 4) protectRaiseFreq += 0.10; // We're vulnerable
             if (oppTendency === 'bluffy' && oppConfidence > 0.3) protectRaiseFreq += 0.10;
+            // ═══ LIVE-READ FLOP PROTECTION RAISE (Phase 26) ═══
+            if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                // Stations: raise bigger for protection (they call with draws)
+                if (flopLiveRead.callFreq > 0.55) protectRaiseFreq += 0.08;
+                // Aggressive: raise to deny free cards they'd take
+                if (flopLiveRead.aggFreq > 0.40) protectRaiseFreq += 0.06;
+                // Passive nit: don't raise, they might fold (lost value)
+                if (flopLiveRead.aggFreq < 0.20 && handEval.strength >= 70) protectRaiseFreq -= 0.08;
+            }
             if (Math.random() < protectRaiseFreq) {
-                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 2.8)) };
+                let protRaiseMult = 2.8;
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20 && flopLiveRead.callFreq > 0.60) protRaiseMult = 3.2;
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * protRaiseMult)) };
             }
         }
         // Against known nits betting big on the flop → respect
         if (oppTendency === 'weak-tight' && oppConfidence > 0.4 && betToPot >= 0.75 && handEval.strength < 70) {
-            return canCheck ? { type: 'check' } : { type: 'fold' };
+            // ═══ LIVE-READ FLOP NIT LAYDOWN OVERRIDE (Phase 26) ═══
+            if (flopLiveRead && flopLiveRead.confidence >= 0.25 && flopLiveRead.aggFreq > 0.35) {
+                // Live data says not actually a nit — don't fold
+            } else {
+                return canCheck ? { type: 'check' } : { type: 'fold' };
+            }
         }
         return canCall ? { type: 'call' } : { type: 'fold' };
     }
@@ -10497,6 +10530,15 @@ function makeFlopHeuristicDecision(params) {
         if (drawEq.outs >= 9 && (handEval.hasFlushDraw || handEval.hasOESD)) {
             let impliedThreshold = 0.50;
             if (oppCallFreq > 0.55 && oppConfidence > 0.3) impliedThreshold = 0.60; // Better implied odds vs callers
+            // ═══ LIVE-READ FLOP IMPLIED ODDS (Phase 26) ═══
+            if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                // Stations: better implied odds (they pay off when we hit)
+                if (flopLiveRead.callFreq > 0.55) impliedThreshold += 0.08;
+                // High WTSD: they go to showdown → great implied odds
+                if (flopLiveRead.wtsd !== null && flopLiveRead.wtsd > 0.30) impliedThreshold += 0.06;
+                // Folders: worse implied (they fold when board completes)
+                if (flopLiveRead.foldFreq > 0.55) impliedThreshold -= 0.08;
+            }
             // 3-bet pot: need better odds (stacks are shallower, implied odds worse)
             if (is3BetPot) impliedThreshold -= 0.08; // Tighter threshold
             if (is4BetPot) impliedThreshold -= 0.15; // Much tighter
