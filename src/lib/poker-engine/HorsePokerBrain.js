@@ -5346,11 +5346,16 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             potSize, toCall, stackBB
         });
 
-        if (oopDecision.action === 'check_raise' && canRaise && Math.random() < oopDecision.frequency) {
+        // ═══ OOP CHECK-RAISE BOOST: posFreqMod integration (main pipeline) ═══
+        const mainCRFreq = oopDecision.action === 'check_raise'
+            ? Math.min(0.80, oopDecision.frequency + (aggressionBias > 0 ? 0.04 : 0))
+            : oopDecision.frequency;
+
+        if (oopDecision.action === 'check_raise' && canRaise && Math.random() < mainCRFreq) {
             // Check-raise: raise the bet
             const crSize = Math.round(toCall * (oopDecision.sizeFraction || 3.0));
             const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(crSize, raiseAction?.maxAmount || crSize));
-            console.log(`[HorseBrain] 🎲 OOP MATRIX: check-raise (${oopDecision.reason})`);
+            console.log(`[HorseBrain] 🎲 OOP MATRIX: check-raise (${oopDecision.reason}) freq=${Math.round(mainCRFreq * 100)}%`);
             return { type: raiseAction.type, amount };
         }
         if (oopDecision.action === 'check_call' && canCall) {
@@ -6115,6 +6120,33 @@ function makeTurnRiverHeuristicDecision(params) {
         sprStrategy.sizeMult *= 0.85;          // Bet smaller (pot is small, don't build it unnecessarily)
     }
 
+    // ═══ 3-BET POT DETECTION (TURN/RIVER) ═══
+    // 3-bet pots have SPR ~3-6 on the flop → by the turn SPR is often 1-4.
+    // Ranges are narrow: both players have strong holdings from preflop.
+    // Key differences from single-raised pots:
+    //   - Continuation barrel (turn) should be smaller in sizing (~50-60% vs 66-75%)
+    //   - Bluffs should be very selective (opponent has good hands)
+    //   - Value bets can be thinner (opponent is more likely to have a pair+)
+    //   - Check-raises are MORE polarized (opponent's c-bet range is stronger)
+    const expectedSRPSize = numPlayers * 2 * bb;
+    const is3BetPot = heroIsAggressor && !isLimpedPot && potSize > expectedSRPSize * 3.5 && spr < 8;
+    const is4BetPot = heroIsAggressor && !isLimpedPot && potSize > expectedSRPSize * 8.0 && spr < 4;
+
+    if (is4BetPot) {
+        // 4-bet pots on turn/river: commit with any decent hand, no bluffs
+        sprStrategy.valueThreshold = Math.max(30, sprStrategy.valueThreshold - 15);
+        sprStrategy.bluffMult *= 0.15;         // Almost no bluffs
+        sprStrategy.sizeMult = Math.max(1.0, sprStrategy.sizeMult); // Don't undersize when committed
+        sprStrategy.thinValueMult *= 1.20;     // Thin value is profitable (their range is capped)
+    } else if (is3BetPot) {
+        // 3-bet pots: moderate adjustments
+        sprStrategy.valueThreshold = Math.max(35, sprStrategy.valueThreshold - 8);
+        sprStrategy.bluffMult *= 0.55;         // Cut bluffs nearly in half
+        sprStrategy.sizeMult *= 0.90;          // Slightly smaller sizing
+        sprStrategy.thinValueMult *= 1.10;     // Thin value is slightly more profitable
+        sprStrategy.callWidthBonus += 0.05;    // Call wider (opponent bluffs less but we have a strong range too)
+    }
+
     // ═══ EDGE CASE: VERY SHORT STACK (< 15BB) ═══
     // Push/fold mode: no postflop fancy play, just shove strong hands and fold weak ones.
     if (stackBB < 15 && !facingBet && canRaise && street !== 'river') {
@@ -6658,9 +6690,15 @@ function makeTurnRiverHeuristicDecision(params) {
                 potSize, toCall, stackBB
             });
 
-            if (turnOopDecision.action === 'check_raise' && canRaise && Math.random() < turnOopDecision.frequency) {
+            // ═══ OOP CHECK-RAISE BOOST: posFreqMod integration ═══
+            // OOP check-raises more than IP by design — apply the systematic boost
+            const turnCRFreq = turnOopDecision.action === 'check_raise'
+                ? Math.min(0.80, turnOopDecision.frequency + posFreqMod.oopCheckRaiseBoost)
+                : turnOopDecision.frequency;
+
+            if (turnOopDecision.action === 'check_raise' && canRaise && Math.random() < turnCRFreq) {
                 const crSize = Math.round(toCall * (turnOopDecision.sizeFraction || 3.0));
-                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: turn check-raise (${turnOopDecision.reason})`);
+                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: turn check-raise (${turnOopDecision.reason}) freq=${Math.round(turnCRFreq * 100)}%`);
                 return { type: raiseAction.type, amount: clampAmt(crSize) };
             }
             if (turnOopDecision.action === 'check_fold') {
@@ -7335,9 +7373,14 @@ function makeTurnRiverHeuristicDecision(params) {
                 potSize, toCall, stackBB
             });
 
-            if (riverOopDecision.action === 'check_raise' && canRaise && Math.random() < riverOopDecision.frequency) {
+            // ═══ OOP CHECK-RAISE BOOST: posFreqMod integration (river) ═══
+            const riverCRFreq = riverOopDecision.action === 'check_raise'
+                ? Math.min(0.85, riverOopDecision.frequency + posFreqMod.oopCheckRaiseBoost)
+                : riverOopDecision.frequency;
+
+            if (riverOopDecision.action === 'check_raise' && canRaise && Math.random() < riverCRFreq) {
                 const crSize = Math.round(toCall * (riverOopDecision.sizeFraction || 3.0));
-                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: river check-raise (${riverOopDecision.reason})`);
+                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: river check-raise (${riverOopDecision.reason}) freq=${Math.round(riverCRFreq * 100)}%`);
                 return { type: raiseAction.type, amount: clampAmt(crSize) };
             }
             if (riverOopDecision.action === 'check_fold' && handEval.strength < 40) {
@@ -7349,11 +7392,54 @@ function makeTurnRiverHeuristicDecision(params) {
             // check_call falls through to existing river logic
         }
 
+        // ═══ RIVER POLARIZATION-AWARE FACING-BET FRAMEWORK ═══
+        // The opponent's likely range type (polarized vs merged) fundamentally changes
+        // how we should respond to their bets.
+        //
+        // POLARIZED opponent (big bet, known aggro, draws completed):
+        //   → Their range = nuts OR bluffs → our medium hands are bluff-catchers
+        //   → Call MORE with bluff-catchers (especially with blockers)
+        //   → Raise LESS (they're either folding bluffs or snapping with the nuts)
+        //
+        // MERGED opponent (small bet, passive, dry runout):
+        //   → Their range = mostly thin value/medium hands
+        //   → Fold MORE with marginals (they rarely bluff, just have a decent hand)
+        //   → Raise MORE for value (their range can't withstand pressure)
+        //
+        const oppRangeIsPolarized = (() => {
+            // Big bets are inherently polarized
+            if (betToPot >= 0.80) return true;
+            // Overbets are very polarized
+            if (betToPot >= 1.2) return true;
+            // Known aggressive opponents bet polar ranges
+            if (oppTendency === 'bluffy' && oppConfidence > 0.3) return true;
+            // Draws completed → polarized (they have the draw or they're bluffing)
+            if (boardEvolution.drawsCompleted.length > 0) return true;
+            // Triple barrel is polar (committed value or committed bluff)
+            if (oppStreetAggression === 'very_heavy') return true;
+            return false;
+        })();
+
+        const oppRangeIsMerged = !oppRangeIsPolarized && (
+            betToPot <= 0.45 ||
+            (oppTendency === 'weak-tight' && oppConfidence > 0.3) ||
+            boardEvolution.evolution === 'static_brick' ||
+            oppStreetAggression === 'light'
+        );
+
+        // Polarization call/fold modifiers for use throughout river facing-bet decisions
+        const polarCallMod = oppRangeIsPolarized ? 0.08 : oppRangeIsMerged ? -0.06 : 0;
+        const polarRaiseMod = oppRangeIsPolarized ? -0.08 : oppRangeIsMerged ? 0.08 : 0;
+
         // ── MONSTERS: Raise for value ──
         if (handEval.strength >= 85 && canRaise) {
             // Against calling stations, raise HUGE
             let valueMult = 0.80;
             if (oppCallFreq > 0.60 && oppConfidence > 0.3) valueMult = 1.10;
+            // ═══ POLARIZATION: vs merged, raise bigger (they can't fold medium hands) ═══
+            if (oppRangeIsMerged) valueMult = Math.min(1.30, valueMult + 0.15);
+            // ═══ POLARIZATION: vs polarized, smaller raise (they're snap-folding bluffs anyway) ═══
+            if (oppRangeIsPolarized) valueMult = Math.max(0.65, valueMult - 0.10);
             const raiseSize = Math.round(toCall + potSize * valueMult);
             return { type: raiseAction.type, amount: clampAmt(raiseSize) };
         }
@@ -7382,6 +7468,8 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (narrative.checkBehindCount >= 1) raiseFreq += 0.08;
                 // Narrative: we've been barreling → raise is credible continuation
                 if (narrative.barrelsInARow >= 1 && narrative.storyIsConsistent) raiseFreq += 0.06;
+                // ═══ POLARIZATION: raise more vs merged (they fold too much to raises) ═══
+                raiseFreq += polarRaiseMod;
                 raiseFreq = Math.max(0.10, Math.min(0.55, raiseFreq));
 
                 if (Math.random() < raiseFreq) {
@@ -7437,6 +7525,16 @@ function makeTurnRiverHeuristicDecision(params) {
         // High SPR: fold threshold stays normal (plenty of room to maneuver)
         dynFoldThreshold = Math.max(15, dynFoldThreshold - Math.round(sprStrategy.callWidthBonus * 30));
 
+        // ═══ POLARIZATION-DRIVEN FOLD THRESHOLD ═══
+        // Vs polarized opponent: call wider (their range includes bluffs → our bluff-catchers are profitable)
+        // Vs merged opponent: fold tighter (they rarely bluff → our marginals are behind)
+        if (oppRangeIsPolarized) {
+            dynFoldThreshold = Math.max(15, dynFoldThreshold - 4); // Call wider
+        }
+        if (oppRangeIsMerged) {
+            dynFoldThreshold = Math.min(50, dynFoldThreshold + 3); // Fold tighter
+        }
+
         if (handEval.strength >= dynFoldThreshold) {
             // FACTOR 1: Direct equity vs pot odds
             if (handEquityFrac >= potOdds) {
@@ -7460,6 +7558,8 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Against known bluffers, call overbets MORE
                 let overbetCallFreq = 0.40;
                 if (oppBluffy && oppConfidence > 0.3) overbetCallFreq = 0.55;
+                // ═══ POLARIZATION: overbets confirm polarized range → call wider ═══
+                overbetCallFreq += polarCallMod;
                 if (Math.random() < overbetCallFreq) {
                     console.log(`[HorseBrain] 🕵️ BLUFF-CATCH: overbet (${Math.round(betToPot * 100)}% pot) str=${handEval.strength} opp=${oppTendency}`);
                     return canCall ? { type: 'call' } : { type: 'fold' };
@@ -7527,6 +7627,11 @@ function makeTurnRiverHeuristicDecision(params) {
             // OOP hero calls tighter (especially vs large bets — can't see free cards)
             heroCallProb += posFreqMod.ipCallWidth;
             if (!isIP && betToPot >= 0.75) heroCallProb -= posFreqMod.oopFoldMoreVsBig;
+
+            // ═══ POLARIZATION-DRIVEN HERO CALL ═══
+            // Vs polarized: their range includes bluffs → hero calls are more profitable
+            // Vs merged: they have value → hero calls burn money
+            heroCallProb += polarCallMod;
 
             // If we're under-defending (folding more than 1-MDF), bump up calling
             const targetDefenseFreq = mdf; // e.g., 0.60 for 66% pot bet
@@ -7813,6 +7918,56 @@ function makeFlopHeuristicDecision(params) {
     // If nobody raised preflop and pot is small, ranges are wide — adjust strategy.
     const flopIsLimpedPot = !heroIsAggressor && potSize / bb <= numPlayers * 2.5;
 
+    // ═══ 3-BET POT DETECTION (FLOP) ═══
+    // 3-bet pots have fundamentally different dynamics:
+    // - SPR is typically 3-6 (vs 8-15 in single-raised pots)
+    // - Ranges are much narrower (both players have strong holdings)
+    // - C-bet frequencies should be LOWER (opponent's range is stronger)
+    // - Sizing should be SMALLER (ranges are condensed, small bets are effective)
+    // - Board coverage: high boards favor both ranges, low boards still favor PFR
+    // Detection heuristic: hero raised preflop AND pot is large relative to blinds for heads-up
+    const expectedSRPSize = numPlayers * 2 * bb; // Single-raised pot size estimate
+    const is3BetPot = heroIsAggressor && !flopIsLimpedPot && potSize > expectedSRPSize * 2.2 && numPlayers <= 3;
+    const is4BetPot = heroIsAggressor && !flopIsLimpedPot && potSize > expectedSRPSize * 5.0 && numPlayers <= 2;
+
+    // 3-bet pot strategy adjustments
+    let threeBetCbetMod = 0;      // Frequency modifier for c-bets in 3-bet pots
+    let threeBetSizeMod = 0;      // Sizing modifier (negative = smaller)
+    let threeBetValueThreshold = 0; // Lower value threshold (ranges are narrower)
+    if (is4BetPot) {
+        // 4-bet pots: SPR is tiny (~2-3), just jam with any equity
+        threeBetCbetMod = 0.20;          // C-bet very frequently (we have massive range advantage)
+        threeBetSizeMod = -0.15;         // Small sizing (33% is standard in 4-bet pots)
+        threeBetValueThreshold = -15;    // Much lower value threshold
+    } else if (is3BetPot) {
+        // 3-bet pots: c-bet less often but with purpose
+        if (rangeAdvantage === 'pfr') {
+            threeBetCbetMod = 0.05;      // Slight boost on PFR-favorable boards
+            threeBetSizeMod = -0.12;     // 33% pot standard
+        } else if (rangeAdvantage === 'caller') {
+            threeBetCbetMod = -0.15;     // Much less c-betting on caller-favorable boards
+            threeBetSizeMod = -0.08;     // Slightly smaller
+        } else {
+            threeBetCbetMod = -0.05;     // Slight reduction on neutral boards
+            threeBetSizeMod = -0.10;     // Standard small sizing
+        }
+        threeBetValueThreshold = -8;     // Ranges are stronger → commit with slightly less
+    }
+
+    // ═══ RANGE ADVANTAGE → C-BET MODIFIER ═══
+    // rangeAdvantage is computed but was never wired into decisions — fix that now.
+    let rangeAdvCbetMod = 0;
+    let rangeAdvSizeMod = 0;
+    if (heroIsAggressor) {
+        if (rangeAdvantage === 'pfr') {
+            rangeAdvCbetMod = 0.10;      // PFR range advantage → c-bet more freely
+            rangeAdvSizeMod = -0.05;     // Can use smaller sizing (range advantage does the work)
+        } else if (rangeAdvantage === 'caller') {
+            rangeAdvCbetMod = -0.12;     // Caller range advantage → c-bet less
+            rangeAdvSizeMod = 0.05;      // When we do bet, go bigger (need protection)
+        }
+    }
+
     // ══════════════════════════════════════════════════════════
     //  NOT FACING A BET
     // ══════════════════════════════════════════════════════════
@@ -7861,6 +8016,10 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFreq = 0.80; // Near-100% c-bet range
                 let cbetFrac = boardIsPaired ? 0.25 : 0.33; // Tiny sizing
 
+                // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
+
                 if (multiway) cbetFreq = Math.max(0.30, 0.55 + mwAdj.cbetFreqMod); // Tighten multiway (position/texture aware)
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
                     // Against callers: only c-bet with equity
@@ -7869,6 +8028,7 @@ function makeFlopHeuristicDecision(params) {
                 }
                 if (oppFoldFreq > 0.55 && oppConfidence > 0.3) cbetFreq = 0.90; // Print money
 
+                cbetFreq = Math.max(0.10, Math.min(0.95, cbetFreq));
                 if (Math.random() < cbetFreq) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
                 }
@@ -7887,6 +8047,10 @@ function makeFlopHeuristicDecision(params) {
                 else if (handEval.strength < 20) { cbetFreq = 0.15; cbetFrac = 0.33; } // Rare bluff
                 // Nut advantage: if PFR has overpairs → can still c-bet
                 if (handEval.category === 'overpair') { cbetFreq = 0.70; cbetFrac = 0.55; }
+
+                // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
 
                 if (multiway) cbetFreq = Math.max(0.15, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
@@ -7917,9 +8081,14 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFreq = 0.70;
                 let cbetFrac = 0.25; // Very small — we "always have it" on paired boards
 
+                // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
+                cbetFrac = Math.max(0.20, cbetFrac + threeBetSizeMod);
+
                 if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
                 if (multiway) cbetFreq = Math.max(0.25, 0.45 + mwAdj.cbetFreqMod);
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq = 0.85;
+                cbetFreq = Math.max(0.10, Math.min(0.90, cbetFreq));
 
                 if (Math.random() < cbetFreq) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
@@ -7937,6 +8106,10 @@ function makeFlopHeuristicDecision(params) {
                 else if (drawEq.outs >= 9) { cbetFreq = 0.55; cbetFrac = 0.55; } // Semi-bluff
                 else if (handEval.strength < 20) { cbetFreq = 0.20; cbetFrac = 0.50; } // Bluff
                 else { cbetFreq = 0.30; cbetFrac = 0.45; } // Marginal — sometimes bet to take down
+
+                // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
+                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
 
                 // Against callers on wet boards: tighter c-bet range but bigger sizing
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -7963,6 +8136,10 @@ function makeFlopHeuristicDecision(params) {
                 else if (drawEq.outs >= 8) cbetFreq = 0.50;
                 else if (handEval.strength < 20) cbetFreq = 0.22;
                 else cbetFreq = 0.30;
+
+                // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
 
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
@@ -8107,15 +8284,25 @@ function makeFlopHeuristicDecision(params) {
             let semiCRFreq = 0.25 + aggressionBias / 40;
             if (oppCbetFreq > 0.65 && oppConfidence > 0.3) semiCRFreq += 0.10; // They c-bet wide
             if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiCRFreq += 0.08;
+            // ═══ RANGE ADVANTAGE: check-raise more on boards that favor our range ═══
+            if (rangeAdvantage === 'pfr' && !heroIsAggressor) semiCRFreq += 0.06; // Board favors us as caller
+            // ═══ 3-BET POT CHECK-RAISE: narrower ranges → check-raise less as a bluff ═══
+            if (is3BetPot) semiCRFreq -= 0.08; // Opponent's range is strong, less fold equity
+            if (is4BetPot) semiCRFreq -= 0.15; // Don't bluff check-raise into 4-bet pots
             semiCRFreq = Math.max(0, Math.min(0.45, semiCRFreq));
             if (Math.random() < semiCRFreq) {
-                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * (2.5 + Math.random() * 0.5))) };
+                // In 3-bet pots, smaller check-raise sizing (ranges are condensed)
+                const crMult = is3BetPot ? (2.2 + Math.random() * 0.3) : (2.5 + Math.random() * 0.5);
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * crMult)) };
             }
         }
         // Bluff check-raise on dry boards when opponent c-bets wide
         if (handEval.strength < 15 && boardWet === 'dry' && oppCbetFreq > 0.60 && oppConfidence > 0.3) {
             let bluffCRFreq = 0.10 + aggressionBias / 50;
             if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffCRFreq += 0.08;
+            // No bluff check-raises in 3-bet/4-bet pots (opponent is never folding)
+            if (is3BetPot) bluffCRFreq *= 0.40;
+            if (is4BetPot) bluffCRFreq = 0;
             bluffCRFreq = Math.max(0, Math.min(0.20, bluffCRFreq));
             if (Math.random() < bluffCRFreq) {
                 return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 3.0)) };
