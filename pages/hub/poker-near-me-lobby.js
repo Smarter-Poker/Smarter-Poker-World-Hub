@@ -652,22 +652,18 @@ export default function PokerNearMeLobby() {
     const venueChannel = supabase.channel('public:venues_lobby')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_venues' }, (payload) => {
         setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
+        // Series are stored in poker_venues with venue_type='series'
+        setSeries(prev => prev.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s));
       }).subscribe();
       
     const tourChannel = supabase.channel('public:tours_lobby')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tour_source_registry' }, (payload) => {
         setTours(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
       }).subscribe();
-      
-    const seriesChannel = supabase.channel('public:series_lobby')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_series' }, (payload) => {
-        setSeries(prev => prev.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s));
-      }).subscribe();
 
     return () => {
       supabase.removeChannel(venueChannel);
       supabase.removeChannel(tourChannel);
-      supabase.removeChannel(seriesChannel);
     };
   }, []);
 

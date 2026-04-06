@@ -37,6 +37,21 @@ export default function SeasonalCalendar({ series = [], tours = [], dailyTournam
     // Build event list combining series + tours
     const allEvents = useMemo(() => {
         let events = [...series.map(s => ({ ...s, eventType: 'series' }))];
+        
+        // Map traveling tour stops into the calendar
+        tours.forEach(t => {
+            if (t.upcoming_series && t.upcoming_series.length > 0) {
+                t.upcoming_series.forEach(us => {
+                    events.push({
+                        ...us,
+                        eventType: 'tour_stop',
+                        tour_code: t.tour_code || us.tour_code,
+                        tour_type: t.tour_type,
+                        name: us.name || us.short_name || t.name,
+                    });
+                });
+            }
+        });
 
         // Type filter
         if (filterType !== 'All') {
