@@ -113,6 +113,22 @@ export default function PokerToursPage() {
         } catch { return {}; }
     });
 
+    // ─── Cross-Tab Favorites Sync ───
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleStorage = (e) => {
+            if (e.key === 'pnm_tour_favorites') {
+                try {
+                    setFavorites(JSON.parse(e.newValue || '{}'));
+                } catch {
+                    setFavorites({});
+                }
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, []);
+
     // ─── URL Deep-link: read all filter params on mount ───
     useEffect(() => {
         if (!router.isReady || isInitialized) return;
@@ -222,36 +238,60 @@ export default function PokerToursPage() {
 
     // ─── Fetch tours data ───
     useEffect(() => {
+        let isMounted = true;
+        const abortController = new AbortController();
         setLoading(true);
         
         // Try to get user location for the map
-        if (navigator.geolocation) {
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                (pos) => { if (isMounted) setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }) },
                 () => {} // silent fail
             );
         }
 
-        fetch('/api/poker/tours?include_series=true&traveling_only=true&limit=100')
+        fetch('/api/poker/tours?include_series=true&traveling_only=true&limit=100', { signal: abortController.signal })
             .then(r => r.json())
             .then(json => {
+                if (!isMounted) return;
                 const tourData = json.data || json.tours || [];
                 // API handles stationary filtering with traveling_only=true
                 setTours(tourData);
             })
-            .catch(() => setTours([]))
-            .finally(() => setLoading(false));
+            .catch((e) => {
+                if (!isMounted || e.name === 'AbortError') return;
+                setTours([]);
+            })
+            .finally(() => {
+                if (isMounted) setLoading(false);
+            });
+            
+        return () => {
+            isMounted = false;
+            abortController.abort();
+        };
     }, []);
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {
-        fetch('/data/all-venues.json')
+        let isMounted = true;
+        const abortController = new AbortController();
+        fetch('/data/all-venues.json', { signal: abortController.signal })
             .then(r => r.json())
             .then(json => {
+                if (!isMounted) return;
                 const v = json.venues || json.data || json || [];
                 setAllVenues(Array.isArray(v) ? v : []);
             })
-            .catch(() => setAllVenues([]));
+            .catch((e) => {
+                if (!isMounted || e.name === 'AbortError') return;
+                setAllVenues([]);
+            });
+            
+        return () => {
+            isMounted = false;
+            abortController.abort();
+        };
     }, []);
 
     // ─── Parse informal date strings from registry (e.g. "Apr 2-13", "Feb 22 - Mar 9") ───

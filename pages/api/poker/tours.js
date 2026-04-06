@@ -209,15 +209,13 @@ export default async function handler(req, res) {
       }
 
       try {
-          const {
-              type,           // major, circuit, high_roller, regional, grassroots
-              region,         // US, Europe, Asia
-              search,
-              tour_code,      // Specific tour
-              include_series, // Include upcoming series
-              traveling_only, // Exclude stationary casino series
-              limit = 50
-          } = req.query;
+          const type = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
+          const region = Array.isArray(req.query.region) ? req.query.region[0] : req.query.region;
+          const search = Array.isArray(req.query.search) ? req.query.search[0] : req.query.search;
+          const tour_code = Array.isArray(req.query.tour_code) ? req.query.tour_code[0] : req.query.tour_code;
+          const include_series = Array.isArray(req.query.include_series) ? req.query.include_series[0] : req.query.include_series;
+          const traveling_only = Array.isArray(req.query.traveling_only) ? req.query.traveling_only[0] : req.query.traveling_only;
+          const limit = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50;
 
           const excludeStationary = traveling_only === 'true';
 
