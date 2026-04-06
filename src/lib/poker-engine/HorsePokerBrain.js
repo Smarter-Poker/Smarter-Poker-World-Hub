@@ -5867,6 +5867,16 @@ function makeTurnRiverHeuristicDecision(params) {
     const flopEval = evaluatePostflopHand(holeCards, flopBoard);
     const equityDelta = handEval.strength - flopEval.strength; // Positive = improved
 
+    // ═══ BOARD TEXTURE EVOLUTION ═══
+    // Track how the board changed from flop to current street.
+    // This drives range advantage shifts and bluff credibility.
+    const boardEvolution = analyzeBoardEvolution(board, street);
+    // boardEvolution.pfrImpact: positive = runout favors PFR
+    // boardEvolution.callerImpact: positive = runout favors caller
+    // boardEvolution.drawsCompleted: ['flush', 'straight'] etc.
+    // boardEvolution.drawsBricked: ['flush'] etc.
+    // boardEvolution.evolution: 'pfr_favorable' | 'caller_favorable' | 'dynamic' | 'static_brick' | 'neutral'
+
     const canCheck = legalActions.some(a => a.type === 'check');
     const canCall = legalActions.some(a => a.type === 'call');
     const canRaise = legalActions.some(a => a.type === 'raise' || a.type === 'bet');
@@ -5938,11 +5948,27 @@ function makeTurnRiverHeuristicDecision(params) {
     const boardFavorsPFR = avgBoardRank <= 6 && !flushPossible && !boardPaired;
     const boardFavorsCaller = avgBoardRank >= 8 || flushPossible || straightScary;
 
-    // ═══ NUT ADVANTAGE REFINED BY AGGRESSOR STATUS ═══
+    // ═══ NUT ADVANTAGE REFINED BY AGGRESSOR STATUS + BOARD EVOLUTION ═══
     // If hero raised preflop, hero has the nut advantage on low boards.
     // If hero flat-called, hero's range is capped on many textures.
-    const heroHasNutAdvantage = heroIsAggressor ? boardFavorsPFR : boardFavorsCaller;
-    const heroRangeCapped = !heroIsAggressor && boardFavorsPFR; // Flat caller on dry low board = capped
+    // Board evolution shifts range advantage across streets.
+    let heroHasNutAdvantage = heroIsAggressor ? boardFavorsPFR : boardFavorsCaller;
+    let heroRangeCapped = !heroIsAggressor && boardFavorsPFR;
+
+    // Board evolution can shift nut advantage on turn/river
+    if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
+        heroHasNutAdvantage = true;  // Runout helped PFR range
+        heroRangeCapped = false;
+    } else if (boardEvolution.evolution === 'caller_favorable' && !heroIsAggressor) {
+        heroHasNutAdvantage = true;  // Runout helped our calling range
+        heroRangeCapped = false;
+    } else if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
+        heroHasNutAdvantage = false; // Runout helped opponent
+        heroRangeCapped = true;      // Our range is now weaker relative to board
+    } else if (boardEvolution.evolution === 'static_brick') {
+        // Bricked runout = status quo maintained, PFR keeps advantage if they had it
+        if (heroIsAggressor && boardFavorsPFR) heroHasNutAdvantage = true;
+    }
 
     // ═══ OPPONENT PROFILE SYNTHESIS ═══
     // Merge enrichedOpponentRead (from Advanced module) + opponentAdjustment (from Supabase)
@@ -7207,6 +7233,438 @@ function makeTurnRiverHeuristicDecision(params) {
     return null;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FLOP HEURISTIC ENGINE — DEDICATED WORLD-CLASS FLOP DECISION MAKER
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Called from getDecision() when PioSolver lacks flop data.
+// The flop is the foundation — every decision here shapes the turn and river.
+//
+// Key principles:
+// 1. C-BET: frequency and sizing driven by board texture, position, and opponent type
+// 2. DONK DEFENSE: when BB connects with board, lead into PFR
+// 3. CHECK-RAISE: trapping and semi-bluffing OOP with board awareness
+// 4. RANGE ADVANTAGE: who benefits most from this board texture?
+// 5. DRAW MANAGEMENT: semi-bluff, protect, or realize equity
+// 6. POT CONTROL: showdown-value hands don't need to build the pot
+//
+function makeFlopHeuristicDecision(params) {
+    const {
+        holeCards, board, handStr, position, stackBB, potSize,
+        toCall, bb, numPlayers, legalActions, profileId,
+        aggressionBias = 0, loosenessBias = 0,
+        opponentAdjustment = { callMod: 0, foldMod: 0 },
+        enrichedOpponentRead = null,
+        heroIsAggressor = false,
+        counterStrategyMode = 'standard'
+    } = params;
+
+    if (!holeCards || holeCards.length < 2 || !board || board.length < 3) return null;
+
+    // ── Core evaluations ──
+    const handEval = evaluatePostflopHand(holeCards, board);
+    const drawEq = getDrawEquity(handEval, 'flop');
+    const boardWet = evaluateBoardWetness(board);
+    const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
+    const facingBet = toCall > 0;
+    const heroStack = stackBB * bb;
+    const spr = heroStack / Math.max(1, potSize);
+    const betToPot = facingBet ? toCall / Math.max(1, potSize) : 0;
+
+    const canCheck = legalActions.some(a => a.type === 'check');
+    const canCall = legalActions.some(a => a.type === 'call');
+    const canRaise = legalActions.some(a => a.type === 'raise' || a.type === 'bet');
+    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+    const ipPositions = new Set(['BTN', 'CO', 'HJ']);
+    const isIP = ipPositions.has(position);
+    const multiway = numPlayers >= 3;
+
+    // Clamp helper
+    const clampAmt = (amt) => {
+        if (!raiseAction) return amt;
+        return Math.max(raiseAction.minAmount || amt, Math.min(amt, raiseAction.maxAmount || amt));
+    };
+
+    // ── BOARD TEXTURE ANALYSIS ──
+    const boardRanks = board.map(c => RANKS.indexOf(c[0])).sort((a, b) => b - a);
+    const boardSuits = board.map(c => c[1]);
+    const suitCounts = {};
+    boardSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+    const maxSuitCount = Math.max(...Object.values(suitCounts));
+    const boardIsMonotone = maxSuitCount === 3;
+    const boardHasFlushDraw = maxSuitCount >= 2;
+    const boardIsPaired = new Set(board.map(c => c[0])).size < 3;
+    const boardIsTrips = new Set(board.map(c => c[0])).size === 1;
+    const boardHighCards = board.filter(c => RANKS.indexOf(c[0]) >= 9).length; // T+ = index 9+
+    const boardIsHigh = boardHighCards >= 2; // Broadway-heavy
+    const boardIsLow = board.every(c => RANKS.indexOf(c[0]) < 8); // All below 9
+    const boardIsMedium = !boardIsHigh && !boardIsLow;
+
+    // Connectivity
+    const sortedRanks = [...boardRanks].sort((a, b) => a - b);
+    let connectivity = 0;
+    for (let i = 1; i < sortedRanks.length; i++) {
+        if (sortedRanks[i] - sortedRanks[i - 1] <= 2) connectivity++;
+    }
+    const boardIsConnected = connectivity >= 2;
+    const boardHasStraightDraw = connectivity >= 1;
+
+    // ── OPPONENT READS ──
+    let oppTendency = 'balanced', oppConfidence = 0, oppCallFreq = 0.50;
+    let oppFoldFreq = 0.50, oppBluffFreq = 0.30, oppCbetFreq = 0.60;
+    if (enrichedOpponentRead) {
+        oppTendency = enrichedOpponentRead.tendency || 'balanced';
+        oppConfidence = enrichedOpponentRead.confidence || 0;
+        oppCallFreq = enrichedOpponentRead.callFrequency ?? 0.50;
+        oppFoldFreq = enrichedOpponentRead.foldFrequency ?? 0.50;
+        oppBluffFreq = enrichedOpponentRead.bluffFrequency ?? 0.30;
+    } else {
+        if (opponentAdjustment.foldMod > 0) { oppTendency = 'weak-tight'; oppFoldFreq = 0.55 + opponentAdjustment.foldMod / 20; }
+        if (opponentAdjustment.callMod > 0) { oppCallFreq = 0.55 + opponentAdjustment.callMod / 20; }
+        oppConfidence = Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.35 : 0;
+    }
+
+    // ── RANGE ADVANTAGE ASSESSMENT ──
+    // PFR has range advantage on high boards (broadway cards favor premium hands)
+    // Caller has range advantage on low, connected boards (suited connectors, small pairs)
+    let rangeAdvantage = 'neutral'; // 'pfr', 'caller', or 'neutral'
+    if (heroIsAggressor) {
+        if (boardIsHigh && !boardIsConnected) rangeAdvantage = 'pfr';
+        else if (boardIsLow && boardIsConnected) rangeAdvantage = 'caller';
+        else if (boardIsPaired && boardIsHigh) rangeAdvantage = 'pfr';
+        else if (boardIsMonotone) rangeAdvantage = 'caller'; // Flushes favor wide calling ranges
+    } else {
+        // We're the caller — flip the assessment
+        if (boardIsHigh && !boardIsConnected) rangeAdvantage = 'caller'; // PFR has it, bad for us
+        else if (boardIsLow && boardIsConnected) rangeAdvantage = 'pfr'; // We connect, good
+        else if (boardIsMonotone) rangeAdvantage = 'pfr'; // We have suited hands more often
+    }
+
+    const isPotCommitted = spr <= 2;
+
+    // ══════════════════════════════════════════════════════════
+    //  NOT FACING A BET
+    // ══════════════════════════════════════════════════════════
+    if (!facingBet) {
+
+        // ── POT COMMITTED: Jam with decent+ hands ──
+        if (isPotCommitted && handEval.strength >= 40 && canRaise) {
+            return { type: 'all_in' };
+        }
+
+        // ════════════════════════════════════════
+        //  C-BET STRATEGY (when hero was PFR)
+        // ════════════════════════════════════════
+        if (heroIsAggressor && canRaise) {
+
+            // ═══ BOARD-TEXTURE-DRIVEN C-BET STRATEGY ═══
+
+            // STRATEGY 1: HIGH DRY BOARDS → Small c-bet, very high frequency
+            // PFR has massive range advantage (Ax, broadway). Bet small, bet often.
+            if (boardIsHigh && !boardIsConnected && !boardIsMonotone && boardWet === 'dry') {
+                let cbetFreq = 0.80; // Near-100% c-bet range
+                let cbetFrac = boardIsPaired ? 0.25 : 0.33; // Tiny sizing
+
+                if (multiway) cbetFreq = 0.55; // Tighten multiway
+                if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
+                    // Against callers: only c-bet with equity
+                    if (handEval.strength < 35 && drawEq.outs < 6) cbetFreq = 0.30;
+                    else cbetFrac = 0.50; // Bigger for value
+                }
+                if (oppFoldFreq > 0.55 && oppConfidence > 0.3) cbetFreq = 0.90; // Print money
+
+                if (Math.random() < cbetFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
+                }
+                return { type: 'check' };
+            }
+
+            // STRATEGY 2: LOW CONNECTED BOARDS → Polarized c-bet (strong or nothing)
+            // Caller's range connects heavily. Only c-bet with strong hands or nut draws.
+            if (boardIsLow && boardIsConnected) {
+                let cbetFreq = 0;
+                let cbetFrac = 0.50;
+
+                if (handEval.strength >= 65) { cbetFreq = 0.75; cbetFrac = 0.55; } // Value
+                else if (handEval.strength >= 50) { cbetFreq = 0.45; cbetFrac = 0.45; } // Thin value
+                else if (drawEq.outs >= 10) { cbetFreq = 0.50; cbetFrac = 0.50; } // Strong draw semi-bluff
+                else if (handEval.strength < 20) { cbetFreq = 0.15; cbetFrac = 0.33; } // Rare bluff
+                // Nut advantage: if PFR has overpairs → can still c-bet
+                if (handEval.category === 'overpair') { cbetFreq = 0.70; cbetFrac = 0.55; }
+
+                if (multiway) cbetFreq *= 0.60;
+                if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
+                cbetFreq = Math.max(0, Math.min(0.80, cbetFreq));
+
+                if (Math.random() < cbetFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
+                }
+                return { type: 'check' };
+            }
+
+            // STRATEGY 3: MONOTONE BOARDS → Check most, bet only nut flush draws or monsters
+            if (boardIsMonotone) {
+                const heroHasFlushDraw = holeCards.some(c => c[1] === boardSuits[0]);
+                const heroHasNutFD = heroHasFlushDraw && holeCards.some(c => c[1] === boardSuits[0] && RANKS.indexOf(c[0]) >= 12);
+
+                if (handEval.strength >= 75 || (heroHasNutFD && handEval.strength >= 30)) {
+                    // Bet monsters and nut flush draws for value/semi-bluff
+                    const sizeFrac = handEval.strength >= 75 ? 0.50 : 0.40;
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
+                }
+                // Everything else: check (reverse implied odds, opponent has flush too often)
+                return { type: 'check' };
+            }
+
+            // STRATEGY 4: PAIRED BOARDS → Small c-bet, high frequency (we represent trips)
+            if (boardIsPaired && !boardIsConnected) {
+                let cbetFreq = 0.70;
+                let cbetFrac = 0.25; // Very small — we "always have it" on paired boards
+
+                if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
+                if (multiway) cbetFreq = 0.45;
+                if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq = 0.85;
+
+                if (Math.random() < cbetFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
+                }
+                return { type: 'check' };
+            }
+
+            // STRATEGY 5: WET BOARDS (flush draw + connected) → Larger c-bet, protect equity
+            if (boardWet === 'wet') {
+                let cbetFreq = 0.55;
+                let cbetFrac = 0.60; // Bigger to charge draws
+
+                if (handEval.strength >= 65) { cbetFreq = 0.80; cbetFrac = 0.66; } // Value + protection
+                else if (handEval.strength >= 45) { cbetFreq = 0.55; cbetFrac = 0.55; } // Medium — bet to deny equity
+                else if (drawEq.outs >= 9) { cbetFreq = 0.55; cbetFrac = 0.55; } // Semi-bluff
+                else if (handEval.strength < 20) { cbetFreq = 0.20; cbetFrac = 0.50; } // Bluff
+                else { cbetFreq = 0.30; cbetFrac = 0.45; } // Marginal — sometimes bet to take down
+
+                // Against callers on wet boards: tighter c-bet range but bigger sizing
+                if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
+                    if (handEval.strength < 45 && drawEq.outs < 8) cbetFreq = 0.10; // Don't bluff callers
+                    else cbetFrac = Math.min(0.75, cbetFrac + 0.08);
+                }
+
+                if (multiway) { cbetFreq *= 0.55; cbetFrac = Math.min(0.75, cbetFrac + 0.05); }
+                cbetFreq = Math.max(0.05, Math.min(0.85, cbetFreq));
+
+                if (Math.random() < cbetFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
+                }
+                return { type: 'check' };
+            }
+
+            // STRATEGY 6: DEFAULT (medium texture) → Standard c-bet
+            {
+                let cbetFreq = isIP ? 0.65 : 0.50; // IP c-bets more
+                let cbetFrac = 0.50;
+
+                if (handEval.strength >= 65) cbetFreq = 0.80;
+                else if (handEval.strength >= 40) cbetFreq = isIP ? 0.60 : 0.45;
+                else if (drawEq.outs >= 8) cbetFreq = 0.50;
+                else if (handEval.strength < 20) cbetFreq = 0.22;
+                else cbetFreq = 0.30;
+
+                if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
+                if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
+                if (multiway) cbetFreq *= 0.60;
+                cbetFreq = Math.max(0.05, Math.min(0.80, cbetFreq));
+
+                if (Math.random() < cbetFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * cbetFrac)) };
+                }
+                return { type: 'check' };
+            }
+        }
+
+        // ════════════════════════════════════════
+        //  NON-AGGRESSOR (caller) NOT FACING BET
+        //  Checked to us, or we're first to act
+        // ════════════════════════════════════════
+
+        // ── POT COMMITTED ──
+        if (isPotCommitted && handEval.strength >= 40 && canRaise) {
+            return { type: 'all_in' };
+        }
+
+        // ── BB DONK-BET: Lead into PFR on range-favoring boards ──
+        if (!isIP && canRaise && !multiway) {
+            // Two pair+ on low/connected boards → donk for value
+            if (handEval.strength >= 65 && (boardIsLow || boardIsConnected) && !boardIsHigh) {
+                let donkFreq = 0.40;
+                if (oppCbetFreq > 0.70 && oppConfidence > 0.3) donkFreq = 0.55; // Deny their c-bet equity
+                if (Math.random() < donkFreq) {
+                    const sizeFrac = 0.50 + (boardWet === 'wet' ? 0.08 : 0);
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
+                }
+            }
+            // Strong draws on wet boards → donk as semi-bluff
+            if (drawEq.outs >= 10 && boardWet === 'wet' && handEval.strength >= 20) {
+                let semiDonkFreq = 0.25 + aggressionBias / 40;
+                if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiDonkFreq += 0.10;
+                if (Math.random() < semiDonkFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.55)) };
+                }
+            }
+        }
+
+        // ── IP VALUE BET: Bet strong hands when checked to ──
+        if (isIP && canRaise) {
+            if (handEval.strength >= 60) {
+                let valueBetFreq = 0.65;
+                if (multiway) valueBetFreq = 0.50;
+                if (oppCallFreq > 0.55 && oppConfidence > 0.3) valueBetFreq = 0.75; // They call light
+                if (Math.random() < valueBetFreq) {
+                    const sizeFrac = boardWet === 'wet' ? 0.60 : 0.45;
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
+                }
+            }
+            // IP stab with marginal hands on dry boards
+            if (handEval.strength >= 25 && handEval.strength < 50 && boardWet === 'dry' && !multiway) {
+                let stabFreq = 0.25 + aggressionBias / 40;
+                if (oppFoldFreq > 0.50 && oppConfidence > 0.3) stabFreq += 0.12;
+                if (Math.random() < stabFreq) {
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.33)) };
+                }
+            }
+        }
+
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  FACING A BET ON THE FLOP
+    // ══════════════════════════════════════════════════════════
+
+    // ── POT COMMITTED ──
+    if (isPotCommitted && handEval.strength >= 35) {
+        if (canRaise && handEval.strength >= 70) return { type: 'all_in' };
+        return canCall ? { type: 'call' } : { type: 'fold' };
+    }
+
+    // ── MONSTERS: Raise for value (slow-play option) ──
+    if (handEval.strength >= 80 && canRaise) {
+        // Slow-play on dry boards (opponent will keep bluffing)
+        if (boardWet === 'dry' && !multiway && oppTendency === 'bluffy' && oppConfidence > 0.3) {
+            if (Math.random() < 0.40) {
+                return canCall ? { type: 'call' } : { type: 'fold' }; // Trap
+            }
+        }
+        // Raise for value — size to build pot for turn/river
+        let raiseMult = 2.8 + Math.random() * 0.4;
+        // Against callers, raise bigger
+        if (oppCallFreq > 0.55 && oppConfidence > 0.3) raiseMult = Math.min(3.5, raiseMult * 1.10);
+        // Geometric: plan for 3 streets of value
+        const geoFlop = getGeometricSizing(potSize + toCall * 2, heroStack - toCall, 2, true);
+        if (geoFlop.isJammable && spr >= 3) {
+            raiseMult = Math.max(raiseMult, geoFlop.sizeFraction * 4);
+        }
+        return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * raiseMult)) };
+    }
+
+    // ── STRONG HANDS: Call or raise for protection ──
+    if (handEval.strength >= 55) {
+        // On wet boards, consider raising for protection
+        if (canRaise && boardWet === 'wet' && handEval.strength >= 65 && !multiway) {
+            let protectRaiseFreq = 0.30;
+            if (drawEq.outs >= 4) protectRaiseFreq += 0.10; // We're vulnerable
+            if (oppTendency === 'bluffy' && oppConfidence > 0.3) protectRaiseFreq += 0.10;
+            if (Math.random() < protectRaiseFreq) {
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 2.8)) };
+            }
+        }
+        // Against known nits betting big on the flop → respect
+        if (oppTendency === 'weak-tight' && oppConfidence > 0.4 && betToPot >= 0.75 && handEval.strength < 70) {
+            return canCheck ? { type: 'check' } : { type: 'fold' };
+        }
+        return canCall ? { type: 'call' } : { type: 'fold' };
+    }
+
+    // ── CHECK-RAISE: OOP trapping or semi-bluffing ──
+    if (!isIP && canRaise && !multiway) {
+        // Semi-bluff check-raise with strong draws
+        if (drawEq.outs >= 10 && handEval.strength >= 15) {
+            let semiCRFreq = 0.25 + aggressionBias / 40;
+            if (oppCbetFreq > 0.65 && oppConfidence > 0.3) semiCRFreq += 0.10; // They c-bet wide
+            if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiCRFreq += 0.08;
+            semiCRFreq = Math.max(0, Math.min(0.45, semiCRFreq));
+            if (Math.random() < semiCRFreq) {
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * (2.5 + Math.random() * 0.5))) };
+            }
+        }
+        // Bluff check-raise on dry boards when opponent c-bets wide
+        if (handEval.strength < 15 && boardWet === 'dry' && oppCbetFreq > 0.60 && oppConfidence > 0.3) {
+            let bluffCRFreq = 0.10 + aggressionBias / 50;
+            if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffCRFreq += 0.08;
+            bluffCRFreq = Math.max(0, Math.min(0.20, bluffCRFreq));
+            if (Math.random() < bluffCRFreq) {
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 3.0)) };
+            }
+        }
+    }
+
+    // ── DRAWING HANDS: Equity math + implied odds ──
+    if (drawEq.outs >= 6) {
+        const drawEquityPct = Math.min(drawEq.outs * 2.2, 45) / 100;
+
+        // Direct odds: call if equity exceeds pot odds
+        if (drawEquityPct >= potOdds - 0.03) {
+            // Semi-bluff raise with massive combo draws
+            if (canRaise && drawEq.outs >= 13 && !multiway && Math.random() < 0.35) {
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 2.5)) };
+            }
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+
+        // Implied odds: call with strong draws when deep
+        if (stackBB >= 50 && drawEq.outs >= 9 && (handEval.hasFlushDraw || handEval.hasOESD)) {
+            let impliedThreshold = 0.50;
+            if (oppCallFreq > 0.55 && oppConfidence > 0.3) impliedThreshold = 0.60;
+            if (betToPot < impliedThreshold) {
+                return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+        }
+
+        // Backdoor draws: very cheap calls only
+        if (drawEq.outs >= 4 && drawEq.outs < 6 && betToPot <= 0.33) {
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+    }
+
+    // ── MEDIUM HANDS: Call or fold based on pot odds + opponent ──
+    if (handEval.strength >= 30) {
+        // Good pot odds → call
+        if (potOdds < 0.25) {
+            if (multiway && handEval.strength < 40) return canCheck ? { type: 'check' } : { type: 'fold' };
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+        // Small bet → call with most medium hands
+        if (betToPot <= 0.40 && handEval.strength >= 35) {
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+        // Against known bluffers, call wider
+        if (oppBluffFreq > 0.35 && oppConfidence > 0.3) {
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+    }
+
+    // ── FLOAT in position (call with nothing, plan to take away later) ──
+    if (isIP && handEval.strength >= 15 && betToPot <= 0.50 && !multiway && aggressionBias > 0) {
+        let floatFreq = 0.18 + aggressionBias / 40;
+        if (oppTendency === 'weak-tight' && oppConfidence > 0.3) floatFreq = 0.30;
+        if (oppCbetFreq > 0.65 && oppConfidence > 0.3) floatFreq += 0.08; // Wide c-bets = float more
+        floatFreq = Math.max(0, Math.min(0.35, floatFreq));
+        if (Math.random() < floatFreq) {
+            return canCall ? { type: 'call' } : { type: 'fold' };
+        }
+    }
+
+    return canCheck ? { type: 'check' } : { type: 'fold' };
+}
+
 function evaluateBoardWetness(board) {
     if (!board || board.length < 3) return 'medium';
 
@@ -7261,11 +7719,90 @@ function getSPRStrategy(effectiveStack, potSize) {
  * @param {number} numPlayers - Active (non-folded) players
  * @returns {{ strengthPenalty: number, bluffReduction: number }}
  */
-function getMultiwayAdjustment(numPlayers) {
-    if (numPlayers <= 2) return { strengthPenalty: 0, bluffReduction: 1.0 };
-    if (numPlayers === 3) return { strengthPenalty: 8, bluffReduction: 0.6 };
-    if (numPlayers === 4) return { strengthPenalty: 15, bluffReduction: 0.3 };
-    return { strengthPenalty: 22, bluffReduction: 0.15 }; // 5+ players: very tight
+function getMultiwayAdjustment(numPlayers, opts = {}) {
+    const {
+        position = 'BTN',
+        street = 'flop',
+        boardWetness = 'medium',
+        heroIsAggressor = false
+    } = opts;
+
+    if (numPlayers <= 2) return {
+        strengthPenalty: 0, bluffReduction: 1.0, valueBetThreshold: 55,
+        cbetFreqMod: 0, callWidthMod: 0, adjustSizing: false
+    };
+
+    const isIP = new Set(['BTN', 'CO', 'HJ']).has(position);
+
+    // ═══ BASE MULTIWAY ADJUSTMENTS ═══
+    let strengthPenalty, bluffReduction, valueBetThreshold, cbetFreqMod, callWidthMod;
+
+    if (numPlayers === 3) {
+        strengthPenalty = 8;
+        bluffReduction = 0.55;
+        valueBetThreshold = 60;
+        cbetFreqMod = -0.15;    // c-bet 15% less often 3-way
+        callWidthMod = -5;       // Need 5 more strength to call
+    } else if (numPlayers === 4) {
+        strengthPenalty = 15;
+        bluffReduction = 0.25;
+        valueBetThreshold = 65;
+        cbetFreqMod = -0.30;
+        callWidthMod = -10;
+    } else {
+        strengthPenalty = 22;
+        bluffReduction = 0.10;
+        valueBetThreshold = 72;
+        cbetFreqMod = -0.45;    // Almost never c-bet 5-way
+        callWidthMod = -15;
+    }
+
+    // ═══ POSITION ADJUSTMENTS ═══
+    // IP in multiway: can still bluff more than OOP (last to act = information advantage)
+    if (isIP) {
+        bluffReduction = Math.min(1.0, bluffReduction * 1.25);
+        strengthPenalty = Math.max(0, strengthPenalty - 2);
+    }
+    // OOP in multiway: play even tighter (sandwich risk)
+    if (!isIP && numPlayers >= 3) {
+        strengthPenalty += 3;
+        bluffReduction *= 0.80;
+    }
+
+    // ═══ STREET ADJUSTMENTS ═══
+    // Turn/river multiway: if still multiway, ranges are VERY strong → tighten more
+    if (street === 'turn') {
+        strengthPenalty += 2;
+        bluffReduction *= 0.85;
+    }
+    if (street === 'river') {
+        strengthPenalty += 3;
+        bluffReduction *= 0.75;
+    }
+
+    // ═══ BOARD TEXTURE ═══
+    // Wet boards multiway: even less bluffing (someone has it)
+    if (boardWetness === 'wet' && numPlayers >= 3) {
+        bluffReduction *= 0.75;
+        cbetFreqMod -= 0.10;
+    }
+    // Dry boards multiway: can still c-bet small at decent frequency
+    if (boardWetness === 'dry' && heroIsAggressor) {
+        cbetFreqMod += 0.08;
+    }
+
+    // ═══ SIZING ADJUSTMENT ═══
+    // Multiway pots need BIGGER sizing (more players to charge, more equity to deny)
+    const adjustSizing = numPlayers >= 3;
+
+    return {
+        strengthPenalty: Math.round(strengthPenalty),
+        bluffReduction: Math.max(0.05, Math.min(1.0, bluffReduction)),
+        valueBetThreshold,
+        cbetFreqMod,
+        callWidthMod,
+        adjustSizing
+    };
 }
 
 // --- #26: Check-Raise Strategy ---
@@ -8014,6 +8551,197 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
 // Flop: 10bb pot → bet 7.5 → pot becomes 25bb. Turn: 25bb → bet 18.75 → pot 62.5bb.
 // River: 62.5bb → bet 47 → pot 157bb. Stack used: ~73bb of 100bb.
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BOARD TEXTURE EVOLUTION TRACKER
+// ═══════════════════════════════════════════════════════════════════════════
+// Tracks how the board changes from flop→turn→river and who benefits.
+// This is critical for understanding range advantage shifts.
+
+/**
+ * Analyze how the board evolved from the flop to the current street.
+ * @param {Array} board - Current board cards (3-5 cards)
+ * @param {string} street - 'flop', 'turn', or 'river'
+ * @returns {Object} Board evolution analysis
+ */
+function analyzeBoardEvolution(board, street) {
+    if (!board || board.length < 3) {
+        return { evolution: 'unknown', pfrImpact: 0, callerImpact: 0, scareCards: [], drawsCompleted: [] };
+    }
+
+    const flopBoard = board.slice(0, 3);
+    const flopRanks = flopBoard.map(c => RANKS.indexOf(c[0]));
+    const flopSuits = flopBoard.map(c => c[1]);
+    const flopSuitCounts = {};
+    flopSuits.forEach(s => { flopSuitCounts[s] = (flopSuitCounts[s] || 0) + 1; });
+    const flopMaxSuit = Math.max(...Object.values(flopSuitCounts));
+    const flopFlushDrawSuit = Object.entries(flopSuitCounts).find(([s, c]) => c >= 2)?.[0];
+
+    const result = {
+        evolution: 'neutral',
+        pfrImpact: 0,         // Positive = good for PFR, negative = bad
+        callerImpact: 0,      // Positive = good for caller, negative = bad
+        scareCards: [],        // Cards that changed the dynamic
+        drawsCompleted: [],    // What draws got there
+        drawsBricked: [],      // What draws missed
+        boardPaired: false,    // Did the board pair on a later street?
+        overcard: false,       // Did an overcard fall?
+        flushCompleted: false,
+        straightCompleted: false,
+        boardGotWetter: false,
+        boardGotDrier: false
+    };
+
+    if (street === 'flop') return result; // No evolution on flop
+
+    // ═══ TURN CARD ANALYSIS ═══
+    if (board.length >= 4) {
+        const turnCard = board[3];
+        const turnRank = RANKS.indexOf(turnCard[0]);
+        const turnSuit = turnCard[1];
+
+        // Overcard detection: turn card higher than all flop cards
+        if (turnRank > Math.max(...flopRanks)) {
+            result.overcard = true;
+            result.scareCards.push(turnCard);
+            result.pfrImpact += 3; // Overcards favor PFR (AK, AQ hit)
+            result.callerImpact -= 2;
+        }
+
+        // Board pairing
+        if (flopRanks.includes(turnRank)) {
+            result.boardPaired = true;
+            result.scareCards.push(turnCard);
+            result.pfrImpact += 1; // Paired board slightly favors PFR (full houses)
+        }
+
+        // Flush draw created or completed
+        const turnSuitCounts = { ...flopSuitCounts };
+        turnSuitCounts[turnSuit] = (turnSuitCounts[turnSuit] || 0) + 1;
+        const turnMaxSuit = Math.max(...Object.values(turnSuitCounts));
+        if (flopMaxSuit < 3 && turnMaxSuit >= 3) {
+            result.drawsCompleted.push('flush');
+            result.flushCompleted = true;
+            result.callerImpact += 4; // Flush completions favor caller (suited hands)
+            result.pfrImpact -= 3;
+            result.scareCards.push(turnCard);
+        } else if (flopMaxSuit < 2 && turnMaxSuit >= 2) {
+            result.boardGotWetter = true;
+            result.callerImpact += 1;
+        }
+
+        // Straight completion check (simplified)
+        const allRanks = [...flopRanks, turnRank].sort((a, b) => a - b);
+        let maxRun = 1, curRun = 1;
+        for (let i = 1; i < allRanks.length; i++) {
+            if (allRanks[i] - allRanks[i - 1] === 1) { curRun++; maxRun = Math.max(maxRun, curRun); }
+            else if (allRanks[i] !== allRanks[i - 1]) curRun = 1;
+        }
+        // Check for A-low straight (A2345)
+        if (allRanks.includes(12) && allRanks.includes(0) && allRanks.includes(1)) maxRun = Math.max(maxRun, 3);
+        if (maxRun >= 4) {
+            result.drawsCompleted.push('straight');
+            result.straightCompleted = true;
+            result.callerImpact += 3;
+            result.pfrImpact -= 2;
+            result.scareCards.push(turnCard);
+        }
+
+        // Low card on high flop = blank (good for PFR)
+        if (turnRank < 6 && Math.min(...flopRanks) >= 8) {
+            result.boardGotDrier = true;
+            result.pfrImpact += 2;
+            result.callerImpact -= 1;
+        }
+    }
+
+    // ═══ RIVER CARD ANALYSIS ═══
+    if (board.length >= 5) {
+        const riverCard = board[4];
+        const riverRank = RANKS.indexOf(riverCard[0]);
+        const riverSuit = riverCard[1];
+        const turnBoard = board.slice(0, 4);
+        const turnRanks = turnBoard.map(c => RANKS.indexOf(c[0]));
+        const turnSuits = turnBoard.map(c => c[1]);
+        const turnSuitCounts2 = {};
+        turnSuits.forEach(s => { turnSuitCounts2[s] = (turnSuitCounts2[s] || 0) + 1; });
+        const turnMaxSuit2 = Math.max(...Object.values(turnSuitCounts2));
+
+        // River overcard
+        if (riverRank > Math.max(...turnRanks)) {
+            result.overcard = true;
+            result.scareCards.push(riverCard);
+            result.pfrImpact += 2;
+        }
+
+        // Board pairing on river
+        if (turnRanks.includes(riverRank)) {
+            result.boardPaired = true;
+            result.pfrImpact += 1;
+        }
+
+        // Flush completed on river
+        const riverSuitCounts = { ...turnSuitCounts2 };
+        riverSuitCounts[riverSuit] = (riverSuitCounts[riverSuit] || 0) + 1;
+        const riverMaxSuit = Math.max(...Object.values(riverSuitCounts));
+        if (turnMaxSuit2 < 3 && riverMaxSuit >= 3) {
+            result.drawsCompleted.push('flush');
+            result.flushCompleted = true;
+            result.callerImpact += 4;
+            result.pfrImpact -= 3;
+        }
+        // Flush draw BRICKED on river
+        if (turnMaxSuit2 >= 2 && turnMaxSuit2 < 3 && riverMaxSuit < 3) {
+            result.drawsBricked.push('flush');
+            result.pfrImpact += 2; // Bricked draws favor PFR (bluff-catchers win)
+            result.callerImpact -= 2;
+        }
+
+        // Straight completed on river
+        const allRanksR = [...turnRanks, riverRank].sort((a, b) => a - b);
+        let maxRunR = 1, curRunR = 1;
+        for (let i = 1; i < allRanksR.length; i++) {
+            if (allRanksR[i] - allRanksR[i - 1] === 1) { curRunR++; maxRunR = Math.max(maxRunR, curRunR); }
+            else if (allRanksR[i] !== allRanksR[i - 1]) curRunR = 1;
+        }
+        if (allRanksR.includes(12) && allRanksR.includes(0) && allRanksR.includes(1)) maxRunR = Math.max(maxRunR, 3);
+        if (maxRunR >= 5) {
+            result.drawsCompleted.push('straight_completed');
+            result.straightCompleted = true;
+            result.callerImpact += 3;
+            result.pfrImpact -= 2;
+        }
+        // Straight draw BRICKED
+        if (maxRunR < 4 && board.length === 5) {
+            // Check if turn had 3-in-a-row (open-ended) that didn't get there
+            const turnAllRanks = turnRanks.sort((a, b) => a - b);
+            let turnMaxRun = 1, turnCurRun = 1;
+            for (let i = 1; i < turnAllRanks.length; i++) {
+                if (turnAllRanks[i] - turnAllRanks[i - 1] === 1) { turnCurRun++; turnMaxRun = Math.max(turnMaxRun, turnCurRun); }
+                else if (turnAllRanks[i] !== turnAllRanks[i - 1]) turnCurRun = 1;
+            }
+            if (turnMaxRun >= 3 && maxRunR < 5) {
+                result.drawsBricked.push('straight');
+                result.pfrImpact += 1;
+            }
+        }
+
+        // Blank river (low card, no draws complete)
+        if (riverRank < 6 && result.drawsCompleted.length === 0 && !result.boardPaired) {
+            result.boardGotDrier = true;
+            result.pfrImpact += 1;
+        }
+    }
+
+    // ═══ OVERALL EVOLUTION CLASSIFICATION ═══
+    if (result.pfrImpact >= 3) result.evolution = 'pfr_favorable';
+    else if (result.pfrImpact <= -3) result.evolution = 'caller_favorable';
+    else if (result.drawsCompleted.length > 0) result.evolution = 'dynamic';
+    else if (result.drawsBricked.length > 0) result.evolution = 'static_brick';
+    else result.evolution = 'neutral';
+
+    return result;
+}
 
 /**
  * Calculate the geometric bet sizing fraction that gets stacks in by a target street.
@@ -9005,7 +9733,54 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     }
 
     // --- 4. FALLBACK IF NO GTO ---
-    // ═══ UPGRADED: Try specialized Turn/River heuristic engine FIRST ═══
+
+    // ═══ DEDICATED FLOP HEURISTIC ENGINE ═══
+    // When Supabase lacks flop data, use the specialized flop engine
+    // with board texture, c-bet strategy, range advantage, and opponent reads.
+    if (!finalAction && street === 'flop') {
+        const hash = getHash(profileId);
+        let flopLooseness = (hash % 20) - 10;
+        let flopAggression = ((hash >> 4) % 20) - 10;
+        try {
+            if (_personalityModule) {
+                const style = _personalityModule.getPlayStyle?.(profileId);
+                if (style?.key) {
+                    const sl = { TAG: -3, nit: -15, LAG: 8, maniac: 15, calling_station: 10 };
+                    const sa = { TAG: 5, nit: -10, LAG: 12, maniac: 18, calling_station: -8 };
+                    flopLooseness = sl[style.key] ?? flopLooseness;
+                    flopAggression = sa[style.key] ?? flopAggression;
+                }
+            }
+        } catch (_) { }
+
+        let flopEnrichedRead = null;
+        try {
+            const adv = await getAdvancedModule();
+            if (adv?.getOpponentRead && primaryOppId) {
+                flopEnrichedRead = adv.getOpponentRead(profileId, primaryOppId);
+            }
+        } catch (_) { }
+
+        const flopHeroIsAggressor = engineState.lastRaiser === profileId;
+
+        const flopDecision = makeFlopHeuristicDecision({
+            holeCards: holeCardStrings, board: boardStrings,
+            handStr, position, stackBB, potSize, toCall, bb,
+            numPlayers, legalActions, profileId,
+            aggressionBias: flopAggression, loosenessBias: flopLooseness,
+            opponentAdjustment,
+            enrichedOpponentRead: flopEnrichedRead,
+            heroIsAggressor: flopHeroIsAggressor,
+            counterStrategyMode: counterStrategy.mode
+        });
+        if (flopDecision) {
+            finalAction = flopDecision.type;
+            finalAmount = flopDecision.amount;
+            console.log(`[HorseBrain] 🎴 Flop heuristic: ${finalAction}${finalAmount ? ` (${finalAmount})` : ''} [str=${evaluatePostflopHand(holeCardStrings, boardStrings).strength}]`);
+        }
+    }
+
+    // ═══ DEDICATED TURN/RIVER HEURISTIC ENGINE ═══
     // PioSolver data in Supabase is richest for preflop + flop. Turn/river
     // spots are sparser, so this dedicated engine fills the gap with
     // board runout analysis, polarization, blocker effects, and RIO guards.
@@ -11600,6 +12375,7 @@ module.exports = {
     getActionDelay,
     validateAndClamp,
     makeFallbackDecision,
+    makeFlopHeuristicDecision,
     makeTurnRiverHeuristicDecision,
     evaluatePostflopHand,
     evaluateBoardWetness,
