@@ -105,6 +105,7 @@ export default function PokerToursPage() {
     const [distanceFilter, setDistanceFilter] = useState('all');
     const searchInputRef = useRef(null);
     const [searchFocused, setSearchFocused] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
     const [favorites, setFavorites] = useState(() => {
         if (typeof window === 'undefined') return {};
         try {
@@ -139,11 +140,14 @@ export default function PokerToursPage() {
         if (region && region !== 'all') {
             setSelectedRegion(region);
         }
+        
+        // Let the state updates complete before allowing URL sync
+        setTimeout(() => setIsInitialized(true), 0);
     }, []);
 
     // ─── URL sync: update URL when filters change (without page reload) ───
     useEffect(() => {
-        if (typeof window === 'undefined') return;
+        if (!isInitialized || typeof window === 'undefined') return;
         const params = new URLSearchParams();
         if (searchQuery) params.set('q', searchQuery);
         if (dateRange !== 'all') params.set('range', dateRange);
@@ -156,7 +160,7 @@ export default function PokerToursPage() {
         if (newUrl !== window.location.pathname + window.location.search) {
             window.history.replaceState(null, '', newUrl);
         }
-    }, [searchQuery, dateRange, selectedType, distanceFilter, buyinFilter, selectedRegion]);
+    }, [isInitialized, searchQuery, dateRange, selectedType, distanceFilter, buyinFilter, selectedRegion]);
 
     // ─── Keyboard shortcut: Cmd/Ctrl+K to focus search ───
     useEffect(() => {
