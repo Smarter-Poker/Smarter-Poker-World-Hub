@@ -6685,13 +6685,31 @@ function makeTurnRiverHeuristicDecision(params) {
 
                 // Narrative boost
                 delayedCbetFreq += narrativeAggrMod / 40;
+
+                // ═══ LIVE-READ DELAYED C-BET (Phase 21) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // High fold freq → delayed c-bet bluffs are very profitable
+                    if (liveRead.foldFreq > 0.50) delayedCbetFreq += 0.08;
+                    // Low WTSD → they give up easily → delayed c-bet prints
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) delayedCbetFreq += 0.06;
+                    // Calling station → only delayed c-bet with value hands
+                    if (liveRead.callFreq > 0.60 && handEval.strength < 35) delayedCbetFreq -= 0.12;
+                    if (liveRead.callFreq > 0.60 && handEval.strength >= 55) delayedCbetFreq += 0.06;
+                    // They checked behind on flop too → if they have high c-bet%, range is CAPPED
+                    if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.65) delayedCbetFreq += 0.08;
+                }
+
                 delayedCbetFreq = Math.max(0, Math.min(0.80, delayedCbetFreq));
 
                 if (delayedCbetFreq > 0.05 && Math.random() < delayedCbetFreq) {
-                    // Delayed c-bet sizing: slightly bigger than normal (credible after checking)
                     let sizeFrac = handEval.strength >= 55 ? 0.60 : 0.50;
-                    if (boardWet === 'wet') sizeFrac += 0.08; // Charge draws
-                    console.log(`[HorseBrain] 🎯 DELAYED C-BET: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency}`);
+                    if (boardWet === 'wet') sizeFrac += 0.08;
+                    // Live sizing: smaller vs folders, bigger vs stations
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        if (liveRead.foldFreq > 0.50 && handEval.strength < 35) sizeFrac = Math.max(0.38, sizeFrac - 0.08);
+                        if (liveRead.callFreq > 0.55 && handEval.strength >= 45) sizeFrac = Math.min(0.70, sizeFrac + 0.06);
+                    }
+                    console.log(`[HorseBrain] 🎯 DELAYED C-BET: str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
             }
@@ -8234,8 +8252,18 @@ function makeTurnRiverHeuristicDecision(params) {
                 // ═══ SPR + POLARIZATION BLUFF ADJUSTMENT (RIVER) ═══
                 bluffProbability *= sprStrategy.bluffMult * polarBluffMod;
 
-                // GTO cap: river bluffs should not exceed ~35% even with max blockers + reads
-                bluffProbability = Math.max(0, Math.min(0.35, bluffProbability));
+                // ═══ LIVE-READ RIVER BLUFF FREQUENCY (Phase 21) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    if (liveRead.foldFreq > 0.55) bluffProbability += 0.08;
+                    if (liveRead.foldFreq < 0.30) bluffProbability -= 0.08;
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) bluffProbability += 0.06;
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) bluffProbability += 0.05;
+                    if (liveRead.wtsd !== null && liveRead.wtsd > 0.35) bluffProbability -= 0.06;
+                    if (liveRead.callFreq > 0.60) bluffProbability = Math.min(bluffProbability, 0.05);
+                }
+
+                // GTO cap: river bluffs should not exceed ~38% even with max blockers + reads
+                bluffProbability = Math.max(0, Math.min(0.38, bluffProbability));
 
                 if (Math.random() < bluffProbability) {
                     // Polarized range: use larger bluff sizing (mirrors our value bets)
