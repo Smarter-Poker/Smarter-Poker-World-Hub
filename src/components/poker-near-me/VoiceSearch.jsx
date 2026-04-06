@@ -298,8 +298,8 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
             )}
 
             <style jsx>{`
-        .voice-fab { position: fixed; bottom: 24px; left: 24px; z-index: 9999; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 6px 24px rgba(255,255,255,0.25); transition: all 0.3s; }
-        .voice-fab:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(255,255,255,0.3); }
+        .voice-fab { position: fixed; bottom: 24px; left: 24px; z-index: 9999; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #64748b, #334155); border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.5); transition: all 0.3s; }
+        .voice-fab:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
         .voice-fab.listening { background: linear-gradient(135deg, #ef4444, #dc2626); animation: fabPulse 1.5s ease-in-out infinite; }
         .voice-fab-ring { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid rgba(239,68,68,0.5); animation: ringExpand 1.5s ease-out infinite; }
         @keyframes fabPulse { 0%, 100% { box-shadow: 0 4px 20px rgba(239,68,68,0.4); } 50% { box-shadow: 0 4px 30px rgba(239,68,68,0.6); } }
@@ -327,7 +327,7 @@ export default function VoiceSearch({ onResult, isListening: externalListening }
         .voice-tag.type { background: rgba(245,158,11,0.15); color: #f59e0b; }
         .voice-tag.buyin { background: rgba(168,85,247,0.15); color: #a855f7; }
         .voice-tag.search { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); }
-        .voice-apply-btn { width: 100%; padding: 10px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .voice-apply-btn { width: 100%; padding: 10px; background: linear-gradient(135deg, #64748b, #334155); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; }
         .voice-unsupported { text-align: center; padding: 20px; }
         .voice-unsupported p { color: rgba(255,255,255,0.4); }
         .voice-examples { margin-top: 12px; }
