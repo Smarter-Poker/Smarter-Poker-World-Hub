@@ -163,6 +163,8 @@ def sb_delete(table, query):
 # VALIDATED regions that actually return unique data (not 301 → Las Vegas)
 # These 11 regions are the ONLY ones that contain unique games data.
 # All other slugs redirect to Las Vegas and waste cycle time.
+# Major markets (LA, South FL, CT, MI, PA, etc.) 301→LV — verified 2026-04-06.
+# Those venues are covered by the orphan venue system or Bravo direct scraping.
 PA_VALIDATED_REGIONS = [
     'las-vegas-nevada',
     'texas',
@@ -175,25 +177,6 @@ PA_VALIDATED_REGIONS = [
     'laughlin-nevada',
     'virginia',
     'georgia',
-    # Expanded coverage (#7) — major poker markets
-    'los-angeles-california',
-    'south-florida',
-    'san-francisco-bay-area-california',
-    'connecticut',
-    'michigan',
-    'pennsylvania',
-    'maryland',
-    'tampa-florida',
-    'central-florida',
-    'north-florida',
-    'san-diego-california',
-    'sacramento-california',
-    'reno-nevada',
-    'colorado',
-    'arizona',
-    'new-york',
-    'illinois',
-    'indiana',
 ]
 
 # Hardcoded fallback list for prominent venues located in regions that PokerAtlas

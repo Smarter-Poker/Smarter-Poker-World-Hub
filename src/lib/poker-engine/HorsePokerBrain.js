@@ -4890,7 +4890,12 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
             // Monster hands: raise for value
             if (effectiveStrength >= 85 && canRaise) {
-                const valueSizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false);
+                const valueSizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false, {
+                    boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
+                    oppTendency: opponentAdjustment.bluffAware ? 'bluffy' : opponentAdjustment.foldMod > 0 ? 'weak-tight' : 'balanced',
+                    oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
+                    stackBB, isPolarized: true
+                });
                 const raiseAmt = Math.round(toCall + potSize * valueSizeFrac);
                 const amt = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseAmt, raiseAction?.maxAmount || raiseAmt));
                 return { type: raiseAction.type, amount: amt };
@@ -4937,7 +4942,12 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
         // ── THIN VALUE BETTING ──
         if (effectiveStrength >= 60 && canRaise) {
             // Strong hand: value bet
-            const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, multiway.adjustSizing);
+            const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, multiway.adjustSizing, {
+                boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
+                oppTendency: opponentAdjustment.bluffAware ? 'bluffy' : opponentAdjustment.foldMod > 0 ? 'weak-tight' : 'balanced',
+                oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
+                stackBB
+            });
             const betSize = Math.round(potSize * sizeFrac);
             const amt = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
             return { type: raiseAction.type, amount: amt };
@@ -5046,7 +5056,10 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                     // With strong draws on wet boards → bet bigger (we have equity even if called)
                     if (handEval.hasFlushDraw || handEval.hasOESD) cbetFrac = 0.60;
                 } else {
-                    cbetFrac = getOptimalBetSize(handEval.category, street, potSize, effectiveStrength < 30);
+                    cbetFrac = getOptimalBetSize(handEval.category, street, potSize, effectiveStrength < 30, {
+                        boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
+                        heroIsAggressor: true, stackBB
+                    });
                 }
 
                 // ═══ RANGE ADVANTAGE C-BET (new) ═══
@@ -5142,7 +5155,10 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
         // Strong hands: value bet (sizing by board texture)
         if (effectiveStrength >= 70 && canRaise) {
-            const sizeFrac = isDryBoard ? 0.50 : getOptimalBetSize(handEval.category, street, potSize, false);
+            const sizeFrac = isDryBoard ? 0.50 : getOptimalBetSize(handEval.category, street, potSize, false, {
+                boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
+                heroIsAggressor: gameState.wasAggressor || false, stackBB
+            });
             const betSize = Math.round(potSize * sizeFrac);
             const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
             return { type: raiseAction.type, amount };
@@ -5249,7 +5265,12 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
     // Monster hands: raise
     if (effectiveStrength >= 85 && canRaise) {
-        const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
+        const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false, {
+            boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
+            oppTendency: opponentAdjustment.bluffAware ? 'bluffy' : opponentAdjustment.foldMod > 0 ? 'weak-tight' : 'balanced',
+            oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
+            stackBB, isPolarized: true
+        });
         const raiseSize = Math.round(toCall + potSize * sizeFrac);
         const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
         return { type: raiseAction.type, amount };
@@ -7748,7 +7769,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             if (finalAction === 'check' && !facingBet && handEval.strength >= 60) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                 if (raiseAction) {
-                    const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
+                    const isIPGuard = new Set(['BTN', 'CO', 'HJ']).has(position);
+                    const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false, {
+                        isInPosition: isIPGuard, numPlayers, handStrength: handEval.strength, stackBB
+                    });
                     const betSize = Math.round(potSize * sizeFrac);
                     finalAction = raiseAction.type;
                     finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
@@ -7759,7 +7783,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= 50) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                 if (raiseAction && Math.random() < 0.65) { // 65% value bet frequency
-                    const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false);
+                    const isIPGuard3 = new Set(['BTN', 'CO', 'HJ']).has(position);
+                    const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false, {
+                        isInPosition: isIPGuard3, numPlayers, handStrength: handEval.strength, stackBB
+                    });
                     const betSize = Math.round(potSize * sizeFrac);
                     finalAction = raiseAction.type;
                     finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
@@ -8164,7 +8191,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         if ((finalAction === 'check') && !facingBet && handEval.strength >= betThreshold) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
             if (raiseAction && Math.random() < 0.70) {
-                const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
+                const isIPUniv = new Set(['BTN', 'CO', 'HJ']).has(position);
+                const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false, {
+                    isInPosition: isIPUniv, numPlayers, handStrength: handEval.strength, stackBB
+                });
                 const betSize = Math.round(potSize * sizeFrac);
                 finalAction = raiseAction.type;
                 finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
@@ -8182,7 +8212,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= 50) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
             if (raiseAction && Math.random() < 0.65) {
-                const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false);
+                const isIPRiver = new Set(['BTN', 'CO', 'HJ']).has(position);
+                const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false, {
+                    isInPosition: isIPRiver, numPlayers, handStrength: handEval.strength, stackBB
+                });
                 const betSize = Math.round(potSize * sizeFrac);
                 finalAction = raiseAction.type;
                 finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
