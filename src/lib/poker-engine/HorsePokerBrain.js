@@ -6378,6 +6378,17 @@ function makeTurnRiverHeuristicDecision(params) {
                 let sizeFrac = (boardWet === 'dry' ? 0.45 : boardWet === 'wet' ? 0.66 : 0.55) * sprStrategy.sizeMult;
                 let betFreq = multiway ? Math.max(0.40, 0.60 + mwAdj.cbetFreqMod) : aggrFreq;
 
+                // ═══ 3-BET POT TURN BARREL ADJUSTMENTS ═══
+                // In 3-bet pots, ranges are narrow → barrel MORE for value (opponent has a pair),
+                // but use SMALLER sizing (ranges are condensed, 50% pot is standard).
+                if (is3BetPot) {
+                    betFreq = Math.min(0.85, betFreq + 0.10); // Barrel more often (ranges are strong)
+                    sizeFrac = Math.max(0.35, sizeFrac * 0.85); // Smaller sizing in 3-bet pots
+                }
+                if (is4BetPot && spr <= 3 && handEval.strength >= 55) {
+                    return { type: 'all_in' }; // 4-bet pot + low SPR = just jam
+                }
+
                 // ═══ POSITION-AWARE BARREL FREQUENCY ═══
                 betFreq += posFreqMod.ipValueBetBoost; // IP bets more for thin value
                 betFreq += posFreqMod.turnBarrelOOPPenalty; // OOP barrel penalty
@@ -6562,11 +6573,67 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3 && handEval.strength < 45) {
                     probeFreq = 0; // Don't probe into a calling station with air
                 }
+                // ═══ 3-BET POT: Probe less in 3-bet pots (opponent's checking range is stronger) ═══
+                if (is3BetPot) {
+                    probeFreq *= 0.65; // 35% reduction (opponent checked with a strong range)
+                    probeSizing = Math.max(0.33, probeSizing - 0.08); // Smaller probes
+                }
 
                 probeFreq = Math.max(0, Math.min(0.50, probeFreq));
                 if (probeFreq > 0.05 && Math.random() < probeFreq) {
                     console.log(`[HorseBrain] 🔍 TURN PROBE: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency} size=${Math.round(probeSizing * 100)}%`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeSizing)) };
+                }
+            }
+
+            // ═══ OOP TURN LEAD (Non-Aggressor OOP — Delayed Donk) ═══
+            // When we're the caller OOP and the PFR checked back flop (showing weakness),
+            // we should lead the turn with a wider range than normal.
+            // GTO principle: when PFR gives up c-bet, their range is capped → we can attack.
+            if (!heroIsAggressor && !isIP && canRaise && !multiway) {
+                const pfrCheckedFlop = narrative.heroCheckedFlop && !narrative.heroBetFlop;
+                if (pfrCheckedFlop) {
+                    // ── VALUE LEAD: Strong hands that benefit from building pot ──
+                    if (handEval.strength >= 55) {
+                        let oopLeadFreq = 0.45;
+                        // Wet board = lead for protection
+                        if (boardWet === 'wet') oopLeadFreq += 0.10;
+                        // Scare card = credible lead
+                        if (scareLevel >= 1) oopLeadFreq += 0.08;
+                        // Board evolution: runout favors our range
+                        if (boardEvolution.evolution === 'caller_favorable') oopLeadFreq += 0.10;
+                        if (boardEvolution.evolution === 'pfr_favorable') oopLeadFreq -= 0.10;
+                        oopLeadFreq = Math.max(0.20, Math.min(0.70, oopLeadFreq));
+                        if (Math.random() < oopLeadFreq) {
+                            const leadSize = boardWet === 'wet' ? 0.60 : 0.50;
+                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (value): str=${handEval.strength} scare=${scareLevel}`);
+                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * leadSize)) };
+                        }
+                    }
+                    // ── PROTECTION LEAD: Medium hands on wet boards ──
+                    if (handEval.strength >= 35 && handEval.strength < 55 && boardWet === 'wet') {
+                        let protectLeadFreq = 0.25;
+                        if (drawEq.outs >= 4) protectLeadFreq += 0.08; // We're vulnerable
+                        if (oppTendency === 'weak-tight' && oppConfidence > 0.3) protectLeadFreq += 0.10;
+                        protectLeadFreq = Math.max(0, Math.min(0.40, protectLeadFreq));
+                        if (Math.random() < protectLeadFreq) {
+                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (protect): str=${handEval.strength}`);
+                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.45)) };
+                        }
+                    }
+                    // ── BLUFF LEAD: Air + blockers on favorable runout ──
+                    if (handEval.strength < 20 && aggressionBias > 0) {
+                        let bluffLeadFreq = 0.12 + aggressionBias / 60;
+                        if (scareLevel >= 2) bluffLeadFreq += 0.10;
+                        if (boardEvolution.evolution === 'caller_favorable') bluffLeadFreq += 0.06;
+                        if (oppFoldFreq > 0.45 && oppConfidence > 0.3) bluffLeadFreq += 0.08;
+                        if (oppCallFreq > 0.60 && oppConfidence > 0.3) bluffLeadFreq = 0;
+                        bluffLeadFreq = Math.max(0, Math.min(0.25, bluffLeadFreq));
+                        if (Math.random() < bluffLeadFreq) {
+                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (bluff): str=${handEval.strength} scare=${scareLevel}`);
+                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.55)) };
+                        }
+                    }
                 }
             }
 
@@ -6664,6 +6731,57 @@ function makeTurnRiverHeuristicDecision(params) {
         }
 
         // ═══ FACING A BET ON TURN ═══
+
+        // ═══ FACING A RAISE ON TURN (Hero bet, got raised) ═══
+        // When hero already bet this street and opponent raises, the dynamic changes:
+        // - Opponent's raising range is very strong (they raised a bet, not just bet into a check)
+        // - Our range is ALSO strong (we already bet, showing strength)
+        // - Key decision: commit with value, call with draws/sets, fold overvalued hands
+        // Detection: narrative shows we bet turn AND we're now facing a call amount
+        const heroAlreadyBetTurn = narrative.heroBetTurn && facingBet;
+        const facingTurnRaise = heroAlreadyBetTurn && betToPot >= 0.45;
+        if (facingTurnRaise) {
+            // ── NUTS: Re-raise (4-bet the turn) ──
+            if (handEval.strength >= 85 && canRaise) {
+                // Size to set up river jam
+                const potAfterCall = potSize + toCall * 2;
+                const geoJam = getGeometricSizing(potAfterCall, heroStack - toCall, 1, true);
+                if (geoJam.isJammable && spr <= 4) {
+                    return { type: 'all_in' };
+                }
+                const reRaiseMult = 2.5 + Math.random() * 0.5;
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * reRaiseMult)) };
+            }
+            // ── STRONG HANDS (sets, two pair, overpair): Call and re-evaluate river ──
+            if (handEval.strength >= 60) {
+                // Against weak-tight raisers: lean fold (they have the nuts)
+                if (oppTendency === 'weak-tight' && oppConfidence > 0.4 && handEval.strength < 75) {
+                    console.log(`[HorseBrain] 🎯 TURN vs RAISE FOLD: opp=weak-tight raiser, str=${handEval.strength}`);
+                    return canCheck ? { type: 'check' } : { type: 'fold' };
+                }
+                // Draws completed → be cautious
+                if (boardEvolution.drawsCompleted.length > 0 && handEval.strength < 70) {
+                    const weHaveDraw = handEval.category?.includes('flush') || handEval.category?.includes('straight');
+                    if (!weHaveDraw) {
+                        return canCheck ? { type: 'check' } : { type: 'fold' };
+                    }
+                }
+                return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+            // ── DRAWS: Call with massive draws (14+ outs), fold the rest ──
+            if (drawEq.outs >= 14 && canCall) {
+                return { type: 'call' }; // Combo draw vs raise — implied odds massive
+            }
+            if (drawEq.outs >= 10 && canCall && betToPot <= 0.60) {
+                return { type: 'call' }; // Strong draw + reasonable odds
+            }
+            // ── MEDIUM/WEAK: Fold (raise over our bet = strong range) ──
+            if (handEval.strength >= 45 && betToPot <= 0.45 && canCall) {
+                return { type: 'call' }; // Min-raise → call wider
+            }
+            console.log(`[HorseBrain] 🚫 TURN vs RAISE FOLD: str=${handEval.strength} outs=${drawEq.outs} betToPot=${Math.round(betToPot * 100)}%`);
+            return canCheck ? { type: 'check' } : { type: 'fold' };
+        }
 
         // ── POT COMMITTED: Jam ──
         if (isPotCommitted && handEval.strength >= 45) {
@@ -7347,6 +7465,65 @@ function makeTurnRiverHeuristicDecision(params) {
 
         // ═══ FACING A BET ON RIVER ═══
         // This is THE most important decision in poker.
+
+        // ═══ FACING A RAISE ON RIVER (Hero bet, got raised) ═══
+        // The most polarized spot in poker. Opponent raises our river bet = the NUTS or a bluff.
+        // Our response depends on: hand strength, blockers, opponent profile, board texture.
+        const heroAlreadyBetRiver = narrative.barrelsInARow >= 1 && facingBet && street === 'river';
+        const facingRiverRaise = heroAlreadyBetRiver && betToPot >= 0.50;
+        if (facingRiverRaise) {
+            // ── STONE COLD NUTS: Re-raise for max value ──
+            if (handEval.strength >= 90 && canRaise) {
+                // On the river, raising a raise with the nuts = all-in
+                return { type: 'all_in' };
+            }
+            // ── VERY STRONG: Call (we're near the top of our range but not the nuts) ──
+            if (handEval.strength >= 75) {
+                // Against polarized range: call (they're either nutted or bluffing)
+                // Only re-raise with actual nuts (handled above)
+                return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+            // ── BLUFF-CATCHER ZONE (55-74): Blockers + reads matter enormously ──
+            if (handEval.strength >= 55) {
+                let riverRaiseCallFreq = 0.25; // Base: call ~25% of the time in this range
+                // ═══ BLOCKER-BASED CALL vs RIVER RAISE ═══
+                const bcBlockerCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
+                if (bcBlockerCount >= 2) riverRaiseCallFreq += 0.20;
+                else if (bcBlockerCount >= 1) riverRaiseCallFreq += 0.10;
+                // ═══ OPPONENT READ-BASED ═══
+                if (oppTendency === 'bluffy' && oppConfidence > 0.3) riverRaiseCallFreq += 0.15;
+                if (oppBluffFreq > 0.40 && oppConfidence > 0.4) riverRaiseCallFreq += 0.10;
+                if (oppTendency === 'weak-tight' && oppConfidence > 0.4) riverRaiseCallFreq = 0.05; // They NEVER bluff-raise river
+                // ═══ BOARD EVOLUTION ═══
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                    riverRaiseCallFreq += 0.08; // Missed draws → more bluff raises
+                }
+                if (boardEvolution.drawsCompleted.length > 0 && !handEval.category?.includes('flush') && !handEval.category?.includes('straight')) {
+                    riverRaiseCallFreq -= 0.12; // Draws got there → they probably have it
+                }
+                // ═══ POLARIZATION CONTEXT ═══
+                riverRaiseCallFreq += polarCallMod * 0.5; // Half the normal polarization effect
+                // ═══ SIZE TELLS ═══
+                if (betToPot >= 2.0) riverRaiseCallFreq -= 0.05; // Massive overbet raise = usually nuts
+                if (betToPot <= 0.70) riverRaiseCallFreq += 0.08; // Small raise = often thin/bluff
+
+                riverRaiseCallFreq = Math.max(0.02, Math.min(0.55, riverRaiseCallFreq));
+                if (Math.random() < riverRaiseCallFreq) {
+                    console.log(`[HorseBrain] 🦸 RIVER vs RAISE CALL: str=${handEval.strength} blockers=${bcBlockerCount} freq=${Math.round(riverRaiseCallFreq * 100)}%`);
+                    return canCall ? { type: 'call' } : { type: 'fold' };
+                }
+                console.log(`[HorseBrain] 🚫 RIVER vs RAISE FOLD: str=${handEval.strength} blockers=${bcBlockerCount}`);
+                return canCheck ? { type: 'check' } : { type: 'fold' };
+            }
+            // ── DRAWS / WEAK HANDS: Almost always fold to river raise ──
+            // River raises are incredibly strong — folding weak hands is correct
+            const weakBlockerCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
+            if (handEval.strength >= 40 && weakBlockerCount >= 2 && oppTendency === 'bluffy') {
+                // Only hero-call raise with premium blockers vs known bluffer
+                if (Math.random() < 0.10) return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+            return canCheck ? { type: 'check' } : { type: 'fold' };
+        }
 
         // ── POT COMMITTED: Call or jam ──
         if (isPotCommitted && handEval.strength >= 35) {
@@ -8242,13 +8419,17 @@ function makeFlopHeuristicDecision(params) {
     // ── MONSTERS: Raise for value (slow-play option) ──
     if (handEval.strength >= 80 && canRaise) {
         // Slow-play on dry boards (opponent will keep bluffing)
-        if (boardWet === 'dry' && !multiway && oppTendency === 'bluffy' && oppConfidence > 0.3) {
+        // ═══ 3-BET POT: Never slow-play in 3-bet pots (SPR is low, need to build pot NOW) ═══
+        if (boardWet === 'dry' && !multiway && oppTendency === 'bluffy' && oppConfidence > 0.3 && !is3BetPot) {
             if (Math.random() < 0.40) {
                 return canCall ? { type: 'call' } : { type: 'fold' }; // Trap
             }
         }
         // Raise for value — size to build pot for turn/river
         let raiseMult = 2.8 + Math.random() * 0.4;
+        // ═══ 3-BET POT: Smaller raises work (ranges are narrow, opponent is committed) ═══
+        if (is3BetPot) raiseMult = Math.max(2.2, raiseMult * 0.85);
+        if (is4BetPot && spr <= 3) return { type: 'all_in' }; // 4-bet pot → just jam
         // Against callers, raise bigger
         if (oppCallFreq > 0.55 && oppConfidence > 0.3) raiseMult = Math.min(3.5, raiseMult * 1.10);
         // Geometric: plan for 3 streets of value
@@ -8261,6 +8442,17 @@ function makeFlopHeuristicDecision(params) {
 
     // ── STRONG HANDS: Call or raise for protection ──
     if (handEval.strength >= 55) {
+        // ═══ 3-BET POT: Top pair+ is a premium hand in 3-bet pots — raise for value more ═══
+        if (is3BetPot && canRaise && handEval.strength >= 60 && !multiway) {
+            let threeBetRaiseFreq = 0.35;
+            if (spr <= 4) threeBetRaiseFreq = 0.50; // Low SPR = commit with strong hands
+            if (oppCallFreq > 0.55 && oppConfidence > 0.3) threeBetRaiseFreq += 0.10;
+            if (Math.random() < threeBetRaiseFreq) {
+                const threeBetRaiseMult = spr <= 3 ? -1 : 2.5; // -1 = all-in
+                if (threeBetRaiseMult === -1) return { type: 'all_in' };
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * threeBetRaiseMult)) };
+            }
+        }
         // On wet boards, consider raising for protection
         if (canRaise && boardWet === 'wet' && handEval.strength >= 65 && !multiway) {
             let protectRaiseFreq = 0.30;
