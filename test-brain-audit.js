@@ -1707,6 +1707,210 @@ asyncTest('getDecision SPR trap folds marginal hand', async () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 47b: Pipeline utility functions ══');
+// ═══════════════════════════════════════════════════════════
+
+// ── analyzeStreetNarrative ──
+// Not directly exported, but we can test via getStreetMemory patterns
+// Actually let's check — it's used internally. Let me find a way to import it.
+// It's NOT exported. But recordStreetAction and getStreetMemory ARE accessible via
+// the makeTurnRiverHeuristicDecision params. Let's test detectBombPotOrStraddle etc.
+
+const detectBomb = brain.detectBombPotOrStraddle;
+const recordRaise = brain.recordRaiseSize;
+const isMinRaise = brain.isMinRaiser;
+const recordSqueezeFn = brain.recordSqueeze;
+const isSqueeze = brain.isSqueezeOverkill;
+const recordTiming = brain.recordActionTiming;
+const detectAngle = brain.detectAngleShoot;
+const recordColdCallFn = brain.recordColdCall;
+const recordBarrel = brain.recordBarrelVsColdCall;
+const isCCTrap = brain.isColdCallTrap;
+const detectRevImp = brain.detectReverseImplied;
+const recordRIT = brain.recordRITResponse;
+const isRIT = brain.isRITRefuser;
+const recordImg = brain.recordTableImageHand;
+const isImgExposed = brain.isImageExposed;
+const detectLimp = brain.detectLimpTrap;
+const recordIso = brain.recordIsoSize;
+const isMechIso = brain.isMechanicalIsolator;
+
+// ── detectBombPotOrStraddle ──
+
+test('detectBombPot: standard pot', () => {
+    const r = detectBomb(6, 2, false);
+    expect(r.isBombPot).toBe(false);
+    expect(r.isStraddle).toBe(false);
+    expect(r.equityThresholdBoost).toBe(0);
+});
+
+test('detectBombPot: bomb pot (pot >= 8*bb)', () => {
+    const r = detectBomb(20, 2, false);
+    expect(r.isBombPot).toBe(true);
+    expect(r.label).toBe('bomb-pot');
+    expect(r.equityThresholdBoost).toBe(15);
+});
+
+test('detectBombPot: straddle', () => {
+    const r = detectBomb(20, 2, true);
+    expect(r.isStraddle).toBe(true);
+    expect(r.isBombPot).toBe(false);
+    expect(r.equityThresholdBoost).toBe(10);
+});
+
+// ── isMinRaiser ──
+
+test('isMinRaiser: not enough data', () => {
+    const r = isMinRaise('nobody-999');
+    expect(r.isMinRaiser).toBe(false);
+});
+
+test('isMinRaiser: detected after enough min-raises', () => {
+    for (let i = 0; i < 5; i++) recordRaise('test-mr-1', 4, 2, false); // 4 <= 2*2.2=4.4 = min raise
+    const r = isMinRaise('test-mr-1');
+    expect(r.isMinRaiser).toBe(true);
+    expect(r.rate).toBeGreaterThan(0.4);
+});
+
+test('isMinRaiser: not triggered with large raises', () => {
+    for (let i = 0; i < 5; i++) recordRaise('test-mr-2', 20, 2, false); // 20 >> 4.4
+    const r = isMinRaise('test-mr-2');
+    expect(r.isMinRaiser).toBe(false);
+});
+
+// ── isSqueezeOverkill ──
+
+test('isSqueezeOverkill: not enough data', () => {
+    const r = isSqueeze('nobody-888');
+    expect(r.isOverkill).toBe(false);
+});
+
+test('isSqueezeOverkill: detected with high multiplier', () => {
+    for (let i = 0; i < 4; i++) recordSqueezeFn('test-sq-1', 50, 10); // 5x pot
+    const r = isSqueeze('test-sq-1');
+    expect(r.isOverkill).toBe(true);
+    expect(r.avgMult).toBeGreaterThanOrEqual(4.0);
+});
+
+test('isSqueezeOverkill: normal squeeze not triggered', () => {
+    for (let i = 0; i < 4; i++) recordSqueezeFn('test-sq-2', 20, 10); // 2x pot
+    const r = isSqueeze('test-sq-2');
+    expect(r.isOverkill).toBe(false);
+});
+
+// ── detectAngleShoot ──
+
+test('detectAngleShoot: no data', () => {
+    const r = detectAngle('nobody-777');
+    expect(r.isAngleShooting).toBe(false);
+    expect(r.extraEntropyMs).toBe(0);
+});
+
+test('detectAngleShoot: detected with fast actions', () => {
+    for (let i = 0; i < 6; i++) recordTiming('test-angle-1', 400); // all instant (<700ms)
+    const origRandom = Math.random;
+    Math.random = () => 0.5;
+    try {
+        const r = detectAngle('test-angle-1');
+        expect(r.isAngleShooting).toBe(true);
+        expect(r.extraEntropyMs).toBeGreaterThan(0);
+    } finally {
+        Math.random = origRandom;
+    }
+});
+
+test('detectAngleShoot: normal timing not triggered', () => {
+    for (let i = 0; i < 6; i++) recordTiming('test-angle-2', 3000); // all slow
+    const r = detectAngle('test-angle-2');
+    expect(r.isAngleShooting).toBe(false);
+});
+
+// ── isColdCallTrap ──
+
+test('isColdCallTrap: not enough data', () => {
+    const r = isCCTrap('nobody-666');
+    expect(r.isTrap).toBe(false);
+});
+
+test('isColdCallTrap: detected when opponent rarely folds to barrels', () => {
+    recordColdCallFn('test-cc-1');
+    for (let i = 0; i < 5; i++) recordBarrel('test-cc-1', false); // never folds
+    const r = isCCTrap('test-cc-1');
+    expect(r.isTrap).toBe(true); // winRate=0 < 0.35
+});
+
+test('isColdCallTrap: not triggered when opponent folds often', () => {
+    recordColdCallFn('test-cc-2');
+    for (let i = 0; i < 5; i++) recordBarrel('test-cc-2', true); // always folds
+    const r = isCCTrap('test-cc-2');
+    expect(r.isTrap).toBe(false); // winRate=1.0 > 0.35
+});
+
+// ── detectReverseImplied ──
+
+test('detectReverseImplied: no outs returns no block', () => {
+    const r = detectRevImp(0, 0.3, 100, 2, true);
+    expect(r.shouldBlock).toBe(false);
+});
+
+test('detectReverseImplied: weak draw on wet board blocks', () => {
+    // 4 outs (gutshot), potOdds=0.4, stack=100, 3 opponents, wet board
+    const r = detectRevImp(4, 0.40, 100, 3, true);
+    // drawEquity = 8%, potOdds=40%, should block
+    expect(r.shouldBlock).toBe(true);
+    expect(r.rioFactor).toBeGreaterThan(1.5);
+});
+
+// ── isRITRefuser ──
+
+test('isRITRefuser: not enough offers', () => {
+    const r = isRIT('nobody-555');
+    expect(r.isRITRefuser).toBe(false);
+});
+
+test('isRITRefuser: detected when always refuses', () => {
+    recordRIT('test-rit-1', false);
+    recordRIT('test-rit-1', false);
+    recordRIT('test-rit-1', false);
+    const r = isRIT('test-rit-1');
+    expect(r.isRITRefuser).toBe(true);
+});
+
+// ── detectLimpTrap ──
+
+test('detectLimpTrap: no limpers = no trap', () => {
+    const r = detectLimp(0, 'BTN', 20, false);
+    expect(r.isLimpTrap).toBe(false);
+});
+
+test('detectLimpTrap: many limpers with good SPR', () => {
+    // 4 limpers, in position, SPR > 10
+    const r = detectLimp(4, 'BTN', 15, false);
+    expect(r.isLimpTrap).toBe(true);
+});
+
+// ── isMechanicalIsolator ──
+
+test('isMechanicalIsolator: not enough data', () => {
+    const r = isMechIso('nobody-444');
+    expect(r.isMechanical).toBe(false);
+});
+
+test('isMechanicalIsolator: detected with consistent sizing', () => {
+    for (let i = 0; i < 6; i++) recordIso('test-iso-1', 6.0); // always 6bb iso
+    const r = isMechIso('test-iso-1');
+    expect(r.isMechanical).toBe(true);
+    expect(r.stdDev).toBeLessThan(0.5);
+});
+
+test('isMechanicalIsolator: not triggered with varied sizing', () => {
+    const sizes = [4, 6, 8, 10, 12, 14];
+    for (const s of sizes) recordIso('test-iso-2', s);
+    const r = isMechIso('test-iso-2');
+    expect(r.isMechanical).toBe(false);
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
