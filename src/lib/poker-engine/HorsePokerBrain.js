@@ -4665,9 +4665,33 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     const hash = getHash(profileId);
     const numPlayers = gameState.numPlayers || 2;
 
-    // Get personality bias (tight/loose, passive/aggressive)
-    const loosenessBias = (hash % 20) - 10; // -10 to +9
-    const aggressionBias = ((hash >> 4) % 20) - 10;
+    // ═══ UPGRADED: Use real personality module for play style if available ═══
+    // Fallback to hash-based biases only if personality module isn't loaded
+    let loosenessBias = (hash % 20) - 10; // -10 to +9 (default)
+    let aggressionBias = ((hash >> 4) % 20) - 10; // (default)
+    try {
+        if (_personalityModule) {
+            const style = _personalityModule.getPlayStyle?.(profileId);
+            if (style?.key) {
+                // Map real play styles to concrete bias values
+                const styleLooseness = {
+                    TAG: -3, nit: -15, LAG: 8, maniac: 15, calling_station: 10
+                };
+                const styleAggression = {
+                    TAG: 5, nit: -10, LAG: 12, maniac: 18, calling_station: -8
+                };
+                loosenessBias = styleLooseness[style.key] ?? loosenessBias;
+                aggressionBias = styleAggression[style.key] ?? aggressionBias;
+            }
+            // Also factor in skill tier — higher skill = tighter, more accurate decisions
+            const skillTier = _personalityModule.getSkillTier?.(profileId);
+            if (skillTier?.level) {
+                // Skill levels 1-5: fish makes more mistakes, crusher plays near-GTO
+                const skillTightness = { 1: -8, 2: -4, 3: 0, 4: 3, 5: 6 };
+                loosenessBias -= (skillTightness[skillTier.level] || 0);
+            }
+        }
+    } catch (_) { /* Personality enhancement is non-critical for fallback */ }
 
     // Legal action types
     const canCheck = legalActions.some(a => a.type === 'check');
@@ -5707,6 +5731,51 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             const raiseSize = Math.round(potSize * gtoDecision.sizing);
             const currentBet = engineState.currentBet || 0;
             finalAmount = currentBet + raiseSize; // Total bet = currentBet + our raise
+        }
+
+        // --- PREFLOP MODULE WIRING ---
+        // ═══ Apply anti-exploit modules to GTO preflop decisions ═══
+        if (street === 'preflop') {
+            const preflopStr = getPreflopStrength(handStr);
+
+            // MODULE 5: Sandwich — tighten calling range when sandwiched multiway
+            if (finalAction === 'call' && sandwichedFoldMod > 0 && preflopStr < (55 + sandwichedFoldMod)) {
+                console.log(`[HorseBrain] 🥊 MODULE 5 PREFLOP SANDWICH: folding ${handStr} (strength=${preflopStr} < ${55 + sandwichedFoldMod})`);
+                finalAction = 'fold';
+                finalAmount = null;
+            }
+
+            // MODULE 22: Iso Tell — widen 3-bet range vs mechanical isolators
+            if (finalAction === 'call' && isoTell.isMechanical && preflopStr >= 45 && toCall > bb * 2) {
+                const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                if (raiseAction && Math.random() < 0.40) {
+                    console.log(`[HorseBrain] 📐 MODULE 22 ISO EXPLOIT: 3-betting ${handStr} vs mechanical isolator`);
+                    finalAction = raiseAction.type;
+                    finalAmount = Math.round(toCall * 3);
+                    finalAmount = Math.max(raiseAction.minAmount || finalAmount, Math.min(finalAmount, raiseAction.maxAmount || finalAmount));
+                }
+            }
+
+            // MODULE 25: Min-Raise Defense — don't fold to min-raises, re-raise wider
+            if (finalAction === 'fold' && minRaiseTell.isMinRaiser && preflopStr >= 35 && toCall <= bb * 3) {
+                console.log(`[HorseBrain] 🔩 MODULE 25 PREFLOP MIN-RAISE DEFENSE: calling with ${handStr} instead of folding`);
+                finalAction = 'call';
+                finalAmount = null;
+            }
+
+            // MODULE 29: Bomb Pot awareness — tighten commit threshold preflop
+            if ((finalAction === 'raise' || finalAction === 'bet') && bombPotInfo.equityThresholdBoost > 0 && preflopStr < 60) {
+                console.log(`[HorseBrain] 💣 MODULE 29 PREFLOP: suppressing raise in bomb-pot format (strength=${preflopStr})`);
+                finalAction = toCall > 0 ? 'call' : 'check';
+                finalAmount = null;
+            }
+
+            // MODULE 20: Image Exposed — tighten open range when opponents have reads
+            if (imageExposed && (finalAction === 'raise' || finalAction === 'bet') && preflopStr < 55) {
+                console.log(`[HorseBrain] 📸 MODULE 20 PREFLOP: tightening opens while image exposed (strength=${preflopStr})`);
+                finalAction = toCall > 0 ? 'call' : 'check';
+                finalAmount = null;
+            }
         }
 
         // --- POSTFLOP HAND STRENGTH GUARDRAILS ---
