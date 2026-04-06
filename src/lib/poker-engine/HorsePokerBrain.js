@@ -6786,6 +6786,29 @@ function makeTurnRiverHeuristicDecision(params) {
                     }
                 }
 
+                // ═══ PHASE 16: LIVE-READ DRIVEN TURN SIZING ═══
+                // Dynamically adjust bet size based on what we know about THIS opponent.
+                // Core principle: size for max EV — bigger when they call too wide, smaller when they fold too much.
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Against calling stations: SIZE UP value bets — they call too wide
+                    if (liveRead.callFreq > 0.55) {
+                        sizeFrac = Math.min(0.85, sizeFrac + 0.08);
+                    }
+                    // Against folders: SIZE DOWN to keep them in range
+                    if (liveRead.foldFreq > 0.50) {
+                        sizeFrac = Math.max(0.33, sizeFrac - 0.08);
+                    }
+                    // Against frequent check-raisers: SIZE DOWN to reduce risk (they punish big bets)
+                    if (liveRead.checkRaisePct !== null && liveRead.checkRaisePct > 0.10 && !isIP) {
+                        sizeFrac = Math.max(0.35, sizeFrac - 0.06);
+                    }
+                    // Against overbetters: they're polarized → size normally, they'll call or fold either way
+                    // Against slow players (long tanks): they think more = can extract more
+                    if (currentActionTimingTell === 'tank_call') {
+                        sizeFrac = Math.min(0.80, sizeFrac + 0.05); // They tanked and called = marginal → size up next street
+                    }
+                }
+
                 betFreq = Math.max(0.10, Math.min(0.90, betFreq));
                 if (Math.random() < betFreq) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
@@ -7334,6 +7357,40 @@ function makeTurnRiverHeuristicDecision(params) {
         // Three check-raise types: value (monsters), semi-bluff (draws), and bluff (air + blockers).
         if (!isIP && canRaise) {
 
+            // ═══ PHASE 16: LIVE-READ DRIVEN CHECK-RAISE STRATEGY ═══
+            // Pre-compute live exploits for all check-raise types
+            let liveCRBoost = 0;   // Additive to check-raise frequency
+            let liveCRSizeMod = 1.0; // Multiplicative to check-raise sizing
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // Opponent c-bets too much → check-raise MORE (they bet wide, so CR prints money)
+                if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.70) {
+                    liveCRBoost += 0.10;
+                }
+                // Opponent c-bets rarely → they only bet strong → CR less
+                if (liveRead.cBetPct !== null && liveRead.cBetPct < 0.40) {
+                    liveCRBoost -= 0.08;
+                }
+                // Opponent folds to raises often → CR bluff more
+                if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) {
+                    liveCRBoost += 0.08;
+                }
+                // Opponent double-barrels rarely (one-and-done) → don't CR, just call and take it away on river
+                if (liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct < 0.30) {
+                    liveCRBoost -= 0.06; // Float is better than CR vs one-and-done
+                }
+                // Sizing: against stations, CR bigger. Against folders, CR standard.
+                if (liveRead.callFreq > 0.55) liveCRSizeMod = 1.12;
+                if (liveRead.foldFreq > 0.50) liveCRSizeMod = 0.92;
+                // Timing: opponent snap-bet → they're on autopilot → CR is very profitable
+                if (currentActionTimingTell === 'snap_aggression') {
+                    liveCRBoost += 0.08;
+                }
+                // Timing: opponent tanked and bet → they're considering fold → CR folds them out
+                if (currentActionTimingTell === 'tank_aggression') {
+                    liveCRBoost += 0.06;
+                }
+            }
+
             // VALUE CHECK-RAISE: Monsters (sets+, strong two pair)
             if (handEval.strength >= 70) {
                 let crFreq = 0.35;
@@ -7356,6 +7413,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 // ═══ COMMITMENT: If heavily invested, check-raise to protect investment ═══
                 if (isHeavilyCommitted) crFreq += 0.05;
 
+                crFreq += liveCRBoost; // PHASE 16: Live-read CR boost
                 crFreq = Math.max(0.15, Math.min(0.65, crFreq));
                 if (Math.random() < crFreq) {
                     // Geometric sizing: check-raise size that sets up river jam
@@ -7368,6 +7426,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     }
                     // Against calling stations, raise bigger
                     if (oppCallFreq > 0.55 && oppConfidence > 0.3) crMult = Math.min(4.0, crMult * 1.10);
+                    crMult *= liveCRSizeMod; // PHASE 16: Live-driven size adjustment
                     const crSize = Math.round(toCall * crMult);
                     console.log(`[HorseBrain] 💎 TURN CHECK-RAISE VALUE: str=${handEval.strength} crMult=${crMult.toFixed(1)}x narrative=${narrative.suggestedLine}`);
                     return { type: raiseAction.type, amount: clampAmt(crSize) };
@@ -7389,10 +7448,11 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (narrative.heroCheckedFlop && !narrative.heroBetFlop) semiCRFreq += 0.06;
                 // ═══ 3-BET POT: Less semi-bluff CR (opponent's range is strong, less fold equity) ═══
                 if (is3BetPot) semiCRFreq *= 0.60;
+                semiCRFreq += liveCRBoost * 0.8; // PHASE 16: Live boost (slightly less than value CR)
                 semiCRFreq = Math.max(0, Math.min(0.50, semiCRFreq));
 
                 if (Math.random() < semiCRFreq) {
-                    const crSize = Math.round(toCall * (2.5 + Math.random() * 0.5));
+                    let crSize = Math.round(toCall * (2.5 + Math.random() * 0.5) * liveCRSizeMod);
                     console.log(`[HorseBrain] 🌊 TURN SEMI-BLUFF CR: outs=${drawEq.outs} str=${handEval.strength}`);
                     return { type: raiseAction.type, amount: clampAmt(crSize) };
                 }
@@ -7413,10 +7473,11 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (narrative.heroCheckedFlop && heroIsAggressor) bluffCRFreq += 0.04; // Delayed trap line
                     // Scare card on turn helps
                     if (scareLevel >= 1) bluffCRFreq += 0.05;
+                    bluffCRFreq += liveCRBoost; // PHASE 16: Live-driven bluff CR boost
                     bluffCRFreq = Math.max(0, Math.min(0.25, bluffCRFreq));
 
                     if (Math.random() < bluffCRFreq) {
-                        const crSize = Math.round(toCall * (2.8 + Math.random() * 0.4));
+                        const crSize = Math.round(toCall * (2.8 + Math.random() * 0.4) * liveCRSizeMod);
                         console.log(`[HorseBrain] 🎭 TURN BLUFF CR: blockers=${crBlockerCount} opp=${oppTendency} scare=${scareLevel}`);
                         return { type: raiseAction.type, amount: clampAmt(crSize) };
                     }
@@ -7576,6 +7637,28 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Merged range → smaller overbets (our range is condensed)
                 overbetMax *= (riverRangeType === 'polarized' ? 1.10 : 0.75);
 
+                // ═══ PHASE 16: LIVE-READ DRIVEN OVERBET SIZING ═══
+                // Use live data to fine-tune the overbet — this is where EV lives
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Against calling stations: MAX SIZE overbets — they pay off
+                    if (liveRead.callFreq > 0.60) {
+                        overbetMax = Math.min(1.0, overbetMax + 0.15);
+                    }
+                    // Against opponents who fold to overbets (rare overbet scare):
+                    // size down to get called, or overbet as bluff only
+                    if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) {
+                        overbetMax = Math.max(0.10, overbetMax - 0.15); // Don't overbet — they'll fold
+                    }
+                    // Timing tell: if they snap-called the turn, they're committed → overbet more
+                    if (currentActionTimingTell === 'snap_call') {
+                        overbetMax = Math.min(1.0, overbetMax + 0.10);
+                    }
+                    // Timing tell: if they tank-called turn, they're marginal → standard size
+                    if (currentActionTimingTell === 'tank_call') {
+                        overbetMax = Math.max(0.15, overbetMax - 0.08);
+                    }
+                }
+
                 const overbetFrac = 1.0 + Math.random() * overbetMax;
                 // Against nits, use smaller sizing (they fold to overbets)
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
@@ -7708,6 +7791,33 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (boardEvolution.boardGotWetter) {
                         sizeFrac = Math.min(0.70, sizeFrac + 0.06);
                     }
+
+                    // ═══ PHASE 16: LIVE-READ DRIVEN THIN VALUE SIZING ═══
+                    // Thin value is all about extracting that last bet — sizing is EVERYTHING.
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // Calling stations pay off at any size → go bigger
+                        if (liveRead.callFreq > 0.55) {
+                            sizeFrac = Math.min(0.75, sizeFrac + 0.10);
+                        }
+                        // Opponents who fold a lot → smaller to get called by worse
+                        if (liveRead.foldFreq > 0.50) {
+                            sizeFrac = Math.max(0.30, sizeFrac - 0.10);
+                        }
+                        // If they have a high fold-to-raise, even small bets get folds
+                        // → tiny sizing extracts value from their middle range
+                        if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) {
+                            sizeFrac = Math.max(0.28, sizeFrac - 0.08);
+                        }
+                        // Tank-called turn = marginal → extract with standard sizing
+                        if (currentActionTimingTell === 'tank_call') {
+                            sizeFrac = Math.min(0.65, sizeFrac + 0.05);
+                        }
+                        // Snap-called turn = strong, might raise us → be careful with thin value
+                        if (currentActionTimingTell === 'snap_call' && handEval.strength < 65) {
+                            sizeFrac = Math.max(0.30, sizeFrac - 0.08);
+                        }
+                    }
+
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
                 return canCheck ? { type: 'check' } : { type: 'fold' };

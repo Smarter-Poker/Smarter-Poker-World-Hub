@@ -15,7 +15,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
-import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { useEventBus, busEmit, EventType } from '../../src/engine/EventBus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
@@ -181,7 +181,7 @@ function TourBadge({ tourCode, size = 'normal' }) {
 export default function PokerNearMePage() {
     const router = useRouter();
     const { user } = useAvatar();
-    const bus = useTrainingBus();
+    const bus = useEventBus();
     const userId = user?.id;
 
     // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
@@ -880,7 +880,6 @@ export default function PokerNearMePage() {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('sp-favorites', JSON.stringify(favorites));
-            window.dispatchEvent(new CustomEvent('poker-favorites-sync', { detail: favorites }));
         }
     }, [favorites]);
 
@@ -902,7 +901,8 @@ export default function PokerNearMePage() {
         window.addEventListener('storage', handleStorageSync);
 
         // Map global EventBus events to our local state (Intra-tab SPA sync)
-        const handleBusFavSync = (data) => {
+        const handleBusFavSync = (event) => {
+            const data = event.payload;
             if (data && data.venueId) {
                 setFavorites(prev => {
                     const next = { ...prev };
@@ -910,22 +910,9 @@ export default function PokerNearMePage() {
                     return next;
                 });
             }
-            if (data && data.tourId) {
-                setFavorites(prev => {
-                    const next = { ...prev };
-                    next['tour-' + data.tourId] = Date.now();
-                    return next;
-                });
-            }
-             if (data && data.seriesId) {
-                setFavorites(prev => {
-                    const next = { ...prev };
-                    next['series-' + data.seriesId] = Date.now();
-                    return next;
-                });
-            }
         };
-        const handleBusUnfavSync = (data) => {
+        const handleBusUnfavSync = (event) => {
+            const data = event.payload;
             if (data && data.venueId) {
                 setFavorites(prev => {
                     const next = { ...prev };
@@ -933,26 +920,12 @@ export default function PokerNearMePage() {
                     return next;
                 });
             }
-            if (data && data.tourId) {
-                setFavorites(prev => {
-                    const next = { ...prev };
-                    delete next['tour-' + data.tourId];
-                    return next;
-                });
-            }
-             if (data && data.seriesId) {
-                setFavorites(prev => {
-                    const next = { ...prev };
-                    delete next['series-' + data.seriesId];
-                    return next;
-                });
-            }
         };
 
         let unsubFav, unsubUnfav;
         if (bus && bus.on) {
-            unsubFav = bus.on('venue:favorite', handleBusFavSync);
-            unsubUnfav = bus.on('venue:unfavorite', handleBusUnfavSync);
+            unsubFav = bus.on(EventType.VENUE_SAVED, handleBusFavSync);
+            unsubUnfav = bus.on(EventType.VENUE_UNSAVED, handleBusUnfavSync);
         }
 
         return () => {
@@ -1007,7 +980,7 @@ export default function PokerNearMePage() {
             try {
                 if (isCurrentlyFavorited) {
                     await removeVenueFavorite(userId, id);
-                    try { bus?.emit?.('venue:unfavorite', { venueId: id }); } catch { }
+                    busEmit.venueUnsaved(id);
                 } else {
                     await addVenueFavorite(userId, id, {
                         name: itemData.name,
@@ -1015,7 +988,7 @@ export default function PokerNearMePage() {
                         city: itemData.city,
                         state: itemData.state
                     });
-                    try { bus?.emit?.('venue:favorite', { venueId: id, name: itemData.name }); } catch { }
+                    busEmit.venueSaved(id, itemData.name);
                 }
             } catch (err) {
                 console.error('Error syncing favorite:', err);
@@ -1027,7 +1000,7 @@ export default function PokerNearMePage() {
                 });
             }
         }
-    }, [favorites, userId, bus]);
+    }, [favorites, userId]);
 
     const isFavorited = (type, id) => !!favorites[type + '-' + id];
 
