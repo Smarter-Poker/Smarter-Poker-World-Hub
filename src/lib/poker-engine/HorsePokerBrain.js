@@ -11766,6 +11766,14 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
             // Multiway: don't bluff big
             if (multiway) sz *= 0.70;
 
+            // ═══ LIVE-READ BLUFF SIZING (Phase 31) ═══
+            const lr2 = opts.liveRead;
+            if (lr2 && lr2.confidence >= 0.25) {
+                if (lr2.foldFreq > 0.55) sz *= 1.15; // Folder → bigger bluffs for max fold eq
+                if (lr2.callFreq > 0.55) sz *= 0.75; // Station → minimize loss
+                if (lr2.foldToRaisePct !== null && lr2.foldToRaisePct > 0.55) sz *= 1.12;
+            }
+
             return Math.min(2.0, sz);
         } else {
             // Merged bluffs: small sizing (risk less with air in a merged range)
