@@ -83,7 +83,7 @@ function SourcePanel({ name, data }) {
         <StatCard label="Venues" value={data.venues ?? 0} />
         <StatCard label="Records" value={data.records ?? 0} />
         <StatCard label="Tables" value={data.tables_running ?? 0} color="#3fb950" />
-        <StatCard label="Waiting" value={data.players_waiting ?? 0} color="#d4a853" />
+        <StatCard label="Waiting" value={data.players_waiting ?? 0} color="#ffffff" />
       </div>
       {data.batch_id && (
         <div style={{ fontSize: 10, color: 'rgba(200,214,229,0.25)', marginTop: 8, fontFamily: 'monospace' }}>
@@ -204,8 +204,8 @@ export default function ScraperHealthDashboard() {
           </button>
           <button onClick={() => { setLoading(true); fetchHealth(); fetchMetrics(); }} style={{
             padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            background: 'linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08))',
-            border: '1.5px solid rgba(212,168,83,0.35)', color: '#d4a853',
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08))',
+            border: '1.5px solid rgba(255,255,255,0.35)', color: '#ffffff',
           }}>
             Refresh Now
           </button>
@@ -264,7 +264,7 @@ export default function ScraperHealthDashboard() {
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
                       <StatCard label="Cycles" value={s.cycles} color="#00d4ff" />
-                      <StatCard label="Avg Duration" value={`${s.avg_duration}s`} color="#d4a853" />
+                      <StatCard label="Avg Duration" value={`${s.avg_duration}s`} color="#ffffff" />
                       <StatCard label="Avg Records" value={s.avg_records} color="#3fb950" />
                       <StatCard label="Total Errors" value={s.total_errors} color={s.total_errors > 0 ? '#ef4444' : '#3fb950'} />
                     </div>
@@ -295,15 +295,15 @@ export default function ScraperHealthDashboard() {
           <button onClick={() => setShowAlertHistory(!showAlertHistory)} style={{
             marginTop: 12, width: '100%', padding: '10px 16px', borderRadius: 10,
             background: 'linear-gradient(160deg, rgba(18,28,45,0.6), rgba(10,16,28,0.75))',
-            border: '1.5px solid rgba(212,168,83,0.15)', cursor: 'pointer',
+            border: '1.5px solid rgba(255,255,255,0.15)', cursor: 'pointer',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit',
           }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#e0e8f0' }}>Watchdog Alert History</span>
-            <span style={{ color: '#d4a853', fontSize: 12 }}>{showAlertHistory ? 'Hide' : 'Show'}</span>
+            <span style={{ color: '#ffffff', fontSize: 12 }}>{showAlertHistory ? 'Hide' : 'Show'}</span>
           </button>
 
           {showAlertHistory && (
-            <div style={{ marginTop: 8, padding: '16px 20px', borderRadius: 12, background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(212,168,83,0.1)' }}>
+            <div style={{ marginTop: 8, padding: '16px 20px', borderRadius: 12, background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
               {(!health.alert_history || health.alert_history.length === 0) ? (
                 <div style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12, textAlign: 'center', padding: 10 }}>No recent alerts found.</div>
               ) : (

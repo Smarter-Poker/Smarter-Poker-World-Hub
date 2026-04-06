@@ -195,11 +195,11 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             <div className="nmf-header">
                 <div className="nmf-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" strokeWidth="1.5">
-                        <circle cx="12" cy="12" r="3" fill="#d4a853" stroke="none" />
-                        <circle cx="12" cy="12" r="7" stroke="#d4a853" opacity="0.5" fill="none" strokeDasharray="3 3">
+                        <circle cx="12" cy="12" r="3" fill="#ffffff" stroke="none" />
+                        <circle cx="12" cy="12" r="7" stroke="#ffffff" opacity="0.5" fill="none" strokeDasharray="3 3">
                             <animateTransform attributeName="transform" type="rotate" dur="8s" from="0 12 12" to="360 12 12" repeatCount="indefinite" />
                         </circle>
-                        <circle cx="12" cy="12" r="11" stroke="#d4a853" opacity="0.25" fill="none" strokeDasharray="2 4">
+                        <circle cx="12" cy="12" r="11" stroke="#ffffff" opacity="0.25" fill="none" strokeDasharray="2 4">
                             <animateTransform attributeName="transform" type="rotate" dur="12s" from="360 12 12" to="0 12 12" repeatCount="indefinite" />
                         </circle>
                     </svg>
@@ -234,7 +234,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
             {!loading && filteredItems.length === 0 && (
                 <div className="nmf-empty">
                     <div className="nmf-empty-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.3)" strokeWidth="1.5">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5">
                             <circle cx="12" cy="12" r="10" />
                             <path d="M12 8v4M12 16h.01" />
                         </svg>
@@ -324,9 +324,9 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         .nmf-radius, .nmf-type-filter { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .nmf-ctrl-label { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; }
         .nmf-chip { padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; font-family: inherit; }
-        .nmf-chip.active { background: rgba(212,168,83,0.15); border-color: rgba(212,168,83,0.4); color: #d4a853; }
+        .nmf-chip.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); color: #ffffff; }
         .nmf-feed-list { display: flex; flex-direction: column; gap: 6px; }
-        .nmf-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid #d4a853; border-radius: 10px; transition: all 0.2s; cursor: pointer; }
+        .nmf-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid #ffffff; border-radius: 10px; transition: all 0.2s; cursor: pointer; }
         .nmf-item:hover { background: rgba(15,23,42,0.7); border-color: rgba(255,255,255,0.1); transform: translateX(2px); }
         .nmf-item:active { transform: scale(0.98); }
         .nmf-item-icon { flex-shrink: 0; margin-top: 2px; }
@@ -349,7 +349,7 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         
         /* Empty state with CTAs */
         .nmf-empty { display: flex; flex-direction: column; align-items: center; padding: 48px 20px 32px; text-align: center; }
-        .nmf-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(212,168,83,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+        .nmf-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
         .nmf-empty-title { color: rgba(255,255,255,0.6); font-size: 16px; font-weight: 600; margin: 0 0 4px; }
         .nmf-empty-hint { color: rgba(255,255,255,0.3); font-size: 13px; margin: 0 0 20px; }
         .nmf-empty-ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
@@ -358,8 +358,8 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
         .nmf-cta-gps:hover { background: rgba(34,197,94,0.2); }
         .nmf-cta-live { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
         .nmf-cta-live:hover { background: rgba(239,68,68,0.2); }
-        .nmf-cta-map { background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border-color: rgba(212,168,83,0.35); color: #d4a853; }
-        .nmf-cta-map:hover { border-color: rgba(212,168,83,0.5); }
+        .nmf-cta-map { background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.35); color: #ffffff; }
+        .nmf-cta-map:hover { border-color: rgba(255,255,255,0.5); }
         
         @keyframes nmf-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes spin { to { transform: rotate(360deg); } }

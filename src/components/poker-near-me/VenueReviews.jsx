@@ -55,8 +55,8 @@ function StarRating({ rating, size = 16, interactive = false, onChange }) {
                     width={size}
                     height={size}
                     viewBox="0 0 24 24"
-                    fill={star <= rating ? '#d4a853' : 'rgba(255,255,255,0.1)'}
-                    stroke={star <= rating ? '#d4a853' : 'rgba(255,255,255,0.2)'}
+                    fill={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.1)'}
+                    stroke={star <= rating ? '#ffffff' : 'rgba(255,255,255,0.2)'}
                     strokeWidth="1"
                     style={{ cursor: interactive ? 'pointer' : 'default', transition: 'all 0.15s' }}
                     onClick={() => interactive && onChange && onChange(star)}
@@ -394,15 +394,15 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-close { background: none; border: none; color: rgba(255,255,255,0.4); font-size: 28px; cursor: pointer; padding: 0; line-height: 1; }
         .vr-summary { display: flex; gap: 20px; margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; }
         .vr-score-box { text-align: center; min-width: 80px; }
-        .vr-score { font-size: 36px; font-weight: 700; color: #d4a853; line-height: 1; }
+        .vr-score { font-size: 36px; font-weight: 700; color: #ffffff; line-height: 1; }
         .vr-total { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
         .vr-distribution { flex: 1; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
         .vr-rating-bar-row { display: flex; align-items: center; gap: 6px; }
         .vr-bar-label { font-size: 11px; color: rgba(255,255,255,0.5); width: 20px; text-align: right; }
         .vr-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
-        .vr-bar-fill { height: 100%; background: #d4a853; border-radius: 3px; transition: width 0.3s; }
+        .vr-bar-fill { height: 100%; background: #ffffff; border-radius: 3px; transition: width 0.3s; }
         .vr-bar-count { font-size: 11px; color: rgba(255,255,255,0.4); width: 20px; }
-        .vr-write-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; justify-content: center; margin-bottom: 16px; }
+        .vr-write-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; justify-content: center; margin-bottom: 16px; }
         .vr-write-form { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
         .vr-form-group { margin-bottom: 16px; }
         .vr-form-group:last-child { margin-bottom: 0; }
@@ -411,21 +411,21 @@ export default function VenueReviews({ venueId, venueName, userId, userName, aut
         .vr-cat-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
         .vr-cat-label { font-size: 13px; color: rgba(255,255,255,0.7); }
         .vr-textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; resize: vertical; min-height: 100px; }
-        .vr-textarea:focus { outline: none; border-color: rgba(212,168,83,0.4); }
+        .vr-textarea:focus { outline: none; border-color: rgba(255,255,255,0.4); }
         .vr-textarea::placeholder { color: rgba(255,255,255,0.25); }
         .vr-photo-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .vr-photo-thumb { position: relative; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; }
         .vr-photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
         .vr-photo-remove { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(239,68,68,0.9); border: none; color: #fff; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .vr-photo-add { width: 60px; height: 60px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 2px dashed rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; color: rgba(255,255,255,0.3); }
-        .vr-submit-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .vr-submit-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 10px; color: #000; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
         .vr-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .vr-sort-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
         .vr-sort-chip { padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-        .vr-sort-chip.active { background: rgba(212,168,83,0.15); border-color: rgba(212,168,83,0.4); color: #d4a853; }
+        .vr-sort-chip.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); color: #ffffff; }
         .vr-list { display: flex; flex-direction: column; gap: 12px; }
         .vr-loading { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; gap: 10px; }
-        .vr-spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #d4a853; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .vr-spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite; }
         .vr-loading span { color: rgba(255,255,255,0.4); font-size: 13px; }
         .vr-empty { text-align: center; padding: 40px 20px; }
         .vr-empty p { color: rgba(255,255,255,0.4); }

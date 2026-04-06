@@ -117,7 +117,7 @@ export default function MapTabPanel({
                         gap: '8px',
                         pointerEvents: 'auto'
                     }}>
-                        <span style={{ color: '#d4a853', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Radius:</span>
+                        <span style={{ color: '#ffffff', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Radius:</span>
                         <select
                             value={filters.radius}
                             onChange={e => setFilters(p => ({ ...p, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
@@ -141,7 +141,7 @@ export default function MapTabPanel({
                             <option value={500} style={{ background: '#0a0a15' }}>500 Mi</option>
                             <option value="Any" style={{ background: '#0a0a15' }}>Any</option>
                         </select>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ position: 'absolute', right: '12px', pointerEvents: 'none' }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ position: 'absolute', right: '12px', pointerEvents: 'none' }}>
                             <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                     </div>

@@ -72,7 +72,7 @@ const VENUE_TYPE_COLORS = {
     casino: { bg: 'rgba(255,255,255,0.10)', color: '#ffffff', border: 'rgba(255,255,255,0.28)', accent: '#ffffff' },
     card_room: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
     poker_club: { bg: 'rgba(34,197,94,0.10)', color: '#4ade80', border: 'rgba(34,197,94,0.28)', accent: '#4ade80' },
-    home_game: { bg: 'rgba(212,168,83,0.10)', color: '#d4a853', border: 'rgba(212,168,83,0.28)', accent: '#d4a853' },
+    home_game: { bg: 'rgba(255,255,255,0.10)', color: '#ffffff', border: 'rgba(255,255,255,0.28)', accent: '#ffffff' },
     charity: { bg: 'rgba(59,130,246,0.10)', color: '#60a5fa', border: 'rgba(59,130,246,0.28)', accent: '#60a5fa' },
     tour: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
     tour_stop: { bg: 'rgba(239,68,68,0.10)', color: '#f87171', border: 'rgba(239,68,68,0.28)', accent: '#ef4444' },
@@ -82,7 +82,7 @@ const VENUE_TYPE_COLORS = {
 
 // Game type color mapping for enhanced chips
 const GAME_TYPE_COLORS = {
-    'NLH': { bg: 'rgba(212,168,83,0.12)', color: '#d4a853', border: 'rgba(212,168,83,0.22)' },
+    'NLH': { bg: 'rgba(255,255,255,0.12)', color: '#ffffff', border: 'rgba(255,255,255,0.22)' },
     'PLO': { bg: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.22)' },
     'Limit': { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' },
     'Mixed': { bg: 'rgba(6,182,212,0.12)', color: '#22d3ee', border: 'rgba(6,182,212,0.22)' },
@@ -289,7 +289,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <img src={venue.host_avatar_url} alt="" className="vc3-host-avatar" loading="lazy" />
                     ) : (
                         <div className="vc3-host-avatar vc3-host-avatar-fallback">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         </div>
                     )}
                     <div className="vc3-host-info">
@@ -306,7 +306,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             {/* Home Game Schedule */}
             {venue.venue_type === 'home_game' && venue.schedule && (
                 <div className="vc3-schedule">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                     <span>{venue.schedule}</span>
                 </div>
             )}
@@ -347,8 +347,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <div className="vc3-rating-stars">
                         {[1, 2, 3, 4, 5].map(star => (
                             <svg key={star} width="14" height="14" viewBox="0 0 24 24"
-                                fill={star <= Math.round(Number(reviewStats.avg_rating) || 0) ? '#d4a853' : 'rgba(255,255,255,0.1)'}
-                                stroke={star <= Math.round(Number(reviewStats.avg_rating) || 0) ? '#d4a853' : 'rgba(255,255,255,0.15)'}
+                                fill={star <= Math.round(Number(reviewStats.avg_rating) || 0) ? '#ffffff' : 'rgba(255,255,255,0.1)'}
+                                stroke={star <= Math.round(Number(reviewStats.avg_rating) || 0) ? '#ffffff' : 'rgba(255,255,255,0.15)'}
                                 strokeWidth="1">
                                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
@@ -371,12 +371,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
                 {venue.has_tournaments && <span className="vc3-badge vc3-badge-tourney">Tournaments</span>}
                 {venue.max_gtd > 0 && (
-                    <span className="vc3-badge vc3-badge-gtd" style={{ background: 'rgba(212,168,83,0.12)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>
+                    <span className="vc3-badge vc3-badge-gtd" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>
                         {formatMoney(venue.max_gtd)}+ GTD
                     </span>
                 )}
                 {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) && <span className="vc3-badge" style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.3)', color: '#22c55e' }}>24/7</span>}
-                {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(212,168,83,0.12)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>Large Room</span>}
+                {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>Large Room</span>}
                 {checkinCount > 0 && (
                     <span className="vc3-badge vc3-badge-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
                         {checkinCount} Here Today
@@ -396,7 +396,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <span className="vc3-crowd-label" style={{ color: crowd.color }}>{crowd.label}</span>
                         {waitEstimate && (
                             <span className="vc3-wait-estimate">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2.5">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5">
                                     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                                 </svg>
                                 Est. Wait: {waitEstimate.label}
@@ -462,7 +462,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         )}
                     </p>
                 ) : venue.venue_type === 'charity' && !venue.is_today && venue.next_event ? (
-                    <p className="vc3-hours" style={{ color: '#d4a853', fontWeight: '500' }}>
+                    <p className="vc3-hours" style={{ color: '#ffffff', fontWeight: '500' }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.8 }}>
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
@@ -509,12 +509,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
-                        background: 'linear-gradient(90deg, rgba(212,168,83,0.15), rgba(212,168,83,0.05))',
-                        border: '1px solid rgba(212,168,83,0.3)',
+                        background: 'linear-gradient(90deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))',
+                        border: '1px solid rgba(255,255,255,0.3)',
                         borderRadius: '6px',
                         padding: '4px 8px',
                         fontSize: '11px',
-                        color: '#d4a853',
+                        color: '#ffffff',
                         fontWeight: '600',
                         marginTop: '2px',
                         textTransform: 'uppercase',
@@ -603,16 +603,16 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {reviewStats && reviewStats.total_reviews > 0 ? (
                     <>
                         <div className="vc3-trust-header">
-                            <span className="vc3-trust-label" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#d4a853' : '#f59e0b' }}>Player Rating</span>
-                            <span className="vc3-trust-val" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#d4a853' : '#f59e0b' }}>
+                            <span className="vc3-trust-label" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b' }}>Player Rating</span>
+                            <span className="vc3-trust-val" style={{ color: reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b' }}>
                                 {(Number(reviewStats.avg_rating) || 0).toFixed(1)}/5 ({reviewStats.total_reviews})
                             </span>
                         </div>
                         <div className="vc3-trust-track">
                             <div className="vc3-trust-fill" style={{
                                 width: mounted ? Math.round((Number(reviewStats.avg_rating) / 5) * 100) + '%' : '0%',
-                                background: `linear-gradient(90deg, ${reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#d4a853' : '#f59e0b'}, ${reviewStats.avg_rating >= 4 ? '#22c55e77' : reviewStats.avg_rating >= 3 ? '#d4a85377' : '#f59e0b77'})`,
-                                boxShadow: `0 0 8px ${reviewStats.avg_rating >= 4 ? '#22c55e33' : reviewStats.avg_rating >= 3 ? '#d4a85333' : '#f59e0b33'}`,
+                                background: `linear-gradient(90deg, ${reviewStats.avg_rating >= 4 ? '#22c55e' : reviewStats.avg_rating >= 3 ? '#ffffff' : '#f59e0b'}, ${reviewStats.avg_rating >= 4 ? '#22c55e77' : reviewStats.avg_rating >= 3 ? '#ffffff77' : '#f59e0b77'})`,
+                                boxShadow: `0 0 8px ${reviewStats.avg_rating >= 4 ? '#22c55e33' : reviewStats.avg_rating >= 3 ? '#ffffff33' : '#f59e0b33'}`,
                             }} />
                         </div>
                     </>
@@ -653,37 +653,37 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-crowd-meter { margin: 8px 0; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
                 .vc3-crowd-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
                 .vc3-crowd-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
-                .vc3-wait-estimate { margin-left: auto; font-size: 11px; color: #d4a853; display: flex; align-items: center; gap: 4px; font-weight: 600; }
+                .vc3-wait-estimate { margin-left: auto; font-size: 11px; color: #ffffff; display: flex; align-items: center; gap: 4px; font-weight: 600; }
                 .vc3-crowd-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
                 .vc3-crowd-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease-out 0.3s; }
                 .vc3-rating-row { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; padding: 0 2px; cursor: pointer; transition: opacity 0.2s; }
                 .vc3-rating-row:hover { opacity: 0.85; }
                 .vc3-rating-stars { display: flex; gap: 1px; }
-                .vc3-rating-score { font-size: 13px; font-weight: 700; color: #d4a853; }
+                .vc3-rating-score { font-size: 13px; font-weight: 700; color: #ffffff; }
                 .vc3-rating-count { font-size: 11px; color: rgba(255,255,255,0.4); }
 
                 @keyframes livePulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
                 
-                .vc3-host { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 8px 10px; background: rgba(212,168,83,0.06); border: 1px solid rgba(212,168,83,0.15); border-radius: 8px; }
-                .vc3-host-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid rgba(212,168,83,0.4); }
-                .vc3-host-avatar-fallback { display: flex; align-items: center; justify-content: center; background: rgba(212,168,83,0.12); }
+                .vc3-host { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 8px 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; }
+                .vc3-host-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid rgba(255,255,255,0.4); }
+                .vc3-host-avatar-fallback { display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.12); }
                 .vc3-host-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-                .vc3-host-name { font-size: 12px; color: #d4a853; font-weight: 600; }
-                .vc3-host-profile-link { font-size: 11px; color: rgba(212,168,83,0.7); text-decoration: none; }
-                .vc3-host-profile-link:hover { color: #d4a853; text-decoration: underline; }
-                .vc3-host-link { font-size: 10px; color: #d4a853; text-decoration: none; margin-left: auto; padding: 3px 8px; border: 1px solid rgba(212,168,83,0.3); border-radius: 6px; font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
-                .vc3-host-link:hover { background: rgba(212,168,83,0.15); }
-                .vc3-schedule { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(212,168,83,0.85); font-weight: 600; margin: 4px 0 6px; }
+                .vc3-host-name { font-size: 12px; color: #ffffff; font-weight: 600; }
+                .vc3-host-profile-link { font-size: 11px; color: rgba(255,255,255,0.7); text-decoration: none; }
+                .vc3-host-profile-link:hover { color: #ffffff; text-decoration: underline; }
+                .vc3-host-link { font-size: 10px; color: #ffffff; text-decoration: none; margin-left: auto; padding: 3px 8px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
+                .vc3-host-link:hover { background: rgba(255,255,255,0.15); }
+                .vc3-schedule { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.85); font-weight: 600; margin: 4px 0 6px; }
                 .vc3-follow-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
-                .vc3-follow-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #d4a853; background: rgba(212,168,83,0.12); border: 1px solid rgba(212,168,83,0.3); text-decoration: none; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; }
-                .vc3-follow-btn:hover { background: rgba(212,168,83,0.25); box-shadow: 0 0 10px rgba(212,168,83,0.2); }
+                .vc3-follow-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #ffffff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); text-decoration: none; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; }
+                .vc3-follow-btn:hover { background: rgba(255,255,255,0.25); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
                 .vc3-saves-count { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; }
                 .vc3-description { font-size: 13px; color: rgba(255,255,255,0.5); margin: 0 0 8px; font-style: italic; }
-                .vc3-pill-message { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
-                .vc3-pill-message:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+                .vc3-pill-message { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); }
+                .vc3-pill-message:hover { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
                 .vc3-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
                 .vc3-badge { padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
-                .vc3-badge-featured { background: rgba(212,168,83,0.2); color: #d4a853; border: 1px solid rgba(212,168,83,0.35); }
+                .vc3-badge-featured { background: rgba(255,255,255,0.2); color: #ffffff; border: 1px solid rgba(255,255,255,0.35); }
                 .vc3-badge-newcomer { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
                 .vc3-badge-promo { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
                 .vc3-badge-tourney { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
@@ -710,7 +710,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-hours { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: rgba(255,255,255,0.55); margin: 0 0 6px; font-style: italic; }
                 .vc3-games { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
                 .vc3-game-chip { padding: 4px 10px; border-radius: 5px; font-size: 11.5px; font-weight: 600; border: 1px solid; }
-                .vc3-stakes { display: flex; align-items: center; gap: 5px; font-size: 13px; color: rgba(212,168,83,0.9); margin: 0 0 8px; font-weight: 600; }
+                .vc3-stakes { display: flex; align-items: center; gap: 5px; font-size: 13px; color: rgba(255,255,255,0.9); margin: 0 0 8px; font-weight: 600; }
                 .vc3-trust { padding: 10px 0 8px; border-top: 1px solid rgba(255,255,255,0.07); margin-top: 4px; }
                 .vc3-trust-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
                 .vc3-trust-label { font-size: 11.5px; font-weight: 700; }
@@ -727,8 +727,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-pill-checkin:hover { background: rgba(34,197,94,0.22); box-shadow: 0 0 12px rgba(34,197,94,0.15); }
                 .vc3-pill-review { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
                 .vc3-pill-review:hover { background: rgba(59,130,246,0.22); box-shadow: 0 0 12px rgba(59,130,246,0.15); }
-                .vc3-pill-details { background: rgba(212,168,83,0.12); color: #d4a853; border-color: rgba(212,168,83,0.25); }
-                .vc3-pill-details:hover { background: rgba(212,168,83,0.22); box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+                .vc3-pill-details { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.25); }
+                .vc3-pill-details:hover { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
 
 
 

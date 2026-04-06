@@ -179,7 +179,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     return (
         <div className="social-layer">
             <div className="sl-header">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
                     <circle cx="9" cy="7" r="4" />
                     <path d="M23 21v-2a4 4 0 00-3-3.87" />
@@ -211,7 +211,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
             {userId && !loading && friendCheckins.length === 0 && (
                 <div className="sl-empty">
                     <div className="sl-empty-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.25)" strokeWidth="1.5">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5">
                             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
                             <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
                         </svg>
@@ -318,7 +318,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         .sl-login-prompt, .sl-empty { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; }
         .sl-login-prompt p, .sl-empty p { color: rgba(148,163,184,0.5); font-size: 14px; margin: 12px 0 0; }
         .sl-loading { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 12px; }
-        .sl-spinner { width: 32px; height: 32px; border: 3px solid rgba(148,163,184,0.1); border-top-color: #d4a853; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 12px rgba(212,168,83,0.15); }
+        .sl-spinner { width: 32px; height: 32px; border: 3px solid rgba(148,163,184,0.1); border-top-color: #ffffff; border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 12px rgba(255,255,255,0.15); }
         .sl-loading span { color: rgba(148,163,184,0.5); font-size: 13px; }
         .sl-venue-list { display: flex; flex-direction: column; gap: 16px; }
         .sl-venue-group { background: linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 14px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.35); }
@@ -326,7 +326,7 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         .sl-venue-info { flex: 1; }
         .sl-venue-name { font-size: 16px; font-weight: 600; color: #e2e8f0; }
         .sl-venue-loc { font-size: 12px; color: rgba(148,163,184,0.5); margin-top: 2px; }
-        .sl-venue-count { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border: 1px solid rgba(212,168,83,0.25); color: #d4a853; font-size: 13px; font-weight: 600; }
+        .sl-venue-count { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1px solid rgba(255,255,255,0.25); color: #ffffff; font-size: 13px; font-weight: 600; }
         .sl-friend-list { padding: 8px; }
         .sl-friend-card { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px; transition: background 0.2s; }
         .sl-friend-card:hover { background: rgba(148,163,184,0.04); }
@@ -336,25 +336,25 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
         .sl-friend-time { font-size: 12px; color: rgba(148,163,184,0.5); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
         .sl-online-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
         .sl-friend-msg { color: rgba(148,163,184,0.35); font-style: italic; }
-        .sl-invite-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border: 1.5px solid rgba(212,168,83,0.35); color: #d4a853; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(212,168,83,0.1); }
-        .sl-invite-btn:hover { border-color: rgba(212,168,83,0.5); box-shadow: 0 0 10px rgba(212,168,83,0.12); }
+        .sl-invite-btn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.35); color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.1); }
+        .sl-invite-btn:hover { border-color: rgba(255,255,255,0.5); box-shadow: 0 0 10px rgba(255,255,255,0.12); }
         .sl-modal-overlay { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; padding: 20px; }
         .sl-modal { background: linear-gradient(160deg, rgba(18,28,45,0.98), rgba(10,16,28,1)); border: 2px solid rgba(148,163,184,0.16); border-radius: 16px; padding: 24px; max-width: 420px; width: 100%; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 16px 64px rgba(0,0,0,0.6); }
         .sl-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .sl-modal-header h3 { font-size: 18px; font-weight: 600; color: #e2e8f0; margin: 0; }
         .sl-modal-close { background: none; border: none; color: rgba(148,163,184,0.5); font-size: 24px; cursor: pointer; transition: color 0.2s; }
-        .sl-modal-close:hover { color: #d4a853; }
+        .sl-modal-close:hover { color: #ffffff; }
         .sl-modal-text { font-size: 14px; color: rgba(148,163,184,0.6); margin: 0 0 16px; }
         .sl-invite-link-box { display: flex; gap: 8px; }
         .sl-invite-link-input { flex: 1; padding: 10px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 12px; font-family: monospace; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4); }
-        .sl-copy-btn { padding: 10px 16px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-        .sl-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(212,168,83,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .sl-copy-btn { padding: 10px 16px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 8px; color: #000; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .sl-empty-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
         .sl-empty-ctas { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
         .sl-cta-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; border: 1.5px solid; font-family: inherit; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 6px rgba(0,0,0,0.3); }
         .sl-cta-checkin { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #22c55e; }
         .sl-cta-checkin:hover { background: rgba(34,197,94,0.2); }
-        .sl-cta-invite { background: linear-gradient(180deg, rgba(212,168,83,0.12), rgba(184,134,11,0.08)); border-color: rgba(212,168,83,0.35); color: #d4a853; }
-        .sl-cta-invite:hover { border-color: rgba(212,168,83,0.5); }
+        .sl-cta-invite { background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.35); color: #ffffff; }
+        .sl-cta-invite:hover { border-color: rgba(255,255,255,0.5); }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
         </div>

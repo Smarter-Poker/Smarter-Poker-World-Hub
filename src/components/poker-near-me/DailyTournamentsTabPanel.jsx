@@ -81,7 +81,7 @@ export default function DailyTournamentsTabPanel({
                 {[{ key: 'all', label: 'All Games' }, { key: 'nlh', label: 'NLH' }, { key: 'plo', label: 'PLO' }, { key: 'mixed', label: 'Mixed' }, { key: 'omaha', label: 'Omaha' }].map(g => (
                     <button key={g.key}
                         onClick={() => setFilters(f => ({ ...f, hubDailyGameType: g.key }))}
-                        style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: dtGameType === g.key ? '1px solid #d4a853' : '1px solid rgba(255,255,255,0.15)', background: dtGameType === g.key ? 'rgba(212,168,83,0.2)' : 'rgba(255,255,255,0.05)', color: dtGameType === g.key ? '#d4a853' : 'rgba(255,255,255,0.6)' }}
+                        style={{ padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', border: dtGameType === g.key ? '1px solid #ffffff' : '1px solid rgba(255,255,255,0.15)', background: dtGameType === g.key ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)', color: dtGameType === g.key ? '#ffffff' : 'rgba(255,255,255,0.6)' }}
                     >{g.label}</button>
                 ))}
             </div>
@@ -109,7 +109,7 @@ export default function DailyTournamentsTabPanel({
 
             {/* Result count */}
             <div className="results-bar" style={{ marginBottom: 8 }}>
-                <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
+                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}</span>
             </div>
 
             {filtered.length === 0 ? (

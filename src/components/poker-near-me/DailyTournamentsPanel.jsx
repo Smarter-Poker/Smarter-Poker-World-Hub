@@ -45,7 +45,7 @@ const SORT_OPTS = [{ v: 'time', l: 'Start Time' }, { v: 'buyin', l: 'Buy-In' }, 
 const getBuyinColor = (buyIn) => {
   if (!buyIn) return { color: 'rgba(200,214,229,0.5)', bg: 'rgba(200,214,229,0.06)', border: 'rgba(200,214,229,0.12)' };
   if (buyIn < 100) return { color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)' };
-  if (buyIn <= 500) return { color: '#d4a853', bg: 'rgba(212,168,83,0.1)', border: 'rgba(212,168,83,0.25)' };
+  if (buyIn <= 500) return { color: '#ffffff', bg: 'rgba(255,255,255,0.1)', border: 'rgba(255,255,255,0.25)' };
   return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' };
 };
 
@@ -149,7 +149,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange })
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(148,163,184,0.5)' }}>
         {t.start_time && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.5)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(t.start_time)}</span>}
-        {t.game_type && <span style={{ color: '#d4a853', background: 'rgba(212,168,83,0.08)', padding: '1px 6px', borderRadius: 4 }}>{formatGameType(t.game_type)}</span>}
+        {t.game_type && <span style={{ color: '#ffffff', background: 'rgba(255,255,255,0.08)', padding: '1px 6px', borderRadius: 4 }}>{formatGameType(t.game_type)}</span>}
         {t.guaranteed && <span style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '2px 8px', borderRadius: 6, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5"><path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7"/><path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7"/><path d="M4 22h16"/><path d="M10 22V2h4v20"/></svg>{typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed} GTD</span>}
         {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
         {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
@@ -167,11 +167,11 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange })
           <button key={day} onClick={() => handleDayChange(day)}
             style={{
               flexShrink: 0, padding: '6px 12px', borderRadius: 8,
-              border: selectedDay === day ? '1.5px solid rgba(212,168,83,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
-              background: selectedDay === day ? 'linear-gradient(180deg, rgba(212,168,83,0.15), rgba(184,134,11,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
-              color: selectedDay === day ? '#d4a853' : 'rgba(148,163,184,0.6)',
+              border: selectedDay === day ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
+              background: selectedDay === day ? 'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
+              color: selectedDay === day ? '#ffffff' : 'rgba(148,163,184,0.6)',
               fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.25s', boxShadow: selectedDay === day ? 'inset 0 1px 0 rgba(212,168,83,0.15), 0 0 10px rgba(212,168,83,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
+              textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.25s', boxShadow: selectedDay === day ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
             }}
           >
             {day === DAYS[TODAY_INDEX] ? 'Today' : day.slice(0, 3)}
@@ -185,10 +185,10 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange })
           <button key={gt} onClick={() => setGameType(gt)}
             style={{
               padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-              border: gameType === gt ? '1.5px solid rgba(212,168,83,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
-              background: gameType === gt ? 'linear-gradient(180deg, rgba(212,168,83,0.15), rgba(184,134,11,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
-              color: gameType === gt ? '#d4a853' : 'rgba(148,163,184,0.6)', fontFamily: 'inherit',
-              transition: 'all 0.25s', boxShadow: gameType === gt ? 'inset 0 1px 0 rgba(212,168,83,0.15)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
+              border: gameType === gt ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
+              background: gameType === gt ? 'linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08))' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
+              color: gameType === gt ? '#ffffff' : 'rgba(148,163,184,0.6)', fontFamily: 'inherit',
+              transition: 'all 0.25s', boxShadow: gameType === gt ? 'inset 0 1px 0 rgba(255,255,255,0.15)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
             }}
           >{gt === 'all' ? 'All Games' : gt}</button>
         ))}
@@ -210,18 +210,18 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange })
         <button onClick={() => setGroupByState(!groupByState)}
           style={{
             padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            border: groupByState ? '1.5px solid rgba(212,168,83,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
-            background: groupByState ? 'rgba(212,168,83,0.12)' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
-            color: groupByState ? '#d4a853' : 'rgba(148,163,184,0.6)', fontFamily: 'inherit', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
+            border: groupByState ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
+            background: groupByState ? 'rgba(255,255,255,0.12)' : 'linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95))',
+            color: groupByState ? '#ffffff' : 'rgba(148,163,184,0.6)', fontFamily: 'inherit', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
           }}
         >By State</button>
       </div>
 
       {/* Results count */}
       <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.5)', marginBottom: 10 }}>
-        <span style={{ color: '#d4a853', fontWeight: 700 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}
+        <span style={{ color: '#ffffff', fontWeight: 700 }}>{filtered.length}</span> tournament{filtered.length !== 1 ? 's' : ''}
         {gameType !== 'all' && <span> ({gameType})</span>}
-        {selectedState && selectedState !== 'all' && <span> in <span style={{ color: '#d4a853' }}>{selectedState}</span></span>}
+        {selectedState && selectedState !== 'all' && <span> in <span style={{ color: '#ffffff' }}>{selectedState}</span></span>}
       </div>
 
       {/* Top States quick filter */}
@@ -238,17 +238,17 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange })
             <button onClick={() => setSelectedState('all')}
               style={{
                 flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                border: (!selectedState || selectedState === 'all') ? '1.5px solid rgba(212,168,83,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
-                background: (!selectedState || selectedState === 'all') ? 'rgba(212,168,83,0.12)' : 'transparent',
-                color: (!selectedState || selectedState === 'all') ? '#d4a853' : 'rgba(148,163,184,0.5)',
+                border: (!selectedState || selectedState === 'all') ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
+                background: (!selectedState || selectedState === 'all') ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: (!selectedState || selectedState === 'all') ? '#ffffff' : 'rgba(148,163,184,0.5)',
               }}>All</button>
             {topStates.map(([st, count]) => (
               <button key={st} onClick={() => setSelectedState(st)}
                 style={{
                   flexShrink: 0, padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                  border: selectedState === st ? '1.5px solid rgba(212,168,83,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
-                  background: selectedState === st ? 'rgba(212,168,83,0.12)' : 'transparent',
-                  color: selectedState === st ? '#d4a853' : 'rgba(148,163,184,0.5)',
+                  border: selectedState === st ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
+                  background: selectedState === st ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: selectedState === st ? '#ffffff' : 'rgba(148,163,184,0.5)',
                 }}>{st} <span style={{ fontSize: 8, opacity: 0.6 }}>({count})</span></button>
             ))}
           </div>
@@ -259,7 +259,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange })
       {groupByState && groupedByState ? (
         Object.keys(groupedByState).sort().map(st => (
           <div key={st} style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#d4a853', marginBottom: 8, borderBottom: '1px solid rgba(212,168,83,0.15)', paddingBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.15)', paddingBottom: 4 }}>
               {st} ({groupedByState[st].length})
             </div>
             <div style={{ display: 'grid', gap: 10 }}>

@@ -36,7 +36,7 @@ export default function ToursTabPanel({
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="Search tours..." value={tourSearchVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubTourSearch: e.target.value }))}
-                    style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
+                    style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
                 <select value={tourStateVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubTourState: e.target.value }))}
                     className="sort-select" style={{ minWidth: 100 }}>
@@ -47,7 +47,7 @@ export default function ToursTabPanel({
                 </select>
             </div>
             <div className="results-bar">
-                <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}</span>
+                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredTours.length}</span> tour{filteredTours.length !== 1 ? 's' : ''}</span>
             </div>
             {filteredTours.length === 0 ? (
                 <div className="empty-state">

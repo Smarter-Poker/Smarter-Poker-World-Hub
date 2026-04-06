@@ -16,7 +16,7 @@ const VENUE_TYPE_COLORS = {
   card_room: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
   poker_club: { fill: '#22c55e', glow: 'rgba(34,197,94,0.5)' },
   charity: { fill: '#3b82f6', glow: 'rgba(59,130,246,0.5)' },
-  home_game: { fill: '#d4a853', glow: 'rgba(212,168,83,0.6)' },
+  home_game: { fill: '#ffffff', glow: 'rgba(255,255,255,0.6)' },
   tour_stop: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
   poker_tour: { fill: '#ef4444', glow: 'rgba(239,68,68,0.5)' },
 };
@@ -81,7 +81,7 @@ const LOGO_PIN_CSS = `
 .pnm-popup .leaflet-popup-content-wrapper {
   background: rgba(12,18,28,0.97) !important;
   color: #e0e8f0 !important;
-  border: 1px solid rgba(212,168,83,0.2) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
   backdrop-filter: blur(12px);
   border-radius: 10px !important;
   box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
@@ -236,17 +236,17 @@ function createClusterIcon(L, cluster) {
 
   let bgGradient, glowColor, textColor;
   if (count >= 100) {
-    bgGradient = 'linear-gradient(135deg, #d4a853 0%, #b8860b 50%, #8B6914 100%)';
-    glowColor = 'rgba(212,168,83,0.5)'; textColor = '#000';
+    bgGradient = 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #8B6914 100%)';
+    glowColor = 'rgba(255,255,255,0.5)'; textColor = '#000';
   } else if (count >= 50) {
-    bgGradient = 'linear-gradient(135deg, #f0d48a 0%, #d4a853 50%, #b8860b 100%)';
-    glowColor = 'rgba(212,168,83,0.4)'; textColor = '#000';
+    bgGradient = 'linear-gradient(135deg, #f0d48a 0%, #ffffff 50%, #cbd5e1 100%)';
+    glowColor = 'rgba(255,255,255,0.4)'; textColor = '#000';
   } else if (count >= 20) {
-    bgGradient = 'linear-gradient(135deg, rgba(212,168,83,0.9) 0%, rgba(184,134,11,0.85) 100%)';
-    glowColor = 'rgba(212,168,83,0.35)'; textColor = '#000';
+    bgGradient = 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(200,214,229,0.85) 100%)';
+    glowColor = 'rgba(255,255,255,0.35)'; textColor = '#000';
   } else {
-    bgGradient = 'linear-gradient(135deg, rgba(212,168,83,0.75) 0%, rgba(184,134,11,0.7) 100%)';
-    glowColor = 'rgba(212,168,83,0.25)'; textColor = '#1a1a2e';
+    bgGradient = 'linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(200,214,229,0.7) 100%)';
+    glowColor = 'rgba(255,255,255,0.25)'; textColor = '#1a1a2e';
   }
 
   return L.divIcon({
@@ -485,11 +485,11 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-            <span style="padding:2px 8px;border-radius:4px;background:${colors.glow?.replace(/[\d.]+\)$/, '0.15)') || 'rgba(212,168,83,0.15)'};color:${colors.fill};font-size:10px;font-weight:600;">${typeBadge}</span>
+            <span style="padding:2px 8px;border-radius:4px;background:${colors.glow?.replace(/[\d.]+\)$/, '0.15)') || 'rgba(255,255,255,0.15)'};color:${colors.fill};font-size:10px;font-weight:600;">${typeBadge}</span>
           </div>
           ${gamesInfo}
           <div style="display:flex;gap:6px;">
-            <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(v.name) || 'Venue Details'}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Details</button>
+            <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(v.name) || 'Venue Details'}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,#ffffff,#cbd5e1);color:#000;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Details</button>
             <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.address || '') + ' ' + (v.name || '') + ' ' + (v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
           </div>
         </div>`;
@@ -558,14 +558,14 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         ref={mapRef}
         style={{
           width: '100%', height: '100%', minHeight: 300, borderRadius: 12, overflow: 'hidden',
-          border: '1px solid rgba(212,168,83,0.15)',
+          border: '1px solid rgba(255,255,255,0.15)',
           background: '#060810',
         }}
       />
       {!mapReady && (
         <div style={{
           position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: 'rgba(212,168,83,0.6)',
+          justifyContent: 'center', color: 'rgba(255,255,255,0.6)',
           fontSize: 14, borderRadius: 12, fontFamily: 'Inter, -apple-system, sans-serif',
           fontWeight: 600, letterSpacing: '1px',
         }}>

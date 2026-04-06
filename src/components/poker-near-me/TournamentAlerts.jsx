@@ -151,7 +151,7 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
     return (
         <div className="tournament-alerts">
             <div className="ta-header">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path d="M13.73 21a2 2 0 01-3.46 0" />
                     <circle cx="18" cy="4" r="3" fill="#ef4444" stroke="none" />
@@ -289,17 +289,17 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
         .ta-chip { padding: 8px 14px; border-radius: 8px; background: linear-gradient(180deg, rgba(25,35,55,0.9), rgba(15,23,42,0.95)); border: 1.5px solid rgba(148,163,184,0.15); color: rgba(148,163,184,0.7); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3); }
         .ta-chip:hover { border-color: rgba(148,163,184,0.3); color: #e2e8f0; }
         .ta-chip.small { padding: 6px 10px; font-size: 12px; }
-        .ta-chip.active { background: linear-gradient(180deg, rgba(212,168,83,0.15), rgba(184,134,11,0.08)); border-color: rgba(212,168,83,0.45); color: #d4a853; box-shadow: inset 0 1px 0 rgba(212,168,83,0.15), 0 0 10px rgba(212,168,83,0.1); }
+        .ta-chip.active { background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08)); border-color: rgba(255,255,255,0.45); color: #ffffff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1); }
         .ta-range-row { display: flex; align-items: center; gap: 8px; }
         .ta-range-input { flex: 1; padding: 10px 12px; background: linear-gradient(180deg, rgba(20,30,48,0.95), rgba(12,18,30,0.98)); border: 1.5px solid rgba(148,163,184,0.15); border-radius: 8px; color: #e2e8f0; font-size: 14px; font-family: inherit; box-shadow: inset 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(148,163,184,0.08); }
         .ta-range-input::placeholder { color: rgba(148,163,184,0.35); }
         .ta-range-sep { color: rgba(148,163,184,0.3); }
         .push-row { display: flex; align-items: center; justify-content: space-between; }
-        .ta-push-btn { padding: 8px 16px; border-radius: 8px; background: linear-gradient(180deg, rgba(212,168,83,0.15), rgba(184,134,11,0.08)); border: 1.5px solid rgba(212,168,83,0.4); color: #d4a853; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: inset 0 1px 0 rgba(212,168,83,0.15), 0 2px 6px rgba(0,0,0,0.3); }
+        .ta-push-btn { padding: 8px 16px; border-radius: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(200,214,229,0.08)); border: 1.5px solid rgba(255,255,255,0.4); color: #ffffff; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(0,0,0,0.3); }
         .ta-match-list { margin-top: 16px; }
         .ta-match-list h3 { font-size: 16px; font-weight: 600; color: #e2e8f0; margin: 0 0 12px; }
         .ta-match-card { background: linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85)); border: 1.5px solid rgba(148,163,184,0.12); border-radius: 10px; padding: 14px; margin-bottom: 8px; transition: all 0.25s; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3); }
-        .ta-match-card:hover { border-color: rgba(212,168,83,0.3); box-shadow: inset 0 1px 0 rgba(212,168,83,0.08), 0 4px 16px rgba(0,0,0,0.4); }
+        .ta-match-card:hover { border-color: rgba(255,255,255,0.3); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.4); }
         .ta-match-header { display: flex; justify-content: space-between; align-items: center; }
         .ta-match-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
         .ta-match-buyin { padding: 2px 8px; border-radius: 4px; background: rgba(34,197,94,0.15); color: #22c55e; font-size: 12px; font-weight: 600; }

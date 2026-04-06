@@ -87,12 +87,12 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
     return (
         <div className="trip-calc">
             <div className="tc-header">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="4" y="2" width="16" height="20" rx="2" />
                     <line x1="8" y1="6" x2="16" y2="6" />
                     <line x1="8" y1="10" x2="16" y2="10" />
                     <line x1="8" y1="14" x2="12" y2="14" />
-                    <circle cx="15" cy="18" r="2" fill="#d4a853" stroke="none" />
+                    <circle cx="15" cy="18" r="2" fill="#ffffff" stroke="none" />
                 </svg>
                 <h2>Trip Cost Calculator</h2>
             </div>
@@ -255,7 +255,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         .tc-group { margin-bottom: 16px; }
         .tc-group label { display: block; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .tc-input { width: 100%; padding: 12px 16px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; color: #fff; font-size: 14px; font-family: inherit; }
-        .tc-input:focus { outline: none; border-color: rgba(212,168,83,0.5); }
+        .tc-input:focus { outline: none; border-color: rgba(255,255,255,0.5); }
         .tc-input::placeholder { color: rgba(255,255,255,0.25); }
         .tc-input.small { width: auto; padding: 10px 12px; }
         .tc-venue-search { position: relative; }
@@ -275,17 +275,17 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         .tc-stepper span { min-width: 40px; text-align: center; font-size: 18px; font-weight: 600; color: #fff; }
         .tc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
         .tc-chip { padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer; transition: all 0.2s; }
-        .tc-chip.active { background: rgba(212,168,83,0.2); border-color: rgba(212,168,83,0.5); color: #d4a853; }
+        .tc-chip.active { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); color: #ffffff; }
         .tc-mode-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
         .tc-mode { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-        .tc-mode.active { background: rgba(212,168,83,0.15); border-color: rgba(212,168,83,0.4); color: #d4a853; }
-        .tc-calc-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #d4a853, #b8860b); border: none; border-radius: 12px; color: #000; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: filter 0.2s; }
+        .tc-mode.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); color: #ffffff; }
+        .tc-calc-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #ffffff, #cbd5e1); border: none; border-radius: 12px; color: #000; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: filter 0.2s; }
         .tc-calc-btn:hover { filter: brightness(1.1); }
         .tc-calc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .tc-results { margin-top: 20px; }
-        .tc-total-card { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, rgba(212,168,83,0.1), rgba(184,134,11,0.05)); border: 1px solid rgba(212,168,83,0.3); border-radius: 16px; margin-bottom: 16px; }
+        .tc-total-card { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(200,214,229,0.05)); border: 1px solid rgba(255,255,255,0.3); border-radius: 16px; margin-bottom: 16px; }
         .tc-total-label { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
-        .tc-total-amount { font-size: 48px; font-weight: 700; color: #d4a853; margin: 4px 0; line-height: 1; }
+        .tc-total-amount { font-size: 48px; font-weight: 700; color: #ffffff; margin: 4px 0; line-height: 1; }
         .tc-total-subtitle { font-size: 13px; color: rgba(255,255,255,0.4); }
         .tc-breakdown { display: flex; flex-direction: column; gap: 8px; }
         .tc-break-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }
@@ -293,7 +293,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         .tc-break-info { flex: 1; }
         .tc-break-label { font-size: 14px; font-weight: 600; color: #fff; display: block; }
         .tc-break-detail { font-size: 11px; color: rgba(255,255,255,0.35); }
-        .tc-break-amount { font-size: 16px; font-weight: 700; color: #d4a853; }
+        .tc-break-amount { font-size: 16px; font-weight: 700; color: #ffffff; }
         .tc-no-gps { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; font-size: 12px; color: #f59e0b; margin-top: 12px; }
       `}</style>
         </div>

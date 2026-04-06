@@ -48,18 +48,18 @@ export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDism
         {/* Venue icon */}
         <div style={{
           width: 44, height: 44, borderRadius: 10,
-          background: 'rgba(212,168,83,0.15)',
-          border: '1px solid rgba(212,168,83,0.3)',
+          background: 'rgba(255,255,255,0.15)',
+          border: '1px solid rgba(255,255,255,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#d4a853', marginBottom: 2 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#ffffff', marginBottom: 2 }}>
             You are near a poker venue!
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -70,7 +70,7 @@ export default function GeofenceAlertBanner({ venue, onCheckin, onReview, onDism
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <button onClick={onCheckin} style={{
             padding: '8px 14px', borderRadius: 8,
-            background: 'linear-gradient(135deg, #d4a853, #b8860b)',
+            background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
             border: 'none', color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}>Check In</button>
           <button onClick={onReview} style={{

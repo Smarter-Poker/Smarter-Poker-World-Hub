@@ -144,8 +144,8 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
           background: rgba(10,14,25,0.88);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(212,168,83,0.25);
-          color: rgba(212,168,83,0.8);
+          border: 1px solid rgba(255,255,255,0.25);
+          color: rgba(255,255,255,0.8);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -159,8 +159,8 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
         }
         .map-pref-trigger:hover {
           background: rgba(20,28,45,0.95);
-          border-color: rgba(212,168,83,0.5);
-          color: #d4a853;
+          border-color: rgba(255,255,255,0.5);
+          color: #ffffff;
           transform: scale(1.05);
         }
         .map-pref-panel {
@@ -170,10 +170,10 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
           background: rgba(10,14,25,0.96);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(212,168,83,0.2);
+          border: 1px solid rgba(255,255,255,0.2);
           border-radius: 12px;
           padding: 10px 6px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.7), 0 0 1px rgba(212,168,83,0.15);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.7), 0 0 1px rgba(255,255,255,0.15);
           animation: mapPrefSlide 0.15s ease-out;
         }
         .map-pref-panel.up {
@@ -189,7 +189,7 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
         .map-pref-title {
           font-size: 10px;
           font-weight: 700;
-          color: rgba(212,168,83,0.6);
+          color: rgba(255,255,255,0.6);
           text-transform: uppercase;
           letter-spacing: 1px;
           padding: 4px 10px 8px;
@@ -211,11 +211,11 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
           text-align: left;
         }
         .map-pref-option:hover {
-          background: rgba(212,168,83,0.08);
+          background: rgba(255,255,255,0.08);
         }
         .map-pref-option.active {
-          background: rgba(212,168,83,0.12);
-          border: 1px solid rgba(212,168,83,0.2);
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.2);
         }
         .map-pref-icon {
           width: 28px;
@@ -229,8 +229,8 @@ export default function MapPreferenceChooser({ position = 'bottom-right' }) {
           flex-shrink: 0;
         }
         .map-pref-option.active .map-pref-icon {
-          background: rgba(212,168,83,0.15);
-          color: #d4a853;
+          background: rgba(255,255,255,0.15);
+          color: #ffffff;
         }
         .map-pref-text {
           flex: 1;
@@ -282,7 +282,7 @@ export function showMapToast(message) {
     font-size: 13px;
     font-weight: 600;
     font-family: Inter, -apple-system, sans-serif;
-    border: 1px solid rgba(212,168,83,0.25);
+    border: 1px solid rgba(255,255,255,0.25);
     box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     z-index: 99999;
     display: flex;
@@ -293,7 +293,7 @@ export function showMapToast(message) {
     pointer-events: none;
   `;
   toast.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="3 11 22 2 13 21 11 13 3 11" />
     </svg>
     ${message}

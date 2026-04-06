@@ -118,7 +118,7 @@ export default function SeriesTabPanel({
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <input type="text" placeholder="Search series..." value={seriesSearchVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubSeriesSearch: e.target.value }))}
-                    style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
+                    style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
                 <select value={seriesStateVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubSeriesState: e.target.value }))}
                     className="sort-select" style={{ minWidth: 100 }}>
@@ -129,7 +129,7 @@ export default function SeriesTabPanel({
                 </select>
             </div>
             <div className="results-bar">
-                <span className="results-count"><span style={{ color: '#d4a853', fontWeight: 800 }}>{filteredSeries.length}</span> series</span>
+                <span className="results-count"><span style={{ color: '#ffffff', fontWeight: 800 }}>{filteredSeries.length}</span> series</span>
                 <div className="view-toggle">
                     <button className={'view-btn' + (seriesViewMode === 'grid' ? ' active' : '')} onClick={() => setSeriesViewMode('grid')}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>

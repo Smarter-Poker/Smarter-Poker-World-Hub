@@ -38,7 +38,7 @@ export default function SeriesCard({ series: s, index, isFavorited, onFavorite, 
             </div>
             {/* Stakes — from poker_venues data */}
             {!s.main_event_guaranteed && Array.isArray(s.stakes_cash) && s.stakes_cash.length > 0 && (
-                <p className="card-detail" style={{ color: 'rgba(212,168,83,0.85)', fontSize: 12, marginTop: 4 }}>
+                <p className="card-detail" style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 4 }}>
                     Stakes: {s.stakes_cash.slice(0, 3).join(', ')}
                 </p>
             )}

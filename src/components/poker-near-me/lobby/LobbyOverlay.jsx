@@ -260,33 +260,33 @@ export default function LobbyOverlay({
                     display: 'flex', alignItems: 'center', gap: 10,
                     cursor: 'pointer', pointerEvents: 'auto',
                     padding: '10px 16px',
-                    background: 'linear-gradient(135deg, rgba(212,168,83,0.08), rgba(212,168,83,0.02))',
-                    border: '1.5px solid rgba(212,168,83,0.2)',
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+                    border: '1.5px solid rgba(255,255,255,0.2)',
                     borderRadius: 14,
                     transition: 'all 0.3s',
                   }}
                 >
                   <div style={{
                     width: 32, height: 32, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.08))',
-                    border: '1px solid rgba(212,168,83,0.35)',
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08))',
+                    border: '1px solid rgba(255,255,255,0.35)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                       <path d="M3 3v5h5"/>
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#d4a853', letterSpacing: '-0.2px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.2px' }}>
                       Use Saved Location
                     </div>
                     <div style={{ fontSize: 11, color: 'rgba(200,214,229,0.45)', marginTop: 1 }}>
                       {savedLocationCity}{savedLocationState ? `, ${savedLocationState}` : ''}
                     </div>
                   </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2" style={{ flexShrink: 0 }}>
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </div>
@@ -534,7 +534,7 @@ export default function LobbyOverlay({
           {[
             { value: formattedVenueCount, label: 'Venues', color: '#6ee7ef' },
             { value: liveData?.liveGameCount || 0, label: 'Live Tables', color: '#3fb950' },
-            { value: liveData?.dailyCount || 0, label: "Today's Tournaments", color: '#d4a853' },
+            { value: liveData?.dailyCount || 0, label: "Today's Tournaments", color: '#ffffff' },
           ].map((stat, i) => (
             <div key={i} style={{
               flex: '1 1 0',

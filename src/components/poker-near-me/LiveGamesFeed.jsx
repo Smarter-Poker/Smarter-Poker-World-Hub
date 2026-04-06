@@ -88,8 +88,8 @@ function SourceBadge({ source }) {
     return (
         <span style={{
             fontSize: 10, letterSpacing: '0.3px',
-            color: isLive ? 'rgba(239,68,68,0.9)' : 'rgba(212,168,83,0.9)',
-            background: isLive ? 'rgba(239,68,68,0.12)' : 'rgba(212,168,83,0.12)',
+            color: isLive ? 'rgba(239,68,68,0.9)' : 'rgba(255,255,255,0.9)',
+            background: isLive ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.12)',
             padding: '2px 6px',
             borderRadius: 4,
             fontWeight: 800,
@@ -572,15 +572,15 @@ export default function LiveGamesFeed({
                                 {normalized.canonical !== 'Unknown' ? normalized.canonical : g.game}
                             </span>
                             {g.buyin && (
-                                <span style={{ fontSize: 10, color: 'rgba(212,168,83,0.7)', fontWeight: 500 }}>
+                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
                                     Buy-in: {g.buyin}
                                 </span>
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-                            {g.players_waiting > 0 && <span style={{ color: '#d4a853', fontSize: 11 }}>{g.players_waiting} waiting</span>}
+                            {g.players_waiting > 0 && <span style={{ color: '#ffffff', fontSize: 11 }}>{g.players_waiting} waiting</span>}
                             {isPASource ? (
-                                <span style={{ color: '#d4a853', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11 }}>
+                                <span style={{ color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11 }}>
                                     {g.runs || `~${g.tables_running} est.`}
                                 </span>
                             ) : (
@@ -595,8 +595,8 @@ export default function LiveGamesFeed({
                         onClick={() => toggleBreakdown(venueSlug)} 
                         style={{ 
                             display: 'block', width: '100%', marginTop: 6, padding: '5px 0', 
-                            background: 'rgba(212,168,83,0.06)', border: '1.5px solid rgba(212,168,83,0.15)', 
-                            borderRadius: 6, color: '#d4a853', fontSize: 11, fontWeight: 600, 
+                            background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.15)', 
+                            borderRadius: 6, color: '#ffffff', fontSize: 11, fontWeight: 600, 
                             cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' 
                         }}
                     >
@@ -612,7 +612,7 @@ export default function LiveGamesFeed({
         if (!gameName) return {};
         const upper = gameName.toUpperCase();
         if (upper.includes('PLO') || upper.includes('OMAHA')) return { bg: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.22)' };
-        if (upper.includes('NLH') || upper.includes('NO LIMIT') || upper.includes('HOLDEM') || upper.includes("HOLD'EM")) return { bg: 'rgba(212,168,83,0.12)', color: '#d4a853', border: 'rgba(212,168,83,0.22)' };
+        if (upper.includes('NLH') || upper.includes('NO LIMIT') || upper.includes('HOLDEM') || upper.includes("HOLD'EM")) return { bg: 'rgba(255,255,255,0.12)', color: '#ffffff', border: 'rgba(255,255,255,0.22)' };
         if (upper.includes('LIMIT') && !upper.includes('NO LIMIT')) return { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' };
         if (upper.includes('MIXED') || upper.includes('HORSE') || upper.includes('8-GAME')) return { bg: 'rgba(6,182,212,0.12)', color: '#22d3ee', border: 'rgba(6,182,212,0.22)' };
         if (upper.includes('STUD')) return { bg: 'rgba(236,72,153,0.12)', color: '#f472b6', border: 'rgba(236,72,153,0.22)' };
@@ -740,7 +740,7 @@ export default function LiveGamesFeed({
                             {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
                         </span>
                         {v.totalWait > 0 && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(212,168,83,0.12)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.3)' }}>
+                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)' }}>
                                 {v.totalWait} Waiting{v.waitEstimate ? ` (~${v.waitEstimate.label})` : ''}
                             </span>
                         )}
@@ -770,7 +770,7 @@ export default function LiveGamesFeed({
                     <div style={{ flex: 1 }}>
                         {(!v.games || v.games.length === 0) ? (
                             <div style={{ padding: '8px 0', marginTop: 4 }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(212,168,83,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                     STAKES PLAYED $1/$2 $2/$5
                                 </span>
                             </div>
@@ -784,7 +784,7 @@ export default function LiveGamesFeed({
                         <div style={{ display: 'flex', gap: 6 }}>
                             {user && (
                                 <button onClick={(e) => { e.stopPropagation(); setReportVenue({ id: v.id, name: v.name, city: v.city, state: v.state }); setReportModalOpen(true); }}
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(212,168,83,0.12)', color: '#d4a853', border: '1px solid rgba(212,168,83,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                     Report
                                 </button>
@@ -891,9 +891,9 @@ export default function LiveGamesFeed({
                     style={{
                         display: 'none', /* shown via CSS media query */
                         alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 10,
-                        background: sidebarOpen ? 'rgba(212,168,83,0.15)' : 'rgba(255,255,255,0.05)',
-                        border: sidebarOpen ? '1px solid rgba(212,168,83,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                        color: sidebarOpen ? '#d4a853' : '#8b949e', fontSize: 12, fontWeight: 700,
+                        background: sidebarOpen ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                        border: sidebarOpen ? '1px solid rgba(255,255,255,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                        color: sidebarOpen ? '#ffffff' : '#8b949e', fontSize: 12, fontWeight: 700,
                         cursor: 'pointer', fontFamily: 'inherit',
                     }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
@@ -948,9 +948,9 @@ export default function LiveGamesFeed({
             {/* ─── 1. COLLAPSIBLE MAP ─── */}
             {!selectedVenue && (
                 <div style={{ background: 'rgba(13,17,23,0.95)', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(48,54,61,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', marginBottom: 16 }}>
-                    <div onClick={() => setMapExpanded(!mapExpanded)} style={{ padding: '10px 16px', background: 'rgba(212,168,83,0.08)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#d4a853', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Live Games Map</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
+                    <div onClick={() => setMapExpanded(!mapExpanded)} style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#ffffff', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>Live Games Map</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ transform: mapExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}><polyline points="6 9 12 15 18 9" /></svg>
                     </div>
                     {mapExpanded && (
                         <div style={{ height: 400 }}>
@@ -976,11 +976,11 @@ export default function LiveGamesFeed({
                             )}
                         </div>
                         {showSuggestions && searchSuggestions.length > 0 && (
-                            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'rgba(22,27,34,0.98)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 10, overflow: 'hidden', zIndex: 50 }}>
+                            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'rgba(22,27,34,0.98)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 10, overflow: 'hidden', zIndex: 50 }}>
                                 {searchSuggestions.map((v, i) => (
                                     <div key={v.bravo_slug || v.id} onClick={() => handleSelectSuggestion(v)} style={{ padding: '8px 12px', borderBottom: '1px solid rgba(48,54,61,0.5)', cursor: 'pointer', color: '#fff', fontSize: 12, fontWeight: 600, display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</span>
-                                        <span style={{ fontSize: 10, color: '#d4a853' }}>{v.totalTables || 0}</span>
+                                        <span style={{ fontSize: 10, color: '#ffffff' }}>{v.totalTables || 0}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1025,14 +1025,14 @@ export default function LiveGamesFeed({
                                 <span style={{ fontSize: 12, color: '#c9d1d9', fontWeight: 600 }}>
                                     <span style={{ color: '#ef4444', fontWeight: 800 }}>{mergedVenues.length}</span> Live Venues
                                     {filterGameType !== 'all' && <span style={{ color: '#3fb950' }}> · {filterGameType.toUpperCase()}</span>}
-                                    {filterStakes !== 'any' && <span style={{ color: '#d4a853' }}> · {filterStakes}/+</span>}
+                                    {filterStakes !== 'any' && <span style={{ color: '#ffffff' }}> · {filterStakes}/+</span>}
                                 </span>
                                 <button 
                                     onClick={() => fetchGlobalLiveData(true)} 
                                     disabled={isRefreshing}
                                     style={{ 
-                                        background: 'rgba(212,168,83,0.08)', border: '1.5px solid rgba(212,168,83,0.2)', 
-                                        borderRadius: 6, padding: '4px 10px', color: '#d4a853', fontSize: 11, 
+                                        background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.2)', 
+                                        borderRadius: 6, padding: '4px 10px', color: '#ffffff', fontSize: 11, 
                                         fontWeight: 600, cursor: isRefreshing ? 'wait' : 'pointer', fontFamily: 'inherit',
                                         display: 'flex', alignItems: 'center', gap: 4,
                                     }}
@@ -1047,13 +1047,13 @@ export default function LiveGamesFeed({
 
                         {mergedVenues.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40, background: 'rgba(13,17,23,0.6)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.1)' }}>
-                                <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(212,168,83,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(212,168,83,0.4)" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
+                                <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
                                 </div>
                                 <p style={{ fontSize: 16, fontWeight: 700, color: '#e0e8f0', margin: '0 0 4px' }}>No Active Games Found</p>
                                 <p style={{ fontSize: 13, color: 'rgba(200,214,229,0.5)', marginBottom: 16 }}>Try Expanding Your Filters Or Clearing The Game Type.</p>
                                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-                                    <button onClick={handleResetFilters} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(212,168,83,0.1)', border: '1px solid rgba(212,168,83,0.3)', color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <button onClick={handleResetFilters} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.3)', color: '#ffffff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg>
                                         Reset All Filters
                                     </button>
@@ -1113,9 +1113,9 @@ export default function LiveGamesFeed({
                     style={{
                         position: 'fixed', bottom: 24, right: 24, zIndex: 1000,
                         width: 52, height: 52, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #d4a853, #b8860b)',
+                        background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
                         border: '2px solid rgba(255,255,255,0.2)',
-                        boxShadow: '0 6px 24px rgba(212,168,83,0.5)',
+                        boxShadow: '0 6px 24px rgba(255,255,255,0.5)',
                         color: '#000', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         transition: 'transform 0.2s, box-shadow 0.2s',

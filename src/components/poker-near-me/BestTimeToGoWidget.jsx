@@ -229,7 +229,7 @@ export default function BestTimeToGoWidget({ venueId, venueName }) {
       {activePrediction && (
         <div className="bttg-prediction">
           <p className="bttg-prediction-text">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
             {activePrediction.prediction}
@@ -427,7 +427,7 @@ const STYLES = `
     background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
     border: 1px solid rgba(255,255,255,0.08);
   }
-  .bttg-pred-confidence { background: rgba(212,168,83,0.1); border-color: rgba(212,168,83,0.25); color: #d4a853; }
+  .bttg-pred-confidence { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #ffffff; }
 
   .bttg-heatmap-toggle {
     display: flex; align-items: center; gap: 8px; width: 100%;

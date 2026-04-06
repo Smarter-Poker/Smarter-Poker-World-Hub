@@ -467,15 +467,15 @@ function TooltipCard({ step, currentIndex, totalSteps, position, onNext, onSkip,
         {step.tip && (
           <div style={{
             padding: isMobile ? '8px 10px' : '10px 14px', borderRadius: 10,
-            background: 'rgba(212,168,83,0.06)',
-            border: '1px solid rgba(212,168,83,0.18)',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.18)',
             marginBottom: isMobile ? 14 : 24,
             display: 'flex', alignItems: 'flex-start', gap: 8,
           }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" style={{ flexShrink: 0, marginTop: 2 }}>
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
-            <span style={{ fontSize: isMobile ? 12 : 13, color: '#d4a853', lineHeight: 1.45, fontWeight: 500 }}>
+            <span style={{ fontSize: isMobile ? 12 : 13, color: '#ffffff', lineHeight: 1.45, fontWeight: 500 }}>
               {step.tip}
             </span>
           </div>

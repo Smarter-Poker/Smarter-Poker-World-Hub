@@ -147,9 +147,9 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 12px', borderRadius: 8,
-                    border: isSelected ? '1.5px solid rgba(212,168,83,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
-                    background: isSelected ? 'rgba(212,168,83,0.1)' : 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))',
-                    color: isSelected ? '#d4a853' : '#e2e8f0',
+                    border: isSelected ? '1.5px solid rgba(255,255,255,0.5)' : '1.5px solid rgba(148,163,184,0.12)',
+                    background: isSelected ? 'rgba(255,255,255,0.1)' : 'linear-gradient(160deg, rgba(18,28,45,0.7), rgba(10,16,28,0.85))',
+                    color: isSelected ? '#ffffff' : '#e2e8f0',
                     fontSize: 12, fontWeight: isSelected ? 700 : 400,
                     cursor: selectedIds.length >= 3 && !isSelected ? 'not-allowed' : 'pointer',
                     fontFamily: 'inherit', textAlign: 'left', width: '100%',
@@ -159,12 +159,12 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
                 >
                   <div style={{
                     width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                    border: isSelected ? '2px solid #d4a853' : '2px solid rgba(148,163,184,0.2)',
-                    background: isSelected ? 'rgba(212,168,83,0.2)' : 'transparent',
+                    border: isSelected ? '2px solid #ffffff' : '2px solid rgba(148,163,184,0.2)',
+                    background: isSelected ? 'rgba(255,255,255,0.2)' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {isSelected && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4a853" strokeWidth="3">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
@@ -189,12 +189,12 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
             <span key={v.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 8,
-              background: 'rgba(212,168,83,0.12)', border: '1px solid rgba(212,168,83,0.3)',
-              color: '#d4a853', fontSize: 11, fontWeight: 600,
+              background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)',
+              color: '#ffffff', fontSize: 11, fontWeight: 600,
             }}>
               {v.name}
               <button onClick={() => toggleVenue(v.id)} style={{
-                background: 'none', border: 'none', color: '#d4a853', cursor: 'pointer',
+                background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer',
                 padding: 0, fontSize: 14, lineHeight: 1, fontFamily: 'inherit',
               }}>×</button>
             </span>
@@ -217,7 +217,7 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
               <tr>
                 <th style={{ padding: '10px 14px', textAlign: 'left', color: 'rgba(148,163,184,0.6)', fontWeight: 600, borderBottom: '1px solid rgba(148,163,184,0.08)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Metric</th>
                 {selectedVenues.map(v => (
-                  <th key={v.id} style={{ padding: '10px 14px', textAlign: 'center', color: '#d4a853', fontWeight: 700, borderBottom: '1px solid rgba(148,163,184,0.08)', fontSize: 13, minWidth: 120 }}>
+                  <th key={v.id} style={{ padding: '10px 14px', textAlign: 'center', color: '#ffffff', fontWeight: 700, borderBottom: '1px solid rgba(148,163,184,0.08)', fontSize: 13, minWidth: 120 }}>
                     {v.name?.length > 18 ? v.name.slice(0, 18) + '…' : v.name}
                   </th>
                 ))}
