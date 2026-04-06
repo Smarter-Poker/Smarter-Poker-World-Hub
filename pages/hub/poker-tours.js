@@ -69,6 +69,12 @@ function formatMoney(amount) {
 
 function formatDate(dateStr) {
     if (!dateStr) return '';
+    // Parse YYYY-MM-DD as local time (not UTC) to avoid timezone shift
+    const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (parts) {
+        const date = new Date(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]));
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -106,13 +112,16 @@ export default function PokerToursPage() {
         } catch { return {}; }
     });
 
-    // ─── URL Deep-link: read ?q= and ?range= on mount ───
+    // ─── URL Deep-link: read all filter params on mount ───
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const params = new URLSearchParams(window.location.search);
         const q = params.get('q');
         const range = params.get('range');
         const type = params.get('type');
+        const distance = params.get('distance');
+        const buyin = params.get('buyin');
+        const region = params.get('region');
         if (q) setSearchQuery(q);
         if (range && ['7d','14d','30d','60d','90d','6m','1y'].includes(range)) {
             setDateRange(range);
@@ -120,6 +129,15 @@ export default function PokerToursPage() {
         }
         if (type && ['major','circuit','high_roller','regional','grassroots','charity'].includes(type)) {
             setSelectedType(type);
+        }
+        if (distance && ['50','100','250','500','1000'].includes(distance)) {
+            setDistanceFilter(distance);
+        }
+        if (buyin && ['low','mid','high','super'].includes(buyin)) {
+            setBuyinFilter(buyin);
+        }
+        if (region && region !== 'all') {
+            setSelectedRegion(region);
         }
     }, []);
 
@@ -130,12 +148,15 @@ export default function PokerToursPage() {
         if (searchQuery) params.set('q', searchQuery);
         if (dateRange !== 'all') params.set('range', dateRange);
         if (selectedType !== 'all') params.set('type', selectedType);
+        if (distanceFilter !== 'all') params.set('distance', distanceFilter);
+        if (buyinFilter !== 'all') params.set('buyin', buyinFilter);
+        if (selectedRegion !== 'all') params.set('region', selectedRegion);
         const qs = params.toString();
         const newUrl = window.location.pathname + (qs ? '?' + qs : '');
         if (newUrl !== window.location.pathname + window.location.search) {
             window.history.replaceState(null, '', newUrl);
         }
-    }, [searchQuery, dateRange, selectedType]);
+    }, [searchQuery, dateRange, selectedType, distanceFilter, buyinFilter, selectedRegion]);
 
     // ─── Keyboard shortcut: Cmd/Ctrl+K to focus search ───
     useEffect(() => {
@@ -164,12 +185,27 @@ export default function PokerToursPage() {
 
     // ─── Distance filter: auto-request geolocation when radius selected ───
     const handleDistanceChange = useCallback((val) => {
-        setDistanceFilter(val);
-        if (val !== 'all' && !userLocation && navigator.geolocation) {
+        if (val === 'all') {
+            setDistanceFilter('all');
+            return;
+        }
+        // If we already have user location, apply filter immediately
+        if (userLocation) {
+            setDistanceFilter(val);
+            return;
+        }
+        // Need GPS — request it, then apply filter only on success
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            // Show the dropdown selection immediately for visual feedback
+            setDistanceFilter(val);
             navigator.geolocation.getCurrentPosition(
                 (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => { alert('Location access is required for distance filtering. Please enable location services.'); setDistanceFilter('all'); }
+                () => { alert('Location access is required for distance filtering. Please enable location services.'); setDistanceFilter('all'); },
+                { timeout: 10000, enableHighAccuracy: false }
             );
+        } else {
+            alert('Geolocation is not supported by your browser.');
+            setDistanceFilter('all');
         }
     }, [userLocation]);
 
@@ -625,9 +661,23 @@ export default function PokerToursPage() {
             const maxMiles = parseInt(distanceFilter, 10);
             if (!isNaN(maxMiles)) {
                 result = result.filter(t => {
+                    // Check stops_2026 and series_2026 (registry data with venue/location)
                     const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
                     for (const stop of allStops) {
                         const coords = findVenueCoords(stop);
+                        if (coords && coords.latitude && coords.longitude) {
+                            const dist = haversineDistance(userLocation.lat, userLocation.lng, coords.latitude, coords.longitude);
+                            if (dist <= maxMiles) return true;
+                        }
+                    }
+                    // Also check upcoming_series (API data) — resolve by venue/name/location
+                    const upcomingSeries = t.upcoming_series || [];
+                    for (const s of upcomingSeries) {
+                        const coords = findVenueCoords({
+                            venue: s.venue || s.short_name || '',
+                            location: s.location || '',
+                            name: s.short_name || s.name || '',
+                        });
                         if (coords && coords.latitude && coords.longitude) {
                             const dist = haversineDistance(userLocation.lat, userLocation.lng, coords.latitude, coords.longitude);
                             if (dist <= maxMiles) return true;
@@ -750,7 +800,11 @@ export default function PokerToursPage() {
                 ].some(field => (field || '').toLowerCase().includes(q));
             }
 
-            if (textMatch || dateMatch) {
+            // When search + date are both active, require BOTH to match
+            // When only date is active, show all date-matching stops
+            // When only search is active, show all text-matching stops
+            const include = q ? (textMatch && dateMatch) : dateMatch;
+            if (include) {
                 matched.push({
                     ...stop,
                     start_date: dates.start.toISOString().split('T')[0],
@@ -1056,7 +1110,7 @@ export default function PokerToursPage() {
                                     <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
                                 </svg>
                                 <h3>No Matching Tours</h3>
-                                <p>No tours match your current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
+                                <p>No tours match your current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}{distanceFilter !== 'all' ? ` within ${distanceFilter} miles` : ''}.</p>
                                 <button
                                     className="tours-empty-reset"
                                     onClick={() => { setSearchQuery(''); setDateRange('all'); setSelectedType('all'); setSelectedRegion('all'); setBuyinFilter('all'); setDistanceFilter('all'); setSortBy('priority'); }}
