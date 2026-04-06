@@ -5885,6 +5885,12 @@ function makeTurnRiverHeuristicDecision(params) {
     const isIP = ipPositions.has(position);
     const multiway = numPlayers >= 3;
 
+    // ═══ UPGRADED MULTIWAY ADJUSTMENTS ═══
+    // Position-aware, street-aware, texture-aware multiway framework
+    const mwAdj = multiway ? getMultiwayAdjustment(numPlayers, {
+        position, street, boardWetness: boardWet, heroIsAggressor
+    }) : { strengthPenalty: 0, bluffReduction: 1.0, valueBetThreshold: 0, cbetFreqMod: 0, callWidthMod: 0, adjustSizing: 0 };
+
     // ── BOARD RUNOUT ANALYSIS ──
     const newCard = board[board.length - 1];
     const newRank = RANKS.indexOf(newCard[0]);
@@ -5986,6 +5992,44 @@ function makeTurnRiverHeuristicDecision(params) {
         oppTendency = enrichedOpponentRead.tendency ?? oppTendency;
         // Confidence scales with hands observed: 10 hands = 0.3, 30 = 0.6, 50+ = 0.85
         oppConfidence = Math.min(0.85, enrichedOpponentRead.handsObserved / 60);
+    }
+
+    // ═══ SESSION MODEL OVERLAY ═══
+    // Real-time session reads can override or refine long-term Supabase reads.
+    // Session data is fresher — if someone is tilting or playing differently today,
+    // the session model catches it faster than the long-term model.
+    const sessionRead = getOpponentSessionRead(profileId);
+    if (sessionRead && sessionRead.confidence >= 0.15) {
+        // Weight: session data blends with long-term reads. Higher session confidence = more weight.
+        const sw = Math.min(0.60, sessionRead.confidence); // Session weight (max 60%)
+        const lw = 1.0 - sw; // Long-term weight
+
+        // Blend frequencies
+        oppFoldFreq = lw * oppFoldFreq + sw * sessionRead.foldFreq;
+        oppCallFreq = lw * oppCallFreq + sw * sessionRead.callFreq;
+
+        // Session bluff rate overrides if we have showdown data
+        if (sessionRead.bluffRate !== null) {
+            oppBluffFreq = lw * oppBluffFreq + sw * sessionRead.bluffRate;
+        }
+
+        // Session tendency override if high-confidence
+        if (sessionRead.confidence >= 0.30 && sessionRead.sessionTendency !== 'balanced') {
+            oppTendency = sessionRead.sessionTendency;
+        }
+
+        // Boost overall confidence with session data
+        oppConfidence = Math.min(0.90, oppConfidence + sessionRead.confidence * 0.3);
+
+        // Specific exploit detections from session
+        if (sessionRead.overbetRate > 0.15 && sessionRead.totalActions >= 20) {
+            // Opponent overbets a lot → they're polarized, call wider with blockers
+            // (This feeds into hero call engine downstream)
+        }
+        if (sessionRead.barrelRate !== null && sessionRead.barrelRate > 0.80) {
+            // Opponent always barrels → they're either value-heavy or bluff-heavy
+            // Session bluff rate disambiguates
+        }
     }
 
     // ═══ STREET ACTION INFERENCE ═══
@@ -6135,6 +6179,25 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppCallFreq > 0.60 && oppConfidence > 0.3) delayedCbetFreq = 0;
                 }
 
+                // ═══ BOARD EVOLUTION-DRIVEN DELAYED C-BET ═══
+                // Runout that favors our range = more credible delayed c-bet
+                if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
+                    delayedCbetFreq += 0.12; // Turn helped our range — very credible
+                } else if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
+                    delayedCbetFreq -= 0.10; // Turn helped their range — less credible
+                }
+                // Completed draws: represent them if aggressor, fear them if not
+                if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
+                    delayedCbetFreq += 0.08; // We can represent the completed draw
+                }
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0 && heroIsAggressor) {
+                    delayedCbetFreq += 0.06; // Draws bricked = opponent's semi-bluffs missed
+                }
+                // Static brick = status quo, good for delayed c-bet
+                if (boardEvolution.evolution === 'static_brick') {
+                    delayedCbetFreq += 0.05;
+                }
+
                 // Narrative boost
                 delayedCbetFreq += narrativeAggrMod / 40;
                 delayedCbetFreq = Math.max(0, Math.min(0.80, delayedCbetFreq));
@@ -6188,7 +6251,25 @@ function makeTurnRiverHeuristicDecision(params) {
             if (handEval.strength >= 55 && scareLevel <= 1 && canRaise) {
                 // Double barrel: size for protection on wet boards, thinner on dry
                 let sizeFrac = boardWet === 'dry' ? 0.45 : boardWet === 'wet' ? 0.66 : 0.55;
-                let betFreq = multiway ? 0.60 : aggrFreq;
+                let betFreq = multiway ? Math.max(0.40, 0.60 + mwAdj.cbetFreqMod) : aggrFreq;
+
+                // ═══ BOARD EVOLUTION-DRIVEN BARREL SIZING ═══
+                // Dynamic boards = charge more (opponent's range is more uncertain)
+                if (boardEvolution.evolution === 'dynamic') {
+                    sizeFrac = Math.min(0.80, sizeFrac + 0.10); // Dynamic runout = bigger sizing
+                }
+                // Draws completed on turn = we need to bet bigger to charge
+                if (boardEvolution.drawsCompleted.length > 0) {
+                    sizeFrac = Math.min(0.80, sizeFrac + 0.08);
+                }
+                // Board got wetter = increase protection sizing
+                if (boardEvolution.boardGotWetter) {
+                    sizeFrac = Math.min(0.80, sizeFrac + 0.06);
+                }
+                // Board got drier (brick) = can bet smaller for thin value
+                if (boardEvolution.boardGotDrier) {
+                    sizeFrac = Math.max(0.35, sizeFrac - 0.08);
+                }
 
                 // ═══ NARRATIVE-DRIVEN BARREL ═══
                 // If we bet the flop, continue the story (double barrel is credible)
@@ -6240,7 +6321,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     semiFreq = Math.min(0.75, semiFreq + 0.12);
                 }
                 // In stealth mode, randomize sizing more to avoid patterns
-                if (Math.random() < semiFreq * (multiway ? 0.6 : 1.0)) {
+                if (Math.random() < semiFreq * (multiway ? mwAdj.bluffReduction : 1.0)) {
                     let sizeFrac = drawEq.outs >= 14 ? 0.65 : 0.50; // Bigger with combo draws
                     if (inStealthMode) sizeFrac += (Math.random() * 0.10 - 0.05); // +/- 5% noise
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
@@ -6344,12 +6425,31 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Board paired on turn — represent trips
                 if (newCardPairedBoard) bluffFreq += 0.05;
 
+                // ═══ BOARD EVOLUTION-DRIVEN BLUFF CREDIBILITY ═══
+                // Runout that completes draws = we can represent them (credible bluff)
+                if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
+                    bluffFreq += 0.10; // Draws got there — credible to rep
+                }
+                // Board bricked draws = opponent's semi-bluffs missed → they fold more
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                    bluffFreq += 0.06; // Opponent's missed draws = weak range
+                }
+                // Static brick = opponent expects us to barrel anyway → less fold equity
+                if (boardEvolution.evolution === 'static_brick' && !heroIsAggressor) {
+                    bluffFreq -= 0.06; // Blank card, non-aggressor bluff is uncredible
+                }
+                // Caller-favorable runout AND we're the aggressor = terrible bluff spot
+                if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
+                    bluffFreq -= 0.10; // Board helped their range, not ours
+                }
+
                 // Against over-folders, bluff more
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.25) bluffFreq += 0.08;
                 // Against calling stations, don't bluff
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) bluffFreq = 0;
 
-                bluffFreq = Math.max(0, Math.min(0.50, bluffFreq));
+                // GTO cap: turn bluffs should not exceed ~38% even with max blockers + favorable reads
+                bluffFreq = Math.max(0, Math.min(0.38, bluffFreq));
 
                 if (Math.random() < bluffFreq) {
                     // ═══ BLOCKER-AWARE TURN BLUFF SIZING ═══
@@ -6456,6 +6556,27 @@ function makeTurnRiverHeuristicDecision(params) {
                 }
             }
 
+            // ═══ BOARD EVOLUTION-DRIVEN TURN CALL/FOLD ═══
+            // The runout character should heavily influence our call/fold decisions
+            if (boardEvolution.drawsCompleted.length > 0 && handEval.strength < 70) {
+                // A draw completed on the turn — opponent could have it
+                // If we don't have the completed draw ourselves, lean toward folding
+                const weHaveCompletedDraw = handEval.category?.includes('flush') || handEval.category?.includes('straight');
+                if (!weHaveCompletedDraw && betToPot >= 0.60) {
+                    // Big bet on draw-completing turn = fold marginal hands
+                    if (handEval.strength < 60 && !blocksNutFlush) {
+                        console.log(`[HorseBrain] 🌊 TURN FOLD: draw completed, no blockers, str=${handEval.strength}`);
+                        return canCheck ? { type: 'check' } : { type: 'fold' };
+                    }
+                }
+            }
+            // Bricked draws = opponent's semi-bluffs missed → be stickier
+            if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0 && handEval.strength >= 40) {
+                // Opponent bet but draws bricked — their semi-bluffs are now pure bluffs
+                // We should call wider here as bluff-catcher
+                // (no action needed — just don't fold; the fold logic below handles it)
+            }
+
             // ═══ NARRATIVE-DRIVEN TURN CALL/FOLD ADJUSTMENTS ═══
             // Opponent barrel-barrel = polarized range → use hand strength + blockers
             if (narrative.barrelsInARow >= 2 && handEval.strength < 65) {
@@ -6488,7 +6609,7 @@ function makeTurnRiverHeuristicDecision(params) {
             // Direct odds: call if equity exceeds pot odds
             if (drawEquityPct >= potOdds - 0.05) {
                 // Semi-bluff raise with massive combo draws (14+ outs)
-                if (canRaise && drawEq.outs >= 14 && Math.random() < 0.40 * (multiway ? 0.5 : 1.0)) {
+                if (canRaise && drawEq.outs >= 14 && Math.random() < 0.40 * (multiway ? mwAdj.bluffReduction : 1.0)) {
                     return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 2.5)) };
                 }
                 return canCall ? { type: 'call' } : { type: 'fold' };
@@ -6672,6 +6793,20 @@ function makeTurnRiverHeuristicDecision(params) {
                     overbetMax = Math.max(0.30, overbetMax - 0.10); // We hit on river, size down slightly
                 }
 
+                // ═══ BOARD EVOLUTION-DRIVEN OVERBET SIZING ═══
+                // River completed draws = opponent will pay off if they have second-best
+                if (boardEvolution.drawsCompleted.length > 0) {
+                    overbetMax += 0.10; // Completed draws = more nutted combos to rep
+                }
+                // Static brick river = opponent expects value, smaller overbet is correct
+                if (boardEvolution.evolution === 'static_brick') {
+                    overbetMax = Math.max(0.20, overbetMax - 0.08);
+                }
+                // PFR-favorable river = aggressor range is strong → overbet with confidence
+                if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
+                    overbetMax += 0.10;
+                }
+
                 const overbetFrac = 1.0 + Math.random() * overbetMax;
                 // Against nits, use smaller sizing (they fold to overbets)
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.3) {
@@ -6683,7 +6818,11 @@ function makeTurnRiverHeuristicDecision(params) {
 
             // ── MONSTERS (non-nut): Standard value bet 66-80% pot ──
             if (handEval.strength >= 75 && canRaise) {
-                let sizeFrac = multiway ? 0.60 : 0.72;
+                let sizeFrac = multiway ? Math.max(0.50, 0.60 + mwAdj.adjustSizing * 0.01) : 0.72;
+                // Multiway: tighter value range means we can size up more
+                if (multiway && mwAdj.valueBetThreshold > 0) {
+                    sizeFrac = Math.min(0.80, sizeFrac + 0.08); // Multiway value = bigger sizing
+                }
                 // Against calling stations, size up
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) sizeFrac = Math.min(0.85, sizeFrac + 0.10);
 
@@ -6714,7 +6853,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Don't thin value bet on boards that completed obvious draws
                 if (scareLevel >= 3) return canCheck ? { type: 'check' } : { type: 'fold' };
                 // Thin value frequency: higher IP, lower multiway
-                let thinValueFreq = multiway ? 0.50 : (isIP ? 0.72 : 0.60);
+                let thinValueFreq = multiway ? Math.max(0.30, 0.50 + mwAdj.cbetFreqMod) : (isIP ? 0.72 : 0.60);
 
                 // ═══ OPPONENT-AWARE THIN VALUE ═══
                 // Against calling stations, thin value bet MORE (they call too light)
@@ -6749,12 +6888,35 @@ function makeTurnRiverHeuristicDecision(params) {
                     thinValueFreq = Math.min(0.85, thinValueFreq + 0.08);
                 }
 
+                // ═══ BOARD EVOLUTION-DRIVEN THIN VALUE ═══
+                // Runout character affects thin value bet safety
+                if (boardEvolution.drawsCompleted.length > 0) {
+                    thinValueFreq -= 0.12; // Draw completed = risky to thin value
+                }
+                if (boardEvolution.evolution === 'static_brick') {
+                    thinValueFreq += 0.06; // Blank river = safe to thin value
+                }
+                if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
+                    thinValueFreq += 0.08; // River helped our range = bet more
+                }
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                    thinValueFreq += 0.06; // Opponent's draws missed = can thin value safely
+                }
+
                 if (Math.random() < thinValueFreq) {
-                    let sizeFrac = multiway ? 0.45 : 0.55;
+                    let sizeFrac = multiway ? Math.max(0.35, 0.45 + mwAdj.adjustSizing * 0.01) : 0.55;
                     // Smaller sizing vs tight opponents to get called
                     if (oppFoldFreq > 0.50 && oppConfidence > 0.3) sizeFrac = Math.max(0.35, sizeFrac - 0.12);
                     // Narrative: consistent barrels → can size up thin value
                     if (narrative.storyIsConsistent && narrative.barrelsInARow >= 1) {
+                        sizeFrac = Math.min(0.70, sizeFrac + 0.06);
+                    }
+                    // Board got drier = smaller sizing is fine for thin value
+                    if (boardEvolution.boardGotDrier) {
+                        sizeFrac = Math.max(0.35, sizeFrac - 0.06);
+                    }
+                    // Board got wetter = bigger to charge (or check instead)
+                    if (boardEvolution.boardGotWetter) {
                         sizeFrac = Math.min(0.70, sizeFrac + 0.06);
                     }
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
@@ -6820,6 +6982,9 @@ function makeTurnRiverHeuristicDecision(params) {
 
             // ── RIVER BLUFF: Polarized bluff with blockers ──
             // This is where the real skill shows — turning missed draws into profitable bluffs
+            // GTO PRINCIPLE: Bluff:Value ratio should match bet sizing to make opponent indifferent.
+            // For b% pot bet: bluff frequency = b/(1+b) of betting range.
+            // 66% pot → ~40% bluffs in betting range. 100% pot → 50%. 150% pot → 60%.
             if (handEval.strength < 15 && canRaise && !multiway) {
                 let bluffProbability = 0;
 
@@ -6869,10 +7034,35 @@ function makeTurnRiverHeuristicDecision(params) {
                 // Board that missed draws → opponent has showdown value
                 if (scareLevel === 0 && equityDelta < -10) bluffProbability += 0.08;
 
+                // ═══ BOARD EVOLUTION-DRIVEN RIVER BLUFF ═══
+                // The runout character defines bluff credibility on the river
+                if (boardEvolution.drawsCompleted.length > 0 && heroIsAggressor) {
+                    bluffProbability += 0.10; // Completed draws = we can rep the nuts
+                }
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                    // Draws bricked = opponent knows we missed → less fold equity for bluffs
+                    // UNLESS we barrel representing value (not a draw)
+                    if (narrative.barrelsInARow >= 2 && narrative.storyIsConsistent) {
+                        bluffProbability += 0.04; // Our barrel story still credible
+                    } else {
+                        bluffProbability -= 0.08; // We look like a missed draw
+                    }
+                }
+                if (boardEvolution.evolution === 'static_brick' && heroIsAggressor) {
+                    bluffProbability += 0.06; // Brick river = good for PFR to triple barrel
+                }
+                if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
+                    bluffProbability -= 0.10; // River helped their range — terrible bluff spot
+                }
+                if (boardEvolution.evolution === 'pfr_favorable' && heroIsAggressor) {
+                    bluffProbability += 0.08; // River helped our range — credible
+                }
+
                 // ═══ HEAVY POT CAUTION ═══
                 if (oppStreetAggression === 'very_heavy') bluffProbability -= 0.10;
 
-                bluffProbability = Math.max(0, Math.min(0.45, bluffProbability));
+                // GTO cap: river bluffs should not exceed ~35% even with max blockers + reads
+                bluffProbability = Math.max(0, Math.min(0.35, bluffProbability));
 
                 if (Math.random() < bluffProbability) {
                     let bluffFrac = 0.66 + Math.random() * 0.14;
@@ -7071,11 +7261,23 @@ function makeTurnRiverHeuristicDecision(params) {
             // FACTOR 5: Board missed draws → opponent more likely bluffing
             // If flush/straight draws bricked and opponent bets big = likely bluff
             if (scareLevel === 0 && betToPot >= 0.60 && handEval.strength >= 30) {
-                // ═══ DRAW BRICKED DETECTION ═══
+                // ═══ DRAW BRICKED DETECTION (BOARD EVOLUTION ENHANCED) ═══
                 // River completed nothing — opponent's turn draws missed
                 let brickCallFreq = 0.35;
                 if (turnToRiverDelta <= -5) brickCallFreq += 0.10; // River hurt our hand too = both have air
                 if (oppBluffFreq > 0.30 && oppConfidence > 0.25) brickCallFreq += 0.10;
+                // ═══ BOARD EVOLUTION: Bricked draws = more bluffs in opponent range ═══
+                if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                    brickCallFreq += 0.08 * boardEvolution.drawsBricked.length; // Each bricked draw = more air
+                }
+                if (boardEvolution.evolution === 'static_brick') {
+                    brickCallFreq += 0.06; // Total brick = high bluff frequency
+                }
+                // But if draws completed, opponent is less likely bluffing
+                if (boardEvolution.drawsCompleted.length > 0) {
+                    brickCallFreq -= 0.10; // They could have it
+                }
+                brickCallFreq = Math.max(0.10, Math.min(0.60, brickCallFreq));
                 if (Math.random() < brickCallFreq) {
                     return canCall ? { type: 'call' } : { type: 'fold' };
                 }
@@ -7165,6 +7367,31 @@ function makeTurnRiverHeuristicDecision(params) {
             // Board completed obvious draws but we still have showdown value
             if (scareLevel >= 2 && handEval.strength >= 30) {
                 heroCallProb -= 0.06; // Draw completed → opponent more likely to have it
+            }
+
+            // ═══ BOARD EVOLUTION-DRIVEN HERO CALL ═══
+            // The runout story tells us how likely opponent is bluffing
+            if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) {
+                // Draws bricked on river = opponent's semi-bluffs are now air
+                // This is the #1 hero call scenario — their draws missed
+                heroCallProb += 0.10 * boardEvolution.drawsBricked.length; // More bricked draws = more bluffs
+                heroCallProb = Math.min(heroCallProb, 0.70); // Soft cap
+            }
+            if (boardEvolution.drawsCompleted.length > 0 && !handEval.category?.includes('flush') && !handEval.category?.includes('straight')) {
+                // Draws completed and we don't have the draw = fold more
+                heroCallProb -= 0.08 * boardEvolution.drawsCompleted.length;
+                // But if we block the completed draw, still hero call
+                if (blocksNutFlush && boardEvolution.drawsCompleted.includes('flush')) {
+                    heroCallProb += 0.12; // We block their flush = more likely bluff
+                }
+            }
+            if (boardEvolution.evolution === 'static_brick') {
+                // River was a complete blank — opponent is more likely to be bluffing
+                heroCallProb += 0.06;
+            }
+            if (boardEvolution.evolution === 'caller_favorable' && heroIsAggressor) {
+                // River helped their range — their bets are more credible
+                heroCallProb -= 0.06;
             }
 
             // ── BET SIZE ADJUSTMENT ──
@@ -7293,6 +7520,12 @@ function makeFlopHeuristicDecision(params) {
     const maxSuitCount = Math.max(...Object.values(suitCounts));
     const boardIsMonotone = maxSuitCount === 3;
     const boardHasFlushDraw = maxSuitCount >= 2;
+
+    // ═══ UPGRADED MULTIWAY ADJUSTMENTS (FLOP) ═══
+    const boardWetness = boardIsMonotone ? 'wet' : boardHasFlushDraw ? 'semi_wet' : 'dry';
+    const mwAdj = multiway ? getMultiwayAdjustment(numPlayers, {
+        position, street: 'flop', boardWetness, heroIsAggressor
+    }) : { strengthPenalty: 0, bluffReduction: 1.0, valueBetThreshold: 0, cbetFreqMod: 0, callWidthMod: 0, adjustSizing: 0 };
     const boardIsPaired = new Set(board.map(c => c[0])).size < 3;
     const boardIsTrips = new Set(board.map(c => c[0])).size === 1;
     const boardHighCards = board.filter(c => RANKS.indexOf(c[0]) >= 9).length; // T+ = index 9+
@@ -7365,7 +7598,7 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFreq = 0.80; // Near-100% c-bet range
                 let cbetFrac = boardIsPaired ? 0.25 : 0.33; // Tiny sizing
 
-                if (multiway) cbetFreq = 0.55; // Tighten multiway
+                if (multiway) cbetFreq = Math.max(0.30, 0.55 + mwAdj.cbetFreqMod); // Tighten multiway (position/texture aware)
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
                     // Against callers: only c-bet with equity
                     if (handEval.strength < 35 && drawEq.outs < 6) cbetFreq = 0.30;
@@ -7392,7 +7625,7 @@ function makeFlopHeuristicDecision(params) {
                 // Nut advantage: if PFR has overpairs → can still c-bet
                 if (handEval.category === 'overpair') { cbetFreq = 0.70; cbetFrac = 0.55; }
 
-                if (multiway) cbetFreq *= 0.60;
+                if (multiway) cbetFreq = Math.max(0.15, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
                 cbetFreq = Math.max(0, Math.min(0.80, cbetFreq));
 
@@ -7422,7 +7655,7 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFrac = 0.25; // Very small — we "always have it" on paired boards
 
                 if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
-                if (multiway) cbetFreq = 0.45;
+                if (multiway) cbetFreq = Math.max(0.25, 0.45 + mwAdj.cbetFreqMod);
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq = 0.85;
 
                 if (Math.random() < cbetFreq) {
@@ -7448,7 +7681,7 @@ function makeFlopHeuristicDecision(params) {
                     else cbetFrac = Math.min(0.75, cbetFrac + 0.08);
                 }
 
-                if (multiway) { cbetFreq *= 0.55; cbetFrac = Math.min(0.75, cbetFrac + 0.05); }
+                if (multiway) { cbetFreq = Math.max(0.10, cbetFreq * (0.55 + mwAdj.cbetFreqMod)); cbetFrac = Math.min(0.75, cbetFrac + 0.05); }
                 cbetFreq = Math.max(0.05, Math.min(0.85, cbetFreq));
 
                 if (Math.random() < cbetFreq) {
@@ -7470,7 +7703,7 @@ function makeFlopHeuristicDecision(params) {
 
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
-                if (multiway) cbetFreq *= 0.60;
+                if (multiway) cbetFreq = Math.max(0.10, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 cbetFreq = Math.max(0.05, Math.min(0.80, cbetFreq));
 
                 if (Math.random() < cbetFreq) {
@@ -10624,6 +10857,171 @@ const chipLeakMap = new Map();
 // ─────────────────────────────────────────────────────────────────────────────
 const streetMemoryMap = new Map();
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  OPPONENT SESSION MODEL — In-session tracking of opponent behavior
+//  Complements HorsePokerAdvanced's long-term reads with real-time session data.
+//  Key: opponentId → { actions[], showdowns[], stats }
+//  This decays and resets per session. Gives faster adaptation than Supabase reads.
+// ═══════════════════════════════════════════════════════════════════════════
+const opponentSessionModel = new Map();
+
+/**
+ * Record an opponent's action in the current session for pattern detection.
+ * Called after each hand completes (or at showdown) with the opponent's behavior.
+ * @param {string} opponentId - Unique opponent identifier
+ * @param {string} street - 'preflop', 'flop', 'turn', 'river'
+ * @param {string} action - 'fold', 'check', 'call', 'raise', 'bet', 'all_in'
+ * @param {Object} context - { betToPot, handStrength, boardTexture, position }
+ */
+function recordOpponentAction(opponentId, street, action, context = {}) {
+    if (!opponentSessionModel.has(opponentId)) {
+        opponentSessionModel.set(opponentId, {
+            actions: [],
+            showdowns: [],
+            stats: {
+                handsPlayed: 0,
+                vpip: 0,           // Voluntarily Put In Pot
+                pfr: 0,            // Preflop Raise
+                cbet: 0,           // C-bet attempts
+                cbetFold: 0,       // Folded to c-bet raise
+                foldToBarrel: 0,   // Folded on turn/river to barrel
+                barrelCount: 0,    // Number of double/triple barrels
+                checkRaise: 0,     // Check-raise count
+                showdownWin: 0,    // Showdown wins
+                showdownLoss: 0,   // Showdown losses
+                bluffCaught: 0,    // Caught bluffing at showdown
+                overbet: 0,        // Overbet count
+                totalBets: 0,      // Total bets/raises
+                totalCalls: 0,     // Total calls
+                totalFolds: 0,     // Total folds
+            }
+        });
+    }
+
+    const model = opponentSessionModel.get(opponentId);
+
+    // Record action with timestamp and context
+    model.actions.push({
+        street, action, ...context, timestamp: Date.now()
+    });
+
+    // Update stats
+    if (action === 'fold') model.stats.totalFolds++;
+    else if (action === 'call') model.stats.totalCalls++;
+    else if (action === 'raise' || action === 'bet' || action === 'all_in') model.stats.totalBets++;
+
+    if (street === 'preflop') {
+        if (action !== 'fold') model.stats.vpip++;
+        if (action === 'raise') model.stats.pfr++;
+    }
+    if (street === 'flop' && (action === 'bet' || action === 'raise')) {
+        model.stats.cbet++;
+    }
+    if ((street === 'turn' || street === 'river') && (action === 'bet' || action === 'raise')) {
+        model.stats.barrelCount++;
+    }
+    if (context.betToPot && context.betToPot >= 1.0) {
+        model.stats.overbet++;
+    }
+
+    // Auto-cleanup: keep only last 200 actions per opponent
+    if (model.actions.length > 200) {
+        model.actions = model.actions.slice(-150);
+    }
+
+    // Cleanup stale opponents (not seen in 30 minutes)
+    if (opponentSessionModel.size > 100) {
+        const cutoff = Date.now() - 1800000;
+        for (const [id, m] of opponentSessionModel) {
+            const lastAction = m.actions[m.actions.length - 1];
+            if (lastAction && lastAction.timestamp < cutoff) opponentSessionModel.delete(id);
+        }
+    }
+}
+
+/**
+ * Record showdown result for an opponent.
+ * @param {string} opponentId
+ * @param {boolean} won - Did opponent win the showdown?
+ * @param {number} handStrength - Opponent's hand strength at showdown (0-100)
+ * @param {boolean} wasBluff - Was opponent's final action a bluff? (strength < 30 and bet/raise)
+ */
+function recordOpponentShowdown(opponentId, won, handStrength, wasBluff) {
+    if (!opponentSessionModel.has(opponentId)) return;
+    const model = opponentSessionModel.get(opponentId);
+    model.stats.handsPlayed++;
+    model.showdowns.push({ won, handStrength, wasBluff, timestamp: Date.now() });
+    if (won) model.stats.showdownWin++;
+    else model.stats.showdownLoss++;
+    if (wasBluff) model.stats.bluffCaught++;
+
+    // Keep showdown history manageable
+    if (model.showdowns.length > 50) {
+        model.showdowns = model.showdowns.slice(-30);
+    }
+}
+
+/**
+ * Get real-time session read on opponent. Complements HorsePokerAdvanced reads
+ * with within-session behavioral patterns.
+ * @param {string} opponentId
+ * @returns {Object|null} Session-based opponent profile or null if insufficient data
+ */
+function getOpponentSessionRead(opponentId) {
+    if (!opponentSessionModel.has(opponentId)) return null;
+    const model = opponentSessionModel.get(opponentId);
+    const s = model.stats;
+    const totalActions = s.totalBets + s.totalCalls + s.totalFolds;
+    if (totalActions < 8) return null; // Need at least 8 actions for meaningful read
+
+    const aggFreq = totalActions > 0 ? s.totalBets / totalActions : 0.33;
+    const foldFreq = totalActions > 0 ? s.totalFolds / totalActions : 0.33;
+    const callFreq = totalActions > 0 ? s.totalCalls / totalActions : 0.33;
+
+    // VPIP and PFR for preflop style
+    const preflopActions = model.actions.filter(a => a.street === 'preflop').length;
+    const vpipPct = preflopActions > 0 ? s.vpip / preflopActions : 0.30;
+    const pfrPct = preflopActions > 0 ? s.pfr / preflopActions : 0.15;
+
+    // Bluff frequency from showdowns
+    const showdownCount = model.showdowns.length;
+    const bluffRate = showdownCount >= 3 ? s.bluffCaught / showdownCount : null;
+
+    // Session tendency: TAG, LAG, nit, calling_station, maniac
+    let sessionTendency = 'balanced';
+    if (vpipPct < 0.18 && aggFreq < 0.35) sessionTendency = 'nit';
+    else if (vpipPct < 0.25 && aggFreq >= 0.40) sessionTendency = 'TAG';
+    else if (vpipPct >= 0.30 && aggFreq >= 0.45) sessionTendency = 'LAG';
+    else if (vpipPct >= 0.35 && aggFreq < 0.30) sessionTendency = 'calling_station';
+    else if (vpipPct >= 0.40 && aggFreq >= 0.50) sessionTendency = 'maniac';
+    else if (foldFreq >= 0.50) sessionTendency = 'weak-tight';
+
+    // C-bet style
+    const cbetRate = s.cbet > 0 ? s.cbet / Math.max(1, preflopActions * 0.5) : null;
+
+    // Barrel persistence
+    const barrelRate = s.barrelCount > 0 ? s.barrelCount / Math.max(1, s.cbet) : null;
+
+    // Overbet frequency
+    const overbetRate = s.totalBets > 0 ? s.overbet / s.totalBets : 0;
+
+    return {
+        totalActions,
+        aggFreq,
+        foldFreq,
+        callFreq,
+        vpipPct,
+        pfrPct,
+        bluffRate,           // null if insufficient showdown data
+        sessionTendency,
+        cbetRate,            // null if insufficient data
+        barrelRate,          // null if insufficient data
+        overbetRate,
+        showdownCount,
+        confidence: Math.min(0.80, totalActions / 80), // Confidence scales with sample size
+    };
+}
+
 /**
  * Record hero's action on this street for multi-street planning.
  * @param {string} profileId
@@ -12454,5 +12852,11 @@ module.exports = {
     angleShootMap, recordActionTiming, detectAngleShoot, // Module 30
     ritRefusalMap, recordRITResponse, isRITRefuser, // Module 31
     chipLeakMap, recordChipLeak, getChipLeakBoosts, // Module 32
+
+    // Opponent Session Model (Phase 3: Real-time adaptation)
+    recordOpponentAction,
+    recordOpponentShowdown,
+    getOpponentSessionRead,
+    opponentSessionModel,  // Exposed for testing/debugging
 };
 
