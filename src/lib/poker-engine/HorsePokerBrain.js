@@ -13565,7 +13565,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         if (flopDecision) {
             finalAction = flopDecision.type;
             finalAmount = flopDecision.amount;
-            console.log(`[HorseBrain] 🎴 Flop heuristic: ${finalAction}${finalAmount ? ` (${finalAmount})` : ''} [str=${evaluatePostflopHand(holeCardStrings, boardStrings).strength}]`);
+            // ═══ Phase 38B FIX: wrap evaluatePostflopHand in try-catch to prevent crash in log ═══
+            let flopLogStr = '?';
+            try { flopLogStr = evaluatePostflopHand(holeCardStrings, boardStrings).strength; } catch (_) { }
+            console.log(`[HorseBrain] 🎴 Flop heuristic: ${finalAction}${finalAmount ? ` (${finalAmount})` : ''} [str=${flopLogStr}]`);
         }
     }
 
@@ -14243,13 +14246,14 @@ function validateAndClamp(actionType, amount, legalActions) {
     }
 
     // Clamp amount for bet/raise
+    // ═══ Phase 38B FIX: NaN guard — NaN bypasses < min and > max checks, reaching the engine as NaN ═══
     if (actionType === 'raise' || actionType === 'bet') {
         const raiseAction = legalActions.find(a => a.type === actionType);
         if (raiseAction) {
             const min = raiseAction.minAmount || 0;
             const max = raiseAction.maxAmount || Infinity;
 
-            if (amount == null || amount < min) {
+            if (amount == null || isNaN(amount) || amount < min) {
                 amount = min;
             } else if (amount > max) {
                 // Over max = all-in
