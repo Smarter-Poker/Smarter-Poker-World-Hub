@@ -133,7 +133,13 @@ export default function PokerToursPage() {
     useEffect(() => {
         if (!router.isReady || isInitialized) return;
         
-        const { q, range, type, distance, buyin, region } = router.query;
+        const safeString = (val) => Array.isArray(val) ? val[0] : val;
+        const q = safeString(router.query.q);
+        const range = safeString(router.query.range);
+        const type = safeString(router.query.type);
+        const distance = safeString(router.query.distance);
+        const buyin = safeString(router.query.buyin);
+        const region = safeString(router.query.region);
         
         if (q) setSearchQuery(q);
         if (range && ['7d','14d','30d','60d','90d','6m','1y'].includes(range)) {
@@ -874,7 +880,14 @@ export default function PokerToursPage() {
     const toggleFavorite = useCallback((tourCode, e) => {
         if (e) { e.stopPropagation(); e.preventDefault(); }
         setFavorites(prev => {
-            const next = { ...prev };
+            // Read from localStorage synchronously to ensure we don't overwrite changes from other tabs
+            let current = prev;
+            try {
+                const stored = localStorage.getItem('pnm_tour_favorites');
+                if (stored) current = JSON.parse(stored);
+            } catch(error) {}
+            
+            const next = { ...current };
             if (next[tourCode]) delete next[tourCode];
             else next[tourCode] = Date.now();
             try { localStorage.setItem('pnm_tour_favorites', JSON.stringify(next)); } catch {}
