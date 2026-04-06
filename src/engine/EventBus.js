@@ -112,6 +112,10 @@ export const EventType = {
     TABLE_RESUMED: 'TABLE_RESUMED',
     CREDIT_UPDATED: 'CREDIT_UPDATED',
     RAKEBACK_CLAIMED: 'RAKEBACK_CLAIMED',
+
+    // ── Poker Near Me & Venues ──
+    VENUE_SAVED: 'VENUE_SAVED',
+    VENUE_UNSAVED: 'VENUE_UNSAVED',
 };
 
 // ─── SSR Safety Check ──────────────────────────────────────────
@@ -383,6 +387,13 @@ const _busEmitMethods = {
 
     venueCheckinCreated: (venueId, venueName, userId) =>
         eventBus.emit(EventType.VENUE_CHECKIN_CREATED, { venueId, venueName, userId }, 'SocialCheckIn'),
+
+    // ── Poker Near Me & Venues ──
+    venueSaved: (venueId, venueName) =>
+        eventBus.emit(EventType.VENUE_SAVED, { venueId, venueName }, 'PokerNearMe'),
+
+    venueUnsaved: (venueId) =>
+        eventBus.emit(EventType.VENUE_UNSAVED, { venueId }, 'PokerNearMe'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
