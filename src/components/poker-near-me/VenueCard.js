@@ -598,12 +598,23 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             </svg>
                         </a>
                     )}
-                    <a href={'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}
-                        target="_blank" rel="noopener noreferrer" className="vc3-icon-btn" onClick={e => e.stopPropagation()} title="Directions">
+                    <button className="vc3-icon-btn" onClick={e => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            const addr = encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''));
+                            const ua = navigator.userAgent || '';
+                            if (/iPhone|iPad|iPod|Macintosh/i.test(ua) && 'ontouchend' in document) {
+                                window.open('https://maps.apple.com/?q=' + addr, '_blank');
+                            } else if (/Android/i.test(ua)) {
+                                window.location.href = 'geo:0,0?q=' + addr;
+                            } else {
+                                window.open('https://www.google.com/maps/search/?api=1&query=' + addr, '_blank');
+                            }
+                        }} title="Directions">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polygon points="3 11 22 2 13 21 11 13 3 11" />
                         </svg>
-                    </a>
+                    </button>
                 </div>
 
                 {/* Primary actions */}
