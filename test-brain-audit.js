@@ -3201,6 +3201,142 @@ test('detectScareCard: brick card = no scare', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 48b: Stress Tests — Edge Cases ══');
+// ═══════════════════════════════════════════════════════════
+
+// ─── evaluatePostflopHand edge cases ───
+test('evaluatePostflopHand: board has all 5 to a straight (board-made)', () => {
+    // Hero: Ah Kd, Board: 2s 3c 4h 5d 6s — straight on board, hero has overcards
+    const r = brain.evaluatePostflopHand(['Ah', 'Kd'], ['2s', '3c', '4h', '5d', '6s']);
+    // Should detect the board straight. Hero doesn't improve on it much.
+    expect(r).toBeDefined();
+    expect(r.strength).toBeGreaterThan(0);
+});
+
+test('evaluatePostflopHand: 4 to a flush on board + hero has flush', () => {
+    const r = brain.evaluatePostflopHand(['Ah', '2h'], ['3h', '5h', '7h', '9d', 'Jc']);
+    // Hero has flush (Ah + 2h + 3 hearts on board)
+    expect(r.strength).toBeGreaterThanOrEqual(70);
+});
+
+// ─── validateAndClamp stress ───
+test('validateAndClamp: all_in maps to max raise when no all_in legal', () => {
+    const r = brain.validateAndClamp('all_in', null, [
+        { type: 'fold' },
+        { type: 'call', amount: 10 },
+        { type: 'raise', minAmount: 20, maxAmount: 200 },
+    ]);
+    expect(r.type).toBe('raise');
+    expect(r.amount).toBe(200);
+});
+
+test('validateAndClamp: completely illegal action falls back to check', () => {
+    const r = brain.validateAndClamp('discard', 50, [
+        { type: 'check' },
+        { type: 'bet', minAmount: 4, maxAmount: 100 },
+    ]);
+    expect(r.type).toBe('check');
+});
+
+// ─── makeFallbackDecision stress ───
+test('makeFallbackDecision: very short stack all-in', () => {
+    const r = brain.makeFallbackDecision('stress-1', {
+        handStr: 'AKs', position: 'BTN', street: 'preflop',
+        potSize: 3, toCall: 2, stackBB: 8, bb: 1,
+        holeCards: ['Ah', 'Kh'], board: [], numPlayers: 6,
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 2 },
+        { type: 'raise', minAmount: 4, maxAmount: 8 },
+    ]);
+    expect(r).toBeDefined();
+    expect(r).toHaveProperty('type');
+    const valid = ['fold', 'call', 'raise', 'bet', 'check', 'all_in'];
+    expect(valid.includes(r.type)).toBe(true);
+});
+
+// ─── getDecision stress: PLO hand format ───
+asyncTest('getDecision: handles 4-card PLO hand', async () => {
+    const state = {
+        players: [
+            { id: 'plo-horse-1', holeCards: [
+                { rank: 'A', suit: 'h' }, { rank: 'K', suit: 'd' },
+                { rank: 'Q', suit: 'c' }, { rank: 'J', suit: 's' }
+            ], stack: 200, position: 'BTN', folded: false, invested: 0 },
+            { id: 'plo-opp-1', stack: 200, position: 'BB', folded: false, invested: 0 },
+        ],
+        communityCards: [],
+        phase: 'preflop',
+        potTotal: 3,
+        currentBet: 2,
+        tableId: 'test-plo-gd',
+        lastRaiser: null,
+        gameType: 'PLO',
+        numHoleCards: 4,
+    };
+    const result = await brain.getDecision('plo-horse-1', state, [
+        { type: 'fold' },
+        { type: 'call', amount: 2 },
+        { type: 'raise', minAmount: 6, maxAmount: 200 },
+    ]);
+    expect(result).toHaveProperty('action');
+    expect(result).toHaveProperty('delayMs');
+});
+
+// ─── getDecision stress: deep stack 500bb ───
+asyncTest('getDecision: deep stack 500bb plays normally', async () => {
+    const state = {
+        players: [
+            { id: 'deep-horse', holeCards: [{ rank: 'A', suit: 'h' }, { rank: 'A', suit: 'd' }], stack: 1000, position: 'UTG', folded: false, invested: 0 },
+            { id: 'deep-opp', stack: 1000, position: 'BB', folded: false, invested: 0 },
+        ],
+        communityCards: [],
+        phase: 'preflop',
+        potTotal: 3,
+        currentBet: 0,
+        tableId: 'test-deep-table',
+        lastRaiser: null,
+    };
+    const result = await brain.getDecision('deep-horse', state, [
+        { type: 'fold' },
+        { type: 'check' },
+        { type: 'raise', minAmount: 4, maxAmount: 1000 },
+    ]);
+    expect(result).toHaveProperty('action');
+    // AA from UTG should produce a valid action
+    expect(result.action).toHaveProperty('type');
+    const validDeep = ['fold', 'check', 'call', 'raise', 'bet', 'all_in'];
+    expect(validDeep.includes(result.action.type)).toBe(true);
+});
+
+// ─── getDecision stress: 6-way multiway ───
+asyncTest('getDecision: 6-way pot still returns valid action', async () => {
+    const players = [];
+    for (let i = 0; i < 6; i++) {
+        players.push({
+            id: i === 0 ? 'multi-horse' : `multi-opp-${i}`,
+            holeCards: i === 0 ? [{ rank: '7', suit: 'h' }, { rank: '2', suit: 'c' }] : [],
+            stack: 200, position: ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'BB'][i],
+            folded: false, invested: 2,
+        });
+    }
+    const state = {
+        players,
+        communityCards: [{ rank: 'A', suit: 'h' }, { rank: 'K', suit: 'd' }, { rank: 'Q', suit: 'c' }],
+        phase: 'flop',
+        potTotal: 12,
+        currentBet: 0,
+        tableId: 'test-multi-table',
+        lastRaiser: null,
+    };
+    const result = await brain.getDecision('multi-horse', state, [
+        { type: 'check' },
+        { type: 'bet', minAmount: 4, maxAmount: 200 },
+    ]);
+    expect(result).toHaveProperty('action');
+});
+
+// ═══════════════════════════════════════════════════════════
 console.log('\n══ PHASE 47j: Async Supabase-dependent functions (graceful null) ══');
 // ═══════════════════════════════════════════════════════════
 
