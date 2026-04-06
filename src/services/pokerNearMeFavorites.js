@@ -49,6 +49,8 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
  * Remove a venue from favorites
  */
 export async function removeVenueFavorite(userId, venueId) {
+    if (!userId || !venueId) return false;
+
     const { error } = await supabase
         .from('poker_near_me_favorites')
         .delete()
@@ -67,6 +69,8 @@ export async function removeVenueFavorite(userId, venueId) {
  * Check if a venue is favorited
  */
 export async function isVenueFavorited(userId, venueId) {
+    if (!userId || !venueId) return false;
+
     const { data, error } = await supabase
         .from('poker_near_me_favorites')
         .select('id')

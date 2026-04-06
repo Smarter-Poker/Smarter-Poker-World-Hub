@@ -10900,7 +10900,7 @@
     "scrape_timestamp": "2026-03-30T03:27:45.768179+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1994.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1994-1775494528061.png"
   },
   {
     "id": 1996,
@@ -12460,81 +12460,6 @@
     "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2136.png"
   },
   {
-    "id": 2137,
-    "name": "Flamingo",
-    "venue_type": "casino",
-    "city": "Las Vegas",
-    "state": "NV",
-    "phone": "(702) 733-3485",
-    "website": "http://www.flamingolasvegas.com/casinos/flamingo-las-vegas/casino-gambling/poker-detail.html",
-    "games_offered": [
-      "NLH"
-    ],
-    "stakes_cash": [
-      "$1/$2",
-      "$2/$5"
-    ],
-    "poker_tables": 8,
-    "trust_score": 3.9,
-    "is_featured": false,
-    "lat": null,
-    "lng": null,
-    "address": "3555 Las Vegas Blvd S",
-    "country": "US",
-    "hours_weekday": "24/7",
-    "hours_weekend": null,
-    "is_active": true,
-    "email": null,
-    "tournament_schedule": [],
-    "last_verified_at": null,
-    "latitude": 36.116,
-    "longitude": -115.172,
-    "pokeratlas_url": "https://www.pokeratlas.com/poker-room/flamingo-las-vegas",
-    "pokeratlas_slug": null,
-    "scrape_url": null,
-    "scrape_source": "pending",
-    "last_scraped": null,
-    "scrape_status": "pending",
-    "captain_enabled": false,
-    "captain_tier": "free",
-    "captain_activated_at": null,
-    "commission_type": "time",
-    "accepts_home_games": false,
-    "auto_text_enabled": true,
-    "waitlist_settings": {},
-    "tournament_settings": {},
-    "staff_pin_required": true,
-    "primary_contact_id": null,
-    "cover_photo_url": null,
-    "profile_photo_url": "https://pokeratlas-images-production.s3.amazonaws.com/venues/images/DK3Fh2UFFhhLKQI",
-    "tagline": null,
-    "about": null,
-    "follower_count": 0,
-    "social_links": {},
-    "slug": null,
-    "has_tournaments": false,
-    "poker_atlas_url": null,
-    "hours": null,
-    "last_scraped_at": null,
-    "commander_enabled": false,
-    "commander_tier": "free",
-    "commander_activated_at": null,
-    "source": null,
-    "is_claimed": false,
-    "claimed_by": null,
-    "claimed_at": null,
-    "social_hub_page_id": null,
-    "social_hub_page_url": null,
-    "registration_completed_at": null,
-    "onboarding_step": 0,
-    "data_quality": "scraped_verified",
-    "scrape_html_hash": "3f1d8bfc15846f40935e90077e46e0884bfe1b7fb760275e1481726b2afedcf1",
-    "scrape_timestamp": "2026-03-30T03:37:46.707139+00:00",
-    "scrape_confidence": "high",
-    "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2137.png"
-  },
-  {
     "id": 2138,
     "name": "Horseshoe LV",
     "venue_type": "casino",
@@ -12985,7 +12910,7 @@
     "scrape_timestamp": "2026-03-29T18:47:46.513217+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "30299214-fc10-43da-9d4d-a5639dc8bc38",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2144.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2144-1775494528061.jpg"
   },
   {
     "id": 2145,
@@ -13133,7 +13058,7 @@
     "scrape_timestamp": "2026-03-30T03:29:06.42851+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2146.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2146-1775494528061.png"
   },
   {
     "id": 2147,
@@ -25711,7 +25636,7 @@
     "scrape_timestamp": "2026-03-30T03:16:48.44713+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2624.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2624-1775494528061.jpg"
   },
   {
     "id": 2625,
@@ -29071,7 +28996,7 @@
     "scrape_timestamp": "2026-03-30T03:15:16.737386+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "cdf9bff8-72dc-4ae1-b639-442e7b99894e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2677.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/2677-1775494528061.jpg"
   },
   {
     "id": 2678,

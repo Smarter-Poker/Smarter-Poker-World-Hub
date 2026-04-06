@@ -7315,22 +7315,43 @@ function makeTurnRiverHeuristicDecision(params) {
         const heroAlreadyBetTurn = narrative.heroBetTurn && facingBet;
         const facingTurnRaise = heroAlreadyBetTurn && betToPot >= 0.45;
         if (facingTurnRaise) {
+            // ═══ LIVE-READ FACING TURN RAISE (Phase 22) ═══
+            // Opponent raised our turn bet — their range is polarized (nuts or bluff).
+            // Live data tells us HOW OFTEN they raise (check-raise frequency) to calibrate.
+            let turnRaiseLiveAdj = 0; // Positive = call wider, negative = fold more
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // High check-raise % → they raise a lot → range is wider → call wider
+                if (liveRead.checkRaisePct !== null && liveRead.checkRaisePct > 0.12) turnRaiseLiveAdj += 6;
+                // Low check-raise % → rare raiser → they have it → fold more
+                if (liveRead.checkRaisePct !== null && liveRead.checkRaisePct < 0.05) turnRaiseLiveAdj -= 8;
+                // High aggression → they raise wide → call wider
+                if (liveRead.aggFreq > 0.45) turnRaiseLiveAdj += 4;
+                // Low aggression → passive player raising = real → fold more
+                if (liveRead.aggFreq < 0.20) turnRaiseLiveAdj -= 6;
+                // Timing: snap-raise = polarized (auto-bluff or nuts)
+                if (currentActionTimingTell === 'snap_aggression' && blocksNutFlush) turnRaiseLiveAdj += 5;
+                if (currentActionTimingTell === 'snap_aggression' && !blocksNutFlush) turnRaiseLiveAdj -= 2;
+                // Tank-raise = usually very strong (deliberated then committed)
+                if (currentActionTimingTell === 'tank_aggression') turnRaiseLiveAdj -= 5;
+            }
+
             // ── NUTS: Re-raise (4-bet the turn) ──
             if (handEval.strength >= 85 && canRaise) {
-                // Size to set up river jam
                 const potAfterCall = potSize + toCall * 2;
                 const geoJam = getGeometricSizing(potAfterCall, heroStack - toCall, 1, true);
                 if (geoJam.isJammable && spr <= 4) {
                     return { type: 'all_in' };
                 }
-                const reRaiseMult = 2.5 + Math.random() * 0.5;
+                let reRaiseMult = 2.5 + Math.random() * 0.5;
+                // Live: against stations, size up
+                if (liveRead && liveRead.callFreq > 0.55) reRaiseMult = Math.min(3.5, reRaiseMult * 1.10);
                 return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * reRaiseMult)) };
             }
             // ── STRONG HANDS (sets, two pair, overpair): Call and re-evaluate river ──
-            if (handEval.strength >= 60) {
+            if (handEval.strength >= (60 - turnRaiseLiveAdj)) {
                 // Against weak-tight raisers: lean fold (they have the nuts)
-                if (oppTendency === 'weak-tight' && oppConfidence > 0.4 && handEval.strength < 75) {
-                    console.log(`[HorseBrain] 🎯 TURN vs RAISE FOLD: opp=weak-tight raiser, str=${handEval.strength}`);
+                if (oppTendency === 'weak-tight' && oppConfidence > 0.4 && handEval.strength < (75 - turnRaiseLiveAdj)) {
+                    console.log(`[HorseBrain] 🎯 TURN vs RAISE FOLD: opp=weak-tight raiser, str=${handEval.strength} liveAdj=${turnRaiseLiveAdj}`);
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
                 // Draws completed → be cautious
