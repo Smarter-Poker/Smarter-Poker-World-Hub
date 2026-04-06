@@ -4684,9 +4684,16 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
  * @returns {Object} Decision { type, amount? }
  */
 function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjustment = { callMod: 0, foldMod: 0 }) {
-    const { handStr, position, street, potSize, toCall, stackBB, bb = 2, holeCards: hCards, board: bCards } = gameState;
+    const { handStr, position, street, potSize, toCall, stackBB, bb = 2, holeCards: hCards, board: bCards, tableId = 'unknown', primaryOppId = null } = gameState;
     const hash = getHash(profileId);
     const numPlayers = gameState.numPlayers || 2;
+
+    // ═══ ALWAYS-ON: Live observer read for preflop exploit adjustments ═══
+    const preflopLiveRead = primaryOppId ? getLiveRead(profileId, tableId, primaryOppId) : null;
+    const preflopLiveConf = preflopLiveRead?.confidence || 0;
+    if (preflopLiveRead && preflopLiveConf >= 0.10 && street === 'preflop') {
+        console.log(`[HorseBrain] 👁️ PREFLOP LIVE: ${primaryOppId?.substring(0, 8)} 3bet=${preflopLiveRead.threeBetPct !== null ? Math.round(preflopLiveRead.threeBetPct * 100) + '%' : '?'} foldTo3b=${preflopLiveRead.foldToThreeBetPct !== null ? Math.round(preflopLiveRead.foldToThreeBetPct * 100) + '%' : '?'} pfr=${preflopLiveRead.pfrPct !== null ? Math.round(preflopLiveRead.pfrPct * 100) + '%' : '?'} foldSteal=${preflopLiveRead.foldToStealPct !== null ? Math.round(preflopLiveRead.foldToStealPct * 100) + '%' : '?'} type=${preflopLiveRead.playerType} conf=${Math.round(preflopLiveConf * 100)}%`);
+    }
 
     // ═══ UPGRADED: Use real personality module for play style if available ═══
     // Fallback to hash-based biases only if personality module isn't loaded
@@ -4778,29 +4785,92 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
         if (toCall > bb * 2 && canRaise) {
             const raiseSize = toCall / bb; // Size of the raise in BBs
 
+            // ═══ LIVE DATA: Opponent 3-bet tendencies for preflop adjustments ═══
+            let opp3BetPctLive = null;
+            let oppFoldTo3BetLive = null;
+            let oppAvgPFRSizeLive = null;
+            let oppPreflopExploits = [];
+            if (preflopLiveRead && preflopLiveConf >= 0.10) {
+                opp3BetPctLive = preflopLiveRead.threeBetPct;
+                oppFoldTo3BetLive = preflopLiveRead.foldToThreeBetPct;
+                oppAvgPFRSizeLive = preflopLiveRead.avgPreflopRaise;
+                oppPreflopExploits = preflopLiveRead.exploits || [];
+            }
+
             // ═══ FACING A 3-BET (raise was 8-15 BB = likely a 3-bet over our open) ═══
             if (raiseSize >= 7 && raiseSize <= 20) {
-                // 4-bet with premium hands (QQ+, AKs)
-                if (adjustedStrength >= 90) {
-                    // 4-bet size: ~2.2x the 3-bet
+
+                // ═══ LIVE EXPLOIT: Adjust thresholds based on opponent's 3-bet frequency ═══
+                // Over-3-bettor (>12%): widen 4-bet range, tighten flat range
+                // Tight 3-bettor (<5%): respect 3-bet more, fold wider
+                let fourBetThreshold = 90;     // Base: QQ+, AKs
+                let fourBetBluffFloor = 40;    // Base: suited Ax, SC minimum
+                let fourBetBluffFreq = 0.12 + aggressionBias / 60;
+                let flatCallFloor = 75;        // Base: JJ, TT, AQs
+                let foldThreshold = 75;        // Below this = fold
+
+                if (opp3BetPctLive !== null && preflopLiveConf >= 0.15) {
+                    if (opp3BetPctLive > 0.12) {
+                        // Opponent over-3-bets → widen 4-bet for value + bluff
+                        fourBetThreshold = 85;           // Now include JJ, AKo
+                        fourBetBluffFreq += 0.08;        // 4-bet bluff more
+                        fourBetBluffFloor = 35;          // Wider bluff combos
+                        flatCallFloor = 70;              // Flat wider (TT, AJs)
+                        foldThreshold = 70;              // Fold less
+                    } else if (opp3BetPctLive > 0.09) {
+                        // Slightly loose 3-bettor → minor widening
+                        fourBetThreshold = 88;
+                        fourBetBluffFreq += 0.04;
+                        flatCallFloor = 72;
+                        foldThreshold = 72;
+                    } else if (opp3BetPctLive < 0.05) {
+                        // Very tight 3-bettor → 3-bet = AA-QQ, AK → respect heavily
+                        fourBetThreshold = 93;           // Only KK+ 4-bet
+                        fourBetBluffFreq *= 0.3;         // Almost never 4-bet bluff
+                        flatCallFloor = 80;              // Only flat QQ, AKo
+                        foldThreshold = 80;              // Fold more — they have it
+                    } else if (opp3BetPctLive < 0.07) {
+                        // Tight 3-bettor → slightly more respect
+                        fourBetThreshold = 91;
+                        fourBetBluffFreq *= 0.6;
+                        flatCallFloor = 77;
+                        foldThreshold = 77;
+                    }
+                }
+
+                // ═══ LIVE EXPLOIT: Sizing tell on 3-bet size ═══
+                if (oppAvgPFRSizeLive && preflopLiveConf >= 0.20) {
+                    // If opponent uses larger-than-normal 3-bet → they're polarized → fold marginal
+                    if (raiseSize > oppAvgPFRSizeLive * 1.4) {
+                        foldThreshold += 3;  // Bigger 3-bet = stronger range
+                    }
+                    // If opponent uses min-3-bet → they're often merged/wide → widen defense
+                    else if (raiseSize < oppAvgPFRSizeLive * 0.8) {
+                        foldThreshold -= 3;
+                        flatCallFloor -= 3;
+                    }
+                }
+
+                // 4-bet with premium hands
+                if (adjustedStrength >= fourBetThreshold) {
                     const fourBetSize = Math.round(toCall * 2.2);
                     const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(fourBetSize, raiseAction?.maxAmount || fourBetSize));
                     return { type: raiseAction.type, amount: clamped };
                 }
-                // 4-bet bluff occasionally with strong suited hands (suited Ax, suited connectors)
-                if (adjustedStrength >= 40 && adjustedStrength < 55 && handStr.endsWith('s') && stackBB >= 50) {
-                    if (Math.random() < 0.12 + aggressionBias / 60) {
+                // 4-bet bluff occasionally with strong suited hands
+                if (adjustedStrength >= fourBetBluffFloor && adjustedStrength < 55 && handStr.endsWith('s') && stackBB >= 50) {
+                    if (Math.random() < Math.min(0.30, fourBetBluffFreq)) {
                         const fourBetBluff = Math.round(toCall * 2.2);
                         const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(fourBetBluff, raiseAction?.maxAmount || fourBetBluff));
                         return { type: raiseAction.type, amount: clamped };
                     }
                 }
-                // Flat call with strong hands that play well postflop (JJ, TT, AQs, KQs)
-                if (adjustedStrength >= 75 && adjustedStrength < 90 && canCall) {
+                // Flat call with strong hands that play well postflop
+                if (adjustedStrength >= flatCallFloor && adjustedStrength < fourBetThreshold && canCall) {
                     return { type: 'call' };
                 }
                 // Fold everything else vs 3-bet
-                if (adjustedStrength < 75) {
+                if (adjustedStrength < foldThreshold) {
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
             }
@@ -4834,6 +4904,17 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                     // Aggressive horses squeeze wider
                     squeezeThreshold -= aggressionBias / 3;
 
+                    // ═══ LIVE EXPLOIT: Opponent fold-to-3-bet adjusts squeeze profitability ═══
+                    if (oppFoldTo3BetLive !== null && preflopLiveConf >= 0.15) {
+                        if (oppFoldTo3BetLive > 0.70) {
+                            squeezeThreshold -= 8; // They fold a ton → squeeze much wider
+                        } else if (oppFoldTo3BetLive > 0.60) {
+                            squeezeThreshold -= 4;
+                        } else if (oppFoldTo3BetLive < 0.35) {
+                            squeezeThreshold += 5; // They rarely fold → squeeze tighter for value
+                        }
+                    }
+
                     if (adjustedStrength >= squeezeThreshold && canRaise) {
                         // Squeeze sizing: bigger than standard 3-bet (3.5-4.5x raise + 1x per caller)
                         const squeezeBBs = (toCall / bb) * 3.5 + estimatedCallers * (toCall / bb) * 0.5;
@@ -4845,6 +4926,10 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                         if (adjustedStrength < squeezeThreshold + 10 && handStr.endsWith('s')) {
                             squeezeFreq = 0.25 + aggressionBias / 40;
                         }
+                        // ═══ LIVE EXPLOIT: Bump squeeze freq if opponent overfolds to 3-bet ═══
+                        if (oppFoldTo3BetLive !== null && oppFoldTo3BetLive > 0.65 && preflopLiveConf >= 0.15) {
+                            squeezeFreq += 0.12;
+                        }
                         squeezeFreq = Math.max(0.10, Math.min(0.85, squeezeFreq));
                         if (Math.random() < squeezeFreq) {
                             return { type: raiseAction.type, amount: clamped };
@@ -4855,15 +4940,69 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
             // ═══ FACING A STANDARD RAISE (2-7 BB) ═══
             const threeBet = get3BetStrategy(position, adjustedStrength, toCall, bb, stackBB);
-            if (threeBet.should3Bet) {
+            let should3Bet = threeBet.should3Bet;
+
+            // ═══ LIVE EXPLOIT: Opponent fold-to-3-bet drives 3-bet bluff frequency ═══
+            if (oppFoldTo3BetLive !== null && preflopLiveConf >= 0.15) {
+                if (oppFoldTo3BetLive > 0.70 && !should3Bet && adjustedStrength >= 35 && handStr.endsWith('s')) {
+                    // They fold >70% to 3-bets → 3-bet bluff wider with suited hands
+                    if (Math.random() < 0.30 + aggressionBias / 40) should3Bet = true;
+                } else if (oppFoldTo3BetLive > 0.60 && !should3Bet && adjustedStrength >= 45) {
+                    // They fold >60% → 3-bet semi-light
+                    if (Math.random() < 0.18) should3Bet = true;
+                }
+            }
+
+            // ═══ LIVE EXPLOIT: Opponent over-3-bets us → we flat more, 3-bet less as bluff ═══
+            if (opp3BetPctLive !== null && opp3BetPctLive > 0.12 && preflopLiveConf >= 0.15) {
+                // They 3-bet a lot → our 3-bets get 4-bet more → reduce light 3-bets
+                if (should3Bet && adjustedStrength < 60 && Math.random() < 0.30) {
+                    should3Bet = false; // Trap instead — flat and play postflop
+                }
+            }
+
+            if (should3Bet) {
                 const amount = Math.max(raiseAction?.minAmount || toCall * 2.5, threeBet.size3Bet);
                 const clamped = Math.min(amount, raiseAction?.maxAmount || amount);
                 return { type: raiseAction.type, amount: Math.round(clamped) };
             }
             // ═══ UPGRADED: Flat call range with implied odds hands (suited connectors, small pairs) ═══
-            if (adjustedStrength >= 35 && adjustedStrength < openThreshold && stackBB >= 30) {
+            let flatFloor = 35;
+            // ═══ LIVE EXPLOIT: vs tight raiser → tighter flat range; vs loose → wider flats ═══
+            if (preflopLiveRead && preflopLiveConf >= 0.15) {
+                if (preflopLiveRead.pfrPct !== null && preflopLiveRead.pfrPct < 0.10) {
+                    flatFloor = 42; // Tight raiser → need stronger hand to flat
+                } else if (preflopLiveRead.pfrPct !== null && preflopLiveRead.pfrPct > 0.22) {
+                    flatFloor = 30; // Loose raiser → flat wider, dominate them postflop
+                }
+            }
+            if (adjustedStrength >= flatFloor && adjustedStrength < openThreshold && stackBB >= 30) {
                 const isSpeculative = handStr.endsWith('s') || RANKS.indexOf(handStr[0]) === RANKS.indexOf(handStr[1]);
                 if (isSpeculative && canCall) return { type: 'call' };
+            }
+        }
+
+        // ═══ LIVE EXPLOIT: Blind steal adjustments ═══
+        // If opponent in blinds overfolds to steals → widen open range from late position
+        if (preflopLiveRead && preflopLiveConf >= 0.15 && (position === 'BTN' || position === 'CO' || position === 'SB')) {
+            if (preflopLiveRead.foldToStealPct !== null && preflopLiveRead.foldToStealPct > 0.70) {
+                // They overfold blinds → steal wider (lower open threshold by 8)
+                if (adjustedStrength >= openThreshold - 8 && adjustedStrength < openThreshold && canRaise && toCall <= bb) {
+                    const stealSize = Math.round(bb * (position === 'SB' ? 3.0 : 2.3));
+                    const clamped = Math.max(raiseAction?.minAmount || bb * 2, Math.min(stealSize, raiseAction?.maxAmount || stealSize));
+                    if (Math.random() < 0.55 + aggressionBias / 40) {
+                        return { type: raiseAction.type, amount: clamped };
+                    }
+                }
+            }
+            // If opponent defends blinds aggressively (low foldToSteal) → tighten steals
+            if (preflopLiveRead.foldToStealPct !== null && preflopLiveRead.foldToStealPct < 0.35) {
+                if (adjustedStrength >= openThreshold && adjustedStrength < openThreshold + 5 && canRaise && toCall <= bb) {
+                    // Marginal opens become limps or folds vs aggressive blind defender
+                    if (Math.random() < 0.35) {
+                        if (canCall) return { type: 'call' };
+                    }
+                }
             }
         }
 
@@ -7928,6 +8067,58 @@ function makeTurnRiverHeuristicDecision(params) {
             dynFoldThreshold = Math.max(18, dynFoldThreshold - 2); // Slightly wider
         }
 
+        // ═══ TIMING TELL — FOLD THRESHOLD ADJUSTMENT ═══
+        // Live observer tracks how fast opponents make decisions.
+        // SNAP-BET: When opponent bets/raises very quickly (<3s), it often means:
+        //   - Auto-pilot (weak recreational) → call wider
+        //   - Pre-planned bluff (programmed action) → call wider
+        //   - Very strong hand (instajam) → context-dependent
+        // LONG-TANK then BET: Took 15+ seconds → often means:
+        //   - Marginal decision → thin value or thin bluff → slightly wider calling
+        //   - BUT long-tank then RAISE = usually very strong (deliberated then committed)
+        if (oppTimingTell === 'fast_player' && oppConfidence > 0.2) {
+            // Fast players tend to play less optimally → call slightly wider
+            dynFoldThreshold = Math.max(15, dynFoldThreshold - 2);
+        }
+
+        // ═══ IN-HAND ACTION SEQUENCE — FOLD THRESHOLD ═══
+        // Use the current hand's action history to adjust fold threshold.
+        // Opponent's prior street actions tell us a LOT about their range.
+        if (oppInHandActions) {
+            const inHandActs = oppInHandActions.actions || [];
+            const oppFlopAction = inHandActs.find(a => a.street === 'flop');
+            const oppTurnAction = inHandActs.find(a => a.street === 'turn');
+
+            if (street === 'river') {
+                // Check-check flop → bet turn → bet river = often thin value or draw that got there
+                if (oppFlopAction && oppFlopAction.action === 'check' && oppTurnAction && oppTurnAction.action === 'bet') {
+                    dynFoldThreshold = Math.max(18, dynFoldThreshold - 3); // Delayed aggression = wider range
+                }
+                // Bet-bet-bet (triple barrel) from a one_and_done player = VERY strong (they never do this)
+                if (oppExploits.includes('one_and_done') && inHandActs.filter(a => ['bet', 'raise'].includes(a.action)).length >= 3) {
+                    dynFoldThreshold = Math.min(55, dynFoldThreshold + 8); // Massive fold adjustment
+                }
+                // Check-raise on earlier street then bets river = polarized strength
+                const hadCheckRaise = inHandActs.some(a => a.action === 'raise' && a.street !== 'preflop');
+                if (hadCheckRaise && oppInHandActions.streetAggression[street]) {
+                    dynFoldThreshold = Math.min(50, dynFoldThreshold + 3);
+                }
+            }
+            if (street === 'turn') {
+                // Opponent c-bet flop then bets turn = continuation, check live barrel rate
+                if (oppFlopAction && ['bet', 'raise'].includes(oppFlopAction.action) && oppInHandActions.isAggressor) {
+                    // Live second barrel% tells us how often they actually follow through
+                    if (liveRead && liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct < 0.35) {
+                        // They rarely double-barrel — this is strong → fold tighter
+                        dynFoldThreshold = Math.min(50, dynFoldThreshold + 4);
+                    } else if (liveRead && liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct > 0.70) {
+                        // They always barrel — this is often air → call wider
+                        dynFoldThreshold = Math.max(18, dynFoldThreshold - 3);
+                    }
+                }
+            }
+        }
+
         if (handEval.strength >= dynFoldThreshold) {
             // FACTOR 1: Direct equity vs pot odds
             if (handEquityFrac >= potOdds) {
@@ -8057,6 +8248,53 @@ function makeTurnRiverHeuristicDecision(params) {
             // Against known value-heavy players, fold more
             if (oppBluffFreq < 0.15 && oppConfidence > 0.4) {
                 heroCallProb -= 0.15; // They rarely bluff → respect the bet
+            }
+
+            // ── TIMING TELL HERO CALL ADJUSTMENT ──
+            // Opponent's decision speed on THIS bet gives real-time information
+            if (oppInHandActions && oppInHandActions.lastAction) {
+                const lastTiming = oppInHandActions.lastAction.timing || 0;
+                if (lastTiming > 0 && lastTiming < 3000) {
+                    // SNAP-BET: Quick decision → less deliberation → more likely auto-pilot or bluff
+                    heroCallProb += 0.06;
+                } else if (lastTiming > 15000) {
+                    // LONG TANK then BET: Deliberated → more likely thin value (had to think about it)
+                    // BUT: long tank then RAISE = usually strong (they tank-called their decision)
+                    if (oppInHandActions.lastAction.action === 'bet') {
+                        heroCallProb += 0.03; // Thin value → marginal call is OK
+                    } else if (oppInHandActions.lastAction.action === 'raise') {
+                        heroCallProb -= 0.06; // Tank-raise = usually real strength
+                    }
+                }
+            }
+
+            // ── IN-HAND SEQUENCE HERO CALL ──
+            // Use the opponent's prior street actions in THIS hand to refine hero call
+            if (oppInHandActions) {
+                const inActs = oppInHandActions.actions || [];
+                const wasPassiveEarlier = inActs.some(a => a.street !== street && a.action === 'check');
+                const wasAggressiveEarlier = inActs.filter(a => a.street !== street && ['bet', 'raise'].includes(a.action)).length;
+
+                // Passive earlier → now betting = could be trap or sudden strength
+                if (wasPassiveEarlier && wasAggressiveEarlier === 0) {
+                    heroCallProb -= 0.04; // Checked earlier, now betting = more likely value
+                }
+                // Consistently aggressive = wider range → hero call more
+                if (wasAggressiveEarlier >= 2) {
+                    heroCallProb += 0.05; // Triple barrel = polarized, bluff catchers are profitable
+                }
+            }
+
+            // ── LIVE EXPLOIT HERO CALL ──
+            // Specific exploit patterns directly impact hero calling profitability
+            if (oppExploits.includes('frequent_overbetter') && betToPot >= 0.90) {
+                heroCallProb += 0.10; // Known overbetter → their overbets include bluffs
+            }
+            if (oppExploits.includes('gives_up_easily') && street === 'river') {
+                heroCallProb -= 0.06; // If they usually give up but bet river, it's more real
+            }
+            if (oppExploits.includes('one_and_done') && street === 'river') {
+                heroCallProb -= 0.10; // They never barrel river unless it's value
             }
 
             // ── NARRATIVE-BASED HERO CALL ──
@@ -8516,6 +8754,43 @@ function makeFlopHeuristicDecision(params) {
         }
     }
 
+    // ═══ LIVE FOLD-TO-CBET MODIFIER ═══
+    // The live observer tells us EXACTLY how often this opponent folds to c-bets.
+    // This is arguably the single most exploitable stat in poker.
+    // High fold-to-cbet → print money by c-betting wider
+    // Low fold-to-cbet → only c-bet for value (they're calling/raising everything)
+    let liveCBetMod = 0;
+    let liveCBetSizeMod = 0;
+    if (flopLiveRead) {
+        if (flopLiveRead.foldToCBetPct !== null && flopLiveRead.confidence >= 0.20) {
+            if (flopLiveRead.foldToCBetPct > 0.65) {
+                // They fold to c-bets way too much → c-bet everything, go small
+                liveCBetMod = 0.15;
+                liveCBetSizeMod = -0.08; // Smaller — they'll fold to any size
+            } else if (flopLiveRead.foldToCBetPct > 0.55) {
+                // Above average fold rate → c-bet a bit wider
+                liveCBetMod = 0.08;
+                liveCBetSizeMod = -0.04;
+            } else if (flopLiveRead.foldToCBetPct < 0.35) {
+                // They almost never fold to c-bets → only bet for value
+                liveCBetMod = -0.15;
+                liveCBetSizeMod = 0.06; // Bigger when we do bet (for value)
+            } else if (flopLiveRead.foldToCBetPct < 0.42) {
+                // Below average fold rate → tighten c-bet range
+                liveCBetMod = -0.08;
+                liveCBetSizeMod = 0.03;
+            }
+        }
+
+        // ═══ LIVE SECOND BARREL TENDENCY ═══
+        // If opponent folds to barrels (turn after calling flop c-bet), c-bet more
+        // because even if they call flop, we can take it on turn
+        if (flopLiveRead.secondBarrelPct !== null && flopLiveRead.confidence >= 0.25) {
+            // Their barrel rate tells us how THEY play turn — but we care about fold-to-barrel
+            // Proxy: if they rarely barrel themselves, they often give up → we can barrel more
+        }
+    }
+
     // ══════════════════════════════════════════════════════════
     //  NOT FACING A BET
     // ══════════════════════════════════════════════════════════
@@ -8565,8 +8840,8 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFrac = boardIsPaired ? 0.25 : 0.33; // Tiny sizing
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
-                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
 
                 if (multiway) cbetFreq = Math.max(0.30, 0.55 + mwAdj.cbetFreqMod); // Tighten multiway (position/texture aware)
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -8597,8 +8872,8 @@ function makeFlopHeuristicDecision(params) {
                 if (handEval.category === 'overpair') { cbetFreq = 0.70; cbetFrac = 0.55; }
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
 
                 if (multiway) cbetFreq = Math.max(0.15, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
@@ -8630,7 +8905,7 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFrac = 0.25; // Very small — we "always have it" on paired boards
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
                 cbetFrac = Math.max(0.20, cbetFrac + threeBetSizeMod);
 
                 if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
@@ -8656,8 +8931,8 @@ function makeFlopHeuristicDecision(params) {
                 else { cbetFreq = 0.30; cbetFrac = 0.45; } // Marginal — sometimes bet to take down
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
-                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
+                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
 
                 // Against callers on wet boards: tighter c-bet range but bigger sizing
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -8686,8 +8961,8 @@ function makeFlopHeuristicDecision(params) {
                 else cbetFreq = 0.30;
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
 
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
@@ -10950,7 +11225,10 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         gameType: 'Cash',
         numPlayers,
         topology: numPlayers <= 3 ? '3-Max' : numPlayers <= 6 ? '6-Max' : '9-Max',
-        mode: 'ChipEV'
+        mode: 'ChipEV',
+        // ═══ ALWAYS-ON: Pass table + opponent IDs for live observation data ═══
+        tableId,
+        primaryOppId,
     };
 
     // --- 1b. LOAD OPPONENT READS (Gap 4) ---
