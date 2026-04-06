@@ -5146,7 +5146,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                     boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
                     oppTendency: opponentAdjustment.bluffAware ? 'bluffy' : opponentAdjustment.foldMod > 0 ? 'weak-tight' : 'balanced',
                     oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
-                    stackBB, isPolarized: true
+                    stackBB, isPolarized: true, liveRead: preflopLiveRead
                 });
                 const raiseAmt = Math.round(toCall + potSize * valueSizeFrac);
                 const amt = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseAmt, raiseAction?.maxAmount || raiseAmt));
@@ -5198,7 +5198,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                 boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
                 oppTendency: opponentAdjustment.bluffAware ? 'bluffy' : opponentAdjustment.foldMod > 0 ? 'weak-tight' : 'balanced',
                 oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
-                stackBB
+                stackBB, liveRead: preflopLiveRead
             });
             const betSize = Math.round(potSize * sizeFrac);
             const amt = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
@@ -5322,7 +5322,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                 } else {
                     cbetFrac = getOptimalBetSize(handEval.category, street, potSize, effectiveStrength < 30, {
                         boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
-                        heroIsAggressor: true, stackBB
+                        heroIsAggressor: true, stackBB, liveRead: preflopLiveRead
                     });
                 }
 
@@ -5482,7 +5482,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
         if (effectiveStrength >= 70 && canRaise) {
             const sizeFrac = isDryBoard ? 0.50 : getOptimalBetSize(handEval.category, street, potSize, false, {
                 boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
-                heroIsAggressor: gameState.wasAggressor || false, stackBB
+                heroIsAggressor: gameState.wasAggressor || false, stackBB, liveRead: preflopLiveRead
             });
             const betSize = Math.round(potSize * sizeFrac);
             const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
@@ -5600,7 +5600,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             boardWetness, isInPosition: isIP, numPlayers, handStrength: effectiveStrength,
             oppTendency: opponentAdjustment.bluffAware ? 'bluffy' : opponentAdjustment.foldMod > 0 ? 'weak-tight' : 'balanced',
             oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
-            stackBB, isPolarized: true
+            stackBB, isPolarized: true, liveRead: preflopLiveRead
         });
         const raiseSize = Math.round(toCall + potSize * sizeFrac);
         const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
@@ -7536,6 +7536,20 @@ function makeTurnRiverHeuristicDecision(params) {
             // Against nits, smaller raise to keep them in
             if (oppTendency === 'weak-tight' && oppConfidence > 0.3) raiseMult = Math.max(2.2, raiseMult * 0.85);
 
+            // ═══ LIVE-READ TURN RAISE SIZING (Phase 30) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // Station → bigger raise to extract max value
+                if (liveRead.callFreq > 0.60) raiseMult = Math.min(4.0, raiseMult * 1.10);
+                // Folder → smaller raise to keep them in
+                if (liveRead.foldFreq > 0.55) raiseMult = Math.max(2.2, raiseMult * 0.88);
+                // High WTSD → they go to showdown, can size up
+                if (liveRead.wtsd !== null && liveRead.wtsd > 0.30) raiseMult = Math.min(3.8, raiseMult * 1.06);
+                // Snap-call timing → committed, size up
+                if (currentActionTimingTell === 'snap_call') raiseMult = Math.min(4.0, raiseMult * 1.08);
+                // Tank-call → marginal, standard sizing fine
+                if (currentActionTimingTell === 'tank_call') raiseMult = Math.max(2.3, raiseMult * 0.95);
+            }
+
             const raiseSize = Math.round(toCall * raiseMult);
             return { type: raiseAction.type, amount: clampAmt(raiseSize) };
         }
@@ -7555,11 +7569,16 @@ function makeTurnRiverHeuristicDecision(params) {
             }
             // ═══ OPPONENT-AWARE: Fold strong-ish hands vs very tight opponents in heavy pots ═══
             // If opponent has been building a huge pot and their range is strong, re-evaluate
-            if (oppRangeStrength === 'polarized' && oppTendency === 'weak-tight' && handEval.strength < 65) {
+            const liveNitTurnLaydown = liveRead && liveRead.confidence >= 0.30 &&
+                liveRead.aggFreq < 0.18 && liveRead.foldFreq > 0.50;
+            if (oppRangeStrength === 'polarized' && (oppTendency === 'weak-tight' || liveNitTurnLaydown) && handEval.strength < 65) {
                 // Weak-tight player in a massive pot = they have it
                 // But in 3-bet pots, their range is already strong so this is less reliable
-                if (oppConfidence > 0.4 && betToPot >= 0.60 && !is3BetPot) {
-                    console.log(`[HorseBrain] 🎯 TURN LAYDOWN: strong hand (${handEval.strength}) but opp is weak-tight in polarized pot`);
+                // ═══ LIVE-READ TURN LAYDOWN OVERRIDE (Phase 30) ═══
+                // If live-read shows they're actually aggressive, DON'T auto-laydown
+                const liveAggroOverride = liveRead && liveRead.confidence >= 0.25 && liveRead.aggFreq > 0.35;
+                if ((oppConfidence > 0.4 || liveNitTurnLaydown) && betToPot >= 0.60 && !is3BetPot && !liveAggroOverride) {
+                    console.log(`[HorseBrain] 🎯 TURN LAYDOWN: strong hand (${handEval.strength}) but opp is weak-tight in polarized pot liveNit=${liveNitTurnLaydown}`);
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
             }
@@ -8481,6 +8500,29 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppTendency === 'weak-tight' && oppConfidence > 0.35) {
                         bluffFrac = 0.90 + Math.random() * 0.30;
                     }
+                    // ═══ LIVE-READ RIVER BLUFF SIZING (Phase 30) ═══
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // Extreme folder → overbet bluff for max fold equity
+                        if (liveRead.foldFreq > 0.55) bluffFrac = Math.min(1.30, bluffFrac + 0.15);
+                        // Station → minimize loss: smaller bluff (or the freq already blocked us)
+                        if (liveRead.callFreq > 0.55) bluffFrac = Math.max(0.35, bluffFrac - 0.15);
+                        // High fold-to-raise → overbet bluffs are hugely profitable
+                        if (liveRead.foldToRaisePct !== null && liveRead.foldToRaisePct > 0.55) {
+                            bluffFrac = Math.min(1.50, bluffFrac + 0.20);
+                        }
+                        // Tank-called turn = marginal → big river bluff folds them out
+                        if (currentActionTimingTell === 'tank_call') {
+                            bluffFrac = Math.min(1.20, bluffFrac + 0.15);
+                        }
+                        // Snap-called turn = strong → smaller bluff (or don't bluff at all)
+                        if (currentActionTimingTell === 'snap_call') {
+                            bluffFrac = Math.max(0.45, bluffFrac - 0.10);
+                        }
+                        // Live nit detection: overbet bluff for max fold equity
+                        if (liveRead.aggFreq < 0.18 && liveRead.foldFreq > 0.50) {
+                            bluffFrac = Math.min(1.40, bluffFrac + 0.20);
+                        }
+                    }
                     // ═══ BLOCKER-AWARE BLUFF SIZING ═══
                     // With premium blockers, can go bigger (opponent is less likely to have nuts)
                     if (blockerCount >= 2 && oppFoldFreq > 0.40) {
@@ -8752,9 +8794,13 @@ function makeTurnRiverHeuristicDecision(params) {
             return false;
         })();
 
+        // ═══ LIVE-READ MERGED RANGE DETECTION (Phase 30) ═══
+        const liveNitMerged = liveRead && liveRead.confidence >= 0.25 &&
+            liveRead.aggFreq < 0.20 && liveRead.foldFreq > 0.45;
         const oppRangeIsMerged = !oppRangeIsPolarized && (
             betToPot <= 0.45 ||
             (oppTendency === 'weak-tight' && oppConfidence > 0.3) ||
+            liveNitMerged ||
             boardEvolution.evolution === 'static_brick' ||
             oppStreetAggression === 'light'
         );
@@ -11802,6 +11848,21 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
         if (oppTendency === 'bluffy' && handStrength >= 60 && handStrength < 80) {
             baseSizing *= 0.90; // Induce the re-bluff by betting smaller
         }
+    }
+
+    // ═══ LIVE-READ BET SIZING OVERRIDE (Phase 30) ═══
+    // Direct live-read data takes priority for sizing when available
+    const lr = opts.liveRead;
+    if (lr && lr.confidence >= 0.25) {
+        // Station: size up value bets
+        if (lr.callFreq > 0.55 && handStrength >= 45) baseSizing *= 1.10;
+        if (lr.callFreq > 0.65 && handStrength >= 55) baseSizing *= 1.06;
+        // Folder: size down to get the call
+        if (lr.foldFreq > 0.55 && handStrength >= 45 && handStrength < 80) baseSizing *= 0.85;
+        // Aggro: smaller sizing to induce re-raise
+        if (lr.aggFreq > 0.45 && handStrength >= 65) baseSizing *= 0.92;
+        // High WTSD: they go to showdown, size up
+        if (lr.wtsd !== null && lr.wtsd > 0.30 && handStrength >= 50) baseSizing *= 1.06;
     }
 
     // ═══ STREET ESCALATION ═══
