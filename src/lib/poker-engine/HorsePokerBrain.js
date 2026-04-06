@@ -4698,7 +4698,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ─── MODULE 32 / 29 / 28: GLOBAL EQUITY & THRESHOLD REDUCTIONS ───
     // drawBoost penalty, bombPotBoost penalty tighten requirements
     const continuanceScore = flopContinuance.continuanceScore - drawBoost - bombPotBoost;
-    if (continuanceScore < flopContinuance.callThreshold) return { type: 'fold' };
+    // ═══ Phase 39A FIX: PLO8 nut low override — never fold nut low regardless of continuance score ═══
+    if (continuanceScore < flopContinuance.callThreshold) {
+        if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' }; // Nut low = always continue
+        return { type: 'fold' };
+    }
 
     // Phase 3: Implied odds — reject calls on draws without sufficient implied odds
     if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35)
@@ -4721,8 +4725,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         return { type: raiseAction?.type || 'call', amount: clamp(Math.round(potSize * 0.75)) };
     }
 
-    // Call if continuance says so
-    if (canCall) return { type: 'call' };
+    // ═══ Phase 39A FIX: Restructured facing-bet fallback section ═══
+    // The unconditional `if (canCall) return call` at this point was making ALL subsequent
+    // blocks dead code — perStreetBluff calldown, ante stealing, and PLO8 nut low force-call
+    // never fired. Now: specific checks run FIRST, generic call is the TRUE final fallback.
+
+    // PLO Hi-Lo: NEVER fold nut low (highest priority safety net)
+    if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
 
     // Phase 5+7: opponent-adjusted threshold using per-street bluff calibration
     const callThreshold = perStreetBluff.shouldLoosen
@@ -4740,8 +4749,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Backdoor + medium equity with good immediate odds
     if (equityFinal >= 38 && potOdds < 0.25 && canCall) return { type: 'call' };
 
-    // PLO Hi-Lo: never fold nut low
-    if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
+    // Generic call if continuance score passed threshold (final fallback before fold)
+    if (canCall) return { type: 'call' };
 
     return { type: 'fold' };
 }

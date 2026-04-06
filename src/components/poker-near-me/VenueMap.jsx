@@ -147,6 +147,8 @@ const LEAFLET_CUSTOM_CSS = `
   font-size: 20px !important;
   padding: 6px 10px 0 0 !important;
   transition: color 0.2s !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
 }
 .leaflet-popup-close-button:hover {
   color: #d4a853 !important;

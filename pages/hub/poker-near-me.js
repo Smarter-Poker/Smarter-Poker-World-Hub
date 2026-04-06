@@ -1651,11 +1651,13 @@ export default function PokerNearMePage() {
 
     // ═══ SWIPE GESTURE HANDLERS ═══
     const handleTouchStart = useCallback((e) => {
+        if (e.target.closest && e.target.closest('.leaflet-container')) return;
         touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
         touchEndRef.current = null;
     }, []);
 
     const handleTouchMove = useCallback((e) => {
+        if (e.target.closest && e.target.closest('.leaflet-container')) return;
         touchEndRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }, []);
 
@@ -1710,6 +1712,7 @@ export default function PokerNearMePage() {
     // ═══ PULL-TO-REFRESH ═══
     const pullDistanceRef = useRef(0);
     const handlePullStart = useCallback((e) => {
+        if (e.target.closest && e.target.closest('.leaflet-container')) return;
         if (window.scrollY <= 0) {
             pullStartRef.current = e.touches[0].clientY;
         }

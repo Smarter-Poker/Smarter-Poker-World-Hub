@@ -398,12 +398,16 @@ export default async function handler(req, res) {
           if (!isNaN(userLat) && !isNaN(userLng)) {
               tours.forEach(t => {
                   let minDistance = Infinity;
+                  let closestCoords = null;
                   const allStops = [...(t.stops_2026 || []), ...(t.series_2026 || [])];
                   for (const stop of allStops) {
                       const coords = findVenueCoords(stop);
                       if (coords && coords.latitude && coords.longitude) {
                           const dist = haversineDistance(userLat, userLng, coords.latitude, coords.longitude);
-                          if (dist < minDistance) minDistance = dist;
+                          if (dist < minDistance) {
+                              minDistance = dist;
+                              closestCoords = coords;
+                          }
                       }
                   }
                   // Check HQ distance if no stops match
@@ -411,9 +415,14 @@ export default async function handler(req, res) {
                       const hqCoords = findVenueCoords({ location: t.headquarters });
                       if (hqCoords && hqCoords.latitude && hqCoords.longitude) {
                           minDistance = haversineDistance(userLat, userLng, hqCoords.latitude, hqCoords.longitude);
+                          closestCoords = hqCoords;
                       }
                   }
                   t.distance_mi = minDistance !== Infinity ? minDistance : null;
+                  if (closestCoords) {
+                      t.latitude = closestCoords.latitude;
+                      t.longitude = closestCoords.longitude;
+                  }
               });
 
               // Sort by distance (tours with distance first, then by priority)
@@ -426,7 +435,31 @@ export default async function handler(req, res) {
           } else {
               // Sort by priority if no location
               tours.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+
+              // Find fallback coordinates for the map
+              const allUpcoming = getUpcomingSeries(null, registryTours);
+              const upcomingByTour = {};
+              allUpcoming.forEach(s => {
+                  if (!upcomingByTour[s.tour]) upcomingByTour[s.tour] = [];
+                  upcomingByTour[s.tour].push(s);
+              });
+
+              tours.forEach(t => {
+                  let fallbackCoords = null;
+                  const upcoming = upcomingByTour[t.tour_code] || [];
+                  if (upcoming.length > 0) {
+                      fallbackCoords = findVenueCoords(upcoming[0]);
+                  }
+                  if (!fallbackCoords && t.headquarters) {
+                      fallbackCoords = findVenueCoords({ location: t.headquarters });
+                  }
+                  if (fallbackCoords && fallbackCoords.latitude && fallbackCoords.longitude) {
+                      t.latitude = fallbackCoords.latitude;
+                      t.longitude = fallbackCoords.longitude;
+                  }
+              });
           }
+
 
           // Filter by tour type
           if (type) {
