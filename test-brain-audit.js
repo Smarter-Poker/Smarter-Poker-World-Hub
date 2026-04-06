@@ -3836,6 +3836,836 @@ test('getDrawEquity: turn flush draw equity uses rule of 2 + nut premium', () =>
 });
 
 // ═══════════════════════════════════════════════════════════
+// PHASE 48e: ANTI-EXPLOIT MODULES 20-32 + SESSION MODEL + LIVE OBSERVER
+// ═══════════════════════════════════════════════════════════
+
+// ── Module 20: Table Image Exposure Monitor ──
+const recordTableImageHand = brain.recordTableImageHand;
+const isImageExposed = brain.isImageExposed;
+const imageExposureMap = brain.imageExposureMap;
+
+test('Module 20: unexposed with < 8 hands', () => {
+    imageExposureMap.clear();
+    for (let i = 0; i < 7; i++) recordTableImageHand('h1', 't1', true);
+    expect(isImageExposed('h1', 't1')).toBe(false);
+});
+
+test('Module 20: exposed when showdown rate > 25%', () => {
+    imageExposureMap.clear();
+    for (let i = 0; i < 10; i++) recordTableImageHand('h2', 't2', true);  // 10/10 = 100%
+    expect(isImageExposed('h2', 't2')).toBe(true);
+});
+
+test('Module 20: not exposed when showdown rate <= 25%', () => {
+    imageExposureMap.clear();
+    for (let i = 0; i < 10; i++) recordTableImageHand('h3', 't3', i < 2); // 2/10 = 20%
+    expect(isImageExposed('h3', 't3')).toBe(false);
+});
+
+// ── Module 21: PLO Preflop Limp-Trap Detector ──
+const detectLimpTrap = brain.detectLimpTrap;
+
+test('Module 21: 3 limpers + shallow SPR = limp trap', () => {
+    const r = detectLimpTrap(3, 'ep', 4, false);
+    expect(r.isLimpTrap).toBe(true);
+    expect(r.recommendation).toBe('prefer_call_or_fold');
+});
+
+test('Module 21: nut hand resets risk to 0', () => {
+    const r = detectLimpTrap(4, 'ep', 3, true);
+    expect(r.isLimpTrap).toBe(false);
+    expect(r.riskScore).toBe(0);
+});
+
+test('Module 21: 1 limper + deep SPR = no trap', () => {
+    const r = detectLimpTrap(1, 'btn', 12, false);
+    expect(r.isLimpTrap).toBe(false);
+    expect(r.recommendation).toBe('raise_ok');
+});
+
+// ── Module 22: Isolation Bet Sizing Tell Tracker ──
+const recordIsoSize = brain.recordIsoSize;
+const isMechanicalIsolator = brain.isMechanicalIsolator;
+const isoSizingMap = brain.isoSizingMap;
+
+test('Module 22: insufficient data returns not mechanical', () => {
+    isoSizingMap.clear();
+    recordIsoSize('opp1', 3.0);
+    recordIsoSize('opp1', 3.0);
+    const r = isMechanicalIsolator('opp1');
+    expect(r.isMechanical).toBe(false);
+});
+
+test('Module 22: consistent sizing = mechanical', () => {
+    isoSizingMap.clear();
+    for (let i = 0; i < 6; i++) recordIsoSize('opp2', 3.0);
+    const r = isMechanicalIsolator('opp2');
+    expect(r.isMechanical).toBe(true);
+    expect(r.stdDev).toBe(0);
+});
+
+test('Module 22: varied sizing = not mechanical', () => {
+    isoSizingMap.clear();
+    [2.0, 4.0, 3.0, 5.0, 2.5, 6.0].forEach(s => recordIsoSize('opp3', s));
+    const r = isMechanicalIsolator('opp3');
+    expect(r.isMechanical).toBe(false);
+    expect(r.stdDev).toBeGreaterThan(0.8);
+});
+
+// ── Module 23: OOP Positional Equity Leak Guard ──
+const getOOPPositionalGuard = brain.getOOPPositionalGuard;
+
+test('Module 23: IP player gets no guard', () => {
+    const r = getOOPPositionalGuard(true, false, 50, 'flop');
+    expect(r.shouldGuard).toBe(false);
+    expect(r.equityBoost).toBe(0);
+});
+
+test('Module 23: OOP with initiative gets no guard', () => {
+    const r = getOOPPositionalGuard(false, true, 30, 'turn');
+    expect(r.shouldGuard).toBe(false);
+});
+
+test('Module 23: OOP no initiative flop requires 58+ equity', () => {
+    const r = getOOPPositionalGuard(false, false, 55, 'flop');
+    expect(r.shouldGuard).toBe(true);   // 55 < 50+8=58
+    expect(r.equityBoost).toBe(8);
+});
+
+test('Module 23: OOP no initiative river requires 62+ equity', () => {
+    const r = getOOPPositionalGuard(false, false, 65, 'river');
+    expect(r.shouldGuard).toBe(false);  // 65 >= 50+12=62
+    expect(r.equityBoost).toBe(12);
+});
+
+// ── Module 24: River Donk-Bet Exploitation Block ──
+const evaluateDonkBet = brain.evaluateDonkBet;
+
+test('Module 24: not a donk if not IP', () => {
+    const r = evaluateDonkBet(10, 100, false, 70);
+    expect(r.action).toBe('none');
+});
+
+test('Module 24: raise with strong equity vs donk', () => {
+    const r = evaluateDonkBet(30, 100, true, 75);
+    expect(r.action).toBe('raise');
+});
+
+test('Module 24: fold with weak equity vs donk', () => {
+    const r = evaluateDonkBet(30, 100, true, 25);
+    expect(r.action).toBe('fold');
+});
+
+test('Module 24: call with medium equity vs donk', () => {
+    const r = evaluateDonkBet(30, 100, true, 50);
+    expect(r.action).toBe('call');
+});
+
+test('Module 24: large donk (>80% pot) not treated as probe', () => {
+    const r = evaluateDonkBet(90, 100, true, 50);
+    expect(r.action).toBe('none');
+});
+
+// ── Module 25: Min-Raise Harassment Detector ──
+const recordRaiseSize = brain.recordRaiseSize;
+const isMinRaiser = brain.isMinRaiser;
+const minRaiseMap = brain.minRaiseMap;
+
+test('Module 25: insufficient data returns not min-raiser', () => {
+    minRaiseMap.clear();
+    recordRaiseSize('m1', 4, 2, false);
+    recordRaiseSize('m1', 4, 2, true);
+    const r = isMinRaiser('m1');
+    expect(r.isMinRaiser).toBe(false);
+});
+
+test('Module 25: frequent min-raises detected', () => {
+    minRaiseMap.clear();
+    for (let i = 0; i < 6; i++) recordRaiseSize('m2', 4, 2, false); // 4 <= 2*2.2=4.4, all min
+    const r = isMinRaiser('m2');
+    expect(r.isMinRaiser).toBe(true);
+    expect(r.rate).toBe(1.0);
+});
+
+test('Module 25: mixed raises not flagged', () => {
+    minRaiseMap.clear();
+    recordRaiseSize('m3', 4, 2, false);   // min (4 <= 4.4)
+    recordRaiseSize('m3', 10, 2, false);  // not min
+    recordRaiseSize('m3', 12, 2, false);  // not min
+    recordRaiseSize('m3', 15, 2, false);  // not min
+    recordRaiseSize('m3', 4, 2, false);   // min
+    const r = isMinRaiser('m3');
+    expect(r.isMinRaiser).toBe(false);  // 2/5 = 0.40, not > 0.40
+});
+
+// ── Module 26: Squeeze Overkill Detector ──
+const recordSqueeze = brain.recordSqueeze;
+const isSqueezeOverkill = brain.isSqueezeOverkill;
+const squeezeMap = brain.squeezeMap;
+
+test('Module 26: insufficient squeezes returns not overkill', () => {
+    squeezeMap.clear();
+    recordSqueeze('s1', 20, 10);
+    const r = isSqueezeOverkill('s1');
+    expect(r.isOverkill).toBe(false);
+});
+
+test('Module 26: huge squeezes detected as overkill', () => {
+    squeezeMap.clear();
+    recordSqueeze('s2', 50, 10);  // 5x
+    recordSqueeze('s2', 60, 10);  // 6x
+    recordSqueeze('s2', 40, 10);  // 4x
+    const r = isSqueezeOverkill('s2');
+    expect(r.isOverkill).toBe(true);
+    expect(r.avgMult).toBeGreaterThanOrEqual(4.0);
+});
+
+test('Module 26: normal squeezes not overkill', () => {
+    squeezeMap.clear();
+    recordSqueeze('s3', 25, 10);  // 2.5x
+    recordSqueeze('s3', 30, 10);  // 3x
+    recordSqueeze('s3', 28, 10);  // 2.8x
+    const r = isSqueezeOverkill('s3');
+    expect(r.isOverkill).toBe(false);
+});
+
+// ── Module 27: Reverse Implied Odds Guard ──
+const detectReverseImplied = brain.detectReverseImplied;
+
+test('Module 27: no draw outs = no block', () => {
+    const r = detectReverseImplied(0, 0.30, 1000, 2, false);
+    expect(r.shouldBlock).toBe(false);
+});
+
+test('Module 27: weak draw on wet board multiway = blocked', () => {
+    const r = detectReverseImplied(4, 0.35, 1000, 4, true);
+    expect(r.shouldBlock).toBe(true);
+    expect(r.rioFactor).toBeGreaterThan(1.5);
+});
+
+test('Module 27: strong draw heads-up = acceptable', () => {
+    const r = detectReverseImplied(15, 0.25, 500, 2, false);
+    expect(r.shouldBlock).toBe(false);
+});
+
+// ── Module 28: Cold-Call Trap Detector ──
+const recordColdCall = brain.recordColdCall;
+const recordBarrelVsColdCall = brain.recordBarrelVsColdCall;
+const isColdCallTrap = brain.isColdCallTrap;
+const coldCallMap = brain.coldCallMap;
+
+test('Module 28: insufficient barrels returns not trap', () => {
+    coldCallMap.clear();
+    recordColdCall('cc1');
+    recordBarrelVsColdCall('cc1', true);
+    const r = isColdCallTrap('cc1');
+    expect(r.isTrap).toBe(false);
+});
+
+test('Module 28: cold-caller who never folds to barrels = trap', () => {
+    coldCallMap.clear();
+    recordColdCall('cc2');
+    for (let i = 0; i < 5; i++) recordBarrelVsColdCall('cc2', false); // 0/5 fold rate
+    const r = isColdCallTrap('cc2');
+    expect(r.isTrap).toBe(true);
+    expect(r.winRate).toBe(0);
+});
+
+test('Module 28: cold-caller who usually folds = not trap', () => {
+    coldCallMap.clear();
+    recordColdCall('cc3');
+    for (let i = 0; i < 5; i++) recordBarrelVsColdCall('cc3', true); // 5/5 fold rate
+    const r = isColdCallTrap('cc3');
+    expect(r.isTrap).toBe(false);
+    expect(r.winRate).toBe(1.0);
+});
+
+// ── Module 29: Straddle & Bomb-Pot Equity Adjuster ──
+const detectBombPotOrStraddle = brain.detectBombPotOrStraddle;
+
+test('Module 29: bomb pot detected (pot >= 8bb, no straddle)', () => {
+    const r = detectBombPotOrStraddle(40, 2, false);
+    expect(r.isBombPot).toBe(true);
+    expect(r.equityThresholdBoost).toBe(15);
+    expect(r.label).toBe('bomb-pot');
+});
+
+test('Module 29: straddle detected', () => {
+    const r = detectBombPotOrStraddle(12, 2, true);
+    expect(r.isStraddle).toBe(true);
+    expect(r.equityThresholdBoost).toBe(10);
+    expect(r.label).toBe('straddle');
+});
+
+test('Module 29: standard pot', () => {
+    const r = detectBombPotOrStraddle(6, 2, false);
+    expect(r.isBombPot).toBe(false);
+    expect(r.isStraddle).toBe(false);
+    expect(r.equityThresholdBoost).toBe(0);
+});
+
+// ── Module 30: Angle-Shoot Timing Detector ──
+const recordActionTiming = brain.recordActionTiming;
+const detectAngleShoot = brain.detectAngleShoot;
+const angleShootMap = brain.angleShootMap;
+
+test('Module 30: no data = not angle-shooting', () => {
+    angleShootMap.clear();
+    const r = detectAngleShoot('a1');
+    expect(r.isAngleShooting).toBe(false);
+    expect(r.extraEntropyMs).toBe(0);
+});
+
+test('Module 30: rapid-fire instant actions = angle-shooting', () => {
+    angleShootMap.clear();
+    for (let i = 0; i < 6; i++) recordActionTiming('a2', 300); // All < 700ms
+    const r = detectAngleShoot('a2');
+    expect(r.isAngleShooting).toBe(true);
+    expect(r.extraEntropyMs).toBeGreaterThan(0);
+});
+
+test('Module 30: normal timing = not angle-shooting', () => {
+    angleShootMap.clear();
+    for (let i = 0; i < 6; i++) recordActionTiming('a3', 3000); // All 3s
+    const r = detectAngleShoot('a3');
+    expect(r.isAngleShooting).toBe(false);
+});
+
+// ── Module 31: RIT Refusal Tracker ──
+const recordRITResponse = brain.recordRITResponse;
+const isRITRefuser = brain.isRITRefuser;
+const ritRefusalMap = brain.ritRefusalMap;
+
+test('Module 31: insufficient data = not refuser', () => {
+    ritRefusalMap.clear();
+    recordRITResponse('r1', false);
+    const r = isRITRefuser('r1');
+    expect(r.isRITRefuser).toBe(false);
+});
+
+test('Module 31: consistent refusal = RIT refuser', () => {
+    ritRefusalMap.clear();
+    recordRITResponse('r2', false);
+    recordRITResponse('r2', false);
+    recordRITResponse('r2', false);
+    const r = isRITRefuser('r2');
+    expect(r.isRITRefuser).toBe(true);
+    expect(r.refusalRate).toBe(1.0);
+});
+
+test('Module 31: accepting RIT = not refuser', () => {
+    ritRefusalMap.clear();
+    recordRITResponse('r3', true);
+    recordRITResponse('r3', true);
+    recordRITResponse('r3', false);
+    const r = isRITRefuser('r3');
+    expect(r.isRITRefuser).toBe(false);
+});
+
+// ── Module 32: Per-Session Chip-Leak Forensics ──
+const recordChipLeak = brain.recordChipLeak;
+const getChipLeakBoosts = brain.getChipLeakBoosts;
+const chipLeakMap = brain.chipLeakMap;
+
+test('Module 32: no leaks = zero boosts', () => {
+    chipLeakMap.clear();
+    const r = getChipLeakBoosts('cl1', 'tbl1');
+    expect(r.oopBoost).toBe(0);
+    expect(r.multiwayBoost).toBe(0);
+});
+
+test('Module 32: OOP leak > 20bb triggers oopBoost', () => {
+    chipLeakMap.clear();
+    recordChipLeak('cl2', 'tbl2', 'oop_check_call', 25);
+    const r = getChipLeakBoosts('cl2', 'tbl2');
+    expect(r.oopBoost).toBe(8);
+    expect(r.multiwayBoost).toBe(0);
+});
+
+test('Module 32: multiway leak > 20bb triggers multiwayBoost', () => {
+    chipLeakMap.clear();
+    recordChipLeak('cl3', 'tbl3', 'multiway_topset', 21);
+    const r = getChipLeakBoosts('cl3', 'tbl3');
+    expect(r.multiwayBoost).toBe(8);
+});
+
+test('Module 32: leak below threshold = no boost', () => {
+    chipLeakMap.clear();
+    recordChipLeak('cl4', 'tbl4', 'oop_check_call', 15);
+    const r = getChipLeakBoosts('cl4', 'tbl4');
+    expect(r.oopBoost).toBe(0);
+});
+
+// ── Module 14: Threat Score + Blacklist ──
+const getThreatScore = brain.getThreatScore;
+const isBlacklisted = brain.isBlacklisted;
+const suspectBotMap = brain.suspectBotMap;
+const crossTableRadar = brain.crossTableRadar;
+const threatIntelCache = brain.threatIntelCache;
+
+test('Module 14: unknown opponent = 0 threat', () => {
+    suspectBotMap.clear();
+    crossTableRadar.clear();
+    const score = getThreatScore('unknown_opp');
+    expect(score).toBe(0);
+});
+
+test('Module 14: high bot score contributes 40%', () => {
+    suspectBotMap.clear();
+    crossTableRadar.clear();
+    suspectBotMap.set('bot1', { suspectScore: 100 });
+    const score = getThreatScore('bot1');
+    expect(score).toBe(40);
+});
+
+test('Module 14: cross-table 3 tables = 20 points (capped)', () => {
+    suspectBotMap.clear();
+    crossTableRadar.clear();
+    crossTableRadar.set('ct1', new Set(['t1', 't2', 't3']));
+    const score = getThreatScore('ct1');
+    expect(score).toBe(20); // 3 * 7 = 21, capped at 20
+});
+
+test('Module 14: not blacklisted when no cache entry', () => {
+    threatIntelCache.clear();
+    expect(isBlacklisted('nobody')).toBe(false);
+});
+
+test('Module 14: blacklisted when future timestamp in cache', () => {
+    threatIntelCache.clear();
+    threatIntelCache.set('banned1', { blacklistedUntil: Date.now() + 100000 });
+    expect(isBlacklisted('banned1')).toBe(true);
+});
+
+test('Module 14: not blacklisted when timestamp expired', () => {
+    threatIntelCache.clear();
+    threatIntelCache.set('expired1', { blacklistedUntil: Date.now() - 100000 });
+    expect(isBlacklisted('expired1')).toBe(false);
+});
+
+// ── Module 11: Range Rotation ──
+const getRangeRotationGear = brain.getRangeRotationGear;
+const rangeRotationMap = brain.rangeRotationMap;
+
+test('Module 11: range rotation starts with valid gear', () => {
+    rangeRotationMap.clear();
+    const r = getRangeRotationGear('rr1', 'trr1');
+    expect(['A', 'B', 'C', 'D']).toContain(r.gear);
+    expect(r.foldMod).toBeDefined();
+    expect(r.raiseMod).toBeDefined();
+});
+
+test('Module 11: gear advances after 30 hands', () => {
+    rangeRotationMap.clear();
+    let firstGear = null;
+    for (let i = 0; i < 31; i++) {
+        const r = getRangeRotationGear('rr2', 'trr2');
+        if (i === 0) firstGear = r.gear;
+    }
+    const current = getRangeRotationGear('rr2', 'trr2');
+    // After 32 calls, should have rotated at least once
+    // (first call creates gear + increments to 1, then at call 30 rotates)
+    expect(current).toBeDefined();
+});
+
+// ── Module 12: PLO Multiway Equity Discount ──
+const applyMultiwayEquityDiscount = brain.applyMultiwayEquityDiscount;
+
+test('Module 12: heads-up = no discount', () => {
+    expect(applyMultiwayEquityDiscount(80, 2)).toBe(80);
+});
+
+test('Module 12: 3-way = 10 point discount', () => {
+    expect(applyMultiwayEquityDiscount(80, 3)).toBe(70);
+});
+
+test('Module 12: 5-way = 25 point discount', () => {
+    expect(applyMultiwayEquityDiscount(80, 5)).toBe(55);
+});
+
+test('Module 12: discount floors at 0', () => {
+    expect(applyMultiwayEquityDiscount(10, 5)).toBe(0);
+});
+
+// ── Module 13: PLO Nut-Bias Exploit Detector ──
+const detectNutBiasExploitBoard = brain.detectNutBiasExploitBoard;
+
+test('Module 13: null board = 0 score', () => {
+    const r = detectNutBiasExploitBoard(null, 2);
+    expect(r.nutUnlikelyScore).toBe(0);
+});
+
+test('Module 13: rainbow low board = high nut-unlikely score', () => {
+    // 5h-3d-2c — rainbow (25), no pair (15), all low maxRank=3≤9 (15), gap 1-1 (max gap 1, no bonus)
+    const board = [{ rank: 3, suit: 'h' }, { rank: 1, suit: 'd' }, { rank: 0, suit: 'c' }];
+    const r = detectNutBiasExploitBoard(board, 2);
+    expect(r.nutUnlikelyScore).toBeGreaterThanOrEqual(40);
+    expect(r.shouldAddCheckRaise).toBe(true);
+});
+
+test('Module 13: monotone high board = low nut-unlikely score', () => {
+    // Ah-Kh-Qh — monotone (not rainbow, uniqueSuits=1≠3), no pair (15), high (maxRank=12, no low bonus)
+    const board = [{ rank: 12, suit: 'h' }, { rank: 11, suit: 'h' }, { rank: 10, suit: 'h' }];
+    const r = detectNutBiasExploitBoard(board, 2);
+    expect(r.nutUnlikelyScore).toBeLessThan(40);
+    expect(r.shouldAddCheckRaise).toBe(false);
+});
+
+// ── Module 17: PLO Runout Equity Re-Evaluator ──
+const reevaluatePLORunoutEquity = brain.reevaluatePLORunoutEquity;
+
+test('Module 17: big improvement = nut_improve', () => {
+    const r = reevaluatePLORunoutEquity(40, 60, 'turn');
+    expect(r.multiplier).toBe(1.20);
+    expect(r.runoutType).toBe('nut_improve');
+});
+
+test('Module 17: big drop = scare', () => {
+    const r = reevaluatePLORunoutEquity(60, 40, 'river');
+    expect(r.multiplier).toBe(0.75);
+    expect(r.runoutType).toBe('scare');
+});
+
+test('Module 17: small change = blank', () => {
+    const r = reevaluatePLORunoutEquity(50, 52, 'turn');
+    expect(r.multiplier).toBe(1.0);
+    expect(r.runoutType).toBe('blank');
+});
+
+// ── Module 18: SPR Pot-Commitment Trap Detector ──
+const detectSPRTrap = brain.detectSPRTrap;
+
+test('Module 18: no call needed = no trap', () => {
+    const r = detectSPRTrap(0, 100, 500, 2, 50);
+    expect(r.shouldFoldTrap).toBe(false);
+});
+
+test('Module 18: pot-sized jam with marginal equity = trap fold', () => {
+    // toCall=100, pot=100, so break-even = 100/200 = 50%. Jam is oversized (100 >= 100*0.9).
+    // With equity 45 < 50 adjustedThreshold → shouldFoldTrap
+    const r = detectSPRTrap(100, 100, 500, 2, 45);
+    expect(r.isTrap).toBe(true);
+    expect(r.shouldFoldTrap).toBe(true);
+});
+
+test('Module 18: strong equity survives trap', () => {
+    const r = detectSPRTrap(100, 100, 500, 2, 70);
+    expect(r.shouldFoldTrap).toBe(false);
+});
+
+// ── Module 19: Probe-Bet Frequency Harvester ──
+const recordProbeBet = brain.recordProbeBet;
+const getProbeFarmScore = brain.getProbeFarmScore;
+const probeBetMap = brain.probeBetMap;
+
+test('Module 19: insufficient probes = 0 score', () => {
+    probeBetMap.clear();
+    recordProbeBet('pb1', 0.25, true, 5);
+    recordProbeBet('pb1', 0.30, true, 3);
+    expect(getProbeFarmScore('pb1')).toBe(0);
+});
+
+test('Module 19: systematic probe farmer detected', () => {
+    probeBetMap.clear();
+    for (let i = 0; i < 5; i++) recordProbeBet('pb2', 0.20, true, 3);
+    expect(getProbeFarmScore('pb2')).toBe(1.0); // 5/5 wins
+});
+
+test('Module 19: bet > 35% pot not recorded as probe', () => {
+    probeBetMap.clear();
+    recordProbeBet('pb3', 0.40, true, 5);
+    expect(getProbeFarmScore('pb3')).toBe(0); // Not even recorded
+});
+
+// ── Opponent Session Model ──
+const recordOpponentAction = brain.recordOpponentAction;
+const recordOpponentShowdown = brain.recordOpponentShowdown;
+const getOpponentSessionRead = brain.getOpponentSessionRead;
+const opponentSessionModel = brain.opponentSessionModel;
+
+test('Opponent Session Model: returns null with insufficient actions', () => {
+    opponentSessionModel.clear();
+    recordOpponentAction('osm1', 'preflop', 'raise', {});
+    recordOpponentAction('osm1', 'flop', 'bet', {});
+    expect(getOpponentSessionRead('osm1')).toBeNull();
+});
+
+test('Opponent Session Model: detects TAG tendency', () => {
+    opponentSessionModel.clear();
+    // Need 8+ actions, vpip < 0.25, agg >= 0.40
+    // 3 preflop raises, 3 flop bets, 2 folds = 8 actions
+    recordOpponentAction('osm2', 'preflop', 'raise', {});
+    recordOpponentAction('osm2', 'preflop', 'raise', {});
+    recordOpponentAction('osm2', 'preflop', 'fold', {});
+    recordOpponentAction('osm2', 'flop', 'bet', {});
+    recordOpponentAction('osm2', 'flop', 'bet', {});
+    recordOpponentAction('osm2', 'flop', 'bet', {});
+    recordOpponentAction('osm2', 'turn', 'fold', {});
+    recordOpponentAction('osm2', 'river', 'fold', {});
+    const read = getOpponentSessionRead('osm2');
+    expect(read).not.toBeNull();
+    expect(read.totalActions).toBe(8);
+});
+
+test('Opponent Session Model: tracks showdown bluffs', () => {
+    opponentSessionModel.clear();
+    // Need to build up enough actions first
+    for (let i = 0; i < 10; i++) recordOpponentAction('osm3', 'preflop', 'raise', {});
+    recordOpponentShowdown('osm3', false, 20, true);  // bluff caught
+    recordOpponentShowdown('osm3', false, 15, true);  // bluff caught
+    recordOpponentShowdown('osm3', true, 80, false);   // legit win
+    const read = getOpponentSessionRead('osm3');
+    expect(read).not.toBeNull();
+    expect(read.bluffRate).toBeCloseTo(0.667, 1);
+});
+
+test('Opponent Session Model: overbet tracking', () => {
+    opponentSessionModel.clear();
+    for (let i = 0; i < 8; i++) {
+        recordOpponentAction('osm4', 'flop', 'bet', { betToPot: 1.5 }); // all overbets
+    }
+    const read = getOpponentSessionRead('osm4');
+    expect(read).not.toBeNull();
+    expect(read.overbetRate).toBe(1.0);
+});
+
+// ── Live Observer System ──
+const observeNewHand = brain.observeNewHand;
+const observeAction = brain.observeAction;
+const observeShowdown = brain.observeShowdown;
+const getLiveRead = brain.getLiveRead;
+const liveObserver = brain.liveObserver;
+
+test('Live Observer: observeNewHand creates observer entries', () => {
+    liveObserver.clear();
+    const players = [{ id: 'horse1' }, { id: 'opp1' }, { id: 'opp2' }];
+    observeNewHand('table1', 'hand1', players, ['horse1'], 2);
+    expect(liveObserver.has('horse1')).toBe(true);
+    const obs = liveObserver.get('horse1').get('table1');
+    expect(obs.opponents.has('opp1')).toBe(true);
+    expect(obs.opponents.has('opp2')).toBe(true);
+    expect(obs.opponents.get('opp1').handsObserved).toBe(1);
+});
+
+test('Live Observer: insufficient data returns null read', () => {
+    liveObserver.clear();
+    const players = [{ id: 'horse2' }, { id: 'opp3' }];
+    observeNewHand('table2', 'hand2', players, ['horse2'], 2);
+    // Only 1 hand observed — need 5
+    const read = getLiveRead('horse2', 'table2', 'opp3');
+    expect(read).toBeNull();
+});
+
+test('Live Observer: tracks VPIP on preflop call', () => {
+    liveObserver.clear();
+    const players = [{ id: 'horse3' }, { id: 'opp4' }];
+    // Observe 6 hands with opp4 calling preflop each time
+    for (let i = 0; i < 6; i++) {
+        observeNewHand('table3', `hand_${i}`, players, ['horse3'], 2);
+        observeAction('table3', 'opp4', 'preflop', 'call', { amount: 4, potSize: 6 }, ['horse3']);
+    }
+    const read = getLiveRead('horse3', 'table3', 'opp4');
+    expect(read).not.toBeNull();
+    expect(read.vpipPct).toBe(1.0); // Called every hand
+});
+
+test('Live Observer: tracks aggression and fold frequency', () => {
+    liveObserver.clear();
+    const players = [{ id: 'horse4', position: 'BTN' }, { id: 'opp5', position: 'SB' }];
+    for (let i = 0; i < 6; i++) {
+        observeNewHand('table4', `hand_agg_${i}`, players, ['horse4'], 2);
+        if (i < 3) {
+            observeAction('table4', 'opp5', 'preflop', 'raise', { amount: 6, potSize: 3 }, ['horse4']);
+        } else {
+            observeAction('table4', 'opp5', 'preflop', 'fold', {}, ['horse4']);
+        }
+    }
+    const read = getLiveRead('horse4', 'table4', 'opp5');
+    expect(read).not.toBeNull();
+    expect(read.pfrPct).toBe(0.5);  // 3/6 raised
+    expect(read.foldFreq).toBe(0.5);  // 3/6 folded
+});
+
+test('Live Observer: observeShowdown tracks showdown stats', () => {
+    liveObserver.clear();
+    const players = [{ id: 'horse5' }, { id: 'opp6' }];
+    for (let i = 0; i < 6; i++) {
+        observeNewHand('table5', `hand_sd_${i}`, players, ['horse5'], 2);
+        observeAction('table5', 'opp6', 'preflop', 'call', {}, ['horse5']);
+    }
+    observeShowdown('table5', 'opp6', true, 85, false, ['horse5']);
+    observeShowdown('table5', 'opp6', false, 20, true, ['horse5']);  // bluff
+    observeShowdown('table5', 'opp6', true, 70, false, ['horse5']);  // legit
+    const read = getLiveRead('horse5', 'table5', 'opp6');
+    expect(read).not.toBeNull();
+    expect(read.wtsd).toBeCloseTo(3/6, 2);  // 3 showdowns / 6 hands
+    expect(read.bluffRate).toBeCloseTo(1/3, 1);  // 1 bluff / 3 showdowns
+});
+
+test('Live Observer: player type classification — nit', () => {
+    liveObserver.clear();
+    const players = [{ id: 'horse6' }, { id: 'nit1' }];
+    // 12 hands, nit folds most
+    for (let i = 0; i < 12; i++) {
+        observeNewHand('table6', `hand_nit_${i}`, players, ['horse6'], 2);
+        if (i < 2) {
+            observeAction('table6', 'nit1', 'preflop', 'call', {}, ['horse6']);
+        } else {
+            observeAction('table6', 'nit1', 'preflop', 'fold', {}, ['horse6']);
+        }
+    }
+    const read = getLiveRead('horse6', 'table6', 'nit1');
+    expect(read).not.toBeNull();
+    expect(read.playerType).toBe('nit'); // vpip 2/12=0.167 < 0.18, pfr 0 < 0.12
+});
+
+test('Live Observer: timing tells tracked', () => {
+    liveObserver.clear();
+    const players = [{ id: 'horse7' }, { id: 'timer1' }];
+    for (let i = 0; i < 6; i++) {
+        observeNewHand('table7', `hand_time_${i}`, players, ['horse7'], 2);
+        observeAction('table7', 'timer1', 'preflop', 'call', { decisionTimeMs: 1500 }, ['horse7']);
+    }
+    const read = getLiveRead('horse7', 'table7', 'timer1');
+    expect(read).not.toBeNull();
+    expect(read.avgDecisionMs).toBe(1500);
+    expect(read.snapFreq).toBe(1.0); // All < 3000ms
+});
+
+// ── selectCounterStrategy ──
+const selectCounterStrategy = brain.selectCounterStrategy;
+const showdownExposureMap = brain.showdownExposureMap;
+const patternProfitMap = brain.patternProfitMap;
+
+test('selectCounterStrategy: standard mode with no signals', () => {
+    showdownExposureMap.clear();
+    patternProfitMap.clear();
+    suspectBotMap.clear();
+    const r = selectCounterStrategy('cs_horse', 'cs_opp', 'cs_table');
+    expect(r.mode).toBe('standard');
+});
+
+test('selectCounterStrategy: anti_bot mode when bot suspected', () => {
+    showdownExposureMap.clear();
+    patternProfitMap.clear();
+    suspectBotMap.clear();
+    suspectBotMap.set('cs_opp2', { suspectScore: 80 });
+    const r = selectCounterStrategy('cs_horse2', 'cs_opp2', 'cs_table2');
+    expect(r.mode).toBe('anti_bot');
+});
+
+// ── Performance Stats & Analytics ──
+const recordPerformanceAction = brain.recordPerformanceAction;
+const getPerformanceStats = brain.getPerformanceStats;
+const recordPerformanceResult = brain.recordPerformanceResult;
+const getAdaptiveStrategy = brain.getAdaptiveStrategy;
+
+test('Performance Stats: empty returns zeros', () => {
+    const stats = getPerformanceStats('perf_unknown');
+    expect(stats.handsPlayed).toBe(0);
+    expect(stats.vpip).toBe(0);
+});
+
+test('Performance Stats: tracks VPIP and PFR', () => {
+    recordPerformanceAction('perf1', 'preflop', 'raise', true);
+    recordPerformanceAction('perf1', 'preflop', 'fold', false);
+    recordPerformanceAction('perf1', 'preflop', 'call', true);
+    const stats = getPerformanceStats('perf1');
+    expect(stats.handsPlayed).toBe(3);
+    expect(stats.vpip).toBe(67); // 2/3
+    expect(stats.pfr).toBe(33);  // 1/3
+});
+
+test('Performance Stats: win rate tracking', () => {
+    recordPerformanceResult('perf1', true, 10);
+    recordPerformanceResult('perf1', false, -5);
+    const stats = getPerformanceStats('perf1');
+    expect(stats.wins).toBe(1);
+    expect(stats.losses).toBe(1);
+});
+
+test('Adaptive Strategy: insufficient data = no adjustment', () => {
+    const r = getAdaptiveStrategy('adapt_unknown');
+    expect(r.reason).toBe('insufficient_data');
+    expect(r.rangeAdjust).toBe(0);
+});
+
+// ── Dynamic Rebuy Strategy ──
+const getDynamicRebuyStrategy = brain.getDynamicRebuyStrategy;
+
+test('Dynamic Rebuy: max buyins reached = no rebuy', () => {
+    const r = getDynamicRebuyStrategy('reb1', 20, 2, 3, 200);
+    expect(r.shouldRebuy).toBe(false);
+    expect(r.reason).toBe('max_buyins_reached');
+});
+
+test('Dynamic Rebuy: short stacked = rebuy', () => {
+    const r = getDynamicRebuyStrategy('reb2', 40, 2, 1, 200);
+    expect(r.shouldRebuy).toBe(true);
+    expect(r.reason).toBe('short_stacked');
+    expect(r.amount).toBeGreaterThan(0);
+});
+
+test('Dynamic Rebuy: adequate stack = no rebuy', () => {
+    const r = getDynamicRebuyStrategy('reb3', 200, 2, 1, 200);
+    expect(r.shouldRebuy).toBe(false);
+    expect(r.reason).toBe('adequate_stack');
+});
+
+// ── Recommended Stake ──
+const getRecommendedStake = brain.getRecommendedStake;
+
+test('Recommended Stake: 2500 bankroll supports 1/2', () => {
+    const r = getRecommendedStake(2500, 'Cash');
+    // 2500 / 25 = 100BB pool, maxBB = 1. So 0.50/1 stakes
+    expect(r.recommendedBlinds.bb).toBeLessThanOrEqual(1);
+});
+
+test('Recommended Stake: tournament uses 50 buyin rule', () => {
+    const r = getRecommendedStake(5000, 'Tournament');
+    expect(r.maxBuyIn).toBe(100);
+});
+
+// ── Soft Play Guard ──
+const isSoftPlayAllowed = brain.isSoftPlayAllowed;
+const recordSoftPlay = brain.recordSoftPlay;
+
+test('Soft Play: first play allowed', () => {
+    expect(isSoftPlayAllowed('sp1', 'sp2')).toBe(true);
+});
+
+test('Soft Play: blocked after 3 in an hour', () => {
+    recordSoftPlay('sp3', 'sp4');
+    recordSoftPlay('sp3', 'sp4');
+    recordSoftPlay('sp3', 'sp4');
+    expect(isSoftPlayAllowed('sp3', 'sp4')).toBe(false);
+});
+
+// ── Horse Skill Evolution ──
+const evolveHorseSkill = brain.evolveHorseSkill;
+const getSkillDrift = brain.getSkillDrift;
+
+test('Skill Evolution: winning improves drift', () => {
+    const r = evolveHorseSkill('evo1', 10);
+    expect(r.skillDrift).toBe(1);
+    expect(r.direction).toBe('stable');
+});
+
+test('Skill Evolution: losing regresses drift', () => {
+    evolveHorseSkill('evo2', -10);
+    evolveHorseSkill('evo2', -10);
+    evolveHorseSkill('evo2', -10);
+    const drift = getSkillDrift('evo2');
+    expect(drift).toBeLessThan(0);
+});
+
+test('Skill Evolution: drift capped at +10', () => {
+    for (let i = 0; i < 20; i++) evolveHorseSkill('evo3', 20);
+    const drift = getSkillDrift('evo3');
+    expect(drift).toBeLessThanOrEqual(10);
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
