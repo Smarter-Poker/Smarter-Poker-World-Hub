@@ -1733,7 +1733,7 @@ export default function PokerNearMeLobby() {
                                 {td < 1 ? `${(td * 5280).toFixed(0)} ft` : `${td.toFixed(1)} mi`}
                               </div>
                             )}
-                            <TourCard tour={t} />
+                            <TourCard tour={t} isFavorited={!!favorites[t.id || t.tour_code]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -1746,7 +1746,7 @@ export default function PokerNearMeLobby() {
                                 {sd < 1 ? `${(sd * 5280).toFixed(0)} ft` : `${sd.toFixed(1)} mi`}
                               </div>
                             )}
-                            <SeriesCard series={s} index={i} onNavigate={(path) => router.push(path)} />
+                            <SeriesCard series={s} index={i} isFavorited={!!favorites[s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -2137,7 +2137,7 @@ export default function PokerNearMeLobby() {
                                 {td < 1 ? `${(td * 5280).toFixed(0)} ft` : `${td.toFixed(1)} mi`}
                               </div>
                             )}
-                            <TourCard tour={t} />
+                            <TourCard tour={t} isFavorited={!!favorites[t.id || t.tour_code]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -2150,7 +2150,7 @@ export default function PokerNearMeLobby() {
                                 {sd < 1 ? `${(sd * 5280).toFixed(0)} ft` : `${sd.toFixed(1)} mi`}
                               </div>
                             )}
-                            <SeriesCard series={s} index={i} onNavigate={(path) => router.push(path)} />
+                            <SeriesCard series={s} index={i} isFavorited={!!favorites[s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -2259,7 +2259,7 @@ export default function PokerNearMeLobby() {
               </span>
             </div>
             <div style={{ display: 'grid', gap: 12 }}>
-              {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} />)}
+              {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} isFavorited={!!favorites[t.id || t.tour_code]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t); }} onNavigate={(path) => router.push(path)} />)}
             </div>
             {!toursLoaded && tours.length === 0 && (
               <div style={{ display: 'grid', gap: 12 }}>
@@ -2307,7 +2307,7 @@ export default function PokerNearMeLobby() {
               </span>
             </div>
             <div style={{ display: 'grid', gap: 12 }}>
-              {filteredSeries.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} />)}
+              {filteredSeries.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} isFavorited={!!favorites[s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s); }} onNavigate={(path) => router.push(path)} />)}
             </div>
             {!seriesLoaded && series.length === 0 && (
               <div style={{ display: 'grid', gap: 12 }}>
