@@ -4794,6 +4794,42 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                 return canCheck ? { type: 'check' } : { type: 'fold' };
             }
 
+            // ═══ SQUEEZE PLAY — 3-bet after raise + caller(s) ═══
+            // A squeeze is a 3-bet when there's a raise and 1+ callers behind.
+            // Dead money from callers makes this extremely profitable.
+            // Detect callers by pot size: raise to ~3bb + callers = pot > ~8bb
+            const estimatedCallers = Math.max(0, Math.round((potSize / bb - toCall / bb - 1.5) / (toCall / bb)));
+            if (estimatedCallers >= 1 && raiseSize >= 2 && raiseSize <= 7) {
+                // Squeeze spots: late position or blinds with wider range
+                const isSqueezePosition = position === 'BTN' || position === 'CO' || position === 'SB' || position === 'BB';
+                if (isSqueezePosition && stackBB >= 25) {
+                    let squeezeThreshold = 55; // Base: need decent hand
+                    // From blinds, squeeze tighter (we'll be OOP)
+                    if (position === 'SB' || position === 'BB') squeezeThreshold = 62;
+                    // With more callers, more dead money → squeeze wider
+                    if (estimatedCallers >= 2) squeezeThreshold -= 5;
+                    // Aggressive horses squeeze wider
+                    squeezeThreshold -= aggressionBias / 3;
+
+                    if (adjustedStrength >= squeezeThreshold && canRaise) {
+                        // Squeeze sizing: bigger than standard 3-bet (3.5-4.5x raise + 1x per caller)
+                        const squeezeBBs = (toCall / bb) * 3.5 + estimatedCallers * (toCall / bb) * 0.5;
+                        const squeezeSize = Math.round(bb * squeezeBBs);
+                        const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(squeezeSize, raiseAction?.maxAmount || squeezeSize));
+                        // Squeeze frequency: not every time (balance)
+                        let squeezeFreq = adjustedStrength >= 80 ? 0.90 : 0.40 + aggressionBias / 30;
+                        // 4-bet bluff component for aggressive horses with suited hands
+                        if (adjustedStrength < squeezeThreshold + 10 && handStr.endsWith('s')) {
+                            squeezeFreq = 0.25 + aggressionBias / 40;
+                        }
+                        squeezeFreq = Math.max(0.10, Math.min(0.85, squeezeFreq));
+                        if (Math.random() < squeezeFreq) {
+                            return { type: raiseAction.type, amount: clamped };
+                        }
+                    }
+                }
+            }
+
             // ═══ FACING A STANDARD RAISE (2-7 BB) ═══
             const threeBet = get3BetStrategy(position, adjustedStrength, toCall, bb, stackBB);
             if (threeBet.should3Bet) {
@@ -6243,6 +6279,19 @@ function makeTurnRiverHeuristicDecision(params) {
             if (handEval.strength < 20 && canRaise && !multiway) {
                 let bluffFreq = 0.18 + aggressionBias / 50;
 
+                // ═══ BLOCKER-BASED TURN BLUFF WEIGHTING ═══
+                // Turn bluffs with blockers are far more profitable — opponent has fewer
+                // value combos so they fold at higher frequency and we risk less.
+                if (blocksNutFlush) bluffFreq += 0.12;
+                if (blocksSecondNutFlush) bluffFreq += 0.08;
+                if (blocksTopSet) bluffFreq += 0.06;
+                if (blocksOverpair) bluffFreq += 0.05;
+                if (blocksStraight) bluffFreq += 0.06;
+
+                // Blocker combo bonus (same as river logic)
+                const turnBluffBlockerCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
+                if (turnBluffBlockerCount >= 2) bluffFreq += 0.06;
+
                 // ═══ NARRATIVE-DRIVEN BLUFF CREDIBILITY ═══
                 // If we c-bet flop, turn barrel bluff is a continuation of our story
                 if (narrative.heroBetFlop && narrative.storyIsConsistent) {
@@ -6256,17 +6305,39 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (!narrative.heroBetFlop && !heroIsAggressor) {
                     bluffFreq -= 0.06; // No story to tell
                 }
+                // No blockers + no story = terrible bluff candidate
+                if (turnBluffBlockerCount === 0 && !narrative.storyIsConsistent) {
+                    bluffFreq -= 0.08;
+                }
                 bluffFreq += narrativeAggrMod / 50;
 
                 // ═══ BOARD + AGGRESSOR STATUS ═══
                 if (heroIsAggressor && boardFavorsPFR) bluffFreq += 0.10;
+                // Scare card on turn = great bluff opportunity
+                if (scareLevel >= 1 && turnBluffBlockerCount >= 1) bluffFreq += 0.06;
+                // Board paired on turn — represent trips
+                if (newCardPairedBoard) bluffFreq += 0.05;
+
                 // Against over-folders, bluff more
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.25) bluffFreq += 0.08;
                 // Against calling stations, don't bluff
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) bluffFreq = 0;
 
+                bluffFreq = Math.max(0, Math.min(0.50, bluffFreq));
+
                 if (Math.random() < bluffFreq) {
-                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.55)) };
+                    // ═══ BLOCKER-AWARE TURN BLUFF SIZING ═══
+                    let turnBluffFrac = 0.55;
+                    // With premium blockers, can go bigger (opponent folds more)
+                    if (turnBluffBlockerCount >= 2 && oppFoldFreq > 0.40) {
+                        turnBluffFrac = 0.66 + Math.random() * 0.14; // 66-80% pot
+                    }
+                    // Against weak-tight, overbet to max fold equity
+                    if (oppTendency === 'weak-tight' && oppConfidence > 0.3 && turnBluffBlockerCount >= 1) {
+                        turnBluffFrac = 0.75 + Math.random() * 0.25; // 75-100% pot
+                    }
+                    console.log(`[HorseBrain] 🎭 TURN BLUFF: ${handStr} blockers=${turnBluffBlockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(turnBluffFrac * 100)}% pot`);
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * turnBluffFrac)) };
                 }
             }
 
@@ -6406,15 +6477,89 @@ function makeTurnRiverHeuristicDecision(params) {
             }
         }
 
-        // ── CHECK-RAISE on turn (OOP trap with monsters after checking) ──
-        // This handles the case where we checked, opponent bet, and we want to raise
-        if (!isIP && handEval.strength >= 70 && canRaise) {
-            let crFreq = 0.35;
-            // Against bluffy opponents, check-raise more often
-            if (oppTendency === 'bluffy' && oppConfidence > 0.3) crFreq = 0.50;
-            if (Math.random() < crFreq) {
-                const crSize = Math.round(toCall * 2.8);
-                return { type: raiseAction.type, amount: clampAmt(crSize) };
+        // ── CHECK-RAISE on turn (OOP trap — upgraded with narrative + blockers) ──
+        // This handles the case where we checked, opponent bet, and we want to raise.
+        // Three check-raise types: value (monsters), semi-bluff (draws), and bluff (air + blockers).
+        if (!isIP && canRaise) {
+
+            // VALUE CHECK-RAISE: Monsters (sets+, strong two pair)
+            if (handEval.strength >= 70) {
+                let crFreq = 0.35;
+                // Against bluffy opponents, check-raise more often (they bet wide, so we trap wide)
+                if (oppTendency === 'bluffy' && oppConfidence > 0.3) crFreq = 0.50;
+                // Against calling stations, check-raise bigger (they call raises too)
+                if (oppCallFreq > 0.55 && oppConfidence > 0.3) crFreq = 0.45;
+                // Narrative: if we checked flop and now check-raise turn = classic trap line
+                if (narrative.heroCheckedFlop) crFreq += 0.08;
+                // Narrative: if we've been passive, sudden aggression gets paid
+                if (narrative.checkBehindCount >= 1) crFreq += 0.06;
+                // Board texture: on wet boards, check-raise for protection + value
+                if (boardWet === 'wet') crFreq += 0.05;
+                // Dry boards: can slow-play more, less urgency to check-raise
+                if (boardWet === 'dry' && scareLevel === 0) crFreq -= 0.05;
+
+                crFreq = Math.max(0.15, Math.min(0.60, crFreq));
+                if (Math.random() < crFreq) {
+                    // Geometric sizing: check-raise size that sets up river jam
+                    const potAfterCR = potSize + toCall * 2; // pot after we call + their bet
+                    const geoSize = getGeometricSizing(potAfterCR, heroStack - toCall, 1, true);
+                    let crMult = 2.8;
+                    if (geoSize.isJammable && spr >= 3 && spr <= 10) {
+                        // Size the check-raise so river jam is natural
+                        crMult = Math.max(2.2, Math.min(4.0, geoSize.sizeFraction * 5));
+                    }
+                    // Against calling stations, raise bigger
+                    if (oppCallFreq > 0.55 && oppConfidence > 0.3) crMult = Math.min(4.0, crMult * 1.10);
+                    const crSize = Math.round(toCall * crMult);
+                    console.log(`[HorseBrain] 💎 TURN CHECK-RAISE VALUE: str=${handEval.strength} crMult=${crMult.toFixed(1)}x narrative=${narrative.suggestedLine}`);
+                    return { type: raiseAction.type, amount: clampAmt(crSize) };
+                }
+            }
+
+            // SEMI-BLUFF CHECK-RAISE: Strong draws (12+ outs, nut draws)
+            if (drawEq.outs >= 12 && handEval.strength < 55) {
+                let semiCRFreq = 0.25 + aggressionBias / 40;
+                // Nut draws: check-raise more aggressively
+                if (handEval.hasFlushDraw && blocksNutFlush) semiCRFreq += 0.10; // We have NFD
+                if (handEval.hasOESD && drawEq.outs >= 14) semiCRFreq += 0.08; // Combo draw
+                // Against over-folders, semi-bluff CR is very profitable
+                if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiCRFreq += 0.10;
+                // Against calling stations, don't semi-bluff CR (they call)
+                if (oppCallFreq > 0.60 && oppConfidence > 0.3) semiCRFreq = 0;
+                // Narrative: if we've been passive, CR is unexpected = more fold equity
+                if (narrative.heroCheckedFlop && !narrative.heroBetFlop) semiCRFreq += 0.06;
+                semiCRFreq = Math.max(0, Math.min(0.50, semiCRFreq));
+
+                if (Math.random() < semiCRFreq) {
+                    const crSize = Math.round(toCall * (2.5 + Math.random() * 0.5));
+                    console.log(`[HorseBrain] 🌊 TURN SEMI-BLUFF CR: outs=${drawEq.outs} str=${handEval.strength}`);
+                    return { type: raiseAction.type, amount: clampAmt(crSize) };
+                }
+            }
+
+            // BLUFF CHECK-RAISE: Air with blockers (skilled aggressive horses only)
+            if (handEval.strength < 15 && aggressionBias > 3 && !multiway) {
+                const crBlockerCount = [blocksNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
+                if (crBlockerCount >= 1) {
+                    let bluffCRFreq = 0.08 + aggressionBias / 60;
+                    // Need blockers to value range
+                    if (crBlockerCount >= 2) bluffCRFreq += 0.08;
+                    // Against over-folders, bluff CR is profitable
+                    if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffCRFreq += 0.10;
+                    // Against calling stations, never bluff CR
+                    if (oppCallFreq > 0.55 && oppConfidence > 0.3) bluffCRFreq = 0;
+                    // Narrative: credible line helps
+                    if (narrative.heroCheckedFlop && heroIsAggressor) bluffCRFreq += 0.04; // Delayed trap line
+                    // Scare card on turn helps
+                    if (scareLevel >= 1) bluffCRFreq += 0.05;
+                    bluffCRFreq = Math.max(0, Math.min(0.25, bluffCRFreq));
+
+                    if (Math.random() < bluffCRFreq) {
+                        const crSize = Math.round(toCall * (2.8 + Math.random() * 0.4));
+                        console.log(`[HorseBrain] 🎭 TURN BLUFF CR: blockers=${crBlockerCount} opp=${oppTendency} scare=${scareLevel}`);
+                        return { type: raiseAction.type, amount: clampAmt(crSize) };
+                    }
+                }
             }
         }
 
@@ -6793,7 +6938,7 @@ function makeTurnRiverHeuristicDecision(params) {
             return { type: raiseAction.type, amount: clampAmt(raiseSize) };
         }
 
-        // ── STRONG HANDS: Call ──
+        // ── STRONG HANDS: Raise small bets for value OR call ──
         if (handEval.strength >= 55) {
             // ═══ OPPONENT-AWARE STRONG HAND LAYDOWN ═══
             // If a known weak-tight player is betting big on the river in a heavy pot, RESPECT IT
@@ -6802,6 +6947,47 @@ function makeTurnRiverHeuristicDecision(params) {
                 console.log(`[HorseBrain] 🎯 RIVER LAYDOWN: opp=weak-tight, big bet in heavy pot, strength=${handEval.strength}`);
                 return canCheck ? { type: 'check' } : { type: 'fold' };
             }
+
+            // ═══ RAISE-FOR-VALUE vs SMALL BETS (geometric sizing) ═══
+            // When opponent makes a small bet (block/probe) with strong hands (65+),
+            // we should raise for value — their bet looks weak/blocking.
+            // Use geometric sizing to plan optimal raise for stack-off.
+            if (canRaise && handEval.strength >= 65 && betToPot <= 0.45 && !multiway) {
+                let raiseFreq = 0.35;
+                // Against calling stations, raise for value more (they call raises too)
+                if (oppCallFreq > 0.55 && oppConfidence > 0.3) raiseFreq = 0.50;
+                // Against aggressive opponents, raise less (they might be trapping)
+                if (oppTendency === 'bluffy' && oppConfidence > 0.3) raiseFreq = 0.25;
+                // Narrative: we've been passive → raise is unexpected = gets paid
+                if (narrative.checkBehindCount >= 1) raiseFreq += 0.08;
+                // Narrative: we've been barreling → raise is credible continuation
+                if (narrative.barrelsInARow >= 1 && narrative.storyIsConsistent) raiseFreq += 0.06;
+                raiseFreq = Math.max(0.10, Math.min(0.55, raiseFreq));
+
+                if (Math.random() < raiseFreq) {
+                    // Geometric sizing: what raise gets us to a natural stack-off?
+                    const potAfterCall = potSize + toCall * 2;
+                    const geoRaise = getGeometricSizing(potAfterCall, heroStack - toCall, 1, true);
+
+                    let raiseMult;
+                    if (geoRaise.isJammable && spr <= 3) {
+                        // Low SPR: just jam
+                        return { type: 'all_in' };
+                    } else if (spr <= 6) {
+                        // Medium SPR: raise big for max value
+                        raiseMult = 3.0 + Math.random() * 0.5;
+                    } else {
+                        // Deep: standard value raise
+                        raiseMult = 2.5 + Math.random() * 0.5;
+                    }
+                    // Against calling stations, go bigger
+                    if (oppCallFreq > 0.55 && oppConfidence > 0.3) raiseMult = Math.min(4.0, raiseMult * 1.15);
+                    const raiseSize = Math.round(toCall * raiseMult);
+                    console.log(`[HorseBrain] 💰 RIVER VALUE RAISE: str=${handEval.strength} betToPot=${Math.round(betToPot * 100)}% raise=${raiseMult.toFixed(1)}x`);
+                    return { type: raiseAction.type, amount: clampAmt(raiseSize) };
+                }
+            }
+
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
 
@@ -6975,8 +7161,31 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── PERSONALITY ADJUSTMENT ──
             heroCallProb += aggressionBias / 80; // Aggressive horses hero call more
 
+            // ═══ EXPLOIT INTENSIFIER INTEGRATION ═══
+            // When we have high-confidence reads, the exploit engine can override
+            // the base hero call math with exploit-specific adjustments.
+            if (oppConfidence >= 0.50) {
+                // EXPLOIT: Prolific bluffer → dramatically widen hero calling range
+                if (oppBluffFreq > 0.40) {
+                    const blufferBoost = 0.15 + (oppBluffFreq - 0.40) * 1.5; // 15-30%+ boost
+                    heroCallProb += Math.min(0.30, blufferBoost);
+                    // With blockers + known bluffer = snap call
+                    if (heroBlockerCount >= 2) heroCallProb += 0.10;
+                }
+                // EXPLOIT: Nit betting big → auto-fold (they have it)
+                if (oppTendency === 'weak-tight' && betToPot >= 0.60 && oppConfidence >= 0.55) {
+                    heroCallProb = Math.max(0, heroCallProb - 0.25);
+                    // Only hero call nits with premium blockers
+                    if (heroBlockerCount < 2) heroCallProb = 0;
+                }
+                // EXPLOIT: Calling station suddenly betting big → respect (they finally have it)
+                if (oppCallFreq > 0.60 && oppBluffFreq < 0.20 && betToPot >= 0.75) {
+                    heroCallProb = Math.max(0, heroCallProb - 0.15);
+                }
+            }
+
             // Clamp
-            heroCallProb = Math.max(0, Math.min(0.55, heroCallProb));
+            heroCallProb = Math.max(0, Math.min(0.65, heroCallProb));
 
             if (heroCallProb > 0.05 && Math.random() < heroCallProb) {
                 console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}%`);
