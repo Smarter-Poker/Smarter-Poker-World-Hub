@@ -5901,16 +5901,41 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         finalAmount = fallback.amount;
     }
 
+    // --- 4a. MODULE 18: SPR TRAP DETECTOR ---
+    // Detect when an opponent's bet sizing is designed to pot-commit us with a weak hand.
+    // If we're being trapped into a large pot with mediocre equity, override to fold.
+    if (finalAction === 'call' && toCall > 0 && street !== 'preflop') {
+        const sprTrap = detectSPRTrap(toCall, potSize, heroPlayer.stack, numPlayers, getPreflopStrength(handStr));
+        if (sprTrap.isTrap) {
+            const handEvalTrap = evaluatePostflopHand(holeCardStrings, boardStrings);
+            if (handEvalTrap.strength < 55) {
+                console.log(`[HorseBrain] 🪤 MODULE 18 SPR TRAP: ${sprTrap.reason} — folding marginal hand (strength=${handEvalTrap.strength})`);
+                finalAction = 'fold';
+                finalAmount = null;
+            }
+        }
+    }
+
     // --- 4b. UNIVERSAL HAND STRENGTH GUARDRAILS ---
     // These apply to BOTH GTO and fallback decisions to prevent egregious mistakes
+    // ═══ WIRED: All anti-exploit module signals now feed into NL Hold'em thresholds ═══
     if (street !== 'preflop' && finalAction) {
         const handEval = evaluatePostflopHand(holeCardStrings, boardStrings);
         const drawEq = getDrawEquity(handEval, street);
         const facingBet = toCall > 0;
 
         // Fold garbage facing a bet (unless pot odds are amazing)
-        // Adjust threshold based on opponent reads: bluffers → lower threshold, tight → higher
-        const foldThreshold = 15 + opponentAdjustment.foldMod - opponentAdjustment.callMod;
+        // ═══ MODULE 5 (Sandwich) + MODULE 11 (Range Rotation) + MODULE 20 (Image Exposed) ═══
+        // + MODULE 29 (Bomb Pot) all feed into the fold threshold
+        const imageExposedFoldMod = imageExposed ? 5 : 0;  // Module 20: tighter when exposed
+        const bombPotFoldMod = bombPotInfo.equityThresholdBoost || 0; // Module 29: tighter in bomb pots
+        const foldThreshold = 15
+            + opponentAdjustment.foldMod - opponentAdjustment.callMod
+            + sandwichedFoldMod        // Module 5: +10 when sandwiched
+            + gearFoldMod              // Module 11: range rotation fold adjustment
+            + imageExposedFoldMod      // Module 20: +5 when image is exposed
+            + bombPotFoldMod;          // Module 29: tighter commit in straddle/bomb pots
+
         if (finalAction === 'call' && facingBet && handEval.strength < foldThreshold && drawEq.outs === 0) {
             const potOdds = toCall / (potSize + toCall);
             if (potOdds >= 0.20) {
@@ -5919,15 +5944,42 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             }
         }
 
+        // ═══ MODULE 5: SANDWICH DRAW THRESHOLD ═══
+        // When sandwiched multiway, fold draws with fewer outs than the threshold
+        if (finalAction === 'call' && facingBet && sandwichedDrawThreshold > 0 && drawEq.outs > 0 && drawEq.outs < sandwichedDrawThreshold) {
+            console.log(`[HorseBrain] 🥊 MODULE 5 SANDWICH: folding weak draw (${drawEq.outs} outs < ${sandwichedDrawThreshold} threshold)`);
+            finalAction = 'fold';
+            finalAmount = null;
+        }
+
+        // ═══ MODULE 22: ISO TELL → WIDEN 3-BET/RAISE THRESHOLD ═══
+        // When opponent has mechanical isolation sizing, be more aggressive (lower raise threshold)
+        const isoRaiseBonus = isoTell.isMechanical ? -8 : 0;
+        // ═══ MODULE 25: MIN-RAISE → DON'T FOLD, RE-RAISE ═══
+        const minRaiseDefense = minRaiseTell.isMinRaiser ? -5 : 0;
+        // ═══ MODULE 26: SQUEEZE OVERKILL → FOLD MORE vs SQUEEZE ═══
+        const squeezeFoldMod = squeezeTell.isOverkill ? 8 : 0;
+        // ═══ MODULE 11: RANGE ROTATION RAISE MOD ═══
+        const effectiveRaiseMod = gearRaiseMod + isoRaiseBonus + minRaiseDefense;
+
         // Bet strong hands when not facing action
-        if ((finalAction === 'check') && !facingBet && handEval.strength >= 60) {
+        // Raise threshold adjusted by all module signals
+        const betThreshold = 60 + effectiveRaiseMod;
+        if ((finalAction === 'check') && !facingBet && handEval.strength >= betThreshold) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
-            if (raiseAction && Math.random() < 0.70) { // 70% bet frequency for strong hands
+            if (raiseAction && Math.random() < 0.70) {
                 const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false);
                 const betSize = Math.round(potSize * sizeFrac);
                 finalAction = raiseAction.type;
                 finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
             }
+        }
+
+        // ═══ MODULE 26: SQUEEZE DEFENSE — fold more marginal calls facing squeeze ═══
+        if (finalAction === 'call' && facingBet && squeezeFoldMod > 0 && handEval.strength < (foldThreshold + squeezeFoldMod)) {
+            console.log(`[HorseBrain] 💥 MODULE 26 SQUEEZE FOLD: folding marginal (strength=${handEval.strength} < ${foldThreshold + squeezeFoldMod})`);
+            finalAction = 'fold';
+            finalAmount = null;
         }
 
         // Value bet the river with medium-strong+ hands
@@ -5938,6 +5990,17 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 const betSize = Math.round(potSize * sizeFrac);
                 finalAction = raiseAction.type;
                 finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+            }
+        }
+
+        // ═══ MODULE 25: MIN-RAISE DEFENSE — re-raise instead of just calling ═══
+        if (finalAction === 'call' && minRaiseTell.isMinRaiser && handEval.strength >= 40) {
+            const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+            if (raiseAction && Math.random() < 0.45) {
+                console.log(`[HorseBrain] 🔩 MODULE 25 MIN-RAISE DEFENSE: re-raising vs min-raiser (strength=${handEval.strength})`);
+                const reraiseSize = Math.round(potSize * 0.75);
+                finalAction = raiseAction.type;
+                finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(reraiseSize, raiseAction.maxAmount || reraiseSize));
             }
         }
     }

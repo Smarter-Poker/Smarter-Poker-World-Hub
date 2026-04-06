@@ -25,7 +25,7 @@ def upload_to_supabase(image_data, venue_id):
         return False
 
 # Rough Riders Logo
-RR_IMG = "https://roughriderpokertour.com/wp-content/uploads/2024/12/cropped-rpt-logo-1-1-192x192.png"
+RR_IMG = "https://roughriderpokertour.com/wp-content/uploads/2024/12/rpt-logo-1-1.webp"
 
 try:
     print("Downloading Rough Riders...")
