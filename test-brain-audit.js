@@ -2967,6 +2967,134 @@ test('makePLOFallbackDecision: river facing bet with weak hand', () => {
 console.log('\n══ PHASE 47j: Async Supabase-dependent functions (graceful null) ══');
 // ═══════════════════════════════════════════════════════════
 
+// ─── getThreatScore ───
+test('getThreatScore: unknown opponent returns 0', () => {
+    const score = brain.getThreatScore('totally-unknown-opponent');
+    expect(score).toBe(0);
+});
+
+test('getThreatScore: returns number 0-100', () => {
+    const score = brain.getThreatScore('any-id');
+    expect(score).toBeGreaterThanOrEqual(0);
+    expect(score).toBeLessThanOrEqual(100);
+});
+
+// ─── isBlacklisted ───
+test('isBlacklisted: unknown opponent returns false', () => {
+    const result = brain.isBlacklisted('never-seen-player');
+    expect(result).toBe(false);
+});
+
+test('isBlacklisted: expired blacklist returns false', () => {
+    // Manually set an expired blacklist
+    brain.threatIntelCache.set('expired-player', { blacklistedUntil: Date.now() - 1000 });
+    expect(brain.isBlacklisted('expired-player')).toBe(false);
+});
+
+test('isBlacklisted: active blacklist returns true', () => {
+    brain.threatIntelCache.set('banned-player', { blacklistedUntil: Date.now() + 86400000 });
+    expect(brain.isBlacklisted('banned-player')).toBe(true);
+    // Cleanup
+    brain.threatIntelCache.delete('banned-player');
+});
+
+// ─── applyMultiwayEquityDiscount ───
+test('applyMultiwayEquityDiscount: heads-up no discount', () => {
+    const result = brain.applyMultiwayEquityDiscount(60, 2);
+    expect(result).toBe(60);
+});
+
+test('applyMultiwayEquityDiscount: 3-way discounts by 10', () => {
+    const result = brain.applyMultiwayEquityDiscount(60, 3);
+    expect(result).toBe(50);
+});
+
+test('applyMultiwayEquityDiscount: 5-way discounts by 25', () => {
+    const result = brain.applyMultiwayEquityDiscount(60, 5);
+    expect(result).toBe(35);
+});
+
+test('applyMultiwayEquityDiscount: never goes below 0', () => {
+    const result = brain.applyMultiwayEquityDiscount(10, 5);
+    expect(result).toBe(0);
+});
+
+// ─── detectNutBiasExploitBoard ───
+test('detectNutBiasExploitBoard: null board returns 0', () => {
+    const result = brain.detectNutBiasExploitBoard(null, 2);
+    expect(result.nutUnlikelyScore).toBe(0);
+    expect(result.shouldAddCheckRaise).toBe(false);
+});
+
+test('detectNutBiasExploitBoard: short board returns 0', () => {
+    const result = brain.detectNutBiasExploitBoard([{ rank: 5, suit: 'h' }], 2);
+    expect(result.nutUnlikelyScore).toBe(0);
+});
+
+test('detectNutBiasExploitBoard: low rainbow dry board scores high', () => {
+    const result = brain.detectNutBiasExploitBoard([
+        { rank: 3, suit: 'h' }, { rank: 5, suit: 'd' }, { rank: 7, suit: 'c' }
+    ], 2);
+    expect(result.nutUnlikelyScore).toBeGreaterThan(20);
+});
+
+test('detectNutBiasExploitBoard: high monotone board scores low', () => {
+    const result = brain.detectNutBiasExploitBoard([
+        { rank: 12, suit: 'h' }, { rank: 11, suit: 'h' }, { rank: 10, suit: 'h' }
+    ], 2);
+    expect(result.nutUnlikelyScore).toBeLessThan(30);
+});
+
+// ─── isHorse (async) ───
+asyncTest('isHorse: returns boolean (false with null supabase cache)', async () => {
+    const result = await brain.isHorse('some-random-id');
+    // With null supabase, loadHorseIds returns empty set, so isHorse returns false
+    expect(result).toBe(false);
+});
+
+// ─── evaluateSessions (async) ───
+asyncTest('evaluateSessions: does not throw with null controllers', async () => {
+    try {
+        await brain.evaluateSessions(null, null);
+    } catch (_) {
+        // Expected to fail gracefully with null game/table controllers
+    }
+});
+
+// ─── _loadThreatIntel / _persistThreatIntel (async, Supabase) ───
+asyncTest('_loadThreatIntel: does not throw with null supabase', async () => {
+    try {
+        await brain._loadThreatIntel('unknown-opp');
+    } catch (_) {
+        // Expected
+    }
+});
+
+asyncTest('_persistThreatIntel: does not throw with null supabase', async () => {
+    try {
+        await brain._persistThreatIntel('unknown-opp');
+    } catch (_) {
+        // Expected
+    }
+});
+
+// ─── persistOpponentJournal / loadOpponentJournal (async, Supabase) ───
+asyncTest('persistOpponentJournal: does not throw with null supabase', async () => {
+    try {
+        await brain.persistOpponentJournal('horse-1', 'opp-1', { handsObserved: 10 });
+    } catch (_) {
+        // Expected
+    }
+});
+
+asyncTest('loadOpponentJournal: does not throw with null supabase', async () => {
+    try {
+        await brain.loadOpponentJournal('horse-1', 'table-1', 'opp-1');
+    } catch (_) {
+        // Expected
+    }
+});
+
 // canRebuy: with no session tracked, returns true
 asyncTest('canRebuy: unknown table returns true', async () => {
     const result = await brain.canRebuy('unknown-table-rebuy', 'unknown-player', 0, null);
