@@ -20,6 +20,17 @@ const COMPARE_FIELDS = [
 ];
 
 function getFieldValue(venue, field, userLocation, liveDataMap = {}) {
+  // Multi-key live data lookup: bravo_slug → normalized name
+  const findLive = (v) => {
+    if (v.bravo_slug && liveDataMap[v.bravo_slug]) return liveDataMap[v.bravo_slug];
+    if (v.slug && liveDataMap[v.slug]) return liveDataMap[v.slug];
+    if (v.name) {
+      const normalized = v.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (liveDataMap['_name:' + normalized]) return liveDataMap['_name:' + normalized];
+    }
+    return null;
+  };
+
   switch (field) {
     case 'name': return venue.name || 'Unknown';
     case 'city_state': return `${venue.city || ''}${venue.state ? `, ${venue.state}` : ''}`;
@@ -28,13 +39,13 @@ function getFieldValue(venue, field, userLocation, liveDataMap = {}) {
       const d = haversineMiles(userLocation.lat, userLocation.lng, parseFloat(venue.latitude), parseFloat(venue.longitude));
       return d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`;
     case 'live_games': {
-      const live = liveDataMap[String(venue.id)];
+      const live = findLive(venue);
       if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
       const active = live.reduce((sum, g) => sum + (parseInt(g.tables_running) || 0), 0);
       return active > 0 ? <span style={{ color: '#3fb950', fontWeight: 700 }}>{active} Running</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
     }
     case 'waiting_list': {
-      const live = liveDataMap[String(venue.id)];
+      const live = findLive(venue);
       if (!live || live.length === 0) return <span style={{ color: 'rgba(200,214,229,0.3)' }}>—</span>;
       const wait = live.reduce((sum, g) => sum + (parseInt(g.players_waiting) || 0), 0);
       return wait > 0 ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>{wait} Waiting</span> : <span style={{ color: 'rgba(200,214,229,0.5)' }}>0</span>;
@@ -60,18 +71,21 @@ export default function VenueCompare({ venues = [], userLocation, onClose }) {
       .then(res => res.json())
       .then(data => {
         if (data.venues) {
+          // Build multi-key lookup: by bravo_slug, venue_name (lowered), and normalized name
           const map = {};
           data.venues.forEach(v => {
-            // Map by bravo_slug or venue_name since venue_id isn't in this API
-            const key = v.bravo_slug || v.venue_name;
-            if (!map[key]) map[key] = [];
-            v.games.forEach(g => {
-              map[key].push({
-                tables_running: g.tables_running || 0,
-                players_waiting: g.players_waiting || 0,
-                game_name: g.game || g.game_name || 'Unknown',
-              });
-            });
+            const games = (v.games || []).map(g => ({
+              tables_running: g.tables_running || 0,
+              players_waiting: g.players_waiting || 0,
+              game_name: g.game || g.game_name || 'Unknown',
+            }));
+            // Key by bravo_slug
+            if (v.bravo_slug) map[v.bravo_slug] = games;
+            // Key by venue_name (lowered) for fuzzy match
+            if (v.venue_name) {
+              const normalized = v.venue_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+              map['_name:' + normalized] = games;
+            }
           });
           setLiveData(map);
         }

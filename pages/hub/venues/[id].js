@@ -1441,7 +1441,7 @@ export default function VenueDetailPage() {
                   </div>
                 )}
                 <div className="bravo-live-footer">
-                  <span className="bravo-live-source">Data From Bravo Poker Live</span>
+                  <span className="bravo-live-source">Data From {(bravoLiveTables.games || []).some(function(g) { return g.source === 'bravo'; }) ? 'Bravo Poker Live' : 'Smarter.Poker Intelligence'}</span>
                   <button
                     className="bravo-live-scroll-btn"
                     onClick={function () {

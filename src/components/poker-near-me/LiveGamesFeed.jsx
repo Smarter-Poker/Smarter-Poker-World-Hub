@@ -84,18 +84,18 @@ const renderSkeletons = (count = 4) => (
  * Source badge shows whether data is real-time or catalog-estimated.
  */
 function SourceBadge({ source }) {
-    const isBravo = source === 'bravo';
+    const isLive = source === 'bravo' || source === 'pokeratlas';
     return (
         <span style={{
             fontSize: 10, letterSpacing: '0.3px',
-            color: isBravo ? 'rgba(239,68,68,0.9)' : 'rgba(212,168,83,0.9)',
-            background: isBravo ? 'rgba(239,68,68,0.12)' : 'rgba(212,168,83,0.12)',
+            color: isLive ? 'rgba(239,68,68,0.9)' : 'rgba(212,168,83,0.9)',
+            background: isLive ? 'rgba(239,68,68,0.12)' : 'rgba(212,168,83,0.12)',
             padding: '2px 6px',
             borderRadius: 4,
             fontWeight: 800,
             textTransform: 'uppercase',
         }}>
-            {isBravo ? 'LIVE DATA' : 'CATALOG'}
+            {isLive ? 'LIVE DATA' : 'CATALOG'}
         </span>
     );
 }
