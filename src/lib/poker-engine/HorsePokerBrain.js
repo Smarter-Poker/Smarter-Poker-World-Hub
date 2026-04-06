@@ -3945,6 +3945,56 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const clamp = (size) => Math.max(raiseAction?.minAmount || 1, Math.min(size, raiseAction?.maxAmount || size));
     const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
 
+    // ═══ PHASE 37: PLO LIVE-READ INTEGRATION ═══
+    // Query live observer for real-time opponent data (same system the Hold'em engine uses).
+    // This enables the PLO engine to adjust c-bets, value/fold thresholds, and sizing
+    // based on what we've observed about THIS specific opponent at THIS table.
+    const ploTableId = state.tableId || 'unknown';
+    const ploPrimaryOppId = state.primaryOppId || null;
+    const ploLiveRead = ploPrimaryOppId ? getLiveRead(profileId, ploTableId, ploPrimaryOppId) : null;
+    const ploLiveConf = ploLiveRead?.confidence || 0;
+
+    // Pre-compute live-read adjustments for PLO postflop decisions
+    let ploLiveFoldAdj = 0;    // + = call wider, - = fold more
+    let ploLiveValueAdj = 0;   // + = bet thinner for value, - = bet tighter
+    let ploLiveSizeAdj = 1.0;  // Sizing multiplier: >1 = bigger, <1 = smaller
+    let ploLiveBluffAdj = 0;   // + = bluff more, - = bluff less
+    if (ploLiveRead && ploLiveConf >= 0.20) {
+        // Against calling stations: value bet thinner, bluff less, size up value
+        if (ploLiveRead.callFreq > 0.55) {
+            ploLiveValueAdj += 8;     // Value bet wider
+            ploLiveBluffAdj -= 6;     // Don't bluff stations
+            ploLiveSizeAdj = 1.10;    // Size up value bets
+        }
+        // Against folders: bluff more, value bet less thin
+        if (ploLiveRead.foldFreq > 0.50) {
+            ploLiveBluffAdj += 8;
+            ploLiveSizeAdj = 0.92;    // Smaller bets still fold them
+        }
+        // Against aggressive opponents: call wider (they barrel wide)
+        if (ploLiveRead.aggFreq > 0.45) {
+            ploLiveFoldAdj += 5;      // Call wider vs aggro
+        }
+        // Against passive players: fold more when they bet (it's real)
+        if (ploLiveRead.aggFreq < 0.18) {
+            ploLiveFoldAdj -= 6;      // Respect passive bets
+        }
+        // WTSD adjustments
+        if (ploLiveRead.wtsd !== null && ploLiveRead.wtsd > 0.30) {
+            ploLiveFoldAdj += 3;      // They go to showdown wide
+        }
+        if (ploLiveRead.wtsd !== null && ploLiveRead.wtsd < 0.22) {
+            ploLiveBluffAdj += 5;     // They give up easily
+        }
+        // Fold-to-raise: high = our raises are profitable
+        if (ploLiveRead.foldToRaisePct !== null && ploLiveRead.foldToRaisePct > 0.55) {
+            ploLiveBluffAdj += 5;
+        }
+        if (street !== 'preflop') {
+            console.log(`[HorseBrain] 👁️ PLO LIVE-READ: opp=${ploPrimaryOppId?.substring(0, 8)} conf=${Math.round(ploLiveConf * 100)}% agg=${ploLiveRead.aggFreq?.toFixed(2)} call=${ploLiveRead.callFreq?.toFixed(2)} fold=${ploLiveRead.foldFreq?.toFixed(2)} foldAdj=${ploLiveFoldAdj} valAdj=${ploLiveValueAdj} bluffAdj=${ploLiveBluffAdj}`);
+        }
+    }
+
     const holeCards = parseCards(holeCardStrings);
     const boardCards = parseCards(boardStrings);
     if (holeCards.length < 4) {
@@ -4296,11 +4346,16 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             ? oppAdj.valueBetThreshold + 5
             : oppAdj.valueBetThreshold;
 
-    const exploitFoldThreshold = exploitProfile.strategy.callDown
+    const exploitFoldThresholdBase = exploitProfile.strategy.callDown
         ? oppAdj.foldThreshold - 12  // Call down maniacs with weaker hands
         : exploitProfile.strategy.stealBlinds
             ? oppAdj.foldThreshold + 5   // Fold to nit value bets quickly
             : oppAdj.foldThreshold;
+
+    // ═══ PHASE 37: PLO LIVE-READ → FOLD/VALUE THRESHOLD ADJUSTMENTS ═══
+    // Live observer data refines static opponent read thresholds with real-time intelligence.
+    const exploitFoldThreshold = Math.max(15, Math.min(55, exploitFoldThresholdBase - ploLiveFoldAdj));
+    const exploitValueThresholdFinal = Math.max(35, Math.min(85, exploitValueThreshold - ploLiveValueAdj));
 
     // ── Phase 5+8+GapF: Final equity with all bonuses + Phase 3 adjustments ──
     // equityFinalAdjusted incorporates: Module 12 (multiway), Module 17 (runout),
@@ -4342,7 +4397,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 8: Adaptive bet sizer (dynamic optimal fraction) ──
     const adaptiveSizer = getAdaptivePLOBetSize(equityFinal, sprZone, boardTexture, exploitProfile, madeHand, potSize);
-    const adaptiveBetSize = clamp(adaptiveSizer.betSize);
+    // ═══ PHASE 37: LIVE-READ SIZING ADJUSTMENT ═══
+    // Apply live-read sizing multiplier: bigger vs stations, smaller vs folders
+    const adaptiveBetSize = clamp(Math.round(adaptiveSizer.betSize * ploLiveSizeAdj));
 
     // ── Phase 8: Board scenario protection flag ──
     const shouldProtectNow = boardScenario.shouldProtectNow;
@@ -4552,16 +4609,36 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         }
 
         // Phase 3: C-bet engine
-        if (cBetStrategy.shouldCBet && canRaise)
-            return { type: raiseAction.type, amount: clamp(Math.round(potSize * cBetStrategy.cBetFraction)) };
+        // ═══ PHASE 37: LIVE-READ C-BET SUPPRESSION ═══
+        // Against calling stations (live data), reduce c-bet frequency with weak hands
+        if (cBetStrategy.shouldCBet && canRaise) {
+            let cBetLiveGo = true;
+            if (ploLiveConf >= 0.20 && ploLiveRead.callFreq > 0.60 && equityFinal < 45) {
+                // Station won't fold to c-bet → don't c-bet weak hands
+                cBetLiveGo = Math.random() < 0.30; // Only 30% of the time
+            }
+            if (ploLiveConf >= 0.20 && ploLiveRead.foldFreq > 0.55 && equityFinal < 30) {
+                // Folder will fold → c-bet bluff more aggressively
+                cBetLiveGo = true;
+            }
+            if (cBetLiveGo)
+                return { type: raiseAction.type, amount: clamp(Math.round(potSize * cBetStrategy.cBetFraction * ploLiveSizeAdj)) };
+        }
 
         // Phase 3: Turn barrel logic
         if (turnBarrel?.shouldBarrel && canRaise)
-            return { type: raiseAction.type, amount: clamp(Math.round(potSize * turnBarrel.barrelFraction)) };
+            return { type: raiseAction.type, amount: clamp(Math.round(potSize * turnBarrel.barrelFraction * ploLiveSizeAdj)) };
 
         // Phase 5: River float and fire (IP, draw missed, blockers)
-        if (riverFloat.shouldFireRiver && canRaise)
-            return { type: raiseAction.type, amount: riverFloat.fireSize };
+        // ═══ PHASE 37: LIVE-READ RIVER BLUFF GATE ═══
+        if (riverFloat.shouldFireRiver && canRaise) {
+            let fireGo = true;
+            if (ploLiveConf >= 0.20 && ploLiveRead.callFreq > 0.60) {
+                fireGo = Math.random() < 0.25; // Don't fire into stations
+            }
+            if (fireGo)
+                return { type: raiseAction.type, amount: riverFloat.fireSize };
+        }
 
         // Phase 7: Calibrated probe bet (replaces fixed Phase 2 probe)
         if (calibratedProbe.shouldProbe && canRaise)
@@ -13042,6 +13119,9 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             bb,
             numPlayers,
             isHiLo,
+            // ─── Phase 37: Pass live-read data to PLO engine ───
+            tableId: tableId || 'unknown',
+            primaryOppId: primaryOppId || null,
             // ─── Phase 3 & 4 signals ───
             imageExposed,          // Module 20
             isLimpTrap: limpTrap.isLimpTrap, // Module 21
