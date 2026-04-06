@@ -4305,6 +4305,8 @@ export default function VenueDetailPage() {
           transition: all 0.2s;
           cursor: pointer;
           flex-shrink: 0;
+          -webkit-appearance: none;
+          appearance: none;
         }
         .directions-btn:hover {
           background: rgba(0, 212, 255, 0.25);

@@ -2185,7 +2185,7 @@ export const ChatWindow = ({
                     <div className="smart-replies-bar">
                         {replies.map((reply, i) => (
                             <button key={i} className="smart-reply-chip" onClick={() => {
-                                svc.sendMessage(reply);
+                                svc.sendMessageWithMentionDetection(reply);
                                 onSend?.(reply);
                                 setShowSmartReplies([]);
                                 busEmit.messageSent(conversationId, otherUser?.id);

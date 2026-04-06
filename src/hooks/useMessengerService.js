@@ -117,21 +117,6 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
     const [searchResults, setSearchResults] = useState([]);
-
-    // BUG-FIX: Sync isOnline with browser connectivity events
-    // Previously isOnline was initialized but never updated, so messages
-    // could get permanently trapped in the offline IndexedDB queue.
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, []);
     
     const realtimeChannelRef = useRef(null);
     const callSignalChannelRef = useRef(null);
@@ -816,6 +801,7 @@ export function useMessengerService({ conversationId, currentUser, messengerType
 
         const handleOnline = () => {
             setIsOnline(true);
+            // Drain P12 IndexedDB offline queue
             drainOfflineQueue(async (msg) => {
                 const supabase = getSupabase();
                 if (!supabase) return;
@@ -2515,18 +2501,24 @@ ${messages.map(m =>
     const offlineQueueRef = useRef([]);
     const [isOffline, setIsOffline] = useState(false);
 
-    // Monitor online/offline status
+    // Monitor online/offline status — syncs P21 isOffline state
+    // NOTE: The canonical online/offline listeners + P12 IndexedDB drain
+    //       live in the P12 useEffect above. This only syncs the isOffline
+    //       flag and flushes the in-memory P21 offlineQueueRef.
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const handleOnline = () => {
             setIsOffline(false);
-            // Flush queued messages
+            // Flush P21 in-memory queued messages
             if (offlineQueueRef.current.length > 0) {
                 const queue = [...offlineQueueRef.current];
                 offlineQueueRef.current = [];
                 queue.forEach(async (queuedMsg) => {
                     try {
-                        await sendMessage(queuedMsg.text, queuedMsg.type || 'text', queuedMsg.mediaUrl);
+                        await sendMessage(queuedMsg.text, {
+                            type: queuedMsg.type || 'text',
+                            mediaUrl: queuedMsg.mediaUrl || null,
+                        });
                     } catch (_) {
                         // Re-queue if still failing
                         offlineQueueRef.current.push(queuedMsg);

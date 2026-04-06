@@ -302,7 +302,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
     const validVenues = venues.filter(v => v.latitude && v.longitude);
     validVenues.forEach(v => {
       const venueIcon = createVenueIcon(L, v);
-      const safeName = (v.name || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+      const safeName = (v.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
       const tables = v.totalTables || 0;
       const gamesHtml = Array.isArray(v.games) && v.games.length
         ? `<br/><span style="color:#3fb950;font-size:11px;">${tables} tables · ${v.games.length} games</span>`

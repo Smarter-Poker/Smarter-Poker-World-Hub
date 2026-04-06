@@ -245,6 +245,12 @@ function truncateName(name, maxLen) {
   return short.slice(0, maxLen - 1).trim() + '…';
 }
 
+// ─── Helper: Escape HTML for safe injection into popup strings ───
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // ─── Helper: Create venue marker icon (Tour-style round circle with label) ───
 function createVenueIcon(L, venue, overrideColor) {
   const colors = overrideColor
@@ -401,7 +407,7 @@ function buildTourPopupHtml(venue) {
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       ${logoHtml}
       <div>
-        <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${venue.tour_name || venue.tour_code}</div>
+        <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:0.3px;">${escapeHtml(venue.tour_name || venue.tour_code)}</div>
         <div style="font-size:11px;color:rgba(148,163,184,0.7);margin-top:2px;">${venue.city || ''}, ${venue.state || ''}</div>
       </div>
     </div>
@@ -409,10 +415,10 @@ function buildTourPopupHtml(venue) {
       <span style="padding:3px 10px;border-radius:6px;background:${tourColor}20;color:${tourColor};font-size:11px;font-weight:700;letter-spacing:0.3px;border:1px solid ${tourColor}30;">${venue.tour_code}</span>
       ${statusBadge}
     </div>
-    <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${venue.stop_name || venue.name || 'Tour Stop'}</div>
+    <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${escapeHtml(venue.stop_name || venue.name || 'Tour Stop')}</div>
     ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${venue.dates}</div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="fsp-trigger" data-url="/hub/tours/${venue.tour_code}" data-title="${venue.tour_name || venue.tour_code}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;border:none;cursor:pointer;">View Tour</button>
+      <button class="fsp-trigger" data-url="/hub/tours/${venue.tour_code}" data-title="${escapeHtml(venue.tour_name || venue.tour_code)}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;border:none;cursor:pointer;">View Tour</button>
       <button class="directions-trigger" data-addr="${encodeURIComponent((venue.city || '') + ', ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;">Directions</button>
     </div>
   </div>`;
@@ -441,7 +447,7 @@ function buildPopupHtml(venue) {
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       ${logoBadge}
       <div>
-        <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;">${venue.name || ''}</div>
+        <div style="font-size:15px;font-weight:700;color:#fff;line-height:1.2;">${escapeHtml(venue.name)}</div>
         <div style="font-size:11px;color:rgba(148,163,184,0.7);margin-top:2px;">${venue.city || ''}, ${venue.state || ''}</div>
       </div>
     </div>
@@ -455,7 +461,7 @@ function buildPopupHtml(venue) {
       <div style="font-size:11px;color:rgba(148,163,184,0.5);">${venue.trust_score || '—'}/5</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="fsp-trigger" data-url="${detailPath}" data-title="${venue.name || 'Venue Details'}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;border:none;cursor:pointer;">View Details</button>
+      <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(venue.name) || 'Venue Details'}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;transition:transform 0.15s;letter-spacing:0.3px;border:none;cursor:pointer;">View Details</button>
       <button class="directions-trigger" data-addr="${encodeURIComponent((venue.address || '') + ' ' + (venue.name || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;transition:all 0.15s;">Directions</button>
     </div>
   </div>`;
@@ -470,7 +476,11 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const circlesGroupRef = useRef(null);
   const userMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
+  const onOpenIframeModalRef = useRef(onOpenIframeModal);
   const [mapReady, setMapReady] = useState(false);
+
+  // Keep the ref current without triggering re-init
+  useEffect(() => { onOpenIframeModalRef.current = onOpenIframeModal; }, [onOpenIframeModal]);
 
   // Dynamically load Leaflet scripts
   useEffect(() => {
@@ -566,8 +576,8 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         e.preventDefault();
         const url = trigger.getAttribute('data-url');
         const title = trigger.getAttribute('data-title');
-        if (onOpenIframeModal) {
-          onOpenIframeModal(url, title);
+        if (onOpenIframeModalRef.current) {
+          onOpenIframeModalRef.current(url, title);
         } else {
           window.location.href = url;
         }
@@ -766,7 +776,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       clusterGroupRef.current = null;
       circlesGroupRef.current = null;
     };
-  }, [mapReady, onOpenIframeModal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ═══ UPDATE MARKERS when venues prop changes ═══
   useEffect(() => {
