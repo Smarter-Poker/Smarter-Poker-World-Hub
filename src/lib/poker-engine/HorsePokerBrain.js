@@ -7042,6 +7042,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     // ── VALUE LEAD: Strong hands that benefit from building pot ──
                     if (handEval.strength >= 55) {
                         let oopLeadFreq = 0.45;
+                        let valuLeadSize = boardWet === 'wet' ? 0.60 : 0.50;
                         // Wet board = lead for protection
                         if (boardWet === 'wet') oopLeadFreq += 0.10;
                         // Scare card = credible lead
@@ -7049,35 +7050,79 @@ function makeTurnRiverHeuristicDecision(params) {
                         // Board evolution: runout favors our range
                         if (boardEvolution.evolution === 'caller_favorable') oopLeadFreq += 0.10;
                         if (boardEvolution.evolution === 'pfr_favorable') oopLeadFreq -= 0.10;
-                        oopLeadFreq = Math.max(0.20, Math.min(0.70, oopLeadFreq));
+
+                        // ═══ LIVE-READ OOP VALUE LEAD (Phase 19) ═══
+                        if (liveRead && liveRead.confidence >= 0.20) {
+                            // They checked back flop (high c-bet player) → capped → lead more
+                            if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.65) oopLeadFreq += 0.08;
+                            // Calling station → lead for value with bigger sizing
+                            if (liveRead.callFreq > 0.55) {
+                                oopLeadFreq += 0.06;
+                                valuLeadSize = Math.min(0.70, valuLeadSize + 0.08);
+                            }
+                            // High fold freq → smaller lead to save chips when folding to raise
+                            if (liveRead.foldFreq > 0.50) valuLeadSize = Math.max(0.40, valuLeadSize - 0.06);
+                        }
+
+                        oopLeadFreq = Math.max(0.20, Math.min(0.75, oopLeadFreq));
                         if (Math.random() < oopLeadFreq) {
-                            const leadSize = boardWet === 'wet' ? 0.60 : 0.50;
-                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (value): str=${handEval.strength} scare=${scareLevel}`);
-                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * leadSize)) };
+                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (value): str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * valuLeadSize)) };
                         }
                     }
                     // ── PROTECTION LEAD: Medium hands on wet boards ──
                     if (handEval.strength >= 35 && handEval.strength < 55 && boardWet === 'wet') {
                         let protectLeadFreq = 0.25;
+                        let protectSize = 0.45;
                         if (drawEq.outs >= 4) protectLeadFreq += 0.08; // We're vulnerable
                         if (oppTendency === 'weak-tight' && oppConfidence > 0.3) protectLeadFreq += 0.10;
-                        protectLeadFreq = Math.max(0, Math.min(0.40, protectLeadFreq));
+
+                        // ═══ LIVE-READ OOP PROTECTION LEAD (Phase 19) ═══
+                        if (liveRead && liveRead.confidence >= 0.20) {
+                            // Against players with many draws (check-behind on wet = drawing)
+                            if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.60) {
+                                protectLeadFreq += 0.08; // They checked = weak → protect + charge
+                            }
+                            // Against stations: lead bigger for value/protection
+                            if (liveRead.callFreq > 0.55) protectSize = Math.min(0.55, protectSize + 0.06);
+                        }
+
+                        protectLeadFreq = Math.max(0, Math.min(0.45, protectLeadFreq));
                         if (Math.random() < protectLeadFreq) {
-                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (protect): str=${handEval.strength}`);
-                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.45)) };
+                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (protect): str=${handEval.strength} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * protectSize)) };
                         }
                     }
                     // ── BLUFF LEAD: Air + blockers on favorable runout ──
                     if (handEval.strength < 20 && aggressionBias > 0) {
                         let bluffLeadFreq = 0.12 + aggressionBias / 60;
+                        let bluffLeadSize = 0.55;
                         if (scareLevel >= 2) bluffLeadFreq += 0.10;
                         if (boardEvolution.evolution === 'caller_favorable') bluffLeadFreq += 0.06;
                         if (oppFoldFreq > 0.45 && oppConfidence > 0.3) bluffLeadFreq += 0.08;
                         if (oppCallFreq > 0.60 && oppConfidence > 0.3) bluffLeadFreq = 0;
-                        bluffLeadFreq = Math.max(0, Math.min(0.25, bluffLeadFreq));
+
+                        // ═══ LIVE-READ OOP BLUFF LEAD (Phase 19) ═══
+                        if (liveRead && liveRead.confidence >= 0.20) {
+                            // They checked back flop → if high c-bet% player, range is VERY weak
+                            if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.65) {
+                                bluffLeadFreq += 0.10; // They always c-bet → check = nothing
+                            }
+                            // High fold frequency → bluff lead is very profitable
+                            if (liveRead.foldFreq > 0.50) {
+                                bluffLeadFreq += 0.06;
+                                bluffLeadSize = Math.max(0.40, bluffLeadSize - 0.08); // Smaller saves chips
+                            }
+                            // Low WTSD → they give up easily
+                            if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) bluffLeadFreq += 0.06;
+                            // Calling station → NEVER bluff lead
+                            if (liveRead.callFreq > 0.60) bluffLeadFreq = 0;
+                        }
+
+                        bluffLeadFreq = Math.max(0, Math.min(0.30, bluffLeadFreq));
                         if (Math.random() < bluffLeadFreq) {
-                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (bluff): str=${handEval.strength} scare=${scareLevel}`);
-                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.55)) };
+                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (bluff): str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                            return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * bluffLeadSize)) };
                         }
                     }
                 }
@@ -9814,30 +9859,72 @@ function makeFlopHeuristicDecision(params) {
         // Semi-bluff check-raise with strong draws
         if (drawEq.outs >= 10 && handEval.strength >= 15) {
             let semiCRFreq = 0.25 + aggressionBias / 40;
+            let flopCRMult = is3BetPot ? (2.2 + Math.random() * 0.3) : (2.5 + Math.random() * 0.5);
             if (oppCbetFreq > 0.65 && oppConfidence > 0.3) semiCRFreq += 0.10; // They c-bet wide
             if (oppFoldFreq > 0.45 && oppConfidence > 0.3) semiCRFreq += 0.08;
             // ═══ RANGE ADVANTAGE: check-raise more on boards that favor our range ═══
-            if (rangeAdvantage === 'pfr' && !heroIsAggressor) semiCRFreq += 0.06; // Board favors us as caller
+            if (rangeAdvantage === 'pfr' && !heroIsAggressor) semiCRFreq += 0.06;
             // ═══ 3-BET POT CHECK-RAISE: narrower ranges → check-raise less as a bluff ═══
-            if (is3BetPot) semiCRFreq -= 0.08; // Opponent's range is strong, less fold equity
-            if (is4BetPot) semiCRFreq -= 0.15; // Don't bluff check-raise into 4-bet pots
-            semiCRFreq = Math.max(0, Math.min(0.45, semiCRFreq));
+            if (is3BetPot) semiCRFreq -= 0.08;
+            if (is4BetPot) semiCRFreq -= 0.15;
+
+            // ═══ LIVE-READ FLOP SEMI-BLUFF CHECK-RAISE (Phase 19) ═══
+            if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                // High c-bet% → their range is wide → check-raise more
+                if (flopLiveRead.cBetPct !== null && flopLiveRead.cBetPct > 0.70) semiCRFreq += 0.08;
+                // Low c-bet% → they have it when they bet → check-raise less
+                if (flopLiveRead.cBetPct !== null && flopLiveRead.cBetPct < 0.40) semiCRFreq -= 0.08;
+                // High fold-to-raise → check-raise more as semi-bluff (fold equity)
+                if (flopLiveRead.foldToRaisePct !== null && flopLiveRead.foldToRaisePct > 0.55) {
+                    semiCRFreq += 0.10;
+                    flopCRMult = Math.max(2.0, flopCRMult * 0.92); // Smaller → efficient
+                }
+                // Low fold-to-raise → they call/re-raise → check-raise only with equity
+                if (flopLiveRead.foldToRaisePct !== null && flopLiveRead.foldToRaisePct < 0.30) {
+                    semiCRFreq -= 0.08;
+                }
+                // Timing: snap c-bet = auto-pilot = weaker range → check-raise more
+                if (flopLiveRead.inHandActions?.lastAction?.timing && flopLiveRead.inHandActions.lastAction.street === 'flop') {
+                    const la = flopLiveRead.inHandActions.lastAction;
+                    const avg = flopLiveRead.timingProfile?.flop?.avgMs || flopLiveRead.avgDecisionMs;
+                    if (avg && avg > 0) {
+                        if (la.timing / avg < 0.40) semiCRFreq += 0.06; // Snap c-bet = weak
+                        if (la.timing / avg > 2.0) semiCRFreq -= 0.06; // Tank c-bet = strong
+                    }
+                }
+            }
+
+            semiCRFreq = Math.max(0, Math.min(0.50, semiCRFreq));
             if (Math.random() < semiCRFreq) {
-                // In 3-bet pots, smaller check-raise sizing (ranges are condensed)
-                const crMult = is3BetPot ? (2.2 + Math.random() * 0.3) : (2.5 + Math.random() * 0.5);
-                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * crMult)) };
+                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * flopCRMult)) };
             }
         }
         // Bluff check-raise on dry boards when opponent c-bets wide
-        if (handEval.strength < 15 && boardWet === 'dry' && oppCbetFreq > 0.60 && oppConfidence > 0.3) {
-            let bluffCRFreq = 0.10 + aggressionBias / 50;
-            if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffCRFreq += 0.08;
-            // No bluff check-raises in 3-bet/4-bet pots (opponent is never folding)
-            if (is3BetPot) bluffCRFreq *= 0.40;
-            if (is4BetPot) bluffCRFreq = 0;
-            bluffCRFreq = Math.max(0, Math.min(0.20, bluffCRFreq));
-            if (Math.random() < bluffCRFreq) {
-                return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * 3.0)) };
+        if (handEval.strength < 15 && boardWet === 'dry') {
+            // Use live data for c-bet frequency if available, fall back to static reads
+            const effectiveCBetFreq = (flopLiveRead && flopLiveRead.confidence >= 0.20 && flopLiveRead.cBetPct !== null)
+                ? flopLiveRead.cBetPct
+                : (oppCbetFreq > 0 && oppConfidence > 0.3 ? oppCbetFreq : 0);
+
+            if (effectiveCBetFreq > 0.55) {
+                let bluffCRFreq = 0.10 + aggressionBias / 50;
+                if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffCRFreq += 0.08;
+                // ═══ LIVE-READ FLOP BLUFF CHECK-RAISE (Phase 19) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    if (flopLiveRead.foldToRaisePct !== null && flopLiveRead.foldToRaisePct > 0.60) {
+                        bluffCRFreq += 0.10; // They fold to raises a lot → bluff CR is printing
+                    }
+                    if (flopLiveRead.callFreq > 0.60) bluffCRFreq = 0; // Never bluff stations
+                }
+                // No bluff check-raises in 3-bet/4-bet pots
+                if (is3BetPot) bluffCRFreq *= 0.40;
+                if (is4BetPot) bluffCRFreq = 0;
+                bluffCRFreq = Math.max(0, Math.min(0.25, bluffCRFreq));
+                if (Math.random() < bluffCRFreq) {
+                    // Sizing: smaller vs folders, standard otherwise
+                    const bluffCRMult = (flopLiveRead?.foldToRaisePct > 0.55) ? 2.5 : 3.0;
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * bluffCRMult)) };
+                }
             }
         }
     }
