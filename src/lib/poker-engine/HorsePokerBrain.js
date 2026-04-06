@@ -12531,7 +12531,8 @@ function applyExploitIntensifier(params) {
     if (effectiveCallFreq > 0.60 && effectiveConfidence >= 0.50) {
         // Value bet thinner — they call with garbage
         if (!facingBet && handStrength >= 35 && handStrength < 55 && canRaise && !multiway) {
-            const thinValueFreq = 0.55 + (oppCallFreq - 0.60) * 1.5;
+            // ═══ Phase 42 FIX: was using raw oppCallFreq — use effectiveCallFreq so live-read data intensifies the exploit ═══
+            const thinValueFreq = 0.55 + (effectiveCallFreq - 0.60) * 1.5;
             if (Math.random() < Math.min(0.80, thinValueFreq)) {
                 // Size UP — they're calling anyway
                 const sizeFrac = 0.65 + Math.random() * 0.20; // 65-85% pot
@@ -12553,8 +12554,10 @@ function applyExploitIntensifier(params) {
                 exploiting: true, exploit: 'calling_station_overbet'
             };
         }
-        // NEVER bluff calling stations — convert bluff to check
-        if (!facingBet && handStrength < 20 && (currentAction === 'bet' || currentAction === 'raise')) {
+        // NEVER bluff calling stations — check instead of betting weak hands
+        // ═══ Phase 42 FIX: was checking `currentAction === 'bet' || 'raise'` but currentAction is ALWAYS null ═══
+        // The exploit runs BEFORE the main decision, so we proactively return check for weak hands
+        if (!facingBet && handStrength < 20 && canRaise) {
             return {
                 action: 'check', amount: null,
                 exploiting: true, exploit: 'calling_station_no_bluff'
@@ -12570,7 +12573,8 @@ function applyExploitIntensifier(params) {
     if (effectiveBluffFreq > 0.40 && effectiveConfidence >= 0.50) {
         // Widen calling range dramatically
         if (facingBet && handStrength >= 20 && handStrength < 50 && canCall) {
-            const exploitCallFreq = 0.50 + (oppBluffFreq - 0.40) * 2.0;
+            // ═══ Phase 42 FIX: was using raw oppBluffFreq — use effectiveBluffFreq so live-read data intensifies the exploit ═══
+            const exploitCallFreq = 0.50 + (effectiveBluffFreq - 0.40) * 2.0;
             if (Math.random() < Math.min(0.75, exploitCallFreq)) {
                 console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: call down bluffer (bluffFreq=${(oppBluffFreq * 100).toFixed(0)}%)`);
                 return {
@@ -12615,13 +12619,12 @@ function applyExploitIntensifier(params) {
         }
         // When they bet, RESPECT it (nits only bet with strong hands)
         const nitBetToPot = toCall / Math.max(1, potSize);
+        // ═══ Phase 42 FIX: removed redundant inner if (was identical to outer condition) ═══
         if (facingBet && handStrength < 60 && nitBetToPot >= 0.50) {
-            if (nitBetToPot >= 0.50 && handStrength < 60) {
-                return {
-                    action: 'fold', amount: null,
-                    exploiting: true, exploit: 'nit_respect'
-                };
-            }
+            return {
+                action: 'fold', amount: null,
+                exploiting: true, exploit: 'nit_respect'
+            };
         }
     }
 
@@ -14987,7 +14990,8 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
             // Facing 3-bet (had raised, now faces a re-raise)
             if (facingRaiseCount >= 2) {
                 profile.facedThreeBet++;
-                if (facingRaiseCount >= 2) profile.threeBetOpportunity++;
+                // ═══ Phase 43 FIX: was incrementing threeBetOpportunity here too, but facing 2+ raises
+                // is a 4-bet opportunity, NOT a 3-bet opportunity. Line below already handles 3-bet opp. ═══
             }
 
             // 3-bet opportunity (someone raised before us)
@@ -15017,9 +15021,11 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
                     const raiserPos = hand.positions.get(hand.preflopAggressor);
                     if (['CO', 'BTN', 'SB', 'D'].includes(raiserPos)) {
                         profile.facedSteal++;
+                        // ═══ Phase 43 FIX: was outside this block — stealOpportunity only applies
+                        // when actually facing a steal attempt (single late-position open) ═══
+                        profile.stealOpportunity++;
                     }
                 }
-                profile.stealOpportunity++;
             }
 
             // Cold call opportunity
