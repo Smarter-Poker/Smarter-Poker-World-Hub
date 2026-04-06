@@ -6252,24 +6252,44 @@ function makeTurnRiverHeuristicDecision(params) {
     let oppInHandActions = null;
 
     if (liveRead && liveRead.confidence >= 0.10) {
+        // ═══ LIVE-READ NaN/INTEGRITY GUARD (Phase 32) ═══
+        // Protect against corrupted live data — NaN values would poison all downstream math
+        const safeNum = (v, fallback = 0) => (typeof v === 'number' && !isNaN(v) && isFinite(v)) ? v : fallback;
+        const safeFoldFreq = safeNum(liveRead.foldFreq, oppFoldFreq);
+        const safeCallFreq = safeNum(liveRead.callFreq, oppCallFreq);
+        const safeBluffRate = liveRead.bluffRate !== null ? safeNum(liveRead.bluffRate, null) : null;
+        const safeConfidence = safeNum(liveRead.confidence, 0);
+
+        // ═══ CONFIDENCE DECAY: Stale live data degrades over time (Phase 32) ═══
+        // If the live-read's last update was >10 hands ago, reduce confidence weight
+        const handsSinceUpdate = liveRead.handsSinceLastUpdate || 0;
+        const freshnessDecay = handsSinceUpdate > 10 ? Math.max(0.50, 1.0 - (handsSinceUpdate - 10) * 0.03) : 1.0;
+        const adjustedConfidence = Math.min(0.70, safeConfidence * freshnessDecay);
+
         // Live data gets highest priority — it's the most current
-        const livew = Math.min(0.70, liveRead.confidence); // Up to 70% weight
+        const livew = adjustedConfidence; // Up to 70% weight, decayed by freshness
         const prevw = 1.0 - livew;
 
         // Override core frequencies with live data
-        oppFoldFreq = prevw * oppFoldFreq + livew * liveRead.foldFreq;
-        oppCallFreq = prevw * oppCallFreq + livew * liveRead.callFreq;
-        oppBluffFreq = liveRead.bluffRate !== null
-            ? prevw * oppBluffFreq + livew * liveRead.bluffRate
+        oppFoldFreq = prevw * oppFoldFreq + livew * safeFoldFreq;
+        oppCallFreq = prevw * oppCallFreq + livew * safeCallFreq;
+        oppBluffFreq = safeBluffRate !== null
+            ? prevw * oppBluffFreq + livew * safeBluffRate
             : oppBluffFreq;
 
+        // ═══ FREQUENCY SANITY CLAMP (Phase 32) ═══
+        // After blending, ensure frequencies stay in valid range [0, 1]
+        oppFoldFreq = Math.max(0, Math.min(1, oppFoldFreq));
+        oppCallFreq = Math.max(0, Math.min(1, oppCallFreq));
+        oppBluffFreq = Math.max(0, Math.min(1, oppBluffFreq));
+
         // Player type override — live is most accurate for session behavior
-        if (liveRead.confidence >= 0.25 && liveRead.playerType !== 'unknown') {
+        if (safeConfidence >= 0.25 && liveRead.playerType !== 'unknown') {
             oppTendency = liveRead.playerType;
         }
 
         // Boost confidence with live data
-        oppConfidence = Math.min(0.95, oppConfidence + liveRead.confidence * 0.4);
+        oppConfidence = Math.min(0.95, oppConfidence + safeConfidence * 0.4);
 
         // ═══ EXTRACT ADVANCED LIVE STATS ═══
         oppCBetFreqLive = liveRead.cBetPct;
@@ -9669,14 +9689,22 @@ function makeFlopHeuristicDecision(params) {
         const livew = Math.min(0.70, flopLiveRead.confidence);
         const prevw = 1.0 - livew;
 
-        oppFoldFreq = prevw * oppFoldFreq + livew * flopLiveRead.foldFreq;
-        oppCallFreq = prevw * oppCallFreq + livew * flopLiveRead.callFreq;
-        if (flopLiveRead.bluffRate !== null) {
+        // ═══ NaN/INTEGRITY GUARD FOR FLOP LIVE DATA (Phase 32) ═══
+        const fSafe = (v, fb) => (typeof v === 'number' && !isNaN(v) && isFinite(v)) ? v : fb;
+        oppFoldFreq = prevw * oppFoldFreq + livew * fSafe(flopLiveRead.foldFreq, oppFoldFreq);
+        oppCallFreq = prevw * oppCallFreq + livew * fSafe(flopLiveRead.callFreq, oppCallFreq);
+        if (flopLiveRead.bluffRate !== null && !isNaN(flopLiveRead.bluffRate)) {
             oppBluffFreq = prevw * oppBluffFreq + livew * flopLiveRead.bluffRate;
         }
-        if (flopLiveRead.cBetPct !== null) {
+        if (flopLiveRead.cBetPct !== null && !isNaN(flopLiveRead.cBetPct)) {
             oppCbetFreq = prevw * oppCbetFreq + livew * flopLiveRead.cBetPct;
         }
+
+        // ═══ FREQUENCY SANITY CLAMP (Phase 32) ═══
+        oppFoldFreq = Math.max(0, Math.min(1, oppFoldFreq));
+        oppCallFreq = Math.max(0, Math.min(1, oppCallFreq));
+        oppBluffFreq = Math.max(0, Math.min(1, oppBluffFreq));
+        oppCbetFreq = Math.max(0, Math.min(1, oppCbetFreq));
 
         // Player type from live observation
         if (flopLiveRead.confidence >= 0.25 && flopLiveRead.playerType !== 'unknown') {
@@ -15061,6 +15089,7 @@ function getLiveRead(horseId, tableId, opponentId) {
         wtsd, wsd, bluffRate,
         // Sizing
         avgFlopBet, avgTurnBet, avgRiverBet, avgPreflopRaise, overbetFreq,
+        overbetPct: overbetFreq, // Alias: some consumers use overbetPct
         // Timing
         avgDecisionMs, snapFreq, longTankFreq, timingProfile,
         // Classification
