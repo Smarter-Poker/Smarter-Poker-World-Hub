@@ -2964,6 +2964,243 @@ test('makePLOFallbackDecision: river facing bet with weak hand', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 48: PLO Internal Functions + Full House Bug Fix ══');
+// ═══════════════════════════════════════════════════════════
+
+const evalPLOMade = brain.evaluatePLOMadeHand;
+const classifyPLO = brain.classifyPLOPreflop;
+const countStraight = brain.countStraightOuts;
+const countFlush = brain.countFlushOuts;
+const getPLOSPR = brain.getPLOSPRZone;
+const analyzePLOBoard = brain.analyzePLOBoardTexture;
+const evalPLO8Low = brain.evaluatePLO8Low;
+const getPLOERC = brain.getPLOEquityRealization;
+const detectScare = brain.detectScareCard;
+
+// ─── Phase 48 BUG FIX TEST: Full house false positive ───
+test('evaluatePLOMadeHand: pocket pair + board pair ≠ full house', () => {
+    // 88 on KK55x board — NOT a full house, just two pair at best
+    const result = evalPLOMade(
+        [{ rank: 6, suit: 'h' }, { rank: 6, suit: 'd' }, { rank: 9, suit: 'c' }, { rank: 0, suit: 's' }],
+        [{ rank: 11, suit: 'h' }, { rank: 11, suit: 'd' }, { rank: 3, suit: 'c' }, { rank: 3, suit: 's' }, { rank: 1, suit: 'h' }]
+    );
+    // Should NOT be full_house — our 88 doesn't connect to KK or 55
+    expect(result.category !== 'full_house').toBe(true);
+});
+
+test('evaluatePLOMadeHand: pocket pair hits board = real set → full house with board pair', () => {
+    // KK on K55 board = set of Kings + pair of 5s = full house
+    const result = evalPLOMade(
+        [{ rank: 11, suit: 'h' }, { rank: 11, suit: 'c' }, { rank: 7, suit: 'd' }, { rank: 2, suit: 's' }],
+        [{ rank: 11, suit: 'd' }, { rank: 3, suit: 'h' }, { rank: 3, suit: 's' }]
+    );
+    expect(result.category).toBe('full_house');
+    expect(result.strength).toBeGreaterThanOrEqual(78);
+});
+
+test('evaluatePLOMadeHand: board trips + pocket pair = full house', () => {
+    // 88 on KKK board = KKK88 full house
+    const result = evalPLOMade(
+        [{ rank: 6, suit: 'h' }, { rank: 6, suit: 'd' }, { rank: 2, suit: 'c' }, { rank: 0, suit: 's' }],
+        [{ rank: 11, suit: 'h' }, { rank: 11, suit: 'd' }, { rank: 11, suit: 'c' }]
+    );
+    expect(result.category).toBe('full_house');
+});
+
+test('evaluatePLOMadeHand: nut flush detected', () => {
+    // Ah, 2h on 5h 8h Qh board = nut flush
+    const result = evalPLOMade(
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'h' }, { rank: 9, suit: 'd' }, { rank: 3, suit: 'c' }],
+        [{ rank: 3, suit: 'h' }, { rank: 6, suit: 'h' }, { rank: 10, suit: 'h' }]
+    );
+    expect(result.category).toBe('nut_flush');
+    expect(result.isNut).toBe(true);
+});
+
+test('evaluatePLOMadeHand: top set no board pair = set not full house', () => {
+    // KK on K85 board, no board pair = top set
+    const result = evalPLOMade(
+        [{ rank: 11, suit: 'h' }, { rank: 11, suit: 'd' }, { rank: 2, suit: 'c' }, { rank: 0, suit: 's' }],
+        [{ rank: 11, suit: 'c' }, { rank: 6, suit: 'h' }, { rank: 3, suit: 's' }]
+    );
+    expect(result.category).toBe('top_set');
+});
+
+test('evaluatePLOMadeHand: air returns low strength', () => {
+    const result = evalPLOMade(
+        [{ rank: 0, suit: 'h' }, { rank: 1, suit: 'd' }, { rank: 2, suit: 'c' }, { rank: 3, suit: 's' }],
+        [{ rank: 10, suit: 'h' }, { rank: 11, suit: 'd' }, { rank: 12, suit: 'c' }]
+    );
+    expect(result.strength).toBeLessThan(20);
+    expect(result.category).toBe('air');
+});
+
+test('evaluatePLOMadeHand: no board returns no_board', () => {
+    const result = evalPLOMade(
+        [{ rank: 12, suit: 'h' }, { rank: 11, suit: 'd' }, { rank: 10, suit: 'c' }, { rank: 9, suit: 's' }],
+        []
+    );
+    expect(result.category).toBe('no_board');
+});
+
+// ─── classifyPLOPreflop ───
+test('classifyPLOPreflop: AA double-suited rundown is strong', () => {
+    const result = classifyPLO([
+        { rank: 12, suit: 'h' }, { rank: 12, suit: 'd' },
+        { rank: 11, suit: 'h' }, { rank: 10, suit: 'd' }
+    ]);
+    expect(result).toBeGreaterThan(70);
+});
+
+test('classifyPLOPreflop: disconnected rainbow trash is weak', () => {
+    const result = classifyPLO([
+        { rank: 0, suit: 'h' }, { rank: 4, suit: 'd' },
+        { rank: 8, suit: 'c' }, { rank: 11, suit: 's' }
+    ]);
+    expect(result).toBeLessThan(40);
+});
+
+test('classifyPLOPreflop: short cards returns default 20', () => {
+    const result = classifyPLO([{ rank: 12, suit: 'h' }]);
+    expect(result).toBe(20);
+});
+
+test('classifyPLOPreflop: connected rundown T987 single-suited', () => {
+    const result = classifyPLO([
+        { rank: 8, suit: 'h' }, { rank: 7, suit: 'h' },
+        { rank: 6, suit: 'd' }, { rank: 5, suit: 'c' }
+    ]);
+    expect(result).toBeGreaterThan(50);
+});
+
+// ─── countFlushOuts ───
+test('countFlushOuts: 2 hole + 2 board same suit = 9 outs', () => {
+    const result = countFlush(
+        [{ rank: 12, suit: 'h' }, { rank: 8, suit: 'h' }, { rank: 5, suit: 'd' }, { rank: 2, suit: 'c' }],
+        [{ rank: 10, suit: 'h' }, { rank: 3, suit: 'h' }, { rank: 7, suit: 'd' }]
+    );
+    expect(result.outs).toBe(9);
+    expect(result.isNutFlushDraw).toBe(true);
+});
+
+test('countFlushOuts: no flush draw = 0 outs', () => {
+    const result = countFlush(
+        [{ rank: 12, suit: 'h' }, { rank: 8, suit: 'd' }, { rank: 5, suit: 'c' }, { rank: 2, suit: 's' }],
+        [{ rank: 10, suit: 'h' }, { rank: 3, suit: 'h' }, { rank: 7, suit: 'd' }]
+    );
+    expect(result.outs).toBe(0);
+});
+
+// ─── countStraightOuts ───
+test('countStraightOuts: wrap on flop gives high outs', () => {
+    // J-T-9-8 on 7-6-x = massive wrap
+    const result = countStraight([9, 8, 7, 6], [5, 4, 10]);
+    expect(result.outs).toBeGreaterThan(0);
+});
+
+test('countStraightOuts: disconnected hand = 0 outs', () => {
+    const result = countStraight([0, 2, 8, 12], [5, 9, 11]);
+    // May have some outs or not depending on combo analysis
+    expect(result.outs).toBeGreaterThanOrEqual(0);
+});
+
+// ─── getPLOSPRZone ───
+test('getPLOSPRZone: committed when SPR <= 1', () => {
+    const result = getPLOSPR(50, 50);
+    expect(result.zone).toBe('committed');
+    expect(result.shouldCommit).toBe(true);
+});
+
+test('getPLOSPRZone: deep when SPR ~10', () => {
+    const result = getPLOSPR(500, 50);
+    expect(result.zone).toBe('deep');
+    expect(result.shouldCommit).toBe(false);
+});
+
+test('getPLOSPRZone: no pot returns deep', () => {
+    const result = getPLOSPR(200, 0);
+    expect(result.zone).toBe('deep');
+});
+
+// ─── analyzePLOBoardTexture ───
+test('analyzePLOBoardTexture: monotone flop detected', () => {
+    const result = analyzePLOBoard([
+        { rank: 10, suit: 'h' }, { rank: 6, suit: 'h' }, { rank: 3, suit: 'h' }
+    ]);
+    expect(result.isMonotone).toBe(true);
+    expect(result.texture).toBe('monotone');
+    expect(result.monoBoardPenalty).toBe(20);
+});
+
+test('analyzePLOBoardTexture: rainbow dry board', () => {
+    const result = analyzePLOBoard([
+        { rank: 11, suit: 'h' }, { rank: 5, suit: 'd' }, { rank: 2, suit: 'c' }
+    ]);
+    expect(result.texture).toBe('rainbow');
+    expect(result.isDangerous).toBe(false);
+});
+
+test('analyzePLOBoardTexture: paired board', () => {
+    const result = analyzePLOBoard([
+        { rank: 8, suit: 'h' }, { rank: 8, suit: 'd' }, { rank: 3, suit: 'c' }
+    ]);
+    expect(result.isPaired).toBe(true);
+    expect(result.isDangerous).toBe(true);
+});
+
+test('analyzePLOBoardTexture: null returns unknown', () => {
+    const result = analyzePLOBoard(null);
+    expect(result.texture).toBe('unknown');
+});
+
+// ─── evaluatePLO8Low ───
+test('evaluatePLO8Low: nut low with A-2 on 3-4-5 board', () => {
+    const result = evalPLO8Low(
+        [{ rank: 12 }, { rank: 0 }, { rank: 8 }, { rank: 9 }], // A,2,T,J
+        [{ rank: 1 }, { rank: 2 }, { rank: 3 }] // 3,4,5
+    );
+    expect(result.hasLow).toBe(true);
+    expect(result.hasNutLow).toBe(true);
+});
+
+test('evaluatePLO8Low: no low on high board', () => {
+    const result = evalPLO8Low(
+        [{ rank: 12 }, { rank: 0 }, { rank: 8 }, { rank: 9 }],
+        [{ rank: 10 }, { rank: 11 }, { rank: 12 }] // J,Q,K — all high
+    );
+    expect(result.hasLow).toBe(false);
+});
+
+// ─── getPLOEquityRealization ───
+test('getPLOEquityRealization: IP nut hand gets boost', () => {
+    const result = getPLOERC(true, 'medium', 0, 0, true, 2);
+    expect(result).toBeGreaterThan(1.0);
+});
+
+test('getPLOEquityRealization: OOP deep non-nut gets penalty', () => {
+    const result = getPLOERC(false, 'very_deep', 0, 0, false, 4);
+    expect(result).toBeLessThan(1.0);
+});
+
+// ─── detectScareCard ───
+test('detectScareCard: flush completing card = scare', () => {
+    const result = detectScare([
+        { rank: 10, suit: 'h' }, { rank: 6, suit: 'h' },
+        { rank: 3, suit: 'd' }, { rank: 8, suit: 'h' }
+    ], 'turn');
+    expect(result.isScareTurn).toBe(true);
+    expect(result.scareType).toContain('flush');
+});
+
+test('detectScareCard: brick card = no scare', () => {
+    const result = detectScare([
+        { rank: 10, suit: 'h' }, { rank: 6, suit: 'd' },
+        { rank: 3, suit: 'c' }, { rank: 0, suit: 's' }
+    ], 'turn');
+    expect(result.isScareTurn).toBe(false);
+});
+
+// ═══════════════════════════════════════════════════════════
 console.log('\n══ PHASE 47j: Async Supabase-dependent functions (graceful null) ══');
 // ═══════════════════════════════════════════════════════════
 

@@ -793,14 +793,15 @@ function evaluatePLO8Low(holeCards, boardCards) {
     const hRanks = holeCards.map(c => c.rank);
     const bRanks = boardCards.map(c => c.rank);
 
-    // Translate rank 12 (A) → 0 for low eval (Ace is low in PLO8)
-    const toLowRank = r => r === 12 ? 0 : r;
+    // Phase 48 FIX: Translate rank 12 (A) → -1 for low eval (Ace is the LOWEST card in PLO8).
+    // Previously mapped A→0, which collided with rank 0 (the 2 card), making A-2 combos
+    // fail the h1 === h2 duplicate check. Now A→-1 so A and 2 are distinct.
+    const toLowRank = r => r === 12 ? -1 : r;
     const hLow = hRanks.map(toLowRank);
     const bLow = bRanks.map(toLowRank);
 
-    // Qualifying low ranks: 0(A),1(2),2(3),3(4),4(5),5(6),6(7) → ranks ≤ 6 for 8-low
-    // (In standard PLO8, we need 5 unpaired cards 8 or below. 8 = rank index 6)
-    const hLowQualify = hLow.filter(r => r <= 6); // ≤ 8 in real (0=A, 6=8)
+    // Qualifying low ranks: -1(A),0(2),1(3),2(4),3(5),4(6),5(7),6(8) → ranks ≤ 6 for 8-low
+    const hLowQualify = hLow.filter(r => r <= 6); // ≤ 8 in real (-1=A, 6=8)
     const bLowQualify = bLow.filter(r => r <= 6);
 
     // Need 3 low cards on board to have a chance at qualifying low
