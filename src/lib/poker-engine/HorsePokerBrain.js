@@ -6985,9 +6985,49 @@ function makeTurnRiverHeuristicDecision(params) {
                     probeSizing = Math.max(0.33, probeSizing - 0.08); // Smaller probes
                 }
 
-                probeFreq = Math.max(0, Math.min(0.50, probeFreq));
+                // ═══ LIVE-READ PROBE BET ADJUSTMENTS (Phase 18) ═══
+                if (liveRead && liveRead.confidence >= 0.20) {
+                    // Opponent's check-behind frequency: if they c-bet a lot but checked → very capped
+                    if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.65) {
+                        probeFreq += 0.10; // They usually c-bet → check = weakness → probe more
+                    }
+                    // Opponent's fold-to-probe/bet: high folders = probe paradise
+                    if (liveRead.foldFreq > 0.50) {
+                        probeFreq += 0.08;
+                        probeSizing = Math.max(0.33, probeSizing - 0.05); // Smaller probe saves chips
+                    }
+                    // Opponent who calls a lot: probe less with air, more with value
+                    if (liveRead.callFreq > 0.55 && handEval.strength < 40) {
+                        probeFreq -= 0.10; // Don't probe stations with weak hands
+                    } else if (liveRead.callFreq > 0.55 && handEval.strength >= 45) {
+                        probeFreq += 0.06; // Probe for value vs stations
+                        probeSizing = Math.min(0.65, probeSizing + 0.08); // Bigger for value
+                    }
+                    // WTSD: low WTSD = they give up easily → probe more aggressively
+                    if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) {
+                        probeFreq += 0.08;
+                    }
+                    // Timing tell: if opponent snap-checked to us → weakness tell → probe
+                    if (currentActionTimingTell === 'snap_call' || currentActionTimingTell === 'deliberate') {
+                        // No adjustment for non-check timing tells
+                    }
+                    if (liveRead.inHandActions && liveRead.inHandActions.lastAction) {
+                        const la = liveRead.inHandActions.lastAction;
+                        if (la.action === 'check' && la.timing) {
+                            const avg = liveRead.timingProfile?.turn?.avgMs || liveRead.avgDecisionMs;
+                            if (avg && avg > 0 && la.timing / avg < 0.40) {
+                                probeFreq += 0.08; // Snap check = no interest in pot
+                                probeSizing = Math.max(0.33, probeSizing - 0.03);
+                            } else if (avg && avg > 0 && la.timing / avg > 1.8) {
+                                probeFreq -= 0.06; // Tank check = trapping?
+                            }
+                        }
+                    }
+                }
+
+                probeFreq = Math.max(0, Math.min(0.55, probeFreq));
                 if (probeFreq > 0.05 && Math.random() < probeFreq) {
-                    console.log(`[HorseBrain] 🔍 TURN PROBE: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency} size=${Math.round(probeSizing * 100)}%`);
+                    console.log(`[HorseBrain] 🔍 TURN PROBE: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency} size=${Math.round(probeSizing * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeSizing)) };
                 }
             }
@@ -7972,10 +8012,30 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppTendency === 'balanced') probeFreq += 0.05;
                     // Against aggressive opponents, they would have bet if strong → probe valuable
                     if (oppTendency === 'bluffy' && oppConfidence > 0.3) probeFreq += 0.08;
+
+                    // ═══ LIVE-READ RIVER PROBE ADJUSTMENTS (Phase 18) ═══
+                    let probeFrac = 0.40 + Math.random() * 0.15; // 40-55% pot default
+                    if (liveRead && liveRead.confidence >= 0.20) {
+                        // They checked back turn → if they're an aggressive player, their range is VERY capped
+                        if (liveRead.aggFreq > 0.40) probeFreq += 0.10; // Aggressive player checked = weakness
+                        // High fold frequency → probe with wider range
+                        if (liveRead.foldFreq > 0.50) {
+                            probeFreq += 0.06;
+                            probeFrac = Math.max(0.33, probeFrac - 0.05); // Smaller is enough
+                        }
+                        // Low WTSD → they give up easily on river → probe
+                        if (liveRead.wtsd !== null && liveRead.wtsd < 0.22) probeFreq += 0.06;
+                        // Calling station → only probe for value
+                        if (liveRead.callFreq > 0.60 && handEval.strength < 42) probeFreq -= 0.12;
+                        if (liveRead.callFreq > 0.60 && handEval.strength >= 45) {
+                            probeFreq += 0.06;
+                            probeFrac = Math.min(0.60, probeFrac + 0.05); // Size up for value
+                        }
+                    }
+
                     probeFreq = Math.max(0, Math.min(0.55, probeFreq));
                     if (Math.random() < probeFreq) {
-                        const probeFrac = 0.40 + Math.random() * 0.15; // 40-55% pot
-                        console.log(`[HorseBrain] 🔍 RIVER PROBE: str=${handEval.strength} OOP after checked turn — ${Math.round(probeFrac * 100)}% pot`);
+                        console.log(`[HorseBrain] 🔍 RIVER PROBE: str=${handEval.strength} OOP after checked turn — ${Math.round(probeFrac * 100)}% pot live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                         return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeFrac)) };
                     }
                 }
@@ -9832,7 +9892,39 @@ function makeFlopHeuristicDecision(params) {
                 // Connected boards give backdoor draws more value → defend wider
                 if (boardIsConnected && hasBackdoorEquity) floatDefenseFreq += 0.04;
 
-                floatDefenseFreq = Math.max(0, Math.min(0.50, floatDefenseFreq));
+                // ═══ LIVE-READ FLOP DEFENSE ADJUSTMENTS (Phase 18) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Opponent c-bets too much → they're bluffing → defend wider
+                    if (flopLiveRead.cBetPct !== null && flopLiveRead.cBetPct > 0.70) {
+                        floatDefenseFreq += 0.10; // High c-bet freq = wide range = defend more
+                    } else if (flopLiveRead.cBetPct !== null && flopLiveRead.cBetPct < 0.40) {
+                        floatDefenseFreq -= 0.08; // Low c-bet freq = they have it when they bet
+                    }
+                    // Opponent gives up on turn a lot (low second barrel) → float = very profitable
+                    if (flopLiveRead.secondBarrelPct !== null && flopLiveRead.secondBarrelPct < 0.35) {
+                        floatDefenseFreq += 0.10; // ONE-AND-DONE pattern → float profitably
+                    }
+                    // Opponent folds to check-raise → we can raise with our defense range
+                    if (flopLiveRead.foldToRaisePct !== null && flopLiveRead.foldToRaisePct > 0.55) {
+                        floatDefenseFreq += 0.05; // Can always escalate if they fold
+                    }
+                    // Timing tell: snap c-bet = auto-pilot = wider range = defend more
+                    if (flopTimingTell === 'snap_check') {
+                        // snap_check doesn't apply here (they bet, not checked)
+                    }
+                    if (flopLiveRead.inHandActions && flopLiveRead.inHandActions.lastAction) {
+                        const la = flopLiveRead.inHandActions.lastAction;
+                        if (la.action === 'bet' && la.timing && la.street === 'flop') {
+                            const avg = flopLiveRead.timingProfile?.flop?.avgMs || flopLiveRead.avgDecisionMs;
+                            if (avg && avg > 0) {
+                                if (la.timing / avg < 0.40) floatDefenseFreq += 0.06; // Snap c-bet = weak
+                                if (la.timing / avg > 2.0) floatDefenseFreq -= 0.06; // Tank c-bet = strong
+                            }
+                        }
+                    }
+                }
+
+                floatDefenseFreq = Math.max(0, Math.min(0.55, floatDefenseFreq));
                 if (Math.random() < floatDefenseFreq && canCall) {
                     return { type: 'call' }; // Float defense with backdoor equity
                 }
@@ -9850,13 +9942,33 @@ function makeFlopHeuristicDecision(params) {
             // Semi-bluff raise with massive combo draws
             if (canRaise && drawEq.outs >= 13 && !multiway) {
                 let semiBluffRaiseFreq = 0.35;
+                let semiRaiseMult = is3BetPot ? 2.2 : 2.5;
                 // ── 3-bet pot: semi-bluff raise less (opponent won't fold strong range) ──
                 if (is3BetPot) semiBluffRaiseFreq *= 0.55;
                 if (is4BetPot) semiBluffRaiseFreq = 0; // Never semi-bluff raise in 4-bet pots
                 // Range advantage: raise more when board favors us
                 if (rangeAdvantage === 'caller' && !heroIsAggressor) semiBluffRaiseFreq += 0.08;
+
+                // ═══ LIVE-READ SEMI-BLUFF RAISE ADJUSTMENTS (Phase 18) ═══
+                if (flopLiveRead && flopLiveRead.confidence >= 0.20) {
+                    // Opponent folds to raises → semi-bluff more (fold equity is massive)
+                    if (flopLiveRead.foldToRaisePct !== null && flopLiveRead.foldToRaisePct > 0.55) {
+                        semiBluffRaiseFreq += 0.12;
+                        semiRaiseMult = Math.max(2.0, semiRaiseMult * 0.90); // Smaller raise = efficient
+                    }
+                    // Opponent calls raises frequently → semi-bluff less (need equity realization)
+                    if (flopLiveRead.callFreq > 0.60) {
+                        semiBluffRaiseFreq -= 0.08;
+                        semiRaiseMult = Math.min(3.0, semiRaiseMult * 1.10); // Bigger when we do raise
+                    }
+                    // Opponent is ONE-AND-DONE c-bettor → just flat and stab turn instead
+                    if (flopLiveRead.secondBarrelPct !== null && flopLiveRead.secondBarrelPct < 0.30) {
+                        semiBluffRaiseFreq -= 0.10; // Don't raise — just call and take turn
+                    }
+                }
+                semiBluffRaiseFreq = Math.max(0, Math.min(0.60, semiBluffRaiseFreq));
+
                 if (Math.random() < semiBluffRaiseFreq) {
-                    const semiRaiseMult = is3BetPot ? 2.2 : 2.5;
                     return { type: raiseAction.type, amount: clampAmt(Math.round(toCall * semiRaiseMult)) };
                 }
             }
