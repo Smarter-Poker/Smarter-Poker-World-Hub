@@ -102,7 +102,7 @@ VENUE_RETRY_COUNT = 1          # Retry failed venues once before giving up
 CIRCUIT_BREAKER_THRESHOLD = 8  # Abort cycle + reconnect if this many consecutive venues fail
 SESSION_REFRESH_MINUTES = 45   # Proactive session refresh to prevent zombie browsers (was 90 — too long)
 WATCHDOG_MAX_STALE_MINUTES = 30  # Exit process if no successful save in this many minutes (launchd restarts)
-CONNECT_TIMEOUT_SECONDS = 60   # Hard kill if connect() hangs longer than this (was 90)
+CONNECT_TIMEOUT_SECONDS = 120  # Hard kill if connect() hangs longer than this (covers CF solve + login)
 CHUNK_SIZE = 25                 # Publish partial results every N venues (don't wait for full cycle)
 PAGE_RECYCLE_INTERVAL = 50     # Recycle browser page every N venues to prevent memory leaks
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -518,8 +518,8 @@ class BravoSessionManager:
 
         for attempt in range(MAX_RETRIES):
             try:
-                self.page.goto(f'{BRAVO_LOGIN_URL}?ReturnUrl=%2fvenues%2f', timeout=LOGIN_TIMEOUT, wait_until='load')
-                self.page.wait_for_load_state('networkidle', timeout=LOGIN_TIMEOUT)
+                self.page.goto(f'{BRAVO_LOGIN_URL}?ReturnUrl=%2fvenues%2f', timeout=LOGIN_TIMEOUT, wait_until='domcontentloaded')
+                time.sleep(3)  # Let page render — safer than networkidle which hangs on trackers
 
                 content = self.page.content()
                 if 'name="Email"' not in content:
@@ -541,7 +541,7 @@ class BravoSessionManager:
                 self.page.fill('input[name="Email"]', BRAVO_EMAIL)
                 self.page.fill('input[name="Password"]', BRAVO_PASS)
                 self.page.press('input[name="Password"]', 'Enter')
-                self.page.wait_for_load_state('networkidle', timeout=LOGIN_TIMEOUT)
+                time.sleep(5)  # Wait for login redirect — safer than networkidle
 
                 url = self.page.url
                 post_content = self.page.content()

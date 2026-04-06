@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { radiusToZoom, escapeHtml } from './pnm-utils';
+import { openNativeMaps } from '../../utils/openNativeMaps';
 
 /**
  * VenueMapPanel — Leaflet map rendering for Poker Near Me venues.
@@ -180,6 +181,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
   const mountedRef = useRef(true);
   const leafletRef = useRef(null);
   const onVenueSelectRef = useRef(onVenueSelect);
+  const popupClickHandlerRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Keep callback ref current without triggering marker re-render
@@ -286,12 +288,39 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
 
       mapInstanceRef.current = map;
       setMapReady(true);
+
+      // ═══ CLICK DELEGATION for popup buttons ═══
+      popupClickHandlerRef.current = (e) => {
+        // FSP trigger — open in iframe modal or navigate
+        const fspTrigger = e.target.closest('.fsp-trigger');
+        if (fspTrigger) {
+          e.preventDefault();
+          const url = fspTrigger.getAttribute('data-url');
+          if (url) window.location.href = url;
+          return;
+        }
+        // Directions trigger — open native maps
+        const dirTrigger = e.target.closest('.directions-trigger');
+        if (dirTrigger) {
+          e.preventDefault();
+          e.stopPropagation();
+          const addr = decodeURIComponent(dirTrigger.getAttribute('data-addr') || '');
+          const lat = parseFloat(dirTrigger.getAttribute('data-lat'));
+          const lng = parseFloat(dirTrigger.getAttribute('data-lng'));
+          openNativeMaps({ address: addr, lat, lng, mode: 'directions' });
+          return;
+        }
+      };
+      const container = mapRef.current;
+      if (container) container.addEventListener('click', popupClickHandlerRef.current);
     };
 
     loadLeaflet().catch(err => console.error('Failed to load map:', err));
 
     return () => {
       mountedRef.current = false;
+      const container = mapRef.current;
+      if (container && popupClickHandlerRef.current) container.removeEventListener('click', popupClickHandlerRef.current);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -354,8 +383,8 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         </div>
         ${gamesInfo}
         <div style="display:flex;gap:6px;">
-          <a href="${detailPath}" style="flex:1;display:block;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;text-decoration:none;font-size:11px;font-weight:700;text-align:center;">View Details</a>
-          <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
+          <button class="fsp-trigger" data-url="${detailPath}" data-title="${escapeHtml(v.name) || 'Venue Details'}" style="flex:1;padding:7px 12px;border-radius:6px;background:linear-gradient(135deg,#d4a853,#b8860b);color:#000;font-size:11px;font-weight:700;text-align:center;border:none;cursor:pointer;">View Details</button>
+          <button class="directions-trigger" data-lat="${v.latitude}" data-lng="${v.longitude}" data-addr="${encodeURIComponent((v.address || '') + ' ' + (v.name || '') + ' ' + (v.city || '') + ', ' + (v.state || ''))}" style="padding:7px 12px;border-radius:6px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.12);cursor:pointer;">Directions</button>
         </div>
       </div>`;
 

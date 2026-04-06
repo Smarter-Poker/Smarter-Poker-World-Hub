@@ -943,8 +943,11 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
         if (status === 'read' || message.is_read) {
             return <span style={{ color: '#0084FF', fontSize: 10 }} title="Read">{'\u2713\u2713'}</span>;
         }
-        // Delivered/sent
-        return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">{'\u2713'}</span>;
+        if (status === 'delivered') {
+            return <span style={{ color: '#31A24C', fontSize: 10 }} title="Delivered">{'\u2713\u2713'}</span>;
+        }
+        // Sent (single check)
+        return <span style={{ color: '#65676B', fontSize: 10 }} title="Sent">{'\u2713'}</span>;
     };
 
     const handleReaction = async (emoji) => {
@@ -1849,7 +1852,8 @@ function MessengerPage() {
     const typingTimeout = useRef(null);
     const messageSearchTimeout = useRef(null);
     const activeConversationRef = useRef(null);
-    const profileCacheRef = useRef(new Map()); // Cache sender profiles to avoid repeated fetches
+    const profileCacheRef = useRef(new Map()); // Cache sender profiles to avoid repeated fetches (LRU, max 50)
+    const PROFILE_CACHE_MAX = 50;
     const messagesContainerRef = useRef(null); // Scroll container for pagination position preservation
 
     // Keep ref in sync so global RT channel can read it without re-subscribing
@@ -2195,7 +2199,14 @@ function MessengerPage() {
                         .eq('id', newMsg.sender_id)
                         .maybeSingle();
                     profile = data;
-                    if (profile) profileCacheRef.current.set(newMsg.sender_id, profile);
+                    if (profile) {
+                        // LRU eviction: delete oldest entry if at capacity
+                        if (profileCacheRef.current.size >= PROFILE_CACHE_MAX) {
+                            const oldestKey = profileCacheRef.current.keys().next().value;
+                            profileCacheRef.current.delete(oldestKey);
+                        }
+                        profileCacheRef.current.set(newMsg.sender_id, profile);
+                    }
                 }
 
                 setMessages(prev => {
@@ -2203,6 +2214,16 @@ function MessengerPage() {
                     if (prev.some(m => m.id === newMsg.id)) return prev;
                     return [...prev, { ...newMsg, profiles: profile || null }];
                 });
+
+                // FIX #9: Delivery confirmation — broadcast back to sender that we received their message
+                try {
+                    const deliveryChannel = supabase.channel(`typing:${activeConversation.id}`);
+                    deliveryChannel.send({
+                        type: 'broadcast',
+                        event: 'delivered',
+                        payload: { messageId: newMsg.id, receiverId: user.id },
+                    }).catch(() => {});
+                } catch (_) {}
 
                 // Update conversation preview and re-sort to move to top
                 setConversations(prev => {
@@ -2261,6 +2282,19 @@ function MessengerPage() {
                     setMessages(prev => prev.map(m =>
                         m.sender_id === user.id ? { ...m, is_read: true, status: 'read' } : m
                     ));
+                }
+            })
+            // FIX #9: Listen for delivery confirmations from the other user
+            .on('broadcast', { event: 'delivered' }, (payload) => {
+                if (payload.payload.receiverId !== user.id) {
+                    const deliveredId = payload.payload.messageId;
+                    setMessages(prev => prev.map(m => {
+                        // Only upgrade from 'sent' to 'delivered', don't downgrade from 'read'
+                        if (m.id === deliveredId && m.sender_id === user.id && m.status !== 'read' && !m.is_read) {
+                            return { ...m, status: 'delivered' };
+                        }
+                        return m;
+                    }));
                 }
             })
             .subscribe();
@@ -2396,6 +2430,7 @@ function MessengerPage() {
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
                 // BUG-7 FIX: Also stop incoming ring audio if it was playing
                 if (incomingCallAudioRef.current) {
+                    incomingCallAudioRef.current.loop = false;
                     incomingCallAudioRef.current.pause();
                     incomingCallAudioRef.current.currentTime = 0;
                 }
@@ -2414,6 +2449,7 @@ function MessengerPage() {
 
         // Stop ringing
         if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.loop = false;
             incomingCallAudioRef.current.pause();
             incomingCallAudioRef.current.currentTime = 0;
         }
@@ -2462,6 +2498,7 @@ function MessengerPage() {
 
         // Stop ringing
         if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.loop = false;
             incomingCallAudioRef.current.pause();
             incomingCallAudioRef.current.currentTime = 0;
         }
@@ -2743,8 +2780,13 @@ function MessengerPage() {
     };
 
     // Load older messages (pagination — triggered when scrolling to top)
+    // FIX #3: useRef-based lock prevents duplicate pagination from rapid scroll
+    const paginationLockRef = useRef(false);
     const loadOlderMessages = useCallback(async () => {
         if (!activeConversation || loadingOlderMessages || !hasMoreMessages || messages.length === 0) return;
+        // Double-check with ref lock (state updates are async, ref is synchronous)
+        if (paginationLockRef.current) return;
+        paginationLockRef.current = true;
         setLoadingOlderMessages(true);
         try {
             const container = messagesContainerRef.current;
@@ -2788,6 +2830,7 @@ function MessengerPage() {
             console.error('Load older messages error:', e);
         }
         setLoadingOlderMessages(false);
+        paginationLockRef.current = false;
     }, [activeConversation, loadingOlderMessages, hasMoreMessages, messages, user]);
 
     const handleSelectConversation = async (conversation) => {
@@ -3714,6 +3757,7 @@ function MessengerPage() {
             outgoingRingToneRef.current = null;
         }
         if (incomingCallAudioRef.current) {
+            incomingCallAudioRef.current.loop = false;
             incomingCallAudioRef.current.pause();
             incomingCallAudioRef.current.currentTime = 0;
         }
