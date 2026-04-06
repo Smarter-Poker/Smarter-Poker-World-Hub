@@ -6186,6 +6186,31 @@ function makeTurnRiverHeuristicDecision(params) {
         sprStrategy.overbetMult *= 0.60;
     }
 
+    // ═══ MULTI-STREET COMMITMENT TRACKER ═══
+    // Tracks how committed hero is to the pot based on prior street investments.
+    // Prevents illogical plays like folding the river after investing heavily on flop+turn.
+    //
+    // Commitment level drives: minimum call frequency, fold reluctance, bluff persistence.
+    //
+    // committedFraction = fraction of starting stack already in the pot
+    // The higher this is, the more "priced in" we are to continue.
+    const startingStack = stackBB * bb + (potSize - toCall); // Approximate starting stack
+    const investedInPot = startingStack - heroStack; // How much hero has put in
+    const committedFraction = investedInPot / Math.max(1, startingStack);
+    const isHeavilyCommitted = committedFraction >= 0.35; // 35%+ of starting stack in pot
+    const isModeratelyCommitted = committedFraction >= 0.20;
+
+    // Commitment adjustments to sprStrategy
+    if (isHeavilyCommitted && !isPotCommitted) {
+        // We've put in 35%+ of our stack — don't fold easily
+        sprStrategy.callWidthBonus = Math.max(sprStrategy.callWidthBonus, 0.10);
+        sprStrategy.valueThreshold = Math.max(30, sprStrategy.valueThreshold - 5);
+    }
+    if (isModeratelyCommitted && facingBet) {
+        // 20%+ invested — slight call width boost
+        sprStrategy.callWidthBonus = Math.max(sprStrategy.callWidthBonus, 0.05);
+    }
+
     // ═══ EXPLOIT-LOOP INTENSIFIER ═══
     // When high-confidence reads exist, try to exploit BEFORE the standard decision tree.
     // This maximizes EV vs identified weak players.
@@ -6857,17 +6882,24 @@ function makeTurnRiverHeuristicDecision(params) {
         }
 
         // ── STRONG HANDS: Call (sometimes raise with sets+) ──
-        if (handEval.strength >= 55) {
+        // ═══ 3-BET POT: Lower the strong hand threshold (top pair is premium in 3-bet pots) ═══
+        const turnStrongThreshold = is3BetPot ? 48 : is4BetPot ? 40 : 55;
+        if (handEval.strength >= turnStrongThreshold) {
             // Raise for protection on wet boards with vulnerable hands
             if (canRaise && boardWet === 'wet' && handEval.strength >= 65 && Math.random() < 0.30) {
                 const raiseSize = Math.round(toCall * 2.5);
                 return { type: raiseAction.type, amount: clampAmt(raiseSize) };
             }
+            // ═══ 3-BET POT: Commit faster with strong hands (low SPR) ═══
+            if ((is3BetPot || is4BetPot) && canRaise && handEval.strength >= 60 && spr <= 4) {
+                return { type: 'all_in' }; // Low SPR in 3-bet/4-bet pot → jam
+            }
             // ═══ OPPONENT-AWARE: Fold strong-ish hands vs very tight opponents in heavy pots ═══
             // If opponent has been building a huge pot and their range is strong, re-evaluate
             if (oppRangeStrength === 'polarized' && oppTendency === 'weak-tight' && handEval.strength < 65) {
                 // Weak-tight player in a massive pot = they have it
-                if (oppConfidence > 0.4 && betToPot >= 0.60) {
+                // But in 3-bet pots, their range is already strong so this is less reliable
+                if (oppConfidence > 0.4 && betToPot >= 0.60 && !is3BetPot) {
                     console.log(`[HorseBrain] 🎯 TURN LAYDOWN: strong hand (${handEval.strength}) but opp is weak-tight in polarized pot`);
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
@@ -7030,7 +7062,9 @@ function makeTurnRiverHeuristicDecision(params) {
         }
 
         // ── MEDIUM HANDS: Call with good odds ──
-        if (handEval.strength >= 35 && potOdds < 0.25) {
+        // ═══ 3-BET POT: Medium hands are more valuable (ranges are narrow) ═══
+        const turnMediumThreshold = is3BetPot ? 30 : 35;
+        if (handEval.strength >= turnMediumThreshold && potOdds < 0.25) {
             // Tighter multiway
             if (multiway && handEval.strength < 45) return canCheck ? { type: 'check' } : { type: 'fold' };
 
@@ -7252,6 +7286,23 @@ function makeTurnRiverHeuristicDecision(params) {
                     thinValueFreq += 0.06; // Opponent's draws missed = can thin value safely
                 }
 
+                // ═══ 3-BET POT THIN VALUE ═══
+                // In 3-bet pots, thin value is MORE profitable:
+                // - Opponent's range is narrow → they have a pair more often → they call thin value
+                // - SPR is low → smaller bets commit them
+                if (is3BetPot) {
+                    thinValueFreq = Math.min(0.85, thinValueFreq + 0.10);
+                }
+
+                // ═══ COMMITMENT-DRIVEN THIN VALUE ═══
+                // If we've invested heavily, thin value betting completes the pot-building story.
+                // Checking looks weak after heavy investment → bet to deny opponent free showdown.
+                if (isHeavilyCommitted && narrative.barrelsInARow >= 1) {
+                    thinValueFreq = Math.min(0.85, thinValueFreq + 0.08);
+                }
+
+                thinValueFreq = Math.max(0.10, Math.min(0.88, thinValueFreq));
+
                 if (Math.random() < thinValueFreq) {
                     let sizeFrac = multiway ? Math.max(0.35, 0.45 + mwAdj.adjustSizing * 0.01) : 0.55;
                     // Smaller sizing vs tight opponents to get called
@@ -7294,8 +7345,23 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (turnToRiverDelta < -5) {
                     blockFreq += 0.06; // Hand got worse, block for cheap showdown
                 }
-                // OOP block bet (rare but useful when opponent is aggressive)
-                // Already restricted to IP above, but add OOP probe variant below
+                // Single barrel then check → block river is natural conclusion
+                if (narrative.barrelsInARow === 1 && narrative.heroCheckedTurn) {
+                    blockFreq += 0.06; // Bet-check-block is a coherent pot-control line
+                }
+
+                // ═══ 3-BET POT BLOCK BET ═══
+                // In 3-bet pots, block bets are LESS useful (pot is big, block bet doesn't deny much).
+                // Better to check or value bet. Block bets in 3-bet pots look weak.
+                if (is3BetPot) blockFreq *= 0.50;
+                if (is4BetPot) blockFreq = 0; // Never block bet in 4-bet pots
+
+                // ═══ COMMITMENT-DRIVEN BLOCK BET ═══
+                // If heavily committed, block bet can deny opponent the option to overbet bluff us.
+                // It also completes our investment and gets to showdown cheaply.
+                if (isHeavilyCommitted && !is3BetPot) {
+                    blockFreq += 0.06; // We're invested — block to protect our equity
+                }
 
                 blockFreq = Math.max(0, Math.min(0.55, blockFreq));
                 if (Math.random() < blockFreq) {
@@ -7622,11 +7688,13 @@ function makeTurnRiverHeuristicDecision(params) {
         }
 
         // ── STRONG HANDS: Raise small bets for value OR call ──
-        if (handEval.strength >= 55) {
+        // ═══ 3-BET POT: Top pair is premium on the river in 3-bet pots ═══
+        const riverStrongThreshold = is3BetPot ? 48 : is4BetPot ? 40 : 55;
+        if (handEval.strength >= riverStrongThreshold) {
             // ═══ OPPONENT-AWARE STRONG HAND LAYDOWN ═══
             // If a known weak-tight player is betting big on the river in a heavy pot, RESPECT IT
             if (oppTendency === 'weak-tight' && oppConfidence > 0.4 &&
-                betToPot >= 0.75 && oppRangeStrength === 'polarized' && handEval.strength < 70) {
+                betToPot >= 0.75 && oppRangeStrength === 'polarized' && handEval.strength < 70 && !is3BetPot) {
                 console.log(`[HorseBrain] 🎯 RIVER LAYDOWN: opp=weak-tight, big bet in heavy pot, strength=${handEval.strength}`);
                 return canCheck ? { type: 'check' } : { type: 'fold' };
             }
@@ -7710,6 +7778,15 @@ function makeTurnRiverHeuristicDecision(params) {
         }
         if (oppRangeIsMerged) {
             dynFoldThreshold = Math.min(50, dynFoldThreshold + 3); // Fold tighter
+        }
+
+        // ═══ COMMITMENT-DRIVEN FOLD THRESHOLD ═══
+        // If we've invested heavily in the pot, don't fold easily on the river.
+        // The math: if we've put in 40% of our stack, folding loses that investment.
+        if (isHeavilyCommitted) {
+            dynFoldThreshold = Math.max(15, dynFoldThreshold - 5); // Much wider calling
+        } else if (isModeratelyCommitted) {
+            dynFoldThreshold = Math.max(18, dynFoldThreshold - 2); // Slightly wider
         }
 
         if (handEval.strength >= dynFoldThreshold) {
@@ -7942,12 +8019,111 @@ function makeTurnRiverHeuristicDecision(params) {
             }
         }
 
-        // ── CHECK-RAISE RIVER (OOP trap) ──
-        // If we were checked to, opponent bet, and we have the nuts → raise
-        if (!isIP && handEval.strength >= 80 && canRaise) {
-            const crSize = Math.round(toCall * 2.8);
-            console.log(`[HorseBrain] 💎 RIVER CHECK-RAISE: strength=${handEval.strength}`);
-            return { type: raiseAction.type, amount: clampAmt(crSize) };
+        // ════════════════════════════════════════════════════
+        //  RIVER CHECK-RAISE (OOP) — WORLD-CLASS
+        //  The most polarized action in poker: check-raise river
+        //  = absolute nuts or pure bluff with blockers.
+        //  This section covers BOTH value and bluff check-raises.
+        // ════════════════════════════════════════════════════
+        if (!isIP && canRaise) {
+
+            // ── VALUE CHECK-RAISE: Nuts (80+) ──
+            // The classic trap: check, let opponent bet, then raise huge
+            if (handEval.strength >= 80) {
+                let valueCRFreq = 0.55;
+                // Against bluffy opponents: ALWAYS check-raise (they bet wide)
+                if (oppTendency === 'bluffy' && oppConfidence > 0.3) valueCRFreq = 0.75;
+                // Against callers: check-raise bigger (they call raises too)
+                if (oppCallFreq > 0.60 && oppConfidence > 0.3) valueCRFreq = 0.65;
+                // Against passive opponents who bet rare → they have it too, check-raise smaller
+                if (oppTendency === 'weak-tight' && oppConfidence > 0.3 && betToPot >= 0.60) {
+                    valueCRFreq = 0.80; // They bet = they have value → we have MORE value
+                }
+                // Narrative: if we've been passive all hand, check-raise is very unexpected
+                if (narrative.checkBehindCount >= 2 || (narrative.heroCheckedFlop && narrative.heroCheckedTurn)) {
+                    valueCRFreq += 0.10; // Passive line → surprise check-raise gets max value
+                }
+                // Polarization: check-raise bigger with polarized range
+                const crPolarMod = riverRangeType === 'polarized' ? 1.15 : 0.90;
+                valueCRFreq = Math.max(0.30, Math.min(0.85, valueCRFreq));
+
+                if (Math.random() < valueCRFreq) {
+                    // Sizing: want to set up an all-in if possible
+                    let crMult = 2.8;
+                    if (spr <= 3) return { type: 'all_in' }; // Low SPR: just jam
+                    if (spr <= 6) crMult = 3.2 * crPolarMod; // Medium: bigger to commit
+                    else crMult = 2.5 * crPolarMod; // Deep: standard
+                    // Against callers, size up
+                    if (oppCallFreq > 0.60 && oppConfidence > 0.3) crMult = Math.min(4.0, crMult * 1.15);
+                    const crSize = Math.round(toCall * crMult);
+                    console.log(`[HorseBrain] 💎 RIVER VALUE CR: str=${handEval.strength} mult=${crMult.toFixed(1)}x polar=${riverRangeType}`);
+                    return { type: raiseAction.type, amount: clampAmt(crSize) };
+                }
+                // If not check-raising, just call (we have the nuts)
+                return canCall ? { type: 'call' } : { type: 'fold' };
+            }
+
+            // ── BLUFF CHECK-RAISE: Air with premium blockers ──
+            // The highest-level bluff in poker: check-raise river as a bluff.
+            // Requirements: (1) premium blockers to value range, (2) opponent bets wide,
+            // (3) credible story (or at least opponent can't know our story).
+            // GTO: ~10-20% of river check-raises should be bluffs for balance.
+            if (handEval.strength < 20 && !multiway) {
+                const crBlkCount = [blocksNutFlush, blocksSecondNutFlush, blocksTopSet, blocksOverpair, blocksStraight].filter(Boolean).length;
+
+                if (crBlkCount >= 1) {
+                    let bluffCRFreq = 0.05 + aggressionBias / 80;
+
+                    // ═══ BLOCKER QUALITY ═══
+                    if (blocksNutFlush) bluffCRFreq += 0.10; // Best blocker for bluff c/r
+                    if (crBlkCount >= 2) bluffCRFreq += 0.08; // Multiple blockers
+                    if (crBlkCount >= 3) bluffCRFreq += 0.05; // Elite blocker hand
+
+                    // ═══ OPPONENT PROFILE ═══
+                    if (oppFoldFreq > 0.50 && oppConfidence > 0.3) bluffCRFreq += 0.08;
+                    if (oppTendency === 'weak-tight' && oppConfidence > 0.3) bluffCRFreq += 0.06;
+                    // NEVER bluff check-raise calling stations
+                    if (oppCallFreq > 0.60 && oppConfidence > 0.3) bluffCRFreq = 0;
+                    // Against known bluffers: they'll bet with air, but also call raises → careful
+                    if (oppTendency === 'bluffy' && oppConfidence > 0.3) bluffCRFreq *= 0.50;
+
+                    // ═══ BOARD EVOLUTION ═══
+                    // Completed draws on river = very credible bluff check-raise (rep the draw)
+                    if (boardEvolution.drawsCompleted.length > 0) bluffCRFreq += 0.06;
+                    // Bricked draws = less credible (opponent knows draws missed)
+                    if (boardEvolution.drawsBricked && boardEvolution.drawsBricked.length > 0) bluffCRFreq -= 0.04;
+                    // PFR-favorable river = credible for aggressor
+                    if (boardEvolution.evolution === 'pfr_favorable' && !heroIsAggressor) bluffCRFreq += 0.04;
+
+                    // ═══ NARRATIVE ═══
+                    // Passive line → sudden check-raise = polarized = credible
+                    if (narrative.heroCheckedFlop || narrative.checkBehindCount >= 1) bluffCRFreq += 0.04;
+                    // Triple check → bet-raise is unexpected but very polarized
+                    if (narrative.checkBehindCount >= 2) bluffCRFreq += 0.03;
+
+                    // ═══ BET SIZE TELLS ═══
+                    // Small bet from opponent = they have thin value → bluff c/r is very effective
+                    if (betToPot <= 0.40) bluffCRFreq += 0.06;
+                    // Large bet = they're committed → bluff c/r is risky
+                    if (betToPot >= 0.75) bluffCRFreq -= 0.04;
+
+                    // ═══ 3-BET POT: No bluff check-raises (ranges too strong) ═══
+                    if (is3BetPot) bluffCRFreq *= 0.30;
+                    if (is4BetPot) bluffCRFreq = 0;
+
+                    bluffCRFreq = Math.max(0, Math.min(0.22, bluffCRFreq)); // Hard cap at 22%
+
+                    if (Math.random() < bluffCRFreq) {
+                        // Bluff c/r sizing should mirror value c/r sizing (opponent can't distinguish)
+                        let crMult = spr <= 5 ? 3.2 : 2.8;
+                        // With nut flush blocker, can go bigger (opponent is less likely to have it)
+                        if (blocksNutFlush) crMult = Math.min(4.0, crMult + 0.5);
+                        const crSize = Math.round(toCall * crMult);
+                        console.log(`[HorseBrain] 🎭 RIVER BLUFF CR: blockers=${crBlkCount} oppFold=${Math.round(oppFoldFreq * 100)}% freq=${Math.round(bluffCRFreq * 100)}%`);
+                        return { type: raiseAction.type, amount: clampAmt(crSize) };
+                    }
+                }
+            }
         }
 
         return canCheck ? { type: 'check' } : { type: 'fold' };
