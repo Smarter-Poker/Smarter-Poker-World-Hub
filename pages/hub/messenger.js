@@ -211,7 +211,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
 //  MESSAGE INPUT COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) {
+function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, onVoiceSend, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [showGifPicker, setShowGifPicker] = useState(false);
@@ -220,6 +220,12 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
     const [loadingGifs, setLoadingGifs] = useState(false);
     const [gifError, setGifError] = useState('');
     const [uploading, setUploading] = useState(false);
+    // Voice recording state
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const mediaRecorderRef = useRef(null);
+    const audioChunksRef = useRef([]);
+    const recordingTimerRef = useRef(null);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
     const gifSearchTimer = useRef(null);
@@ -341,6 +347,84 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
         setShowGifPicker(opening);
         setShowEmoji(false);
         if (opening) loadTrendingGifs();
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // VOICE RECORDING — Hold mic button to record, release to send
+    // ═══════════════════════════════════════════════════════════════════
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream, {
+                mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm',
+            });
+            audioChunksRef.current = [];
+            mediaRecorderRef.current = mediaRecorder;
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunksRef.current.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                // Stop all audio tracks
+                stream.getTracks().forEach(t => t.stop());
+                const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                if (blob.size > 500 && onVoiceSend) { // Min 500 bytes to avoid accidental taps
+                    onVoiceSend(blob, recordingDuration);
+                }
+                clearInterval(recordingTimerRef.current);
+                setRecordingDuration(0);
+            };
+
+            mediaRecorder.start(100); // Collect data every 100ms
+            setIsRecording(true);
+            setRecordingDuration(0);
+            if (navigator.vibrate) navigator.vibrate(30);
+
+            // Duration counter
+            const startTime = Date.now();
+            recordingTimerRef.current = setInterval(() => {
+                setRecordingDuration(Math.floor((Date.now() - startTime) / 1000));
+            }, 1000);
+
+            // Max recording: 60 seconds
+            setTimeout(() => {
+                if (mediaRecorderRef.current?.state === 'recording') {
+                    stopRecording();
+                }
+            }, 60000);
+        } catch (err) {
+            console.error('Microphone access denied:', err);
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current?.state === 'recording') {
+            mediaRecorderRef.current.stop();
+        }
+        setIsRecording(false);
+        clearInterval(recordingTimerRef.current);
+        if (navigator.vibrate) navigator.vibrate(15);
+    };
+
+    const cancelRecording = () => {
+        if (mediaRecorderRef.current?.state === 'recording') {
+            mediaRecorderRef.current.ondataavailable = null;
+            mediaRecorderRef.current.onstop = null;
+            mediaRecorderRef.current.stop();
+            // Stop all tracks
+            mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop());
+        }
+        audioChunksRef.current = [];
+        setIsRecording(false);
+        setRecordingDuration(0);
+        clearInterval(recordingTimerRef.current);
+    };
+
+    const formatRecordingTime = (s) => {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m}:${sec.toString().padStart(2, '0')}`;
     };
 
     return (
@@ -560,8 +644,50 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                 )}
             </div>
 
-            {/* Send button OR thumbs-up button */}
-            {text.trim() ? (
+            {/* Send button OR thumbs-up button OR mic button */}
+            {isRecording ? (
+                /* Recording controls */
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                        onClick={cancelRecording}
+                        style={{
+                            width: 32, height: 32, borderRadius: '50%', border: 'none',
+                            background: C.red, cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', padding: 0,
+                            flexShrink: 0,
+                        }}
+                        title="Cancel Recording"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                    </button>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        fontSize: 13, color: C.red, fontWeight: 600,
+                    }}>
+                        <div style={{
+                            width: 8, height: 8, borderRadius: '50%',
+                            background: C.red, animation: 'pulse 1s infinite',
+                        }} />
+                        {formatRecordingTime(recordingDuration)}
+                    </div>
+                    <button
+                        onClick={stopRecording}
+                        style={{
+                            width: 36, height: 36, borderRadius: '50%', border: 'none',
+                            background: C.blue, cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', padding: 0,
+                            flexShrink: 0,
+                        }}
+                        title="Send Voice Message"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <path d="M2 21l21-9L2 3v7l15 2-15 2z" fill="white" />
+                        </svg>
+                    </button>
+                </div>
+            ) : text.trim() ? (
                 <button
                     onClick={handleSend}
                     style={{
@@ -581,37 +707,60 @@ function MessageInput({ onSend, onTyping, onMediaUpload, onGifSend, disabled }) 
                     </svg>
                 </button>
             ) : (
-                <button
-                    onClick={handleThumbsUp}
-                    onTouchStart={handleThumbsTouchStart}
-                    onTouchMove={handleThumbsTouchMove}
-                    onTouchEnd={handleThumbsTouchEnd}
-                    onMouseDown={() => {
-                        didLongPress.current = false;
-                        thumbsLongPress.current = setTimeout(() => {
-                            didLongPress.current = true;
-                            setShowEmoji(true);
-                            setShowGifPicker(false);
-                        }, 400);
-                    }}
-                    onMouseUp={() => { if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}
-                    style={{
-                        width: 36, height: 36, borderRadius: '50%', border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0,
-                        flexShrink: 0,
-                        fontSize: 22,
-                        transition: 'transform 0.15s',
-                    }}
-                    title="Tap to send 👍 — Hold for emoji picker"
-                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}>
-                    👍
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {/* Mic button for voice recording */}
+                    {onVoiceSend && (
+                        <button
+                            onClick={startRecording}
+                            style={{
+                                width: 32, height: 32, borderRadius: '50%', border: 'none',
+                                background: 'transparent', cursor: 'pointer', display: 'flex',
+                                alignItems: 'center', justifyContent: 'center', padding: 0,
+                                flexShrink: 0, transition: 'transform 0.15s',
+                            }}
+                            title="Record Voice Message"
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill={C.blue}>
+                                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                            </svg>
+                        </button>
+                    )}
+                    {/* Thumbs-up quick send */}
+                    <button
+                        onClick={handleThumbsUp}
+                        onTouchStart={handleThumbsTouchStart}
+                        onTouchMove={handleThumbsTouchMove}
+                        onTouchEnd={handleThumbsTouchEnd}
+                        onMouseDown={() => {
+                            didLongPress.current = false;
+                            thumbsLongPress.current = setTimeout(() => {
+                                didLongPress.current = true;
+                                setShowEmoji(true);
+                                setShowGifPicker(false);
+                            }, 400);
+                        }}
+                        onMouseUp={() => { if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}
+                        style={{
+                            width: 36, height: 36, borderRadius: '50%', border: 'none',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0,
+                            flexShrink: 0,
+                            fontSize: 22,
+                            transition: 'transform 0.15s',
+                        }}
+                        title="Tap to send 👍 — Hold for emoji picker"
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; if (thumbsLongPress.current) { clearTimeout(thumbsLongPress.current); thumbsLongPress.current = null; } }}>
+                        👍
+                    </button>
+                </div>
             )}
         </div>
     );
@@ -879,6 +1028,275 @@ function MessageContent({ content }) {
         </span>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LINK PREVIEW CARD — Rich OG metadata preview for URLs in messages
+// ═══════════════════════════════════════════════════════════════════════════
+
+const linkPreviewCache = {}; // Module-level cache for link previews
+
+function LinkPreviewCard({ url, isOwn }) {
+    const [preview, setPreview] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const fetchedRef = useRef(false);
+
+    useEffect(() => {
+        if (!url || fetchedRef.current) return;
+        fetchedRef.current = true;
+
+        // Check module-level cache first
+        if (linkPreviewCache[url]) {
+            setPreview(linkPreviewCache[url]);
+            setLoading(false);
+            return;
+        }
+
+        const fetchPreview = async () => {
+            try {
+                const token = getAccessToken();
+                const resp = await fetch('/api/messenger/link-preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({ url }),
+                });
+                const data = await resp.json();
+                if (data.success && data.preview?.title) {
+                    linkPreviewCache[url] = data.preview;
+                    setPreview(data.preview);
+                }
+            } catch (_) { /* silently fail — link is still clickable */ }
+            setLoading(false);
+        };
+        fetchPreview();
+    }, [url]);
+
+    if (loading || !preview) return null;
+
+    return (
+        <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+                display: 'block',
+                marginTop: 8,
+                borderRadius: 12,
+                overflow: 'hidden',
+                border: `1px solid ${isOwn ? 'rgba(255,255,255,0.2)' : C.border}`,
+                background: isOwn ? 'rgba(255,255,255,0.1)' : '#FAFAFA',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        >
+            {preview.image && (
+                <img
+                    src={preview.image}
+                    alt={preview.title}
+                    style={{
+                        width: '100%',
+                        height: 140,
+                        objectFit: 'cover',
+                        display: 'block',
+                    }}
+                    loading="lazy"
+                    onError={e => { e.target.style.display = 'none'; }}
+                />
+            )}
+            <div style={{ padding: '10px 12px' }}>
+                <div style={{
+                    fontSize: 11,
+                    color: isOwn ? 'rgba(255,255,255,0.6)' : C.textSec,
+                    marginBottom: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                }}>
+                    {preview.favicon && (
+                        <img
+                            src={preview.favicon}
+                            alt=""
+                            style={{ width: 12, height: 12, borderRadius: 2 }}
+                            onError={e => { e.target.style.display = 'none'; }}
+                        />
+                    )}
+                    {preview.domain}
+                </div>
+                <div style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: isOwn ? 'white' : C.text,
+                    lineHeight: 1.3,
+                    marginBottom: preview.description ? 4 : 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                }}>
+                    {preview.title}
+                </div>
+                {preview.description && (
+                    <div style={{
+                        fontSize: 12,
+                        color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec,
+                        lineHeight: 1.3,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                    }}>
+                        {preview.description}
+                    </div>
+                )}
+            </div>
+        </a>
+    );
+}
+LinkPreviewCard.displayName = 'LinkPreviewCard';
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  AUDIO MESSAGE — Inline audio player for voice messages
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AudioMessage({ src, isOwn, duration: durationProp }) {
+    const audioRef = useRef(null);
+    const [playing, setPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [duration, setDuration] = useState(durationProp || 0);
+    const animFrameRef = useRef(null);
+
+    const togglePlay = (e) => {
+        e.stopPropagation();
+        if (!audioRef.current) return;
+        if (playing) {
+            audioRef.current.pause();
+            setPlaying(false);
+            cancelAnimationFrame(animFrameRef.current);
+        } else {
+            audioRef.current.play().catch(() => {});
+            setPlaying(true);
+            const tick = () => {
+                if (audioRef.current) {
+                    setProgress(audioRef.current.currentTime / (audioRef.current.duration || 1));
+                }
+                animFrameRef.current = requestAnimationFrame(tick);
+            };
+            tick();
+        }
+    };
+
+    const handleEnded = () => {
+        setPlaying(false);
+        setProgress(0);
+        cancelAnimationFrame(animFrameRef.current);
+    };
+
+    const handleLoadedMetadata = () => {
+        if (audioRef.current?.duration && isFinite(audioRef.current.duration)) {
+            setDuration(audioRef.current.duration);
+        }
+    };
+
+    const formatDur = (s) => {
+        if (!s || !isFinite(s)) return '0:00';
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    // Generate static waveform bars (pseudo-random from URL hash)
+    const bars = useRef(
+        Array.from({ length: 28 }, (_, i) => {
+            const seed = (i * 2654435761) >>> 0;
+            return 0.2 + (seed % 100) / 100 * 0.8;
+        })
+    );
+
+    return (
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            minWidth: 200,
+            padding: '4px 0',
+        }}>
+            <audio
+                ref={audioRef}
+                src={src}
+                preload="metadata"
+                onEnded={handleEnded}
+                onLoadedMetadata={handleLoadedMetadata}
+            />
+            <button
+                onClick={togglePlay}
+                style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: isOwn ? 'rgba(255,255,255,0.25)' : C.blue,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'transform 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+                {playing ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <rect x="6" y="4" width="4" height="16" rx="1" />
+                        <rect x="14" y="4" width="4" height="16" rx="1" />
+                    </svg>
+                ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <path d="M8 5v14l11-7z" />
+                    </svg>
+                )}
+            </button>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {/* Waveform visualization */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 1, height: 24 }}>
+                    {bars.current.map((h, i) => {
+                        const filled = i / bars.current.length <= progress;
+                        return (
+                            <div
+                                key={i}
+                                style={{
+                                    width: 3,
+                                    height: `${h * 100}%`,
+                                    borderRadius: 2,
+                                    background: filled
+                                        ? (isOwn ? 'white' : C.blue)
+                                        : (isOwn ? 'rgba(255,255,255,0.3)' : '#D0D0D0'),
+                                    transition: 'background 0.1s',
+                                }}
+                            />
+                        );
+                    })}
+                </div>
+                <span style={{
+                    fontSize: 11,
+                    color: isOwn ? 'rgba(255,255,255,0.7)' : C.textSec,
+                }}>
+                    {playing ? formatDur(audioRef.current?.currentTime || 0) : formatDur(duration)}
+                </span>
+            </div>
+        </div>
+    );
+}
+AudioMessage.displayName = 'AudioMessage';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  MESSAGE BUBBLE COMPONENT
@@ -1337,6 +1755,13 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                             );
                         }
 
+                        // Check for audio/voice markdown: [Audio](url)
+                        const audioMatch = content.match(/\[Audio\]\(([^)]+)\)/);
+                        if (audioMatch) {
+                            const audioDurMatch = content.match(/\|dur:(\d+)/);
+                            return <AudioMessage src={audioMatch[1]} isOwn={isOwn} duration={audioDurMatch ? parseInt(audioDurMatch[1]) : 0} />;
+                        }
+
                         // Regular text content - make URLs clickable
                         // Check if it's a call invite
                         const isCallInvite = (content.includes('Call Started!') && content.includes('smarter-poker'));
@@ -1384,6 +1809,18 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                 })}
                             </div>
                         );
+                    })()}
+
+                    {/* Link Preview Card — show for first URL in regular text messages */}
+                    {(() => {
+                        const c = message.content || message.text || '';
+                        // Don't show link preview for media messages, call receipts, or GIFs
+                        if (c.startsWith('[CALL_RECEIPT]') || c.match(/^\[(Image|Video|GIF|Audio)\]\(/) || c.match(/^https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)/i)) return null;
+                        const firstUrl = c.match(/https?:\/\/[^\s]+/);
+                        if (firstUrl && !firstUrl[0].includes('meet.jit.si')) {
+                            return <LinkPreviewCard url={firstUrl[0]} isOwn={isOwn} />;
+                        }
+                        return null;
                     })()}
                 </div>
 
@@ -3364,6 +3801,81 @@ function MessengerPage() {
         }
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VOICE MESSAGE UPLOAD — Uploads audio blob to Supabase, sends as [Audio](url)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const handleVoiceSend = async (audioBlob, durationSeconds) => {
+        if (!user || !activeConversation || !audioBlob) return;
+
+        // Optimistic UI
+        const tempId = `temp-voice-${Date.now()}`;
+        const blobUrl = URL.createObjectURL(audioBlob);
+        const tempMessage = {
+            id: tempId,
+            content: `[Audio](${blobUrl})|dur:${durationSeconds || 0}`,
+            created_at: new Date().toISOString(),
+            sender_id: user.id,
+            status: 'sending',
+            profiles: { id: user.id, username: user.user_metadata?.username, avatar_url: user.user_metadata?.avatar_url },
+        };
+        setMessages(prev => [...prev, tempMessage]);
+        setToast({ type: 'success', message: 'Sending Voice Message...' });
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+        try {
+            // Upload to Supabase Storage
+            const fileName = `${user.id}/voice/${Date.now()}.webm`;
+            const { error: uploadError } = await supabase.storage
+                .from('user-media')
+                .upload(fileName, audioBlob, {
+                    contentType: 'audio/webm',
+                    cacheControl: '3600',
+                    upsert: false,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage
+                .from('user-media')
+                .getPublicUrl(fileName);
+
+            const content = `[Audio](${urlData.publicUrl})|dur:${durationSeconds || 0}`;
+
+            // Send via API
+            const voiceToken = getAccessToken();
+            const resp = await fetch('/api/messenger/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(voiceToken ? { Authorization: `Bearer ${voiceToken}` } : {}),
+                },
+                body: JSON.stringify({
+                    conversationId: activeConversation.id,
+                    content: content,
+                }),
+            });
+            const result = await resp.json();
+            if (!resp.ok || !result.success) throw new Error(result.error || 'Send failed');
+
+            setMessages(prev => prev.map(m =>
+                m.id === tempId
+                    ? { ...m, id: result.msgId, content, status: 'sent' }
+                    : m
+            ));
+
+            URL.revokeObjectURL(blobUrl);
+            busEmit.dataMutated('messenger');
+            setToast({ type: 'success', message: 'Voice Message Sent' });
+        } catch (e) {
+            console.error('Voice upload error:', e);
+            setMessages(prev => prev.map(m =>
+                m.id === tempId ? { ...m, status: 'failed' } : m
+            ));
+            URL.revokeObjectURL(blobUrl);
+            setToast({ type: 'error', message: `Voice Send Failed: ${e.message}` });
+        }
+    };
+
     const handleSearchUser = useCallback((query) => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
         if (!query || query.length < 2) {
@@ -3993,6 +4505,10 @@ function MessengerPage() {
                         100% { transform: scale(1); opacity: 1; }
                     }
                     /* shimmer defined in loading fallback */
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.3; }
+                    }
                 `}</style>
             </Head>
 
@@ -5120,7 +5636,7 @@ function MessengerPage() {
                                     </div>
                                 )}
 
-                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} />
+                                <MessageInput onSend={handleSendMessage} onTyping={broadcastTyping} onMediaUpload={handleMediaUpload} onGifSend={handleGifSend} onVoiceSend={handleVoiceSend} />
                             </>
                         ) : (
                             /* No conversation selected */
