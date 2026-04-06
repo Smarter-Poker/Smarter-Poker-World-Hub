@@ -293,6 +293,10 @@ export class MapErrorBoundary extends React.Component {
           </svg>
           <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 8 }}>Map Unavailable</p>
           <p style={{ fontSize: 13 }}>Unable to load the map. This may be caused by an ad blocker or network issue.</p>
+          <div style={{ fontSize: 11, color: 'red', marginTop: 10, textAlign: 'left', background: '#222', padding: 8 }}>
+            <strong>Error:</strong> {this.state.error?.message}<br />
+            {this.state.error?.stack}
+          </div>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{ marginTop: 16, padding: '10px 20px', background: 'rgba(212,168,83,0.2)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8, color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
@@ -502,8 +506,9 @@ function buildPopupHtml(venue) {
   const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
 
   // Open status
-  const openStatus = getOpenStatus(venue);
-  const openBadge = openStatus.isOpen
+  const openStatus = getOpenStatus(venue) || {};
+  const isCurrentlyOpen = openStatus.open || openStatus.isOpen;
+  const openBadge = isCurrentlyOpen
     ? '<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;border:1px solid rgba(34,197,94,0.25);">OPEN</span>'
     : openStatus.label === 'Closed'
     ? '<span style="padding:2px 8px;border-radius:4px;background:rgba(239,68,68,0.12);color:#ef4444;font-size:10px;font-weight:700;border:1px solid rgba(239,68,68,0.2);">CLOSED</span>'

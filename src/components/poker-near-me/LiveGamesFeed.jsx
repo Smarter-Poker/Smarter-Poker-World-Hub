@@ -213,7 +213,7 @@ export default function LiveGamesFeed({
     const effectiveLocation = userLocation || restoredLocation;
     
     const [filterState, setFilterState] = useState(savedFilters.filterState || 'all');
-    const [filterRadius, setFilterRadius] = useState(!savedFilters.filterRadius || savedFilters.filterRadius === 'any' ? '50' : savedFilters.filterRadius);
+    const [filterRadius, setFilterRadius] = useState(savedFilters.filterRadius || 'any');
     const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'distance');
     const [filterGameType, setFilterGameType] = useState(savedFilters.filterGameType || 'all');
     const [filterStakes, setFilterStakes] = useState(savedFilters.filterStakes || 'any');
@@ -534,7 +534,7 @@ export default function LiveGamesFeed({
     };
 
     const handleResetFilters = () => {
-        setFilterRadius('50');
+        setFilterRadius('any');
         setFilterState('all');
         setFilterGameType('all');
         setFilterStakes('any');
@@ -965,7 +965,7 @@ export default function LiveGamesFeed({
                     </div>
                     {mapExpanded && (
                         <div style={{ height: 400 }}>
-                            <VenueMapPanel venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} onVenueSelect={(v) => { if(setSelectedVenueForReview) setSelectedVenueForReview(null); if (router) router.push(`/hub/venues/${v.id}`); }} />
+                            <VenueMapPanel venues={mergedVenues.filter(v => v.latitude && v.longitude)} userLocation={effectiveLocation} radiusMiles={filterRadius} />
                         </div>
                     )}
                 </div>
