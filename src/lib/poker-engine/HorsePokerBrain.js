@@ -8926,11 +8926,48 @@ function makeTurnRiverHeuristicDecision(params) {
                 }
             }
 
+            // ═══ LIVE-READ HERO CALL ADJUSTMENTS (Phase 21) ═══
+            if (liveRead && liveRead.confidence >= 0.20) {
+                // High aggression frequency → they bet a LOT → more bluffs in range → call wider
+                if (liveRead.aggFreq > 0.45) heroCallProb += 0.08;
+                if (liveRead.aggFreq > 0.55) heroCallProb += 0.05; // Ultra aggressive
+                // Low aggression → they rarely bet → when they do, it's real → fold more
+                if (liveRead.aggFreq < 0.20) heroCallProb -= 0.08;
+                // High WTSD → they go to showdown with wide range → our bluff catcher is better
+                if (liveRead.wtsd !== null && liveRead.wtsd > 0.30) heroCallProb += 0.06;
+                // Low WTSD → they give up without showdown → if they bet river, it's real
+                if (liveRead.wtsd !== null && liveRead.wtsd < 0.22 && street === 'river') heroCallProb -= 0.06;
+                // Live bluff rate (showdown bluffs) → direct hero call indicator
+                if (liveRead.bluffRate !== null && liveRead.bluffRate > 0.30) {
+                    heroCallProb += 0.10; // Known live bluffer → call wider
+                }
+                if (liveRead.bluffRate !== null && liveRead.bluffRate < 0.10) {
+                    heroCallProb -= 0.08; // Never bluffs → fold marginals
+                }
+                // Timing tell on THIS action
+                if (currentActionTimingTell === 'snap_aggression') {
+                    // Snap bet/raise = polarized (auto-bluff or nuts)
+                    if (heroBlockerCount >= 1) heroCallProb += 0.08;
+                    else heroCallProb -= 0.03;
+                }
+                if (currentActionTimingTell === 'tank_aggression') {
+                    // Long tank then bet = marginal/thin value → hero call is profitable
+                    heroCallProb += 0.06;
+                }
+                if (currentActionTimingTell === 'deliberate') {
+                    heroCallProb += 0.03; // Standard decision → slight call
+                }
+                // One-and-done live detection: low second barrel + betting now = real
+                if (liveRead.secondBarrelPct !== null && liveRead.secondBarrelPct < 0.30 && street === 'river') {
+                    heroCallProb -= 0.08; // They rarely barrel → river bet is value
+                }
+            }
+
             // Clamp
             heroCallProb = Math.max(0, Math.min(0.65, heroCallProb));
 
             if (heroCallProb > 0.05 && Math.random() < heroCallProb) {
-                console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}%`);
+                console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                 return canCall ? { type: 'call' } : { type: 'fold' };
             }
         }
