@@ -516,17 +516,15 @@ export default function UniversalHeader({
         if (backInProgressRef.current) return;
         backInProgressRef.current = true;
 
-        // Simple and correct: use the browser's native back.
-        // The previous broken logic tried to detect "same-page" popstate events
-        // (shallow route changes with only query params differing) and redirected
-        // to /hub — which broke Back navigation for pages using tab query params
-        // (e.g. Poker Near Me ?tab=live → ?tab=venues).
-        // The Hub button is a SEPARATE element that already navigates to /hub.
-        // The Back button should ALWAYS go to the previous history entry.
+        // CRITICAL: Use router.back() — NOT window.history.back().
+        // window.history.back() updates the URL bar but does NOT trigger
+        // Next.js re-renders, so the user sees the old page content.
+        // router.back() is the Next.js-aware equivalent that properly
+        // unmounts the current page and mounts the previous one.
         if (window.history.length > 1) {
-            window.history.back();
+            router.back();
         } else {
-            // No history at all — navigate to hub as last resort
+            // No history at all — hard navigate to hub as last resort
             window.location.href = '/hub';
         }
 

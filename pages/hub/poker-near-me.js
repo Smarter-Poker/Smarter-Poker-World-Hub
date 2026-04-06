@@ -1054,7 +1054,7 @@ export default function PokerNearMePage() {
         const effectiveSort = (sortBy === 'default' && userLocation) ? 'distance' : sortBy;
         // Default sort: casinos first, then card rooms, then by trust score descending
         if (effectiveSort === 'default') {
-            const VENUE_PRIORITY = { casino: 0, card_room: 1, poker_club: 2, home_game: 3, charity: 4 };
+            const VENUE_PRIORITY = { casino: 0, card_room: 1, poker_club: 1, home_game: 2, charity: 3 };
             return [...venueList].sort((a, b) => {
                 const typeDiff = (VENUE_PRIORITY[a.venue_type] ?? 5) - (VENUE_PRIORITY[b.venue_type] ?? 5);
                 if (typeDiff !== 0) return typeDiff;
@@ -1062,7 +1062,7 @@ export default function PokerNearMePage() {
             });
         }
         const sorted = [...venueList];
-        const VENUE_TYPE_ORDER = { casino: 0, card_room: 1, poker_club: 2, charity: 3, home_game: 4 };
+        const VENUE_TYPE_ORDER = { casino: 0, card_room: 1, poker_club: 1, charity: 2, home_game: 3 };
         switch (effectiveSort) {
             case 'trust-desc': return sorted.sort((a, b) => (b.trust_score || 0) - (a.trust_score || 0));
             case 'trust-asc': return sorted.sort((a, b) => (a.trust_score || 0) - (b.trust_score || 0));
@@ -2259,9 +2259,9 @@ export default function PokerNearMePage() {
                                         >
                                             <option value="all">All</option>
                                             <option value="casino">Casino</option>
-                                            <option value="card_room">Card Room</option>
                                             <option value="poker_club">Poker Club</option>
-                                            <option value="charity">Charity Room</option>
+                                            <option value="charity">Charity</option>
+                                            <option value="poker_tour">Poker Tour</option>
                                         </select>
                                     </div>
 

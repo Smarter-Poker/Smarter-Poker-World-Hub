@@ -107,7 +107,7 @@ function createVenueIcon(L, venue) {
   const label = truncateName(venue.name, 20);
   const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  const logoUrl = venue?.logo_url || venue?.logoUrl || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
+  const logoUrl = venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
 
   // Logo or initials — matches the Poker Tours round-circle style
@@ -439,7 +439,7 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
           : '/hub/venues/' + v.id;
 
         // Build logo/initials badge
-        const logoUrl = v.logo_url || v.logoUrl || v.profile_photo_url || '';
+        const logoUrl = v.logo_url || v.profile_photo_url || '';
         const initials = (v.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
         const logoBadge = logoUrl
           ? `<img src="${logoUrl}" alt="" style="width:32px;height:32px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid ${colors.fill}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>`

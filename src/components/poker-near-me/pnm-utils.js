@@ -80,10 +80,10 @@ export function parseMinStake(gameName) {
 
 export function getVenueLogoUrl(venue) {
     if (!venue) return null;
-    // Priority 1: Profile photo from social page (authenticated/scraped logo)
-    if (venue.profile_photo_url) return venue.profile_photo_url;
-    // Priority 2: Validated logo_url from JSON backend
+    // Priority 1: Supabase venue-logos bucket (hand-curated, verified logos)
     if (venue.logo_url) return venue.logo_url;
+    // Priority 2: Profile photo from social page (scraped/external)
+    if (venue.profile_photo_url) return venue.profile_photo_url;
     // Priority 3: Cover photo
     if (venue.cover_photo_url) return venue.cover_photo_url;
     

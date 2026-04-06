@@ -4851,6 +4851,23 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                     }
                 }
 
+                // ═══ LIVE POSITION STATS: Adjust based on raiser's position tendencies ═══
+                if (preflopLiveRead && preflopLiveRead.positionStats && preflopLiveConf >= 0.15) {
+                    const posOrder = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
+                    for (const pos of posOrder) {
+                        if (pos === position) break;
+                        const pd = preflopLiveRead.positionStats[pos];
+                        if (pd && pd.hands >= 3) {
+                            const oppPosPFR = pd.pfr / pd.hands;
+                            if (oppPosPFR < 0.12) { foldThreshold += 4; flatCallFloor += 4; fourBetBluffFreq *= 0.3; }
+                            else if (oppPosPFR < 0.18) { foldThreshold += 2; flatCallFloor += 2; }
+                            else if (oppPosPFR > 0.35) { foldThreshold -= 4; flatCallFloor -= 4; fourBetBluffFreq += 0.06; }
+                            else if (oppPosPFR > 0.25) { foldThreshold -= 2; flatCallFloor -= 2; }
+                            break;
+                        }
+                    }
+                }
+
                 // 4-bet with premium hands
                 if (adjustedStrength >= fourBetThreshold) {
                     const fourBetSize = Math.round(toCall * 2.2);
@@ -6262,6 +6279,28 @@ function makeTurnRiverHeuristicDecision(params) {
         console.log(`[HorseBrain] 👁️ LIVE READ: ${primaryOppId?.substring(0, 8)} type=${liveRead.playerType} hands=${liveRead.handsObserved} conf=${Math.round(liveRead.confidence * 100)}% exploits=[${oppExploits.join(',')}]`);
     }
 
+    // ═══ LIVE BET-SIZING TELL ANALYSIS ═══
+    // Compare opponent's CURRENT bet size against their HISTORICAL average.
+    // Deviations from baseline reveal hand strength:
+    //   - BIGGER than usual → polarized (nuts or air)
+    //   - SMALLER than usual → thin value or blocking bet
+    let liveSizingTell = 'unknown';
+    let liveSizingDeviation = 0;
+    if (liveRead && facingBet && liveRead.confidence >= 0.20) {
+        const avgBetForStreet = street === 'turn' ? liveRead.avgTurnBet
+            : street === 'river' ? liveRead.avgRiverBet : liveRead.avgFlopBet;
+        if (avgBetForStreet !== null && avgBetForStreet > 0) {
+            liveSizingDeviation = (betToPot - avgBetForStreet) / Math.max(0.10, avgBetForStreet);
+            liveSizingDeviation = Math.max(-1.0, Math.min(1.0, liveSizingDeviation));
+            if (liveSizingDeviation > 0.30) liveSizingTell = 'larger_than_usual';
+            else if (liveSizingDeviation < -0.30) liveSizingTell = 'smaller_than_usual';
+            else liveSizingTell = 'at_baseline';
+        }
+        if (betToPot > 1.0 && liveRead.overbetFreq !== null && liveRead.overbetFreq < 0.08) {
+            liveSizingTell = 'rare_overbet';
+        }
+    }
+
     // ═══ STREET ACTION INFERENCE ═══
     // What does the pot size tell us about opponent's range?
     // A massive pot by the turn = opponent's range is polarized (strong value or big draws)
@@ -6688,6 +6727,28 @@ function makeTurnRiverHeuristicDecision(params) {
                 }
                 if (oppCallFreq > 0.65 && oppConfidence > 0.3) {
                     if (handEval.strength < 60) betFreq = Math.max(0.25, betFreq - 0.20);
+                }
+
+                // ═══ IN-HAND SEQUENCE → TURN BARREL ADJUSTMENT ═══
+                if (oppInHandActions) {
+                    const inHandActs = oppInHandActions.actions || [];
+                    const oppFlopAct = inHandActs.find(a => a.street === 'flop');
+                    const oppPreflopAct = inHandActs.find(a => a.street === 'preflop');
+                    // Cold-called preflop + called flop = capped range → barrel wider
+                    if (oppPreflopAct && oppPreflopAct.action === 'call' && oppFlopAct && oppFlopAct.action === 'call') {
+                        betFreq += 0.08;
+                        if (handEval.strength < 30 && scareLevel >= 2) betFreq += 0.06;
+                    }
+                    // 3-bet preflop + called flop = strong range → careful
+                    if (oppPreflopAct && oppPreflopAct.action === 'raise' && (oppPreflopAct.facingRaiseCount || 0) >= 1
+                        && oppFlopAct && oppFlopAct.action === 'call') {
+                        if (handEval.strength < 55) betFreq -= 0.10;
+                        sizeFrac = Math.max(0.35, sizeFrac - 0.05);
+                    }
+                    // Limped preflop → very wide → barrel aggressively
+                    if (oppPreflopAct && oppPreflopAct.action === 'call' && oppPreflopAct.isOpenAction) {
+                        betFreq += 0.10;
+                    }
                 }
 
                 betFreq = Math.max(0.10, Math.min(0.90, betFreq));
@@ -8119,6 +8180,25 @@ function makeTurnRiverHeuristicDecision(params) {
             }
         }
 
+        // ═══ LIVE BET-SIZING TELL — FOLD THRESHOLD ═══
+        if (liveSizingTell !== 'unknown' && oppConfidence >= 0.20) {
+            if (liveSizingTell === 'larger_than_usual') {
+                if (street === 'river' && hasAnyBlocker) {
+                    dynFoldThreshold = Math.max(18, dynFoldThreshold - 3);
+                } else {
+                    dynFoldThreshold = Math.min(50, dynFoldThreshold + 2);
+                }
+            } else if (liveSizingTell === 'smaller_than_usual') {
+                dynFoldThreshold = Math.max(15, dynFoldThreshold - 3);
+            } else if (liveSizingTell === 'rare_overbet') {
+                if (hasAnyBlocker || blocksOverpair) {
+                    dynFoldThreshold = Math.max(20, dynFoldThreshold - 2);
+                } else {
+                    dynFoldThreshold = Math.min(55, dynFoldThreshold + 5);
+                }
+            }
+        }
+
         if (handEval.strength >= dynFoldThreshold) {
             // FACTOR 1: Direct equity vs pot odds
             if (handEquityFrac >= potOdds) {
@@ -8682,6 +8762,29 @@ function makeFlopHeuristicDecision(params) {
         console.log(`[HorseBrain] 👁️ FLOP LIVE: ${primaryOppId?.substring(0, 8)} type=${flopLiveRead.playerType} cbet=${flopLiveRead.cBetPct !== null ? Math.round(flopLiveRead.cBetPct * 100) + '%' : '?'} foldCB=${flopLiveRead.foldToCBetPct !== null ? Math.round(flopLiveRead.foldToCBetPct * 100) + '%' : '?'} exploits=[${flopExploits.join(',')}]`);
     }
 
+    // ═══ IN-HAND ACTION SEQUENCE → C-BET MODIFIERS ═══
+    // Opponent's PREFLOP action in THIS hand narrows their range → adjust c-bet.
+    // Limper: very wide, passive → c-bet aggressively
+    // Cold caller: suited connectors, small pairs → c-bet more
+    // 3-bettor: strong range → c-bet less, smaller sizing
+    let inHandCBetMod = 0;
+    let inHandCBetSizeMod = 0;
+    if (flopLiveRead && flopLiveRead.inHandActions) {
+        const inHandActs = flopLiveRead.inHandActions.actions || [];
+        const oppPreflopAct = inHandActs.find(a => a.street === 'preflop');
+        if (oppPreflopAct) {
+            if (oppPreflopAct.action === 'call' && oppPreflopAct.isOpenAction) {
+                inHandCBetMod = 0.12; inHandCBetSizeMod = -0.04; // Limper = very wide
+            } else if (oppPreflopAct.action === 'call') {
+                inHandCBetMod = 0.06; // Cold caller = capped range
+            } else if (oppPreflopAct.action === 'raise' && oppPreflopAct.facingRaiseCount >= 2) {
+                inHandCBetMod = -0.20; inHandCBetSizeMod = -0.10; // 4-bet caller = monsters
+            } else if (oppPreflopAct.action === 'raise' && oppPreflopAct.facingRaiseCount >= 1) {
+                inHandCBetMod = -0.10; inHandCBetSizeMod = -0.06; // 3-bettor = strong
+            }
+        }
+    }
+
     // ── RANGE ADVANTAGE ASSESSMENT ──
     // PFR has range advantage on high boards (broadway cards favor premium hands)
     // Caller has range advantage on low, connected boards (suited connectors, small pairs)
@@ -8840,8 +8943,8 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFrac = boardIsPaired ? 0.25 : 0.33; // Tiny sizing
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
-                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
 
                 if (multiway) cbetFreq = Math.max(0.30, 0.55 + mwAdj.cbetFreqMod); // Tighten multiway (position/texture aware)
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -8872,8 +8975,8 @@ function makeFlopHeuristicDecision(params) {
                 if (handEval.category === 'overpair') { cbetFreq = 0.70; cbetFrac = 0.55; }
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
 
                 if (multiway) cbetFreq = Math.max(0.15, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
@@ -8905,8 +9008,8 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFrac = 0.25; // Very small — we "always have it" on paired boards
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
-                cbetFrac = Math.max(0.20, cbetFrac + threeBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
 
                 if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
                 if (multiway) cbetFreq = Math.max(0.25, 0.45 + mwAdj.cbetFreqMod);
@@ -8931,8 +9034,8 @@ function makeFlopHeuristicDecision(params) {
                 else { cbetFreq = 0.30; cbetFrac = 0.45; } // Marginal — sometimes bet to take down
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
-                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
+                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
 
                 // Against callers on wet boards: tighter c-bet range but bigger sizing
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -8961,8 +9064,8 @@ function makeFlopHeuristicDecision(params) {
                 else cbetFreq = 0.30;
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
 
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
@@ -12645,6 +12748,8 @@ function _getTableObserver(horseId, tableId) {
             opponents: new Map(),
             currentHand: null,
         });
+        // LRU: cap tables per horse to prevent unbounded growth
+        _evictLRUTables(horseTables);
     }
     return horseTables.get(tableId);
 }
@@ -12826,6 +12931,8 @@ function observeAction(tableId, actorId, street, action, context = {}, horseIds 
         const observer = _getTableObserver(horseId, tableId);
         if (!observer.opponents.has(actorStr)) {
             observer.opponents.set(actorStr, _createLiveProfile());
+            // LRU eviction: cap opponent profiles per table to prevent memory bloat
+            _evictLRUProfiles(observer);
         }
         const profile = observer.opponents.get(actorStr);
         profile.lastSeen = Date.now();

@@ -166,7 +166,12 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
     }
 
     if (type) {
-        filtered = filtered.filter(v => v.venue_type === type);
+        // Merge card_room into poker_club — they're the same thing
+        if (type === 'poker_club') {
+            filtered = filtered.filter(v => v.venue_type === 'poker_club' || v.venue_type === 'card_room');
+        } else {
+            filtered = filtered.filter(v => v.venue_type === type);
+        }
     }
 
     if (tournaments === 'true') {
@@ -372,7 +377,12 @@ export default async function handler(req, res) {
                   if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
                   if (city) q = q.ilike('city', `%${city}%`);
                   if (effectiveType) {
-                      q = q.eq('venue_type', effectiveType);
+                      // Merge card_room into poker_club — they're the same thing
+                      if (effectiveType === 'poker_club') {
+                          q = q.in('venue_type', ['poker_club', 'card_room']);
+                      } else {
+                          q = q.eq('venue_type', effectiveType);
+                      }
                   } else if (!search && !id) {
                       // Include tours/series when GPS search is active (filtered by radius anyway)
                       // Exclude from non-GPS paginated lists to prevent clutter
