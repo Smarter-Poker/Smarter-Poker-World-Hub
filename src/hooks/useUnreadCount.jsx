@@ -112,6 +112,18 @@ export function UnreadProvider({ children }) {
                         setUnreadCount(prev => prev + 1);
                     }
                 })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'social_messages',
+                }, (payload) => {
+                    // DEEP SWEEP FIX: Catch delete-for-everyone (Unsend) events
+                    // If a message we haven't read gets deleted, we must decrement the badge.
+                    // The safest real-time response is to just recalculate the badge completely:
+                    if (payload.new.is_deleted === true) {
+                        refreshUnread();
+                    }
+                })
                 .subscribe();
 
             // NOTE: EventBus MESSAGE_RECEIVED listener was removed here.

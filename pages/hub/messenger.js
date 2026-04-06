@@ -13,6 +13,7 @@ import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser, getAccessToken, ensureAuthReady } from '../../src/lib/authUtils';
+import { broadcastSync } from '../../src/lib/broadcastSync';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -2709,6 +2710,25 @@ function MessengerPage() {
                     });
                 }
             })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'social_messages'
+            }, (payload) => {
+                const updatedMsg = payload.new;
+                // If a message was updated (like delete-for-everyone), update the sidebar preview if it's the latest
+                if (updatedMsg.is_deleted === true) {
+                    setConversations(prev => {
+                        return prev.map(c => 
+                            // Only update if this is the conversation and the preview matches the deleted content
+                            // Or, more safely, just blindly replace the preview if it's this conversation.
+                            c.id === updatedMsg.conversation_id && new Date(c.last_message_at).getTime() === new Date(updatedMsg.created_at).getTime()
+                                ? { ...c, last_message_preview: '[Message deleted]' }
+                                : c
+                        );
+                    });
+                }
+            })
             .subscribe((status) => {
                 // Phase 3 BUGFIX: Wire channel status into connectionStatus
                 if (status === 'SUBSCRIBED') setConnectionStatus('connected');
@@ -3326,6 +3346,8 @@ function MessengerPage() {
 
             //  Immediately refresh global unread count to clear header badge
             if (refreshUnread) refreshUnread();
+            // DEEP SWEEP FIX: Push native global unread sync event to clear badges on other tabs
+            broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
 
         } catch (e) {
             console.error('Load messages error:', e);
@@ -3704,6 +3726,8 @@ function MessengerPage() {
                     setToast({ type: 'success', message: 'Message Deleted For Everyone' });
                     // DEEP SWEEP FIX: Data mutated
                     busEmit.dataMutated('messenger');
+                    if (refreshUnread) refreshUnread();
+                    broadcastSync('smarter_poker_unread_sync', 'refresh_unread');
                 } else {
                     setToast({ type: 'error', message: 'Could Not Delete Message' });
                 }
