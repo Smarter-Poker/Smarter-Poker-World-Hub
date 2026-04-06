@@ -117,6 +117,21 @@ export function useMessengerService({ conversationId, currentUser, messengerType
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
     const [searchResults, setSearchResults] = useState([]);
+
+    // BUG-FIX: Sync isOnline with browser connectivity events
+    // Previously isOnline was initialized but never updated, so messages
+    // could get permanently trapped in the offline IndexedDB queue.
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
     
     const realtimeChannelRef = useRef(null);
     const callSignalChannelRef = useRef(null);
@@ -2573,12 +2588,12 @@ ${messages.map(m =>
     }, [conversationId, currentUser]);
 
     // Auto-detect @smarter.poker mentions in sent messages
-    const sendMessageWithMentionDetection = useCallback(async (text, type = 'text', mediaUrl = null) => {
+    const sendMessageWithMentionDetection = useCallback(async (text, metadata = {}) => {
         // If offline, queue it
         if (isOffline) {
-            return queueOfflineMessage(text, type, mediaUrl);
+            return queueOfflineMessage(text, metadata.type || 'text', metadata.mediaUrl || null);
         }
-        const result = await sendMessage(text, type, mediaUrl);
+        const result = await sendMessage(text, metadata);
         // Check for @smarter.poker mention after sending
         if (result && text) {
             handleSmarterPokerMention(text, result.id || result);

@@ -942,7 +942,7 @@ export const ChatWindow = ({
                 }
             } else {
                 onSend?.(finalPayloadText); // P8-4: Optimistic UI
-                svc.sendMessageWithMentionDetection(finalPayloadText, 'text'); // P21-6: Mention detection + P12 persistence
+                svc.sendMessageWithMentionDetection(finalPayloadText, { isEncrypted: isE2E }); // P21-6: Mention detection + P12 persistence
                 busEmit.messageSent(conversationId, otherUser?.id);
             }
             setInputText('');
