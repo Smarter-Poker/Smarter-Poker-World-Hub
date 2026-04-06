@@ -467,7 +467,7 @@ export default function EventsCalendarPage() {
         description="Find Upcoming Poker Tournaments, Series, And Events. Live Updates, Schedules, And Registration Info For Events Worldwide."
         canonical="/hub/events-calendar"
       />
-      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
       <HamburgerMenu
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}

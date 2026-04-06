@@ -164,7 +164,7 @@ export default function DailyTournaments() {
                 <div className="space-bg"></div>
                 <div className="space-overlay"></div>
 
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}

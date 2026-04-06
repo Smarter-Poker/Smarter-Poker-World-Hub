@@ -2067,6 +2067,7 @@ export default function PokerNearMePage() {
                 <UniversalHeader 
                     pageDepth={2} 
                     onMenuClick={() => setMenuOpen(true)} 
+                    onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'}
                 />
 
                 {/* Hamburger Menu */}
