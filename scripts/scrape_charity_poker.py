@@ -842,10 +842,18 @@ def build_venue_records(results):
 
 
 def seed_to_supabase(venues):
-    """Seed venue records to Supabase via REST API (triggers fire)."""
+    """Seed venue records to Supabase using new canonically-safe upsert."""
     
     if not SERVICE_KEY:
         print('\n  ⚠️  No SERVICE_KEY — cannot seed to Supabase')
+        return 0
+    
+    # Import our new upsert utility
+    try:
+        sys.path.append(str(Path(__file__).parent.resolve()))
+        from utils.venue_upsert import upsert_venue_python
+    except Exception as e:
+        print(f"Failed to load upsert utility: {e}")
         return 0
     
     headers = {
@@ -858,37 +866,11 @@ def seed_to_supabase(venues):
     inserted = 0
     skipped = 0
     for venue in venues:
-        try:
-            # Clean nulls and empty strings
-            clean = {k: v for k, v in venue.items() if v is not None and v != ''}
-            
-            # Ensure boolean fields are proper
-            if 'is_active' in clean:
-                clean['is_active'] = True
-            
-            body = json.dumps(clean).encode()
-            
-            req = urllib.request.Request(
-                f'{SUPABASE_URL}/rest/v1/poker_venues',
-                data=body, method='POST', headers=headers
-            )
-            resp = urllib.request.urlopen(req)
-            resp_data = resp.read().decode()
+        result = upsert_venue_python(SUPABASE_URL, SERVICE_KEY, venue)
+        if result == "inserted" or result == "updated":
             inserted += 1
-            print(f'  ✅ Inserted: {venue["name"]} ({venue.get("city", "")}, {venue.get("state", "")})')
-        except urllib.error.HTTPError as e:
-            err_body = ''
-            try:
-                err_body = e.read().decode()
-            except:
-                pass
-            if '23505' in err_body or 'duplicate' in err_body.lower():
-                skipped += 1
-                print(f'  ⏭️  Already exists: {venue["name"]}')
-            else:
-                print(f'  ❌ Failed ({e.code}): {venue["name"]} — {err_body[:300]}')
-        except Exception as e:
-            print(f'  ❌ Error: {venue["name"]} — {str(e)[:200]}')
+        elif result == "skipped":
+            skipped += 1
     
     print(f'\n  📊 Seed results: {inserted} inserted, {skipped} duplicates skipped')
     return inserted
