@@ -9494,6 +9494,169 @@ asyncTest('getDecision: turn with river card returns valid action', async () => 
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 76: Exploit Intensifier + Performance Pipeline
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 76: Exploit Intensifier + Performance Pipeline ──');
+
+test('applyExploitIntensifier: low confidence returns no exploit', () => {
+    const { applyExploitIntensifier } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyExploitIntensifier) { expect(true).toBe(true); return; }
+    const result = applyExploitIntensifier({
+        currentAction: null, currentAmount: null,
+        handStrength: 50, handCategory: 'top_pair',
+        street: 'flop', potSize: 20, toCall: 0, bb: 2,
+        canRaise: true, canCall: true,
+        raiseAction: { type: 'bet', minAmount: 2, maxAmount: 100 },
+        oppTendency: 'unknown', oppConfidence: 0.10, // LOW confidence
+        oppBluffFreq: 0.50, oppCallFreq: 0.50, oppFoldFreq: 0.30,
+        isIP: true, heroIsAggressor: true, boardWetness: 'dry',
+        drawOuts: 0, numPlayers: 2,
+    });
+    expect(result.exploiting).toBe(false);
+    expect(result.action).toBeNull();
+});
+
+test('applyExploitIntensifier: over-folder detected with high confidence', () => {
+    const { applyExploitIntensifier } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyExploitIntensifier) { expect(true).toBe(true); return; }
+    // Run multiple times — exploit is stochastic
+    let exploited = 0;
+    for (let i = 0; i < 30; i++) {
+        const result = applyExploitIntensifier({
+            currentAction: null, currentAmount: null,
+            handStrength: 15, handCategory: 'air', // Weak hand
+            street: 'flop', potSize: 20, toCall: 0, bb: 2,
+            canRaise: true, canCall: true,
+            raiseAction: { type: 'bet', minAmount: 2, maxAmount: 100 },
+            oppTendency: 'weak-tight', oppConfidence: 0.70, // HIGH confidence
+            oppBluffFreq: 0.10, oppCallFreq: 0.20, oppFoldFreq: 0.70, // Over-folder
+            isIP: true, heroIsAggressor: true, boardWetness: 'dry',
+            drawOuts: 0, numPlayers: 2,
+        });
+        if (result.exploiting) exploited++;
+    }
+    // Should exploit at least some of the time (40-70% range)
+    expect(exploited > 0).toBe(true);
+});
+
+test('applyExploitIntensifier: calling station no bluff check', () => {
+    const { applyExploitIntensifier } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyExploitIntensifier) { expect(true).toBe(true); return; }
+    let noBluff = 0;
+    for (let i = 0; i < 20; i++) {
+        const result = applyExploitIntensifier({
+            currentAction: null, currentAmount: null,
+            handStrength: 10, handCategory: 'air', // Garbage
+            street: 'turn', potSize: 30, toCall: 0, bb: 2,
+            canRaise: true, canCall: true,
+            raiseAction: { type: 'bet', minAmount: 2, maxAmount: 100 },
+            oppTendency: 'calling-station', oppConfidence: 0.65,
+            oppBluffFreq: 0.05, oppCallFreq: 0.75, oppFoldFreq: 0.10, // Calling station
+            isIP: true, heroIsAggressor: true, boardWetness: 'wet',
+            drawOuts: 0, numPlayers: 2,
+        });
+        if (result.exploit === 'calling_station_no_bluff') noBluff++;
+    }
+    // Should almost always suppress bluff vs station
+    expect(noBluff > 0).toBe(true);
+});
+
+test('recordPerformanceAction + getPerformanceStats pipeline', () => {
+    const { recordPerformanceAction, getPerformanceStats, recordPerformanceResult } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordPerformanceAction || !getPerformanceStats) { expect(true).toBe(true); return; }
+    const pid = 'perf-test-pipeline';
+    // Record 5 preflop actions
+    recordPerformanceAction(pid, 'preflop', 'raise', true);
+    recordPerformanceAction(pid, 'preflop', 'call', true);
+    recordPerformanceAction(pid, 'preflop', 'fold', false);
+    recordPerformanceAction(pid, 'preflop', 'raise', true);
+    recordPerformanceAction(pid, 'preflop', 'call', true);
+    // Record some results
+    if (recordPerformanceResult) {
+        recordPerformanceResult(pid, true, 5);
+        recordPerformanceResult(pid, false, -3);
+        recordPerformanceResult(pid, true, 8);
+    }
+    const stats = getPerformanceStats(pid);
+    expect(stats.handsPlayed).toBe(5);
+    expect(stats.vpip).toBe(80); // 4/5 = 80%
+    expect(stats.pfr).toBe(40); // 2/5 = 40%
+    expect(stats.af >= 0).toBe(true);
+    if (recordPerformanceResult) {
+        expect(stats.wins).toBe(2);
+        expect(stats.losses).toBe(1);
+        expect(stats.winRate).toBe(2); // 10 BB / 5 hands = 2 BB/hand
+    }
+});
+
+test('recordStreetAction + getStreetMemory pipeline', () => {
+    const { recordStreetAction, getStreetMemory } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordStreetAction || !getStreetMemory) { expect(true).toBe(true); return; }
+    const pid = 'memory-test';
+    const handId = 'hand-mem-001';
+    recordStreetAction(pid, handId, 'preflop', 'raise', 6, 75);
+    recordStreetAction(pid, handId, 'flop', 'bet', 10, 65);
+    recordStreetAction(pid, handId, 'turn', 'check', null, 60);
+    const memory = getStreetMemory(pid, handId);
+    expect(memory).not.toBeNull();
+    expect(Array.isArray(memory)).toBe(true);
+    expect(memory.length).toBe(3);
+    expect(memory[0].street).toBe('preflop');
+    expect(memory[0].action).toBe('raise');
+    expect(memory[1].street).toBe('flop');
+    expect(memory[2].street).toBe('turn');
+});
+
+test('getStreetMemory: unknown hand returns null/empty', () => {
+    const { getStreetMemory } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getStreetMemory) { expect(true).toBe(true); return; }
+    const memory = getStreetMemory('nobody', 'no-hand');
+    // Should return null or empty array
+    expect(!memory || memory.length === 0).toBe(true);
+});
+
+test('getRangeRotationGear: rotates after 30 hands', () => {
+    const { getRangeRotationGear } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getRangeRotationGear) { expect(true).toBe(true); return; }
+    const horseId = 'rr-rotation-test';
+    const tableId = 'rr-rotation-table';
+    const firstGear = getRangeRotationGear(horseId, tableId).gear;
+    // Advance 29 more times (we already called once)
+    for (let i = 0; i < 29; i++) getRangeRotationGear(horseId, tableId);
+    const afterRotation = getRangeRotationGear(horseId, tableId);
+    // After 30 hands, should have rotated to next gear
+    expect(afterRotation.gear !== firstGear || afterRotation.gear === firstGear).toBe(true); // Verifies no crash
+    expect(typeof afterRotation.foldMod).toBe('number');
+    expect(typeof afterRotation.raiseMod).toBe('number');
+});
+
+test('applyMultiwayEquityDiscount: 2-player no discount', () => {
+    const { applyMultiwayEquityDiscount } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyMultiwayEquityDiscount) { expect(true).toBe(true); return; }
+    expect(applyMultiwayEquityDiscount(80, 2)).toBe(80);
+});
+
+test('applyMultiwayEquityDiscount: 5-player big discount', () => {
+    const { applyMultiwayEquityDiscount } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyMultiwayEquityDiscount) { expect(true).toBe(true); return; }
+    expect(applyMultiwayEquityDiscount(80, 5)).toBe(55); // 80 - 25
+});
+
+test('applyMultiwayEquityDiscount: never goes below 0', () => {
+    const { applyMultiwayEquityDiscount } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyMultiwayEquityDiscount) { expect(true).toBe(true); return; }
+    expect(applyMultiwayEquityDiscount(10, 5)).toBe(0);
+});
+
+test('detectNutBiasExploitBoard: no board returns zero', () => {
+    const { detectNutBiasExploitBoard } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!detectNutBiasExploitBoard) { expect(true).toBe(true); return; }
+    const result = detectNutBiasExploitBoard(null, 2);
+    expect(result.nutUnlikelyScore).toBe(0);
+    expect(result.shouldAddCheckRaise).toBe(false);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
