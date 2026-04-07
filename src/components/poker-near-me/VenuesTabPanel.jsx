@@ -130,7 +130,7 @@ export default function VenuesTabPanel({
                         if (venue.venue_type === 'tour_stop' || venue.venue_type === 'series') {
                             // Use the full tour object (attached at tourPin creation) so TourCard
                             // renders identically to the Tours tab — with buy-ins, regions, stops, etc.
-                            const tourForCard = venue.full_tour_data || {
+                            const tourForCard = venue.tour_card_data || {
                                 tour_code: venue.tour_code,
                                 tour_name: venue.tour_name || venue.name,
                                 logo_url: venue.logo_url,

@@ -2006,10 +2006,23 @@ function getPLOAllInEquity(madeHand, straightOuts, flushOuts, sprZone, numPlayer
     const mwPenalty = Math.max(0, (numPlayers - 2) * 8);
     const allInEquity = Math.max(0, rawEquity - mwPenalty);
 
-    // Commit thresholds by SPR
-    let threshold = 56;
-    if (sprZone.zone === 'shallow') threshold = 50;
-    if (sprZone.zone === 'committed') threshold = 38;
+    // Bug #120 FIX: SPR-depth-aware commit thresholds
+    // PLO is a post-flop game — at deep stacks you build the pot over streets.
+    // Only commit all-in at shallow/committed SPR. At medium/deep SPR,
+    // NEVER auto-commit — let the full PLO decision tree handle sizing.
+    let threshold;
+    if (sprZone.zone === 'committed') {
+        threshold = 38;   // SPR ≤ 1: commit with any decent equity
+    } else if (sprZone.zone === 'shallow') {
+        threshold = 50;   // SPR 1-3: commit with strong hands + draws
+    } else if (sprZone.zone === 'medium') {
+        threshold = 80;   // SPR 3-6: only commit with monster combos (nut flush + set, etc.)
+    } else {
+        // Deep SPR (>6): NEVER commit all-in via this shortcut.
+        // Even top set should bet/raise, not open-shove 100BB.
+        // Return immediately — let the full PLO postflop tree handle it.
+        return { shouldCommitAllIn: false, allInEquity };
+    }
 
     const shouldCommitAllIn = allInEquity >= threshold;
     return { shouldCommitAllIn, allInEquity };
@@ -4032,15 +4045,23 @@ function detectPLOWrapDraw(holeRanks, boardRanks) {
  * @param {number} potSize
  * @returns {{ optimalFraction: number, betSize: number, reasoning: string }}
  */
-function getAdaptivePLOBetSize(equity, sprZone, boardTexture, exploitProfile, madeHand, potSize) {
+function getAdaptivePLOBetSize(equity, sprZone, boardTexture, exploitProfile, madeHand, potSize, totalOuts) {
     let fraction = 0.65; // Base: 65% pot is default PLO sizing
 
     // Equity-based sizing: stronger hands = bigger bets (build the pot)
-    if (equity >= 90) fraction = 1.00; // Pot = full pot overbet not warranted by just strength...
+    if (equity >= 90) fraction = 1.00; // Pot it with monsters
     else if (equity >= 82) fraction = 0.90;
     else if (equity >= 72) fraction = 0.70;
     else if (equity >= 58) fraction = 0.55;
     else fraction = 0.40;  // Thin value / semi-bluff
+
+    // Bug #121 FIX: Draw sizing boost — big PLO draws (wraps, combo draws)
+    // should be semi-bluffed at 60-75% pot minimum, not 40%.
+    // A 13-out wrap has ~50% equity against most ranges.
+    const outs = totalOuts || 0;
+    if (outs >= 13) fraction = Math.max(fraction, 0.75); // Big wrap: at least 75% pot
+    else if (outs >= 9) fraction = Math.max(fraction, 0.65); // Good draw: at least 65% pot
+    else if (outs >= 6) fraction = Math.max(fraction, 0.50); // Moderate draw: at least 50% pot
 
     // Board texture adjustment
     if (boardTexture.isMonotone && !madeHand.isNutFlush) fraction *= 0.80; // Proceed cautiously
@@ -4059,7 +4080,7 @@ function getAdaptivePLOBetSize(equity, sprZone, boardTexture, exploitProfile, ma
     fraction = Math.max(0.25, Math.min(1.25, fraction));
     const betSize = Math.round(potSize * fraction);
 
-    const reasoning = `eq=${Math.round(equity)},spr=${sprZone.zone},opp=${exploitProfile?.profile || 'balanced'}`;
+    const reasoning = `eq=${Math.round(equity)},spr=${sprZone.zone},outs=${outs},opp=${exploitProfile?.profile || 'balanced'}`;
     return { optimalFraction: fraction, betSize, reasoning };
 }
 
@@ -4336,9 +4357,13 @@ function auditPLODecision(proposedAction, {
         return { type, amount: Math.min(amount, safeMax) };
     }
 
-    // Audit 5: Extremely short stack (< 6BB) — must go all-in or fold (no partial bets)
+    // Audit 5: Extremely short stack (< 6BB) — pot-raise to commit (PLO is pot-limit)
     if (stackBB <= 6 && toCall > 0 && equityFinal >= 45) {
-        return { type: 'all_in' }; // Shove with any reasonable equity
+        if (canRaise) {
+            const potRaiseAmt = calcPLOPotRaise(potSize, toCall, raiseAction);
+            return { type: raiseAction?.type || 'raise', amount: potRaiseAmt };
+        }
+        return canCall ? { type: 'call' } : { type: 'fold' };
     }
 
     // Audit 6: Never slow-play a nut hand when SPR ≤ 2 (we want to get it in!)
@@ -4431,9 +4456,14 @@ function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
     }
     const raiseFacingAdj = adjStrength + raiseFacingPenalty;
 
-    // PLO push/fold: ≤12BB
+    // PLO push/fold: ≤12BB — pot-raise to commit (PLO is pot-limit, no shove button)
     if (stackBB <= 12) {
-        return adjStrength >= 50 ? { type: 'all_in' } : (canCheck ? { type: 'check' } : { type: 'fold' });
+        if (adjStrength >= 50 && canRaise) {
+            const potRaiseAmt = calcPLOPotRaise(potSize, toCall, raiseAction);
+            return { type: raiseAction?.type || 'raise', amount: potRaiseAmt };
+        }
+        if (adjStrength >= 50 && canCall) return { type: 'call' };
+        return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
     // Facing a re-raise (4-bet spot) — need top 5% hands
@@ -4506,6 +4536,17 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
     const clamp = (size) => Math.max(raiseAction?.minAmount || 1, Math.min(size, raiseAction?.maxAmount || size));
     const potOdds = toCall > 0 ? toCall / (potSize + toCall) : 0;
+
+    // Bug #121: PLO is POT-LIMIT — there is no "shove" button.
+    // Maximum legal bet/raise = pot size. When we want to commit maximally,
+    // we pot-raise and the engine caps at our stack if needed.
+    const ploPotCommit = (gifCategory) => {
+        if (!canRaise) return canCall ? { type: 'call' } : { type: 'check' };
+        const potRaiseAmt = calcPLOPotRaise(potSize, toCall, raiseAction);
+        const action = { type: raiseAction?.type || 'raise', amount: potRaiseAmt };
+        if (gifCategory) action.gifCategory = gifCategory;
+        return action;
+    };
 
     // ═══ PHASE 37: PLO LIVE-READ INTEGRATION ═══
     // Query live observer for real-time opponent data (same system the Hold'em engine uses).
@@ -4611,9 +4652,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             const stackPctCommitted = totalCommitted / stack;
 
             if (stackPctCommitted >= 0.60) {
-                // 60%+ of stack goes in = just shove all-in with AA
-                console.log(`[HorseBrain] 🚀 AAxx ALL-IN: pot-raise commits ${Math.round(stackPctCommitted * 100)}% of stack — shoving`);
-                return { type: 'all_in' };
+                // 60%+ of stack goes in = pot-raise to commit (PLO is pot-limit, no shove)
+                console.log(`[HorseBrain] 🚀 AAxx POT-COMMIT: pot-raise commits ${Math.round(stackPctCommitted * 100)}% of stack`);
+                return { type: raiseAction?.type || 'raise', amount: Math.min(potRaiseSize, raiseAction?.maxAmount || potRaiseSize) };
             } else if (stackPctCommitted >= 0.40) {
                 // 40-60%: pot it aggressively (sets up all-in on flop)
                 console.log(`[HorseBrain] 🚀 AAxx POT-RAISE: commits ${Math.round(stackPctCommitted * 100)}% of stack`);
@@ -5008,7 +5049,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     });
 
     // ── Phase 8: Adaptive bet sizer (dynamic optimal fraction) ──
-    const adaptiveSizer = getAdaptivePLOBetSize(equityFinal, sprZone, boardTexture, exploitProfile, madeHand, potSize);
+    const adaptiveSizer = getAdaptivePLOBetSize(equityFinal, sprZone, boardTexture, exploitProfile, madeHand, potSize, totalOuts);
     // ═══ PHASE 37: LIVE-READ SIZING ADJUSTMENT ═══
     // Apply live-read sizing multiplier: bigger vs stations, smaller vs folders
     const adaptiveBetSize = clamp(Math.round(adaptiveSizer.betSize * ploLiveSizeAdj));
@@ -5150,23 +5191,18 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (donkResponse) return { type: donkResponse.action, amount: donkResponse.amount };
     }
 
-    // Phase 4: 4-bet pot — shove or fold quickly
+    // Phase 4: 4-bet pot — pot-raise or fold quickly (Bug #121: PLO is pot-limit)
     if (isIn4BetPot) {
         if (fourBetDecision.shouldShoveFlopIn4Bet) {
-            if (gifInfo.shouldThrowGif) {
-                // Attach GIF metadata for the game engine to process
-                return { type: 'all_in', gifCategory: gifInfo.gifCategory };
-            }
-            return { type: 'all_in' };
+            return ploPotCommit(gifInfo.shouldThrowGif ? gifInfo.gifCategory : null);
         }
         if (fourBetDecision.shouldFoldWeakIn4Bet) return { type: 'fold' };
     }
 
-    // Phase 3+5: All-in equity check with ICM awareness
+    // Phase 3+5: Commit equity check with ICM awareness (pot-limit: pot-raise to commit)
     if (sprZone.shouldCommit || allInInfo.shouldCommitAllIn) {
         if (allInInfo.allInEquity >= finalCommitThreshold) {
-            if (gifInfo.shouldThrowGif) return { type: 'all_in', gifCategory: gifInfo.gifCategory };
-            return { type: 'all_in' };
+            return ploPotCommit(gifInfo.shouldThrowGif ? gifInfo.gifCategory : null);
         }
         // Force shallow SPR calls to respect the bomb-pot penalty
         const shortStackCallThreshold = 40 + (bombPotBoost || 0);
@@ -5307,8 +5343,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const stack = stackBB * bb;
         const callFraction = stack > 0 ? toCall / stack : 0;
         if (callFraction >= 0.60) {
-            console.log(`[HorseBrain] 🎯 BUG #118 PLO FREEROLL OVERRIDE: call is ${Math.round(callFraction * 100)}% of stack — shoving with nut straight.`);
-            return { type: 'all_in' };
+            console.log(`[HorseBrain] 🎯 BUG #118 PLO FREEROLL OVERRIDE: call is ${Math.round(callFraction * 100)}% of stack — pot-raising with nut straight.`);
+            return ploPotCommit();
         }
         if (canCall) {
             console.log('[HorseBrain] 🎯 BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop — flatting to avoid freeroll.');

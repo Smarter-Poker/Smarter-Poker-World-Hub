@@ -779,9 +779,24 @@ export default function PokerNearMePage() {
                 distance_mi: distanceMi,
                 is_running: isActive,
                 has_tournaments: true,
-                // Full tour object — passed directly to TourCard so it renders
-                // identically to the Tours tab (buy-ins, regions, upcoming stops, website)
-                full_tour_data: tour,
+                // Lean TourCard data — only the fields TourCard.js reads, matching
+                // exactly what the Tours tab passes so the card is identical.
+                tour_card_data: {
+                    tour_code: tour.tour_code,
+                    tour_name: tour.tour_name || tour.tour_code,
+                    logo_url: tour.logo_url,
+                    tour_type: tour.tour_type || (isActive ? 'circuit' : 'regional'),
+                    headquarters: activeStop.venue
+                        ? `${activeStop.venue}${city ? ' — ' + city : ''}${state ? ', ' + state : ''}`
+                        : location || '',
+                    typical_buyins: tour.typical_buyins || null,
+                    regions: Array.isArray(tour.regions) ? tour.regions : [],
+                    established: tour.established || null,
+                    upcoming_series: Array.isArray(tour.upcoming_series)
+                        ? tour.upcoming_series
+                        : [],
+                    official_website: tour.official_website || tour.website || null,
+                },
             });
         });
 
@@ -859,21 +874,16 @@ export default function PokerNearMePage() {
                 if (!charityBestIds.has(v.id)) return false;
             }
             
-            // Radius filter: only apply when the user has a REAL location (GPS or city).
-            // Skip the radius check when using the fallback centroid (no location known)
-            // and skip entirely during global text search (user searched by name).
-            const hasRealLocation = !!(userLocation || selectedCity);
-            if (hasRealLocation && !globalSearchModeRef.current && centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
-                const dlat = (v.latitude - centerLat) * 69;
-                const dlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
-                const dist = Math.sqrt(dlat * dlat + dlng * dlng);
-                v.distance_mi = dist;
-                if (dist > effRad) return false;
-            } else if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
-                // Still compute distance_mi for sorting even if not filtering
-                const dlat = (v.latitude - centerLat) * 69;
-                const dlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
-                v.distance_mi = Math.sqrt(dlat * dlat + dlng * dlng);
+            // Radius filter + distance computation
+            // Only enforce the radius when the user has a REAL location (GPS or city).
+            // Skip enforcement for fallback centroid and global text searches.
+            if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
+                const vDlat = (v.latitude - centerLat) * 69;
+                const vDlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
+                const vDist = Math.sqrt(vDlat * vDlat + vDlng * vDlng);
+                v.distance_mi = vDist;
+                const hasRealLoc = !!(userLocation || selectedCity);
+                if (hasRealLoc && !globalSearchModeRef.current && vDist > effRad) return false;
             }
             return true;
         });

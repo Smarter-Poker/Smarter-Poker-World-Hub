@@ -937,35 +937,48 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
 
         body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode('utf-8')
 
-        # ── PDF sources: handled separately — skip HTML parsing entirely ─────
+        # ── PDF sources: download raw bytes via urllib (StealthySession returns browser HTML for PDFs)
         if src == 'pdf_sched':
             if not PDF_OK:
                 continue
-            # Verify PDF magic bytes
-            if not body[:4] == b'%PDF':
-                print(f"      [PDF] Not a valid PDF (bad magic bytes)")
+            # PDFs are typically CDN-hosted (wp-content, uploads, etc.) — no Cloudflare
+            # urllib downloads raw binary; StealthySession renders the PDF viewer
+            pdf_bytes = b''
+            try:
+                req = urllib.request.Request(url, headers={
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                    'Accept': 'application/pdf,*/*',
+                })
+                with urllib.request.urlopen(req, timeout=25) as r:
+                    pdf_bytes = r.read()
+            except Exception as e1:
+                # Fallback: try resp.body from StealthySession (already fetched above)
+                pdf_bytes = body
+                print(f"      [PDF] urllib failed ({str(e1)[:40]}), using StealthySession body")
+
+            if not pdf_bytes or pdf_bytes[:4] != b'%PDF':
+                print(f"      [PDF] Not valid PDF bytes (magic={pdf_bytes[:8]!r})")
                 continue
             try:
-                import io as _io
-                with pdfplumber.open(_io.BytesIO(body)) as pdf_obj:
+                with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf_obj:
                     pages_text = [p.extract_text() or '' for p in pdf_obj.pages]
                 pdf_text = '\n'.join(t for t in pages_text if t)
             except Exception as e:
-                print(f"      [PDF ERR] {str(e)[:70]}")
+                print(f"      [PDF ERR] pdfplumber: {str(e)[:70]}")
                 continue
             if not pdf_text or not has_tournament_content(pdf_text):
                 print(f"      [PDF] No tournament content in PDF")
                 time.sleep(1)
                 continue
             print(f"      [PDF] {len(pdf_text)} chars extracted → parsing")
-            pdf_hash = sha256(body)
+            pdf_hash = sha256(pdf_bytes)
             candidates = extract_tournaments(pdf_text, name, url, pdf_hash)
             if not candidates:
                 print(f"      [PDF] No structured records found in PDF")
                 time.sleep(1)
                 continue
             print(f"      ✅ PDF: {len(candidates)} tournament records")
-            # Fall through to dedup/append below
+            # Dedup and append
             new_recs = []
             for rec in candidates:
                 dk = f"{rec.get('event_date') or rec.get('day_of_week')}-{rec.get('start_time')}-{rec.get('buy_in')}-{rec.get('game_type')}"
@@ -974,11 +987,12 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
                     new_recs.append(rec)
             if new_recs:
                 all_records.extend(new_recs)
-                print(f"      ✅ +{len(new_recs)} new PDF records added")
+                print(f"      ✅ +{len(new_recs)} new PDF records added to Supabase")
                 if not result['found']:
                     result.update(found=True, confirmed_source='pdf_sched', source_url=url, html_hash=pdf_hash)
             time.sleep(1.5)
             continue  # Don't fall into HTML extraction
+
 
         # ── Standard HTML processing ─────────────────────────────────────────
         html = body.decode('utf-8', errors='ignore')
