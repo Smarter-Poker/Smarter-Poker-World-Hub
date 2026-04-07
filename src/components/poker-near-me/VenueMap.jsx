@@ -963,9 +963,10 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         ? buildTourPopupHtml(venue)
         : buildPopupHtml(venue);
 
-      // Tour pins get a slight offset so they overlap but don't fully cover venue dots
-      const markerLat = isTourStop ? venue.latitude + 0.002 : venue.latitude;
-      const markerLng = isTourStop ? venue.longitude + 0.002 : venue.longitude;
+      // Tour pins get a visible offset so they appear alongside (not buried under) the venue dot.
+      // +0.012 lat / -0.008 lng ≈ 1.3km offset — clearly visible at typical map zoom levels.
+      const markerLat = isTourStop ? venue.latitude + 0.012 : venue.latitude;
+      const markerLng = isTourStop ? venue.longitude - 0.008 : venue.longitude;
 
       const marker = L.marker([markerLat, markerLng], { icon: venueIcon, zIndexOffset: isTourStop ? 1000 : 0 })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });

@@ -217,7 +217,24 @@ function buildCharityEventBlock(venue) {
 }
 
 export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, onFavorite, onNavigate, checkinCount, reviewStats, index = 0 }) {
+    // === ALL HOOKS MUST BE UNCONDITIONAL — before any early return ===
+    // Animated trust bar + staggered card entrance
+    const [mounted, setMounted] = useState(false);
+    const [logoError, setLogoError] = useState(false);
+    const [logoFallbackTried, setLogoFallbackTried] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
+    const cardRef = useRef(null);
+
+    useEffect(() => {
+        const delay = Math.min(index * 40, 400);
+        const timer = setTimeout(() => setMounted(true), delay);
+        return () => clearTimeout(timer);
+    }, [index]);
+
+    // Guard — AFTER all hooks
     if (!venue) return null;
+
     const trust = getTrustLevel(venue.trust_score || 0);
     const detailUrl = getVenueUrl(venue);
     const typeColor = VENUE_TYPE_COLORS[venue.venue_type] || VENUE_TYPE_COLORS.casino;
@@ -230,13 +247,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         ? estimateWaitTime(venue.live_data.players_waiting, venue.live_data.tables_running)
         : null;
 
-    // Animated trust bar + staggered card entrance
-    const [mounted, setMounted] = useState(false);
-    const [logoError, setLogoError] = useState(false);
-    const [logoFallbackTried, setLogoFallbackTried] = useState(false);
-    const [isFollowing, setIsFollowing] = useState(false);
-    const [followLoading, setFollowLoading] = useState(false);
-    
     const handleFollowClick = async (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -260,13 +270,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             setFollowLoading(false);
         }
     };
-
-    const cardRef = useRef(null);
-    useEffect(() => {
-        const delay = Math.min(index * 40, 400);
-        const timer = setTimeout(() => setMounted(true), delay);
-        return () => clearTimeout(timer);
-    }, []);
 
     return (
         <div

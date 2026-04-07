@@ -580,6 +580,13 @@ export default async function handler(req, res) {
                                       
                                       if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
                                           isOpenToday = true;
+                                          // Bug #8 fix: populate today_event so card can show start_time + buy_in
+                                          jsonVenue.today_event = {
+                                              location: schedule[todayKey].location.trim(),
+                                              start_time: schedule[todayKey].start_time || null,
+                                              buy_in: schedule[todayKey].buy_in || null,
+                                              state: jsonVenue.state || null,
+                                          };
                                       } else {
                                           for (let i = 1; i <= 7; i++) {
                                               const nextIdx = (todayIdx + i) % 7;
@@ -590,7 +597,9 @@ export default async function handler(req, res) {
                                                   nextEvent = {
                                                       day: dayLabel,
                                                       days_away: i,
-                                                      location: nextDayData.location.trim()
+                                                      location: nextDayData.location.trim(),
+                                                      start_time: nextDayData.start_time || null,
+                                                      buy_in: nextDayData.buy_in || null,
                                                   };
                                                   break;
                                               }
@@ -640,6 +649,8 @@ export default async function handler(req, res) {
                               let isOpenToday = false;
                               let nextEvent = null;
                               let todayLocation = null;
+                              let todayStartTime = null;
+                              let todayBuyIn = null;
                               if (sp.page_type === 'charity') {
                                   const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                                   const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
@@ -648,6 +659,9 @@ export default async function handler(req, res) {
                                   if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
                                       isOpenToday = true;
                                       todayLocation = schedule[todayKey].location.trim();
+                                      // Bug-9 fix: also capture today's start_time + buy_in
+                                      todayStartTime = schedule[todayKey].start_time || null;
+                                      todayBuyIn = schedule[todayKey].buy_in || null;
                                   } else {
                                       // Find the next available event date
                                       for (let i = 1; i <= 7; i++) {
@@ -659,7 +673,9 @@ export default async function handler(req, res) {
                                               nextEvent = {
                                                   day: dayLabel,
                                                   days_away: i,
-                                                  location: nextDayData.location.trim()
+                                                  location: nextDayData.location.trim(),
+                                                  start_time: nextDayData.start_time || null,
+                                                  buy_in: nextDayData.buy_in || null,
                                               };
                                               break;
                                           }
@@ -679,6 +695,8 @@ export default async function handler(req, res) {
                                   // BUG-4 FIX: persist charity schedule state so mapper can read it
                                   _charityIsOpenToday: isOpenToday,
                                   _charityTodayLocation: todayLocation,
+                                  _charityTodayStartTime: todayStartTime,
+                                  _charityTodayBuyIn: todayBuyIn,
                                   _charityNextEvent: nextEvent,
                               });
                           }
@@ -736,6 +754,13 @@ export default async function handler(req, res) {
                                           schedule_location: locKey,
                                           schedule_day: todayKey,
                                           is_today: isOpen,
+                                          // Bug-9 fix: populate today_event so card can show start_time + buy_in
+                                          today_event: isOpen ? {
+                                              location: locKey,
+                                              start_time: sp._charityTodayStartTime || null,
+                                              buy_in: sp._charityTodayBuyIn || null,
+                                              state: locKey.split(',')[1]?.trim() || sp.location_state || null,
+                                          } : null,
                                           next_event: sp._charityNextEvent
                                       });
                                   }
