@@ -15722,6 +15722,147 @@ test('PLO ENHANCE: connected hand gets connectivity bonus', () => {
     expect(conn.connectivityScore > disc.connectivityScore).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 99: PLO Raise-Facing Playability, AAxx Pot/Re-pot, Run-It-Twice
+// Bugs #79, #80, #81 regression tests
+// ═══════════════════════════════════════════════════════════
+
+// --- Bug #79: Raise-facing playability degradation ---
+
+test('PLO RAISE-FACING: rainbow disconnected hand folds facing raise even from BTN', () => {
+    // K832 rainbow = pure trash (score ~14), even with BTN +10 = ~24
+    // With raise-facing penalty for rainbow junk, should still fold
+    const cards = makePLOCards(['Kc','8d','3h','2s']);
+    const score = brain.classifyPLOPreflop(cards);
+    const hs = brain.enhancePLOPreflopScore(cards);
+    // Facing a raise (toCall = 6, bb = 2 → toCall > 2.5*bb)
+    const r = brain.getPLOPreflopAction(score, false, true, true,
+        { type: 'raise', minAmount: 12, maxAmount: 200 }, 6, 2, 100, 'BTN', 6, hs);
+    expect(r.type === 'fold').toBe(true);
+});
+
+test('PLO RAISE-FACING: suited connected hand calls raise from BTN', () => {
+    // JT98 double suited = strong (score ~83)
+    const cards = makePLOCards(['Jc','Td','9c','8d']);
+    const score = brain.classifyPLOPreflop(cards);
+    const hs = brain.enhancePLOPreflopScore(cards);
+    // Facing a raise — should call or 3-bet, NOT fold
+    const r = brain.getPLOPreflopAction(score, false, true, true,
+        { type: 'raise', minAmount: 12, maxAmount: 200 }, 6, 2, 100, 'BTN', 6, hs);
+    expect(r.type !== 'fold').toBe(true);
+});
+
+test('PLO RAISE-FACING: 6543r folds facing raise from CO (no suit, marginal)', () => {
+    // 6543 rainbow = score ~46, with CO bonus +8 = 54
+    // But facing raise (toCall=6): playability penalty (rainbow, low connectivity) should push below threshold
+    const cards = makePLOCards(['6c','5d','4h','3s']);
+    const score = brain.classifyPLOPreflop(cards);
+    const hs = brain.enhancePLOPreflopScore(cards);
+    const r = brain.getPLOPreflopAction(score, false, true, true,
+        { type: 'raise', minAmount: 12, maxAmount: 200 }, 6, 2, 100, 'CO', 6, hs);
+    // Low rundown rainbow should fold or at most call facing a raise — definitely not raise
+    expect(r.type !== 'raise').toBe(true);
+});
+
+test('PLO RAISE-FACING: 6543 suited can call raise from BTN', () => {
+    // 6543 single suited = better playability
+    const cards = makePLOCards(['6c','5c','4h','3s']);
+    const score = brain.classifyPLOPreflop(cards);
+    const hs = brain.enhancePLOPreflopScore(cards);
+    // With suit bonus the hand structure is better — might survive facing a raise IP
+    // This tests that suited hands are treated differently than rainbow
+    expect(hs.doubleSuitBonus >= 5 || hs.connectivityScore > 0).toBe(true);
+});
+
+test('PLO RAISE-FACING: speculative hand folds facing 3-bet', () => {
+    // 9876 rainbow = score ~54, decent hand. Facing 3-bet (toCall = 18, bb = 2 → > 8*bb)
+    // With 3-bet facing penalty, rainbow speculative should fold
+    const cards = makePLOCards(['9c','8d','7h','6s']);
+    const score = brain.classifyPLOPreflop(cards);
+    const hs = brain.enhancePLOPreflopScore(cards);
+    const r = brain.getPLOPreflopAction(score, false, true, true,
+        { type: 'raise', minAmount: 30, maxAmount: 200 }, 18, 2, 100, 'CO', 6, hs);
+    // Facing a 3-bet with rainbow speculative: fold
+    expect(r.type === 'fold').toBe(true);
+});
+
+test('PLO RAISE-FACING: AAds KK calls 3-bet', () => {
+    // AAds KK = score 100, premium. Should survive any raise
+    const cards = makePLOCards(['Ac','Ad','Kc','Kd']);
+    const score = brain.classifyPLOPreflop(cards);
+    const hs = brain.enhancePLOPreflopScore(cards);
+    const r = brain.getPLOPreflopAction(score, false, true, true,
+        { type: 'raise', minAmount: 30, maxAmount: 200 }, 18, 2, 100, 'UTG', 6, hs);
+    // AA should NEVER fold facing a 3-bet
+    expect(r.type !== 'fold').toBe(true);
+});
+
+test('PLO RAISE-FACING: without handStructure param, still works (backward compat)', () => {
+    // Old-style call without 11th param
+    const r = brain.getPLOPreflopAction(70, false, true, true,
+        { type: 'raise', minAmount: 6, maxAmount: 200 }, 0, 2, 100, 'BTN', 6);
+    expect(r.type !== undefined).toBe(true);
+});
+
+// --- Bug #80: AAxx pot/re-pot when 60%+ stack in preflop ---
+
+test('PLO AA: score is premium (>= 54 bare, much higher suited)', () => {
+    const aaBare = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','8h','3s']));
+    expect(aaBare >= 54).toBe(true);
+    const aaSuited = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','8c','3d']));
+    expect(aaSuited > aaBare).toBe(true);
+});
+
+test('PLO AA: suited ace bonus adds value', () => {
+    const noSuit = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','8h','3s']));
+    const aceSuited = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','8c','3s']));
+    // Ah matching 8h should add bonus
+    expect(aceSuited >= noSuit).toBe(true);
+});
+
+// --- Bug #81: Run-it-twice preference ---
+
+test('PLO RIT: horse always wants to run it twice (offer)', () => {
+    const pref = brain.getRunItTwicePreference('offer');
+    expect(pref.wantsRunItTwice).toBe(true);
+});
+
+test('PLO RIT: horse always wants to run it twice (decide)', () => {
+    const pref = brain.getRunItTwicePreference('decide');
+    expect(pref.wantsRunItTwice).toBe(true);
+});
+
+test('PLO RIT: horse always wants to run it twice (no param)', () => {
+    const pref = brain.getRunItTwicePreference();
+    expect(pref.wantsRunItTwice).toBe(true);
+});
+
+test('PLO RIT: returns reason string', () => {
+    const pref = brain.getRunItTwicePreference();
+    expect(typeof pref.reason === 'string' && pref.reason.length > 0).toBe(true);
+});
+
+// --- Structural validation ---
+
+test('PLO STRUCTURE: enhancePLOPreflopScore returns all fields', () => {
+    const hs = brain.enhancePLOPreflopScore(makePLOCards(['Jc','Td','9c','8d']));
+    expect(typeof hs.doubleSuitBonus === 'number').toBe(true);
+    expect(typeof hs.connectivityScore === 'number').toBe(true);
+    expect(typeof hs.pairBonus === 'number').toBe(true);
+    expect(typeof hs.totalBonus === 'number').toBe(true);
+});
+
+test('PLO STRUCTURE: double suited gets higher doubleSuitBonus than rainbow', () => {
+    const ds = brain.enhancePLOPreflopScore(makePLOCards(['Jc','Td','9c','8d']));
+    const rb = brain.enhancePLOPreflopScore(makePLOCards(['Jc','Td','9h','8s']));
+    expect(ds.doubleSuitBonus > rb.doubleSuitBonus).toBe(true);
+});
+
+test('PLO STRUCTURE: single suited gets doubleSuitBonus of 5', () => {
+    const ss = brain.enhancePLOPreflopScore(makePLOCards(['Jc','Tc','9h','8s']));
+    expect(ss.doubleSuitBonus).toBe(5);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

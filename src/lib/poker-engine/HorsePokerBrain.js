@@ -3956,8 +3956,22 @@ function auditPLODecision(proposedAction, {
 
 /**
  * Get PLO preflop action recommendation.
+ * Bug #79: Added handStructure parameter for raise-facing playability degradation.
+ * Speculative hands (low connectivity, no suits) lose MORE value when facing aggression.
+ * Premium structured hands (suited, connected) retain their value facing raises.
+ * @param {number} strength - Base hand strength (0-100)
+ * @param {boolean} canCheck
+ * @param {boolean} canCall
+ * @param {boolean} canRaise
+ * @param {Object} raiseAction
+ * @param {number} toCall - Amount to call
+ * @param {number} bb - Big blind size
+ * @param {number} stackBB - Stack in big blinds
+ * @param {string} position
+ * @param {number} numPlayers
+ * @param {Object} [handStructure] - From enhancePLOPreflopScore: {doubleSuitBonus, connectivityScore, pairBonus, danglerPenalty}
  */
-function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction, toCall, bb, stackBB, position, numPlayers) {
+function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction, toCall, bb, stackBB, position, numPlayers, handStructure) {
     const isBTN = position === 'BTN';
     const isSB = position === 'SB';
     const isBB = position === 'BB';
@@ -3978,46 +3992,79 @@ function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
     else if (isUTG) posBonus = -4;   // UTG: tightest range
     const adjStrength = strength + posBonus;
 
+    // ── Bug #79: Raise-facing playability penalty ──
+    // When facing aggression, hands WITHOUT suits + connectivity lose significant value.
+    // A suited-connected hand at score 55 plays WAY better facing a raise than
+    // a disconnected rainbow hand at 55. This penalty makes sure speculative junk
+    // doesn't call raises just because it scraped together enough raw points.
+    const hs = handStructure || {};
+    const suitQuality = (hs.doubleSuitBonus || 0);     // 12 = double suited, 5 = single, 0 = rainbow
+    const connectQuality = (hs.connectivityScore || 0); // 0-15, higher = more connected
+    const hasDangler = (hs.danglerPenalty || 0) < -4;   // Has a significant dangler
+
+    // Playability score: 0 (terrible) to 27+ (excellent structure)
+    const playability = suitQuality + connectQuality;
+    // Penalty when facing a raise: rainbow disconnected hands get hammered
+    // Well-structured hands (playability >= 15) get NO penalty
+    // Marginal structure (5-14) gets small penalty
+    // Junk structure (0-4) gets big penalty
+    let raiseFacingPenalty = 0;
+    if (toCall > bb * 2) { // Only apply when facing real aggression (not just completing BB)
+        if (playability < 5) raiseFacingPenalty = -12;       // Rainbow junk: big penalty
+        else if (playability < 10) raiseFacingPenalty = -7;  // Marginal: medium penalty
+        else if (playability < 15) raiseFacingPenalty = -3;  // Decent: small penalty
+        // playability >= 15: no penalty (well-structured hand plays fine vs raises)
+
+        // Dangler compounds the penalty when facing a raise
+        if (hasDangler && raiseFacingPenalty < 0) raiseFacingPenalty -= 4;
+
+        // Facing a 3-bet (toCall > 8bb): penalties are DOUBLED — speculative junk is dead money
+        if (toCall > bb * 8) raiseFacingPenalty = Math.round(raiseFacingPenalty * 1.8);
+    }
+    const raiseFacingAdj = adjStrength + raiseFacingPenalty;
+
     // PLO push/fold: ≤12BB
     if (stackBB <= 12) {
         return adjStrength >= 50 ? { type: 'all_in' } : (canCheck ? { type: 'check' } : { type: 'fold' });
     }
 
     // Facing a re-raise (4-bet spot) — need top 5% hands
+    // Use raiseFacingAdj: speculative hands should NOT be calling 3-bets
     const isFacing3Bet = toCall > bb * 8;
     if (isFacing3Bet) {
-        if (adjStrength >= 88 && canRaise) {
+        if (raiseFacingAdj >= 88 && canRaise) {
             const size = Math.round(toCall * 2.5);
             return { type: raiseAction?.type || 'raise', amount: Math.min(size, raiseAction?.maxAmount || size) };
         }
-        if (adjStrength >= 70 && canCall) return { type: 'call' }; // Flat with premium
+        if (raiseFacingAdj >= 70 && canCall) return { type: 'call' }; // Flat with premium
         return { type: 'fold' };
     }
 
-    // Facing a raise (3-bet spot)
+    // Facing a raise (3-bet spot) — use raiseFacingAdj for call thresholds
     const isFacingRaise = toCall > bb * 2.5;
     if (isFacingRaise) {
-        if (adjStrength >= 78 && canRaise) {
+        if (raiseFacingAdj >= 78 && canRaise) {
             const size3b = Math.round(toCall * 3);
             return { type: raiseAction?.type || 'raise', amount: Math.min(size3b, raiseAction?.maxAmount || size3b) };
         }
-        if (adjStrength >= 62 && canCall) return { type: 'call' };
-        if (adjStrength >= 45 && isIP && canCall) return { type: 'call' }; // IP flat with speculative
+        if (raiseFacingAdj >= 62 && canCall) return { type: 'call' };
+        if (raiseFacingAdj >= 48 && isIP && canCall) return { type: 'call' }; // IP flat — raised threshold from 45 to 48
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
-    // Facing an open
+    // Facing an open — mild penalty applies
     if (toCall > bb) {
-        if (adjStrength >= 65 && canRaise) {
+        if (raiseFacingAdj >= 65 && canRaise) {
             const size = Math.round(toCall * 3.5);
             return { type: raiseAction?.type || 'raise', amount: Math.min(size, raiseAction?.maxAmount || size) };
         }
-        if (adjStrength >= 48 && canCall) return { type: 'call' };
-        if (adjStrength >= 35 && isIP && canCall) return { type: 'call' };
+        if (raiseFacingAdj >= 48 && canCall) return { type: 'call' };
+        if (raiseFacingAdj >= 38 && isIP && canCall) return { type: 'call' }; // Raised from 35 to 38
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
     // Open raise (no action yet, toCall ≤ BB = only limp in front or we're first)
+    // No raise-facing penalty when opening — use raw adjStrength
     if (adjStrength >= 62 && canRaise) {
         // Standard PLO open: 3x-4x BB
         const openSize = Math.round(bb * (isIP ? 3 : 3.5));
@@ -4134,6 +4181,32 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const preflopEnhancement = enhancePLOPreflopScore(holeCards);
         const strength = baseStrengthPreflop + loosenessBias + deepAdj.preflopRangeExpansion + preflopEnhancement.totalBonus;
 
+        // ── Bug #80: AAxx pot/re-pot when 60%+ of stack can go in preflop ──
+        // Dan's rule: "when you have AAxx, if by Potting or Re-Potting it can get
+        // 60% or more of your stack in preflop, you should always do it."
+        // This intercepts BEFORE other logic — AA is always aggressive preflop.
+        const holeRanksPreflop = holeCards.map(c => c.rank);
+        const aceCount = holeRanksPreflop.filter(r => r === 14).length;
+        if (aceCount >= 2 && canRaise) {
+            const stack = stackBB * bb;
+            // Calculate pot size: potting = current pot + toCall, then raise to 3x that
+            const potRaiseSize = raiseAction?.maxAmount || Math.round((potSize + toCall) * 3);
+            // How much of our stack goes in if we pot/re-pot?
+            const totalCommitted = toCall + potRaiseSize;
+            const stackPctCommitted = totalCommitted / stack;
+
+            if (stackPctCommitted >= 0.60) {
+                // 60%+ of stack goes in = just shove all-in with AA
+                console.log(`[HorseBrain] 🚀 AAxx ALL-IN: pot-raise commits ${Math.round(stackPctCommitted * 100)}% of stack — shoving`);
+                return { type: 'all_in' };
+            } else if (stackPctCommitted >= 0.40) {
+                // 40-60%: pot it aggressively (sets up all-in on flop)
+                console.log(`[HorseBrain] 🚀 AAxx POT-RAISE: commits ${Math.round(stackPctCommitted * 100)}% of stack`);
+                return { type: raiseAction?.type || 'raise', amount: Math.min(potRaiseSize, raiseAction?.maxAmount || potRaiseSize) };
+            }
+            // < 40% committed: still raise but handled by normal logic below (AA will always raise)
+        }
+
         // Phase 7: Position-aware range gate — only open above position threshold
         const posRanges = getPLOPositionRanges(position, numPlayers, stackBB);
         if (toCall === 0 && strength < posRanges.openThreshold) {
@@ -4165,8 +4238,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const squeeze = getPLOSqueezePlay(numCallers, isIP, position, strength, potSize, raiseAction, canRaise);
         if (squeeze.shouldSqueeze) return { type: raiseAction?.type || 'raise', amount: squeeze.squeezeSize };
 
+        // Bug #79: Pass hand structure to preflop action for raise-facing playability penalties
         return getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
-            toCall, bb, stackBB, position, numPlayers);
+            toCall, bb, stackBB, position, numPlayers, preflopEnhancement);
     }
 
     // ─── POSTFLOP ───
@@ -16228,6 +16302,26 @@ function isRITRefuser(oppId) {
     return { isRITRefuser: m.rate >= 0.8, refusalRate: m.rate };
 }
 
+// ── Bug #81: HORSE RUN-IT-TWICE PREFERENCE ──
+// Dan's rule: "Horses should always want to run it twice. They should offer
+// and/or agree to run twice if it's an option."
+// Horses ALWAYS accept and offer RIT — it reduces variance, which is optimal
+// bankroll management. The only exception: if we have absolute nuts on the river
+// with no possible redraws, running once maximizes EV (but even then, we accept
+// because the EV difference is tiny and variance reduction matters more).
+/**
+ * Returns the horse's run-it-twice preference.
+ * @param {string} [situation] - 'offer' (we're asked) | 'decide' (we choose to offer) | undefined
+ * @returns {{ wantsRunItTwice: boolean, reason: string }}
+ */
+function getRunItTwicePreference(situation) {
+    // Horses ALWAYS want to run it twice — both offering and accepting
+    return {
+        wantsRunItTwice: true,
+        reason: 'Variance reduction is always +EV for bankroll management. Always run it twice.'
+    };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MODULE 32: PER-SESSION CHIP-LEAK FORENSICS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18350,6 +18444,7 @@ module.exports = {
     detectBombPotOrStraddle, // Module 29
     angleShootMap, recordActionTiming, detectAngleShoot, // Module 30
     ritRefusalMap, recordRITResponse, isRITRefuser, // Module 31
+    getRunItTwicePreference, // Bug #81: Horse always runs it twice
     chipLeakMap, recordChipLeak, getChipLeakBoosts, // Module 32
 
     // Opponent Session Model (Phase 3: Real-time adaptation)

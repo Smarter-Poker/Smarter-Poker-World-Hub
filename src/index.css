@@ -20,6 +20,19 @@
   padding: 0;
 }
 
+/* Kill browser default focus outline site-wide.
+   All interactive elements use custom border/glow on :focus-within instead. */
+*:focus {
+  outline: none;
+}
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html {
   width: 100%;
   min-height: 100%;
