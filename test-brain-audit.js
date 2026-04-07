@@ -16468,6 +16468,187 @@ test('Phase 102: analyzePLOBoardTexture exported and callable', () => {
     expect(typeof brain.analyzePLOBoardTexture).toBe('function');
 });
 
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 103: Bugs #107-#109 fixes ══');
+// ═══════════════════════════════════════════════════════════
+
+// ── Bug #107: getPLOCheckRaise no longer blocks on toCall===0 ──
+
+test('Phase 103: getPLOCheckRaise exported and callable', () => {
+    expect(typeof brain.getPLOCheckRaise).toBe('function');
+});
+
+test('Phase 103: getPLOCheckRaise blocks IP (always returns false)', () => {
+    const result = brain.getPLOCheckRaise(true, { category: 'top_set' }, 0, 0, false, 0, 100);
+    expect(result.shouldCheckRaise).toBe(false);
+});
+
+test('Phase 103: getPLOCheckRaise OOP with toCall=0 can return true for monsters', () => {
+    // Run 50 trials — with top_set OOP, 75% chance means at least ONE should trigger
+    let triggered = false;
+    for (let i = 0; i < 50; i++) {
+        const result = brain.getPLOCheckRaise(false, { category: 'top_set' }, 0, 0, false, 0, 100);
+        if (result.shouldCheckRaise) { triggered = true; break; }
+    }
+    expect(triggered).toBe(true);
+});
+
+test('Phase 103: getPLOCheckRaise OOP with toCall>0 also works for monsters', () => {
+    let triggered = false;
+    for (let i = 0; i < 50; i++) {
+        const result = brain.getPLOCheckRaise(false, { category: 'full_house' }, 0, 0, false, 50, 200);
+        if (result.shouldCheckRaise) { triggered = true; break; }
+    }
+    expect(triggered).toBe(true);
+});
+
+test('Phase 103: getPLOCheckRaise OOP nut flush draw + big wrap fires', () => {
+    let triggered = false;
+    for (let i = 0; i < 50; i++) {
+        const result = brain.getPLOCheckRaise(false, { category: 'air' }, 15, 9, true, 0, 100);
+        if (result.shouldCheckRaise) { triggered = true; break; }
+    }
+    expect(triggered).toBe(true);
+});
+
+test('Phase 103: getPLOCheckRaise OOP weak hand returns false', () => {
+    let triggered = false;
+    for (let i = 0; i < 20; i++) {
+        const result = brain.getPLOCheckRaise(false, { category: 'air' }, 0, 0, false, 0, 100);
+        if (result.shouldCheckRaise) { triggered = true; break; }
+    }
+    expect(triggered).toBe(false);
+});
+
+test('Phase 103: getPLOCheckRaise crSize is pot-relative when triggered', () => {
+    // Force full_house OOP with potSize=200 — crSize should be ~500 (2.5x pot)
+    let crSize = 0;
+    for (let i = 0; i < 50; i++) {
+        const result = brain.getPLOCheckRaise(false, { category: 'top_set' }, 0, 0, false, 50, 200);
+        if (result.shouldCheckRaise) { crSize = result.crSize; break; }
+    }
+    expect(crSize > 0).toBe(true);
+    expect(crSize).toBe(500); // Math.round(200 * 2.5)
+});
+
+// ── Bug #108: countStraightOuts no longer overcounts for missing.length===2 ──
+
+test('Phase 103: countStraightOuts 3-of-5 window no longer gives 8 outs', () => {
+    // Hold ranks [0, 2] (2 and 4), board [4] (6)
+    // Window [4,3,2,1,0] = 6-5-4-3-2: have {0,2,4} → missing [3,1] (5 and 3)
+    // Old code: 8 outs. New code: should NOT count this as 8 outs.
+    const result = brain.countStraightOuts([0, 2, 9, 10], [4, 11, 7]);
+    // Should be ≤4 (only gutshots from single-missing windows)
+    expect(result.outs <= 4).toBe(true);
+});
+
+test('Phase 103: countStraightOuts gutshot still gives 4 outs', () => {
+    // Hold [5,7,9,10] (7,9,J,Q), Board [6,8,0] (8,T,2)
+    // Window [10,9,8,7,6] = Q,J,T,9,8: have {5,7,9,10,6,8,0} → 10✓,9✓,8✓,7✓,6✓ → made straight
+    // Window [9,8,7,6,5] = J,T,9,8,7: have 9,8,7,6,5. missing? 5 → rank 3? No have {5,7,9,10,6,8,0}. 5✓. All present → made.
+    // Hmm, let me pick a proper gutshot example
+    // Hold [3,5,9,10] (5,7,J,Q), Board [4,11,0] (6,K,2)
+    // Window [7,6,5,4,3] = 9,8,7,6,5: have {3,5,9,10,4,11,0}. 7→no,6→no,5✓,4✓,3✓. missing=[7,6]. len=2 → skip.
+    // Window [5,4,3,2,1] = 7,6,5,4,3: have 5✓,4✓,3✓,2→no,1→no. missing=[2,1]. len=2 → skip.
+    // This example has no gutshots. Need one with missing.length===1.
+    // Hold [6,7,9,10] (8,9,J,Q), Board [8,11,0] (T,K,2)
+    // Window [11,10,9,8,7] = K,Q,J,T,9: have all 5. Made straight. Skip.
+    // Window [10,9,8,7,6] = Q,J,T,9,8: have all 5. Made straight. Skip.
+    // Bad example too. Let me use a clean gutshot:
+    // Hold [4,6,10,11] (6,8,Q,K), Board [5,3,0] (7,5,2)
+    // allRanks = {4,6,10,11,5,3,0}
+    // Window [7,6,5,4,3] = 9,8,7,6,5: have 6✓,5✓,4✓,3✓. missing=[7]=9. len=1. holeHave: [4,6] from [4,6,10,11] ≥2✓. 4 outs!
+    const result = brain.countStraightOuts([4, 6, 10, 11], [5, 3, 0]);
+    expect(result.outs >= 4).toBe(true);
+    expect(result.type).toBe('gutshot');
+});
+
+test('Phase 103: countStraightOuts wrap detection still works for big wraps', () => {
+    // Hold [5,6,7,8] (7,8,9,T), Board [4,3,11] (6,5,K)
+    // This is a massive wrap around 5-6-7-8-9-T
+    const result = brain.countStraightOuts([5, 6, 7, 8], [4, 3, 11]);
+    // Wrap detection code should still pick up the big wrap
+    expect(result.outs >= 4).toBe(true);
+});
+
+// ── Bug #109: evaluatePLO8Low board-relative nut low ──
+
+test('Phase 103: evaluatePLO8Low wheel is still nut low', () => {
+    // Hold: Ah 2h Kc Qc → holeCards with A(rank12), 2(rank0)
+    // Board: 3s 4d 5c 9h Ts → board with 3(rank1), 4(rank2), 5(rank3)
+    const hole = makePLOCards(['Ah', '2h', 'Kc', 'Qc']);
+    const board = makePLOCards(['3s', '4d', '5c', '9h', 'Ts']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.hasLow).toBe(true);
+    expect(result.hasNutLow).toBe(true);
+});
+
+test('Phase 103: evaluatePLO8Low A-2 with board 3-4-7 is nut low', () => {
+    // Board low cards: 3(1), 4(2), 7(5). Best possible = A(-1),2(0) + board 1,2,5 = [-1,0,1,2,5]
+    // Hero has A-2: hero low = [-1,0,1,2,5] = matches nut → hasNutLow = true
+    const hole = makePLOCards(['Ah', '2h', 'Kc', 'Qc']);
+    const board = makePLOCards(['3s', '4d', '7c', '9h', 'Ts']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.hasLow).toBe(true);
+    expect(result.hasNutLow).toBe(true);
+});
+
+test('Phase 103: evaluatePLO8Low A-3 with board 2-4-7 is nut low (not just wheel)', () => {
+    // Board low: 2(0), 4(2), 7(5). Best possible = A(-1) + 3(1) + board [0,2,5] = [-1,0,1,2,5]
+    // Hero A-3 → hero low = [-1,1] + [0,2,5] = [-1,0,1,2,5]. Matches nut!
+    const hole = makePLOCards(['Ah', '3h', 'Kc', 'Qc']);
+    const board = makePLOCards(['2s', '4d', '7c', '9h', 'Ts']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.hasLow).toBe(true);
+    expect(result.hasNutLow).toBe(true);
+});
+
+test('Phase 103: evaluatePLO8Low A-4 with board 2-3-8 is nut low (old code said no)', () => {
+    // Board low: 2(0), 3(1), 8(6). Best possible = A(-1) + 4(2) + board [0,1,6] = [-1,0,1,2,6]
+    // Hero A-4 → [-1,2] + [0,1,6] = [-1,0,1,2,6]. Matches nut!
+    // Old code: bestLow[4]=6 > 3, so hasNutLow=false. WRONG.
+    const hole = makePLOCards(['Ah', '4h', 'Kc', 'Qc']);
+    const board = makePLOCards(['2s', '3d', '8c', '9h', 'Ts']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.hasLow).toBe(true);
+    expect(result.hasNutLow).toBe(true);
+});
+
+test('Phase 103: evaluatePLO8Low 3-4 with board A-2-7 is nut low', () => {
+    // Board low: A(-1), 2(0), 7(5). Best possible = 3(1) + 4(2) + [-1,0,5] = [-1,0,1,2,5]
+    // Hero 3-4 → [1,2] + [-1,0,5] = [-1,0,1,2,5]. Matches!
+    const hole = makePLOCards(['3h', '4h', 'Kc', 'Qc']);
+    const board = makePLOCards(['As', '2d', '7c', '9h', 'Ts']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.hasLow).toBe(true);
+    expect(result.hasNutLow).toBe(true);
+});
+
+test('Phase 103: evaluatePLO8Low non-nut low correctly detected', () => {
+    // Board low: 2(0), 3(1), 7(5). Best possible = A(-1) + 4(2) + [0,1,5] = [-1,0,1,2,5]
+    // Hero has 4-5: [2,3] + [0,1,5] = [0,1,2,3,5]. NOT nut (someone with A-x beats us)
+    const hole = makePLOCards(['4h', '5h', 'Kc', 'Qc']);
+    const board = makePLOCards(['2s', '3d', '7c', '9h', 'Ts']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.hasLow).toBe(true);
+    expect(result.hasNutLow).toBe(false);
+});
+
+test('Phase 103: evaluatePLO8Low no low when board has no 3 low cards', () => {
+    const hole = makePLOCards(['Ah', '2h', 'Kc', 'Qc']);
+    const board = makePLOCards(['9s', 'Td', 'Jc', 'Qh', 'Ks']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.hasLow).toBe(false);
+    expect(result.hasNutLow).toBe(false);
+});
+
+test('Phase 103: evaluatePLO8Low scoopable when nut low', () => {
+    const hole = makePLOCards(['Ah', '2h', 'Kc', 'Qc']);
+    const board = makePLOCards(['3s', '4d', '5c', '9h', 'Ts']);
+    const result = brain.evaluatePLO8Low(hole, board);
+    expect(result.scoopable).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

@@ -568,30 +568,20 @@ function countStraightOuts(holeRanks, boardRanks) {
         const missing = needed.filter(r => r >= 0 && !have.has(r));
 
         if (missing.length === 0) continue; // Already have the straight (made hand)
-        if (missing.length > 2) continue;   // Need at least 3 of 5 cards
+        if (missing.length !== 1) continue; // Bug #108 fix: only count windows needing exactly 1 card
+        // (missing.length===2 overcounted — both cards needed for SAME straight, neither alone completes it)
+        // Multi-out draws (OESD, wraps) are handled by the wrap detection code below.
 
         // Count how many of the needed cards are in our HOLE cards (not board)
         const holeHave = needed.filter(r => holeRanks.includes(r));
         if (holeHave.length < 2) continue; // PLO rule: must use exactly 2 hole cards
 
-        // Open-ended: missing middle or ends
-        const outs = missing.length === 1 ? 4 : 8; // 1 missing = gutshot(4), would need more context
-        if (missing.length === 1) {
-            // Gutshot — 4 outs
-            if (outs > bestOuts) { bestOuts = outs; bestType = 'gutshot'; }
-        } else {
-            // Open-ended draw — could be up to 20 outs in PLO (wrap)
-            // Count actual outs based on how many hole cards contribute
-            let wrapOuts = 0;
-            for (const m of missing) {
-                if (m >= 0 && m <= 12) wrapOuts += 4; // 4 cards of each rank
-            }
-            if (wrapOuts > bestOuts) {
-                bestOuts = wrapOuts;
-                bestType = wrapOuts >= 16 ? 'big_wrap' : wrapOuts >= 12 ? 'wrap' : 'oesd';
-                // Nut draw if highest straight uses our high hole card
-                hasNutDraw = hasNutDraw || (high > maxBoardRank + 1);
-            }
+        // Gutshot — 4 outs (one missing card completes a 5-card straight)
+        if (4 > bestOuts) {
+            bestOuts = 4;
+            bestType = 'gutshot';
+            // Nut draw if highest straight uses our high hole card
+            hasNutDraw = hasNutDraw || (high > maxBoardRank + 1);
         }
     }
 
@@ -1021,8 +1011,24 @@ function evaluatePLO8Low(holeCards, boardCards) {
     }
 
     const hasLow = bestLow !== null;
-    // Nut low: A-2-3-4-5 (all lowest possible) = [0,1,2,3,4]
-    const hasNutLow = hasLow && bestLow && bestLow[4] <= 3; // Top card is 4 or below
+
+    // Bug #109 fix: Compute board-relative nut low instead of only checking for wheel.
+    // The nut low = best possible 5-card low using 3 board low cards + 2 best available cards.
+    let hasNutLow = false;
+    if (hasLow && bestLow) {
+        // Get the 3 lowest unique qualifying board cards (sorted ascending)
+        const boardLowSet = [...new Set(bLowQualify)].sort((a, b) => a - b).slice(0, 3);
+        // Find the 2 lowest possible cards that aren't already on the board
+        const allLowRanks = [-1, 0, 1, 2, 3, 4, 5, 6]; // A,2,3,4,5,6,7,8
+        const bestPossible = allLowRanks.filter(r => !boardLowSet.includes(r)).slice(0, 2);
+        // Nut low = boardLowSet + bestPossible, sorted
+        const nutLow = [...boardLowSet, ...bestPossible].sort((a, b) => a - b).slice(0, 5);
+        // Check if hero's bestLow matches the theoretical nut low
+        hasNutLow = bestLow.length === 5 && nutLow.length === 5 &&
+            bestLow[0] === nutLow[0] && bestLow[1] === nutLow[1] && bestLow[2] === nutLow[2] &&
+            bestLow[3] === nutLow[3] && bestLow[4] === nutLow[4];
+    }
+
     // Scoopable: if we have the nut low AND a strong high hand
     const scoopable = hasNutLow;
 
@@ -1157,7 +1163,7 @@ function getPLOProbeBet(isIP, equity, boardTexture, numPlayers) {
 
 /** Check-raise squeeze: OOP with monster hands or nut draws */
 function getPLOCheckRaise(isIP, madeHand, straightOuts, flushOuts, isNutFlushDraw, toCall, potSize) {
-    if (isIP || toCall === 0) return { shouldCheckRaise: false, crSize: 0 };
+    if (isIP) return { shouldCheckRaise: false, crSize: 0 };
     const cats = ['top_set', 'full_house', 'nut_flush', 'nut_straight'];
     if (cats.includes(madeHand.category) && Math.random() < 0.75) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
     if (isNutFlushDraw && straightOuts >= 13 && Math.random() < 0.70) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
@@ -18713,6 +18719,9 @@ module.exports = {
     // Exposed for testing (Phase 102) — deep audit fixes #102-#106
     projectPLOBoardScenarios,
     getPLODonkBetOpportunity,
+
+    // Exposed for testing (Phase 103) — deep audit fixes #107-#109
+    getPLOCheckRaise,
 
     // Exposed for testing (Phase 69-77)
     applyExploitIntensifier,
