@@ -8,7 +8,8 @@ import dynamic from 'next/dynamic';
 const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 import { MapErrorBoundary } from './VenueMap';
-import TourCard from './TourCard';
+import dynamic from 'next/dynamic';
+const RichTourCard = dynamic(() => import('./RichTourCard'), { ssr: false });
 
 const RADIUS_TIERS = [50, 100, 200, 500];
 
@@ -131,23 +132,14 @@ export default function VenuesTabPanel({
                         const isHighlighted = highlightedVenueId === venue.id;
                         
                         if (venue.venue_type === 'tour_stop' || venue.venue_type === 'series') {
-                            // Use the full tour object (attached at tourPin creation) so TourCard
-                            // renders identically to the Tours tab — with buy-ins, regions, stops, etc.
-                            const tourForCard = venue.tour_card_data || {
-                                tour_code: venue.tour_code,
-                                tour_name: venue.tour_name || venue.name,
-                                logo_url: venue.logo_url,
-                                tour_type: venue.is_running ? 'circuit' : 'regional',
-                                headquarters: venue.stop_venue
-                                    ? `${venue.stop_venue}${venue.city ? ' — ' + venue.city : ''}${venue.state ? ', ' + venue.state : ''}`
-                                    : venue.location || '',
-                            };
+                            // RichTourCard fetches live data to match the exact card on /hub/tours/[code]
+                            // including LIVE NOW banner, upcoming stops list, real-time buy-ins, etc.
                             return (
                                 <div key={venue.id || `tour-${i}`} id={`tour-card-${venue.tour_code || i}`}
                                     className={'venue-card-wrapper' + (isHighlighted ? ' venue-card-highlighted' : '')}
                                 >
-                                    <TourCard
-                                        tour={tourForCard}
+                                    <RichTourCard
+                                        venue={venue}
                                         isFavorited={isFavorited('venue', venue.id)}
                                         onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                         onNavigate={(path) => router.push(path)}
