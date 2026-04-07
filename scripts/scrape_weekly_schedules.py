@@ -27,9 +27,15 @@ Usage:
                     anti-hallucination filters, data_quality=scraped_verified
 """
 
-import hashlib, json, os, re, sys, time, urllib.request, urllib.parse, uuid, argparse
+import hashlib, json, os, re, sys, time, urllib.request, urllib.parse, uuid, argparse, io
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+
+try:
+    import pdfplumber
+    PDF_OK = True
+except ImportError:
+    PDF_OK = False
 
 # ── Config ────────────────────────────────────────────────────────────────────
 PROJECT_ROOT  = Path(__file__).resolve().parent.parent
@@ -816,8 +822,77 @@ def build_url_list(venue: dict) -> list:
     return urls[:18]  # 14 base paths + up to 4 JSON-LD injected URLs
 
 
+# ── PDF Extraction Pipeline ───────────────────────────────────────────────────
+def find_pdf_links(html: str, base_url: str) -> list:
+    """
+    Find all PDF links on a page that likely contain tournament schedules.
+    Returns list of absolute PDF URLs.
+    """
+    # Keywords that suggest this PDF is a tournament/schedule document
+    SCHED_WORDS = re.compile(
+        r'tournament|schedule|poker|event|calendar|weekly|nightly|daily|buy.?in',
+        re.IGNORECASE
+    )
+    found = []
+    seen = set()
 
-# ── Core scrape function ──────────────────────────────────────────────────────
+    # Find all <a href="...pdf"> links
+    for m in re.finditer(r'href=["\']([^"\']+\.pdf)["\']', html, re.IGNORECASE):
+        href = m.group(1).strip()
+        # Make absolute
+        if href.startswith('//'):
+            href = 'https:' + href
+        elif href.startswith('/'):
+            # Extract origin from base_url
+            parts = base_url.split('/')
+            origin = '/'.join(parts[:3])
+            href = origin + href
+        elif not href.startswith('http'):
+            href = base_url.rstrip('/') + '/' + href
+
+        if href in seen:
+            continue
+        seen.add(href)
+
+        # Check surrounding anchor text for schedule-related words
+        # Grab up to 100 chars before/after the match for context
+        start = max(0, m.start() - 150)
+        end = min(len(html), m.end() + 150)
+        context = html[start:end]
+
+        if SCHED_WORDS.search(context) or SCHED_WORDS.search(href):
+            found.append(href)
+
+    return found[:5]  # Cap at 5 PDFs per page to avoid runaway
+
+
+def extract_pdf_text(pdf_url: str, session) -> str:
+    """
+    Download a PDF via StealthySession and extract all text using pdfplumber.
+    Returns empty string on failure.
+    """
+    if not PDF_OK:
+        return ''
+    try:
+        resp = session.fetch(pdf_url, timeout=20000, wait_until='domcontentloaded')
+        if not resp or resp.status != 200:
+            return ''
+        raw = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode('utf-8')
+        # Verify it's actually a PDF
+        if not raw[:4] == b'%PDF':
+            return ''
+        with pdfplumber.open(io.BytesIO(raw)) as pdf:
+            pages_text = []
+            for page in pdf.pages:
+                txt = page.extract_text()
+                if txt:
+                    pages_text.append(txt)
+            return '\n'.join(pages_text)
+    except Exception as e:
+        print(f"      [PDF ERR] {str(e)[:70]}")
+        return ''
+
+
 def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
     name   = venue.get('name', 'Unknown')
     state  = venue.get('state', '')
@@ -854,6 +929,51 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
             continue
 
         body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode('utf-8')
+
+        # ── PDF sources: handled separately — skip HTML parsing entirely ─────
+        if src == 'pdf_sched':
+            if not PDF_OK:
+                continue
+            # Verify PDF magic bytes
+            if not body[:4] == b'%PDF':
+                print(f"      [PDF] Not a valid PDF (bad magic bytes)")
+                continue
+            try:
+                import io as _io
+                with pdfplumber.open(_io.BytesIO(body)) as pdf_obj:
+                    pages_text = [p.extract_text() or '' for p in pdf_obj.pages]
+                pdf_text = '\n'.join(t for t in pages_text if t)
+            except Exception as e:
+                print(f"      [PDF ERR] {str(e)[:70]}")
+                continue
+            if not pdf_text or not has_tournament_content(pdf_text):
+                print(f"      [PDF] No tournament content in PDF")
+                time.sleep(1)
+                continue
+            print(f"      [PDF] {len(pdf_text)} chars extracted → parsing")
+            pdf_hash = sha256(body)
+            candidates = extract_tournaments(pdf_text, name, url, pdf_hash)
+            if not candidates:
+                print(f"      [PDF] No structured records found in PDF")
+                time.sleep(1)
+                continue
+            print(f"      ✅ PDF: {len(candidates)} tournament records")
+            # Fall through to dedup/append below
+            new_recs = []
+            for rec in candidates:
+                dk = f"{rec.get('event_date') or rec.get('day_of_week')}-{rec.get('start_time')}-{rec.get('buy_in')}-{rec.get('game_type')}"
+                if dk not in seen_keys:
+                    seen_keys.add(dk)
+                    new_recs.append(rec)
+            if new_recs:
+                all_records.extend(new_recs)
+                print(f"      ✅ +{len(new_recs)} new PDF records added")
+                if not result['found']:
+                    result.update(found=True, confirmed_source='pdf_sched', source_url=url, html_hash=pdf_hash)
+            time.sleep(1.5)
+            continue  # Don't fall into HTML extraction
+
+        # ── Standard HTML processing ─────────────────────────────────────────
         html = body.decode('utf-8', errors='ignore')
         h    = sha256(body)
 
@@ -889,7 +1009,16 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
                 except (json.JSONDecodeError, Exception):
                     pass
 
-        # ── PokerAtlas JSON API path (kept for future use) ───────────────────
+        # ── PDF Discovery: scan HTML page for tournament PDF links ────────────
+        if PDF_OK and src not in ('hendonmob', 'cardplayer'):
+            pdf_links = find_pdf_links(html, url)
+            for pdf_url in pdf_links:
+                if pdf_url not in already_seen_urls:
+                    already_seen_urls.add(pdf_url)
+                    urls.append(('pdf_sched', pdf_url))
+                    print(f"      [PDF FOUND] Queued: {pdf_url[:75]}")
+
+        # ── Content extraction ────────────────────────────────────────────────
         if src == 'pokeratlas_api':
             try:
                 data = json.loads(html)
@@ -907,6 +1036,7 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
                 time.sleep(1)
                 continue
             candidates = extract_tournaments(html, name, url, h)
+
 
         # Deduplicate against global seen set
         new_recs = []
@@ -1016,7 +1146,7 @@ def load_venues(args) -> list:
     """
     params = (
         "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
-        "pokeratlas_url,pokeratlas_slug,bravo_url,bravo_slug,"
+        "pokeratlas_url,pokeratlas_slug,"
         "scrape_url,schedule_scrape_url,"
         "schedule_last_scraped_at,last_scraped_at,has_tournaments"
         "&has_tournaments=eq.true"
