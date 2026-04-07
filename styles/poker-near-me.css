@@ -44,17 +44,15 @@
     margin: 0 auto;
 }
 
-/* ═══ TOP ACTION STRIP ═══ */
-.pnm-top-strip {
+/* ═══ TOP SEARCH BAR (right-aligned, under global header) ═══ */
+.pnm-top-search-bar {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    justify-content: flex-end;
     padding: 8px 20px;
     background: rgba(8, 14, 26, 0.7);
     border-top: 1px solid rgba(148,163,184,0.1);
-    border-bottom: 1px solid rgba(148,163,184,0.1);
+    border-bottom: 1px solid rgba(148,163,184,0.08);
     backdrop-filter: blur(8px);
-    flex-wrap: wrap;
     position: sticky;
     top: 56px;
     z-index: 90;
@@ -211,15 +209,13 @@
     text-align: center;
 }
 
-/* Search input in top strip */
+/* Search input in top search bar */
 .pnm-top-search {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
-    min-width: 160px;
-    max-width: 280px;
-    margin-left: auto;
+    width: 100%;
+    max-width: 340px;
     background: rgba(0,0,0,0.35);
     border: 1.5px solid rgba(148,163,184,0.15);
     border-radius: 20px;
@@ -245,7 +241,7 @@
 /* ═══ TOP FILTER BAR ═══ */
 .pnm-filter-bar {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 12px;
     padding: 10px 20px;
     background: rgba(6,10,20,0.5);
@@ -303,6 +299,12 @@
     background: linear-gradient(135deg, #64748b, #334155);
     transform: translateY(-1px);
     box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+
+/* Live Games button in filter bar */
+.pnm-live-games-btn {
+    margin-left: 8px;
+    flex-shrink: 0;
 }
 
 /* ═══ QUICK CHIP STRIP ═══ */

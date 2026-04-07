@@ -323,14 +323,16 @@ async function checkLockExists(tableId, userId) {
   // Query chip_escrow as source of truth.
   try {
     const sb = getSupabase();
-    const { data } = await sb
+    // Phase 48f: resilient query
+    const { data } = await resilientQuery(sb, () => sb
       .from('chip_escrow')
       .select('id')
       .eq('table_id', tableId)
       .eq('player_id', userId)
       .eq('status', 'locked')
       .limit(1)
-      .maybeSingle();
+      .maybeSingle()
+    );
     return !!data;
   } catch (err) {
     console.error('[ChipBridge.checkLockExists] DB check failed:', err.message);
@@ -346,12 +348,14 @@ async function checkLockExists(tableId, userId) {
 async function getChipBalance(clubId, userId) {
   if (!clubId) return null;
   const sb = getSupabase();
-  const { data } = await sb
+  // Phase 48f: resilient query
+  const { data } = await resilientQuery(sb, () => sb
     .from('club_members')
     .select('chip_balance')
     .eq('club_id', clubId)
     .eq('user_id', userId)
-    .maybeSingle();
+    .maybeSingle()
+  );
   return data?.chip_balance || 0;
 }
 

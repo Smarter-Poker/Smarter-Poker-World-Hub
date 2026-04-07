@@ -2076,37 +2076,38 @@ class GameController {
         // Use a synthetic tableId for tournament chip locks (matches registration path)
         const lockTableId = e.tableId || `tournament_${tournamentId}`;
         try {
-          const { error: unlockErr } = await this.supabase.rpc('unlock_chips_from_table', {
+          // Phase 48f: resilient — financial critical (tournament refunds)
+          const { error: unlockErr } = await resilientMutation(this.supabase, () => this.supabase.rpc('unlock_chips_from_table', {
             p_club_id: entryClubId,
             p_user_id: playerId,
             p_table_id: lockTableId,
             p_amount: refundAmount,
-          });
+          }), { critical: true });
           if (!unlockErr) {
-            await this.supabase.from('chip_transactions').insert({
+            await resilientMutation(this.supabase, () => this.supabase.from('chip_transactions').insert({
               club_id: entryClubId,
               to_user_id: playerId,
               amount: refundAmount,
               transaction_type: 'tournament_refund',
               notes: `Tournament cancelled — full refund (${t.name || tournamentId})`,
-            });
+            }), { critical: true });
             refunded++;
           } else {
             // Fallback: if unlock fails (e.g., no lock record found), try direct credit
             console.warn(`[cancelTournament] Unlock failed for ${playerId}, falling back to credit:`, unlockErr.message);
-            const { error: creditErr } = await this.supabase.rpc('fn_credit_chips', {
+            const { error: creditErr } = await resilientMutation(this.supabase, () => this.supabase.rpc('fn_credit_chips', {
               p_club_id: entryClubId,
               p_user_id: playerId,
               p_amount: refundAmount,
-            });
+            }), { critical: true });
             if (!creditErr) {
-              await this.supabase.from('chip_transactions').insert({
+              await resilientMutation(this.supabase, () => this.supabase.from('chip_transactions').insert({
                 club_id: entryClubId,
                 to_user_id: playerId,
                 amount: refundAmount,
                 transaction_type: 'tournament_refund',
                 notes: `Tournament cancelled — full refund via fallback credit (${t.name || tournamentId})`,
-              });
+              }), { critical: true });
               refunded++;
             } else {
               console.error(`[cancelTournament] Refund failed for ${playerId}:`, creditErr.message);
