@@ -1761,18 +1761,24 @@ function getPLOMultiStreetPlan(madeHand, straightOuts, flushOuts, street, boardT
  * @param {number} equity
  * @returns {{ shouldCBet: boolean, cBetFraction: number, reason: string }}
  */
-function getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity, madeHandStrength) {
+function getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity, madeHandStrength, totalOuts) {
     if (!wasPFRaiser) return { shouldCBet: false, cBetFraction: 0, reason: 'not_pfr' };
     if (numPlayers > 3) return { shouldCBet: equity >= 65, cBetFraction: 0.75, reason: 'multiway_value_only' };
 
     // Bug #96: Distinguish made hand equity from draw equity for c-bet sizing
     const mhs = madeHandStrength || 0;
+    const outs = totalOuts || 0;
     const isDrawHeavy = equity >= 50 && mhs < 35;
+    // Bug #121: Big draws (wraps, combo draws) should size up when c-betting as semi-bluffs.
+    // A 13-out wrap has ~50% equity — bet big to charge opponents and build the pot.
+    const isBigDraw = outs >= 13;
+    const bigDrawFraction = isBigDraw ? 0.75 : (outs >= 9 ? 0.65 : 0);
 
     // Dry boards: c-bet high frequency with strong hands + semi-bluffs
     if (boardTexture.texture === 'rainbow') {
+        if (isBigDraw && isIP) return { shouldCBet: true, cBetFraction: bigDrawFraction, reason: 'dry_big_draw_semi' };
         if (mhs >= 50) return { shouldCBet: true, cBetFraction: 0.65, reason: 'dry_value' };
-        if (isDrawHeavy && isIP) return { shouldCBet: true, cBetFraction: 0.50, reason: 'dry_semi_bluff' };
+        if (isDrawHeavy && isIP) return { shouldCBet: true, cBetFraction: Math.max(0.50, bigDrawFraction), reason: 'dry_semi_bluff' };
         if (equity >= 50) return { shouldCBet: true, cBetFraction: 0.60, reason: 'dry_value' };
         if (isIP && Math.random() < 0.35) return { shouldCBet: true, cBetFraction: 0.45, reason: 'dry_bluff_ip' };
     }
@@ -4896,7 +4902,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 3: C-bet strategy (fires only if horse was PFR) ──
     // wasPFRaiser declared above (hoisted to avoid TDZ)
-    const cBetStrategy = getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity, madeHand.strength);
+    const cBetStrategy = getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity, madeHand.strength, totalOuts);
 
     // ── Phase 3: Turn barrel decision ──
     const turnBarrel = street === 'turn'
