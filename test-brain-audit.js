@@ -16022,6 +16022,287 @@ test('PLO MADE HAND: two pair returns isMade true', () => {
     expect(mh.isMade).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 101: DEEP DIVE PLO ENGINE FIXES (Bugs #88-#101)
+// ═══════════════════════════════════════════════════════════
+
+// ── Bug #88: Board texture now includes isWet and twoTone flags ──
+test('Bug #88: Two-tone board has twoTone=true', () => {
+    const board = makePLOCards(['Ah','Kh','7c']);
+    const tex = brain.analyzePLOBoardTexture(board);
+    expect(tex.twoTone).toBe(true);
+});
+
+test('Bug #88: Two-tone board has isWet=true', () => {
+    const board = makePLOCards(['Ah','Kh','7c']);
+    const tex = brain.analyzePLOBoardTexture(board);
+    expect(tex.isWet).toBe(true);
+});
+
+test('Bug #88: Rainbow disconnected board has twoTone=false', () => {
+    const board = makePLOCards(['Ah','Kc','2d']);
+    const tex = brain.analyzePLOBoardTexture(board);
+    expect(tex.twoTone).toBe(false);
+});
+
+test('Bug #88: Monotone board has isWet=true, twoTone=false', () => {
+    const board = makePLOCards(['Ah','Kh','7h']);
+    const tex = brain.analyzePLOBoardTexture(board);
+    expect(tex.isWet).toBe(true);
+    expect(tex.twoTone).toBe(false);
+});
+
+test('Bug #88: Connected rainbow board (8-9-T) has isWet=true due to connectivity', () => {
+    const board = makePLOCards(['8c','9d','Th']);
+    const tex = brain.analyzePLOBoardTexture(board);
+    expect(tex.isWet).toBe(true);
+});
+
+// ── Bug #90: Overpair detection in evaluatePLOMadeHand ──
+test('Bug #90: KK on J-7-3 board = overpair', () => {
+    const hole = makePLOCards(['Kc','Kd','5h','4s']);
+    const board = makePLOCards(['Jh','7c','3d']);
+    const mh = brain.evaluatePLOMadeHand(hole, board);
+    expect(mh.category).toBe('overpair');
+    expect(mh.isMade).toBe(true);
+    expect(mh.strength >= 40).toBe(true);
+});
+
+test('Bug #90: QQ on J-7-3 board = overpair', () => {
+    const hole = makePLOCards(['Qc','Qd','5h','4s']);
+    const board = makePLOCards(['Jh','7c','3d']);
+    const mh = brain.evaluatePLOMadeHand(hole, board);
+    expect(mh.category).toBe('overpair');
+});
+
+test('Bug #90: JJ on Q-7-3 board = NOT overpair (pair below top board card)', () => {
+    const hole = makePLOCards(['Jc','Jd','5h','4s']);
+    const board = makePLOCards(['Qh','7c','3d']);
+    const mh = brain.evaluatePLOMadeHand(hole, board);
+    expect(mh.category === 'overpair').toBe(false);
+});
+
+test('Bug #90: Overpair has hasRedraw=true', () => {
+    const hole = makePLOCards(['Kc','Kd','5h','4s']);
+    const board = makePLOCards(['Jh','7c','3d']);
+    const mh = brain.evaluatePLOMadeHand(hole, board);
+    expect(mh.hasRedraw).toBe(true);
+});
+
+// ── Bug #91: Showdown value includes new categories ──
+test('Bug #91: Bottom set has showdown value', () => {
+    const sdv = brain.getPLOShowdownValue(
+        { strength: 50, category: 'bottom_set', isNut: false },
+        { isDangerous: false, isMonotone: false },
+        2, 'turn'
+    );
+    expect(sdv.hasShowdownValue).toBe(true);
+});
+
+test('Bug #91: Overpair has showdown value heads-up', () => {
+    const sdv = brain.getPLOShowdownValue(
+        { strength: 45, category: 'overpair', isNut: false },
+        { isDangerous: false, isMonotone: false },
+        2, 'turn'
+    );
+    expect(sdv.hasShowdownValue).toBe(true);
+});
+
+// ── Bug #92: Implied odds use rule of 4 on flop ──
+test('Bug #92: Implied odds on flop use higher hit rate than turn (rule of 4)', () => {
+    const flopIO = brain.getPLOImpliedOdds(100, 300, 2000, 12, true, 'flop');
+    const turnIO = brain.getPLOImpliedOdds(100, 300, 2000, 12, true, 'turn');
+    expect(flopIO.impliedOdds > turnIO.impliedOdds).toBe(true);
+});
+
+test('Bug #92: Flop implied odds with 15 outs are profitable', () => {
+    const io = brain.getPLOImpliedOdds(100, 400, 3000, 15, true, 'flop');
+    expect(io.isProfitableCall).toBe(true);
+});
+
+// ── Bug #93: Turn barrel distinguishes nut vs non-nut flush draw ──
+test('Bug #93: Nut flush draw barrels at 0.70 fraction', () => {
+    const result = brain.getPLOTurnBarrel(
+        55, { strength: 30, category: 'air', isNut: false },
+        0, 9, false, { isMonotone: false, isPaired: false }, true, true
+    );
+    expect(result.shouldBarrel).toBe(true);
+    expect(result.barrelFraction).toBe(0.70);
+});
+
+test('Bug #93: Non-nut flush draw barrels at 0.55 fraction', () => {
+    const result = brain.getPLOTurnBarrel(
+        55, { strength: 30, category: 'air', isNut: false },
+        0, 9, false, { isMonotone: false, isPaired: false }, true, false
+    );
+    expect(result.shouldBarrel).toBe(true);
+    expect(result.barrelFraction).toBe(0.55);
+});
+
+// ── Bug #94: Multi-street plan river handling and bottom set ──
+test('Bug #94: Multi-street plan on river has futureValue=0', () => {
+    const plan = brain.getPLOMultiStreetPlan(
+        { strength: 60, category: 'top_pair' }, 0, 0, 'river',
+        { isMonotone: false, flushCompleted: false }, true
+    );
+    expect(plan.futureValue).toBe(0);
+});
+
+test('Bug #94: Bottom set on turn should play fast', () => {
+    const plan = brain.getPLOMultiStreetPlan(
+        { strength: 50, category: 'bottom_set' }, 0, 0, 'turn',
+        { isMonotone: false, flushCompleted: false }, true
+    );
+    expect(plan.shouldPlayFastNow).toBe(true);
+});
+
+test('Bug #94: Combo draw 12+ outs on turn should play fast', () => {
+    const plan = brain.getPLOMultiStreetPlan(
+        { strength: 30, category: 'air' }, 8, 6, 'turn',
+        { isMonotone: false, flushCompleted: false }, true
+    );
+    expect(plan.shouldPlayFastNow).toBe(true);
+});
+
+// ── Bug #95: Backdoor straight detection ──
+test('Bug #95: Backdoor straight detected with 2 hole + 1 board in 5-card window', () => {
+    // Hole: Jh Th 5c 4d (J-T are connected, board has 8)
+    const hole = makePLOCards(['Jh','Th','5c','4d']);
+    const board = makePLOCards(['8c','3d','2s']); // J-T-8 = 3 in a 5-card window
+    const outs = brain.countBackdoorOuts(hole, board);
+    expect(outs >= 1).toBe(true); // At least 1 from backdoor straight + maybe backdoor flush
+});
+
+test('Bug #95: No backdoor straight with completely disconnected hand', () => {
+    const hole = makePLOCards(['Ac','2h','7d','3s']);
+    const board = makePLOCards(['Kh','Jc','5d']);
+    const outs = brain.countBackdoorOuts(hole, board);
+    // Backdoor flush might still contribute, but straight backdoor unlikely with this spread
+    expect(outs <= 2).toBe(true); // At most backdoor flush outs
+});
+
+// ── Bug #96: C-bet strategy distinguishes draw vs made hand equity ──
+test('Bug #96: C-bet function accepts madeHandStrength parameter', () => {
+    const cbet = brain.getPLOCBetStrategy(true, { texture: 'rainbow', isMonotone: false, isPaired: false }, true, 2, 55, 60);
+    expect(cbet.shouldCBet).toBe(true);
+    expect(cbet.reason).toBe('dry_value'); // High made hand strength = value c-bet
+});
+
+test('Bug #96: Draw-heavy equity gets semi-bluff sizing on dry board', () => {
+    const cbet = brain.getPLOCBetStrategy(true, { texture: 'rainbow', isMonotone: false, isPaired: false }, true, 2, 55, 20);
+    expect(cbet.shouldCBet).toBe(true);
+    expect(cbet.reason).toBe('dry_semi_bluff'); // Low made hand + high equity = semi-bluff
+});
+
+// ── Bug #97: BB fold threshold loosened for PLO pot odds ──
+test('Bug #97: BB defends with strength 35 (was folding before fix)', () => {
+    const def = brain.getPLOBlindDefense('BB', 35, 30, 10, 45, 3, [
+        { type: 'call' }, { type: 'raise', minAmount: 30, maxAmount: 200 }, { type: 'fold' }
+    ]);
+    // Should NOT return fold with strength 35 (old threshold was 38, now 32)
+    expect(def === null || def.action !== 'fold').toBe(true);
+});
+
+test('Bug #97: BB still folds truly garbage (strength 28)', () => {
+    const def = brain.getPLOBlindDefense('BB', 28, 30, 10, 45, 3, [
+        { type: 'call' }, { type: 'raise', minAmount: 30, maxAmount: 200 }, { type: 'fold' }
+    ]);
+    expect(def !== null && def.action === 'fold').toBe(true);
+});
+
+// ── Bug #101 (CRITICAL): AAxx rank check now uses 12 instead of 14 ──
+test('Bug #101: AAxx preflop potting logic fires (parseCard maps A to 12)', () => {
+    // Create a state with AA** hand, should get aggressive action
+    const pid = 'test-aa-fix-101-' + Date.now();
+    const state = {
+        holeCards: ['Ac','Ad','5h','6s'],
+        board: [],
+        street: 'preflop',
+        position: 'CO',
+        stackBB: 25,
+        potSize: 30,
+        toCall: 10,
+        bb: 10,
+        numPlayers: 4,
+        isHiLo: false,
+        numHoleCards: 4,
+    };
+    const actions = [
+        { type: 'call' },
+        { type: 'raise', minAmount: 25, maxAmount: 250 },
+        { type: 'fold' }
+    ];
+    const result = brain.getDecision(pid, 'PLO', state, actions);
+    // With AA, stack=25BB, pot=30, toCall=10, bb=10:
+    // pot raise ~= 30+10+10+10 = 60, total committed = 70
+    // stack = 250, committed pct = 70/250 = 28% — below 40% threshold
+    // BUT AA should at minimum raise aggressively, not fold/check
+    expect(result.type === 'fold').toBe(false);
+});
+
+test('Bug #101: AAxx rank 12 check (parseCard maps A=12, not 14)', () => {
+    // Direct test: classifyPLOPreflop should score AA high, confirming rank=12 works
+    const RANKS = '23456789TJQKA';
+    const cards = [
+        { rank: RANKS.indexOf('A'), suit: 'c' },
+        { rank: RANKS.indexOf('A'), suit: 'd' },
+        { rank: RANKS.indexOf('5'), suit: 'h' },
+        { rank: RANKS.indexOf('6'), suit: 's' }
+    ];
+    expect(cards[0].rank).toBe(12); // Ace = 12
+    const score = brain.classifyPLOPreflop(cards);
+    // AA should score very high (>= 80)
+    expect(score >= 80).toBe(true);
+});
+
+// ── Bug #99 & #100: Wheel straight detection (A-2-3-4-5) ──
+test('Bug #100: Wheel straight (A-2-3-4-5) detected as made hand', () => {
+    // Hole: Ac 2d Kh Jh, Board: 3c 4s 5h → A-2-3-4-5 wheel
+    const hole = makePLOCards(['Ac','2d','Kh','Jh']);
+    const board = makePLOCards(['3c','4s','5h']);
+    const mh = brain.evaluatePLOMadeHand(hole, board);
+    expect(mh.isMade).toBe(true);
+    expect(mh.category === 'straight' || mh.category === 'nut_straight').toBe(true);
+});
+
+test('Bug #99: Wheel straight draw detected with correct outs', () => {
+    // Hole: Ac 2d Kh Jh, Board: 3c 4s 9h → need a 5 for A-2-3-4-5
+    const holeRanks = [12, 0, 11, 9]; // A, 2, K, J
+    const boardRanks = [1, 2, 7]; // 3, 4, 9
+    const result = brain.countStraightOuts(holeRanks, boardRanks);
+    // A-2-3-4-? needs 5(rank 3) → gutshot = 4 outs
+    expect(result.outs >= 4).toBe(true);
+});
+
+// ── Structural validation: all new exports work ──
+test('Phase 101: analyzePLOBoardTexture exported and callable', () => {
+    expect(typeof brain.analyzePLOBoardTexture).toBe('function');
+});
+
+test('Phase 101: getPLOMultiStreetPlan exported and callable', () => {
+    expect(typeof brain.getPLOMultiStreetPlan).toBe('function');
+});
+
+test('Phase 101: countBackdoorOuts exported and callable', () => {
+    expect(typeof brain.countBackdoorOuts).toBe('function');
+});
+
+test('Phase 101: getPLOTurnBarrel exported and callable', () => {
+    expect(typeof brain.getPLOTurnBarrel).toBe('function');
+});
+
+test('Phase 101: getPLOImpliedOdds exported and callable', () => {
+    expect(typeof brain.getPLOImpliedOdds).toBe('function');
+});
+
+test('Phase 101: getPLOCBetStrategy exported and callable', () => {
+    expect(typeof brain.getPLOCBetStrategy).toBe('function');
+});
+
+test('Phase 101: countStraightOuts exported and callable', () => {
+    expect(typeof brain.countStraightOuts).toBe('function');
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

@@ -557,9 +557,13 @@ function countStraightOuts(holeRanks, boardRanks) {
     let bestType = 'none';
     let hasNutDraw = false;
 
-    // Try each possible straight endpoint (A-high = 12 down to 5-high = 4)
-    for (let high = 12; high >= 4; high--) {
-        const needed = [high, high - 1, high - 2, high - 3, high - 4];
+    // Bug #99: Include wheel (A-2-3-4-5 = ranks [3,2,1,0,12])
+    const straightDrawWindows = [];
+    for (let h = 12; h >= 4; h--) {
+        straightDrawWindows.push({ ranks: [h, h - 1, h - 2, h - 3, h - 4], highVal: h });
+    }
+    straightDrawWindows.push({ ranks: [3, 2, 1, 0, 12], highVal: 3 }); // Wheel (5-high)
+    for (const { ranks: needed, highVal: high } of straightDrawWindows) {
         const have = new Set(allRanks);
         const missing = needed.filter(r => r >= 0 && !have.has(r));
 
@@ -677,6 +681,8 @@ function countFlushOuts(holeCards, boardCards) {
 function countBackdoorOuts(holeCards, boardCards) {
     const holeSuits = holeCards.map(c => c.suit);
     const boardSuits = boardCards.map(c => c.suit);
+    const holeRanks = holeCards.map(c => c.rank);
+    const boardRanks = boardCards.map(c => c.rank);
     let backdoor = 0;
 
     // Backdoor flush = 2 hole cards of same suit + 1 board card of same suit (flop only)
@@ -685,6 +691,18 @@ function countBackdoorOuts(holeCards, boardCards) {
             const h = holeSuits.filter(s => s === suit).length;
             const b = boardSuits.filter(s => s === suit).length;
             if (h >= 2 && b === 1) { backdoor += 2; break; }
+        }
+
+        // Bug #95: Backdoor straight = 3 cards to a straight using 2+ hole cards
+        const allRanks = [...new Set([...holeRanks, ...boardRanks])].sort((a, b) => a - b);
+        for (let high = 12; high >= 4; high--) {
+            const needed = [high, high - 1, high - 2, high - 3, high - 4];
+            const haveCount = needed.filter(r => allRanks.includes(r)).length;
+            const holeContrib = needed.filter(r => holeRanks.includes(r)).length;
+            if (haveCount >= 3 && holeContrib >= 2) {
+                backdoor += 1; // ~1 pseudo-out for backdoor straight
+                break;
+            }
         }
     }
     return backdoor;
@@ -789,8 +807,13 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     // ── Check for Straight (must use exactly 2 hole cards) ──
     let bestStraight = 0;
     let isNutStraight = false;
-    for (let high = 12; high >= 4; high--) {
-        const needed = [high, high - 1, high - 2, high - 3, high - 4];
+    // Bug #100: Include wheel (A-2-3-4-5 = ranks [3,2,1,0,12])
+    const madeStrWindows = [];
+    for (let h = 12; h >= 4; h--) {
+        madeStrWindows.push({ needed: [h, h - 1, h - 2, h - 3, h - 4], high: h });
+    }
+    madeStrWindows.push({ needed: [3, 2, 1, 0, 12], high: 3 }); // Wheel (5-high)
+    for (const { needed, high } of madeStrWindows) {
         const boardPart = needed.filter(r => bRanks.includes(r));
         const holePart = needed.filter(r => hRanks.includes(r));
         if (boardPart.length === 3 && holePart.length === 2 && boardPart.length + holePart.length === 5) {
@@ -891,7 +914,23 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         };
     }
 
-    // ── One Pair (top pair or over-pair or under-pair) ──
+    // ── Bug #90: Overpair detection (pocket pair above all board cards) ──
+    const hRankFreqOP = {};
+    for (const r of hRanks) hRankFreqOP[r] = (hRankFreqOP[r] || 0) + 1;
+    for (const [rank, cnt] of Object.entries(hRankFreqOP)) {
+        const r = parseInt(rank);
+        if (cnt >= 2 && r > boardTop) {
+            return {
+                strength: r >= 10 ? 45 : 40,
+                category: 'overpair',
+                isNut: false,
+                hasRedraw: true,
+                isMade: true
+            };
+        }
+    }
+
+    // ── One Pair (top pair or under-pair) ──
     for (const r of hRanks) {
         if (bRanks.includes(r)) {
             const isTopPair = r === boardTop;
@@ -1031,7 +1070,9 @@ function analyzePLOBoardTexture(boardCards) {
     else if (isDoublePaired) texture = 'double_paired';
     else if (isPaired) texture = 'paired';
     else if (Object.values(suitFreq).some(v => v >= 2)) texture = 'two_tone';
-    return { texture, flushCompleted, monoBoardPenalty, isDangerous: isMonotone || isPaired || flushCompleted || straightCompleted, straightCompleted, isRunOutBoard, isPaired, isMonotone };
+    const twoTone = Object.values(suitFreq).some(v => v >= 2) && !isMonotone;
+    const isWet = twoTone || isMonotone || straightCompleted || (maxC >= 3);
+    return { texture, flushCompleted, monoBoardPenalty, isDangerous: isMonotone || isPaired || flushCompleted || straightCompleted, straightCompleted, isRunOutBoard, isPaired, isMonotone, twoTone, isWet };
 }
 
 /** Detects scare cards on turn/river (cards completing flush, straight, or pairing the board) */
@@ -1452,6 +1493,23 @@ function getPLOMultiStreetPlan(madeHand, straightOuts, flushOuts, street, boardT
         if (madeHand.strength >= 65) shouldPlayFastNow = true;
         // Very strong hands OOP on turn: check-raise instead of donk
         if (madeHand.strength >= 80 && !isIP) shouldSlowPlay = true;
+        // Bug #94: Bottom/middle sets on turn need urgent protection
+        if (madeHand.category === 'bottom_set' || madeHand.category === 'middle_set') {
+            shouldPlayFastNow = true;
+            futureValue -= 5; // Vulnerable sets lose to straights/flushes on river
+        }
+        // Bug #94: Combo draws on turn are pure equity plays
+        if (totalOuts >= 12) {
+            shouldPlayFastNow = true;
+            futureValue += 8;
+        }
+    }
+
+    // Bug #94: River handling — no draws to improve, pure made hand value
+    if (street === 'river') {
+        futureValue = 0;
+        if (madeHand.strength >= 70) shouldPlayFastNow = true;
+        if (madeHand.strength >= 40 && madeHand.strength < 65) shouldSlowPlay = true;
     }
 
     return { futureValue, shouldPlayFastNow, shouldSlowPlay };
@@ -1469,14 +1527,20 @@ function getPLOMultiStreetPlan(madeHand, straightOuts, flushOuts, street, boardT
  * @param {number} equity
  * @returns {{ shouldCBet: boolean, cBetFraction: number, reason: string }}
  */
-function getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity) {
+function getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity, madeHandStrength) {
     if (!wasPFRaiser) return { shouldCBet: false, cBetFraction: 0, reason: 'not_pfr' };
     if (numPlayers > 3) return { shouldCBet: equity >= 65, cBetFraction: 0.75, reason: 'multiway_value_only' };
 
-    // Dry boards: c-bet high frequency with strong hands + semi-bluffs (board misses opponents)
+    // Bug #96: Distinguish made hand equity from draw equity for c-bet sizing
+    const mhs = madeHandStrength || 0;
+    const isDrawHeavy = equity >= 50 && mhs < 35;
+
+    // Dry boards: c-bet high frequency with strong hands + semi-bluffs
     if (boardTexture.texture === 'rainbow') {
-        if (equity >= 50) return { shouldCBet: true, cBetFraction: 0.65, reason: 'dry_value' };
-        if (isIP && Math.random() < 0.35) return { shouldCBet: true, cBetFraction: 0.50, reason: 'dry_bluff_ip' };
+        if (mhs >= 50) return { shouldCBet: true, cBetFraction: 0.65, reason: 'dry_value' };
+        if (isDrawHeavy && isIP) return { shouldCBet: true, cBetFraction: 0.50, reason: 'dry_semi_bluff' };
+        if (equity >= 50) return { shouldCBet: true, cBetFraction: 0.60, reason: 'dry_value' };
+        if (isIP && Math.random() < 0.35) return { shouldCBet: true, cBetFraction: 0.45, reason: 'dry_bluff_ip' };
     }
 
     // Monotone boards: check-back more (opponents could have flopped flushes)
@@ -1516,7 +1580,7 @@ function getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity)
  * @param {boolean} isIP
  * @returns {{ shouldBarrel: boolean, barrelFraction: number }}
  */
-function getPLOTurnBarrel(equity, madeHand, straightOuts, flushOuts, isScareTurn, boardTexture, isIP) {
+function getPLOTurnBarrel(equity, madeHand, straightOuts, flushOuts, isScareTurn, boardTexture, isIP, isNutFlushDraw) {
     const totalOuts = straightOuts + flushOuts;
 
     // Strong made hands always barrel
@@ -1528,8 +1592,9 @@ function getPLOTurnBarrel(equity, madeHand, straightOuts, flushOuts, isScareTurn
     // Big wrap (15+ outs): barrel to charge opponents
     if (straightOuts >= 15) return { shouldBarrel: true, barrelFraction: 0.75 };
 
-    // Nut flush draw: barrel (semi-bluff with equity)
-    if (flushOuts >= 8) return { shouldBarrel: true, barrelFraction: 0.70 };
+    // Bug #93: Nut flush draw: barrel aggressively. Non-nut: barrel smaller.
+    if (flushOuts >= 8 && isNutFlushDraw) return { shouldBarrel: true, barrelFraction: 0.70 };
+    if (flushOuts >= 8 && !isNutFlushDraw) return { shouldBarrel: true, barrelFraction: 0.55 };
 
     // Combo draws (flush + straight): always barrel turn
     if (flushOuts >= 6 && straightOuts >= 8) return { shouldBarrel: true, barrelFraction: 0.80 };
@@ -1569,7 +1634,7 @@ function getPLOShowdownValue(madeHand, boardTexture, numPlayers, street) {
     if (street === 'river') sdv += 10; // River = showdown value counts more
 
     // Sets+ have showdown value on any board
-    const highSDVHands = ['top_set', 'set', 'full_house', 'nut_flush', 'nut_straight', 'flush', 'straight'];
+    const highSDVHands = ['top_set', 'middle_set', 'bottom_set', 'set', 'full_house', 'nut_flush', 'nut_straight', 'flush', 'straight', 'overpair'];
     const hasShowdownValue = highSDVHands.includes(madeHand.category) || sdv >= 45;
 
     return { hasShowdownValue, sdvScore: Math.max(0, sdv) };
@@ -1635,11 +1700,12 @@ function getPLORangeBalance(profileId, situation, equity) {
  * @param {boolean} isNutDraw - Holding the nuts when we hit
  * @returns {{ impliedOdds: number, isProfitableCall: boolean, impliedMultiplier: number }}
  */
-function getPLOImpliedOdds(toCall, potSize, effectiveStack, totalOuts, isNutDraw) {
+function getPLOImpliedOdds(toCall, potSize, effectiveStack, totalOuts, isNutDraw, street) {
     if (toCall <= 0) return { impliedOdds: Infinity, isProfitableCall: true, impliedMultiplier: 0 };
 
-    // Pot odds: what fraction of the final pot do we need to win with what hit-rate?
-    const hitRate = Math.min(totalOuts * 0.022, 0.46); // Rule of 2 per street
+    // Bug #92: Rule of 4 on flop (2 cards to come), Rule of 2 on turn (1 card to come)
+    const perOutRate = (street === 'flop') ? 0.042 : 0.022;
+    const hitRate = Math.min(totalOuts * perOutRate, 0.65); // Cap at 65%
     const potOdds = toCall / (potSize + toCall);
 
     // Implied multiplier: how much total we expect to win when we hit
@@ -2042,8 +2108,8 @@ function getPLOBlindDefense(position, strength, toCall, bb, potSize, numPlayers,
             const sqz = Math.round(potSize * 0.85);
             return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(sqz, raiseAction.maxAmount || sqz)) };
         }
-        // Fold weak hands
-        if (strength < 38) return { action: 'fold' };
+        // Bug #97: Fold truly weak hands — PLO BB gets great pot odds, defend wider
+        if (strength < 32) return { action: 'fold' };
     }
 
     // SB defense: worst position, very selective
@@ -4289,7 +4355,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // 60% or more of your stack in preflop, you should always do it."
         // This intercepts BEFORE other logic — AA is always aggressive preflop.
         const holeRanksPreflop = holeCards.map(c => c.rank);
-        const aceCount = holeRanksPreflop.filter(r => r === 14).length;
+        // Bug #101: parseCard maps Ace to rank 12 (NOT 14). Was checking === 14, NEVER matched.
+        const aceCount = holeRanksPreflop.filter(r => r === 12).length;
         if (aceCount >= 2 && canRaise) {
             const stack = stackBB * bb;
             // Calculate pot size: potting = current pot + toCall, then raise to 3x that
@@ -4517,7 +4584,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 3: Implied odds for drawing hands ──
     const isNutDraw = flushDraw.isNutFlushDraw || straightDraw.hasNutStraightDraw;
-    const impliedOddsInfo = getPLOImpliedOdds(toCall, potSize, effectiveStack, totalOuts, isNutDraw);
+    const impliedOddsInfo = getPLOImpliedOdds(toCall, potSize, effectiveStack, totalOuts, isNutDraw, street);
 
     // ── Phase 3: Range balance randomizer ──
     const situation = street === 'river' ? 'river_bet' : street === 'turn' ? 'turn_lead' : 'flop_lead';
@@ -4525,11 +4592,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 3: C-bet strategy (fires only if horse was PFR) ──
     // wasPFRaiser declared above (hoisted to avoid TDZ)
-    const cBetStrategy = getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity);
+    const cBetStrategy = getPLOCBetStrategy(wasPFRaiser, boardTexture, isIP, numPlayers, equity, madeHand.strength);
 
     // ── Phase 3: Turn barrel decision ──
     const turnBarrel = street === 'turn'
-        ? getPLOTurnBarrel(equity, madeHand, straightDraw.outs, flushDraw.outs, scareInfo.isScareTurn, boardTexture, isIP)
+        ? getPLOTurnBarrel(equity, madeHand, straightDraw.outs, flushDraw.outs, scareInfo.isScareTurn, boardTexture, isIP, flushDraw.isNutFlushDraw)
         : null;
 
     // ── Phase 3: Proper PLO pot geometry (correct raise sizing) ──
@@ -18610,6 +18677,15 @@ module.exports = {
     getPLOBlockers,
     getPLOEquityRealization,
     detectScareCard,
+
+    // Exposed for testing (Phase 101) — PLO deep dive fixes
+    getPLOMultiStreetPlan,
+    countBackdoorOuts,
+    getPLOTurnBarrel,
+    getPLOImpliedOdds,
+    getPLOCBetStrategy,
+    getPLOShowdownValue,
+    getPLOBlindDefense,
 
     // Exposed for testing (Phase 48c) — wrap draw detector
     detectPLOWrapDraw,
