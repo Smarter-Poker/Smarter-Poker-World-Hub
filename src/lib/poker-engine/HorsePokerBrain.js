@@ -665,8 +665,20 @@ function countFlushOuts(holeCards, boardCards) {
 }
 
 /**
- * Detect backdoor draws (2 to a flush with 3 board cards, or 3 to a straight).
- * Backdoor draws add approximately 1-2 pseudo outs.
+ * Detect backdoor draws (flush, straight, full house) on the flop.
+ * Backdoor draws need 2 running cards to complete, giving ~2-5% equity each.
+ * We express these as pseudo-outs (weighted lower than direct outs).
+ *
+ * Bug #129: Now includes backdoor full house and backdoor straight improvements.
+ * PLO-specific: backdoor draws are MORE valuable in PLO than Hold'em because:
+ *   - 4 hole cards = more combinations to backdoor into
+ *   - Nut backdoor flush (Ace of suit) has much higher implied odds
+ *   - Backdoor FH via pocket pair + board pair runner-runner = ~3%
+ *   - Two pair to FH needs specific board pair = ~5-8%
+ *
+ * @param {Array<{rank:number,suit:string}>} holeCards
+ * @param {Array<{rank:number,suit:string}>} boardCards
+ * @returns {number} pseudo-outs (typically 0-6)
  */
 function countBackdoorOuts(holeCards, boardCards) {
     const holeSuits = holeCards.map(c => c.suit);
@@ -675,26 +687,114 @@ function countBackdoorOuts(holeCards, boardCards) {
     const boardRanks = boardCards.map(c => c.rank);
     let backdoor = 0;
 
-    // Backdoor flush = 2 hole cards of same suit + 1 board card of same suit (flop only)
-    if (boardCards.length === 3) {
-        for (const suit of new Set(holeSuits)) {
-            const h = holeSuits.filter(s => s === suit).length;
-            const b = boardSuits.filter(s => s === suit).length;
-            if (h >= 2 && b === 1) { backdoor += 2; break; }
-        }
+    // Only calculate backdoor draws on the flop (3 board cards, 2 cards to come)
+    if (boardCards.length !== 3) return 0;
 
-        // Bug #95: Backdoor straight = 3 cards to a straight using 2+ hole cards
-        const allRanks = [...new Set([...holeRanks, ...boardRanks])].sort((a, b) => a - b);
-        for (let high = 12; high >= 4; high--) {
-            const needed = [high, high - 1, high - 2, high - 3, high - 4];
-            const haveCount = needed.filter(r => allRanks.includes(r)).length;
-            const holeContrib = needed.filter(r => holeRanks.includes(r)).length;
-            if (haveCount >= 3 && holeContrib >= 2) {
-                backdoor += 1; // ~1 pseudo-out for backdoor straight
-                break;
+    // ── BACKDOOR FLUSH ──
+    // 2 hole cards of same suit + 1 board card of same suit → need 2 running cards of suit
+    // Runner-runner flush: ~4.2% equity = 2 pseudo-outs
+    // Nut backdoor flush (Ace of suit): ~4.2% equity but MUCH higher implied odds = 3 pseudo-outs
+    let bestBDFlush = 0;
+    for (const suit of new Set(holeSuits)) {
+        const hOfSuit = holeCards.filter(c => c.suit === suit);
+        const bOfSuit = boardCards.filter(c => c.suit === suit);
+        if (hOfSuit.length >= 2 && bOfSuit.length === 1) {
+            const maxHoleRank = Math.max(...hOfSuit.map(c => c.rank));
+            const isNutBDFlush = maxHoleRank === 12; // Ace of suit
+            bestBDFlush = Math.max(bestBDFlush, isNutBDFlush ? 3 : 2);
+        }
+    }
+    backdoor += bestBDFlush;
+
+    // ── BACKDOOR STRAIGHT ──
+    // Bug #95 + #129: 3 cards to a straight using 2+ hole cards → need 2 running cards
+    // PLO rule: must use exactly 2 hole cards, so holeContrib must be >= 2
+    // Runner-runner straight: ~4% equity = 1 pseudo-out
+    // Connected backdoor (4 to a straight, needing only 1 card = DIRECT draw, not backdoor)
+    const allRanks = [...new Set([...holeRanks, ...boardRanks])].sort((a, b) => a - b);
+    let bestBDStraight = 0;
+    for (let high = 12; high >= 4; high--) {
+        const needed = [high, high - 1, high - 2, high - 3, high - 4];
+        const haveCount = needed.filter(r => allRanks.includes(r)).length;
+        const holeContrib = needed.filter(r => holeRanks.includes(r)).length;
+        const boardContrib = needed.filter(r => boardRanks.includes(r)).length;
+        // 3 of 5 present AND at least 2 from hole AND at least 1 from board (PLO rule)
+        if (haveCount === 3 && holeContrib >= 2 && boardContrib >= 1) {
+            bestBDStraight = 1;
+            break;
+        }
+    }
+    // Also check wheel: A-2-3-4-5
+    if (bestBDStraight === 0) {
+        const wheelNeeded = [12, 0, 1, 2, 3]; // A,2,3,4,5
+        const haveCount = wheelNeeded.filter(r => allRanks.includes(r)).length;
+        const holeContrib = wheelNeeded.filter(r => holeRanks.includes(r)).length;
+        const boardContrib = wheelNeeded.filter(r => boardRanks.includes(r)).length;
+        if (haveCount === 3 && holeContrib >= 2 && boardContrib >= 1) {
+            bestBDStraight = 1;
+        }
+    }
+    backdoor += bestBDStraight;
+
+    // ── BACKDOOR FULL HOUSE ──
+    // Several paths to runner-runner full house in PLO:
+    //
+    // Path A: We have a PAIR in the hole that doesn't match the board.
+    //   Need: board to pair one of its cards (giving us two pair), then pair again = FH.
+    //   OR: one of our pair cards hits the board (giving us set), board then pairs = FH.
+    //   Combined probability: ~3% = 1 pseudo-out
+    //
+    // Path B: We have TWO PAIR (2 hole cards hitting 2 different board cards).
+    //   Need: board to pair one of our paired ranks = FH.
+    //   Probability: ~8-10% with 2 cards to come = 2 pseudo-outs
+    //   (This is actually closer to a direct draw, but it requires a SPECIFIC card)
+    //
+    // Path C: We have a SET (pocket pair hitting one board card).
+    //   Already have a very strong hand — FH redraws are covered by hasRedraw flag.
+    //   No additional backdoor outs needed.
+    //
+    // Path D: We have TRIPS via board pair + 1 hole card.
+    //   Need: another hole card to pair the board = FH.
+    //   This is ~6-8% = 1-2 pseudo-outs
+    //
+    const hRankFreq = {};
+    for (const r of holeRanks) hRankFreq[r] = (hRankFreq[r] || 0) + 1;
+    const holePairs = Object.entries(hRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+
+    const bRankFreq = {};
+    for (const r of boardRanks) bRankFreq[r] = (bRankFreq[r] || 0) + 1;
+
+    let bdFH = 0;
+
+    // Path A: Pocket pair not hitting board → runner-runner to FH
+    for (const pp of holePairs) {
+        if (!boardRanks.includes(pp)) {
+            bdFH = Math.max(bdFH, 1); // ~3% equity
+        }
+    }
+
+    // Path B: Two pair (2 different hole ranks each match a board rank)
+    const holeHitsBoard = holeRanks.filter(r => boardRanks.includes(r));
+    const uniqueHits = [...new Set(holeHitsBoard)];
+    if (uniqueHits.length >= 2) {
+        bdFH = Math.max(bdFH, 2); // ~8-10% equity, strong redraw
+    }
+
+    // Path D: Trips via board pair + hole card → need board to pair for FH
+    const boardPairedRanks = Object.entries(bRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
+    for (const bp of boardPairedRanks) {
+        if (holeRanks.includes(bp)) {
+            // We have trips. Other hole ranks that could pair for FH:
+            const otherHoleRanks = holeRanks.filter(r => r !== bp);
+            const otherBoardRanks = boardRanks.filter(r => r !== bp);
+            if (otherHoleRanks.some(r => !otherBoardRanks.includes(r))) {
+                bdFH = Math.max(bdFH, 1); // ~4-6% equity
             }
         }
     }
+
+    backdoor += bdFH;
+
     return backdoor;
 }
 
