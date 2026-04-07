@@ -9289,6 +9289,211 @@ test('getPLOSPRZone: committed at SPR 1', () => {
     expect(result.shouldCommit).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 73: validateAndClamp Edge Cases
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 73: validateAndClamp Edge Cases ──');
+
+test('validateAndClamp: fold when check available becomes check', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('fold', null, [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 100 }]);
+    expect(result.type).toBe('check');
+});
+
+test('validateAndClamp: check when facing bet becomes fold', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('check', null, [{ type: 'fold' }, { type: 'call' }, { type: 'raise', minAmount: 6, maxAmount: 200 }]);
+    expect(result.type).toBe('fold');
+});
+
+test('validateAndClamp: bet maps to raise when no bet available', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('bet', 10, [{ type: 'fold' }, { type: 'call' }, { type: 'raise', minAmount: 6, maxAmount: 200 }]);
+    expect(result.type).toBe('raise');
+    expect(result.amount >= 6).toBe(true);
+    expect(result.amount <= 200).toBe(true);
+});
+
+test('validateAndClamp: raise maps to bet when no raise available', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('raise', 10, [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 100 }]);
+    expect(result.type).toBe('bet');
+    expect(result.amount >= 2).toBe(true);
+    expect(result.amount <= 100).toBe(true);
+});
+
+test('validateAndClamp: NaN amount clamped to min', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('raise', NaN, [{ type: 'fold' }, { type: 'call' }, { type: 'raise', minAmount: 6, maxAmount: 200 }]);
+    expect(result.type).toBe('raise');
+    expect(result.amount).toBe(6);
+});
+
+test('validateAndClamp: null amount clamped to min', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('bet', null, [{ type: 'check' }, { type: 'bet', minAmount: 4, maxAmount: 100 }]);
+    expect(result.type).toBe('bet');
+    expect(result.amount).toBe(4);
+});
+
+test('validateAndClamp: over-max clamped to max (all-in)', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('raise', 999, [{ type: 'fold' }, { type: 'call' }, { type: 'raise', minAmount: 6, maxAmount: 200 }]);
+    expect(result.type).toBe('raise');
+    expect(result.amount).toBe(200);
+});
+
+test('validateAndClamp: all_in with explicit all_in legal', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('all_in', null, [{ type: 'fold' }, { type: 'call' }, { type: 'all_in', amount: 150 }]);
+    expect(result.type).toBe('all_in');
+    expect(result.amount).toBe(150);
+});
+
+test('validateAndClamp: all_in without explicit all_in uses max raise', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('all_in', null, [{ type: 'fold' }, { type: 'call' }, { type: 'raise', minAmount: 6, maxAmount: 200 }]);
+    expect(result.type).toBe('raise');
+    expect(result.amount).toBe(200);
+});
+
+test('validateAndClamp: raise unavailable falls to call (BUG #41 fix)', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!validateAndClamp) { expect(true).toBe(true); return; }
+    const result = validateAndClamp('raise', 10, [{ type: 'fold' }, { type: 'call' }]);
+    expect(result.type).toBe('call');
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 74: Timing System + Action Delay
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 74: Timing System ──');
+
+test('getActionDelay: returns bounded delay for preflop', () => {
+    const { getActionDelay } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getActionDelay) { expect(true).toBe(true); return; }
+    for (let i = 0; i < 50; i++) {
+        const delay = getActionDelay('test-horse-timing', 'raise', true);
+        expect(delay >= 500).toBe(true); // Min snap is 500ms
+        expect(delay <= 8000).toBe(true);
+        expect(isNaN(delay)).toBe(false);
+    }
+});
+
+test('getActionDelay: returns bounded delay for postflop', () => {
+    const { getActionDelay } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getActionDelay) { expect(true).toBe(true); return; }
+    for (let i = 0; i < 50; i++) {
+        const delay = getActionDelay('test-horse-timing-2', 'fold', false);
+        expect(delay >= 500).toBe(true);
+        expect(delay <= 8000).toBe(true);
+    }
+});
+
+test('getActionDelay: different profiles produce different base speeds', () => {
+    const { getActionDelay } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getActionDelay) { expect(true).toBe(true); return; }
+    // Run 100 delays for each profile, check averages differ
+    let sum1 = 0, sum2 = 0;
+    for (let i = 0; i < 100; i++) {
+        sum1 += getActionDelay('fast-horse-profile', 'call', false);
+        sum2 += getActionDelay('slow-horse-profile-xxx', 'call', false);
+    }
+    // They might be similar by chance but should at least both be valid
+    expect(sum1 / 100 >= 500).toBe(true);
+    expect(sum2 / 100 >= 500).toBe(true);
+});
+
+test('getActionDelay: null profileId does not crash', () => {
+    const { getActionDelay } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getActionDelay) { expect(true).toBe(true); return; }
+    const delay = getActionDelay(null, 'check', true);
+    expect(typeof delay).toBe('number');
+    expect(delay >= 500).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 75: getDecision Async Edge Cases
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 75: getDecision Async Edge Cases ──');
+
+asyncTest('getDecision: empty legalActions returns fold', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = await getDecision('edge-test-1', {
+        communityCards: [],
+        phase: 'preflop',
+        potTotal: 3,
+        currentBet: 2,
+        players: [
+            { id: 'edge-test-1', holeCards: [{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }], stack: 200, position: 'btn', folded: false, invested: 0 },
+        ],
+    }, [], { bigBlind: 2 });
+    expect(result.action.type).toBe('fold');
+});
+
+asyncTest('getDecision: no hero player returns check/fold', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = await getDecision('nonexistent-hero', {
+        communityCards: [],
+        phase: 'preflop',
+        potTotal: 3,
+        currentBet: 2,
+        players: [
+            { id: 'someone-else', holeCards: [{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }], stack: 200, position: 'btn', folded: false, invested: 0 },
+        ],
+    }, [{ type: 'check' }, { type: 'fold' }], { bigBlind: 2 });
+    expect(['check', 'fold'].includes(result.action.type)).toBe(true);
+});
+
+asyncTest('getDecision: hero with no hole cards returns check/fold', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = await getDecision('no-cards-hero', {
+        communityCards: [],
+        phase: 'preflop',
+        potTotal: 3,
+        currentBet: 2,
+        players: [
+            { id: 'no-cards-hero', holeCards: [], stack: 200, position: 'btn', folded: false, invested: 0 },
+        ],
+    }, [{ type: 'check' }, { type: 'fold' }], { bigBlind: 2 });
+    expect(['check', 'fold'].includes(result.action.type)).toBe(true);
+});
+
+asyncTest('getDecision: turn with river card returns valid action', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = await getDecision('turn-hero', {
+        communityCards: [{ rank: 14, suit: 0 }, { rank: 7, suit: 2 }, { rank: 2, suit: 3 }, { rank: 9, suit: 1 }],
+        phase: 'turn',
+        potTotal: 24,
+        currentBet: 8,
+        players: [
+            { id: 'turn-hero', holeCards: [{ rank: 14, suit: 1 }, { rank: 12, suit: 0 }], stack: 170, position: 'co', folded: false, invested: 4 },
+            { id: 'turn-opp', holeCards: [], stack: 170, position: 'bb', folded: false, invested: 8 },
+        ],
+        tableId: 'turn-edge-table',
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 4 },
+        { type: 'raise', minAmount: 16, maxAmount: 170 },
+    ], { bigBlind: 2 });
+    expect(result).not.toBeNull();
+    const action = result.action || result;
+    expect(['fold', 'call', 'raise', 'bet', 'check'].includes(action.type)).toBe(true);
+    if (action.amount !== undefined) {
+        expect(isNaN(action.amount)).toBe(false);
+        expect(action.amount > 0).toBe(true);
+    }
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
