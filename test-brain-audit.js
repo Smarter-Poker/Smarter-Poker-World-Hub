@@ -11462,6 +11462,504 @@ asyncTests.push({ name: 'E2E: Brain + Evaluator cross-check (hand strength match
     expect(strongRaises >= weakRaises).toBe(true);
 }});
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 86: Core Engine Module Audit + poker-grid.js
+// ═══════════════════════════════════════════════════════════
+console.log('\n📋 Phase 86: Core Engine Modules + poker-grid.js');
+
+// --- poker-grid.js Tests ---
+asyncTests.push({ name: 'poker-grid: load + exports exist', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    expect(typeof pg.generateHandMatrix).toBe('function');
+    expect(typeof pg.getHandPosition).toBe('function');
+    expect(typeof pg.getHandAtPosition).toBe('function');
+    expect(typeof pg.isValidHand).toBe('function');
+    expect(typeof pg.getAllHands).toBe('function');
+    expect(typeof pg.chartGridToArray).toBe('function');
+    expect(typeof pg.getActionColor).toBe('function');
+}});
+
+asyncTests.push({ name: 'poker-grid: generateHandMatrix returns 13x13', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    const m = pg.generateHandMatrix();
+    expect(m.length).toBe(13);
+    expect(m[0].length).toBe(13);
+    expect(m[0][0]).toBe('AA');
+    expect(m[12][12]).toBe('22');
+    expect(m[0][1]).toBe('AKs');
+    expect(m[1][0]).toBe('AKo');
+}});
+
+asyncTests.push({ name: 'Bug #73: getHandAtPosition no longer crashes (Col typo fix)', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    // This used to throw ReferenceError: Col is not defined
+    const r = pg.getHandAtPosition(0, 0);
+    expect(r).toBe('AA');
+    const r2 = pg.getHandAtPosition(0, 1);
+    expect(r2).toBe('AKs');
+    const r3 = pg.getHandAtPosition(1, 0);
+    expect(r3).toBe('AKo');
+    // Edge cases
+    expect(pg.getHandAtPosition(-1, 0)).toBe(null);
+    expect(pg.getHandAtPosition(0, 13)).toBe(null);
+    expect(pg.getHandAtPosition(13, 0)).toBe(null);
+}});
+
+asyncTests.push({ name: 'poker-grid: getHandPosition round-trips with getHandAtPosition', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    const testHands = ['AA', 'KK', 'AKs', 'AKo', '72o', 'T9s', '55'];
+    for (const hand of testHands) {
+        const pos = pg.getHandPosition(hand);
+        expect(pos !== null).toBe(true);
+        const back = pg.getHandAtPosition(pos[0], pos[1]);
+        expect(back).toBe(hand);
+    }
+}});
+
+asyncTests.push({ name: 'poker-grid: isValidHand', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    expect(pg.isValidHand('AA')).toBe(true);
+    expect(pg.isValidHand('AKs')).toBe(true);
+    expect(pg.isValidHand('72o')).toBe(true);
+    expect(pg.isValidHand('AAs')).toBe(false);  // pair can't be suited
+    expect(pg.isValidHand('AK')).toBe(false);   // missing suffix
+    expect(pg.isValidHand(null)).toBe(false);
+    expect(pg.isValidHand('')).toBe(false);
+    expect(pg.isValidHand('X')).toBe(false);
+}});
+
+asyncTests.push({ name: 'poker-grid: getAllHands returns 91 unique hands', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    const hands = pg.getAllHands();
+    expect(hands.length).toBe(91);  // 13 pairs + 78 suited = 91 (upper triangle)
+    const unique = new Set(hands);
+    expect(unique.size).toBe(91);
+}});
+
+asyncTests.push({ name: 'poker-grid: chartGridToArray handles null', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    expect(pg.chartGridToArray(null).length).toBe(0);
+    expect(pg.chartGridToArray(undefined).length).toBe(0);
+    const r = pg.chartGridToArray({ 'AA': { action: 'Raise', freq: 100 } });
+    expect(r.length).toBe(1);
+    expect(r[0].hand).toBe('AA');
+}});
+
+asyncTests.push({ name: 'poker-grid: getActionColor returns valid colors', fn: async () => {
+    const pg = await import('./src/utils/poker-grid.js');
+    const fold = pg.getActionColor('Fold');
+    expect(typeof fold.bg).toBe('string');
+    expect(typeof fold.text).toBe('string');
+    const raise = pg.getActionColor('Raise');
+    expect(raise.label).toBe('RAISE');
+    // Unknown action falls back to Fold
+    const unknown = pg.getActionColor('garbage');
+    expect(typeof unknown.bg).toBe('string');
+}});
+
+// --- Deck.js Tests ---
+test('Deck: creates 52-card deck', () => {
+    const { Deck } = require('./src/lib/poker-engine/Deck');
+    const deck = new Deck();
+    expect(deck.size).toBe(52);
+    expect(deck.remaining).toBe(52);
+});
+
+test('Deck: short deck has 36 cards', () => {
+    const { Deck } = require('./src/lib/poker-engine/Deck');
+    const deck = new Deck({ shortDeck: true });
+    expect(deck.size).toBe(36);
+});
+
+test('Deck: shuffle + deal reduces remaining', () => {
+    const { Deck } = require('./src/lib/poker-engine/Deck');
+    const deck = new Deck();
+    deck.shuffle();
+    const card = deck.deal();
+    expect(typeof card).toBe('number');
+    expect(card >= 0).toBe(true);
+    expect(card <= 51).toBe(true);
+    expect(deck.remaining).toBe(51);
+});
+
+test('Deck: dealHoleCards returns correct structure', () => {
+    const { Deck } = require('./src/lib/poker-engine/Deck');
+    const deck = new Deck();
+    deck.shuffle();
+    const hands = deck.dealHoleCards(6);
+    expect(hands.length).toBe(6);
+    for (const h of hands) {
+        expect(h.length).toBe(2);
+    }
+    expect(deck.remaining).toBe(40); // 52 - 12
+});
+
+test('Deck: dealFlop burns 1 deals 3', () => {
+    const { Deck } = require('./src/lib/poker-engine/Deck');
+    const deck = new Deck();
+    deck.shuffle();
+    deck.dealHoleCards(2); // 4 cards dealt
+    const flop = deck.dealFlop();
+    expect(flop.length).toBe(3);
+    expect(deck.burnPile.length).toBe(1);
+    expect(deck.remaining).toBe(44); // 52 - 4 - 1burn - 3flop
+});
+
+test('Deck: parseCard + cardToString round-trip', () => {
+    const { parseCard, cardToString } = require('./src/lib/poker-engine/Deck');
+    const testCards = ['Ah', 'Ks', 'Tc', '2d', '9h'];
+    for (const cs of testCards) {
+        const card = parseCard(cs);
+        const back = cardToString(card);
+        expect(back).toBe(cs.charAt(0).toUpperCase() + cs.charAt(1).toLowerCase());
+    }
+});
+
+test('Deck: no duplicate cards in shuffled deck', () => {
+    const { Deck } = require('./src/lib/poker-engine/Deck');
+    const deck = new Deck();
+    deck.shuffle();
+    const all = deck.dealMultiple(52);
+    const unique = new Set(all);
+    expect(unique.size).toBe(52);
+});
+
+test('Deck: reset reshuffles', () => {
+    const { Deck } = require('./src/lib/poker-engine/Deck');
+    const deck = new Deck();
+    deck.shuffle();
+    deck.dealMultiple(20);
+    expect(deck.remaining).toBe(32);
+    deck.reset();
+    expect(deck.remaining).toBe(52);
+});
+
+// --- HandEvaluator.js Tests ---
+test('HandEvaluator: evaluate5 detects royal flush', () => {
+    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const cards = parseCards('Ah Kh Qh Jh Th');
+    const r = evaluate5(cards);
+    expect(r.category).toBe(9);
+    expect(r.description).toBe('Royal Flush');
+});
+
+test('HandEvaluator: evaluate5 detects four of a kind', () => {
+    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const r = evaluate5(parseCards('Ah Ad Ac As Kh'));
+    expect(r.category).toBe(8);
+});
+
+test('HandEvaluator: evaluate5 detects full house', () => {
+    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const r = evaluate5(parseCards('Ah Ad Ac Kh Kd'));
+    expect(r.category).toBe(7);
+});
+
+test('HandEvaluator: evaluate5 detects flush', () => {
+    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const r = evaluate5(parseCards('Ah 9h 7h 4h 2h'));
+    expect(r.category).toBe(6);
+});
+
+test('HandEvaluator: evaluate5 detects straight', () => {
+    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const r = evaluate5(parseCards('9h 8d 7c 6s 5h'));
+    expect(r.category).toBe(5);
+});
+
+test('HandEvaluator: evaluate5 detects wheel (A-5)', () => {
+    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const r = evaluate5(parseCards('Ah 2d 3c 4s 5h'));
+    expect(r.category).toBe(5);
+    expect(r.description).toBe('Straight, 5 high');
+});
+
+test('HandEvaluator: evaluateHoldem picks best 5 of 7', () => {
+    const { evaluateHoldem } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    // Hero has AA, board has A and two random — should find three of a kind or better
+    const r = evaluateHoldem(parseCards('Ah Ad 2c Ac 7h 9d Ks'));
+    expect(r.category >= 4).toBe(true); // at least trips
+});
+
+test('HandEvaluator: holdemShowdown finds correct winner', () => {
+    const { holdemShowdown } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const players = [
+        { playerId: 'p1', holeCards: parseCards('Ah Kh') },
+        { playerId: 'p2', holeCards: parseCards('2d 7c') },
+    ];
+    const board = parseCards('Ac Kd 9h 4s 2c');
+    const r = holdemShowdown(players, board);
+    expect(r.winners[0].playerId).toBe('p1');
+});
+
+test('HandEvaluator: determineWinners handles split pot', () => {
+    const { determineWinners } = require('./src/lib/poker-engine/HandEvaluator');
+    const r = determineWinners([
+        { playerId: 'a', hand: { score: 100 } },
+        { playerId: 'b', hand: { score: 100 } },
+        { playerId: 'c', hand: { score: 50 } },
+    ]);
+    expect(r.isSplit).toBe(true);
+    expect(r.winners.length).toBe(2);
+});
+
+test('HandEvaluator: combinations generates correct count', () => {
+    const { combinations } = require('./src/lib/poker-engine/HandEvaluator');
+    expect(combinations([1,2,3,4,5,6,7], 5).length).toBe(21); // C(7,5)
+    expect(combinations([1,2,3,4], 2).length).toBe(6);         // C(4,2)
+});
+
+// --- PotCalculator.js Tests ---
+test('PotCalculator: basic pot tracking', () => {
+    const { PotCalculator } = require('./src/lib/poker-engine/PotCalculator');
+    const pc = new PotCalculator();
+    pc.addContribution('p1', 50);
+    pc.addContribution('p2', 50);
+    expect(pc.totalPot).toBe(100);
+    expect(pc.getInvestment('p1')).toBe(50);
+});
+
+test('PotCalculator: side pots with all-in', () => {
+    const { PotCalculator } = require('./src/lib/poker-engine/PotCalculator');
+    const pc = new PotCalculator();
+    pc.addContribution('p1', 50);
+    pc.markAllIn('p1');
+    pc.addContribution('p2', 150);
+    pc.addContribution('p3', 150);
+    const pots = pc.calculatePots();
+    expect(pots.length).toBe(2); // main pot + side pot
+    expect(pots[0].amount).toBe(150); // 3 x 50
+    expect(pots[1].amount).toBe(200); // 2 x 100
+    expect(pots[0].eligible.has('p1')).toBe(true);
+    expect(pots[1].eligible.has('p1')).toBe(false);
+});
+
+test('PotCalculator: folded players not eligible', () => {
+    const { PotCalculator } = require('./src/lib/poker-engine/PotCalculator');
+    const pc = new PotCalculator();
+    pc.addContribution('p1', 50);
+    pc.addContribution('p2', 50);
+    pc.markFolded('p1');
+    const pots = pc.calculatePots();
+    expect(pots[0].eligible.has('p1')).toBe(false);
+    expect(pots[0].eligible.has('p2')).toBe(true);
+});
+
+test('PotCalculator: distribute awards to winner', () => {
+    const { PotCalculator } = require('./src/lib/poker-engine/PotCalculator');
+    const pc = new PotCalculator();
+    pc.addContribution('p1', 100);
+    pc.addContribution('p2', 100);
+    const result = pc.distribute([
+        { playerId: 'p1', handScore: 500 },
+        { playerId: 'p2', handScore: 300 },
+    ]);
+    expect(result.payouts.get('p1')).toBe(200);
+    expect(result.payouts.get('p2') || 0).toBe(0);
+});
+
+test('PotCalculator: distribute splits evenly on tie', () => {
+    const { PotCalculator } = require('./src/lib/poker-engine/PotCalculator');
+    const pc = new PotCalculator();
+    pc.addContribution('p1', 100);
+    pc.addContribution('p2', 100);
+    const result = pc.distribute([
+        { playerId: 'p1', handScore: 500 },
+        { playerId: 'p2', handScore: 500 },
+    ]);
+    expect(result.payouts.get('p1')).toBe(100);
+    expect(result.payouts.get('p2')).toBe(100);
+});
+
+test('PotCalculator: rake deduction', () => {
+    const { PotCalculator } = require('./src/lib/poker-engine/PotCalculator');
+    const pc = new PotCalculator();
+    pc.addContribution('p1', 100);
+    pc.addContribution('p2', 100);
+    const result = pc.distribute(
+        [{ playerId: 'p1', handScore: 500 }, { playerId: 'p2', handScore: 300 }],
+        { rakePercent: 5 }
+    );
+    expect(result.rake).toBe(10); // 5% of 200
+    expect(result.payouts.get('p1')).toBe(190); // 200 - 10
+});
+
+// --- ActionValidator.js Tests ---
+test('ActionValidator: NL check when no bet', () => {
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const av = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const actions = av.getLegalActions({ playerStack: 500, currentBet: 0, potTotal: 30, street: 'flop' });
+    expect(actions.some(a => a.type === 'check')).toBe(true);
+    expect(actions.some(a => a.type === 'fold')).toBe(false); // can't fold when can check
+});
+
+test('ActionValidator: NL fold/call/raise when facing bet', () => {
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const av = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const actions = av.getLegalActions({ playerStack: 500, currentBet: 20, playerInvested: 0, potTotal: 50, street: 'flop', lastRaiseSize: 10 });
+    expect(actions.some(a => a.type === 'fold')).toBe(true);
+    expect(actions.some(a => a.type === 'call')).toBe(true);
+    expect(actions.some(a => a.type === 'bet' || a.type === 'raise')).toBe(true);
+});
+
+test('ActionValidator: all-in when stack < call amount', () => {
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const av = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const actions = av.getLegalActions({ playerStack: 15, currentBet: 50, playerInvested: 0, potTotal: 100, street: 'flop' });
+    expect(actions.some(a => a.type === 'all_in')).toBe(true);
+    expect(actions.some(a => a.type === 'call')).toBe(false); // can't afford full call
+});
+
+test('ActionValidator: validateAction accepts valid call', () => {
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const av = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const state = { playerStack: 500, currentBet: 20, playerInvested: 0, potTotal: 50, street: 'flop' };
+    const r = av.validateAction({ type: 'call' }, state);
+    expect(r.valid).toBe(true);
+    expect(r.action.amount).toBe(20);
+});
+
+test('ActionValidator: validateAction rejects insufficient raise', () => {
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const av = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const state = { playerStack: 500, currentBet: 20, playerInvested: 0, potTotal: 50, street: 'flop', lastRaiseSize: 10 };
+    const r = av.validateAction({ type: 'raise', amount: 25 }, state); // Min raise should be 30
+    expect(r.valid).toBe(false);
+});
+
+// --- EquityCalculator.js Tests ---
+test('EquityCalculator: Bug #74 fixed — remaining deck built correctly', () => {
+    const { calculateEquity } = require('./src/lib/poker-engine/EquityCalculator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const players = [
+        { id: 'p1', holeCards: parseCards('Ah Kh') },
+        { id: 'p2', holeCards: parseCards('2d 7c') },
+    ];
+    const board = parseCards('Ac Kd 9h');
+    const r = calculateEquity(players, board, 'holdem', 500);
+    expect(typeof r).toBe('object');
+    expect(r.players.length).toBe(2);
+    // AK with top two pair should dominate 27
+    expect(r.players[0].equity > r.players[1].equity).toBe(true);
+});
+
+test('EquityCalculator: complete board evaluates once (no simulation)', () => {
+    const { calculateEquity } = require('./src/lib/poker-engine/EquityCalculator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const players = [
+        { id: 'p1', holeCards: parseCards('Ah Ad') },
+        { id: 'p2', holeCards: parseCards('Kh Kd') },
+    ];
+    const board = parseCards('Ac 9h 7d 4s 2c');
+    const r = calculateEquity(players, board, 'holdem', 100);
+    expect(r.players[0].equity).toBe(100); // AA with set vs KK
+    expect(r.players[1].equity).toBe(0);
+});
+
+test('EquityCalculator: equity sums to ~100%', () => {
+    const { calculateEquity } = require('./src/lib/poker-engine/EquityCalculator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const players = [
+        { id: 'p1', holeCards: parseCards('Ah Kh') },
+        { id: 'p2', holeCards: parseCards('Qd Qc') },
+    ];
+    const r = calculateEquity(players, [], 'holdem', 1000);
+    const totalEquity = r.players[0].equity + r.players[1].equity;
+    expect(totalEquity >= 99).toBe(true);
+    expect(totalEquity <= 101).toBe(true);
+});
+
+test('EquityCalculator: evaluate5Fast handles all hand categories', () => {
+    const { evaluate5Fast } = require('./src/lib/poker-engine/EquityCalculator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    // Straight flush
+    const sf = parseCards('Ah Kh Qh Jh Th');
+    const sfScore = evaluate5Fast(sf[0], sf[1], sf[2], sf[3], sf[4]);
+    expect(sfScore > 9e10).toBe(true);
+    // High card
+    const hc = parseCards('2h 5d 7c 9s Kh');
+    const hcScore = evaluate5Fast(hc[0], hc[1], hc[2], hc[3], hc[4]);
+    expect(hcScore < 2e10).toBe(true);
+    // SF > HC
+    expect(sfScore > hcScore).toBe(true);
+});
+
+// --- BettingRound integration test ---
+test('BettingRound: basic round completes after all check', () => {
+    const { BettingRound } = require('./src/lib/poker-engine/BettingRound');
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const validator = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const br = new BettingRound({
+        players: [
+            { id: 'p1', stack: 500, position: 0 },
+            { id: 'p2', stack: 500, position: 1 },
+        ],
+        dealerPosition: 0,
+        street: 'flop',
+        validator,
+    });
+    br.start({ potFromPreviousRounds: 30 });
+    // Both check
+    const r1 = br.processAction('p1', { type: 'check' });
+    expect(r1.success).toBe(true);
+    expect(r1.roundComplete).toBe(false);
+    const r2 = br.processAction('p2', { type: 'check' });
+    expect(r2.success).toBe(true);
+    expect(r2.roundComplete).toBe(true);
+});
+
+test('BettingRound: bet-call completes round', () => {
+    const { BettingRound } = require('./src/lib/poker-engine/BettingRound');
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const validator = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const br = new BettingRound({
+        players: [
+            { id: 'p1', stack: 500, position: 0 },
+            { id: 'p2', stack: 500, position: 1 },
+        ],
+        dealerPosition: 0,
+        street: 'flop',
+        validator,
+    });
+    br.start({ potFromPreviousRounds: 30 });
+    const r1 = br.processAction('p1', { type: 'bet', amount: 20 });
+    expect(r1.success).toBe(true);
+    const r2 = br.processAction('p2', { type: 'call' });
+    expect(r2.success).toBe(true);
+    expect(r2.roundComplete).toBe(true);
+    expect(br.potTotal).toBe(70); // 30 + 20 + 20
+});
+
+test('BettingRound: fold ends hand', () => {
+    const { BettingRound } = require('./src/lib/poker-engine/BettingRound');
+    const { ActionValidator } = require('./src/lib/poker-engine/ActionValidator');
+    const validator = new ActionValidator({ bettingStructure: 'no_limit', bigBlind: 10, smallBlind: 5 });
+    const br = new BettingRound({
+        players: [
+            { id: 'p1', stack: 500, position: 0 },
+            { id: 'p2', stack: 500, position: 1 },
+        ],
+        dealerPosition: 0,
+        street: 'flop',
+        validator,
+    });
+    br.start({ potFromPreviousRounds: 30 });
+    br.processAction('p1', { type: 'bet', amount: 20 });
+    const r2 = br.processAction('p2', { type: 'fold' });
+    expect(r2.success).toBe(true);
+    expect(r2.roundComplete).toBe(true);
+    expect(br.isHandOver()).toBe(true);
+    expect(br.getLastStanding().id).toBe('p1');
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
