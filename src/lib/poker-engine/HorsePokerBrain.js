@@ -19109,6 +19109,9 @@ module.exports = {
     // Exposed for testing (Phase 48c) — wrap draw detector
     detectPLOWrapDraw,
 
+    // Exposed for testing (Phase 107) — PLO game type adjustments
+    getPLOGameTypeAdjustments,
+
     // Exposed for testing (Phase 102) — deep audit fixes #102-#106
     projectPLOBoardScenarios,
     getPLODonkBetOpportunity,

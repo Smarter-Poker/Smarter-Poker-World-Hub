@@ -17101,12 +17101,13 @@ test('Phase 107: PLO countStraightOuts — rough estimate for J-T-9-8 on 7-6-2',
 
 // Bug #117: PLO straight with flush draw now has hasRedraw=true
 test('Phase 107: PLO straight + flush draw has hasRedraw=true', () => {
-    // Hero: Jh Th 9c 2d, Board: 8h 7h 3s
-    // Hero has J-high straight (7-8-9-T-J) AND flush draw (Jh, Th, 8h, 7h)
+    // Hero: Jh Th 9c 2d, Board: 8h 7h 6s
+    // PLO straight T-9-8-7-6: uses T(8)+9(7) from hole, 8(6)+7(5)+6(4) from board (2+3 ✓)
+    // Also flush draw: Jh+Th (2 hearts hole) + 8h+7h (2 hearts board) = 4 hearts
     const hole = makePLOCards(['Jh', 'Th', '9c', '2d']);
-    const board = makePLOCards(['8h', '7h', '3s']);
+    const board = makePLOCards(['8h', '7h', '6s']);
     const madeHand = brain.evaluatePLOMadeHand(hole, board);
-    // Should detect the straight
+    // Should detect the straight (T-high, nut on this board with 2-from-hole rule)
     expect(madeHand.isMade).toBe(true);
     expect(madeHand.category === 'nut_straight' || madeHand.category === 'straight').toBe(true);
     // Bug #117 fix: hasRedraw should be true (flush draw potential)

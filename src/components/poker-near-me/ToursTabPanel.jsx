@@ -19,24 +19,16 @@ export default function ToursTabPanel({
     toggleFavorite,
     router,
 }) {
-    const tourSearchVal = filters.hubTourSearch || '';
     const tourStateVal = filters.hubTourState || 'all';
     let filteredTours = tours;
-    if (tourSearchVal) {
-        const lower = tourSearchVal.toLowerCase();
-        filteredTours = filteredTours.filter(t => (t.name || '').toLowerCase().includes(lower) || (t.city || '').toLowerCase().includes(lower) || (t.state || '').toLowerCase().includes(lower) || (t.tour_code || '').toLowerCase().includes(lower));
-    }
     if (tourStateVal !== 'all') {
         filteredTours = filteredTours.filter(t => t.state === tourStateVal);
     }
 
     return (
         <>
-            {/* Search + State Filter */}
+            {/* State Filter */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input type="text" placeholder="Search tours..." value={tourSearchVal}
-                    onChange={(e) => setFilters(f => ({ ...f, hubTourSearch: e.target.value }))}
-                    style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
                 <select value={tourStateVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubTourState: e.target.value }))}
                     className="sort-select" style={{ minWidth: 100 }}>
@@ -52,8 +44,8 @@ export default function ToursTabPanel({
             {filteredTours.length === 0 ? (
                 <div className="empty-state">
                     <p>No Matching Tours</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{tourSearchVal || tourStateVal !== 'all' ? 'Try adjusting your search or filters.' : 'Check back soon for poker tour schedules.'}</p>
-                    <button onClick={() => setFilters(f => ({ ...f, hubTourSearch: '', hubTourState: 'all' }))}>Clear Tour Filters</button>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{tourStateVal !== 'all' ? 'Try adjusting your filters.' : 'Check back soon for poker tour schedules.'}</p>
+                    <button onClick={() => setFilters(f => ({ ...f, hubTourState: 'all' }))}>Clear Tour Filters</button>
                 </div>
             ) : (
                 <>

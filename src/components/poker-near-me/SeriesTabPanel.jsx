@@ -101,24 +101,16 @@ export default function SeriesTabPanel({
     toggleFavorite,
     router,
 }) {
-    const seriesSearchVal = filters.hubSeriesSearch || '';
     const seriesStateVal = filters.hubSeriesState || 'all';
     let filteredSeries = series;
-    if (seriesSearchVal) {
-        const lower = seriesSearchVal.toLowerCase();
-        filteredSeries = filteredSeries.filter(s => (s.name || '').toLowerCase().includes(lower) || (s.city || '').toLowerCase().includes(lower) || (s.state || '').toLowerCase().includes(lower) || (s.series_code || '').toLowerCase().includes(lower));
-    }
     if (seriesStateVal !== 'all') {
         filteredSeries = filteredSeries.filter(s => s.state === seriesStateVal);
     }
 
     return (
         <>
-            {/* Search + State Filter */}
+            {/* State Filter */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input type="text" placeholder="Search series..." value={seriesSearchVal}
-                    onChange={(e) => setFilters(f => ({ ...f, hubSeriesSearch: e.target.value }))}
-                    style={{ flex: 1, minWidth: 140, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(0,0,0,0.3)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit' }} />
                 <select value={seriesStateVal}
                     onChange={(e) => setFilters(f => ({ ...f, hubSeriesState: e.target.value }))}
                     className="sort-select" style={{ minWidth: 100 }}>
@@ -145,8 +137,8 @@ export default function SeriesTabPanel({
             {filteredSeries.length === 0 ? (
                 <div className="empty-state">
                     <p>No Matching Series</p>
-                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{seriesSearchVal || seriesStateVal !== 'all' ? 'Try adjusting your search or filters.' : 'Check back soon for poker series.'}</p>
-                    <button onClick={() => setFilters(f => ({ ...f, hubSeriesSearch: '', hubSeriesState: 'all' }))}>Clear Series Filters</button>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{seriesStateVal !== 'all' ? 'Try adjusting your filters.' : 'Check back soon for poker series.'}</p>
+                    <button onClick={() => setFilters(f => ({ ...f, hubSeriesState: 'all' }))}>Clear Series Filters</button>
                 </div>
             ) : seriesViewMode === 'calendar' ? <SeriesCalendar series={filteredSeries} router={router} /> : (
                 <>
