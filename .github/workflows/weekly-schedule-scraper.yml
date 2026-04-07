@@ -1,0 +1,158 @@
+name: Weekly Tournament Schedule Scraper (Every 3 Days)
+# Scrapes full tournament schedules for all 694 has_tournaments venues.
+# 694 venues ÷ 25 per batch = 28 batches total.
+# Split into 4 parallel jobs (7 batches each) to stay within 6-hour limit.
+# Sources: saved_url → venue website → PokerAtlas → Bravo
+# No date ceiling — scrapes all published events.
+
+on:
+  schedule:
+    # Every 3 days at 04:00 UTC (11 PM CST)
+    - cron: '0 4 */3 * *'
+  workflow_dispatch:
+    inputs:
+      batches:
+        description: 'Batch range to run (e.g. "1-7" or "1-28" for all)'
+        required: false
+        default: '1-28'
+      state:
+        description: 'Filter by state (optional, e.g. TX, NV, FL)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run (no DB writes)'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: weekly-tournament-scraper
+  cancel-in-progress: false  # Don't cancel mid-scrape
+
+jobs:
+  # ── Job 1: Batches 1–7 (venues 1–175) ─────────────────────────────────────
+  scrape-batches-1-7:
+    name: "Batches 1–7 (Venues 1–175)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Scrapling + dependencies
+        run: |
+          pip install scrapling==0.4.2 camoufox playwright
+          playwright install chromium --with-deps
+
+      - name: Install Smarter.Poker Python deps
+        run: |
+          if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+
+      - name: Run Batches 1–7
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          for batch in $(seq 1 7); do
+            echo "▶ Batch $batch / 28"
+            python scripts/scrape_weekly_schedules.py \
+              --batch $batch \
+              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
+              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
+              || echo "⚠️ Batch $batch failed — continuing"
+            sleep 20
+          done
+
+  # ── Job 2: Batches 8–14 (venues 176–350) ──────────────────────────────────
+  scrape-batches-8-14:
+    name: "Batches 8–14 (Venues 176–350)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: |
+          pip install scrapling==0.4.2 camoufox playwright
+          playwright install chromium --with-deps
+          if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+      - name: Run Batches 8–14
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          for batch in $(seq 8 14); do
+            echo "▶ Batch $batch / 28"
+            python scripts/scrape_weekly_schedules.py \
+              --batch $batch \
+              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
+              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
+              || echo "⚠️ Batch $batch failed — continuing"
+            sleep 20
+          done
+
+  # ── Job 3: Batches 15–21 (venues 351–525) ─────────────────────────────────
+  scrape-batches-15-21:
+    name: "Batches 15–21 (Venues 351–525)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: |
+          pip install scrapling==0.4.2 camoufox playwright
+          playwright install chromium --with-deps
+          if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+      - name: Run Batches 15–21
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          for batch in $(seq 15 21); do
+            echo "▶ Batch $batch / 28"
+            python scripts/scrape_weekly_schedules.py \
+              --batch $batch \
+              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
+              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
+              || echo "⚠️ Batch $batch failed — continuing"
+            sleep 20
+          done
+
+  # ── Job 4: Batches 22–28 (venues 526–694) ─────────────────────────────────
+  scrape-batches-22-28:
+    name: "Batches 22–28 (Venues 526–694)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: |
+          pip install scrapling==0.4.2 camoufox playwright
+          playwright install chromium --with-deps
+          if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+      - name: Run Batches 22–28
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        run: |
+          for batch in $(seq 22 28); do
+            echo "▶ Batch $batch / 28"
+            python scripts/scrape_weekly_schedules.py \
+              --batch $batch \
+              ${{ github.event.inputs.state && format('--state {0}', github.event.inputs.state) || '' }} \
+              ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} \
+              || echo "⚠️ Batch $batch failed — continuing"
+            sleep 20
+          done

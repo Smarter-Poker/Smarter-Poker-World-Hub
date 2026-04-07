@@ -800,8 +800,10 @@ export default async function handler(req, res) {
           }
 
           // --- GPS-based distance calculation and filtering ---
+          // CRITICAL: When a text search is active, SKIP GPS radius filtering entirely.
+          // Search = global Google-style lookup. Radius only applies to location-browse.
           const hasGps = !!(lat && lng);
-          if (hasGps) {
+          if (hasGps && !search) {
               const userLat = parseFloat(lat);
               const userLng = parseFloat(lng);
               const maxRadius = Math.max(0, parseFloat(radius) || 100);
@@ -814,11 +816,9 @@ export default async function handler(req, res) {
               venues = venues.map(venue => {
                   const venueLat = venue.latitude ?? venue.lat;
                   const venueLng = venue.longitude ?? venue.lng;
-
                   if (venueLat == null || venueLng == null) {
                       return { ...venue, distance_km: null, distance_mi: null };
                   }
-
                   const distance = calculateDistance(userLat, userLng, parseFloat(venueLat), parseFloat(venueLng));
                   return {
                       ...venue,
@@ -827,23 +827,13 @@ export default async function handler(req, res) {
                   };
               });
 
-              // When a venue-name search is active (not a "City, State" query),
-              // bypass radius filtering entirely — return all name-matching venues
-              // worldwide, sorted nearest-first. GPS is used only for distance annotation.
-              const isNameSearch = !!(search && !search.match(/^[^,]+,\s*.+$/));
-
-              if (isNameSearch) {
-                  // Name search: global results, sorted by distance
-                  venues.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
-              } else {
-                  // Location-based browse: apply radius filter normally
-                  const withinRadius = venues.filter(v => 
-                      (v.distance_mi != null && v.distance_mi <= maxRadius) || 
-                      ['tour', 'series'].includes(v.venue_type)
-                  );
-                  withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
-                  venues = withinRadius;
-              }
+              // Location-browse: filter by radius
+              const withinRadius = venues.filter(v =>
+                  (v.distance_mi != null && v.distance_mi <= maxRadius) ||
+                  ['tour', 'series'].includes(v.venue_type)
+              );
+              withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
+              venues = withinRadius;
           }
 
           // --- Single venue by ID: attach daily tournament schedules + venue news ---
