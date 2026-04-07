@@ -52,14 +52,7 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
   nullRows.forEach(row => {
     if (!row.venue_name) { unmatched++; return; }
     const nameKey = row.venue_name.trim().toLowerCase();
-    const stateKey = row.state ? `${nameKey}|${row.state}` : null;
-
-    let venueId = null;
-    if (stateKey && byNameState[stateKey]) {
-      venueId = byNameState[stateKey];
-    } else if (byName[nameKey]) {
-      venueId = byName[nameKey];
-    }
+    const venueId = byName[nameKey] || null;
 
     if (venueId) {
       if (!patches[venueId]) patches[venueId] = [];
