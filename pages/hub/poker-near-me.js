@@ -833,8 +833,23 @@ export default function PokerNearMePage() {
             // These have coordinates but are NOT playable venues — they're tour containers
             if (v.venue_type === 'series' || v.venue_type === 'tour') return false;
             
-            // Name-based deduplication (exact match — host_venue_name always matches DB name exactly)
-            if (v.name && consumedVenueNames.has(v.name.toLowerCase())) return false;
+            // Deduplication for map: Flag venues already represented inside a tour double-icon
+            // Uses both exact name matching and spatial proximity (0.1 miles) to catch name discrepancies
+            let hideOnMap = false;
+            if (v.name && consumedVenueNames.has(v.name.toLowerCase())) {
+                hideOnMap = true;
+            } else if (v.latitude && v.longitude) {
+                for (const tp of tourPins) {
+                    const dlat = (v.latitude - tp.latitude) * 69;
+                    const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
+                    const dist = Math.sqrt(dlat * dlat + dlng * dlng);
+                    if (dist < 0.1) {
+                        hideOnMap = true;
+                        break;
+                    }
+                }
+            }
+            if (hideOnMap) v.hideOnMap = true;
             
             // Charity deduplication (allow only ONE venue per charity brand)
             if (v.venue_type === 'charity' && v.id) {
@@ -843,30 +858,31 @@ export default function PokerNearMePage() {
             
             // Radius filter: only include venues within the search radius
             // This keeps the venue list and map in sync with the selected radius
+            if (centerLat == null && allVenuesForMap.length > 0) {
+                const withCoords = allVenuesForMap.filter(cv => cv.latitude && cv.longitude);
+                if (withCoords.length > 0) {
+                    centerLat = withCoords.reduce((s, cv) => s + cv.latitude, 0) / withCoords.length;
+                    centerLng = withCoords.reduce((s, cv) => s + cv.longitude, 0) / withCoords.length;
+                }
+            }
+
             if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
                 const dlat = (v.latitude - centerLat) * 69;
                 const dlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
                 const dist = Math.sqrt(dlat * dlat + dlng * dlng);
-                if (dist > effRad) return false;
+                v.distance_mi = dist;
+                // Global search bypass: do not hide distant venues when a search is active
+                if (!hasSearched && dist > effRad) return false;
             }
-            
-            // Coordinate-based deduplication: remove venue pins sitting directly under a tour pin
-            // (within ~0.1 miles). The tour double-icon already represents this venue.
-            if (v.latitude && v.longitude) {
-                for (const tp of tourPins) {
-                    const dlat = (v.latitude - tp.latitude) * 69;
-                    const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
-                    const dist = Math.sqrt(dlat * dlat + dlng * dlng);
-                    if (dist < 0.1) return false;
-                }
-            }
-            
             return true;
         });
         const combined = [...filteredVenues, ...tourPins];
 
         // Apply UI filters to BOTH arrays here so BOTH map feeds and list feeds are correctly filtered
         return combined.filter(v => {
+            // Global search bypass: do not apply UI dropdown presets when a search is active
+            if (hasSearched) return true;
+
             const isTour = v.venue_type === 'tour_stop' || v.venue_type === 'series';
 
             // Venue Type filter
@@ -901,7 +917,7 @@ export default function PokerNearMePage() {
             return true;
         });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allVenuesForMap, tours, filters.radius, userLocation, selectedCity, filters.venueType, filters.gameType, filters.stakes]);
+    }, [allVenuesForMap, tours, filters.radius, userLocation, selectedCity, filters.venueType, filters.gameType, filters.stakes, hasSearched]);
 
     // Real-time Master Saving & Bus Synchronization
     useEffect(() => {
@@ -968,6 +984,8 @@ export default function PokerNearMePage() {
     const [showSearchHistory, setShowSearchHistory] = useState(false);
     const searchDebounceRef = useRef(null);
     const searchWrapperRef = useRef(null);
+    // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
+    const globalSearchModeRef = useRef(false);
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
 
     // Map view filters (for enhanced map-first experience)
@@ -1102,8 +1120,9 @@ export default function PokerNearMePage() {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // When city or GPS location is set, search for venues
+    // GUARD: skip if globalSearchModeRef is active — user did a text search, don't overwrite results
     useEffect(() => {
-        if (selectedCity || userLocation) {
+        if ((selectedCity || userLocation) && !globalSearchModeRef.current) {
             setHasSearched(true);
             fetchVenues();
         }
@@ -2010,11 +2029,13 @@ export default function PokerNearMePage() {
         setShowCitySuggestions(false);
         setHasSearched(true);
         setShowFilters(false);
+        // Activate global search mode — prevents GPS/city useEffect from overwriting results
+        globalSearchModeRef.current = true;
         // Always land on Venues tab when searching
         setActiveTab('venues');
         setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
         trackSearchEvent('search', { query, tab: 'venues' });
-        // Global search: zero location params, just the text query
+        // Global search: no location params — treat like a Google search across the whole DB
         fetchVenues({ searchOverride: query, globalSearch: true });
     };
 
@@ -2039,8 +2060,9 @@ export default function PokerNearMePage() {
             setShowCitySuggestions(false);
         }
 
-        // If user clears the search field, reset to location-based browse
+        // If user clears the search field, exit global search mode and reset to location-based browse
         if (value.trim().length === 0) {
+            globalSearchModeRef.current = false;
             setHasSearched(false);
             setVenues([]);
         }

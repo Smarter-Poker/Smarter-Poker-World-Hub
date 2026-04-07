@@ -570,20 +570,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </div>
                 )}
 
-                {/* Stakes */}
-                {(() => {
-                    const hasStakes = Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0;
-                    const stakesDisplay = hasStakes
-                        ? venue.stakes_cash.slice(0, 4).join(' ') + (venue.stakes_cash.length > 4 ? ' ETC' : '')
-                        : '$1/$2 $2/$5';
-                    return (
-                        <div className="vc3-stakes" style={{ flexWrap: 'wrap' }}>
-                            <span>
-                                STAKES PLAYED {stakesDisplay}
-                            </span>
-                        </div>
-                    );
-                })()}
+                {/* Stakes — only show when real data exists, never for tour cards */}
+                {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && !['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
+                    <div className="vc3-stakes" style={{ flexWrap: 'wrap' }}>
+                        <span>STAKES PLAYED {venue.stakes_cash.slice(0, 4).join(' ')}{venue.stakes_cash.length > 4 ? ' ETC' : ''}</span>
+                    </div>
+                )}
 
                 {/* Tournaments — Calendar Button */}
                 {venue.has_tournaments && (
@@ -666,7 +658,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </div>
             </div>
 
-            {/* === TRUST SCORE / PLAYER RATING === */}
+            {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards === */}
+            {!['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
             <div className="vc3-trust" style={{ marginTop: '0px' }}>
                 {reviewStats && reviewStats.total_reviews > 0 ? (
                     <>
@@ -700,6 +693,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </>
                 )}
             </div>
+            )}
 
             {/* === TOURNAMENT CALENDAR === */}
             {venue.has_tournaments && showCalendar && (

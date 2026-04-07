@@ -27,7 +27,7 @@ Usage:
                     anti-hallucination filters, data_quality=scraped_verified
 """
 
-import hashlib, json, os, re, sys, time, urllib.request, uuid, argparse
+import hashlib, json, os, re, sys, time, urllib.request, urllib.parse, uuid, argparse
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -179,11 +179,13 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
         if not 10 <= buyin <= 50000:
             continue
 
-        # Time — required
-        tm = re.search(r'(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm))', block)
+        # Time — required (handle 1:00 PM, 1:00p, 13:00, 11a)
+        tm = re.search(r'((?:[01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|am|pm|a|p)?|\b[1-9]\d?\s*(?:AM|PM|am|pm|a|p)\b)', block)
         if not tm:
             continue
         start_time = tm.group(1).upper().strip()
+        if start_time.endswith('A'): start_time += 'M'
+        elif start_time.endswith('P'): start_time += 'M'
 
         # Specific date?
         event_date = parse_date_from_text(block)
@@ -230,7 +232,7 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
 
         # Blind levels
         blind_lvl = None
-        blm = re.search(r'(?:blind levels?|levels?)[:\s]*(\d+)\s*(?:min(?:utes?)?)', block, re.I)
+        blm = re.search(r'(?:blind levels?|levels?|blinds)[:\s]*(\d+)\s*(?:min(?:utes?)?)', block, re.I)
         if blm:
             blind_lvl = f"{blm.group(1)} minutes"
 
@@ -281,29 +283,41 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
             "last_scraped":   ts_now,
         })
 
-    # ── Strategy 2: HTML table rows ───────────────────────────────────────────
-    rows = re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL | re.IGNORECASE)
-    for row in rows:
+    # ── Strategy 2: HTML logical rows (tr, li, structured divs) ───────────────
+    # We find blocks of HTML that likely represent a single tournament entry
+    row_blocks = []
+    row_blocks.extend(re.findall(r'<tr[^>]*>(.*?)</tr>', html, re.DOTALL | re.IGNORECASE))
+    row_blocks.extend(re.findall(r'<li[^>]*class="[^"]*(?:item|event|tourn)[^"]*"[^>]*>(.*?)</li>', html, re.DOTALL | re.IGNORECASE))
+    row_blocks.extend(re.findall(r'<div[^>]*class="[^"]*(?:row|item|event|tourn)[^"]*"[^>]*>(.*?)</div>', html, re.DOTALL | re.IGNORECASE))
+
+    for row in row_blocks:
         if '<th' in row.lower():
             continue
-        cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL | re.IGNORECASE)
+        # Extract text from cell-like structures
+        cells = re.findall(r'<(?:td|div|span|p|li)[^>]*>(.*?)</(?:td|div|span|p|li)>', row, re.DOTALL | re.IGNORECASE)
+        # Fallback if no deep cells found
         if len(cells) < 2:
-            continue
-        row_text = ' '.join(re.sub(r'<[^>]+>', ' ', c).strip() for c in cells)
+            row_text = re.sub(r'<[^>]+>', ' ', row).strip()
+        else:
+            row_text = ' '.join(re.sub(r'<[^>]+>', ' ', c).strip() for c in cells)
+            
+        row_text = re.sub(r'\s+', ' ', row_text)
         if '$' not in row_text:
             continue
 
         bi = re.search(r'\$(\d{1,3}(?:,\d{3})*)', row_text)
-        tm = re.search(r'(\d{1,2}:\d{2}\s*(?:AM|PM)?)', row_text, re.IGNORECASE)
+        # Use our robust time regex
+        tm = re.search(r'((?:[01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|am|pm|a|p)?|\b[1-9]\d?\s*(?:AM|PM|am|pm|a|p)\b)', row_text)
         if not bi or not tm:
             continue
 
         buyin = int(bi.group(1).replace(',', ''))
         if not 10 <= buyin <= 50000:
             continue
+            
         start_time = tm.group(1).upper().strip()
-        if not re.search(r'AM|PM', start_time):
-            continue  # skip ambiguous 24h times in table rows unless AM/PM present
+        if start_time.endswith('A'): start_time += 'M'
+        elif start_time.endswith('P'): start_time += 'M'
 
         event_date = parse_date_from_text(row_text)
         day_of_week = normalize_day(row_text) if not event_date else None
@@ -384,7 +398,7 @@ def anti_hallucination_check(records: list) -> bool:
 # ── Network helpers ───────────────────────────────────────────────────────────
 def network_ok() -> bool:
     try:
-        urllib.request.urlopen('https://1.1.1.1', timeout=6)
+        urllib.request.urlopen('https://google.com', timeout=6)
         return True
     except Exception:
         return False
@@ -483,7 +497,7 @@ def save_evidence(name: str, state: str, data: dict) -> Path:
 def build_url_list(venue: dict) -> list:
     """
     Returns ordered list of (source_label, url) tuples to try.
-    Priority: saved scrape_url → venue website paths → PokerAtlas → Bravo
+    Priority: saved_url → PokerAtlas → Bravo → HendonMob → CardPlayer → Venue Website
     """
     urls = []
     name = venue.get('name', '')
@@ -499,50 +513,37 @@ def build_url_list(venue: dict) -> list:
     if saved:
         add('saved_source', saved)
 
-    # 2. Direct venue website — multiple paths
-    website = venue.get('website') or ''
-    if website:
-        base = website if website.startswith('http') else f"https://{website}"
-        base = base.rstrip('/')
-        for path in [
-            '/poker/tournaments',
-            '/casino/poker/tournaments',
-            '/gaming/poker/tournaments',
-            '/poker-tournaments',
-            '/casino/poker',
-            '/gaming/poker',
-            '/poker',
-            '/casino/table-games/poker',
-            '/tournaments',
-            '',
-        ]:
-            add('website', f"{base}{path}")
-
-    # 3. PokerAtlas — use stored slug or URL
+    # 2. PokerAtlas
     pa_url = venue.get('poker_atlas_url') or venue.get('pokeratlas_url') or ''
     pa_slug = venue.get('pokeratlas_slug') or ''
     if not pa_slug and '/poker-room/' in pa_url:
         pa_slug = pa_url.split('/poker-room/')[-1].strip('/')
-
     if pa_slug:
-        add('pokeratlas_tournaments', f"https://www.pokeratlas.com/poker-room/{pa_slug}/tournaments")
-        add('pokeratlas_main', f"https://www.pokeratlas.com/poker-room/{pa_slug}")
-    elif pa_url:
-        pa_tourn = pa_url.rstrip('/')
-        if not pa_tourn.endswith('/tournaments'):
-            pa_tourn += '/tournaments'
-        add('pokeratlas_tournaments', pa_tourn)
-        add('pokeratlas_main', pa_url)
+        add('pokeratlas', f"https://www.pokeratlas.com/poker-room/{pa_slug}/tournaments")
     else:
-        # Generate slug from name
         gen_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
-        add('pokeratlas_guess', f"https://www.pokeratlas.com/poker-room/{gen_slug}/tournaments")
+        add('pokeratlas', f"https://www.pokeratlas.com/poker-room/{gen_slug}/tournaments")
 
-    # 4. Bravo Poker Live
+    # 3. Bravo Poker Live
     bravo_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
     add('bravo', f"https://www.bravopokerlive.com/poker-rooms/{bravo_slug}")
 
-    return urls[:12]  # Cap at 12 attempts per venue
+    # 4. HendonMob (Query fallback)
+    encoded_name = urllib.parse.quote_plus(name)
+    add('hendonmob', f"https://www.thehendonmob.com/search/?q={encoded_name}")
+
+    # 5. CardPlayer.com (Query fallback)
+    add('cardplayer', f"https://www.cardplayer.com/poker-tournaments/search?q={encoded_name}")
+
+    # 6. Direct venue website 
+    website = venue.get('website') or ''
+    if website:
+        base = website if website.startswith('http') else f"https://{website}"
+        base = base.rstrip('/')
+        for path in ['/poker/tournaments', '/tournaments', '']:
+            add('website', f"{base}{path}")
+
+    return urls[:8]  # Cap at 8 attempts per venue
 
 
 # ── Core scrape function ──────────────────────────────────────────────────────
@@ -566,7 +567,9 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
     for src, url in urls:
         print(f"      [{src}] {url[:80]}")
         try:
-            resp = session.fetch(url, google_search=False, timeout=25000)
+            # Enable google_search fallback for HendonMob/CardPlayer if URL 404s
+            gs_flag = True if src in ('hendonmob', 'cardplayer') else False
+            resp = session.fetch(url, google_search=gs_flag, timeout=12000, wait_until='domcontentloaded')
         except Exception as e:
             print(f"      [SKIP] {str(e)[:70]}")
             continue

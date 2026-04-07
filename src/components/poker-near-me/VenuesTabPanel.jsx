@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 import { MapErrorBoundary } from './VenueMap';
+import PokerTourCard from './PokerTourCard';
 
 const RADIUS_TIERS = [50, 100, 200, 500];
 
@@ -124,8 +125,19 @@ export default function VenuesTabPanel({
             <div className="venues-cards-section">
                 <div className="card-grid">
                     {displayed.map((venue, i) => {
-                        const maxGtd = venueMaxGtd[String(venue.id)] || 0;
                         const isHighlighted = highlightedVenueId === venue.id;
+                        
+                        if (venue.venue_type === 'tour_stop' || venue.venue_type === 'series') {
+                            return (
+                                <div key={venue.id || `tour-${i}`} id={`tour-card-${venue.tour_code || i}`}
+                                    className={'venue-card-wrapper' + (isHighlighted ? ' venue-card-highlighted' : '')}
+                                >
+                                    <PokerTourCard tourPin={venue} />
+                                </div>
+                            );
+                        }
+                        
+                        const maxGtd = venueMaxGtd[String(venue.id)] || 0;
                         return (
                             <div key={venue.id || i} id={'venue-card-' + venue.id}
                                 className={'venue-card-wrapper' + (isHighlighted ? ' venue-card-highlighted' : '')}>

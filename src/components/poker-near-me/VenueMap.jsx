@@ -497,7 +497,7 @@ function createTourLogoIcon(L, venue) {
     className: 'tour-logo-marker',
     html: `<div style="position:relative;width:${totalWidth}px;height:${totalHeight}px;">
       ${pulseRing}
-      <div style="position:absolute;top:0;left:${circleLeft}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">
+      <div style="position:absolute;top:0;left:${circleLeft}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #ef4444;box-shadow:0 0 14px rgba(239,68,68,0.6), 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">
         ${tourInner}
       </div>
       ${venueCircleHtml}
@@ -973,7 +973,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     // ← Always clear tour layer too
     if (tourLayer) tourLayer.clearLayers();
 
-    const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
+    const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude && !v.hideOnMap; });
 
     // Compute distances from user location if available
     if (userLocation) {
