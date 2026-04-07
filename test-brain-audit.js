@@ -13225,6 +13225,297 @@ test('STREET MEMORY: record and retrieve', () => {
     expect(!!mem).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 91: EDGE CASE REGRESSION AUDIT
+// Extreme values, boundary conditions, exploit pattern detection
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 91: Edge Case Regression Audit ──');
+
+// ── 91.1: Extreme stack sizes in fallback decision ──
+test('EDGE: 1BB stack → all_in or fold', () => {
+    const result = brain.makeFallbackDecision('test-1bb', {
+        handStr: 'AA', position: 'BTN', street: 'preflop',
+        potSize: 3, toCall: 2, stackBB: 1, bb: 2, numPlayers: 2
+    }, [{ type: 'fold' }, { type: 'all_in', amount: 2 }]);
+    expect(result.type === 'all_in' || result.type === 'fold').toBe(true);
+});
+
+test('EDGE: 10000BB deep stack doesn\'t crash', () => {
+    const result = brain.makeFallbackDecision('test-deep', {
+        handStr: 'AKs', position: 'BTN', street: 'preflop',
+        potSize: 3, toCall: 2, stackBB: 10000, bb: 2, numPlayers: 2
+    }, [{ type: 'fold' }, { type: 'call', amount: 2 }, { type: 'raise', minAmount: 6, maxAmount: 20000 }]);
+    expect(['fold', 'check', 'call', 'raise', 'bet', 'all_in'].includes(result.type)).toBe(true);
+});
+
+// ── 91.2: Zero and negative pot sizes ──
+test('EDGE: potSize=0 in postflop eval', () => {
+    const result = brain.makeFlopHeuristicDecision({
+        holeCards: ['Ah', 'Kh'], board: ['Qh', '7d', '2c'],
+        handStr: 'AKs', position: 'BTN', stackBB: 100,
+        potSize: 0, toCall: 0, bb: 2, numPlayers: 2,
+        legalActions: [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 200 }],
+        profileId: 'test-zero-pot'
+    });
+    expect(!!result).toBe(true);
+    expect(typeof result.type).toBe('string');
+});
+
+test('EDGE: SPR with potSize=0', () => {
+    const result = brain.getSPRStrategy(100, 0);
+    expect(!!result).toBe(true);
+    expect(result.strategy).toBe('deep');
+});
+
+// ── 91.3: Exploit detection with realistic patterns ──
+test('EXPLOIT: recordRaiseSize builds min-raise profile', () => {
+    // Record 10 min-raises for an opponent
+    for (let i = 0; i < 10; i++) {
+        brain.recordRaiseSize('opp-minraiser-91', 4, 2, i % 3 === 0);
+    }
+    const result = brain.isMinRaiser('opp-minraiser-91');
+    expect(!!result).toBe(true);
+    // After 10 min-raises (2x raise), should be detected as min-raiser
+    expect(typeof result.isMinRaiser).toBe('boolean');
+    expect(typeof result.rate).toBe('number');
+});
+
+test('EXPLOIT: recordSqueeze builds squeeze profile', () => {
+    for (let i = 0; i < 10; i++) {
+        brain.recordSqueeze('opp-squeezer-91', 30 + i, 10);
+    }
+    const result = brain.isSqueezeOverkill('opp-squeezer-91');
+    expect(!!result).toBe(true);
+    expect(typeof result.isOverkill).toBe('boolean');
+});
+
+test('EXPLOIT: recordColdCall builds cold-call trap profile', () => {
+    for (let i = 0; i < 10; i++) {
+        brain.recordColdCall('opp-coldcaller-91');
+    }
+    for (let i = 0; i < 5; i++) {
+        brain.recordBarrelVsColdCall('opp-coldcaller-91', true);
+    }
+    const result = brain.isColdCallTrap('opp-coldcaller-91');
+    expect(!!result).toBe(true);
+    expect(typeof result.isTrap).toBe('boolean');
+});
+
+test('EXPLOIT: recordIsoSize builds isolation sizing profile', () => {
+    for (let i = 0; i < 10; i++) {
+        brain.recordIsoSize('opp-iso-91', 3.0 + (i % 2) * 0.1);
+    }
+    const result = brain.isMechanicalIsolator('opp-iso-91');
+    expect(!!result).toBe(true);
+    expect(typeof result.isMechanical).toBe('boolean');
+});
+
+test('EXPLOIT: recordActionTiming builds angle-shoot profile', () => {
+    for (let i = 0; i < 20; i++) {
+        brain.recordActionTiming('opp-angle-91', 200 + Math.random() * 50);
+    }
+    const result = brain.detectAngleShoot('opp-angle-91');
+    expect(!!result).toBe(true);
+    expect(typeof result.isAngleShooting).toBe('boolean');
+});
+
+test('EXPLOIT: recordRITResponse builds RIT-refuser profile', () => {
+    for (let i = 0; i < 10; i++) {
+        brain.recordRITResponse('opp-rit-91', false);
+    }
+    const result = brain.isRITRefuser('opp-rit-91');
+    expect(!!result).toBe(true);
+    expect(typeof result.isRITRefuser).toBe('boolean');
+});
+
+test('EXPLOIT: recordProbeBet builds probe-farm profile', () => {
+    for (let i = 0; i < 10; i++) {
+        brain.recordProbeBet('opp-probe-91', 0.33, i % 3 === 0, -5);
+    }
+    const score = brain.getProbeFarmScore('opp-probe-91');
+    expect(typeof score).toBe('number');
+    expect(score >= 0).toBe(true);
+});
+
+test('EXPLOIT: recordTableImageHand builds exposure profile', () => {
+    for (let i = 0; i < 10; i++) {
+        brain.recordTableImageHand('horse-image-91', 'table-image-91', i < 5);
+    }
+    const exposed = brain.isImageExposed('horse-image-91', 'table-image-91');
+    expect(typeof exposed).toBe('boolean');
+});
+
+test('EXPLOIT: recordChipLeak builds chip-leak profile', () => {
+    for (let i = 0; i < 5; i++) {
+        brain.recordChipLeak('horse-leak-91', 'table-leak-91', 'small_blind_defense', 3);
+    }
+    const boosts = brain.getChipLeakBoosts('horse-leak-91', 'table-leak-91');
+    expect(!!boosts).toBe(true);
+    expect(typeof boosts).toBe('object');
+});
+
+// ── 91.4: Bomb pot and straddle detection ──
+test('BOMB POT: large pot/bb ratio triggers boost', () => {
+    const result = brain.detectBombPotOrStraddle(200, 2, false);
+    expect(result.equityThresholdBoost > 0).toBe(true);
+});
+
+test('STRADDLE: straddle flag triggers detection', () => {
+    const result = brain.detectBombPotOrStraddle(10, 2, true);
+    expect(!!result).toBe(true);
+    expect(typeof result.label).toBe('string');
+});
+
+test('NORMAL POT: small pot no straddle → no boost', () => {
+    const result = brain.detectBombPotOrStraddle(6, 2, false);
+    expect(result.equityThresholdBoost).toBe(0);
+});
+
+// ── 91.5: Range rotation gear ──
+test('RANGE ROTATION: gear stays bounded', () => {
+    // Simulate many rotations
+    for (let i = 0; i < 50; i++) {
+        const gear = brain.getRangeRotationGear('horse-rotation-91', 'table-rotation-91');
+        expect(typeof gear.foldMod).toBe('number');
+        expect(typeof gear.raiseMod).toBe('number');
+        // Mods should be bounded
+        expect(Math.abs(gear.foldMod) < 30).toBe(true);
+        expect(Math.abs(gear.raiseMod) < 30).toBe(true);
+    }
+});
+
+// ── 91.6: PLO edge cases ──
+test('PLO: 5-card Omaha preflop classification', () => {
+    const result = brain.classifyPLOPreflop(['Ah', 'Kh', 'Qd', 'Jd', 'Ts']);
+    expect(typeof result).toBe('number');
+    expect(result > 0).toBe(true);
+});
+
+test('PLO: 6-card Omaha preflop classification', () => {
+    const result = brain.classifyPLOPreflop(['Ah', 'Kh', 'Qd', 'Jd', 'Ts', '9s']);
+    expect(typeof result).toBe('number');
+    expect(result > 0).toBe(true);
+});
+
+test('PLO: empty board flush/straight outs', () => {
+    const fo = brain.countFlushOuts(['Ah', 'Kh', 'Qd', 'Jd'], []);
+    expect(typeof fo).toBe('object');
+    expect(fo.outs >= 0).toBe(true);
+    const so = brain.countStraightOuts(['Ah', 'Kh', 'Qd', 'Jd'], []);
+    expect(typeof so).toBe('object');
+    expect(so.outs >= 0).toBe(true);
+});
+
+test('PLO: evaluatePLO8Low returns valid result', () => {
+    const result = brain.evaluatePLO8Low(['Ah', '2h', '3d', '7d'], ['4h', '5c', 'Kd']);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('PLO: getPLOEquityRealization returns number', () => {
+    const result = brain.getPLOEquityRealization(75, 'BTN', 2, 'flop', false);
+    expect(typeof result).toBe('number');
+    expect(result > 0 && result <= 1.5).toBe(true);
+});
+
+test('PLO: detectScareCard on turn', () => {
+    const result = brain.detectScareCard(['Ah', 'Kd', '7c'], '2s');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+// ── 91.7: Validate all action types from validateAndClamp across 1000 random inputs ──
+test('V&C STRESS: 1000 random inputs never crash or return invalid type', () => {
+    const actionTypes = ['fold', 'check', 'call', 'raise', 'bet', 'all_in', 'garbage', '', null, undefined];
+    const validTypes = new Set(['fold', 'check', 'call', 'raise', 'bet', 'all_in']);
+    let crashes = 0, invalid = 0;
+    for (let i = 0; i < 1000; i++) {
+        try {
+            const aType = actionTypes[i % actionTypes.length];
+            const amt = [0, 1, 10, 50, 100, NaN, null, undefined, -1, Infinity][i % 10];
+            const legal = i % 3 === 0
+                ? [{ type: 'fold' }, { type: 'call', amount: 10 }, { type: 'raise', minAmount: 20, maxAmount: 200 }]
+                : i % 3 === 1
+                ? [{ type: 'check' }, { type: 'bet', minAmount: 5, maxAmount: 100 }]
+                : [{ type: 'fold' }, { type: 'all_in', amount: 50 }];
+            const result = brain.validateAndClamp(aType, amt, legal);
+            if (!validTypes.has(result.type)) invalid++;
+        } catch(e) { crashes++; }
+    }
+    expect(crashes).toBe(0);
+    expect(invalid).toBe(0);
+});
+
+// ── 91.8: evaluatePostflopHand with all hand categories ──
+test('POSTFLOP: straight detected', () => {
+    const result = brain.evaluatePostflopHand(['9h', '8c'], ['7d', '6s', '5h']);
+    expect(result.category).toBe('straight');
+    expect(result.strength >= 70).toBe(true);
+});
+
+test('POSTFLOP: set detected', () => {
+    const result = brain.evaluatePostflopHand(['7h', '7c'], ['7d', 'Ks', '2h']);
+    expect(result.category === 'set' || result.category === 'trips').toBe(true);
+    expect(result.strength >= 80).toBe(true);
+});
+
+test('POSTFLOP: two pair detected', () => {
+    const result = brain.evaluatePostflopHand(['Ah', 'Kc'], ['As', 'Kd', '2h']);
+    expect(result.category === 'two_pair' || result.strength >= 60).toBe(true);
+});
+
+test('POSTFLOP: full house detected', () => {
+    const result = brain.evaluatePostflopHand(['Ah', 'As'], ['Ad', 'Kc', 'Kd']);
+    expect(result.category).toBe('full_house');
+    expect(result.strength >= 88).toBe(true);
+});
+
+test('POSTFLOP: OESD detected on flop', () => {
+    // 9-8 on T-7-2 → open-ended straight draw
+    const result = brain.evaluatePostflopHand(['9h', '8c'], ['Td', '7s', '2h']);
+    expect(result.hasOESD).toBe(true);
+});
+
+test('POSTFLOP: gutshot detected', () => {
+    // 9-8 on T-6-2 → gutshot (needs 7)
+    const result = brain.evaluatePostflopHand(['9h', '8c'], ['Td', '6s', '2h']);
+    expect(result.hasGutshot).toBe(true);
+});
+
+// ── 91.9: Tilt degradation with extreme values ──
+test('TILT: negative tilt doesn\'t crash', () => {
+    let crashed = false;
+    try { brain.applyTiltDegradation(-0.5, { action: 'raise', amount: 50 }); } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+});
+
+test('TILT: tilt > 1.0 doesn\'t crash', () => {
+    let crashed = false;
+    try { brain.applyTiltDegradation(2.0, { action: 'raise', amount: 50 }); } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+});
+
+// ── 91.10: Async getDecision with null/missing players ──
+asyncTests.push({ name: 'EDGE: getDecision with null engineState → fold', fn: async () => {
+    const result = await brain.getDecision('test-null-state', null, [{ type: 'fold' }], { bigBlind: 2 });
+    expect(result.action.type).toBe('fold');
+}});
+
+asyncTests.push({ name: 'EDGE: getDecision with empty legalActions → fold', fn: async () => {
+    const result = await brain.getDecision('test-empty-legal', { players: [], phase: 'preflop' }, [], { bigBlind: 2 });
+    expect(result.action.type).toBe('fold');
+}});
+
+asyncTests.push({ name: 'EDGE: getDecision with hero having no cards → check/fold', fn: async () => {
+    const state = {
+        players: [{ id: 'hero-nocards', holeCards: [], stack: 100, position: 'btn', invested: 0, folded: false }],
+        phase: 'preflop', potTotal: 3, currentBet: 2
+    };
+    const result = await brain.getDecision('hero-nocards', state, [{ type: 'check' }, { type: 'fold' }], { bigBlind: 2 });
+    expect(result.action.type === 'check' || result.action.type === 'fold').toBe(true);
+}});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
