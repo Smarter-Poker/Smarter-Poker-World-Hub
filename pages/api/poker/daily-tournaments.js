@@ -98,8 +98,10 @@ export default async function handler(req, res) {
               .order('buy_in', { ascending: true });
 
           // Filter by day
+          // Declare targetDay before the if-block to avoid ReferenceError when day='all'
+          let targetDay = getCurrentDay();
           if (day !== 'all') {
-              const targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
+              targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
               query = query.or(`day_of_week.eq.${targetDay},day_of_week.eq.Daily`);
           }
 
@@ -311,10 +313,14 @@ export default async function handler(req, res) {
 
       } catch (error) {
           console.error('Daily tournaments API error:', error);
-          return res.status(500).json({
+          // Return 200 with empty array — NEVER 500 (would crash fetchAllData Promise.all)
+          return res.status(200).json({
               success: false,
               error: 'Daily tournaments query failed',
-              tournaments: []
+              tournaments: [],
+              byTimeSlot: { morning: [], afternoon: [], evening: [] },
+              byState: {},
+              stats: { total: 0 }
           });
       }
 

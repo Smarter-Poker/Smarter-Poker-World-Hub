@@ -1261,7 +1261,7 @@ export default function PokerNearMePage() {
         if (includeVenues) {
             fetches.push(fetchVenues({ silent }));
         }
-        await Promise.all(fetches);
+        await Promise.allSettled(fetches); // allSettled: one failing fetch never blocks tours/series/venues
         if (!silent) setLoading(false);
     };
 
