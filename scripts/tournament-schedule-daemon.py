@@ -630,8 +630,12 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
 
     # ── Source 5: Venue website + PDFs ──────────────────────────────────────
     # ALWAYS use origin-only (scheme+host) — never append paths to paths
+    SCRAPER_DOMAINS = {
+        "pokeratlas.com", "bravopokerlive.com", "cardplayer.com",
+        "thehendonmob.com", "pokernews.com", "hendonmob.com",
+    }
     def url_to_origin(u: str) -> str | None:
-        """Extract scheme+host from any URL. Returns None if invalid."""
+        """Extract scheme+host from any URL. Returns None if invalid or a scraper domain."""
         try:
             if not u: return None
             if not u.startswith("http"): u=f"https://{u}"
@@ -639,6 +643,10 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
             if len(parts)<2: return None
             host=parts[1].split("/")[0].strip()
             if "." not in host or len(host)<5: return None
+            # Reject known scraper domains — they're already covered by Sources 1-4
+            clean_host = host.lower().replace("www.","")
+            if any(clean_host==d or clean_host.endswith("."+d) for d in SCRAPER_DOMAINS):
+                return None
             return parts[0]+"//"+host  # e.g. https://example.com
         except: return None
 
