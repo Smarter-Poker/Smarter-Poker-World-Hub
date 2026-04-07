@@ -38,6 +38,7 @@ export default function VenuesTabPanel({
     onMapVenueClick,
     iframeModal,
     setIframeModal,
+    openVenueModal,
 }) {
     // Defensive guard — venues may be null/undefined during initial load or after a crash
     const safeVenues = Array.isArray(venues) ? venues : [];
@@ -143,7 +144,7 @@ export default function VenuesTabPanel({
                                         venue={venue}
                                         isFavorited={isFavorited('venue', venue.id)}
                                         onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                                        onNavigate={(path) => router.push(path)}
+                                        onNavigate={openVenueModal}
                                     />
                                 </div>
                             );
@@ -159,7 +160,7 @@ export default function VenuesTabPanel({
                                 isFavorited={isFavorited('venue', venue.id)}
                                 hasPromo={promotionVenueIds.has(String(venue.id))}
                                 onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                                onNavigate={(path) => router.push(path)}
+                                onNavigate={openVenueModal}
                                 reviewStats={pnmReviewStatsMap[String(venue.id)]}
                             />
                             </div>

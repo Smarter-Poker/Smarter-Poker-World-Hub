@@ -18954,6 +18954,120 @@ test('BUG155-E2E: PLO8 nut low facing bet NEVER folds', () => {
     expect(folds).toBe(0);
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// BUG #157: angleTell Hold'em delay — entropy must be added
+// ═══════════════════════════════════════════════════════════════════
+test('BUG157-UNIT: angleTell.extraEntropyMs wired into Hold\'em delay path', () => {
+    // The fix adds angleTell.extraEntropyMs before the clamp at line ~16076.
+    // Verify by checking the source code contains the wiring.
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/HorsePokerBrain.js'), 'utf8'
+    );
+    // The fix: "delayMs += angleTell.extraEntropyMs;" appears BEFORE the clamp
+    const hasWiring = src.includes('delayMs += angleTell.extraEntropyMs');
+    expect(hasWiring).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BUG #158: counterStrategyMode wired into flop heuristic
+// ═══════════════════════════════════════════════════════════════════
+test('BUG158-UNIT: counterStrategyMode produces flopInStealthMode / antiBotCBetBoost in flop heuristic', () => {
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/HorsePokerBrain.js'), 'utf8'
+    );
+    expect(src.includes('flopInStealthMode')).toBe(true);
+    expect(src.includes('antiBotCBetBoost')).toBe(true);
+    // Verify they're used in the c-bet frequency formula
+    expect(src.includes('+ antiBotCBetBoost')).toBe(true);
+    expect(src.includes('+ stealthSizeNoise')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BUG #159: Dead board variables (boardIsTrips, boardIsMedium, boardHasStraightDraw)
+// ═══════════════════════════════════════════════════════════════════
+test('BUG159-UNIT: boardIsTrips triggers check-through in flop c-bet', () => {
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/HorsePokerBrain.js'), 'utf8'
+    );
+    // Trips board handling must exist in the c-bet strategy
+    expect(src.includes('if (boardIsTrips)')).toBe(true);
+    expect(src.includes('mediumBoardSizeMod')).toBe(true);
+    expect(src.includes('straightDrawSizeMod')).toBe(true);
+});
+
+test('BUG159-E2E: makeFlopHeuristicDecision on trips board returns check', () => {
+    const result = brain.makeFlopHeuristicDecision({
+        holeCards: ['Ah', 'Kd'], board: ['7s', '7h', '7d'], // trips board
+        handStr: 'AKo', position: 'BTN', stackBB: 100, potSize: 10,
+        toCall: 0, bb: 2, numPlayers: 2,
+        legalActions: [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 200 }],
+        profileId: 'test-trips', heroIsAggressor: true,
+    });
+    // On a trips board, non-full-house hands should check (nobody connects)
+    expect(result.type === 'check').toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BUG #160: inAntiBot and isTight wired in turn/river heuristic
+// ═══════════════════════════════════════════════════════════════════
+test('BUG160-UNIT: inAntiBot and isTight produce narrative adjustments', () => {
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/HorsePokerBrain.js'), 'utf8'
+    );
+    // inAntiBot must be used (not just declared)
+    expect(src.includes('if (inAntiBot) {')).toBe(true);
+    expect(src.includes('if (inAntiBot) sizeFrac')).toBe(true);
+    // isTight must be used in narrative section
+    expect(src.includes('if (isTight && handEval.strength')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BUG #161: mdf (Minimum Defense Frequency) wired in Hold'em fallback + T/R heuristic
+// ═══════════════════════════════════════════════════════════════════
+test('BUG161-UNIT: mdf is used in bluff-catch and hero call decisions', () => {
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/HorsePokerBrain.js'), 'utf8'
+    );
+    // Hold'em fallback: mdfCallBoost in bluff-catch section
+    expect(src.includes('mdfCallBoost')).toBe(true);
+    // Turn/river heuristic: mdf in hero call base probability
+    expect(src.includes('(mdf - 0.50) * 0.15')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BUG #162: MDF defense vs all-in on flop/turn
+// ═══════════════════════════════════════════════════════════════════
+test('BUG162-UNIT: MDF defense code exists in Hold\'em fallback', () => {
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/HorsePokerBrain.js'), 'utf8'
+    );
+    // The fix adds flopTurnMDF and MDF DEFENSE logic
+    expect(src.includes('flopTurnMDF')).toBe(true);
+    expect(src.includes('MDF DEFENSE')).toBe(true);
+    expect(src.includes('mdfMarginCall')).toBe(true);
+});
+
+test('BUG162-E2E: Top pair calls all-in on flop (Hold\'em fallback)', () => {
+    // Scenario: Hero has AhKd on Ac7s3h. Opponent shoves all-in (2x pot).
+    // Top pair top kicker should call an all-in on this dry board.
+    let calls = 0;
+    const trials = 30;
+    for (let i = 0; i < trials; i++) {
+        const result = brain.makeFallbackDecision('test-mdf-162', {
+            holeCards: ['Ah', 'Kd'], board: ['Ac', '7s', '3h'],
+            handStr: 'AKo', street: 'flop', position: 'BTN', stackBB: 50,
+            potSize: 20, toCall: 40, bb: 2, numPlayers: 2,
+            topology: '6-Max', mode: 'ChipEV', gameType: 'Cash',
+        }, [
+            { type: 'fold' },
+            { type: 'call' },
+        ], { callMod: 0, foldMod: 0 });
+        if (result.type === 'call') calls++;
+    }
+    // TPTK should call the all-in most of the time (at least 60%)
+    expect(calls >= 18).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

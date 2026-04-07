@@ -1616,6 +1616,19 @@ export default function PokerNearMePage() {
         }
     }, [activeTab, venues.length]);
 
+    const openVenueModal = useCallback((path) => {
+        if (!path) return;
+        if (path.includes('/hub/venues/')) {
+            setIframeModal({
+                isOpen: true,
+                url: path,
+                title: 'Venue Details'
+            });
+        } else {
+            router.push(path);
+        }
+    }, [router]);
+
 
 
     // Reverse geocode lat/lng to city, state using OpenStreetMap Nominatim (free, no API key)
@@ -2388,6 +2401,7 @@ export default function PokerNearMePage() {
             clearFilters={clearFilters}
             pnmReviewStatsMap={pnmReviewStatsMap}
             router={router}
+            openVenueModal={openVenueModal}
             onMapVenueClick={onMapVenueClick}
             iframeModal={iframeModal}
             setIframeModal={setIframeModal}
@@ -2413,6 +2427,7 @@ export default function PokerNearMePage() {
                 setHasSearched={setHasSearched}
                 fetchAllData={fetchAllData}
                 router={router}
+                openVenueModal={openVenueModal}
                 setIframeModal={setIframeModal}
             />
         );
@@ -2423,6 +2438,7 @@ export default function PokerNearMePage() {
                 favorites={favorites}
                 handleToggleFavorite={(venueId, venueData) => toggleFavorite('venue', venueId, null, venueData)}
                 router={router}
+                openVenueModal={openVenueModal}
                 setSelectedVenueForReview={setReviewVenue}
                 user={user}
             />
@@ -2439,6 +2455,7 @@ export default function PokerNearMePage() {
                 pnmReviewStatsMap={pnmReviewStatsMap}
                 setActiveTab={setActiveTab}
                 router={router}
+                openVenueModal={openVenueModal}
             />
         );
 
@@ -2465,6 +2482,7 @@ export default function PokerNearMePage() {
                             isFavorited={isFavorited}
                             toggleFavorite={toggleFavorite}
                             router={router}
+                            openVenueModal={openVenueModal}
                         />
                     );
                     case 'series': return (
@@ -2479,6 +2497,7 @@ export default function PokerNearMePage() {
                             isFavorited={isFavorited}
                             toggleFavorite={toggleFavorite}
                             router={router}
+                            openVenueModal={openVenueModal}
                         />
                     );
                     case 'calendar': return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
@@ -2514,6 +2533,7 @@ export default function PokerNearMePage() {
                         requestGpsLocation={requestGpsLocation}
                         setActiveTab={setActiveTab}
                         router={router}
+                        openVenueModal={openVenueModal}
                     />
                 );
             default:
@@ -2850,6 +2870,14 @@ export default function PokerNearMePage() {
                             setHasSearched(true);
                             fetchAllData({ includeVenues: true });
                         }}
+                    />
+
+                    {/* Full Screen Venue Detail overlay */}
+                    <FullScreenPageOverlay
+                        isOpen={iframeModal.isOpen}
+                        onClose={() => setIframeModal({ ...iframeModal, isOpen: false })}
+                        url={iframeModal.url}
+                        title={iframeModal.title}
                     />
 
                     {/* Venue Reviews Panel (Feature #9) */}

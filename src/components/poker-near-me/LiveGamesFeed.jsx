@@ -145,6 +145,7 @@ export default function LiveGamesFeed({
     handleToggleFavorite, 
     checkinCounts = {}, 
     router, 
+    openVenueModal,
     setSelectedVenueForReview,
     user 
 }) {
@@ -675,7 +676,7 @@ export default function LiveGamesFeed({
                     display: 'flex',
                     flexDirection: 'column',
                 }}
-                onClick={() => { if (router) router.push(`/hub/venues/${v.id}`); }}
+                onClick={() => { if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`); else if (router) router.push(`/hub/venues/${v.id}`); }}
                 >
                     {/* === HEADER ZONE === */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
@@ -791,8 +792,8 @@ export default function LiveGamesFeed({
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
-                            {router && (
-                                <button onClick={(e) => { e.stopPropagation(); router.push(`/hub/venues/${v.id}`); }}
+                            {(openVenueModal || router) && (
+                                <button onClick={(e) => { e.stopPropagation(); if (openVenueModal) openVenueModal(`/hub/venues/${v.id}`); else if (router) router.push(`/hub/venues/${v.id}`); }}
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(110,231,239,0.12)', color: '#6ee7ef', border: '1px solid rgba(110,231,239,0.25)', fontFamily: 'inherit', transition: 'all 0.2s' }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
                                     Details

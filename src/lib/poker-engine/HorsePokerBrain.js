@@ -6624,8 +6624,14 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                 const neededEquity = potOddsR;
                 const oppIsBluffy = opponentAdjustment.bluffAware;
 
-                // Call if equity exceeds pot odds, or if opponent likely bluffing
-                if (bluffCatchEq >= neededEquity || (oppIsBluffy && effectiveStrength >= foldThreshold - 5)) {
+                // Bug #161: Wire MDF into bluff-catch. If we fold too much, opponent profits
+                // by bluffing any two cards. Hands close to the fold threshold should
+                // lean toward calling when random sample falls within MDF zone.
+                const mdfCallBoost = bluffCatchEq < neededEquity && effectiveStrength >= foldThreshold - 8
+                    && Math.random() < mdf * 0.15; // ~10-12% of marginal folds become calls
+
+                // Call if equity exceeds pot odds, MDF boost, or if opponent likely bluffing
+                if (bluffCatchEq >= neededEquity || mdfCallBoost || (oppIsBluffy && effectiveStrength >= foldThreshold - 5)) {
                     return canCall ? { type: 'call' } : { type: 'fold' };
                 }
 
@@ -7130,6 +7136,29 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
         if (oppIsPassive) floatFreq += 0.12;
         if (canCall && Math.random() < floatFreq) {
             return { type: 'call' }; // Float flop IP
+        }
+    }
+
+    // Bug #162: MDF-based defense vs all-in / large bets on flop/turn
+    // When facing a shove or large overbet, hands with decent equity should call
+    // at a rate that prevents the opponent from profiting by jamming any two cards.
+    // MDF = pot / (pot + bet). If we fold more than (1 - MDF), opponent prints money.
+    if (toCall > 0 && canCall && effectiveStrength >= 30) {
+        const flopTurnMDF = potSize / (potSize + toCall);
+        const handEquity = effectiveStrength / 100;
+        const betRelPot = toCall / Math.max(1, potSize);
+
+        // Only kicks in for large bets (>50% pot) — small bets are handled above
+        if (betRelPot >= 0.50) {
+            // Call if hand equity beats pot odds + MDF-weighted marginal call boost
+            const potOddsHere = toCall / (potSize + toCall);
+            const mdfMarginCall = handEquity >= potOddsHere
+                || (handEquity >= potOddsHere - 0.05 && Math.random() < flopTurnMDF * 0.20);
+
+            if (mdfMarginCall) {
+                console.log(`[HorseBrain] 🛡️ MDF DEFENSE: calling large bet (${Math.round(betRelPot * 100)}% pot) str=${effectiveStrength} MDF=${Math.round(flopTurnMDF * 100)}%`);
+                return { type: 'call' };
+            }
         }
     }
 
@@ -8540,6 +8569,16 @@ function makeTurnRiverHeuristicDecision(params) {
         }
     }
 
+    // Bug #160: Wire inAntiBot — widen bluffing range and add unpredictability vs solvers
+    if (inAntiBot) {
+        narrativeAggrMod += 3; // More aggressive narrative (solvers exploit predictable passivity)
+    }
+
+    // Bug #160: Wire isTight — tight personality plays more cautiously on turn/river
+    if (isTight && handEval.strength < 45 && drawEq.outs < 8) {
+        narrativeAggrMod -= 4; // Tight horses barrel less with marginal hands
+    }
+
     // ════════════════════════════════════════════════════════════════
     //  T U R N
     // ════════════════════════════════════════════════════════════════
@@ -8849,6 +8888,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (Math.random() < semiFreq * (multiway ? mwAdj.bluffReduction : 1.0)) {
                     let sizeFrac = drawEq.outs >= 14 ? 0.65 : 0.50; // Bigger with combo draws
                     if (inStealthMode) sizeFrac += (Math.random() * 0.10 - 0.05); // +/- 5% noise
+                    if (inAntiBot) sizeFrac += (Math.random() * 0.12 - 0.06); // Bug #160: ±6% noise vs bots
                     // Live-read sizing: smaller vs folders (saves chips when called)
                     if (liveRead && liveRead.confidence >= 0.20 && liveRead.foldFreq > 0.55) {
                         sizeFrac = Math.max(0.38, sizeFrac - 0.08);
@@ -11087,7 +11127,8 @@ function makeTurnRiverHeuristicDecision(params) {
             // ── BASE HERO CALL PROBABILITY ──
             // Start from MDF: we NEED to call some % to prevent exploitation
             // MDF tells us how often we need to defend to make opponent's bluffs breakeven
-            let heroCallProb = 0;
+            // Bug #161: Wire mdf into hero call base — higher MDF = more incentive to hero call
+            let heroCallProb = (mdf - 0.50) * 0.15; // At MDF=0.67 → +2.5%, at MDF=0.50 → 0%
 
             // ═══ POSITION-AWARE HERO CALL BASE ═══
             // IP hero calls wider (already closed action, no position disadvantage)
@@ -11916,7 +11957,7 @@ function makeFlopHeuristicDecision(params) {
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT + COUNTER-STRATEGY + BOARD WIRING ═══
                 cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
-                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise + mediumBoardSizeMod + straightDrawSizeMod);
 
                 if (multiway) cbetFreq = Math.max(0.30, 0.55 + mwAdj.cbetFreqMod); // Tighten multiway (position/texture aware)
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -11963,7 +12004,7 @@ function makeFlopHeuristicDecision(params) {
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
                 cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise + mediumBoardSizeMod + straightDrawSizeMod);
 
                 if (multiway) cbetFreq = Math.max(0.15, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
@@ -12041,7 +12082,7 @@ function makeFlopHeuristicDecision(params) {
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT + COUNTER-STRATEGY + BOARD WIRING ═══
                 cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
-                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise + mediumBoardSizeMod + straightDrawSizeMod);
 
                 if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
                 if (multiway) cbetFreq = Math.max(0.25, 0.45 + mwAdj.cbetFreqMod);
@@ -12086,7 +12127,7 @@ function makeFlopHeuristicDecision(params) {
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
                 cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
-                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
+                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise + mediumBoardSizeMod + straightDrawSizeMod);
 
                 // Against callers on wet boards: tighter c-bet range but bigger sizing
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -12141,7 +12182,7 @@ function makeFlopHeuristicDecision(params) {
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
                 cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise + mediumBoardSizeMod + straightDrawSizeMod);
 
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
