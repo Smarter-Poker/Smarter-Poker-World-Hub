@@ -433,7 +433,8 @@ class GameStateMachine {
     for (let i = 0; i < 3; i++) {
       const twoCards = player.holeCards.filter((_, idx) => idx !== i);
       try {
-        const result = evaluateHoldem(twoCards, board);
+        // Phase 48e FIX #8a: evaluateHoldem takes a single concatenated array, not separate hole+board
+        const result = evaluateHoldem([...twoCards, ...board]);
         if (result.score > bestScore) {
           bestScore = result.score;
           bestDiscardIdx = i;
@@ -919,7 +920,8 @@ class GameStateMachine {
         if (isOmaha) {
           hand = evaluateOmaha(p.holeCards, board);
         } else {
-          hand = evaluateHoldem(p.holeCards, board, { shortDeck: isShortDeck });
+          // Phase 48e FIX #8b: evaluateHoldem takes a single concatenated array, not separate hole+board
+          hand = evaluateHoldem([...p.holeCards, ...board], { shortDeck: isShortDeck });
         }
       } else {
         // Preflop all-in — just use hole card rank sum as tiebreaker
@@ -1239,7 +1241,8 @@ class GameStateMachine {
         if (isOmaha) {
           hand = evaluateOmaha(p.holeCards, board);
         } else {
-          hand = evaluateHoldem(p.holeCards, board, { shortDeck: isShortDeck });
+          // Phase 48e FIX #8c: evaluateHoldem takes a single concatenated array, not separate hole+board
+          hand = evaluateHoldem([...p.holeCards, ...board], { shortDeck: isShortDeck });
         }
         results.push({ playerId: p.id, hand, score: hand.score });
       }
@@ -1441,7 +1444,8 @@ class GameStateMachine {
       if (isOmaha) {
         hand = evaluateOmaha(p.holeCards, board);
       } else {
-        hand = evaluateHoldem(p.holeCards, board, { shortDeck: isShortDeck });
+        // Phase 48e FIX #8d: evaluateHoldem takes a single concatenated array, not separate hole+board
+        hand = evaluateHoldem([...p.holeCards, ...board], { shortDeck: isShortDeck });
       }
       return { playerId: p.id, hand, score: hand.score, holeCards: p.holeCards };
     }).sort((a, b) => b.score - a.score);

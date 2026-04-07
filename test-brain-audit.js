@@ -4686,6 +4686,75 @@ test('BUG #7 REGRESSION: monotone board = wet', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// BUG #8 REGRESSION: evaluateHoldem must receive concatenated array
+// GameStateMachine had 4 locations calling evaluateHoldem(holeCards, board)
+// instead of evaluateHoldem([...holeCards, ...board]).
+// evaluateHoldem throws if cards.length < 5.
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #8 REGRESSION: evaluateHoldem throws on 2-card array (the bug)', () => {
+    const { evaluateHoldem } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const hole = parseCards('AhKs');  // 2 cards
+    const board = parseCards('QhJhTd9c2s'); // 5 cards
+    // The BUG: passing hole cards alone throws
+    let threw = false;
+    try {
+        evaluateHoldem(hole, { shortDeck: false });  // Only 2 cards → should throw
+    } catch (e) {
+        threw = true;
+    }
+    expect(threw).toBe(true);
+});
+
+test('BUG #8 REGRESSION: evaluateHoldem works with concatenated array (the fix)', () => {
+    const { evaluateHoldem } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const hole = parseCards('AhKs');
+    const board = parseCards('QhJhTd9c2s');
+    // The FIX: concatenate hole + board
+    const result = evaluateHoldem([...hole, ...board], { shortDeck: false });
+    expect(result.score).toBeGreaterThan(0);
+    // AhKhQhJhTd = Straight (A-high). Actually AhKs + QhJhTd9c2s = AKQJT straight
+    expect(result.category).toBe(5);  // Straight
+});
+
+test('BUG #8 REGRESSION: evaluateOmaha correctly takes separate arrays', () => {
+    const { evaluateOmaha } = require('./src/lib/poker-engine/HandEvaluator');
+    const { parseCards } = require('./src/lib/poker-engine/Deck');
+    const hole = parseCards('AhKsQdJc');  // 4 hole cards
+    const board = parseCards('Th9h8d2c3s');  // 5 board cards
+    // evaluateOmaha takes separate arrays — this should work without concatenation
+    const result = evaluateOmaha(hole, board);
+    expect(result.score).toBeGreaterThan(0);
+    // Best: AK from hole + T98 from board → Straight (A-high or something)
+    expect(result.category).toBeGreaterThanOrEqual(5);
+});
+
+test('BUG #8 REGRESSION: GameStateMachine evalBoard fix verified in source', () => {
+    // Verify the fix is in place by checking the source code
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/GameStateMachine.js', 'utf8');
+    // Should NOT have evaluateHoldem(p.holeCards, board anywhere
+    const badPattern = /evaluateHoldem\(p\.holeCards,\s*board/;
+    expect(badPattern.test(src)).toBe(false);
+    // Should have evaluateHoldem([...p.holeCards, ...board] in multiple places
+    const goodPattern = /evaluateHoldem\(\[\.\.\.p\.holeCards,\s*\.\.\.board\]/;
+    expect(goodPattern.test(src)).toBe(true);
+});
+
+test('BUG #8 REGRESSION: Pineapple auto-discard fix verified in source', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/GameStateMachine.js', 'utf8');
+    // Should NOT have evaluateHoldem(twoCards, board)
+    const badPattern = /evaluateHoldem\(twoCards,\s*board\)/;
+    expect(badPattern.test(src)).toBe(false);
+    // Should have evaluateHoldem([...twoCards, ...board])
+    const goodPattern = /evaluateHoldem\(\[\.\.\.twoCards,\s*\.\.\.board\]/;
+    expect(goodPattern.test(src)).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
