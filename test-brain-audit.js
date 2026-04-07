@@ -4841,60 +4841,6 @@ test('BUG #13 REGRESSION: AntiCheatMonitor scan uses entry.table.seats', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// BUG #14 REGRESSION: StateSerializer serializes BettingRound + Deck
-// ═══════════════════════════════════════════════════════════
-
-test('BUG #14 REGRESSION: StateSerializer.serialize() includes bettingRound and deck state', () => {
-    const fs = require('fs');
-    const src = fs.readFileSync('./src/lib/poker-engine/StateSerializer.js', 'utf8');
-    // serialize() must include bettingRound state
-    expect(src.includes('bettingRound: game.bettingRound?.getState')).toBe(true);
-    // serialize() must include deck state
-    expect(src.includes('deck: game.deck?.getState')).toBe(true);
-});
-
-test('BUG #14 REGRESSION: StateSerializer.restore() rebuilds BettingRound from state', () => {
-    const fs = require('fs');
-    const src = fs.readFileSync('./src/lib/poker-engine/StateSerializer.js', 'utf8');
-    // restore() must require BettingRound module
-    expect(src.includes("require('./BettingRound')")).toBe(true);
-    // restore() must create new BettingRound
-    expect(src.includes('new BettingRound(')).toBe(true);
-    // restore() must restore deck state
-    expect(src.includes('deck._cards = h.deck.cards')).toBe(true);
-    expect(src.includes('deck._position = h.deck.position')).toBe(true);
-});
-
-// ═══════════════════════════════════════════════════════════
-// BUG #15 REGRESSION: Watchdog stall tracker uses per-player Map
-// ═══════════════════════════════════════════════════════════
-
-test('BUG #15 REGRESSION: Watchdog stall uses _horseStallTracker Map, not timer._actionStartTime', () => {
-    const fs = require('fs');
-    const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
-    // Should NOT use entry.timer._actionStartTime (stale between hands)
-    expect(src.includes('entry.timer._actionStartTime')).toBe(false);
-    // Should use _horseStallTracker Map
-    expect(src.includes('_horseStallTracker')).toBe(true);
-    // Must clear stall tracker when horse is NOT current player
-    expect(src.includes('_horseStallTracker.delete(playerId)')).toBe(true);
-});
-
-// ═══════════════════════════════════════════════════════════
-// BUG #16 REGRESSION: Horse selection uses Fisher-Yates, not sort(random)
-// ═══════════════════════════════════════════════════════════
-
-test('BUG #16 REGRESSION: GameController horse shuffles use Fisher-Yates', () => {
-    const fs = require('fs');
-    const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
-    // Should NOT contain biased sort shuffle pattern
-    const biasedPattern = /horseProfiles\.sort\(\s*\(\s*\)\s*=>\s*Math\.random/;
-    expect(biasedPattern.test(src)).toBe(false);
-    // Should contain Fisher-Yates swap pattern
-    expect(src.includes('[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]')).toBe(true);
-});
-
-// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

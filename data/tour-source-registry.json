@@ -4,11 +4,26 @@
     "created": "2026-01-26",
     "description": "Authoritative registry of all traveling poker tour sources with refresh scheduling",
     "refresh_interval_days": 3,
-    "total_tours": 26,
-    "active_tours": 21,
-    "last_updated": "2026-04-04",
+    "total_tours": 25,
+    "active_tours": 13,
+    "last_updated": "2026-04-07",
     "total_events_2026": 215,
-    "schedule_source": "Web search aggregation (wsop.com, wpt.com, msptpoker.com, pokergo.com, barpokeropen.com, freepokernetwork.com, lipstour.com, roughriderpokertour.com, pokeratlastour.com)"
+    "schedule_source": "Web search aggregation (wsop.com, wpt.com, msptpoker.com, pokergo.com, barpokeropen.com, freepokernetwork.com, lipstour.com, roughriderpokertour.com, pokeratlastour.com)",
+    "active_tour_list": [
+      "PGT",
+      "WSOP",
+      "WPT",
+      "WSOPC",
+      "MSPT",
+      "RGPS",
+      "NAPT",
+      "CPPT",
+      "ROUGHRIDER",
+      "FPN",
+      "LIPS",
+      "PAT",
+      "GCPT"
+    ]
   },
   "tours": {
     "WSOP": {
@@ -1397,7 +1412,8 @@
       "headquarters": "London, UK",
       "established": 2015,
       "notes": "Ultra high stakes. Usually 2-3 stops per year in exotic locations.",
-      "is_active": false
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "VENETIAN": {
       "tour_code": "VENETIAN",
@@ -1449,7 +1465,9 @@
           "dates": "Feb 9-24"
         }
       ],
-      "notes": "Year-round series. Partners with MSPT for Poker Bowl."
+      "notes": "Year-round series. Partners with MSPT for Poker Bowl.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "WYNN": {
       "tour_code": "WYNN",
@@ -1482,7 +1500,9 @@
           "dates": "Feb 16 - Mar 22"
         }
       ],
-      "notes": "Premium venue. Hosts WPT Championship in December."
+      "notes": "Premium venue. Hosts WPT Championship in December.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "BORGATA": {
       "tour_code": "BORGATA",
@@ -1520,7 +1540,9 @@
           "dates": "Jan 2-18"
         }
       ],
-      "notes": "East coast premier destination. Multiple opens per year."
+      "notes": "East coast premier destination. Multiple opens per year.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "SEMINOLE": {
       "tour_code": "SEMINOLE",
@@ -1591,7 +1613,9 @@
           "dates": "Nov 18 - Dec 2"
         }
       ],
-      "notes": "Florida powerhouse. Hollywood and Tampa locations."
+      "notes": "Florida powerhouse. Hollywood and Tampa locations.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "LODGE": {
       "tour_code": "LODGE",
@@ -1624,7 +1648,9 @@
           "dates": "Feb 22 - Mar 9"
         }
       ],
-      "notes": "Doug Polk owned. Growing Texas poker hub."
+      "notes": "Doug Polk owned. Growing Texas poker hub.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "COMMERCE": {
       "tour_code": "COMMERCE",
@@ -1657,7 +1683,9 @@
           "dates": "Jan 7 - Mar 1"
         }
       ],
-      "notes": "Largest card room in US. LAPC is premiere west coast event."
+      "notes": "Largest card room in US. LAPC is premiere west coast event.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "BESTBET": {
       "tour_code": "BESTBET",
@@ -1689,7 +1717,9 @@
           "dates": "Feb 5-16"
         }
       ],
-      "notes": "Florida regional. Annual Blizzard series."
+      "notes": "Florida regional. Annual Blizzard series.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "BAY_101": {
       "tour_code": "BAY_101",
@@ -1721,7 +1751,9 @@
           "dates": "Feb 20 - Mar 2"
         }
       ],
-      "notes": "Bay Area premier room. Former WPT Shooting Star host."
+      "notes": "Bay Area premier room. Former WPT Shooting Star host.",
+      "is_active": false,
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "ROUGHRIDER": {
       "tour_code": "ROUGHRIDER",
@@ -2016,7 +2048,8 @@
       ],
       "headquarters": "Isle of Man",
       "established": 2004,
-      "notes": "REMOVED — Non-US tour. PokerStars owned. Premier European tour."
+      "notes": "REMOVED — Non-US tour. PokerStars owned. Premier European tour.",
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "NAPT": {
       "tour_code": "NAPT",
@@ -2281,7 +2314,8 @@
       ],
       "headquarters": "Manila, Philippines",
       "established": 2008,
-      "notes": "REMOVED — Non-US tour. Asian circuit. Manila, Macau, Korea, Vietnam stops."
+      "notes": "REMOVED — Non-US tour. Asian circuit. Manila, Macau, Korea, Vietnam stops.",
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     },
     "HPT": {
       "tour_code": "HPT",
@@ -2308,7 +2342,8 @@
       ],
       "headquarters": "Minneapolis, MN",
       "established": 2005,
-      "notes": "DEFUNCT 2019. Was a Midwest televised circuit tour."
+      "notes": "DEFUNCT 2019. Was a Midwest televised circuit tour.",
+      "removed_reason": "Removed per user instruction 2026-04-07 — not a traveling poker tour"
     }
   },
   "aggregator_sources": {

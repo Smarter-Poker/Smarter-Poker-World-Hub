@@ -142,12 +142,6 @@ class StateSerializer {
         actionHistory: hand.actionHistory || [],
         // PotCalculator internal state (critical for cold-start recovery)
         potCalculator: game.potCalculator?.getState?.() || null,
-        // Phase 48f FIX #14: Serialize BettingRound state (required for mid-hand recovery)
-        bettingRound: game.bettingRound?.getState?.() || null,
-        // Phase 48f FIX #14: Serialize Deck state (required to deal remaining streets)
-        deck: game.deck?.getState?.() || null,
-        // Blinds info needed for BettingRound reconstruction on preflop
-        blinds: hand.blinds || null,
       } : null,
 
       // Waitlist
@@ -232,70 +226,6 @@ class StateSerializer {
               pc._allIn.set(pid, val);
             }
           }
-        }
-
-        // Phase 48f FIX #14: Restore Deck state so remaining streets deal correctly
-        if (h.deck && game.deck) {
-          const deck = game.deck;
-          if (h.deck.cards) deck._cards = h.deck.cards;
-          if (typeof h.deck.position === 'number') deck._position = h.deck.position;
-          if (h.deck.burnPile) deck._burnPile = h.deck.burnPile;
-          if (h.deck.dealtCards) deck._dealtCards = h.deck.dealtCards;
-        }
-
-        // Phase 48f FIX #14: Restore BettingRound so actions can continue
-        if (h.bettingRound && h.bettingRound.status === 'in_progress') {
-          const { BettingRound, ROUND_STATUS } = require('./BettingRound');
-          const brState = h.bettingRound;
-
-          // Reconstruct BettingRound with current player states
-          game.bettingRound = new BettingRound({
-            players: brState.players.map(p => ({
-              id: p.id,
-              stack: p.stack,
-              position: 0, // Position is cosmetic for recovery
-            })),
-            street: brState.street,
-            validator: game.actionValidator,
-            capAmount: game.config?.capAmount || 0,
-          });
-
-          // Overwrite internal state from serialized snapshot
-          const br = game.bettingRound;
-          br.status = ROUND_STATUS.IN_PROGRESS;
-          br.currentBet = brState.currentBet || 0;
-          br.potTotal = brState.potTotal || 0;
-          br.numRaises = brState.numRaises || 0;
-          br.actions = brState.actions || [];
-
-          // Restore per-player betting state
-          for (let i = 0; i < brState.players.length && i < br.players.length; i++) {
-            const src = brState.players[i];
-            br.players[i].invested = src.invested || 0;
-            br.players[i].totalInvested = src.totalInvested || 0;
-            br.players[i].folded = src.folded || false;
-            br.players[i].allIn = src.allIn || false;
-            br.players[i].hasActed = src.hasActed || false;
-            br.players[i].stack = src.stack;
-          }
-
-          // Rebuild action order and find current player
-          const activeIndices = br.players
-            .map((p, i) => i)
-            .filter(i => !br.players[i].folded && !br.players[i].allIn);
-          br._actionOrder = activeIndices;
-
-          // Find the current player's position in _actionOrder
-          const currentId = brState.currentPlayerId;
-          if (currentId) {
-            const targetIdx = br.players.findIndex(p => String(p.id) === String(currentId));
-            const orderPos = activeIndices.indexOf(targetIdx);
-            br.actionIndex = orderPos >= 0 ? orderPos : 0;
-          } else {
-            br.actionIndex = 0;
-          }
-
-          console.log(`[StateSerializer] Restored BettingRound: street=${brState.street}, currentPlayer=${currentId}, bet=${brState.currentBet}`);
         }
 
         // Sync stacks back to seats

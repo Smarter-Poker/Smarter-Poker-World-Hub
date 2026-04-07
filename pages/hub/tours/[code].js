@@ -109,10 +109,40 @@ function getSeriesTypeBadge(type) {
   return map[type] || map.default;
 }
 
+// ── Smarter.Poker Standard: buy-in tier colors ───────────────────────────────
+const BUY_IN_TIER_STYLE = {
+  tbd:   { bg: 'rgba(100,116,139,0.15)', color: '#64748b', border: 'rgba(100,116,139,0.3)', label: 'TBD' },
+  value: { bg: 'rgba(34,197,94,0.15)',  color: '#22c55e', border: 'rgba(34,197,94,0.3)' },
+  low:   { bg: 'rgba(0,212,255,0.12)',  color: '#00D4FF', border: 'rgba(0,212,255,0.3)' },
+  mid:   { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa', border: 'rgba(59,130,246,0.3)' },
+  midhi: { bg: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: 'rgba(139,92,246,0.3)' },
+  high:  { bg: 'rgba(234,179,8,0.15)',  color: '#eab308', border: 'rgba(234,179,8,0.3)' },
+  super: { bg: 'rgba(249,115,22,0.15)', color: '#f97316', border: 'rgba(249,115,22,0.3)' },
+  ultra: { bg: 'rgba(236,72,153,0.15)', color: '#ec4899', border: 'rgba(236,72,153,0.3)' },
+};
+function getBuyInTier(amount) {
+  if (!amount) return 'tbd';
+  if (amount < 500) return 'value';
+  if (amount < 1000) return 'low';
+  if (amount < 2500) return 'mid';
+  if (amount < 10000) return 'midhi';
+  if (amount < 25000) return 'high';
+  if (amount < 100000) return 'super';
+  return 'ultra';
+}
+const GAME_COLORS = {
+  NLH:'#00D4FF', PLO:'#a78bfa', O8:'#fb923c', HORSE:'#f59e0b',
+  STUD:'#94a3b8','STUD-8':'#94a3b8', RAZZ:'#f43f5e', MIXED:'#10b981',
+  LHE:'#6b7280', SHORT:'#06b6d4', '2-7':'#84cc16', PLO5:'#c084fc',
+};
+
 export default function TourDetailPage() {
   const router = useRouter();
   const { code } = router.query;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('schedule');
+  const [eventFilter, setEventFilter] = useState('');
+  const [gameFilter, setGameFilter] = useState('all');
 
   const [isFollowed, setIsFollowed] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
@@ -174,6 +204,15 @@ export default function TourDetailPage() {
   const results = swrData?.results || [];
   const [localFollowerCount, setFollowerCount] = useState(null);
   const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
+
+  // Smarter.Poker Standard: fetch full event schedule
+  const scheduleKey = code ? `/api/poker/tour-schedule?tour_code=${encodeURIComponent(code)}&all_stops=true` : null;
+  const { data: scheduleData } = useSWR(scheduleKey, url => fetch(url).then(r => r.json()).catch(() => null));
+  const allStops = scheduleData?.stops || [];
+  const currentStop = allStops.find(s => s.stop_type === 'current') || allStops.find(s => s.stop_type === 'next') || null;
+  const allEvents = scheduleData?.events ||
+    allStops.flatMap(s => (s.events || []).map(e => ({ ...e, _stop_type: s.stop_type }))) || [];
+  const currentStopType = currentStop?.stop_type || null;
 
   function handleFollow() {
     const newState = !isFollowed;
@@ -366,12 +405,184 @@ export default function TourDetailPage() {
               </div>
             </section>
 
-                        {/* Upcoming Series Section */}
+                        {/* ══ SMARTER.POKER STANDARD: Tab Navigation ══ */}
+            <section className="sp-tabs-bar">
+              <div className="sp-tabs-inner">
+                {[
+                  { id: 'schedule', label: 'Event Schedule', count: allEvents.length || (tour.series_2026||[]).length },
+                  { id: 'stops',    label: 'All Stops',      count: allStops.length || (tour.stops_2026||[]).length },
+                  { id: 'about',    label: 'About' },
+                  { id: 'results',  label: 'Results', count: results.length || null },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    id={`tab-${tab.id}`}
+                    className={`sp-tab${activeTab === tab.id ? ' sp-tab-active' : ''}`}
+                    onClick={() => setActiveTab(tab.id)}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && <span className="sp-tab-count">{tab.count}</span>}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* ══ TAB: EVENT SCHEDULE (Smarter.Poker Standard) ══ */}
+            {activeTab === 'schedule' && (
+            <section className="sp-schedule-section">
+              {/* Current / Next Stop Banner */}
+              {currentStop && (
+                <div className={`sp-stop-banner ${currentStopType === 'current' ? 'sp-stop-live' : 'sp-stop-next'}`}>
+                  <div className="sp-stop-banner-left">
+                    <span className={`sp-stop-status-dot ${currentStopType === 'current' ? 'dot-live' : 'dot-next'}`} />
+                    <span className="sp-stop-status-label">
+                      {currentStopType === 'current' ? 'LIVE NOW' : 'NEXT STOP'}
+                    </span>
+                    <span className="sp-stop-name">{currentStop.stop_name}</span>
+                  </div>
+                  <div className="sp-stop-banner-right">
+                    {currentStop.stop_venue && <span className="sp-stop-venue">{currentStop.stop_venue}</span>}
+                    {(currentStop.stop_city || currentStop.stop_state) && (
+                      <span className="sp-stop-loc">
+                        {[currentStop.stop_city, currentStop.stop_state].filter(Boolean).join(', ')}
+                      </span>
+                    )}
+                    {currentStop.stop_start_date && (
+                      <span className="sp-stop-dates">
+                        {formatDateRange(currentStop.stop_start_date, currentStop.stop_end_date)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Filter Bar */}
+              {(() => {
+                const srcEvents = currentStop?.events?.length ? currentStop.events
+                  : allEvents.length ? allEvents
+                  : (tour.series_2026 || []).map((s, i) => ({
+                      event_number: i+1, event_name: s.name, game_type: s.game || 'NLH',
+                      buy_in: s.buyin, start_display: s.dates || 'TBD', data_quality: 'pending'
+                    }));
+                const gameTypes = [...new Set(srcEvents.map(e => e.game_type).filter(Boolean))];
+                const filtered = srcEvents.filter(e => {
+                  const nameMatch = !eventFilter || (e.event_name||'').toLowerCase().includes(eventFilter.toLowerCase());
+                  const gameMatch = gameFilter === 'all' || e.game_type === gameFilter;
+                  return nameMatch && gameMatch;
+                });
+                return (
+                  <>
+                    {srcEvents.length > 5 && (
+                      <div className="sp-filter-bar">
+                        <input
+                          className="sp-filter-input"
+                          placeholder="Search events..."
+                          value={eventFilter}
+                          onChange={e => setEventFilter(e.target.value)}
+                          id="event-search-input"
+                        />
+                        <select
+                          className="sp-filter-select"
+                          value={gameFilter}
+                          onChange={e => setGameFilter(e.target.value)}
+                          id="game-type-filter"
+                        >
+                          <option value="all">All Games</option>
+                          {gameTypes.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                        <span className="sp-filter-count">{filtered.length} events</span>
+                      </div>
+                    )}
+
+                    {/* ── Smarter.Poker Standard Event Table ── */}
+                    {filtered.length === 0 && (
+                      <div className="sp-empty">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <p>No events found{eventFilter ? ` matching "${eventFilter}"` : '. Schedule coming soon.'}.</p>
+                      </div>
+                    )}
+
+                    {filtered.length > 0 && (
+                      <div className="sp-event-table-wrap">
+                        {/* Column Headers */}
+                        <div className="sp-event-header-row">
+                          <div className="sp-col-num">#</div>
+                          <div className="sp-col-name">Event</div>
+                          <div className="sp-col-buyin">Buy-In</div>
+                          <div className="sp-col-date">Date / Time</div>
+                          <div className="sp-col-chips">Chips</div>
+                          <div className="sp-col-levels">Levels</div>
+                          <div className="sp-col-gtd">Guarantee</div>
+                        </div>
+
+                        {filtered.map((evt, idx) => {
+                          const tier = getBuyInTier(evt.buy_in);
+                          const tierStyle = BUY_IN_TIER_STYLE[tier];
+                          const gameColor = GAME_COLORS[evt.game_type] || '#94a3b8';
+                          const isMain = evt.is_main_event || (evt.event_name||'').toLowerCase().includes('main event');
+                          const isHR = evt.is_high_roller || (evt.buy_in >= 25000);
+                          return (
+                            <div key={idx} className={`sp-event-row${isMain ? ' sp-event-main' : ''}${isHR ? ' sp-event-hr' : ''}`}>
+                              <div className="sp-col-num">
+                                {isMain ? (
+                                  <span className="sp-main-star">★</span>
+                                ) : (
+                                  <span className="sp-evt-num">{evt.event_number || (idx+1)}</span>
+                                )}
+                              </div>
+                              <div className="sp-col-name">
+                                <span className="sp-evt-name">{evt.event_name}</span>
+                                <span className="sp-game-badge" style={{ color: gameColor, borderColor: gameColor + '44' }}>
+                                  {evt.game_type || 'NLH'}
+                                </span>
+                                {evt.re_entry && <span className="sp-flag-badge sp-flag-reentry">Re-Entry</span>}
+                                {isMain && <span className="sp-flag-badge sp-flag-main">Main Event</span>}
+                                {isHR && !isMain && <span className="sp-flag-badge sp-flag-hr">High Roller</span>}
+                                {evt.is_ladies_event && <span className="sp-flag-badge sp-flag-ladies">Ladies</span>}
+                                {evt.is_seniors_event && <span className="sp-flag-badge sp-flag-seniors">Seniors</span>}
+                              </div>
+                              <div className="sp-col-buyin">
+                                <span className="sp-buyin-chip" style={{ background: tierStyle.bg, color: tierStyle.color, borderColor: tierStyle.border }}>
+                                  {evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}
+                                </span>
+                                {evt.entry_fee > 0 && <span className="sp-fee">+{formatMoney(evt.entry_fee)}</span>}
+                              </div>
+                              <div className="sp-col-date">
+                                <span className="sp-date-val">{evt.start_display || evt.start_date || 'TBD'}</span>
+                                {evt.start_time && <span className="sp-time-val">{evt.start_time}</span>}
+                              </div>
+                              <div className="sp-col-chips">
+                                <span className="sp-chips-val">{evt.starting_chips_display || (evt.starting_chips ? evt.starting_chips.toLocaleString() : 'TBD')}</span>
+                              </div>
+                              <div className="sp-col-levels">
+                                <span className="sp-levels-val">{evt.blind_levels_min ? evt.blind_levels_min + ' min' : 'TBD'}</span>
+                              </div>
+                              <div className="sp-col-gtd">
+                                {evt.guarantee ? (
+                                  <span className="sp-gtd-chip">{formatMoney(evt.guarantee)}</span>
+                                ) : <span className="sp-na">—</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {srcEvents.length > 0 && srcEvents[0]?.data_quality === 'pending' && (
+                      <p className="sp-data-note">⚠ Showing registry data — live schedule scrape pending</p>
+                    )}
+                  </>
+                );
+              })()}
+            </section>
+            )}
+
+            {/* ══ TAB: ALL STOPS ══ */}
+            {activeTab === 'stops' && (
             <section className="tour-series">
               <h2 className="section-title">
-                Upcoming Stops
+                {new Date().getFullYear()} Tour Stops
                 {(() => {
-                  const count = (tour.upcoming_series || []).length || (tour.series_2026 || []).length;
+                  const count = allStops.length || (tour.stops_2026||[]).length;
                   return count > 0 ? <span className="series-count">{count}</span> : null;
                 })()}
               </h2>
@@ -389,122 +600,49 @@ export default function TourDetailPage() {
                 </div>
               )}
 
-              {/* Render upcoming_series from API (parsed dates) */}
-              {tour.upcoming_series && tour.upcoming_series.length > 0 && (
-                <div className="series-grid">
-                  {tour.upcoming_series.map((series, idx) => {
-                    const seriesTypeBadge = getSeriesTypeBadge(series.series_type);
-                    return (
-                      <div key={idx} className="series-card">
-                        <div className="series-card-header">
-                          <h3 className="series-name">{series.short_name || series.name}</h3>
-                          {series.series_type && (
-                            <span className="series-type-badge" style={{ backgroundColor: seriesTypeBadge.bg }}>
-                              {seriesTypeBadge.label}
-                            </span>
-                          )}
-                        </div>
-
-                        {(series.city || series.state) && (
-                          <div className="series-location">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                              <circle cx="12" cy="10" r="3" />
-                            </svg>
-                            <span>{[series.city, series.state].filter(Boolean).join(', ')}</span>
-                          </div>
-                        )}
-
-                        <div className="series-dates">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                            <line x1="16" y1="2" x2="16" y2="6" />
-                            <line x1="8" y1="2" x2="8" y2="6" />
-                            <line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                          <span>{formatDateRange(series.start_date, series.end_date)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+              {/* All stops list */}
+              {(allStops.length > 0 ? allStops : []).length === 0 && (!tour.upcoming_series || tour.upcoming_series.length === 0) && (!tour.stops_2026 || tour.stops_2026.length === 0) && (
+                <div className="empty-state"><p>No stops announced yet.</p></div>
               )}
-
-              {/* Fallback: render series_2026 from registry (informal dates) */}
-              {(!tour.upcoming_series || tour.upcoming_series.length === 0) && tour.series_2026 && tour.series_2026.length > 0 && (
-                <div className="series-grid">
-                  {tour.series_2026.map((s, idx) => (
-                    <div key={idx} className="series-card">
-                      <div className="series-card-header">
-                        <h3 className="series-name">{s.name}</h3>
-                      </div>
-                      {s.city && (
-                        <div className="series-location">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                            <circle cx="12" cy="10" r="3" />
-                          </svg>
-                          <span>{s.city}</span>
-                        </div>
-                      )}
-                      <div className="series-dates">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                          <line x1="16" y1="2" x2="16" y2="6" />
-                          <line x1="8" y1="2" x2="8" y2="6" />
-                          <line x1="3" y1="10" x2="21" y2="10" />
-                        </svg>
-                        <span>{s.dates || 'TBD'}</span>
-                      </div>
+              <div className="series-grid">
+                {(allStops.length > 0 ? allStops : (tour.upcoming_series || [])).map((s, idx) => (
+                  <div key={idx} className="series-card">
+                    <div className="series-card-header">
+                      <h3 className="series-name">{s.stop_name || s.short_name || s.name}</h3>
+                      {s.stop_type && <span className={`sp-stop-type-badge sp-stype-${s.stop_type}`}>{s.stop_type === 'current' ? 'Live Now' : s.stop_type === 'next' ? 'Next' : s.stop_type}</span>}
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* Tour Venue Stops Section */}
-            {tour.stops_2026 && tour.stops_2026.length > 0 && (
-              <section className="tour-stops">
-                <h2 className="section-title">
-                  2026 Tour Stops
-                  <span className="series-count">{tour.stops_2026.length}</span>
-                </h2>
-                <div className="stops-list">
-                  {tour.stops_2026.map(function (stop, si) {
-                    var stopVenueId = null;
-                    if (tour.upcoming_series) {
-                      var matchingSeries = tour.upcoming_series.find(function (s) {
-                        return s.venue && stop.name && (
-                          s.venue.toLowerCase().indexOf(stop.name.toLowerCase()) !== -1 ||
-                          stop.name.toLowerCase().indexOf(s.venue.toLowerCase()) !== -1
-                        );
-                      });
-                      if (matchingSeries && matchingSeries.venue_id) {
-                        stopVenueId = matchingSeries.venue_id;
-                      }
-                    }
-                    return (
-                      <div key={si} className={'stop-row' + (stopVenueId ? ' stop-clickable' : '')}
-                        onClick={stopVenueId ? function () { router.push('/hub/venues/' + stopVenueId); } : undefined}>
-                        <div className="stop-index">{si + 1}</div>
-                        <div className="stop-info">
-                          <span className="stop-name">{stop.name}</span>
-                          <span className="stop-location">{stop.city}{stop.state ? ', ' + stop.state : ''}</span>
-                        </div>
-                        <div className="stop-dates">{stop.dates || 'TBD'}</div>
-                        {stopVenueId && (
-                          <div className="stop-link-icon">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
-                          </div>
-                        )}
+                    {(s.stop_city || s.stop_state || s.city || s.state) && (
+                      <div className="series-location">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span>{[s.stop_city||s.city, s.stop_state||s.state].filter(Boolean).join(', ')}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </section>
+                    )}
+                    {s.stop_venue && <div className="series-location" style={{color:'#94a3b8',fontSize:'12px'}}><span>{s.stop_venue}</span></div>}
+                    <div className="series-dates">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <span>{formatDateRange(s.stop_start_date, s.stop_end_date) || s.dates || 'TBD'}</span>
+                    </div>
+                    {s.events?.length > 0 && <div className="sp-stop-event-count">{s.events.length} Events</div>}
+                    {s.events?.length > 0 && (
+                      <button className="sp-view-stop-btn" onClick={() => { setActiveTab('schedule'); }}>
+                        View Events
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {allStops.length === 0 && (tour.stops_2026 || []).map((s, idx) => (
+                  <div key={idx} className="series-card">
+                    <div className="series-card-header"><h3 className="series-name">{s.name}</h3></div>
+                    {s.location && <div className="series-location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>{s.location}</span></div>}
+                    <div className="series-dates"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>{s.dates || 'TBD'}</span></div>
+                  </div>
+                ))}
+              </div>
+            </section>
             )}
 
-{/* About Section */}
+            {/* ══ TAB: ABOUT ══ */}
+            {activeTab === 'about' && (
             <section className="tour-about">
               <h2 className="section-title">About</h2>
               <div className="about-grid">
@@ -526,14 +664,12 @@ export default function TourDetailPage() {
                     </a>
                   </div>
                 )}
-
                 {tour.established && (
                   <div className="about-item">
                     <span className="about-label">Established</span>
                     <span className="about-value">{tour.established}</span>
                   </div>
                 )}
-
                 {tour.typical_buyins && (tour.typical_buyins.min != null || tour.typical_buyins.max != null) && (
                   <div className="about-item">
                     <span className="about-label">Typical Buy-In Range</span>
@@ -549,7 +685,6 @@ export default function TourDetailPage() {
                     </span>
                   </div>
                 )}
-
                 {tour.regions && tour.regions.length > 0 && (
                   <div className="about-item about-item-full">
                     <span className="about-label">Regions</span>
@@ -560,7 +695,6 @@ export default function TourDetailPage() {
                     </div>
                   </div>
                 )}
-
                 {tour.notes && (
                   <div className="about-item about-item-full">
                     <span className="about-label">Notes</span>
@@ -569,121 +703,79 @@ export default function TourDetailPage() {
                 )}
               </div>
             </section>
+            )}
 
-            {/* Activity Feed Section */}
-            <section className="tour-activity">
-              <h2 className="section-title">Latest Updates</h2>
-              <div className="activity-container">
-                {activities.length === 0 && (
-                  <div className="empty-state">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                    </svg>
-                    <p>No Updates Yet.</p>
-                  </div>
-                )}
-                {activities.length > 0 && (
-                  <div className="activity-list">
-                    {activities.map((activity, idx) => {
-                      const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || ACTIVITY_TYPE_COLORS.update;
-                      return (
-                        <div key={idx} className="activity-item">
-                          <div className="activity-header">
-                            <span
-                              className="activity-type-badge"
-                              style={{
-                                background: typeColor.bg,
-                                color: typeColor.text,
-                                borderColor: typeColor.border,
-                              }}
-                            >
-                              {(activity.type || 'update').charAt(0).toUpperCase() + (activity.type || 'update').slice(1)}
-                            </span>
-                            <span className="activity-time">{timeAgo(activity.created_at)}</span>
+            {/* ══ TAB: RESULTS ══ */}
+            {activeTab === 'results' && (
+            <>
+              <section className="tour-activity">
+                <h2 className="section-title">Latest Updates</h2>
+                <div className="activity-container">
+                  {activities.length === 0 && (
+                    <div className="empty-state">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      <p>No Updates Yet.</p>
+                    </div>
+                  )}
+                  {activities.length > 0 && (
+                    <div className="activity-list">
+                      {activities.map((activity, idx) => {
+                        const typeColor = ACTIVITY_TYPE_COLORS[activity.type] || ACTIVITY_TYPE_COLORS.update;
+                        return (
+                          <div key={idx} className="activity-item">
+                            <div className="activity-header">
+                              <span className="activity-type-badge" style={{ background: typeColor.bg, color: typeColor.text, borderColor: typeColor.border }}>
+                                {(activity.type || 'update').charAt(0).toUpperCase() + (activity.type || 'update').slice(1)}
+                              </span>
+                              <span className="activity-time">{timeAgo(activity.created_at)}</span>
+                            </div>
+                            <p className="activity-content">{activity.content}</p>
                           </div>
-                          <p className="activity-content">{activity.content}</p>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </section>
+              <section className="tour-results">
+                <h2 className="section-title">Recent Results</h2>
+                <div className="results-container">
+                  {results.length === 0 && (
+                    <div className="empty-state">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5"><path d="M18 2H6v7a6 6 0 0012 0V2Z"/><path d="M4 22h16"/></svg>
+                      <p>No Results Available Yet.</p>
+                    </div>
+                  )}
+                  {results.length > 0 && (
+                    <div className="results-grid">
+                      {results.map((result, idx) => (
+                        <div key={idx} className="result-card">
+                          <div className="result-event-name">{result.event_name}</div>
+                          {result.event_date && <div className="result-event-date">{formatDate(result.event_date)}</div>}
+                          <div className="result-details">
+                            {result.winner_name && <div className="result-row"><span className="result-label">Winner</span><span className="result-winner">{result.winner_name}</span></div>}
+                            {result.winner_prize && <div className="result-row"><span className="result-label">Prize</span><span className="result-prize">{formatMoney(result.winner_prize)}</span></div>}
+                            {result.total_entries && <div className="result-row"><span className="result-label">Entries</span><span className="result-value">{result.total_entries}</span></div>}
+                            {result.prize_pool && <div className="result-row"><span className="result-label">Prize Pool</span><span className="result-value">{formatMoney(result.prize_pool)}</span></div>}
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </section>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            </>
+            )}
 
-            {/* Tournament Results Section */}
-            <section className="tour-results">
-              <h2 className="section-title">Recent Results</h2>
-              <div className="results-container">
-                {results.length === 0 && (
-                  <div className="empty-state">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 9H4.5a2.5 2.5 0 010-5C7 4 7 7 7 7" />
-                      <path d="M18 9h1.5a2.5 2.5 0 000-5C17 4 17 7 17 7" />
-                      <path d="M4 22h16" />
-                      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-                      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-                      <path d="M18 2H6v7a6 6 0 0012 0V2Z" />
-                    </svg>
-                    <p>No Results Available Yet.</p>
-                  </div>
-                )}
-                {results.length > 0 && (
-                  <div className="results-grid">
-                    {results.map((result, idx) => (
-                      <div key={idx} className="result-card">
-                        <div className="result-event-name">{result.event_name}</div>
-                        {result.event_date && (
-                          <div className="result-event-date">{formatDate(result.event_date)}</div>
-                        )}
-                        <div className="result-details">
-                          {result.winner_name && (
-                            <div className="result-row">
-                              <span className="result-label">Winner</span>
-                              <span className="result-winner">{result.winner_name}</span>
-                            </div>
-                          )}
-                          {result.winner_prize && (
-                            <div className="result-row">
-                              <span className="result-label">Prize</span>
-                              <span className="result-prize">{formatMoney(result.winner_prize)}</span>
-                            </div>
-                          )}
-                          {result.total_entries && (
-                            <div className="result-row">
-                              <span className="result-label">Entries</span>
-                              <span className="result-value">{result.total_entries}</span>
-                            </div>
-                          )}
-                          {result.prize_pool && (
-                            <div className="result-row">
-                              <span className="result-label">Prize Pool</span>
-                              <span className="result-value">{formatMoney(result.prize_pool)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Notifications Opt-in */}
+            {/* Notifications — always visible */}
             <section className="tour-notifications">
               <div className="notif-card">
                 <div className="notif-content">
-                  <p className="notif-text">
-                    {'Get notified about new ' + tour.tour_name + ' events and results'}
-                  </p>
+                  <p className="notif-text">{'Get notified about new ' + tour.tour_name + ' events and results'}</p>
                   {notifPermission === 'granted' ? (
                     <span className="notif-enabled">Notifications Enabled</span>
                   ) : (
-                    <button className="notif-btn" onClick={handleEnableNotifications}>
-                      Enable Notifications
-                    </button>
+                    <button className="notif-btn" onClick={handleEnableNotifications}>Enable Notifications</button>
                   )}
                 </div>
               </div>
@@ -1492,5 +1584,356 @@ const styles = `
       flex-direction: column;
       text-align: center;
     }
+  }
+
+  /* ═══ SMARTER.POKER STANDARD STYLES ═══════════════════════════════════════ */
+
+  /* Tab Bar */
+  .sp-tabs-bar {
+    padding: 0 16px;
+    margin-bottom: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .sp-tabs-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .sp-tabs-inner::-webkit-scrollbar { display: none; }
+  .sp-tab {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    color: #64748b;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sp-tab:hover { color: #94a3b8; }
+  .sp-tab-active {
+    color: #00D4FF;
+    border-bottom-color: #00D4FF;
+  }
+  .sp-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: rgba(0,212,255,0.15);
+    color: #00D4FF;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* Schedule Section */
+  .sp-schedule-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 16px;
+  }
+
+  /* Current/Next Stop Banner */
+  .sp-stop-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 1px solid;
+  }
+  .sp-stop-live {
+    background: rgba(0,212,255,0.08);
+    border-color: rgba(0,212,255,0.25);
+  }
+  .sp-stop-next {
+    background: rgba(139,92,246,0.08);
+    border-color: rgba(139,92,246,0.25);
+  }
+  .sp-stop-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .sp-stop-status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-live { background: #00D4FF; box-shadow: 0 0 6px #00D4FF; animation: pulse-dot 1.5s infinite; }
+  .dot-next { background: #a78bfa; }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+  .sp-stop-status-label {
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #64748b;
+  }
+  .sp-stop-name {
+    font-size: 15px; font-weight: 700; color: #f1f5f9;
+  }
+  .sp-stop-banner-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .sp-stop-venue { font-size: 13px; color: #94a3b8; }
+  .sp-stop-loc { font-size: 13px; color: #64748b; }
+  .sp-stop-dates {
+    font-size: 12px; color: #00D4FF; font-weight: 600;
+    padding: 2px 8px;
+    background: rgba(0,212,255,0.1);
+    border-radius: 4px;
+  }
+
+  /* Filter Bar */
+  .sp-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .sp-filter-input {
+    flex: 1;
+    min-width: 160px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #f1f5f9;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .sp-filter-input::placeholder { color: #4b5563; }
+  .sp-filter-input:focus { border-color: rgba(0,212,255,0.4); }
+  .sp-filter-select {
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #94a3b8;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    appearance: none;
+  }
+  .sp-filter-count {
+    font-size: 12px; color: #4b5563; white-space: nowrap;
+  }
+
+  /* Event Table */
+  .sp-event-table-wrap {
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .sp-event-header-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 100px 130px 80px 70px 100px;
+    gap: 0;
+    padding: 0 12px;
+    height: 36px;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #4b5563;
+    text-transform: uppercase;
+  }
+  .sp-event-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 100px 130px 80px 70px 100px;
+    gap: 0;
+    padding: 0 12px;
+    min-height: 52px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  .sp-event-row:last-child { border-bottom: none; }
+  .sp-event-row:hover { background: rgba(255,255,255,0.03); }
+  .sp-event-main {
+    background: rgba(234,179,8,0.04);
+    border-left: 2px solid rgba(234,179,8,0.4);
+  }
+  .sp-event-hr {
+    background: rgba(139,92,246,0.04);
+    border-left: 2px solid rgba(139,92,246,0.3);
+  }
+
+  /* Column cells */
+  .sp-col-num {
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sp-evt-num {
+    font-size: 12px; color: #4b5563; font-weight: 700;
+  }
+  .sp-main-star {
+    font-size: 14px; color: #eab308;
+  }
+  .sp-col-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+    min-width: 0;
+  }
+  .sp-evt-name {
+    font-size: 13px; font-weight: 600; color: #e2e8f0;
+    flex: 1; min-width: 120px;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .sp-game-badge {
+    font-size: 10px; font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+    background: rgba(0,0,0,0.2);
+  }
+  .sp-flag-badge {
+    font-size: 10px; font-weight: 600;
+    padding: 2px 6px; border-radius: 4px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .sp-flag-main { background: rgba(234,179,8,0.15); color: #eab308; }
+  .sp-flag-hr { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .sp-flag-reentry { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .sp-flag-ladies { background: rgba(236,72,153,0.15); color: #ec4899; }
+  .sp-flag-seniors { background: rgba(34,197,94,0.15); color: #22c55e; }
+
+  .sp-col-buyin {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .sp-buyin-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: 12px; font-weight: 700;
+    white-space: nowrap;
+    width: fit-content;
+  }
+  .sp-fee { font-size: 10px; color: #4b5563; }
+
+  .sp-col-date {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .sp-date-val { font-size: 12px; color: #94a3b8; font-weight: 500; }
+  .sp-time-val { font-size: 11px; color: #64748b; }
+
+  .sp-chips-val { font-size: 12px; color: #94a3b8; }
+  .sp-levels-val { font-size: 12px; color: #94a3b8; }
+
+  .sp-col-gtd {
+    display: flex; align-items: center;
+  }
+  .sp-gtd-chip {
+    font-size: 12px; font-weight: 700;
+    color: #22c55e;
+    padding: 2px 7px;
+    background: rgba(34,197,94,0.1);
+    border-radius: 5px;
+  }
+  .sp-na { color: #374151; font-size: 13px; }
+
+  /* Empty state */
+  .sp-empty {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px; padding: 48px 24px; text-align: center;
+    color: #64748b; font-size: 14px;
+  }
+  .sp-data-note {
+    margin-top: 12px;
+    font-size: 12px; color: #64748b;
+    text-align: center; padding: 8px;
+    background: rgba(234,179,8,0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(234,179,8,0.15);
+  }
+
+  /* Stop type badges */
+  .sp-stop-type-badge {
+    font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .sp-stype-current { background: rgba(0,212,255,0.15); color: #00D4FF; }
+  .sp-stype-next { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .sp-stype-future { background: rgba(100,116,139,0.15); color: #64748b; }
+  .sp-stype-past { background: rgba(71,85,105,0.1); color: #475569; }
+
+  .sp-stop-event-count {
+    font-size: 11px; color: #64748b;
+    margin-top: 6px;
+  }
+  .sp-view-stop-btn {
+    margin-top: 8px;
+    padding: 5px 12px;
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 6px;
+    background: rgba(0,212,255,0.08);
+    color: #00D4FF;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    display: inline-block;
+  }
+  .sp-view-stop-btn:hover {
+    background: rgba(0,212,255,0.15);
+  }
+
+  /* Mobile: collapse table to cards on small screens */
+  @media (max-width: 640px) {
+    .sp-event-header-row { display: none; }
+    .sp-event-row {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+      gap: 6px;
+      padding: 12px 14px;
+    }
+    .sp-col-num { justify-content: flex-start; }
+    .sp-col-name { flex-direction: column; align-items: flex-start; }
+    .sp-col-buyin, .sp-col-date, .sp-col-chips, .sp-col-levels, .sp-col-gtd {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+    }
+    .sp-col-buyin::before { content: 'Buy-In: '; font-size: 11px; color: #4b5563; min-width: 56px; }
+    .sp-col-date::before { content: 'Date: '; font-size: 11px; color: #4b5563; min-width: 40px; }
+    .sp-col-chips::before { content: 'Chips: '; font-size: 11px; color: #4b5563; min-width: 44px; }
+    .sp-col-levels::before { content: 'Levels: '; font-size: 11px; color: #4b5563; min-width: 48px; }
+    .sp-col-gtd::before { content: 'GTD: '; font-size: 11px; color: #4b5563; min-width: 36px; }
+    .sp-tabs-bar { padding: 0 10px; }
+    .sp-tab { padding: 10px 14px; font-size: 13px; }
   }
 `;
