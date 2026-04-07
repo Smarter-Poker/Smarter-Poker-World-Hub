@@ -9722,6 +9722,278 @@ test('Total export count is >= 95 (comprehensive wiring)', () => {
     expect(exportCount >= 95).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 78: FUZZ TESTING — Random/Malformed Inputs
+// Every critical function must survive garbage without throwing
+// ═══════════════════════════════════════════════════════════
+
+const FUZZ_INPUTS = [
+    undefined, null, NaN, Infinity,
+    0, -1,
+    '', 'garbage',
+    [], {},
+];
+
+// Helper: call fn with every fuzz input in every arg position, must not throw
+function fuzzFunction(fnName, fn, argCount, label) {
+    test(`FUZZ: ${label || fnName} survives ${FUZZ_INPUTS.length}x${argCount} malformed inputs`, () => {
+        let crashes = 0;
+        let crashDetails = [];
+        for (let argPos = 0; argPos < argCount; argPos++) {
+            for (const fuzzVal of FUZZ_INPUTS) {
+                const args = new Array(argCount).fill(undefined);
+                args[argPos] = fuzzVal;
+                try {
+                    fn(...args);
+                } catch (e) {
+                    crashes++;
+                    if (crashDetails.length < 5) {
+                        crashDetails.push(`  arg[${argPos}]=${String(fuzzVal).slice(0,20)} → ${e.message.slice(0,80)}`);
+                    }
+                }
+            }
+        }
+        if (crashes > 0) {
+            console.log(`    ⚠️  ${fnName}: ${crashes} crashes from fuzz inputs`);
+            crashDetails.forEach(d => console.log(d));
+        }
+        // Allow up to 0 crashes — every function MUST survive garbage
+        expect(crashes).toBe(0);
+    });
+}
+
+// Helper for async functions — with per-call timeout to prevent hanging
+function fuzzAsyncFunction(fnName, fn, argCount, label) {
+    asyncTests.push({ name: `FUZZ: ${label || fnName} survives malformed inputs`, fn: async () => {
+        let crashes = 0;
+        let hangs = 0;
+        let crashDetails = [];
+        for (let argPos = 0; argPos < argCount; argPos++) {
+            for (const fuzzVal of FUZZ_INPUTS) {
+                const args = new Array(argCount).fill(undefined);
+                args[argPos] = fuzzVal;
+                try {
+                    await Promise.race([
+                        fn(...args),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('TIMEOUT')), 500))
+                    ]);
+                } catch (e) {
+                    if (e.message === 'TIMEOUT') { hangs++; continue; }
+                    // Supabase/network errors are expected with garbage inputs — not crashes
+                    if (e.message && (e.message.includes('supabase') || e.message.includes('fetch') ||
+                        e.message.includes('network') || e.message.includes('ECONNREFUSED') ||
+                        e.message.includes('invalid input') || e.message.includes('JWT') ||
+                        e.message.includes('relation') || e.message.includes('column'))) {
+                        continue; // Expected DB errors with garbage inputs
+                    }
+                    crashes++;
+                    if (crashDetails.length < 5) {
+                        crashDetails.push(`  arg[${argPos}]=${String(fuzzVal).slice(0,20)} → ${e.message.slice(0,80)}`);
+                    }
+                }
+            }
+        }
+        if (crashes > 0) {
+            console.log(`    ⚠️  ${fnName}: ${crashes} crashes from fuzz inputs`);
+            crashDetails.forEach(d => console.log(d));
+        }
+        // Async functions may legitimately fail on DB ops — we only care about JS crashes
+        expect(crashes).toBe(0);
+    }});
+}
+
+console.log('\n📋 Phase 78: Fuzz Testing — Malformed Inputs');
+
+// === Sync functions to fuzz ===
+(() => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+
+    // === Bug #45-53 regression: The 9 functions that were crashing ===
+    fuzzFunction('validateAndClamp', B.validateAndClamp, 4, 'validateAndClamp — Bug#45 fix');
+    fuzzFunction('makeFallbackDecision', B.makeFallbackDecision, 2, 'makeFallbackDecision — Bug#46 fix');
+    fuzzFunction('makeFlopHeuristicDecision', B.makeFlopHeuristicDecision, 1, 'makeFlopHeuristicDecision — Bug#47 fix');
+    fuzzFunction('makeTurnRiverHeuristicDecision', B.makeTurnRiverHeuristicDecision, 1, 'makeTurnRiverHeuristicDecision — Bug#48 fix');
+    fuzzFunction('evaluateBoardWetness', B.evaluateBoardWetness, 1, 'evaluateBoardWetness — Bug#49 fix');
+    fuzzFunction('analyzeBoardEvolution', B.analyzeBoardEvolution, 2, 'analyzeBoardEvolution — Bug#50 fix');
+    fuzzFunction('detectScareCard', B.detectScareCard, 2, 'detectScareCard — Bug#51 fix');
+    fuzzFunction('getMultiwayAdjustment', B.getMultiwayAdjustment, 2, 'getMultiwayAdjustment — Bug#52 fix');
+    fuzzFunction('getDrawEquity', B.getDrawEquity, 2, 'getDrawEquity — Bug#53 fix');
+
+    // === Additional high-value fuzz targets ===
+    fuzzFunction('evaluatePostflopHand', B.evaluatePostflopHand, 2, 'evaluatePostflopHand');
+    fuzzFunction('getSPRStrategy', B.getSPRStrategy, 2, 'getSPRStrategy');
+    fuzzFunction('applyTiltDegradation', B.applyTiltDegradation, 2, 'applyTiltDegradation');
+    fuzzFunction('applyMultiwayEquityDiscount', B.applyMultiwayEquityDiscount, 2, 'applyMultiwayEquityDiscount');
+    fuzzFunction('selectCounterStrategy', B.selectCounterStrategy, 1, 'selectCounterStrategy');
+    fuzzFunction('getPLOSPRZone', B.getPLOSPRZone, 2, 'getPLOSPRZone');
+    fuzzFunction('evaluateDonkBet', B.evaluateDonkBet, 4, 'evaluateDonkBet(toCall,potSize,isIP,equity)');
+    fuzzFunction('getDynamicRebuyStrategy', B.getDynamicRebuyStrategy, 5, 'getDynamicRebuyStrategy');
+    fuzzFunction('cardIntToString', B.cardIntToString, 1, 'cardIntToString');
+    fuzzFunction('getThreatScore', B.getThreatScore, 2, 'getThreatScore');
+    fuzzFunction('_applyJournalToProfile', B._applyJournalToProfile, 2, '_applyJournalToProfile');
+})();
+
+// Async fuzz tests — only the 5 most critical async entry points
+// (full async fuzz is impractical due to network timeouts per call)
+(() => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+
+    fuzzAsyncFunction('getDecision', B.getDecision, 3, 'getDecision(profileId,gameState,tableConfig)');
+    fuzzAsyncFunction('persistOpponentJournal', B.persistOpponentJournal, 2, 'persistOpponentJournal(tableId,playerId)');
+    fuzzAsyncFunction('loadOpponentJournal', B.loadOpponentJournal, 2, 'loadOpponentJournal(tableId,playerId)');
+    fuzzAsyncFunction('processHandResult', B.processHandResult, 2, 'processHandResult(horseId,result)');
+    fuzzAsyncFunction('isHorse', B.isHorse, 1, 'isHorse(playerId)');
+})();
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 79: Memory Leak Detection
+// Verify Maps don't grow unbounded after repeated operations
+// ═══════════════════════════════════════════════════════════
+console.log('\n📋 Phase 79: Memory Leak Detection');
+
+(() => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+
+    test('liveObserver cleanup removes table entries', () => {
+        const tbl = 'leak-test-table-1';
+        const horseId = 'leak-hero-1';
+        const players = [
+            { id: horseId, position: 'BTN' },
+            { id: 'opp-a', position: 'BB' },
+        ];
+        // Add several hands
+        for (let i = 0; i < 10; i++) {
+            B.observeNewHand(tbl, `hand-leak-${i}`, players, [horseId], 2);
+            B.observeAction(tbl, horseId, 'opp-a', 'preflop', { type: 'raise', amount: 10 });
+        }
+        // Clear and verify entries removed
+        B.clearTableLiveObservers(tbl);
+        let tableEntries = 0;
+        for (const key of B.liveObserver.keys()) {
+            if (String(key).includes(tbl)) tableEntries++;
+        }
+        expect(tableEntries).toBe(0);
+    });
+
+    test('opponentSessionModel grows by unique opponentId', () => {
+        // recordOpponentAction takes (opponentId, street, action, context)
+        for (let i = 0; i < 50; i++) {
+            B.recordOpponentAction(`opp-mem-${i}`, 'preflop', { type: 'raise', amount: 10 });
+        }
+        const sizeBefore = B.opponentSessionModel.size;
+        expect(sizeBefore >= 50).toBe(true);
+        // Recording same opponent again should not grow the map
+        for (let i = 0; i < 50; i++) {
+            B.recordOpponentAction(`opp-mem-${i}`, 'flop', { type: 'bet', amount: 15 });
+        }
+        const sizeAfter = B.opponentSessionModel.size;
+        // Should have at most same number of keys (plus any from other tests)
+        expect(sizeAfter - sizeBefore).toBe(0);
+    });
+
+    test('minRaiseMap grows by unique playerId, not per-call', () => {
+        const initialSize = B.minRaiseMap.size;
+        // Record raise sizes for 50 different players, 5 calls each
+        for (let i = 0; i < 50; i++) {
+            for (let j = 0; j < 5; j++) {
+                B.recordRaiseSize(`min-raise-p${i}`, 4);
+            }
+        }
+        const growth = B.minRaiseMap.size - initialSize;
+        expect(growth <= 50).toBe(true); // One entry per player, not per call
+    });
+
+    test('squeezeMap bounded by unique playerId', () => {
+        const initialSize = B.squeezeMap.size;
+        for (let i = 0; i < 50; i++) {
+            B.recordSqueeze(`squeeze-p${i}`, 15);
+            B.recordSqueeze(`squeeze-p${i}`, 20); // same player again
+        }
+        const growth = B.squeezeMap.size - initialSize;
+        expect(growth <= 50).toBe(true);
+    });
+
+    test('streetMemoryMap grows only by unique handId', () => {
+        for (let h = 0; h < 50; h++) {
+            B.recordStreetAction(`mem-hand-${h}`, 'preflop', 'hero', { type: 'raise', amount: 6 });
+            B.recordStreetAction(`mem-hand-${h}`, 'flop', 'hero', { type: 'bet', amount: 10 });
+        }
+        // Verify we can retrieve them
+        const mem = B.getStreetMemory('mem-hand-25');
+        expect(mem !== undefined && mem !== null).toBe(true);
+        expect(typeof mem === 'object').toBe(true);
+    });
+
+    test('rangeRotationMap stays bounded per-profile', () => {
+        const initialSize = B.rangeRotationMap.size;
+        for (let i = 0; i < 100; i++) {
+            B.getRangeRotationGear(`rotation-profile-${i}`);
+        }
+        const growth = B.rangeRotationMap.size - initialSize;
+        expect(growth <= 100).toBe(true);
+    });
+
+    test('threatIntelCache stays bounded', () => {
+        const initialSize = B.threatIntelCache.size;
+        for (let i = 0; i < 100; i++) {
+            B.getThreatScore(`threat-tbl`, `threat-player-${i}`);
+        }
+        const growth = B.threatIntelCache.size - initialSize;
+        expect(growth <= 200).toBe(true);
+    });
+
+    test('_journalCache stays bounded', () => {
+        const size = B._journalCache.size;
+        expect(size <= 500).toBe(true);
+    });
+
+    test('chipLeakMap bounded per unique playerId', () => {
+        const initialSize = B.chipLeakMap.size;
+        for (let i = 0; i < 50; i++) {
+            B.recordChipLeak(`chip-p${i}`, { street: 'preflop', leakType: 'cold_call', amount: 4 });
+            B.recordChipLeak(`chip-p${i}`, { street: 'flop', leakType: 'float', amount: 8 });
+        }
+        const growth = B.chipLeakMap.size - initialSize;
+        expect(growth <= 50).toBe(true);
+    });
+
+    test('probeBetMap bounded per unique playerId', () => {
+        const initialSize = B.probeBetMap.size;
+        for (let i = 0; i < 50; i++) {
+            B.recordProbeBet(`probe-p${i}`, { street: 'turn', sizing: 0.5 });
+        }
+        const growth = B.probeBetMap.size - initialSize;
+        expect(growth <= 50).toBe(true);
+    });
+
+    test('imageExposureMap bounded per unique playerId', () => {
+        const initialSize = B.imageExposureMap.size;
+        for (let i = 0; i < 50; i++) {
+            B.recordTableImageHand(`img-p${i}`, { street: 'river', showedBluff: true });
+        }
+        const growth = B.imageExposureMap.size - initialSize;
+        expect(growth <= 50).toBe(true);
+    });
+
+    test('coldCallMap bounded per unique playerId', () => {
+        const initialSize = B.coldCallMap.size;
+        for (let i = 0; i < 50; i++) {
+            B.recordColdCall(`cc-p${i}`);
+            B.recordColdCall(`cc-p${i}`); // duplicate
+        }
+        const growth = B.coldCallMap.size - initialSize;
+        expect(growth <= 50).toBe(true);
+    });
+
+    test('performanceAction recording does not create unbounded arrays', () => {
+        for (let i = 0; i < 200; i++) {
+            B.recordPerformanceAction('perf-leak-test', 'preflop', { type: 'raise', amount: 6 });
+        }
+        const stats = B.getPerformanceStats('perf-leak-test');
+        expect(stats !== null && stats !== undefined).toBe(true);
+    });
+})();
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

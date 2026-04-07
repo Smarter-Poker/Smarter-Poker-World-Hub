@@ -897,7 +897,7 @@ function analyzePLOBoardTexture(boardCards) {
 
 /** Detects scare cards on turn/river (cards completing flush, straight, or pairing the board) */
 function detectScareCard(boardCards, street) {
-    if (!boardCards || boardCards.length < 4) return { isScareTurn: false, isScareRiver: false, scareType: 'none' };
+    if (!Array.isArray(boardCards) || boardCards.length < 4) return { isScareTurn: false, isScareRiver: false, scareType: 'none' }; // Bug #51: guard non-array
     const prev = boardCards.slice(0, -1), last = boardCards[boardCards.length - 1];
     const prevTexture = analyzePLOBoardTexture(prev), curTexture = analyzePLOBoardTexture(boardCards);
     let scareType = 'none';
@@ -4808,6 +4808,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
  * @returns {Object} Decision { type, amount? }
  */
 function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjustment = { callMod: 0, foldMod: 0 }) {
+    if (!gameState || typeof gameState !== 'object') return { type: 'fold', amount: 0 }; // Bug #46: guard null/garbage gameState
+    if (!Array.isArray(legalActions) || legalActions.length === 0) return { type: 'fold', amount: 0 };
     const { handStr, position, street, potSize, toCall, stackBB, bb = 2, holeCards: hCards, board: bCards, tableId = 'unknown', primaryOppId = null } = gameState;
     const hash = getHash(profileId);
     const numPlayers = gameState.numPlayers || 2;
@@ -6419,6 +6421,7 @@ function evaluatePostflopHand(holeCards, board) {
  * @returns {Object|null} { type, amount? } or null
  */
 function makeTurnRiverHeuristicDecision(params) {
+    if (!params || typeof params !== 'object') return { action: 'check', amount: 0, reason: 'invalid_params' }; // Bug #48: guard null params
     const {
         street, holeCards, board, handStr, position, stackBB, potSize,
         toCall, bb, numPlayers, legalActions, profileId, aggressionBias = 0,
@@ -10016,6 +10019,7 @@ function makeTurnRiverHeuristicDecision(params) {
 // 6. POT CONTROL: showdown-value hands don't need to build the pot
 //
 function makeFlopHeuristicDecision(params) {
+    if (!params || typeof params !== 'object') return { action: 'check', amount: 0, reason: 'invalid_params' }; // Bug #47: guard null params
     const {
         holeCards, board, handStr, position, stackBB, potSize,
         toCall, bb, numPlayers, legalActions, profileId,
@@ -11385,7 +11389,7 @@ function makeFlopHeuristicDecision(params) {
 }
 
 function evaluateBoardWetness(board) {
-    if (!board || board.length < 3) return 'medium';
+    if (!Array.isArray(board) || board.length < 3) return 'medium'; // Bug #49: guard non-array board
 
     const suits = board.map(c => c[1]);
     const ranks = board.map(c => RANKS.indexOf(c[0])).sort((a, b) => b - a);
@@ -11439,12 +11443,13 @@ function getSPRStrategy(effectiveStack, potSize) {
  * @returns {{ strengthPenalty: number, bluffReduction: number }}
  */
 function getMultiwayAdjustment(numPlayers, opts = {}) {
+    const safeOpts = (opts && typeof opts === 'object') ? opts : {}; // Bug #52: guard null/non-object opts
     const {
         position = 'BTN',
         street = 'flop',
         boardWetness = 'medium',
         heroIsAggressor = false
-    } = opts;
+    } = safeOpts;
 
     if (numPlayers <= 2) return {
         strengthPenalty: 0, bluffReduction: 1.0, valueBetThreshold: 55,
@@ -12035,6 +12040,7 @@ function get3BetStrategy(position, handStrength, facingRaise, bb, stackBB) {
  * @returns {{ equity: number, outs: number, shouldCall: Function }}
  */
 function getDrawEquity(handEval, street) {
+    if (!handEval || typeof handEval !== 'object') return { equity: 0, outs: 0, shouldCall: () => false }; // Bug #53: guard null handEval
     let outs = 0;
 
     if (handEval.hasFlushDraw) outs += 9;  // 9 outs for flush draw
@@ -12458,7 +12464,7 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
  * @returns {Object} Board evolution analysis
  */
 function analyzeBoardEvolution(board, street) {
-    if (!board || board.length < 3) {
+    if (!Array.isArray(board) || board.length < 3) { // Bug #50: guard non-array board
         return { evolution: 'unknown', pfrImpact: 0, callerImpact: 0, scareCards: [], drawsCompleted: [] };
     }
 
@@ -13131,6 +13137,7 @@ function handleDonkBet(params) {
  * @returns {{ action: string, amount: number|null, wasTilted: boolean }}
  */
 function applyTiltDegradation(action, amount, tiltLevel, handStrength, legalActions, potSize, aggressionBias) {
+    if (!Array.isArray(legalActions)) legalActions = []; // Bug #54: guard non-array legalActions
     if (tiltLevel < 2) return { action, amount, wasTilted: false }; // Calm — no errors
 
     const tiltFrac = Math.min(1.0, tiltLevel / 10); // 0-1 scale
@@ -13244,7 +13251,8 @@ function shouldAutoSeat(tableInfo, availableHorses) {
  * @returns {Promise<{ action: Object, delayMs: number }>}
  */
 async function getDecision(profileId, engineState, legalActions, tableConfig = {}) {
-    if (!legalActions || legalActions.length === 0) {
+    if (!engineState || typeof engineState !== 'object') return { action: { type: 'fold' }, delayMs: 500 }; // Bug #57: guard null engineState
+    if (!Array.isArray(legalActions) || legalActions.length === 0) {
         return { action: { type: 'fold' }, delayMs: 500 };
     }
 
@@ -14641,6 +14649,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
  * @returns {Object} Valid engine action { type, amount? }
  */
 function validateAndClamp(actionType, amount, legalActions) {
+    if (!Array.isArray(legalActions) || legalActions.length === 0) return { type: 'fold', amount: 0 }; // Bug #45: guard null/empty legalActions
     const actionTypes = new Set(legalActions.map(a => a.type));
 
     // Map 'bet' to 'raise' or vice versa if needed
@@ -16366,6 +16375,9 @@ function getOOPPositionalGuard(isIP, hasInitiative, equity, street) {
  * @returns {{ action: 'raise'|'call'|'fold'|'none', reason: string }}
  */
 function evaluateDonkBet(toCall, potSize, isIP, equity) {
+    if (typeof equity !== 'number' || isNaN(equity)) equity = 0; // Bug #56: guard non-numeric equity
+    if (typeof toCall !== 'number' || isNaN(toCall)) toCall = 0;
+    if (typeof potSize !== 'number' || isNaN(potSize)) potSize = 0;
     if (toCall <= 0 || !isIP) return { action: 'none', reason: 'not_a_donk' };
     if (potSize <= 0) return { action: 'none', reason: 'no_pot' };
     const donkFraction = toCall / potSize;
@@ -18084,6 +18096,8 @@ async function loadTableJournals(tableId, playerIds, horseIds) {
  * Also applies data decay: older journals get reduced confidence.
  */
 function _applyJournalToProfile(profile, data) {
+    if (!profile || typeof profile !== 'object') return; // Bug #55: guard null profile
+    if (!data || typeof data !== 'object') return; // Bug #55: guard null data
     profile.handsObserved = data.hands_observed;
     profile.vpipCount = data.vpip_count;
     profile.pfrCount = data.pfr_count;
