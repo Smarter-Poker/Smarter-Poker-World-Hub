@@ -1198,9 +1198,10 @@ class LobbyManager {
         sb.rpc('record_arena_audit_log', {
           p_club_id: clubId,
           p_table_id: tableId,
-          p_user_id: data.player?.id || null,
+          // Phase 48e FIX #12: player_seated emits playerId and stack, not player.id and buyIn
+          p_user_id: data.playerId || null,
           p_action_type: 'sit_down',
-          p_amount: data.buyIn || 0,
+          p_amount: data.stack || 0,
           p_details: { seatIndex: data.seatIndex }
         }).catch(() => {});
       } catch (e) {}

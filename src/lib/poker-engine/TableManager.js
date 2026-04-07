@@ -1147,7 +1147,8 @@ class TableManager {
 
           Promise.all([
             HorsePokerBrain.isHorse(String(playerId)),
-            HorsePokerBrain.canRebuy(this.id, String(playerId))
+            // Phase 48e FIX #11: property is tableId, not id
+            HorsePokerBrain.canRebuy(this.tableId, String(playerId))
           ]).then(([isAI, allowedToRebuy]) => {
             if (isAI && !allowedToRebuy) {
               // Stop-loss limit reached!

@@ -80,11 +80,13 @@ class AntiCheatMonitor {
       let violationsFound = 0;
 
       for (const [tableId, entry] of lobby.tables) {
-        if (!entry?.state?.seats) continue;
+        // Phase 48e FIX #13: LobbyManager stores entries as { table, config, ... }
+        // not { state }. Seats are on entry.table.seats, IDs on seat.player.id.
+        if (!entry?.table?.seats) continue;
 
-        const seatedPlayers = entry.state.seats
-          .filter(s => s && s.playerId)
-          .map(s => ({ playerId: s.playerId, seatIndex: s.seatIndex, stack: s.stack }));
+        const seatedPlayers = entry.table.seats
+          .filter(s => s && s.player?.id)
+          .map(s => ({ playerId: s.player.id, seatIndex: s.seatIndex, stack: s.stack }));
 
         if (seatedPlayers.length < 2) continue; // Need 2+ players for violations
 

@@ -715,7 +715,9 @@ class TournamentController extends EventEmitter {
 
   /** @private */
   _seatAllPlayers(entries) {
-    const shuffled = [...entries].sort(() => Math.random() - 0.5);
+    // Phase 48e FIX #9: Use proper Fisher-Yates shuffle instead of biased sort comparator
+    const shuffled = [...entries];
+    this._fisherYatesShuffle(shuffled);
     const numTables = Math.ceil(shuffled.length / this.maxTableSize);
 
     for (let t = 0; t < numTables; t++) this._createTournamentTable();

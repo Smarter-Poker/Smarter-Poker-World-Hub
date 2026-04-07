@@ -4755,6 +4755,92 @@ test('BUG #8 REGRESSION: Pineapple auto-discard fix verified in source', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// BUG #9 REGRESSION: Tournament seating uses Fisher-Yates, not sort(random)
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #9 REGRESSION: TournamentController._seatAllPlayers uses Fisher-Yates shuffle', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/TournamentController.js', 'utf8');
+    // Should NOT have sort(() => Math.random() - 0.5) — biased shuffle
+    const badPattern = /sort\(\(\)\s*=>\s*Math\.random\(\)\s*-\s*0\.5\)/;
+    expect(badPattern.test(src)).toBe(false);
+    // Should use _fisherYatesShuffle for seating
+    const goodPattern = /this\._fisherYatesShuffle\(shuffled\)/;
+    expect(goodPattern.test(src)).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #10 REGRESSION: TournamentBridge uses correct property names
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #10a REGRESSION: TournamentBridge uses tournamentId not id', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/TournamentBridge.js', 'utf8');
+    // Should NOT have this.tournament.id (undefined property)
+    // Check specifically in audit log context
+    const badPattern = /this\.tournament\.id\b/;
+    expect(badPattern.test(src)).toBe(false);
+});
+
+test('BUG #10b REGRESSION: TournamentBridge uses buyinAmount not buyIn', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/TournamentBridge.js', 'utf8');
+    // Should have buyinAmount for buy_in field
+    const goodPattern = /buy_in:\s*this\.tournament\.buyinAmount/;
+    expect(goodPattern.test(src)).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #11 REGRESSION: TableManager uses tableId not id for HorsePokerBrain
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #11 REGRESSION: TableManager.canRebuy uses this.tableId', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/TableManager.js', 'utf8');
+    // Should NOT have HorsePokerBrain.canRebuy(this.id
+    const badPattern = /canRebuy\(this\.id\b/;
+    expect(badPattern.test(src)).toBe(false);
+    // Should have HorsePokerBrain.canRebuy(this.tableId
+    const goodPattern = /canRebuy\(this\.tableId/;
+    expect(goodPattern.test(src)).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #12 REGRESSION: LobbyManager audit log uses correct event fields
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #12 REGRESSION: LobbyManager sit_down audit uses data.playerId', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/LobbyManager.js', 'utf8');
+    // Find a 300-char window around sit_down including lines before it
+    const sitDownIdx = src.indexOf("'sit_down'");
+    expect(sitDownIdx > 0).toBe(true);
+    const window = src.substring(Math.max(0, sitDownIdx - 200), sitDownIdx + 100);
+    // Should contain data.playerId (not data.player?.id)
+    expect(window.includes('data.playerId')).toBe(true);
+    // Should contain data.stack (not data.buyIn)
+    expect(window.includes('data.stack')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #13 REGRESSION: AntiCheatMonitor accesses entry.table.seats
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #13 REGRESSION: AntiCheatMonitor scan uses entry.table.seats', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/AntiCheatMonitor.js', 'utf8');
+    // Should NOT have entry.state.seats or entry?.state?.seats
+    const badPattern = /entry\?*\.state\?*\.seats/;
+    expect(badPattern.test(src)).toBe(false);
+    // Should have entry.table.seats or entry?.table?.seats
+    const goodPattern = /entry\?*\.table\?*\.seats/;
+    expect(goodPattern.test(src)).toBe(true);
+    // Player ID should be s.player?.id not s.playerId
+    const badPlayerPattern = /\.filter\(s\s*=>\s*s\s*&&\s*s\.playerId\)/;
+    expect(badPlayerPattern.test(src)).toBe(false);
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

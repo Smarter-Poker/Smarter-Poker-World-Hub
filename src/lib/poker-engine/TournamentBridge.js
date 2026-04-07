@@ -199,7 +199,7 @@ class TournamentBridge {
       await this._persistState(this.tournament.status, data); // Updates prize_pool dynamically
       await this._persistRebuy(data);
       if (data.playerId && data.amount) {
-        this._recordAuditLog('rebuy', data.playerId, data.amount, { tournamentId: this.tournament.id });
+        this._recordAuditLog('rebuy', data.playerId, data.amount, { tournamentId: this.tournament.tournamentId });
       }
     });
 
@@ -208,7 +208,7 @@ class TournamentBridge {
       await this._persistState(this.tournament.status, data); // Updates prize_pool dynamically
       await this._persistAddon(data);
       if (data.playerId && data.amount) {
-        this._recordAuditLog('addon', data.playerId, data.amount, { tournamentId: this.tournament.id });
+        this._recordAuditLog('addon', data.playerId, data.amount, { tournamentId: this.tournament.tournamentId });
       }
     });
 
@@ -231,7 +231,7 @@ class TournamentBridge {
       this._broadcastTournament('payout_awarded', data);
       await this._persistPayout(data);
       if (data.playerId && data.amount) {
-        this._recordAuditLog('payout_awarded', data.playerId, data.amount, { tournamentId: this.tournament.id, placement: data.placement });
+        this._recordAuditLog('payout_awarded', data.playerId, data.amount, { tournamentId: this.tournament.tournamentId, placement: data.placement });
       }
     });
 
@@ -612,7 +612,8 @@ class TournamentBridge {
           player_id: data.playerId,
           player_name: data.playerName,
           status: 'registered',
-          buy_in: this.tournament.buyIn,
+          // Phase 48e FIX #10b: property is buyinAmount, not buyIn
+          buy_in: this.tournament.buyinAmount,
           registered_at: new Date().toISOString(),
         }, { onConflict: 'tournament_id,player_id' });
     } catch (err) {
@@ -849,7 +850,8 @@ class TournamentBridge {
       const sb = ChipBridge.getSupabase();
       sb.rpc('record_arena_audit_log', {
         p_club_id: this.tournament.clubId,
-        p_table_id: `tournament_${this.tournament.id}`,
+        // Phase 48e FIX #10a: property is tournamentId, not id
+        p_table_id: `tournament_${this.tournament.tournamentId}`,
         p_user_id: userId,
         p_action_type: `tournament_${actionType}`,
         p_amount: amount || 0,
