@@ -924,40 +924,25 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
         src, url = urls[i]
         i += 1
         print(f"      [{src}] {url[:80]}")
-        try:
-            gs_flag = src in ('hendonmob', 'cardplayer')
-            resp = session.fetch(url, google_search=gs_flag, timeout=12000, wait_until='domcontentloaded')
-        except Exception as e:
-            print(f"      [SKIP] {str(e)[:70]}")
-            continue
 
-        if not resp or resp.status != 200:
-            time.sleep(1)
-            continue
-
-        body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode('utf-8')
-
-        # ── PDF sources: download raw bytes via urllib (StealthySession returns browser HTML for PDFs)
+        # ── PDF sources bypass StealthySession — download raw bytes directly ─
         if src == 'pdf_sched':
             if not PDF_OK:
                 continue
-            # PDFs are typically CDN-hosted (wp-content, uploads, etc.) — no Cloudflare
-            # urllib downloads raw binary; StealthySession renders the PDF viewer
             pdf_bytes = b''
             try:
                 req = urllib.request.Request(url, headers={
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
                     'Accept': 'application/pdf,*/*',
+                    'Referer': url.split('/wp-content')[0] if '/wp-content' in url else url,
                 })
                 with urllib.request.urlopen(req, timeout=25) as r:
                     pdf_bytes = r.read()
-            except Exception as e1:
-                # Fallback: try resp.body from StealthySession (already fetched above)
-                pdf_bytes = body
-                print(f"      [PDF] urllib failed ({str(e1)[:40]}), using StealthySession body")
-
+            except Exception as e:
+                print(f"      [PDF SKIP] urllib: {str(e)[:60]}")
+                continue
             if not pdf_bytes or pdf_bytes[:4] != b'%PDF':
-                print(f"      [PDF] Not valid PDF bytes (magic={pdf_bytes[:8]!r})")
+                print(f"      [PDF] Not valid PDF (magic={pdf_bytes[:8]!r})")
                 continue
             try:
                 with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf_obj:
@@ -970,15 +955,13 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
                 print(f"      [PDF] No tournament content in PDF")
                 time.sleep(1)
                 continue
-            print(f"      [PDF] {len(pdf_text)} chars extracted → parsing")
+            print(f"      [PDF] {len(pdf_text)} chars → parsing tournaments")
             pdf_hash = sha256(pdf_bytes)
             candidates = extract_tournaments(pdf_text, name, url, pdf_hash)
             if not candidates:
-                print(f"      [PDF] No structured records found in PDF")
+                print(f"      [PDF] No structured records parsed from PDF")
                 time.sleep(1)
                 continue
-            print(f"      ✅ PDF: {len(candidates)} tournament records")
-            # Dedup and append
             new_recs = []
             for rec in candidates:
                 dk = f"{rec.get('event_date') or rec.get('day_of_week')}-{rec.get('start_time')}-{rec.get('buy_in')}-{rec.get('game_type')}"
@@ -987,16 +970,31 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
                     new_recs.append(rec)
             if new_recs:
                 all_records.extend(new_recs)
-                print(f"      ✅ +{len(new_recs)} new PDF records added to Supabase")
+                recurring_pdf = sum(1 for r in new_recs if not r.get('event_date'))
+                dated_pdf = sum(1 for r in new_recs if r.get('event_date'))
+                print(f"      ✅ +{len(new_recs)} PDF records ({recurring_pdf} recurring, {dated_pdf} dated)")
                 if not result['found']:
                     result.update(found=True, confirmed_source='pdf_sched', source_url=url, html_hash=pdf_hash)
             time.sleep(1.5)
-            continue  # Don't fall into HTML extraction
+            continue  # Back to top of loop
+
+        try:
+            gs_flag = src in ('hendonmob', 'cardplayer')
+            resp = session.fetch(url, google_search=gs_flag, timeout=12000, wait_until='domcontentloaded')
+        except Exception as e:
+            print(f"      [SKIP] {str(e)[:70]}")
+            continue
+
+        if not resp or resp.status != 200:
+            time.sleep(1)
+            continue
 
 
         # ── Standard HTML processing ─────────────────────────────────────────
+        body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode('utf-8')
         html = body.decode('utf-8', errors='ignore')
         h    = sha256(body)
+
 
         # ── Venue scope check: confirm this page is for OUR venue ────────────
         if not venue_matches_page(html, name, state, city, src, url):
