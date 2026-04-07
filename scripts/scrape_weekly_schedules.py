@@ -393,21 +393,38 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
 
 # ── Anti-hallucination guard ──────────────────────────────────────────────────
 def anti_hallucination_check(records: list) -> bool:
-    """Returns True if records pass all checks."""
-    if not records:
+    """Returns True if records pass all integrity checks.
+
+    Catches AI-generated data patterns while never false-positiving on
+    real scraped records. NOTE: scrape_timestamp IS legitimately identical
+    per batch — never flag that field.
+    """
+    if not records or len(records) < 3:
         return True
+
     buyins = [r['buy_in'] for r in records if r.get('buy_in')]
-    if buyins:
+    if buyins and len(buyins) >= 5:
         round_pct = sum(1 for b in buyins if b % 100 == 0) / len(buyins)
-        if round_pct > 0.92:
-            print(f"    ⚠️  ANTI-HALLUCINATION: {round_pct:.0%} buy-ins are round $100 multiples — suspicious")
+        if round_pct > 0.95:
+            print(f"    ⚠️  ANTI-HALLUCINATION: {round_pct:.0%} buy-ins are round $100 multiples")
             return False
-    # Check for identical timestamps (all same = batch-generated)
-    ts_vals = [r.get('scrape_timestamp','') for r in records]
-    if len(set(ts_vals)) == 1 and len(ts_vals) > 10:
-        print(f"    ⚠️  ANTI-HALLUCINATION: All {len(records)} records have identical timestamps")
+
+    # All identical event slot = fabricated schedule
+    slots = [
+        f"{r.get('day_of_week','')}-{r.get('event_date','')}-{r.get('start_time','')}"
+        for r in records
+    ]
+    if len(slots) > 5 and len(set(slots)) == 1:
+        print(f"    ⚠️  ANTI-HALLUCINATION: All {len(records)} records have identical event slots")
         return False
+
+    # Single buy-in for 5+ records is suspicious
+    if len(buyins) >= 5 and len(set(buyins)) == 1:
+        print(f"    ⚠️  ANTI-HALLUCINATION: All {len(records)} records have identical buy-in ${buyins[0]}")
+        return False
+
     return True
+
 
 
 # ── Network helpers ───────────────────────────────────────────────────────────
@@ -622,11 +639,105 @@ def parse_pokeratlas_json(data: dict, venue_name: str, api_url: str, html_hash: 
     return results
 
 
+# ── Venue scope validator ────────────────────────────────────────────────────
+def venue_name_tokens(name: str) -> set:
+    """Break venue name into meaningful lowercase tokens (3+ chars, skip stopwords)."""
+    STOPWORDS = {'the','and','of','at','in','on','for','a','an','by',
+                 'casino','poker','room','club','card','house','lounge'}
+    words = re.sub(r'[^a-z0-9 ]', ' ', name.lower()).split()
+    return {w for w in words if len(w) >= 3 and w not in STOPWORDS} or {name.lower()[:6]}
+
+
+def venue_matches_page(page_text: str, venue_name: str, venue_state: str,
+                       venue_city: str, source: str, page_url: str) -> bool:
+    """
+    Confirm a fetched page actually belongs to the target venue.
+    Returns True if safe to extract, False if wrong venue detected.
+
+    Rules:
+    - For PokerAtlas/Bravo/website: validate at least 1 venue name token appears
+      in page title/h1/JSON-LD name field (not just body text — too loose).
+    - For search result pages (hendonmob/cardplayer): always allow — we extract
+      only matching entries in the parser.
+    - For website_canonical: validate domain is consistent with saved website
+      OR venue name tokens appear in page title.
+    """
+    if source in ('hendonmob', 'cardplayer'):
+        return True  # Search pages filtered at record level
+
+    tokens = venue_name_tokens(venue_name)
+    if not tokens:
+        return True
+
+    text_lower = page_text.lower()
+
+    # Extract title tag
+    title_m = re.search(r'<title[^>]*>(.*?)</title>', page_text, re.IGNORECASE | re.DOTALL)
+    title = title_m.group(1).lower() if title_m else ''
+
+    # Extract h1 tags
+    h1s = re.findall(r'<h1[^>]*>(.*?)</h1>', page_text, re.IGNORECASE | re.DOTALL)
+    h1_text = ' '.join(re.sub(r'<[^>]+>', '', h).lower() for h in h1s[:3])
+
+    # JSON-LD venue name
+    jld_names = re.findall(r'"name"\s*:\s*"([^"]{3,80})"', page_text[:8000])
+    jld_name_text = ' '.join(n.lower() for n in jld_names[:3])
+
+    # Combined searchable surface
+    header_text = f"{title} {h1_text} {jld_name_text}"
+
+    # At least 1 significant token must appear in page header region
+    matched = sum(1 for t in tokens if t in header_text)
+    if matched >= 1:
+        return True
+
+    # Fallback: check state abbreviation + any token in page body
+    # (catches venues whose name differs slightly from URL structure)
+    if venue_state and venue_state.lower() in text_lower:
+        body_matched = sum(1 for t in tokens if t in text_lower[:5000])
+        if body_matched >= 2:
+            return True
+
+    return False
+
+
+def validate_jld_canonical(jld: dict, venue_name: str, venue_state: str) -> str | None:
+    """
+    Examine a JSON-LD Casino/LocalBusiness object from PokerAtlas.
+    Return the canonical URL only if the venue name matches our target.
+    Returns None if the page is for a different venue (bad slug in DB).
+    """
+    jld_venue_name = jld.get('name') or ''
+    canonical = jld.get('url') or jld.get('@id') or ''
+    if not canonical or not canonical.startswith('http') or 'pokeratlas' in canonical:
+        return None
+
+    if not jld_venue_name:
+        return canonical  # No name to compare — allow cautiously
+
+    our_tokens   = venue_name_tokens(venue_name)
+    page_tokens  = venue_name_tokens(jld_venue_name)
+    overlap      = our_tokens & page_tokens
+
+    # Require at least 1 meaningful token overlap OR names are very similar
+    if overlap:
+        return canonical
+
+    # Short-name fallback: first 4 chars of first word match
+    our_first  = venue_name.lower().split()[0][:4]
+    page_first = jld_venue_name.lower().split()[0][:4]
+    if our_first == page_first:
+        return canonical
+
+    print(f"      [SCOPE-BLOCK] JSON-LD name '{jld_venue_name}' ≠ target '{venue_name}' — skipping canonical URL")
+    return None
+
+
 # ── Build URL priority list for a venue ──────────────────────────────────────
 def build_url_list(venue: dict) -> list:
     """
     Returns ordered list of (source_label, url) tuples to try.
-    Priority: saved_url → PokerAtlas API JSON → PokerAtlas HTML → Bravo → HendonMob → CardPlayer → Venue Website
+    Priority: saved_url → PokerAtlas HTML → Bravo → HendonMob → CardPlayer → Venue Website
     """
     urls = []
     name = venue.get('name', '')
@@ -639,10 +750,10 @@ def build_url_list(venue: dict) -> list:
 
     # 1. Saved source of truth (from previous successful scrape)
     saved = venue.get('scrape_url') or venue.get('schedule_scrape_url') or ''
-    if saved and 'pokeratlas.com/api/' not in saved:  # Only non-API saved URLs
+    if saved:
         add('saved_source', saved)
 
-    # 2. PokerAtlas HTML page (tournament data in JSON-LD + HTML)
+    # 2. PokerAtlas HTML page — JSON-LD will be used to discover canonical website
     pa_url = venue.get('poker_atlas_url') or venue.get('pokeratlas_url') or ''
     pa_slug = venue.get('pokeratlas_slug') or ''
     if not pa_slug and '/poker-room/' in pa_url:
@@ -657,11 +768,11 @@ def build_url_list(venue: dict) -> list:
     bravo_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
     add('bravo', f"https://www.bravopokerlive.com/poker-rooms/{bravo_slug}")
 
-    # 4. HendonMob (Query fallback)
+    # 4. HendonMob (search — filtered at record level)
     encoded_name = urllib.parse.quote_plus(name)
     add('hendonmob', f"https://www.thehendonmob.com/search/?q={encoded_name}")
 
-    # 5. CardPlayer.com (Query fallback)
+    # 5. CardPlayer.com (search — filtered at record level)
     add('cardplayer', f"https://www.cardplayer.com/poker-tournaments/search?q={encoded_name}")
 
     # 6. Direct venue website
@@ -693,11 +804,15 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
     all_records = []      # Accumulate across sources for max coverage
     seen_keys   = set()   # Global dedup across all sources
 
-    for src, url in urls:
+    already_seen_urls = {u for _, u in urls}
+
+    i = 0
+    while i < len(urls):
+        src, url = urls[i]
+        i += 1
         print(f"      [{src}] {url[:80]}")
         try:
-            # Enable google_search fallback for HendonMob/CardPlayer if URL 404s
-            gs_flag = True if src in ('hendonmob', 'cardplayer') else False
+            gs_flag = src in ('hendonmob', 'cardplayer')
             resp = session.fetch(url, google_search=gs_flag, timeout=12000, wait_until='domcontentloaded')
         except Exception as e:
             print(f"      [SKIP] {str(e)[:70]}")
@@ -711,7 +826,13 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
         html = body.decode('utf-8', errors='ignore')
         h    = sha256(body)
 
-        # ── PokerAtlas: extract canonical venue website from JSON-LD ────────────
+        # ── Venue scope check: confirm this page is for OUR venue ────────────
+        if not venue_matches_page(html, name, state, city, src, url):
+            print(f"      [SCOPE-BLOCK] Page does not match venue '{name}' — skipping")
+            time.sleep(1)
+            continue
+
+        # ── PokerAtlas: extract canonical venue website from JSON-LD ─────────
         if src == 'pokeratlas':
             jld_blocks = re.findall(
                 r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>',
@@ -720,25 +841,24 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
             for jld_raw in jld_blocks:
                 try:
                     jld = json.loads(jld_raw)
-                    canonical = jld.get('url') or jld.get('@id') or ''
-                    if canonical and canonical.startswith('http') and 'pokeratlas' not in canonical:
-                        # Inject venue's canonical URL at front of remaining queue
+                    # ── CRITICAL: Validate JSON-LD is for OUR venue before injecting URL
+                    canonical = validate_jld_canonical(jld, name, state)
+                    if canonical:
                         base = canonical.rstrip('/')
-                        injected = [
+                        for ilabel, iurl in [
                             ('website_canonical', f"{base}/poker/tournaments"),
                             ('website_canonical', f"{base}/tournaments"),
                             ('website_canonical', base),
-                        ]
-                        # Only add URLs not already in our seen set
-                        for ilabel, iurl in injected:
-                            if iurl not in {u for _, u in urls}:
+                        ]:
+                            if iurl not in already_seen_urls:
+                                already_seen_urls.add(iurl)
                                 urls.append((ilabel, iurl))
-                                print(f"      [JSON-LD] Discovered venue URL: {iurl[:70]}")
-                        break
+                                print(f"      [JSON-LD ✓] Discovered: {iurl[:70]}")
+                    break
                 except (json.JSONDecodeError, Exception):
                     pass
 
-        # ── PokerAtlas JSON API path (kept for future use if endpoint opens) ──
+        # ── PokerAtlas JSON API path (kept for future use) ───────────────────
         if src == 'pokeratlas_api':
             try:
                 data = json.loads(html)

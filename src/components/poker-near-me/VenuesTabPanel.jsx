@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic';
 const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
 import { MapErrorBoundary } from './VenueMap';
-import PokerTourCard from './PokerTourCard';
+import TourCard from './TourCard';
 
 const RADIUS_TIERS = [50, 100, 200, 500];
 
@@ -128,11 +128,28 @@ export default function VenuesTabPanel({
                         const isHighlighted = highlightedVenueId === venue.id;
                         
                         if (venue.venue_type === 'tour_stop' || venue.venue_type === 'series') {
+                            // Adapt tourPin shape → TourCard's expected props
+                            const tourForCard = {
+                                tour_code: venue.tour_code,
+                                tour_name: venue.tour_name || venue.name,
+                                logo_url: venue.logo_url,
+                                tour_type: venue.is_running ? 'circuit' : 'regional',
+                                headquarters: venue.stop_venue
+                                    ? `${venue.stop_venue}${venue.city ? ' — ' + venue.city : ''}${venue.state ? ', ' + venue.state : ''}`
+                                    : venue.location || '',
+                                upcoming_series: venue.dates ? [{ short_name: venue.dates, name: venue.dates, start_date: null }] : [],
+                                official_website: null,
+                            };
                             return (
                                 <div key={venue.id || `tour-${i}`} id={`tour-card-${venue.tour_code || i}`}
                                     className={'venue-card-wrapper' + (isHighlighted ? ' venue-card-highlighted' : '')}
                                 >
-                                    <PokerTourCard tourPin={venue} />
+                                    <TourCard
+                                        tour={tourForCard}
+                                        isFavorited={isFavorited('venue', venue.id)}
+                                        onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                                        onNavigate={(path) => router.push(path)}
+                                    />
                                 </div>
                             );
                         }
