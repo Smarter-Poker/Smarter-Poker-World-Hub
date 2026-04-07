@@ -1880,7 +1880,7 @@ export default function PokerNearMePage() {
         );
         if (activeTab === 'live') return (
             <LiveGamesFeed
-                venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues}
+                venues={allVenuesWithTours.length > 0 ? allVenuesWithTours : venues}
                 userLocation={userLocation}
                 favorites={favorites}
                 handleToggleFavorite={(venueId, venueData) => toggleFavorite('venue', venueId, null, venueData)}

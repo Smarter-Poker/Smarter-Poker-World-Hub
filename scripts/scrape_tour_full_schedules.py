@@ -33,6 +33,11 @@ import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    from native_parsers import scrape_wsop_native
+except ImportError:
+    scrape_wsop_native = None
+
 # ─── Path Setup ────────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).parent.parent
 EVIDENCE_DIR = PROJECT_ROOT / "data" / "scrape-evidence"
@@ -73,7 +78,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://www.wsop.com/tournaments/",
         "fallback_urls": [
             "https://www.wsop.com/2026/",
-            "https://www.pokeratlas.com/poker-tournaments/wsop",
         ],
         "scrape_method": "StealthySession",
         "stop_name": "2026 WSOP Main Series",
@@ -86,11 +90,8 @@ TOUR_SOURCES = {
         "tour_name": "World Poker Tour",
         "tour_type": "major",
         "cloudflare": True,
-        "primary_url": "https://www.pokeratlas.com/poker-tournaments/wpt",
-        "schedule_url": "https://www.pokeratlas.com/poker-tournaments/wpt",
         "fallback_urls": [
             "https://www.wpt.com/events/",          # Official site (React SPA - limited parser)
-            "https://www.pokernews.com/tours/wpt/schedule/",
         ],
         "scrape_method": "StealthySession",
         "stop_name": "WPT 2026 Season",
@@ -123,7 +124,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://msptpoker.com/schedule/",
         "fallback_urls": [
             "https://msptpoker.com/events/",
-            "https://www.pokeratlas.com/poker-tournaments/mspt",
         ],
         "scrape_method": "Fetcher",
         "stop_name": "MSPT 2026 Season",
@@ -140,7 +140,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://rungoodgear.com/poker-series/",
         "fallback_urls": [
             "https://rungoodgear.com/events/",
-            "https://www.pokeratlas.com/poker-tournaments/rgps",
         ],
         "scrape_method": "Fetcher",
         "stop_name": "RGPS 2026 Season",
@@ -173,8 +172,6 @@ TOUR_SOURCES = {
         "primary_url": "https://www.pokerstarslive.com/napt/",
         "schedule_url": "https://www.pokerstarslive.com/napt/",
         "fallback_urls": [
-            "https://www.pokeratlas.com/poker-tournaments/napt",
-            "https://pokernews.com/tours/napt/",
         ],
         "scrape_method": "StealthySession",
         "stop_name": "NAPT 2026",
@@ -191,7 +188,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://www.cardplayerpokertour.com/schedule",
         "fallback_urls": [
             "https://www.cardplayer.com/tours/cppt",
-            "https://www.pokeratlas.com/poker-tournaments/cppt",
         ],
         "scrape_method": "Fetcher",
         "stop_name": "CPPT 2026 Season",
@@ -208,7 +204,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://roughriderpokertour.com/schedule/",
         "fallback_urls": [
             "https://roughriderpokertour.com/events/",
-            "https://www.pokeratlas.com/poker-tournaments/roughrider",
         ],
         "scrape_method": "Fetcher",
         "stop_name": "RPT 2026 Season",
@@ -242,7 +237,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://www.lipspoker.org/schedule",
         "fallback_urls": [
             "https://www.lipspoker.org",
-            "https://www.pokeratlas.com/poker-tournaments/lips",
         ],
         "scrape_method": "Fetcher",
         "stop_name": "LIPS 2026 Season",
@@ -259,7 +253,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://pokeratlastour.com/schedule",
         "fallback_urls": [
             "https://pokeratlastour.com",
-            "https://www.pokeratlas.com/poker-tournaments/pat",
         ],
         "scrape_method": "StealthySession",
         "stop_name": "PAT 2026 Season",
@@ -276,7 +269,6 @@ TOUR_SOURCES = {
         "schedule_url": "https://gulfcoastpoker.net/schedule/",
         "fallback_urls": [
             "https://gulfcoastpoker.net/events/",
-            "https://www.pokeratlas.com/poker-tournaments/gcpt",
         ],
         "scrape_method": "Fetcher",
         "stop_name": "GCPT 2026 Season",
@@ -675,6 +667,48 @@ def scrape_tour(tour_code, batch_id, dry_run=False):
     print(f"  Method: {src['scrape_method']}")
     print(f"{'='*60}")
 
+    # Step 0: Native API Interceptor (Bypasses UI scraping entirely)
+    if tour_code in ['WSOP', 'WSOPC'] and scrape_wsop_native is not None:
+        base_prov = {
+            "scrape_url": src['schedule_url'],
+            "scrape_http_status": None,
+            "scrape_html_hash": "",
+            "scrape_byte_count": 0,
+            "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
+            "scrape_script": __file__,
+            "source_url": src['schedule_url'],
+        }
+        events, prov, _ = scrape_wsop_native(tour_code, base_prov)
+        used_url = prov.get('source_url', src['schedule_url'])
+        found_kw = ['api', 'native']
+        
+        # Save evidence & check
+        evidence_file = save_evidence(tour_code, used_url, prov, events, batch_id)
+        if events:
+            passed, reason = anti_hallucination_check(events, tour_code)
+            if not passed:
+                print(f"  [BLOCKED] Anti-hallucination failed: {reason}")
+                return {
+                    "tour": tour_code, "status": "blocked",
+                    "reason": f"Anti-hallucination: {reason}",
+                    "events_found": len(events),
+                    "evidence_file": evidence_file,
+                }
+        inserted = seed_to_supabase(events, tour_code, batch_id, dry_run)
+        status = "success" if events else "no_data"
+        return {
+            "tour": tour_code,
+            "tour_name": src["tour_name"],
+            "status": status,
+            "source_url": used_url,
+            "events_extracted": len(events),
+            "events_inserted": inserted,
+            "scrape_hash": prov.get("scrape_html_hash", ""),
+            "scrape_timestamp": prov.get("scrape_timestamp", ""),
+            "evidence_file": evidence_file,
+            "poker_keywords_found": found_kw,
+        }
+
     # Step 1: Fetch URL
     urls_to_try = [src["schedule_url"]] + src.get("fallback_urls", [])
     html_bytes = None
@@ -826,7 +860,7 @@ def main():
         "tours_attempted": len(tours_to_scrape),
         "total_events": total_events,
         "results": results,
-        "source_registry": {k: v["schedule_url"] for k, v in TOUR_SOURCES.items()},
+        "source_registry": {k: v.get("schedule_url", "") for k, v in TOUR_SOURCES.items()},
     }, indent=2))
     print(f"  Summary: {summary_file.name}")
 
