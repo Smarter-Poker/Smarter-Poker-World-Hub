@@ -2643,29 +2643,6 @@ export default function PokerNearMePage() {
                         </button>
                     </div>
 
-                    {/* Search form */}
-                    <form className="pnm-top-search" onSubmit={handleSearch}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, color: 'rgba(148,163,184,0.5)' }}>
-                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                        </svg>
-                        <input
-                            type="text"
-                            className="pnm-top-search-input"
-                            placeholder="Search all venues..."
-                            value={searchQuery}
-                            onChange={handleSearchInputChange}
-                            autoComplete="off"
-                        />
-                        {searchQuery.trim().length > 0 && (
-                            <button
-                                type="submit"
-                                className="pnm-search-submit-btn"
-                                aria-label="Search"
-                            >
-                                Go
-                            </button>
-                        )}
-                    </form>
                 </div>
 
                 {/* ═══ TOP FILTER BAR: Location + Dropdowns + Apply + Live Games ═══ */}

@@ -59,6 +59,21 @@ SKIP_DOMAINS = {
     'themresort.com', 'aliantegaming.com',
 }
 
+# Venue types to SKIP — these are handled by other scrapers
+SKIP_VENUE_TYPES = {
+    'charity', 'charity_event', 'charity_game',
+    'series', 'poker_series', 'tour', 'poker_tour',
+    'traveling_tour', 'regional_tour', 'tournament_series',
+}
+
+# Name-pattern keywords that indicate a series/tour (not a card room)
+SKIP_NAME_PATTERNS = re.compile(
+    r'\b(?:series|poker series|tour(?:nament series)?|grand prix|'
+    r'circuit|wpt|wsop|mspt|heartland|mid-states|triton|'
+    r'partypoker|GGpoker)\b',
+    re.IGNORECASE
+)
+
 # ── Day & time helpers ────────────────────────────────────────────────────────
 DAYS_FULL = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Daily"]
 DAY_MAP = {
@@ -493,11 +508,125 @@ def save_evidence(name: str, state: str, data: dict) -> Path:
     return path
 
 
+# ── PokerAtlas JSON API parser ───────────────────────────────────────────────
+def parse_pokeratlas_json(data: dict, venue_name: str, api_url: str, html_hash: str) -> list:
+    """
+    Parse the PokerAtlas tournaments JSON API response.
+    Endpoint: https://www.pokeratlas.com/api/venues/{venue_id}/tournaments
+    Returns list of tournament dicts.
+    """
+    ts_now = datetime.now(timezone.utc).isoformat()
+    results = []
+    seen = set()
+
+    tournaments = data.get('tournaments') or data.get('data') or []
+    if isinstance(data, list):
+        tournaments = data
+
+    for t in tournaments:
+        if not isinstance(t, dict):
+            continue
+
+        # Buy-in — PA stores in cents or dollars depending on endpoint version
+        buyin_raw = t.get('buy_in') or t.get('buyin') or t.get('buyIn') or 0
+        try:
+            buyin = int(float(buyin_raw))
+            # If stored in cents (>500 for a $5 tournament is suspicious)
+            if buyin > 0 and buyin % 100 == 0 and buyin > 10000:
+                buyin = buyin // 100
+        except (ValueError, TypeError):
+            continue
+        if not 10 <= buyin <= 50000:
+            continue
+
+        # Time
+        start_time = t.get('start_time') or t.get('startTime') or t.get('time') or ''
+        if not start_time:
+            continue
+        # Normalize to HH:MM AM/PM
+        tm_match = re.search(r'(\d{1,2}:\d{2}\s*(?:AM|PM)?)', str(start_time), re.IGNORECASE)
+        start_time = tm_match.group(1).upper().strip() if tm_match else str(start_time)[:10]
+
+        # Day/date
+        event_date = None
+        day_of_week = None
+        raw_date = t.get('event_date') or t.get('date') or t.get('eventDate') or ''
+        raw_day  = t.get('day_of_week') or t.get('day') or t.get('recurring_day') or ''
+        if raw_date:
+            event_date = parse_date_from_text(str(raw_date))
+        if not event_date and raw_day:
+            day_of_week = normalize_day(str(raw_day))
+        if not event_date and not day_of_week:
+            # Try to extract from name or description
+            desc = str(t.get('name','') or t.get('description',''))
+            day_of_week = normalize_day(desc)
+
+        # Game
+        game = 'NLH'
+        game_raw = str(t.get('game_type') or t.get('game') or t.get('gameType') or '').lower()
+        if 'plo' in game_raw or 'omaha' in game_raw: game = 'PLO'
+        elif 'mixed' in game_raw: game = 'Mixed'
+        elif 'stud' in game_raw: game = 'Stud'
+        elif 'big-o' in game_raw or 'big o' in game_raw: game = 'Big-O'
+
+        # Format
+        fmt = None
+        name_raw = str(t.get('name') or t.get('title') or '')
+        for f, pat in [
+            ('Mystery Bounty', r'mystery.?bounty'),
+            ('Progressive KO',  r'progressive|P\.?K\.?O'),
+            ('Bounty',          r'bounty'),
+            ('Deep Stack',      r'deep.?stack'),
+            ('Turbo',           r'turbo'),
+            ('Rebuy',           r'rebuy'),
+            ('Satellite',       r'satellite'),
+        ]:
+            if re.search(pat, name_raw, re.I):
+                fmt = f; break
+
+        gtd = None
+        gtd_raw = t.get('guarantee') or t.get('guaranteed') or t.get('prize_pool') or 0
+        try: gtd = int(float(gtd_raw)) or None
+        except: pass
+
+        stack = None
+        try: stack = int(t.get('starting_chips') or t.get('startingChips') or t.get('chips') or 0) or None
+        except: pass
+
+        dedup_key = f"{event_date or day_of_week}-{start_time}-{buyin}-{game}"
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+
+        results.append({
+            'venue_name':      venue_name,
+            'day_of_week':     day_of_week or 'Daily',
+            'event_date':      event_date,
+            'start_time':      start_time,
+            'buy_in':          buyin,
+            'game_type':       game,
+            'format':          fmt,
+            'guaranteed':      gtd,
+            'starting_stack':  stack,
+            'tournament_name': name_raw[:100] or None,
+            'source_url':      api_url,
+            'data_quality':    'scraped_verified',
+            'scrape_html_hash':   html_hash,
+            'scrape_timestamp':   ts_now,
+            'scrape_batch_id':    BATCH_ID,
+            'scrape_confidence':  'high',
+            'is_active':       True,
+            'last_scraped':    ts_now,
+        })
+
+    return results
+
+
 # ── Build URL priority list for a venue ──────────────────────────────────────
 def build_url_list(venue: dict) -> list:
     """
     Returns ordered list of (source_label, url) tuples to try.
-    Priority: saved_url → PokerAtlas → Bravo → HendonMob → CardPlayer → Venue Website
+    Priority: saved_url → PokerAtlas API JSON → PokerAtlas HTML → Bravo → HendonMob → CardPlayer → Venue Website
     """
     urls = []
     name = venue.get('name', '')
@@ -508,16 +637,16 @@ def build_url_list(venue: dict) -> list:
             seen.add(u)
             urls.append((label, u))
 
-    # 1. Saved source of truth (from previous scrape)
+    # 1. Saved source of truth (from previous successful scrape)
     saved = venue.get('scrape_url') or venue.get('schedule_scrape_url') or ''
-    if saved:
+    if saved and 'pokeratlas.com/api/' not in saved:  # Only non-API saved URLs
         add('saved_source', saved)
 
-    # 2. PokerAtlas
+    # 2. PokerAtlas HTML page (tournament data in JSON-LD + HTML)
     pa_url = venue.get('poker_atlas_url') or venue.get('pokeratlas_url') or ''
     pa_slug = venue.get('pokeratlas_slug') or ''
     if not pa_slug and '/poker-room/' in pa_url:
-        pa_slug = pa_url.split('/poker-room/')[-1].strip('/')
+        pa_slug = pa_url.split('/poker-room/')[-1].strip('/').split('/')[0]
     if pa_slug:
         add('pokeratlas', f"https://www.pokeratlas.com/poker-room/{pa_slug}/tournaments")
     else:
@@ -535,7 +664,7 @@ def build_url_list(venue: dict) -> list:
     # 5. CardPlayer.com (Query fallback)
     add('cardplayer', f"https://www.cardplayer.com/poker-tournaments/search?q={encoded_name}")
 
-    # 6. Direct venue website 
+    # 6. Direct venue website
     website = venue.get('website') or ''
     if website:
         base = website if website.startswith('http') else f"https://{website}"
@@ -543,7 +672,7 @@ def build_url_list(venue: dict) -> list:
         for path in ['/poker/tournaments', '/tournaments', '']:
             add('website', f"{base}{path}")
 
-    return urls[:8]  # Cap at 8 attempts per venue
+    return urls[:10]  # Cap at 10 attempts per venue
 
 
 # ── Core scrape function ──────────────────────────────────────────────────────
@@ -582,12 +711,51 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
         html = body.decode('utf-8', errors='ignore')
         h    = sha256(body)
 
-        if not has_tournament_content(html):
-            print(f"      [NO CONTENT] No tournament keywords found")
-            time.sleep(1)
-            continue
+        # ── PokerAtlas: extract canonical venue website from JSON-LD ────────────
+        if src == 'pokeratlas':
+            jld_blocks = re.findall(
+                r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>',
+                html, re.DOTALL | re.IGNORECASE
+            )
+            for jld_raw in jld_blocks:
+                try:
+                    jld = json.loads(jld_raw)
+                    canonical = jld.get('url') or jld.get('@id') or ''
+                    if canonical and canonical.startswith('http') and 'pokeratlas' not in canonical:
+                        # Inject venue's canonical URL at front of remaining queue
+                        base = canonical.rstrip('/')
+                        injected = [
+                            ('website_canonical', f"{base}/poker/tournaments"),
+                            ('website_canonical', f"{base}/tournaments"),
+                            ('website_canonical', base),
+                        ]
+                        # Only add URLs not already in our seen set
+                        for ilabel, iurl in injected:
+                            if iurl not in {u for _, u in urls}:
+                                urls.append((ilabel, iurl))
+                                print(f"      [JSON-LD] Discovered venue URL: {iurl[:70]}")
+                        break
+                except (json.JSONDecodeError, Exception):
+                    pass
 
-        candidates = extract_tournaments(html, name, url, h)
+        # ── PokerAtlas JSON API path (kept for future use if endpoint opens) ──
+        if src == 'pokeratlas_api':
+            try:
+                data = json.loads(html)
+                candidates = parse_pokeratlas_json(data, name, url, h)
+                if candidates:
+                    print(f"      ✅ PokerAtlas API: {len(candidates)} tournaments parsed")
+                else:
+                    print(f"      [pokeratlas_api] No tournaments in JSON response")
+            except (json.JSONDecodeError, Exception) as e:
+                print(f"      [pokeratlas_api] JSON parse failed: {str(e)[:60]}")
+                candidates = []
+        else:
+            if not has_tournament_content(html):
+                print(f"      [NO CONTENT] No tournament keywords found")
+                time.sleep(1)
+                continue
+            candidates = extract_tournaments(html, name, url, h)
 
         # Deduplicate against global seen set
         new_recs = []
@@ -690,7 +858,11 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
 
 # ── Load venues from Supabase ─────────────────────────────────────────────────
 def load_venues(args) -> list:
-    """Pull venues from Supabase, filtered & sorted oldest-scraped-first."""
+    """Pull venues from Supabase, filtered & sorted oldest-scraped-first.
+    
+    EXCLUDES: charity events, poker series, and poker tours — those are
+    handled by dedicated scrapers and must not be double-processed here.
+    """
     params = (
         "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
         "pokeratlas_url,pokeratlas_slug,scrape_url,schedule_scrape_url,"
@@ -702,6 +874,18 @@ def load_venues(args) -> list:
     )
     rows = sb_get('poker_venues', params)
     print(f"  Loaded {len(rows)} has_tournaments=true venues from Supabase")
+
+    # ── MANDATORY: Exclude charity, series, and tour venue types ─────────────
+    before = len(rows)
+    rows = [
+        v for v in rows
+        if (v.get('venue_type') or '').lower() not in SKIP_VENUE_TYPES
+        and not SKIP_NAME_PATTERNS.search(v.get('name') or '')
+    ]
+    skipped = before - len(rows)
+    if skipped:
+        print(f"  Excluded {skipped} charity/series/tour venues (handled by other scrapers)")
+    print(f"  Card rooms eligible: {len(rows)}")
 
     if args.state:
         rows = [v for v in rows if v.get('state','').upper() == args.state.upper()]

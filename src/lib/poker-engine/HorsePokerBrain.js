@@ -898,11 +898,23 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         if (bestStraightHigh === 3) straightStrength = Math.min(straightStrength, 50);
 
         bestStraight = straightStrength;
+        // Bug #117: Straight hasRedraw was always false. In PLO, a straight with a flush
+        // draw or a pair that can improve to a full house has critical redraw value.
+        // This triggers the "bet for protection" logic in the decision engine.
+        const straightHasFlushRedraw = (() => {
+            for (const suit of new Set(hSuits)) {
+                const hOfSuit = holeCards.filter(c => c.suit === suit);
+                const bOfSuit = boardCards.filter(c => c.suit === suit);
+                if (hOfSuit.length >= 2 && bOfSuit.length >= 2) return true; // Flush draw
+            }
+            return false;
+        })();
+        const straightHasFHRedraw = hRanks.some(r => bRanks.includes(r)); // Pair = FH potential
         return {
             strength: bestStraight,
             category: isNutStraight ? 'nut_straight' : 'straight',
             isNut: isNutStraight,
-            hasRedraw: false,
+            hasRedraw: straightHasFlushRedraw || straightHasFHRedraw,
             isMade: true,
             vulnerability: straightsAbove // How many higher straights can exist
         };
@@ -4764,10 +4776,26 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ── Phase 8: Explicit wrap draw detector (20/17/13/9-out wraps) ──
     const wrapInfo = detectPLOWrapDraw(holeRanks, boardRanks);
-    // Merge wrap outs with base exact outs (replace straight outs if wrap is better)
-    const mergedExactOuts = wrapInfo.isWrap && wrapInfo.wrapOuts > exactOuts
-        ? wrapInfo.wrapOuts + flushDraw.outs - (comboDrawInfo.isCombo ? 2 : 0)
-        : exactOuts;
+    // Bug #115: The rough wrap detection in countStraightOuts doesn't enforce PLO's
+    // 2-from-hole / 3-from-board rule, inflating outs by 3-7 in common wrap scenarios.
+    // detectPLOWrapDraw simulates each possible card and checks exact PLO rules —
+    // ALWAYS trust it over the rough estimate when it has a result.
+    // Old code only replaced when wrapOuts > exactOuts, which compared straight-only
+    // outs vs straight+flush outs (apples to oranges), letting inflated estimates persist.
+    let correctedStraightOuts = straightDraw.outs;
+    if (boardCards.length >= 3) {
+        if (wrapInfo.wrapOuts > 0) {
+            // Accurate wrap found — use it instead of rough estimate
+            correctedStraightOuts = wrapInfo.wrapOuts;
+        } else if (straightDraw.outs >= 9) {
+            // Rough wrap found wraps but accurate says 0 — phantom wrap, cap to gutshot
+            correctedStraightOuts = 4;
+        }
+    }
+    const mergedExactOuts = correctedStraightOuts + flushDraw.outs
+        - (correctedStraightOuts >= 4 && flushDraw.outs >= 6
+            ? Math.min(Math.floor(correctedStraightOuts * 0.2), 3)
+            : 0);
 
     // ── Phase 8: Board scenario projector ──
     const boardScenario = projectPLOBoardScenarios(madeHand, flushDraw.outs, mergedExactOuts, boardTexture, street);
@@ -14162,6 +14190,9 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             bb,
             numPlayers,
             isHiLo,
+            // Bug #116: Pass gameType so PLO tournament tightness adjustments actually fire
+            // (was defaulting to 'cash' because gameType was never passed from getDecision)
+            gameType: tableConfig.gameType || engineState.gameType || (engineState.tourneyState ? 'tournament' : 'cash'),
             // ─── Phase 37: Pass live-read data to PLO engine ───
             tableId: tableId || 'unknown',
             primaryOppId: primaryOppId || null,
@@ -14193,10 +14224,11 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         potSize,
         toCall,
         bb, // Big blind in chips (for BB-relative thresholds)
-        gameType: 'Cash',
+        // Bug #116: Was hardcoded 'Cash', making tournament ICM adjustments dead code
+        gameType: tableConfig.gameType || engineState.gameType || (engineState.tourneyState ? 'Tournament' : 'Cash'),
         numPlayers,
         topology: numPlayers <= 3 ? '3-Max' : numPlayers <= 6 ? '6-Max' : '9-Max',
-        mode: 'ChipEV',
+        mode: engineState.tourneyState ? 'ICM' : 'ChipEV',
         // ═══ ALWAYS-ON: Pass table + opponent IDs for live observation data ═══
         tableId,
         primaryOppId,
