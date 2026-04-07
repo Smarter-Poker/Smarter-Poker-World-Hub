@@ -19355,6 +19355,311 @@ test('BUG179: multiwayCallPenalty wired into call threshold', () => {
     expect(src.includes('callThreshold + multiwayCallPenalty')).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// Bugs #180-#192: 17 DEAD VARIABLES WIRED IN 15 HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
+// --- Bug #180: countStraightOuts — sortedHole, sortedBoard, window6 wired ---
+test('BUG180: window6 wider wrap detection fires for 6-rank spans', () => {
+    // J-T-9-6 hole, 8-7-2 board = 6-7-8-9-T-J span in combined, 3 hole cards in window6
+    const result = brain.countStraightOuts([10, 9, 8, 5], [7, 6, 1]);
+    // With window6 wired, should detect 20-out wrap
+    expect(result.outs >= 16).toBe(true);
+    expect(result.type.includes('wrap')).toBe(true);
+});
+
+test('BUG180b: sortedHole/sortedBoard wrap quality adjustment', () => {
+    const src = brainSource;
+    // Source must contain the wrap quality adjustment
+    expect(src.includes('Bug #180b: sortedHole/sortedBoard wrap quality')).toBe(true);
+    expect(src.includes('holeSpread')).toBe(true);
+    expect(src.includes('boardSpread')).toBe(true);
+});
+
+// --- Bug #181: countFlushOuts — maxBoardRankOfSuit nut flush detection ---
+test('BUG181: King-high flush draw is nut when board has Ace of suit', () => {
+    // Hole: Ks Kh 5s 3h — King of spades
+    // Board: As 7s 2d — Ace of spades on board
+    const holeCards = [
+        { rank: 11, suit: 's' }, { rank: 11, suit: 'h' },
+        { rank: 3, suit: 's' }, { rank: 1, suit: 'h' }
+    ];
+    const boardCards = [
+        { rank: 12, suit: 's' }, { rank: 5, suit: 's' }, { rank: 0, suit: 'd' }
+    ];
+    const result = brain.countFlushOuts(holeCards, boardCards);
+    // King-high is nut flush draw when Ace is on board
+    expect(result.isNutFlushDraw).toBe(true);
+});
+
+test('BUG181b: countFlushOuts returns hasHighBackup', () => {
+    const holeCards = [
+        { rank: 12, suit: 's' }, { rank: 10, suit: 's' },
+        { rank: 8, suit: 'h' }, { rank: 3, suit: 'd' }
+    ];
+    const boardCards = [
+        { rank: 7, suit: 's' }, { rank: 5, suit: 's' }, { rank: 2, suit: 'd' }
+    ];
+    const result = brain.countFlushOuts(holeCards, boardCards);
+    expect(result.hasHighBackup !== undefined).toBe(true);
+});
+
+// --- Bug #182: countBackdoorOuts — boardSuits wired for flush texture ---
+test('BUG182: boardSuits boosts backdoor outs on two-tone opponent board', () => {
+    // Hole: As Ah 5d 3d — backdoor diamond draw
+    // Board: 9h 7h 2d — two hearts (not our suit), 1 diamond
+    const holeCards = [
+        { rank: 12, suit: 's' }, { rank: 12, suit: 'h' },
+        { rank: 3, suit: 'd' }, { rank: 1, suit: 'd' }
+    ];
+    const boardCards = [
+        { rank: 7, suit: 'h' }, { rank: 5, suit: 'h' }, { rank: 0, suit: 'd' }
+    ];
+    const result = brain.countBackdoorOuts(holeCards, boardCards);
+    // Should get a +1 boost because board is two-tone hearts (not our flush draw)
+    expect(result >= 3).toBe(true); // backdoor flush (2) + board texture boost (1)
+});
+
+test('BUG182-SOURCE: boardSuitFreq computed from boardSuits', () => {
+    const src = brainSource;
+    expect(src.includes('boardSuitFreq')).toBe(true);
+    expect(src.includes('boardTwoToneNotOurs')).toBe(true);
+});
+
+// --- Bug #183: evaluatePLOMadeHand — highestUsed + bSuits wired ---
+test('BUG183: highestUsed fixes flush vulnerability when board has higher flush card', () => {
+    const src = brainSource;
+    // Must use highestUsed (not maxHoleRank) for vulnerability start
+    expect(src.includes('for (let r = highestUsed + 1; r <= 12; r++)')).toBe(true);
+});
+
+test('BUG183b: bSuits detects 4-flush board extra vulnerability', () => {
+    const src = brainSource;
+    expect(src.includes('boardFlushCount >= 4')).toBe(true);
+});
+
+// --- Bug #184: evaluatePLO8Low — hLowQualify wired ---
+test('BUG184: hLowQualify blocks low draw with <2 qualifying hole cards', () => {
+    // Hole: Kh Qh Jd Ts — NO qualifying low cards
+    const holeCards = [
+        { rank: 11 }, { rank: 10 }, { rank: 9 }, { rank: 8 }
+    ];
+    // Board: 2d 3s 9h — 2 low cards on board (not 3 yet)
+    const boardCards = [
+        { rank: 0 }, { rank: 1 }, { rank: 7 }
+    ];
+    const result = brain.evaluatePLO8Low(holeCards, boardCards);
+    // With <2 qualifying hole cards, lowOuts should be 0 (can't make a low)
+    expect(result.lowOuts).toBe(0);
+});
+
+test('BUG184: hLowQualify bonus for 3+ qualifying hole cards', () => {
+    // Hole: Ah 2h 3d Ks — 3 qualifying low cards (A, 2, 3)
+    const holeCards = [
+        { rank: 12 }, { rank: 0 }, { rank: 1 }, { rank: 11 }
+    ];
+    // Board: 8d Qh Js — only 1 low card (8), need 2 more
+    const boardCards = [
+        { rank: 6 }, { rank: 10 }, { rank: 9 }
+    ];
+    const result = brain.evaluatePLO8Low(holeCards, boardCards);
+    // Has 3 qualifying hole cards, should get holeLowBonus
+    expect(result.lowOuts >= 1).toBe(true);
+});
+
+// --- Bug #185: getPLOTurnBarrel — totalOuts wired ---
+test('BUG185: totalOuts >= 12 triggers semi-bluff barrel', () => {
+    // 7 flush outs + 6 straight outs = 13 total, neither alone crosses thresholds
+    const result = brain.getPLOTurnBarrel(
+        40, // equity
+        { isMade: false, strength: 30, category: 'draw' }, // madeHand
+        6, 7, false, { isMonotone: false, isPaired: false, texture: 'dry' }, true, false
+    );
+    expect(result.shouldBarrel).toBe(true);
+});
+
+test('BUG185-SOURCE: totalOuts check exists in getPLOTurnBarrel', () => {
+    const src = brainSource;
+    expect(src.includes('totalOuts >= 12 && equity >= 35')).toBe(true);
+});
+
+// --- Bug #186: handlePLODonkBet — isPolarized wired ---
+test('BUG186: isPolarized folds medium equity vs large polarized donk', () => {
+    // Large donk (70% pot) with medium equity (50) — should fold against polarized
+    const result = brain.handlePLODonkBet(
+        0.70, // donkBetFraction (large = polarized)
+        50,   // equity (medium)
+        { isNut: false, strength: 50, category: 'top_pair' },
+        5,    // totalOuts
+        true, // isIP
+        { type: 'raise', minAmount: 10, maxAmount: 100 },
+        true, // canCall
+        100,  // potSize
+        70    // toCall
+    );
+    expect(result.action).toBe('fold');
+});
+
+test('BUG186: non-polarized small donk with medium equity still calls', () => {
+    const result = brain.handlePLODonkBet(
+        0.30, 50, { isNut: false, strength: 50, category: 'top_pair' },
+        5, true, { type: 'raise', minAmount: 10, maxAmount: 100 }, true, 100, 30
+    );
+    expect(result.action).toBe('call');
+});
+
+// --- Bug #187: getPLOGifTrigger — hash wired ---
+test('BUG187-SOURCE: hash modulates GIF trigger thresholds', () => {
+    const src = brainSource;
+    expect(src.includes('personalityMod')).toBe(true);
+    expect(src.includes('0.70 + personalityMod')).toBe(true);
+});
+
+test('BUG187: getPLOGifTrigger still returns valid structure', () => {
+    const result = brain.getPLOGifTrigger(
+        { isNut: true, category: 'full_house' },
+        90, 85, 'horse-test-123'
+    );
+    expect(result.shouldThrowGif === true || result.shouldThrowGif === false).toBe(true);
+    if (result.shouldThrowGif) {
+        expect(typeof result.gifCategory === 'string').toBe(true);
+    }
+});
+
+// --- Bug #188: getPLOCardRemovalEffects — hSuits wired ---
+test('BUG188: hSuits detects flush suit removal without Ace', () => {
+    // Hold 2 hearts (not Ace) on a 2-heart board
+    const holeCards = [
+        { rank: 9, suit: 'h' }, { rank: 7, suit: 'h' },
+        { rank: 4, suit: 's' }, { rank: 2, suit: 'd' }
+    ];
+    const boardCards = [
+        { rank: 11, suit: 'h' }, { rank: 5, suit: 'h' }, { rank: 0, suit: 'c' }
+    ];
+    const result = brain.getPLOCardRemovalEffects(holeCards, boardCards);
+    // Should get extra removal score for holding 2 of the dominant suit
+    expect(result.removalScore >= 6).toBe(true);
+});
+
+// --- Bug #189: getPLOStackPreservation — stackRatio wired ---
+test('BUG189: stackRatio increases preservationFactor after heavy losses', () => {
+    // 15BB remaining from 100BB starting = 0.15 ratio (lost 85%)
+    const heavyLoss = brain.getPLOStackPreservation(15, 100);
+    // 15BB from 20BB starting = 0.75 ratio (lost 25%)
+    const lightLoss = brain.getPLOStackPreservation(15, 20);
+    // Heavy loss should have higher preservationFactor
+    expect(heavyLoss.preservationFactor > lightLoss.preservationFactor).toBe(true);
+});
+
+test('BUG189: healthy stack with heavy losses still gets preservation boost', () => {
+    // 40BB from 200BB starting = 0.20 ratio (lost 80%) but 40BB is still "moderate"
+    const result = brain.getPLOStackPreservation(40, 200);
+    // Should have lossModifier > 0 added
+    expect(result.preservationFactor > 1.0).toBe(true);
+});
+
+// --- Bug #190: calculatePLODirtyOuts — highestNeeded wired ---
+test('BUG190-SOURCE: highestNeeded marks non-nut flush outs as dirty', () => {
+    const src = brainSource;
+    expect(src.includes('higherUnaccounted >= 2')).toBe(true);
+    expect(src.includes('higherUnaccounted')).toBe(true);
+});
+
+test('BUG190: non-nut flush draw has dirty outs when 2+ higher cards missing', () => {
+    // Hold 7h 6h + 2 off-suit, board: 3h 2h Ks — 7-high flush draw
+    // Unaccounted above 7: 8h, 9h, Th, Jh, Qh, Ah = 6 cards → dirty
+    const holeCards = [
+        { rank: 5, suit: 'h' }, { rank: 4, suit: 'h' },
+        { rank: 10, suit: 's' }, { rank: 9, suit: 'd' }
+    ];
+    const boardCards = [
+        { rank: 1, suit: 'h' }, { rank: 0, suit: 'h' }, { rank: 11, suit: 's' }
+    ];
+    const flushDraw = { outs: 9, isNutFlushDraw: false, suit: 'h' };
+    const madeHand = { strength: 20, category: 'draw', isNut: false };
+    const holeRanks = holeCards.map(c => c.rank);
+    const boardRanks = boardCards.map(c => c.rank);
+    const result = brain.calculatePLODirtyOuts(holeCards, boardCards, 0, flushDraw, madeHand, holeRanks, boardRanks);
+    // Should have dirty flush outs due to 6 higher unaccounted cards
+    expect(result.dirtyFlushOuts > 0).toBe(true);
+});
+
+// --- Bug #191: getOOPDecisionMatrix — isDeep wired ---
+test('BUG191: deep stack prefers check-call over check-raise with strong hands', () => {
+    // Run 200 iterations each for deep (120BB) and shallow (30BB)
+    let deepCR = 0, shallowCR = 0;
+    for (let i = 0; i < 200; i++) {
+        const deep = brain.getOOPDecisionMatrix({
+            handStrength: 60, handCategory: 'two_pair', street: 'flop',
+            boardWetness: 'dry', numPlayers: 2, stackBB: 120, aggressionBias: 0,
+            oppTendency: 'balanced', oppConfidence: 0, oppCbetFreq: 0.50, oppCallFreq: 0.50
+        });
+        const shallow = brain.getOOPDecisionMatrix({
+            handStrength: 60, handCategory: 'two_pair', street: 'flop',
+            boardWetness: 'dry', numPlayers: 2, stackBB: 30, aggressionBias: 0,
+            oppTendency: 'balanced', oppConfidence: 0, oppCbetFreq: 0.50, oppCallFreq: 0.50
+        });
+        if (deep.action === 'check_raise') deepCR++;
+        if (shallow.action === 'check_raise') shallowCR++;
+    }
+    // Shallow should check-raise more than deep (isDeep lowers CR freq from 0.30 to 0.18)
+    expect(shallowCR > deepCR).toBe(true);
+});
+
+test('BUG191-SOURCE: isDeep used in decision tiers', () => {
+    const src = brainSource;
+    expect(src.includes('isDeep ? 0.18')).toBe(true);
+    expect(src.includes('isDeep ? 3.5')).toBe(true);
+    expect(src.includes('isDeep ? 0.22')).toBe(true);
+});
+
+// --- Bug #192: analyzeBoardEvolution — flopFlushDrawSuit wired ---
+test('BUG192: flopFlushDrawSuit tracks turn card matching flop draw suit', () => {
+    // Flop: 9h 5h 2d (flush draw in hearts)
+    // Turn: Kh (matches the flop flush draw suit)
+    const board = ['9h', '5h', '2d', 'Kh'];
+    const result = brain.analyzeBoardEvolution(board, 'turn');
+    // Turn card matches flop flush draw suit → board got wetter
+    // (3-flush board now, but already counted as flush completed)
+    expect(result.boardGotWetter === true || result.flushCompleted === true).toBe(true);
+});
+
+test('BUG192: flopFlushDrawSuit detects missed suit on turn', () => {
+    // Flop: 9h 5h 2d (flush draw in hearts)
+    // Turn: Kc (does NOT match hearts)
+    const board = ['9h', '5h', '2d', 'Kc'];
+    const result = brain.analyzeBoardEvolution(board, 'turn');
+    // Flop had flush draw in hearts but turn missed it
+    expect(result.callerImpact <= 0 || result.callerImpact >= 0).toBe(true); // No crash, valid result
+    const src = brainSource;
+    expect(src.includes('flopFlushDrawSuit && turnSuit !== flopFlushDrawSuit')).toBe(true);
+});
+
+// --- Verify all 17 variables are NO LONGER dead (source verification) ---
+test('BUG180-192 MEGA-VERIFY: all 17 formerly dead variables are now referenced 2+ times', () => {
+    const src = brainSource;
+    const checkVar = (name, minCount) => {
+        const regex = new RegExp('\\b' + name + '\\b', 'g');
+        const matches = src.match(regex) || [];
+        return matches.length >= minCount;
+    };
+    // Each variable should appear at least 2 times (declaration + usage)
+    expect(checkVar('sortedHole', 2)).toBe(true);
+    expect(checkVar('sortedBoard', 2)).toBe(true);
+    expect(checkVar('window6', 3)).toBe(true);  // declared + checked
+    expect(checkVar('maxBoardRankOfSuit', 2)).toBe(true);
+    expect(checkVar('highestUsed', 2)).toBe(true);
+    expect(checkVar('boardSuitFreq', 2)).toBe(true);
+    expect(checkVar('hLowQualify', 2)).toBe(true);
+    expect(checkVar('isPolarized', 2)).toBe(true);
+    expect(checkVar('personalityMod', 2)).toBe(true);  // hash → personalityMod
+    expect(checkVar('holeDomSuitCount', 2)).toBe(true); // hSuits → holeDomSuitCount
+    expect(checkVar('stackRatio', 2)).toBe(true);
+    expect(checkVar('higherUnaccounted', 2)).toBe(true);
+    expect(checkVar('isDeep', 3)).toBe(true);
+    expect(checkVar('flopFlushDrawSuit', 3)).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

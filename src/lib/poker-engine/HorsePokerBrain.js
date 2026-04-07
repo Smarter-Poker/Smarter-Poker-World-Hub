@@ -20188,5 +20188,10 @@ module.exports = {
     obfuscatePLOFrequency,
     injectPLOBetSizeNoise,
     injectPLOGTOChaos,
+
+    // Exposed for testing (Bugs #180-192) — 17 dead variables wired
+    getPLOGifTrigger,
+    getPLOCardRemovalEffects,
+    getPLOStackPreservation,
 };
 
