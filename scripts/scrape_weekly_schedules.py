@@ -419,12 +419,20 @@ def anti_hallucination_check(records: list) -> bool:
         print(f"    ⚠️  ANTI-HALLUCINATION: All {len(records)} records have identical event slots")
         return False
 
-    # Single buy-in for 5+ records is suspicious
-    if len(buyins) >= 5 and len(set(buyins)) == 1:
-        print(f"    ⚠️  ANTI-HALLUCINATION: All {len(records)} records have identical buy-in ${buyins[0]}")
-        return False
+    # Single buy-in for 10+ records is suspicious ONLY if there's also
+    # diversity in time slots (which would indicate generated data rather than
+    # a real venue that just runs one daily event at the same price)
+    if len(buyins) >= 10 and len(set(buyins)) == 1:
+        times = [r.get('start_time', '') for r in records]
+        unique_times = len(set(times))
+        if unique_times >= 3:
+            # Many different time slots at one buy-in AND more than 10 records = suspicious
+            print(f"    ⚠️  ANTI-HALLUCINATION: {len(records)} records, 1 buy-in (${buyins[0]}), {unique_times} times — suspicious")
+            return False
+        # Few distinct times = real daily/weekly grind (legitimate)
 
     return True
+
 
 
 
