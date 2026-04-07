@@ -6996,6 +6996,7 @@ function makeTurnRiverHeuristicDecision(params) {
     // Helper to clamp bet/raise amounts
     // Phase 46 FIX: Moved BEFORE exploit intensifier (was used before definition → ReferenceError)
     const clampAmt = (amt) => {
+        if (isNaN(amt) || !isFinite(amt)) amt = raiseAction?.minAmount || potSize || 1; // NaN guard
         if (!raiseAction) return amt;
         return Math.max(raiseAction.minAmount || 1, Math.min(amt, raiseAction.maxAmount || amt));
     };
@@ -8025,7 +8026,10 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (currentActionTimingTell === 'tank_call') raiseMult = Math.max(2.3, raiseMult * 0.95);
             }
 
-            const raiseSize = Math.round(toCall * raiseMult);
+            // When toCall=0 (we're first to act / betting), use pot-fraction sizing instead
+            const raiseSize = toCall > 0
+                ? Math.round(toCall * raiseMult)
+                : Math.round(potSize * (0.66 + Math.random() * 0.17)); // 66-83% pot bet
             return { type: raiseAction.type, amount: clampAmt(raiseSize) };
         }
 
@@ -16363,6 +16367,7 @@ function getOOPPositionalGuard(isIP, hasInitiative, equity, street) {
  */
 function evaluateDonkBet(toCall, potSize, isIP, equity) {
     if (toCall <= 0 || !isIP) return { action: 'none', reason: 'not_a_donk' };
+    if (potSize <= 0) return { action: 'none', reason: 'no_pot' };
     const donkFraction = toCall / potSize;
     // Only applies to genuine donk-bets (< 80% pot, opponent leading OOP)
     if (donkFraction > 0.8) return { action: 'none', reason: 'not_a_probe_donk' };
@@ -17431,6 +17436,7 @@ function recordSoftPlay(horse1Id, horse2Id) {
  * @returns {{ shouldRebuy: boolean, reason: string, amount: number }}
  */
 function getDynamicRebuyStrategy(profileId, currentStack, bb, buyInsUsed, tableAvgStack) {
+    if (!bb || bb <= 0) bb = 2; // Guard against zero/missing bb
     const stackBB = currentStack / bb;
 
     // Hard limit: never rebuy more than 3 times
