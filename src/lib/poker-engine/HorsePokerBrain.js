@@ -18309,5 +18309,10 @@ module.exports = {
 
     // Exposed for testing (Phase 48c) — wrap draw detector
     detectPLOWrapDraw,
+
+    // Exposed for testing (Phase 69-77)
+    applyExploitIntensifier,
+    recordStreetAction,
+    getStreetMemory,
 };
 

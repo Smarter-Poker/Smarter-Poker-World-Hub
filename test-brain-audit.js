@@ -9598,22 +9598,26 @@ test('recordStreetAction + getStreetMemory pipeline', () => {
     recordStreetAction(pid, handId, 'preflop', 'raise', 6, 75);
     recordStreetAction(pid, handId, 'flop', 'bet', 10, 65);
     recordStreetAction(pid, handId, 'turn', 'check', null, 60);
+    // getStreetMemory returns { preflop, flop, turn, river } object
     const memory = getStreetMemory(pid, handId);
     expect(memory).not.toBeNull();
-    expect(Array.isArray(memory)).toBe(true);
-    expect(memory.length).toBe(3);
-    expect(memory[0].street).toBe('preflop');
-    expect(memory[0].action).toBe('raise');
-    expect(memory[1].street).toBe('flop');
-    expect(memory[2].street).toBe('turn');
+    expect(typeof memory).toBe('object');
+    expect(memory.preflop).not.toBeNull();
+    expect(memory.preflop.action).toBe('raise');
+    expect(memory.flop).not.toBeNull();
+    expect(memory.flop.action).toBe('bet');
+    expect(memory.turn).not.toBeNull();
+    expect(memory.turn.action).toBe('check');
+    expect(memory.river).toBeNull();
 });
 
-test('getStreetMemory: unknown hand returns null/empty', () => {
+test('getStreetMemory: unknown hand returns default object', () => {
     const { getStreetMemory } = require('./src/lib/poker-engine/HorsePokerBrain');
     if (!getStreetMemory) { expect(true).toBe(true); return; }
     const memory = getStreetMemory('nobody', 'no-hand');
-    // Should return null or empty array
-    expect(!memory || memory.length === 0).toBe(true);
+    expect(memory).not.toBeNull();
+    expect(memory.preflop).toBeNull();
+    expect(memory.flop).toBeNull();
 });
 
 test('getRangeRotationGear: rotates after 30 hands', () => {
@@ -9655,6 +9659,67 @@ test('detectNutBiasExploitBoard: no board returns zero', () => {
     const result = detectNutBiasExploitBoard(null, 2);
     expect(result.nutUnlikelyScore).toBe(0);
     expect(result.shouldAddCheckRaise).toBe(false);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 77: Final Export Wiring Verification
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 77: Final Export Wiring Verification ──');
+
+test('All critical exports are functions', () => {
+    const brain = require('./src/lib/poker-engine/HorsePokerBrain');
+    const criticalFunctions = [
+        'getDecision', 'isHorse', 'recordSitDown', 'evaluateSessions',
+        'processHandResult', 'validateAndClamp', 'getActionDelay',
+        'makeFallbackDecision', 'makeFlopHeuristicDecision', 'makeTurnRiverHeuristicDecision',
+        'evaluatePostflopHand', 'evaluateBoardWetness', 'makePLOFallbackDecision',
+        'classifyPLOPreflop', 'evaluatePLOMadeHand', 'countStraightOuts', 'countFlushOuts',
+        'evaluatePLO8Low', 'getPLOSPRZone', 'analyzePLOBoardTexture', 'detectPLOWrapDraw',
+        'selectCounterStrategy', 'recordOpponentAction', 'recordOpponentShowdown',
+        'getOpponentSessionRead', 'observeNewHand', 'observeAction', 'observeShowdown',
+        'getLiveRead', 'getDynamicRebuyStrategy', 'getPerformanceStats',
+        'getAdaptiveStrategy', 'getRecommendedStake', 'getSessionReview',
+        'evolveHorseSkill', 'getSkillDrift', 'getThreatScore', 'isBlacklisted',
+        'getRangeRotationGear', 'applyMultiwayEquityDiscount', 'detectNutBiasExploitBoard',
+        'evaluateDonkBet', 'getSPRStrategy', 'getDrawEquity', 'getCBetStrategy',
+        'get3BetStrategy', 'getRiverStrategy', 'getOptimalBetSize', 'getGeometricSizing',
+        'applyExploitIntensifier', '_applyJournalToProfile',
+        'recordRaiseSize', 'isMinRaiser', 'recordSqueeze', 'isSqueezeOverkill',
+        'isMechanicalIsolator', 'isSoftPlayAllowed', 'recordSoftPlay',
+        'shouldAutoSeat', 'getChatMessages', 'recordStreetAction', 'getStreetMemory',
+    ];
+    let missing = 0;
+    for (const fn of criticalFunctions) {
+        if (typeof brain[fn] !== 'function') {
+            console.log(`    MISSING EXPORT: ${fn}`);
+            missing++;
+        }
+    }
+    expect(missing).toBe(0);
+});
+
+test('All critical Maps/state are exposed for testing', () => {
+    const brain = require('./src/lib/poker-engine/HorsePokerBrain');
+    const criticalMaps = [
+        'liveObserver', 'opponentSessionModel', 'minRaiseMap', 'squeezeMap',
+        'coldCallMap', 'ritRefusalMap', 'chipLeakMap', 'probeBetMap',
+        'imageExposureMap', 'isoSizingMap', 'angleShootMap', 'rangeRotationMap',
+        'threatIntelCache', '_journalCache',
+    ];
+    let missing = 0;
+    for (const mapName of criticalMaps) {
+        if (brain[mapName] === undefined) {
+            console.log(`    MISSING MAP: ${mapName}`);
+            missing++;
+        }
+    }
+    expect(missing).toBe(0);
+});
+
+test('Total export count is >= 95 (comprehensive wiring)', () => {
+    const brain = require('./src/lib/poker-engine/HorsePokerBrain');
+    const exportCount = Object.keys(brain).length;
+    expect(exportCount >= 95).toBe(true);
 });
 
 // ASYNC TEST RUNNER + SUMMARY
