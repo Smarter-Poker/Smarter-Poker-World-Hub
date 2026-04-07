@@ -322,21 +322,16 @@
     "venue_name": "Big Stack Poker Club",
     "state": "OH",
     "venue_uuid": "2808",
-    "source_of_truth_url": "https://bigstackpokerclub.com/tournaments",
+    "source_of_truth_url": "https://bigstackpokerclub.com",
     "all_urls_tried": [
-      "https://bigstackpokerclub.com/tournaments",
-      "https://bigstackpokerclub.com/schedule",
-      "https://bigstackpokerclub.com/poker-schedule",
       "https://bigstackpokerclub.com"
     ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T02:53:36.922514+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 0,
+    "last_scraped": "2026-04-07T03:18:52.931281+00:00",
+    "last_batch_id": "d6d840f9-218a-49ee-89d8-a046b237a2c9",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 4,
-    "script": "scripts/scrape_charity_remaining.py"
+    "scrape_count": 5,
+    "script": "scripts/scrape_charity_fast.py"
   },
   "The Reserve Poker Club": {
     "venue_name": "The Reserve Poker Club",
@@ -418,41 +413,33 @@
     "venue_name": "Queens Club Inc.",
     "state": "NC",
     "venue_uuid": "2811",
-    "source_of_truth_url": "https://www.queensclubinc.org/schedule",
+    "source_of_truth_url": "https://www.queensclubinc.org",
     "all_urls_tried": [
-      "https://www.queensclubinc.org/schedule",
-      "https://www.queensclubinc.org/tournaments",
-      "https://queensclubinc.org/schedule",
-      "https://queensclubinc.org"
+      "https://queensclubinc.org",
+      "https://www.queensclubinc.org"
     ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T02:54:02.388101+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 0,
+    "last_scraped": "2026-04-07T03:19:28.428096+00:00",
+    "last_batch_id": "d6d840f9-218a-49ee-89d8-a046b237a2c9",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 3,
-    "script": "scripts/scrape_charity_remaining.py"
+    "scrape_count": 5,
+    "script": "scripts/scrape_charity_fast.py"
   },
   "High Stax Poker": {
     "venue_name": "High Stax Poker",
     "state": "NC",
     "venue_uuid": "2825",
-    "source_of_truth_url": "https://www.highstaxpoker.net/schedule",
+    "source_of_truth_url": "https://www.highstaxpoker.net",
     "all_urls_tried": [
-      "https://www.highstaxpoker.net/schedule",
-      "https://highstaxpoker.net/tournaments",
-      "https://www.highstaxpoker.net",
-      "https://highstaxpoker.net"
+      "https://highstaxpoker.net",
+      "https://www.highstaxpoker.net"
     ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T02:55:20.914617+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 0,
+    "last_scraped": "2026-04-07T03:20:06.058163+00:00",
+    "last_batch_id": "d6d840f9-218a-49ee-89d8-a046b237a2c9",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 3,
-    "script": "scripts/scrape_charity_remaining.py"
+    "scrape_count": 5,
+    "script": "scripts/scrape_charity_fast.py"
   },
   "Concord Casino": {
     "venue_name": "Concord Casino",
@@ -668,21 +655,17 @@
     "venue_name": "Michigan Charitable Gaming Association (MiCGA)",
     "state": "MI",
     "venue_uuid": "2820",
-    "source_of_truth_url": "https://micga.org/find-a-game",
+    "source_of_truth_url": "https://www.micga.org",
     "all_urls_tried": [
-      "https://micga.org/find-a-game",
-      "https://micga.org/poker-schedule",
-      "https://micga.org/schedule",
-      "https://micga.org"
+      "https://micga.org",
+      "https://www.micga.org"
     ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T02:58:26.111897+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 0,
+    "last_scraped": "2026-04-07T03:20:39.857092+00:00",
+    "last_batch_id": "d6d840f9-218a-49ee-89d8-a046b237a2c9",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 1,
-    "script": "scripts/scrape_charity_remaining.py"
+    "scrape_count": 3,
+    "script": "scripts/scrape_charity_fast.py"
   },
   "MiCGA": {
     "venue_name": "MiCGA",
@@ -726,57 +709,47 @@
     "venue_name": "Central Illinois Charitable Games (CICG Poker)",
     "state": "IL",
     "venue_uuid": "2805",
-    "source_of_truth_url": "https://centralillinoischaritablegames.com/schedule",
+    "source_of_truth_url": "https://centralillinoischaritablegames.com",
     "all_urls_tried": [
-      "https://centralillinoischaritablegames.com/schedule",
-      "https://centralillinoischaritablegames.com/find-a-game",
       "https://centralillinoischaritablegames.com"
     ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T03:03:27.648449+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 0,
+    "last_scraped": "2026-04-07T03:20:51.591826+00:00",
+    "last_batch_id": "d6d840f9-218a-49ee-89d8-a046b237a2c9",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 1,
-    "script": "scripts/scrape_charity_remaining.py"
+    "scrape_count": 2,
+    "script": "scripts/scrape_charity_fast.py"
   },
   "Charity Series of Poker (CSOP)": {
     "venue_name": "Charity Series of Poker (CSOP)",
     "state": "MULTI",
     "venue_uuid": "2834",
-    "source_of_truth_url": "https://charityseriesofpoker.org/events",
+    "source_of_truth_url": "https://www.charityseriesofpoker.org",
     "all_urls_tried": [
-      "https://charityseriesofpoker.org/events",
-      "https://charityseriesofpoker.org/schedule",
-      "https://charityseriesofpoker.org"
+      "https://charityseriesofpoker.org",
+      "https://www.charityseriesofpoker.org"
     ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T03:06:59.871649+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 0,
+    "last_scraped": "2026-04-07T03:21:24.963721+00:00",
+    "last_batch_id": "d6d840f9-218a-49ee-89d8-a046b237a2c9",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 1,
-    "script": "scripts/scrape_charity_remaining.py"
+    "scrape_count": 3,
+    "script": "scripts/scrape_charity_fast.py"
   },
   "Poker For Good": {
     "venue_name": "Poker For Good",
     "state": "MULTI",
     "venue_uuid": "2835",
-    "source_of_truth_url": "https://pokerforgood.org/events",
+    "source_of_truth_url": "https://www.pokerforgood.org",
     "all_urls_tried": [
-      "https://pokerforgood.org/events",
-      "https://pokerforgood.org/schedule",
-      "https://pokerforgood.org"
+      "https://pokerforgood.org",
+      "https://www.pokerforgood.org"
     ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T03:09:49.711828+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 0,
+    "last_scraped": "2026-04-07T03:21:47.141316+00:00",
+    "last_batch_id": "d6d840f9-218a-49ee-89d8-a046b237a2c9",
+    "last_http_status": 200,
     "last_schedules_found": 0,
-    "scrape_count": 1,
-    "script": "scripts/scrape_charity_remaining.py"
+    "scrape_count": 3,
+    "script": "scripts/scrape_charity_fast.py"
   }
 }
