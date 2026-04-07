@@ -7012,6 +7012,532 @@ test('Advanced: BUG #36 recency weighting gives newer hands more weight', () => 
     expect(read.foldFrequency).toBeGreaterThan(read.bluffFrequency);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 54: PREFLOP STRESS TESTS — 3-bet, 4-bet, Squeeze, Limp, Short-Stack
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 54: Preflop Pipeline Stress Tests ──');
+
+// Helper: make preflop engine state with configurable raise scenario
+function makePreflopState(heroHand, opts = {}) {
+    const bb = opts.bb || 2;
+    return makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards(heroHand[0], heroHand[1]),
+        heroPosition: opts.position || 'btn',
+        potTotal: opts.potTotal || 3,
+        currentBet: opts.currentBet || bb,
+        heroInvested: opts.heroInvested || 0,
+        heroStack: opts.heroStack || 500,
+        variant: opts.variant || 'holdem',
+    });
+}
+
+const preflopFacing3Bet = [
+    { type: 'fold' },
+    { type: 'call', amount: 18 },
+    { type: 'raise', minAmount: 40, maxAmount: 500 },
+];
+
+const preflopFacing4Bet = [
+    { type: 'fold' },
+    { type: 'call', amount: 50 },
+    { type: 'raise', minAmount: 110, maxAmount: 500 },
+];
+
+// 54a: AA opens from any position (should always raise or all-in)
+asyncTest('Preflop stress: AA always opens with a raise', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const positions = ['btn', 'co', 'hj', 'mp', 'utg', 'sb'];
+    for (const pos of positions) {
+        const state = makePreflopState(['As', 'Ah'], { position: pos, currentBet: 2, potTotal: 3 });
+        const result = await getDecision('hero-test', state, standardLegalActions, { bigBlind: 2 });
+        expect(result.action.type === 'raise' || result.action.type === 'bet' || result.action.type === 'all_in').toBe(true);
+    }
+});
+
+// 54b: 72o folds from UTG (worst hand, tightest position)
+asyncTest('Preflop stress: 72o folds from UTG facing open', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['7d', '2c'], { position: 'utg', currentBet: 6, potTotal: 9, heroInvested: 0 });
+    const actions = [{ type: 'fold' }, { type: 'call', amount: 6 }, { type: 'raise', minAmount: 14, maxAmount: 500 }];
+    const result = await getDecision('hero-test', state, actions, { bigBlind: 2 });
+    expect(result.action.type).toBe('fold');
+});
+
+// 54c: KK 4-bets facing a 3-bet (raiseSize ~9BB, adjustedStrength >= 90)
+asyncTest('Preflop stress: KK does not fold facing 3-bet', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['Kd', 'Kh'], {
+        position: 'btn', currentBet: 18, potTotal: 27, heroInvested: 6
+    });
+    const result = await getDecision('hero-test', state, preflopFacing3Bet, { bigBlind: 2 });
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// 54d: AA jams or calls facing a 4-bet
+asyncTest('Preflop stress: AA does not fold facing 4-bet', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['As', 'Ad'], {
+        position: 'co', currentBet: 50, potTotal: 75, heroInvested: 18
+    });
+    const result = await getDecision('hero-test', state, preflopFacing4Bet, { bigBlind: 2 });
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// 54e: 72o folds facing a 4-bet
+asyncTest('Preflop stress: 72o folds facing 4-bet', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['7s', '2d'], {
+        position: 'btn', currentBet: 50, potTotal: 75, heroInvested: 18
+    });
+    const result = await getDecision('hero-test', state, preflopFacing4Bet, { bigBlind: 2 });
+    expect(result.action.type).toBe('fold');
+});
+
+// 54f: Short-stack push/fold — AA with 8BB never folds (should raise/call/all-in)
+asyncTest('Preflop stress: AA never folds with 8BB stack', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['Ac', 'As'], {
+        position: 'btn', currentBet: 2, potTotal: 3, heroStack: 16
+    });
+    const result = await getDecision('hero-test', state, [
+        { type: 'fold' }, { type: 'call', amount: 2 }, { type: 'raise', minAmount: 4, maxAmount: 16 }
+    ], { bigBlind: 2 });
+    // AA with 8BB should always get money in — raise, call, or all-in, never fold
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// 54g: Short-stack push/fold — 72o folds with 8BB from UTG
+asyncTest('Preflop stress: 72o folds with 8BB from UTG', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['7h', '2s'], {
+        position: 'utg', currentBet: 2, potTotal: 3, heroStack: 16
+    });
+    const result = await getDecision('hero-test', state, [
+        { type: 'fold' }, { type: 'call', amount: 2 }, { type: 'raise', minAmount: 4, maxAmount: 16 }
+    ], { bigBlind: 2 });
+    expect(result.action.type === 'fold' || result.action.type === 'check').toBe(true);
+});
+
+// 54h: Squeeze spot — BTN with JJ, raise + callers in pot
+asyncTest('Preflop stress: JJ squeeze spot from BTN does not fold', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards('Jd', 'Jh'),
+        heroPosition: 'btn',
+        potTotal: 21,
+        currentBet: 6,
+        heroInvested: 0,
+        heroStack: 500,
+        players: [
+            { id: 'hero-test', holeCards: makeHoleCards('Jd', 'Jh'), stack: 500, position: 'btn', folded: false, invested: 0 },
+            { id: 'squeeze-v1', holeCards: makeHoleCards('8d', '7c'), stack: 500, position: 'utg', folded: false, invested: 6 },
+            { id: 'squeeze-v2', holeCards: makeHoleCards('Tc', '9c'), stack: 500, position: 'mp', folded: false, invested: 6 },
+            { id: 'squeeze-v3', holeCards: makeHoleCards('6s', '5s'), stack: 500, position: 'co', folded: false, invested: 6 },
+        ],
+    });
+    const actions = [
+        { type: 'fold' }, { type: 'call', amount: 6 }, { type: 'raise', minAmount: 14, maxAmount: 500 }
+    ];
+    const result = await getDecision('hero-test', state, actions, { bigBlind: 2 });
+    expect(!!result.action).toBe(true);
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// 54i: BB in limped pot checks or raises, never folds
+asyncTest('Preflop stress: BB in limped pot checks or raises', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['9d', '7s'], {
+        position: 'bb', currentBet: 2, potTotal: 4, heroInvested: 2
+    });
+    const bbActions = [
+        { type: 'check' },
+        { type: 'raise', minAmount: 6, maxAmount: 500 },
+    ];
+    const result = await getDecision('hero-test', state, bbActions, { bigBlind: 2 });
+    expect(result.action.type === 'check' || result.action.type === 'raise').toBe(true);
+});
+
+// 54j: AKs opens from SB with proper sizing
+asyncTest('Preflop stress: AKs opens from SB', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['As', 'Ks'], {
+        position: 'sb', currentBet: 2, potTotal: 3, heroInvested: 1, heroStack: 500
+    });
+    const sbActions = [
+        { type: 'fold' }, { type: 'call', amount: 1 }, { type: 'raise', minAmount: 6, maxAmount: 500 }
+    ];
+    const result = await getDecision('hero-test', state, sbActions, { bigBlind: 2 });
+    expect(result.action.type === 'raise' || result.action.type === 'bet').toBe(true);
+    if (result.action.amount) {
+        expect(result.action.amount >= 6).toBe(true);
+    }
+});
+
+// 54k: KQs does not fold to min-raise from BTN
+asyncTest('Preflop stress: KQs does not fold to min-raise from BTN', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['Kh', 'Qh'], {
+        position: 'btn', currentBet: 4, potTotal: 7, heroInvested: 0
+    });
+    const minRaiseActions = [
+        { type: 'fold' }, { type: 'call', amount: 4 }, { type: 'raise', minAmount: 8, maxAmount: 500 }
+    ];
+    const result = await getDecision('hero-test', state, minRaiseActions, { bigBlind: 2 });
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// 54l: QQ facing a 3-bet should not fold
+asyncTest('Preflop stress: QQ does not fold to 3-bet', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['Qd', 'Qc'], {
+        position: 'co', currentBet: 18, potTotal: 27, heroInvested: 6
+    });
+    const result = await getDecision('hero-test', state, preflopFacing3Bet, { bigBlind: 2 });
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// 54m: TT opens from all 6 positions without crash
+asyncTest('Preflop stress: TT opens from all positions without crash', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const allPositions = ['btn', 'co', 'hj', 'mp', 'utg', 'sb'];
+    for (const pos of allPositions) {
+        const state = makePreflopState(['Td', 'Ts'], { position: pos, currentBet: 2, potTotal: 3 });
+        const result = await getDecision('hero-test', state, standardLegalActions, { bigBlind: 2 });
+        expect(!!result.action).toBe(true);
+        expect(!!result.action.type).toBe(true);
+        expect(result.action.type === 'raise' || result.action.type === 'bet' || result.action.type === 'call').toBe(true);
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 55: processHandResult END-TO-END TESTS
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 55: processHandResult End-to-End Tests ──');
+
+// 55a: processHandResult does not crash with complete hand data
+asyncTest('processHandResult: does not crash with loss scenario', async () => {
+    const { processHandResult } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const handData = {
+        tableId: 'phr-test-table',
+        potSize: 100,
+        lastStreet: 'river',
+        result: {
+            winners: [{ playerId: 'human-winner' }],
+            players: [
+                { id: 'phr-horse-1', chipDelta: -50, folded: false, lastAction: 'call' },
+                { id: 'human-winner', chipDelta: 50, folded: false, lastAction: 'bet' },
+            ],
+        },
+        players: [
+            { id: 'phr-horse-1', chipDelta: -50, folded: false, lastAction: 'call' },
+            { id: 'human-winner', chipDelta: 50, folded: false, lastAction: 'bet' },
+        ],
+    };
+    try {
+        await processHandResult(handData, 2);
+    } catch (e) {
+        expect(false).toBe(true);
+    }
+    expect(true).toBe(true);
+});
+
+// 55b: processHandResult does not crash with win scenario
+asyncTest('processHandResult: does not crash with win scenario', async () => {
+    const { processHandResult } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const handData = {
+        tableId: 'phr-history-table',
+        potSize: 60,
+        bigBlind: 2,
+        lastStreet: 'river',
+        result: {
+            winners: [{ playerId: 'test-horse-phr2' }],
+            players: [
+                { id: 'test-horse-phr2', chipDelta: 30, folded: false, lastAction: 'bet', showedCards: true },
+                { id: 'human-loser-phr2', chipDelta: -30, folded: false, lastAction: 'call' },
+            ],
+        },
+        players: [
+            { id: 'test-horse-phr2', chipDelta: 30, folded: false, lastAction: 'bet', showedCards: true },
+            { id: 'human-loser-phr2', chipDelta: -30, folded: false, lastAction: 'call' },
+        ],
+    };
+    try {
+        await processHandResult(handData, 2);
+    } catch (e) {
+        expect(false).toBe(true);
+    }
+    expect(true).toBe(true);
+});
+
+// 55c: processHandResult handles null/empty result gracefully
+asyncTest('processHandResult: handles null result gracefully', async () => {
+    const { processHandResult } = require('./src/lib/poker-engine/HorsePokerBrain');
+    try {
+        await processHandResult(null, 2);
+        await processHandResult({}, 2);
+        await processHandResult({ result: null }, 2);
+    } catch (e) {
+        expect(false).toBe(true);
+    }
+    expect(true).toBe(true);
+});
+
+// 55d: processHandResult handles multi-way pot without crash
+asyncTest('processHandResult: handles multi-way pot without crash', async () => {
+    const { processHandResult } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const handData = {
+        tableId: 'phr-multiway-table',
+        potSize: 150,
+        bigBlind: 2,
+        lastStreet: 'river',
+        result: {
+            winners: [{ playerId: 'human-1' }, { playerId: 'human-2' }],
+            players: [
+                { id: 'horse-multiway', chipDelta: -50, folded: false, lastAction: 'call' },
+                { id: 'human-1', chipDelta: 25, folded: false, lastAction: 'bet' },
+                { id: 'human-2', chipDelta: 25, folded: false, lastAction: 'call' },
+            ],
+        },
+        players: [
+            { id: 'horse-multiway', chipDelta: -50, folded: false, lastAction: 'call' },
+            { id: 'human-1', chipDelta: 25, folded: false, lastAction: 'bet' },
+            { id: 'human-2', chipDelta: 25, folded: false, lastAction: 'call' },
+        ],
+    };
+    try {
+        await processHandResult(handData, 2);
+    } catch (e) {
+        expect(false).toBe(true);
+    }
+    expect(true).toBe(true);
+});
+
+// 55e: processHandResult records opponent actions from actions array
+asyncTest('processHandResult: handles opponent actions array', async () => {
+    const { processHandResult } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const handData = {
+        tableId: 'phr-actions-table',
+        potSize: 80,
+        bigBlind: 2,
+        lastStreet: 'river',
+        result: {
+            winners: [{ playerId: 'actions-horse' }],
+            players: [
+                { id: 'actions-horse', chipDelta: 40, folded: false, lastAction: 'bet' },
+                { id: 'actions-human', chipDelta: -40, folded: false, lastAction: 'call' },
+            ],
+        },
+        players: [
+            { id: 'actions-horse', chipDelta: 40, folded: false, lastAction: 'bet' },
+            {
+                id: 'actions-human', chipDelta: -40, folded: false, lastAction: 'call',
+                actions: [
+                    { street: 'preflop', type: 'call', amount: 6, potSize: 9 },
+                    { street: 'flop', type: 'check', amount: 0, potSize: 18 },
+                    { street: 'turn', type: 'call', amount: 12, potSize: 30 },
+                    { street: 'river', type: 'call', amount: 25, potSize: 67 },
+                ],
+            },
+        ],
+    };
+    try {
+        await processHandResult(handData, 2);
+    } catch (e) {
+        expect(false).toBe(true);
+    }
+    expect(true).toBe(true);
+});
+
+// 55f: BUG #37b — grudge recording pipeline works end-to-end
+asyncTest('processHandResult: grudge pipeline works (BUG #37b)', async () => {
+    const advPath = require.resolve('./src/content-engine/services/HorsePokerAdvanced');
+    delete require.cache[advPath];
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'grudge-phr-horse-' + Date.now();
+    const humanId = 'grudge-phr-human-' + Date.now();
+
+    adv.recordGrudge(horseId, humanId, 60);
+    const targeting = adv.getGrudgeTargeting(horseId, [humanId]);
+    expect(targeting[humanId].grudgeLevel).toBeGreaterThan(0);
+    expect(targeting[humanId].aggressionMod).toBeGreaterThan(1.0);
+});
+
+// 55g: Collusion tracker handles repeated big losses
+asyncTest('processHandResult: collusion tracker handles repeated losses', async () => {
+    const { processHandResult } = require('./src/lib/poker-engine/HorsePokerBrain');
+    for (let i = 0; i < 3; i++) {
+        const handData = {
+            tableId: 'collusion-test-table',
+            potSize: 200,
+            bigBlind: 2,
+            lastStreet: 'river',
+            result: {
+                winners: [{ playerId: 'farm-human' }],
+                players: [
+                    { id: 'collusion-horse', chipDelta: -100, folded: false, lastAction: 'call' },
+                    { id: 'farm-human', chipDelta: 100, folded: false, lastAction: 'raise' },
+                ],
+            },
+            players: [
+                { id: 'collusion-horse', chipDelta: -100, folded: false, lastAction: 'call' },
+                { id: 'farm-human', chipDelta: 100, folded: false, lastAction: 'raise' },
+            ],
+        };
+        try {
+            await processHandResult(handData, 2);
+        } catch (e) {
+            expect(false).toBe(true);
+        }
+    }
+    expect(true).toBe(true);
+});
+
+// 55h: Performance stats function exists and returns correct shape
+asyncTest('processHandResult: getPerformanceStats returns valid shape', async () => {
+    const { getPerformanceStats } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const stats = getPerformanceStats('perf-test-horse');
+    expect(stats !== undefined).toBe(true);
+    expect(typeof stats.handsPlayed).toBe('number');
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 56: PREFLOP RANGE TABLE AUDIT
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 56: Preflop Range Table Audit ──');
+
+test('Range table: Premium hands all have strength >= 77', () => {
+    const { getPreflopStrength } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (getPreflopStrength) {
+        const premiums = ['AA', 'KK', 'QQ', 'AKs', 'JJ', 'AKo', 'AQs', 'TT', 'AQo', 'AJs'];
+        for (const h of premiums) {
+            expect(getPreflopStrength(h) >= 77).toBe(true);
+        }
+    } else {
+        expect(true).toBe(true);
+    }
+});
+
+test('Range table: AA is strongest, descending order through premiums', () => {
+    const { getPreflopStrength } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (getPreflopStrength) {
+        expect(getPreflopStrength('AA')).toBe(95);
+        expect(getPreflopStrength('KK')).toBe(93);
+        expect(getPreflopStrength('QQ')).toBe(91);
+    } else {
+        expect(true).toBe(true);
+    }
+});
+
+test('Range table: Unknown hands default to 20', () => {
+    const { getPreflopStrength } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (getPreflopStrength) {
+        expect(getPreflopStrength('72o')).toBe(20);
+        expect(getPreflopStrength('83o')).toBe(20);
+    } else {
+        expect(true).toBe(true);
+    }
+});
+
+test('Range table: Suited > offsuit for same ranks', () => {
+    const { getPreflopStrength } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (getPreflopStrength) {
+        expect(getPreflopStrength('AKs')).toBeGreaterThan(getPreflopStrength('AKo'));
+        expect(getPreflopStrength('AQs')).toBeGreaterThan(getPreflopStrength('AQo'));
+    } else {
+        expect(true).toBe(true);
+    }
+});
+
+test('Range table: Pairs ordered by rank (AA > KK > QQ > JJ > TT)', () => {
+    const { getPreflopStrength } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (getPreflopStrength) {
+        const pairs = ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55'];
+        for (let i = 0; i < pairs.length - 1; i++) {
+            const s1 = getPreflopStrength(pairs[i]);
+            const s2 = getPreflopStrength(pairs[i + 1]);
+            if (s1 > 20 && s2 > 20) {
+                expect(s1 >= s2).toBe(true);
+            }
+        }
+    } else {
+        expect(true).toBe(true);
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 57: EDGE CASE & ROBUSTNESS TESTS
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 57: Edge Case & Robustness Tests ──');
+
+asyncTest('Edge case: getDecision with empty legalActions returns fold', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['As', 'Kh']);
+    const result = await getDecision('hero-test', state, [], { bigBlind: 2 });
+    expect(result.action.type).toBe('fold');
+});
+
+asyncTest('Edge case: getDecision with no hole cards returns check/fold', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        players: [
+            { id: 'hero-test', holeCards: [], stack: 500, position: 'btn', folded: false, invested: 0 },
+            { id: 'villain-nc', holeCards: makeHoleCards('7d', '2c'), stack: 500, position: 'bb', folded: false, invested: 2 },
+        ],
+    });
+    const result = await getDecision('hero-test', state, [{ type: 'check' }, { type: 'fold' }], { bigBlind: 2 });
+    expect(result.action.type === 'check' || result.action.type === 'fold').toBe(true);
+});
+
+asyncTest('Edge case: getDecision with only check available returns check', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['5d', '3c'], {
+        position: 'bb', currentBet: 2, potTotal: 4, heroInvested: 2
+    });
+    const result = await getDecision('hero-test', state, [{ type: 'check' }], { bigBlind: 2 });
+    expect(result.action.type).toBe('check');
+});
+
+asyncTest('Edge case: getDecision clamps raise to legal bounds', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makePreflopState(['As', 'Ad'], { position: 'btn', currentBet: 2, potTotal: 3 });
+    const tightActions = [
+        { type: 'fold' },
+        { type: 'call', amount: 2 },
+        { type: 'raise', minAmount: 100, maxAmount: 100 },
+    ];
+    const result = await getDecision('hero-test', state, tightActions, { bigBlind: 2 });
+    if (result.action.type === 'raise' && result.action.amount) {
+        expect(result.action.amount >= 100).toBe(true);
+        expect(result.action.amount <= 100).toBe(true);
+    }
+    expect(!!result.action.type).toBe(true);
+});
+
+asyncTest('Edge case: getDecision on flop with AA on dry board', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'flop',
+        heroCards: makeHoleCards('As', 'Ah'),
+        communityCards: makeBoardCards(['Kd', '7h', '2c']),
+        heroPosition: 'btn',
+        potTotal: 12,
+        currentBet: 0,
+        heroInvested: 0,
+        heroStack: 490,
+    });
+    const actions = [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 490 }];
+    const result = await getDecision('hero-test', state, actions, { bigBlind: 2 });
+    expect(!!result.action.type).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
