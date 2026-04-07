@@ -30,6 +30,7 @@ export default function MoreTabPanel({
     requestGpsLocation,
     setActiveTab,
     router,
+    openVenueModal,
 }) {
     const effectiveVenues = allVenuesForMap.length > 0 ? allVenuesForMap : venues;
 
@@ -103,7 +104,7 @@ export default function MoreTabPanel({
             )}
 
             {activeMoreTab === 'nearmenow' && (
-                <NearMeNowFeed userLocation={userLocation} venues={effectiveVenues} onRequestGPS={requestGpsLocation} onSwitchTab={setActiveTab} onNavigateVenue={(venueId) => { if (typeof window !== 'undefined') window.location.href = `/hub/venues/${venueId}`; }} />
+                <NearMeNowFeed userLocation={userLocation} venues={effectiveVenues} onRequestGPS={requestGpsLocation} onSwitchTab={setActiveTab} onNavigateVenue={(venueId) => { if (openVenueModal) openVenueModal(`/hub/venues/${venueId}`); else if (typeof window !== 'undefined') window.location.href = `/hub/venues/${venueId}`; }} />
             )}
             {activeMoreTab === 'tripcost' && (
                 <div onClickCapture={(e) => {

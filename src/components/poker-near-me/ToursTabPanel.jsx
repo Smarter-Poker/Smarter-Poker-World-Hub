@@ -18,6 +18,7 @@ export default function ToursTabPanel({
     isFavorited,
     toggleFavorite,
     router,
+    openVenueModal,
 }) {
     const tourStateVal = filters.hubTourState || 'all';
     let filteredTours = tours;
@@ -56,7 +57,7 @@ export default function ToursTabPanel({
                                 tour={tour}
                                 isFavorited={isFavorited('tour', tour.tour_code)}
                                 onFavorite={(e) => toggleFavorite('tour', tour.tour_code, e)}
-                                onNavigate={(path) => router.push(path)}
+                                onNavigate={(path) => openVenueModal ? openVenueModal(path) : router.push(path)}
                             />
                         ))}
                     </div>

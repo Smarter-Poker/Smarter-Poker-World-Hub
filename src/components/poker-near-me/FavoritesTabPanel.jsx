@@ -18,6 +18,7 @@ export default function FavoritesTabPanel({
     pnmReviewStatsMap,
     setActiveTab,
     router,
+    openVenueModal,
 }) {
     const favVenues = (allVenuesForMap.length > 0 ? allVenuesForMap : venues).filter(v => isFavorited('venue', v.id));
     const favCount = Object.keys(favorites).filter(k => favorites[k]).length;
@@ -53,7 +54,7 @@ export default function FavoritesTabPanel({
                             isFavorited={true}
                             hasPromo={promotionVenueIds.has(String(venue.id))}
                             onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
-                            onNavigate={(path) => router.push(path)}
+                            onNavigate={openVenueModal}
                             reviewStats={pnmReviewStatsMap[String(venue.id)]}
                         />
                     );

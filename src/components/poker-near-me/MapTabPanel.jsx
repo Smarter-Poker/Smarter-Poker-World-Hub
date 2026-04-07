@@ -23,8 +23,8 @@ export default function MapTabPanel({
     setSelectedRoom,
     setHasSearched,
     fetchAllData,
-    router,
     setIframeModal,
+    openVenueModal,
 }) {
     // Helper: identify tour stops — these are MTT venues, NOT cash game venues
     const isTour = (v) => v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour';
@@ -119,7 +119,7 @@ export default function MapTabPanel({
                             fullHeight
                             onVenueClick={onMapVenueClick}
                             radiusMiles={filters.radius}
-                            onOpenIframeModal={setIframeModal ? (url, title) => setIframeModal({ isOpen: true, url, title }) : undefined}
+                            onOpenIframeModal={openVenueModal || (setIframeModal ? (url, title) => setIframeModal({ isOpen: true, url, title }) : undefined)}
                         />
                     </MapErrorBoundary>
                 </div>

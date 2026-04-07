@@ -7096,7 +7096,11 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     }
 
     // ═══ MODULE 27: RIO GUARD IN FALLBACK — block draw calls with bad RIO ═══
-    if (fbRioGuard.shouldBlock && drawEquity.outs > 0 && drawEquity.outs < 12) {
+    // Bug #163: Only fire RIO guard on primarily-draw hands (strength < 40).
+    // Made hands like TPTK (str=47), overpairs, two pair, etc. with incidental backdoor
+    // draws should NOT be folded by the RIO guard. The guard is for hands RELYING on
+    // draw equity (pair + gutshot, weak pair + backdoor), not strong made hands.
+    if (fbRioGuard.shouldBlock && drawEquity.outs > 0 && drawEquity.outs < 12 && effectiveStrength < 40) {
         console.log(`[HorseBrain] 🚫 MODULE 27 RIO FALLBACK: folding draw — ${fbRioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
@@ -7143,17 +7147,19 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     // When facing a shove or large overbet, hands with decent equity should call
     // at a rate that prevents the opponent from profiting by jamming any two cards.
     // MDF = pot / (pot + bet). If we fold more than (1 - MDF), opponent prints money.
+    // NOTE: effectiveStrength is a HEURISTIC RANK (0-100), NOT equity. TPTK=47, sets=80, etc.
+    // On flop/turn, a hand with strength >= 35 (second pair+) is often a call vs all-in.
     if (toCall > 0 && canCall && effectiveStrength >= 30) {
         const flopTurnMDF = potSize / (potSize + toCall);
-        const handEquity = effectiveStrength / 100;
         const betRelPot = toCall / Math.max(1, potSize);
 
         // Only kicks in for large bets (>50% pot) — small bets are handled above
         if (betRelPot >= 0.50) {
-            // Call if hand equity beats pot odds + MDF-weighted marginal call boost
-            const potOddsHere = toCall / (potSize + toCall);
-            const mdfMarginCall = handEquity >= potOddsHere
-                || (handEquity >= potOddsHere - 0.05 && Math.random() < flopTurnMDF * 0.20);
+            // Heuristic: top pair+ (strength >= 40) should always call flop/turn all-ins
+            // because TPTK has 70-80% equity vs random ranges even though its strength score is ~47.
+            // Medium pairs (30-39) call at MDF frequency to prevent exploitation.
+            const mdfMarginCall = effectiveStrength >= 40
+                || (effectiveStrength >= 30 && Math.random() < flopTurnMDF * 0.25);
 
             if (mdfMarginCall) {
                 console.log(`[HorseBrain] 🛡️ MDF DEFENSE: calling large bet (${Math.round(betRelPot * 100)}% pot) str=${effectiveStrength} MDF=${Math.round(flopTurnMDF * 100)}%`);

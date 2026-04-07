@@ -49,7 +49,7 @@ const getBuyinColor = (buyIn) => {
   return { color: '#ef4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' };
 };
 
-export default function DailyTournamentsPanel({ tournaments = [], onDayChange }) {
+export default function DailyTournamentsPanel({ tournaments = [], onDayChange, openVenueModal }) {
   const [selectedDay, setSelectedDay] = useState(DAYS[TODAY_INDEX]);
   const [gameType, setGameType] = useState('all');
   const [sortBy, setSortBy] = useState('time');
@@ -95,7 +95,12 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange })
   const renderTournamentCard = (t, i) => {
     const buyinStyle = getBuyinColor(t.buy_in);
     return (
-    <div key={t.id || i} onClick={() => t.venue_id ? window.location.href = `/hub/venues/${t.venue_id}` : null} style={{
+    <div key={t.id || i} onClick={() => {
+      if (t.venue_id) {
+        if (openVenueModal) openVenueModal(`/hub/venues/${t.venue_id}`);
+        else window.location.href = `/hub/venues/${t.venue_id}`;
+      }
+    }} style={{
       background: 'linear-gradient(160deg, rgba(18,28,45,0.85), rgba(10,16,28,0.92))', border: '1.5px solid rgba(148,163,184,0.12)',
       borderRadius: 12, padding: '12px 16px', transition: 'all 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3)',
       cursor: t.venue_id ? 'pointer' : 'default', position: 'relative',

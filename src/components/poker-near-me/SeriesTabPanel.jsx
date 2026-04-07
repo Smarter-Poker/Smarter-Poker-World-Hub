@@ -19,7 +19,7 @@ const TOUR_COLORS = {
     'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563' }
 };
 
-function SeriesCalendar({ series, router }) {
+function SeriesCalendar({ series, router, openVenueModal }) {
     const today = new Date();
     const months = [];
     for (let m = 0; m < 4; m++) {
@@ -71,7 +71,7 @@ function SeriesCalendar({ series, router }) {
                                             return (
                                                 <div key={si} className="cal-event"
                                                     style={{ background: tourColor.border, color: tourColor.text === '#000' ? '#000' : '#fff' }}
-                                                    onClick={() => router.push('/hub/series/' + (s.id || si + 1))}
+                                                    onClick={() => openVenueModal ? openVenueModal('/hub/series/' + (s.id || si + 1)) : router.push('/hub/series/' + (s.id || si + 1))}
                                                     title={s.name}>
                                                     {(s.tour_code || s.short_name || '').slice(0, 5)}
                                                 </div>
@@ -100,6 +100,7 @@ export default function SeriesTabPanel({
     isFavorited,
     toggleFavorite,
     router,
+    openVenueModal,
 }) {
     const seriesStateVal = filters.hubSeriesState || 'all';
     let filteredSeries = series;
@@ -140,7 +141,7 @@ export default function SeriesTabPanel({
                     <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>{seriesStateVal !== 'all' ? 'Try adjusting your filters.' : 'Check back soon for poker series.'}</p>
                     <button onClick={() => setFilters(f => ({ ...f, hubSeriesState: 'all' }))}>Clear Series Filters</button>
                 </div>
-            ) : seriesViewMode === 'calendar' ? <SeriesCalendar series={filteredSeries} router={router} /> : (
+            ) : seriesViewMode === 'calendar' ? <SeriesCalendar series={filteredSeries} router={router} openVenueModal={openVenueModal} /> : (
                 <>
                     <div className="card-grid">
                         {filteredSeries.slice(0, displayCount.series).map((s, i) => (
@@ -150,7 +151,7 @@ export default function SeriesTabPanel({
                                 index={i}
                                 isFavorited={isFavorited('series', s.id || (i + 1))}
                                 onFavorite={(e) => toggleFavorite('series', s.id || (i + 1), e)}
-                                onNavigate={(path) => router.push(path)}
+                                onNavigate={(path) => openVenueModal ? openVenueModal(path) : router.push(path)}
                             />
                         ))}
                     </div>
