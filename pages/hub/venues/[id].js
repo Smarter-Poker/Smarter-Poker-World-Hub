@@ -225,6 +225,13 @@ export default function VenueDetailPage() {
   // Global Favorite Status (Poker Near Me)
   const [menuOpen, setMenuOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isIframeMode, setIsIframeMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsIframeMode(window.self !== window.top);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -1228,11 +1235,13 @@ export default function VenueDetailPage() {
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </SEOHead>
 
-      <UniversalHeader 
-        pageDepth={2} 
-        onMenuClick={() => setMenuOpen(true)}
-        onBackClick={() => router.push('/hub/poker-near-me')}
-      />
+      {!isIframeMode && (
+        <UniversalHeader 
+          pageDepth={2} 
+          onMenuClick={() => setMenuOpen(true)}
+          onBackClick={() => router.push('/hub/poker-near-me')}
+        />
+      )}
 
       <HamburgerMenu
           isOpen={menuOpen}
@@ -1259,21 +1268,23 @@ export default function VenueDetailPage() {
           <>
 
             {/* Breadcrumb Navigation */}
-            <nav className="breadcrumb-nav" aria-label="Breadcrumb">
-              <ol className="breadcrumb-list">
-                <li className="breadcrumb-item">
-                  <Link href="/hub" legacyBehavior><a className="breadcrumb-link">Hub</a></Link>
-                  <span className="breadcrumb-sep">/</span>
-                </li>
-                <li className="breadcrumb-item">
-                  <Link href="/hub/poker-near-me-lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
-                  <span className="breadcrumb-sep">/</span>
-                </li>
-                <li className="breadcrumb-item breadcrumb-current">
-                  {venue.name}
-                </li>
-              </ol>
-            </nav>
+            {!isIframeMode && (
+              <nav className="breadcrumb-nav" aria-label="Breadcrumb">
+                <ol className="breadcrumb-list">
+                  <li className="breadcrumb-item">
+                    <Link href="/hub" legacyBehavior><a className="breadcrumb-link">Hub</a></Link>
+                    <span className="breadcrumb-sep">/</span>
+                  </li>
+                  <li className="breadcrumb-item">
+                    <Link href="/hub/poker-near-me-lobby" legacyBehavior><a className="breadcrumb-link">Poker Near Me</a></Link>
+                    <span className="breadcrumb-sep">/</span>
+                  </li>
+                  <li className="breadcrumb-item breadcrumb-current">
+                    {venue.name}
+                  </li>
+                </ol>
+              </nav>
+            )}
 
             {/* Header Section */}
             <header className="venue-header">

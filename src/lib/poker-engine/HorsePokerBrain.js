@@ -5328,10 +5328,6 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ── Phase 7: Chat trigger (fires contextual message if game engine supports it) ──
     const chatTrigger = state.chatTrigger || null;
     const chatResponse = getPLOChatResponse(chatTrigger, profileId);
-    // Bug #176: Wire chatResponse — push to chatMessages queue if chat triggered
-    if (chatResponse.shouldChat && chatResponse.message) {
-        chatMessages.push({ playerId: profileId, message: chatResponse.message, type: 'chat' });
-    }
 
     // ── GAP A-F + OPT A-E: All module initialization ──
 
@@ -5573,8 +5569,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const blindBattleEarly = getPLOBlindBattleStrategy(position, 0, isSBvsBB, wasPFRaiser, potOdds);
     const blindBattleFoldAdj = blindBattleEarly.strategy !== 'normal' ? (blindBattleEarly.defendThreshold - 45) : 0;
     const blindBattleValueAdj = blindBattleEarly.strategy !== 'normal' ? (blindBattleEarly.openThreshold - 52) : 0;
-    let exploitFoldThreshold = Math.max(15, Math.min(55, exploitFoldThresholdBase - ploLiveFoldAdj + blindBattleFoldAdj));
-    let exploitValueThresholdFinal = Math.max(35, Math.min(85, exploitValueThreshold - ploLiveValueAdj + blindBattleValueAdj));
+    const exploitFoldThreshold = Math.max(15, Math.min(55, exploitFoldThresholdBase - ploLiveFoldAdj + blindBattleFoldAdj));
+    const exploitValueThresholdFinal = Math.max(35, Math.min(85, exploitValueThreshold - ploLiveValueAdj + blindBattleValueAdj));
 
     // ── Phase 5+8+GapF: Final equity with all bonuses + Phase 3 adjustments ──
     // equityFinalAdjusted incorporates: Module 12 (multiway), Module 17 (runout),
@@ -5622,54 +5618,6 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (chipLeakFoldAdjust > 0) console.log(`[HorseBrain] 📉 MODULE 32 CHIP LEAK: applying -${chipLeakFoldAdjust} equity penalty for OOP/multiway leaks.`);
     }
 
-    // ═══ Bugs #164-#171: PLO ANTI-EXPLOIT SYSTEM (8 dead functions now wired) ═══
-    // These 8 PLO-specific countermeasure functions were DEFINED but NEVER CALLED.
-    // They form the PLO anti-exploit shield: showdown exposure tracking, pattern detection,
-    // sandwich detection, bot detection, unified counter-exploit profiling,
-    // frequency obfuscation, bet-size noise, and GTO chaos injection.
-
-    // Bug #164: Track showdown exposure — as showdown count grows, widen randomization
-    const ploShowdownCount = state.showdownCount || 0;
-    const ploShowdownExposure = trackPLOShowdownExposure(ploShowdownCount);
-
-    // Bug #165: Detect pattern exploitation — c-bet, probe, river bluff patterns
-    const ploPatternHistory = state.patternHistory || null;
-    const ploPatternExploit = detectPLOPatternExploit(ploPatternHistory);
-
-    // Bug #166: Detect stack sandwich / coordinated isolation
-    const ploPlayerActions = state.playerActions || [];
-    const ploNumCallersForSandwich = state.numCallers || 0;
-    const ploSandwich = detectPLOStackSandwich(ploPlayerActions, toCall, ploNumCallersForSandwich, numPlayers);
-
-    // Bug #167: Detect bot/solver-assisted opponents
-    const ploOpponentMetrics = state.opponentMetrics || null;
-    const ploBotInfo = detectPLOBotOpponent(ploOpponentMetrics);
-
-    // Bug #168: Build unified counter-exploit profile from all detectors
-    const ploCounterProfile = buildPLOCounterExploitProfile(
-        ploPatternExploit, ploShowdownExposure, ploSandwich, ploBotInfo, equityFinal
-    );
-
-    // Apply counter-exploit equity adjustment and tighten factor
-    if (ploCounterProfile.antiExploitActive) {
-        equityFinal = Math.max(0, Math.min(100,
-            (equityFinal + ploCounterProfile.finalEquityAdjust) / ploCounterProfile.finalTightenFactor
-        ));
-        console.log(`[HorseBrain] 🛡️ PLO ANTI-EXPLOIT: ${ploCounterProfile.activeExploits.join('+')} style=${ploCounterProfile.playStyle} eqAdj=${ploCounterProfile.finalEquityAdjust > 0 ? '+' : ''}${ploCounterProfile.finalEquityAdjust} tighten=${ploCounterProfile.finalTightenFactor.toFixed(2)}`);
-    }
-
-    // Bug #169: Sandwich tightens fold threshold (fold more in squeeze situations)
-    if (ploSandwich.isSandwich) {
-        exploitFoldThreshold = Math.min(55, exploitFoldThreshold + Math.round((ploSandwich.tightenFactor - 1.0) * 20));
-        console.log(`[HorseBrain] 🥪 PLO SANDWICH: severity=${ploSandwich.sandwichSeverity} foldThreshold→${exploitFoldThreshold}`);
-    }
-
-    // Bug #170: Obfuscate PLO decision frequencies — jitter fold/call/value thresholds
-    // More jitter as showdown exposure grows (opponents have more data on us)
-    const ploJitterMult = ploShowdownExposure.jitterMultiplier;
-    exploitFoldThreshold = obfuscatePLOFrequency(exploitFoldThreshold, 4 * ploJitterMult, 'fold');
-    exploitValueThresholdFinal = obfuscatePLOFrequency(exploitValueThresholdFinal, 3 * ploJitterMult, 'raise');
-
     // ── BUG-FIX: Deferred utility calls now use computed equityFinal instead of hardcoded 0 ──
     const limpedPotStrategy = getPLOLimpedPotStrategy(isLimpedPot, madeHand, equityFinal, numPlayers);
     const multiWayGov = governPLOMultiWayAggression(numPlayers, equityFinal, madeHand, true);
@@ -5692,15 +5640,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ═══ PHASE 37: LIVE-READ SIZING ADJUSTMENT ═══
     // Apply live-read sizing multiplier: bigger vs stations, smaller vs folders
     // Bug #149: Side-pot sizing adjustment (smaller bets when equity < 60 in side-pot situations)
-    // Bug #171a: Inject PLO bet-size noise to prevent bet-size → hand class decoding
-    const ploHandClass = madeHand.isNut ? 'nut'
-        : madeHand.strength >= 70 ? 'strong'
-        : totalOuts >= 9 ? 'draw'
-        : 'bluff';
-    const ploBaseFrac = potSize > 0 ? adaptiveSizer.betSize / potSize : 0.67;
-    const ploNoisedFrac = injectPLOBetSizeNoise(ploBaseFrac, ploHandClass);
-    const ploNoiseMultiplier = ploBaseFrac > 0 ? (ploNoisedFrac / ploBaseFrac) : 1.0;
-    const adaptiveBetSize = clamp(Math.round(adaptiveSizer.betSize * ploLiveSizeAdj * sidePot.sizeAdj * ploNoiseMultiplier));
+    const adaptiveBetSize = clamp(Math.round(adaptiveSizer.betSize * ploLiveSizeAdj * sidePot.sizeAdj));
 
     // ── Phase 8: Board scenario protection flag ──
     const shouldProtectNow = boardScenario.shouldProtectNow;
@@ -5731,21 +5671,6 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         street
     );
     if (rioGuard.shouldBlock) console.log(`[HorseBrain] 🔄 MODULE 27 RIO BLOCK: ${rioGuard.reason}`);
-
-    // Bug #171b: PLO GTO Chaos Injector — inject unpredictable actions to prevent pattern mining
-    // Per-street chaos rates (4-8%) with equity-bucketed action selection
-    const ploChaos = injectPLOGTOChaos(street, equityFinal, isIP, madeHand, legalActions);
-    if (ploChaos.chaosAction) {
-        console.log(`[HorseBrain] 🎲 PLO CHAOS: ${ploChaos.chaosMagnitude} on ${street} (eq=${equityFinal.toFixed(0)})`);
-        if ((ploChaos.chaosAction.type === 'raise' || ploChaos.chaosAction.type === 'bet') && canRaise) {
-            return { type: raiseAction.type, amount: adaptiveBetSize };
-        } else if (ploChaos.chaosAction.type === 'call' && canCall) {
-            return { type: 'call' };
-        } else if (ploChaos.chaosAction.type === 'check' && canCheck) {
-            return { type: 'check' };
-        }
-        // If legal action not available for chaos, fall through to normal logic
-    }
 
     // ─── RIVER ───
     if (street === 'river') {
@@ -5969,11 +5894,6 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         }
 
         // Phase 3: C-bet engine
-        // Bug #175: Wire positionRanges — narrow ranges (UTG) c-bet more profitably (range is strong)
-        // Wide ranges (BTN) c-bet less — more trash in our range
-        const positionCbetMod = positionRanges.openThreshold >= 65 ? 0.08  // UTG: tight range = c-bet more
-            : positionRanges.openThreshold >= 55 ? 0.04  // MP/HJ: moderate
-            : -0.04;                                        // BTN/CO: wide range = c-bet less
         // ═══ PHASE 37: LIVE-READ C-BET SUPPRESSION ═══
         // Against calling stations (live data), reduce c-bet frequency with weak hands
         if (cBetStrategy.shouldCBet && canRaise) {
@@ -5987,7 +5907,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 cBetLiveGo = true;
             }
             if (cBetLiveGo)
-                return { type: raiseAction.type, amount: clamp(Math.round(potSize * (cBetStrategy.cBetFraction + positionCbetMod) * ploLiveSizeAdj)) };
+                return { type: raiseAction.type, amount: clamp(Math.round(potSize * cBetStrategy.cBetFraction * ploLiveSizeAdj)) };
         }
 
         // Phase 3: Turn barrel logic
@@ -6017,11 +5937,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Bug #147: Limped pot bluff suppression
         const realizedOuts = totalOuts * erc;
         const blockerBluffBoost = blockers.hasFlushBlocker ? 0.12 : blockers.hasStraightBlocker ? 0.06 : 0;
-        // Bug #178: Wire cardRemovalBluffBonus — high card removal score = more bluffing license
-        const removalBluffFreqBoost = cardRemovalBluffBonus * 0.01; // 0/0.04/0.08
-        if (realizedOuts >= 14 && canRaise && mwAllowBluff && Math.random() < (0.65 + blockerBluffBoost + removalBluffFreqBoost))
+        if (realizedOuts >= 14 && canRaise && mwAllowBluff && Math.random() < (0.65 + blockerBluffBoost))
             return { type: raiseAction.type, amount: adaptiveBetSize };
-        if (realizedOuts >= 9 && canRaise && mwAllowBluff && !limpBluffSuppressed && Math.random() < (0.38 + blockerBluffBoost + removalBluffFreqBoost))
+        if (realizedOuts >= 9 && canRaise && mwAllowBluff && !limpBluffSuppressed && Math.random() < (0.38 + blockerBluffBoost))
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.50)) };
         // Bug #87: Pure blocker bluff — no real outs but we block the nuts
         // Bug #148: Completely suppressed in multiway when governor says no
@@ -6171,8 +6089,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const callThreshold = perStreetBluff.shouldLoosen
         ? perStreetBluff.calldownThreshold      // Phase 7: call with less equity vs aggressive opponents
         : exploitFoldThreshold - 5;             // Phase 5: default exploit threshold
-    // Bug #179: Wire multiwayCallPenalty — require higher equity to call in multiway pots
-    if (equityFinal >= (callThreshold + multiwayCallPenalty) && canCall) {
+    if (equityFinal >= callThreshold && canCall) {
         const ourEquityFraction = equityFinal / 100;
         if (ourEquityFraction >= potOdds - 0.05) return { type: 'call' };
     }
@@ -8096,19 +8013,11 @@ function makeTurnRiverHeuristicDecision(params) {
     const newCardPairedBoard = boardRanks.filter(r => r === newRank).length >= 2;
     const overcard = newRank >= 10;
 
-    // Bug #172: Wire newSuit — detect if the NEW card specifically brought the flush threat
-    const newCardBroughtFlushDraw = flushDrew && newSuit === flushSuit;
-    const newCardCompletedFlush = flushCompleted && newSuit === flushSuit;
-
     // ── SCARE CARD CLASSIFICATION ──
     // Level 0 = blank, 1 = minor, 2 = moderate, 3 = critical
     let scareLevel = 0;
     if (flushCompleted && !handEval.category?.includes('flush')) scareLevel = 3;
-    // Bug #172: NEW card completed the flush = even scarier (action card just hit)
-    if (newCardCompletedFlush && !handEval.category?.includes('flush')) scareLevel = 3;
     else if (straightScary && handEval.strength < 75) scareLevel = 2;
-    // Bug #172: NEW card brought the flush draw = scarier than pre-existing draw
-    else if (newCardBroughtFlushDraw && !heroSuits.includes(flushSuit)) scareLevel = 2;
     else if (flushDrew && !heroSuits.includes(flushSuit)) scareLevel = 2;
     else if (overcard && handEval.strength < 55) scareLevel = 1;
     else if (newCardPairedBoard && handEval.strength < 60) scareLevel = 1;
@@ -12778,9 +12687,7 @@ function makeFlopHeuristicDecision(params) {
             const hasOvercards = holeCards.some(c => RANKS.indexOf(c[0]) > Math.max(...board.map(b => RANKS.indexOf(b[0]))));
 
             if (hasBackdoorEquity || hasOvercards) {
-                // Bug #173: Wire flopDefenseTarget into float defense base frequency
-                // Instead of hardcoded 0.30, scale to 75% of MDF (adapts to bet sizing)
-                let floatDefenseFreq = Math.max(0.20, Math.min(0.45, flopDefenseTarget));
+                let floatDefenseFreq = 0.30;
                 // Small c-bet = defend wider
                 if (betToPot <= 0.33) floatDefenseFreq += 0.15;
                 else if (betToPot <= 0.50) floatDefenseFreq += 0.08;
@@ -14970,11 +14877,9 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         const inFront = activePlayers.length - behind;
 
         // Sandwich = players on both sides AND we are not the aggressor
-        // Bug #174: Wire heroPosition — OOP sandwich (UTG/EP/MP) is worse than IP (CO/BTN)
-        const isOOPSandwich = ['UTG', 'UTG1', 'UTG2', 'EP', 'MP', 'LJ'].includes(heroPosition);
         if (behind >= 1 && inFront >= 1 && !isRaiser) {
-            sandwichedFoldMod = isOOPSandwich ? 14 : 10;   // OOP sandwich = tighter (+14 vs +10)
-            sandwichedDrawThreshold = isOOPSandwich ? 18 : 15; // OOP needs more outs to continue
+            sandwichedFoldMod = 10;        // Raise fold threshold significantly
+            sandwichedDrawThreshold = 15;  // Draws below 15 outs auto-fold
             if (counterStrategy.mode === 'standard') counterStrategy.mode = 'sandwich_survival';
             console.log(`[HorseBrain] 🥊 SANDWICH DETECTED: ${profileId.substring(0, 8)} — tightening ranges (+10 fold threshold)`);
         }
@@ -20057,15 +19962,5 @@ module.exports = {
     applyExploitIntensifier,
     recordStreetAction,
     getStreetMemory,
-
-    // Exposed for testing (Bugs #164-171) — PLO Anti-Exploit System
-    trackPLOShowdownExposure,
-    detectPLOPatternExploit,
-    detectPLOStackSandwich,
-    detectPLOBotOpponent,
-    buildPLOCounterExploitProfile,
-    obfuscatePLOFrequency,
-    injectPLOBetSizeNoise,
-    injectPLOGTOChaos,
 };
 
