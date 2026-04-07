@@ -86,11 +86,10 @@ TOUR_SOURCES = {
         "tour_name": "World Poker Tour",
         "tour_type": "major",
         "cloudflare": True,
-        "primary_url": "https://www.wpt.com/events/",
-        "schedule_url": "https://www.wpt.com/events/",
+        "primary_url": "https://www.pokeratlas.com/poker-tournaments/wpt",
+        "schedule_url": "https://www.pokeratlas.com/poker-tournaments/wpt",
         "fallback_urls": [
-            "https://www.wpt.com/schedule/",
-            "https://www.pokeratlas.com/poker-tournaments/wpt",
+            "https://www.wpt.com/events/",          # Official site (React SPA - limited parser)
             "https://www.pokernews.com/tours/wpt/schedule/",
         ],
         "scrape_method": "StealthySession",
@@ -98,7 +97,7 @@ TOUR_SOURCES = {
         "stop_venue": "Various",
         "stop_city": "Various", "stop_state": "US",
         "stop_start": "2026-01-01", "stop_end": "2026-12-31",
-        "notes": "Multi-stop traveling major tour. WPT moved to wpt.com (worldpokertour.com is defunct).",
+        "notes": "Official site: wpt.com (React SPA). PokerAtlas used as primary scrape source. worldpokertour.com is defunct.",
     },
     "WSOPC": {
         "tour_name": "WSOP Circuit",
@@ -290,18 +289,30 @@ TOUR_SOURCES = {
 
 # ─── Provenance Builder ────────────────────────────────────────────────────────
 def build_provenance(url, html_bytes, script_name):
-    """Build full data provenance record for every scrape."""
+    """Build full data provenance record for every scrape.
+    
+    NOTE: scrape_http_status and scrape_method are captured in evidence JSON files
+    but NOT sent to the DB (PostgREST rejects unknown columns).
+    SOURCE OF TRUTH for http status + method: data/scrape-evidence/*.json
+    """
     body = html_bytes if isinstance(html_bytes, bytes) else html_bytes.encode('utf-8', errors='replace')
-    return {
+    # Full provenance for evidence file
+    full = {
         "scrape_url": url,
-        "scrape_http_status": 200,
+        "scrape_http_status": 200,          # evidence file only
         "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
         "scrape_html_hash": hashlib.sha256(body).hexdigest(),
         "scrape_byte_count": len(body),
         "scrape_script": script_name,
-        "scrape_method": "Scrapling",
+        "scrape_method": "Scrapling",        # evidence file only
         "data_quality": "scraped_verified",
     }
+    # DB-safe subset: PostgREST rejects unknown columns.
+    # scrape_http_status and scrape_method are stored in evidence JSON only.
+    db_safe = {k: v for k, v in full.items()
+               if k not in ("scrape_http_status", "scrape_method")}
+    db_safe["_full_provenance"] = full  # Used by save_evidence()
+    return db_safe
 
 # ─── Network Pre-Check ─────────────────────────────────────────────────────────
 def network_available():
@@ -371,15 +382,17 @@ def save_evidence(tour_code, url, provenance, events, batch_id):
     """Save cryptographic evidence to data/scrape-evidence/ for audit trail."""
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     fname = EVIDENCE_DIR / f"tour_events_{tour_code.lower()}_{ts}.json"
+    # Use full provenance (with http_status, method) for evidence files
+    full_prov = provenance.get("_full_provenance", provenance)
     evidence = {
-        **provenance,
+        **full_prov,
         "batch_id": batch_id,
         "tour_code": tour_code,
         "records_extracted": len(events),
         "body_preview": "[SHA-256 hash captured above — body not stored for size]",
         "events_sample": events[:3] if events else [],
     }
-    fname.write_text(json.dumps(evidence, indent=2))
+    fname.write_text(json.dumps(evidence, indent=2, default=str))
     print(f"  [Evidence] Saved {fname.name} ({len(events)} events)")
     return str(fname)
 
@@ -608,23 +621,30 @@ def seed_to_supabase(events, tour_code, batch_id, dry_run=False):
         print(f"  [SKIP] No Supabase connection")
         return 0
 
+    stop_names = list({e.get("stop_name") for e in events if e.get("stop_name")})
     inserted = 0
     batch_size = 50
-    for i in range(0, len(events), batch_size):
-        chunk = events[i:i+batch_size]
+    STRIP_KEYS = {"_full_provenance"}
+    # Delete existing for idempotency (no unique constraint needed)
+    for stop_name in stop_names:
         try:
-            result = sb.table("tour_stop_events").upsert(chunk, on_conflict="tour_code,event_number,stop_name").execute()
+            sb.table("tour_stop_events").delete()\
+              .eq("tour_code", tour_code)\
+              .eq("stop_name", stop_name)\
+              .execute()
+        except Exception as de:
+            print(f"  [DB WARN] Delete failed: {de}")
+
+    for i in range(0, len(events), batch_size):
+        # Strip internal keys before DB insert
+        chunk = [{k: v for k, v in e.items() if k not in STRIP_KEYS} for e in events[i:i+batch_size]]
+        try:
+            result = sb.table("tour_stop_events").insert(chunk).execute()
             count = len(result.data) if result.data else len(chunk)
             inserted += count
-            print(f"  [DB] Upserted {count} events (batch {i//batch_size + 1})")
+            print(f"  [DB] Inserted {count} events (batch {i//batch_size + 1})")
         except Exception as e:
             print(f"  [DB ERROR] {e}")
-            # Try insert instead
-            try:
-                result = sb.table("tour_stop_events").insert(chunk).execute()
-                inserted += len(result.data) if result.data else 0
-            except Exception as e2:
-                print(f"  [DB ERROR] Insert also failed: {e2}")
 
     # Log to audit
     try:

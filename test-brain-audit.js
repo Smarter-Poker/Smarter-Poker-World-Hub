@@ -5823,6 +5823,29 @@ test('BUG #25: equity improvement barrel requires strength >= 55', () => {
     expect(eqSection.includes('>= 25')).toBe(true); // equityDelta >= 25 exception
 });
 
+test('BUG #26: validateAndClamp maps check→fold when check unavailable (not check→call)', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Facing a bet: legal actions are fold, call, raise — no check available
+    const legalActions = [
+        { type: 'fold' },
+        { type: 'call', amount: 100 },
+        { type: 'raise', minAmount: 200, maxAmount: 1000 },
+    ];
+    // Brain chose 'check' (pot control intent) but check isn't legal → should fold, NOT call
+    const result = validateAndClamp('check', null, legalActions);
+    expect(result.type).toBe('fold');
+});
+
+test('BUG #26: validateAndClamp still allows check when check IS legal', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const legalActions = [
+        { type: 'check' },
+        { type: 'bet', minAmount: 50, maxAmount: 500 },
+    ];
+    const result = validateAndClamp('check', null, legalActions);
+    expect(result.type).toBe('check');
+});
+
 test('evaluatePostflopHand: combo draw gets strength boost', () => {
     const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
     // OESD + flush draw = combo draw → strength >= 50

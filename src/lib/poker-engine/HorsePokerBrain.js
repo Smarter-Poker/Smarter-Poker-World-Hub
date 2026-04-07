@@ -14346,8 +14346,12 @@ function validateAndClamp(actionType, amount, legalActions) {
     }
 
     // Check/fold substitution
+    // BUG #26 FIX: When the brain chose 'check', it means "don't commit chips" or "pot control".
+    // If check isn't available (facing a bet), the safe default is FOLD, not call.
+    // The brain should have handled the facing-bet case properly upstream — if we're here
+    // it means something went wrong, and calling blind is worse than folding.
     if (actionType === 'check' && !actionTypes.has('check')) {
-        actionType = actionTypes.has('call') ? 'call' : 'fold';
+        actionType = 'fold';
     }
     if (actionType === 'call' && !actionTypes.has('call')) {
         actionType = actionTypes.has('check') ? 'check' : 'fold';
