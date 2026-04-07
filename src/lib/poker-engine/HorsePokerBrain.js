@@ -12541,7 +12541,7 @@ function analyzeBoardEvolution(board, street) {
             else if (allRanksR[i] !== allRanksR[i - 1]) curRunR = 1;
         }
         if (allRanksR.includes(12) && allRanksR.includes(0) && allRanksR.includes(1)) maxRunR = Math.max(maxRunR, 3);
-        if (maxRunR >= 5) {
+        if (maxRunR >= 4) {
             result.drawsCompleted.push('straight_completed');
             result.straightCompleted = true;
             result.callerImpact += 3;
@@ -12556,7 +12556,7 @@ function analyzeBoardEvolution(board, street) {
                 if (turnAllRanks[i] - turnAllRanks[i - 1] === 1) { turnCurRun++; turnMaxRun = Math.max(turnMaxRun, turnCurRun); }
                 else if (turnAllRanks[i] !== turnAllRanks[i - 1]) turnCurRun = 1;
             }
-            if (turnMaxRun >= 3 && maxRunR < 5) {
+            if (turnMaxRun >= 3 && maxRunR < 4) {
                 result.drawsBricked.push('straight');
                 result.pfrImpact += 1;
             }
@@ -13629,23 +13629,33 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             else if ((finalAction === 'raise' || finalAction === 'bet') && (!gtoDecision.confidence || gtoDecision.confidence < 0.3)) handType = 'bluff';
         }
 
-        // Apply REAL tilt overlay (Phase 3A #1)
+        // Apply TABLE IMAGE overlay (Phase 3A #1)
+        // BUG #35 FIX: Was gated by tiltLevel >= 3 (table image only worked when tilted) and
+        // used preflopStrength on postflop streets (72o that flops full house → strength 0.15 →
+        // image tighten_up converts value raise to FOLD). Now uses actual postflop hand strength
+        // and runs independently of tilt (non-tilted horses should also adjust for image).
         try {
             const adv = await getAdvancedModule();
-            if (adv?.getTiltLevel) {
-                const tiltLevel = adv.getTiltLevel(profileId);
-
-                // Tilted horses make suboptimal plays
-                if (tiltLevel >= 3 && adv.getImageAdjustedAction) {
-                    const adjusted = adv.getImageAdjustedAction(profileId, finalAction, preflopStrength / 100);
-                    if (adjusted && adjusted !== finalAction) {
-                        console.log(`[HorseBrain] 🔥 Tilt override: ${finalAction} → ${adjusted} (tilt=${tiltLevel.toFixed(1)})`);
-                        finalAction = adjusted;
+            if (adv?.getImageAdjustedAction) {
+                let imageHandStrength;
+                if (street === 'preflop') {
+                    imageHandStrength = preflopStrength / 100; // 0-1 scale
+                } else {
+                    try {
+                        const imgEval = evaluatePostflopHand(holeCardStrings, boardStrings);
+                        imageHandStrength = imgEval.strength / 100; // 0-1 scale
+                    } catch (_) {
+                        imageHandStrength = preflopStrength / 100; // Fallback
                     }
+                }
+                const adjusted = adv.getImageAdjustedAction(profileId, finalAction, imageHandStrength);
+                if (adjusted && adjusted !== finalAction) {
+                    console.log(`[HorseBrain] 📸 Image overlay: ${finalAction} → ${adjusted} (str=${(imageHandStrength * 100).toFixed(0)})`);
+                    finalAction = adjusted;
                 }
             }
         } catch (err) {
-            // Tilt overlay is non-critical
+            // Image overlay is non-critical
         }
 
         // Apply EXPLOITATIVE adjustments (Phase 3A #2)
@@ -14161,9 +14171,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         }
 
         // Value bet the river with medium-strong+ hands
-        if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= 50) {
+        // BUG #34 FIX: Was using >= 50 which is bluff-catcher territory (same bug as BUG #22
+        // in GUARDRAIL 3). Strength 50-59 hands lose EV when bet — worse hands fold, better call.
+        // Use 55 vs calling stations (they call with worse), 60 otherwise.
+        const univRiverThreshold = (opponentAdjustment.callMod > 0) ? 55 : 60;
+        if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= univRiverThreshold) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
-            if (raiseAction && Math.random() < 0.65) {
+            let univRiverVBetFreq = 0.65;
+            if (opponentAdjustment.callMod > 0) univRiverVBetFreq = 0.80;  // Station → bet more
+            if (opponentAdjustment.foldMod > 0 && handEval.strength < 70) univRiverVBetFreq = 0.40; // Nit → thin value less
+            if (raiseAction && Math.random() < univRiverVBetFreq) {
                 const isIPRiver = new Set(['BTN', 'CO', 'HJ']).has(position);
                 const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false, {
                     isInPosition: isIPRiver, numPlayers, handStrength: handEval.strength, stackBB
@@ -16539,6 +16556,37 @@ async function processHandResult(handData, bb = 2) {
             if (player.showedCards && adv.recordShowdown) {
                 const wasBetting = player.lastAction === 'raise' || player.lastAction === 'bet';
                 adv.recordShowdown(pid, won, wasBetting);
+            }
+
+            // --- BUG #37 FIX: Record hand history for Advanced opponent reads ---
+            // recordHandHistory was NEVER called, so getOpponentRead always returned null.
+            // This made the entire exploit pipeline (identifyLeak, getExploitAdjustedAction)
+            // and opponent-aware bet sizing dead code. Now each hand records what each opponent
+            // did (bluff, value bet, or fold) so opponent profiles build over time.
+            if (adv.recordHandHistory) {
+                const opponentsForHistory = (handData.players || []).filter(op =>
+                    String(op.id || op.playerId) !== pid
+                );
+                for (const opp of opponentsForHistory) {
+                    const oppId = String(opp.id || opp.playerId);
+                    const oppWasBetting = opp.lastAction === 'raise' || opp.lastAction === 'bet';
+                    const oppWon = winners.some(w => String(w.playerId) === oppId);
+                    adv.recordHandHistory(pid, oppId, {
+                        wasBluff: oppWasBetting && !oppWon,
+                        wasValue: oppWasBetting && oppWon,
+                        folded: opp.folded === true
+                    });
+                }
+            }
+        }
+
+        // --- BUG #37b FIX: Record grudges for rivalry dynamics ---
+        // recordGrudge was never called, so grudge-based targeting was dead code.
+        // When a horse loses a big pot (20+ BB), record a grudge against the winner.
+        if (!won && chipDelta < 0 && adv?.recordGrudge) {
+            const bbLostForGrudge = Math.abs(chipDelta) / bb;
+            for (const w of winners) {
+                adv.recordGrudge(pid, String(w.playerId), bbLostForGrudge);
             }
         }
 

@@ -76,11 +76,13 @@ export function getOpponentRead(horseId, opponentId) {
 
     let bluffs = 0, value = 0, folds = 0, totalWeight = 0;
 
-    // Time-weighted decay (#20): recent hands weigh more
+    // BUG #36 FIX: Time-weighted recency decay. Old code used `i >= (history.length - 20)`
+    // but history is capped at 20 entries, so the condition was ALWAYS true — every hand
+    // got weight 2.0. Now uses index-based linear interpolation: oldest hand in window
+    // gets weight 1.0, newest gets 2.0. Recent hands genuinely weigh more.
     for (let i = 0; i < history.length; i++) {
         const hand = history[i];
-        // Most recent hands (last 20) get 2x weight, older get 1x
-        const weight = i >= (history.length - 20) ? 2.0 : 1.0;
+        const weight = 1.0 + (i / Math.max(1, history.length - 1)); // 1.0→2.0 oldest→newest
 
         if (hand.wasBluff) bluffs += weight;
         if (hand.wasValue) value += weight;
