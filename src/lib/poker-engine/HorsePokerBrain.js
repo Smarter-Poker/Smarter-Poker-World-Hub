@@ -6178,6 +6178,59 @@ function evaluatePostflopHand(holeCards, board) {
         }
     }
 
+    // ═══ BUG #39 FIX: BOARD-MADE STRAIGHT — hero doesn't contribute but still has the straight ═══
+    // When the board itself forms a straight and hero's cards don't participate,
+    // hero still plays the board straight. Without this check, strength stays at ~13
+    // (high_card), causing the Brain to fold a guaranteed chop.
+    if (category === 'high_card' || category === 'no_pair' || category === 'board_pair' || category === 'board_trips' || category === 'board_two_pair') {
+        const boardUnique = [...new Set(boardRanks)].sort((a, b) => a - b);
+        let boardHasStraight = false;
+        // Check for regular straights on board
+        for (let i = boardUnique.length - 1; i >= 4; i--) {
+            if (boardUnique[i] - boardUnique[i - 4] === 4) {
+                boardHasStraight = true;
+                break;
+            }
+        }
+        // Check for wheel straight on board (A-2-3-4-5)
+        if (!boardHasStraight && boardUnique.includes(12) && boardUnique.includes(0) &&
+            boardUnique.includes(1) && boardUnique.includes(2) && boardUnique.includes(3)) {
+            boardHasStraight = true;
+        }
+        if (boardHasStraight && (category === 'high_card' || category === 'no_pair')) {
+            // Board straight — everyone has it, hero chops with anyone who doesn't improve.
+            // Anyone with a higher straight, flush, full house, etc. beats us.
+            // Treat as a board-made hand: a bluff-catcher that should check/call, not fold.
+            category = 'board_straight';
+            const bestKicker = Math.max(...heroRanks);
+            // Hero can only improve if they extend the straight or have a higher hand.
+            // Base strength ~40 — it's a made hand (straight) but shared with everyone.
+            if (bestKicker >= 12) strength = 45; // Ace kicker might make higher straight
+            else if (bestKicker >= 10) strength = 43;
+            else strength = 40; // Pure board straight, no kicker improvement
+        }
+    }
+
+    // ═══ BUG #39 FIX: BOARD-MADE FLUSH — hero doesn't have the suit ═══
+    // When board has 5 of a suit and hero has NO card of that suit,
+    // hero plays the board flush (weakest possible flush). Anyone with ANY card of that suit beats us.
+    if (category === 'high_card' || category === 'no_pair' || category === 'board_straight') {
+        if (board.length === 5) {
+            const boardSuitCounts = {};
+            boardSuits.forEach(s => { boardSuitCounts[s] = (boardSuitCounts[s] || 0) + 1; });
+            const boardFlushSuit = Object.keys(boardSuitCounts).find(s => boardSuitCounts[s] >= 5);
+            if (boardFlushSuit && !heroSuits.includes(boardFlushSuit)) {
+                // Board has a 5-card flush and hero has no matching suit.
+                // Hero plays the board flush but loses to ANYONE with a card of that suit.
+                // This is even weaker than board_trips since flush is more easily beaten.
+                category = 'board_flush';
+                strength = 30; // Very weak — almost any opponent beats this
+                const bestKicker = Math.max(...heroRanks);
+                if (bestKicker >= 12) strength = 32; // Ace doesn't help suit-wise but tiny edge
+            }
+        }
+    }
+
     // High card only (no board-made hands either)
     if (category === 'high_card') {
         const highCard = Math.max(...heroRanks);

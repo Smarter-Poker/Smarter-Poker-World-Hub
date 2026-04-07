@@ -34,7 +34,8 @@ TOURN_RE = re.compile(
 SLOW_DOMAINS = {
     'rivercity.com', 'hollywoodgulfcoast.com', 'ipbiloxi.com',
     'bluechipcasino.com', 'themresort.com', 'aliantegaming.com',
-    'hollywoodindiana.com',
+    'hollywoodindiana.com', 'hollywoodcasinoaurora.com',
+    'senecaalleganycasino.com', 'senecaniagararesort.com',
 }
 
 # Expanded URL map for known stubborn venues
@@ -159,8 +160,8 @@ KNOWN_URLS = {
     "Hollywood Aurora": [
         "https://www.pokeratlas.com/poker-room/hollywood-casino-aurora",
         "https://bravo.poker/poker-rooms/hollywood-casino-aurora",
-        "https://www.hollywoodcasinoaurora.com/casino/poker",
-        "https://www.hollywoodcasinoaurora.com/Casino/Poker",
+        "https://www.hollywoodaurora.com/casino/poker",
+        "https://www.hollywoodaurora.com/gaming/poker",
     ],
     "Wind Creek Chicago Southland": [
         "https://bravo.poker/poker-rooms/wind-creek-chicago-southland",
@@ -178,14 +179,12 @@ KNOWN_URLS = {
     "Seneca Niagara": [
         "https://www.pokeratlas.com/poker-room/seneca-niagara-resort-casino",
         "https://bravo.poker/poker-rooms/seneca-niagara",
-        "https://www.senecaniagaracasino.com/casino/poker",
         "https://www.senecapoker.com/niagara",
         "https://senecapoker.com",
     ],
     "Seneca Allegany": [
         "https://www.pokeratlas.com/poker-room/seneca-allegany-resort-casino",
         "https://bravo.poker/poker-rooms/seneca-allegany",
-        "https://www.senecaalleganycasino.com/casino/poker",
         "https://www.senecapoker.com/allegany",
         "https://senecapoker.com",
     ],

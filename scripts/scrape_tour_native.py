@@ -118,10 +118,17 @@ TOUR_REGISTRY = {
         "full_name": "World Poker Tour",
         "type": "major",
         "official_site": "https://www.worldpokertour.com",
-        "source_url": "https://www.worldpokertour.com/schedule/",
-        "method": "STEALTHY_HTML",
-        "cloudflare": True,
-        "notes": "React SPA protected by Cloudflare. StealthySession+camoufox needed.",
+        # Primary source + sub-pages parsed together (Astro SSG — no CF bypass needed)
+        "source_url": "https://www.worldpokertour.com/event/schedule",
+        "method": "ASTRO_SSG_HTML",
+        "cloudflare": False,
+        "notes": "Astro SSG site. Events embedded in static HTML on /event/schedule, /tours/main-tour, /tours/prime, /tours/special-events. Plain Fetcher works.",
+        "sub_pages": [
+            "https://www.worldpokertour.com/event/schedule",
+            "https://www.worldpokertour.com/tours/main-tour",
+            "https://www.worldpokertour.com/tours/prime",
+            "https://www.worldpokertour.com/tours/special-events",
+        ],
     },
     "RGPS": {
         "full_name": "RunGood Poker Series",
@@ -137,33 +144,35 @@ TOUR_REGISTRY = {
         "full_name": "Card Player Poker Tour",
         "type": "circuit",
         "official_site": "https://www.cardplayerpokertour.com",
-        "source_url": "https://www.cardplayerpokertour.com/schedule",
-        "method": "STEALTHY_HTML",
+        # StealthySession redirects to cardplayer.com historical article — tour is defunct
+        "source_url": "https://www.cardplayer.com/poker-tournaments/card-player-poker-tour",
+        "method": "DEFUNCT",
         "cloudflare": True,
-        "notes": "Cloudflare protected (403 on plain GET). Needs StealthySession.",
+        "notes": "CPPT is no longer active. StealthySession solved CF Turnstile (managed) but redirected to a history article on cardplayer.com. No upcoming events exist. Evidence captured.",
+        "status": "defunct",
     },
     "PGT": {
         "full_name": "PokerGO Tour",
         "type": "high_roller",
         "official_site": "https://www.pokergo.com",
-        "source_url": "https://www.pokergo.com/series",
-        "method": "STEALTHY_HTML",
-        "cloudflare": True,
-        "notes": "CF-protected. Try /api/series or /api/events as native endpoints.",
-        "try_native_endpoints": [
-            "https://www.pokergo.com/api/series",
-            "https://www.pokergo.com/api/events",
-            "https://www.pokergo.com/api/v1/series",
-        ],
+        # Correct URL: /schedule (not /series which 404s)
+        "source_url": "https://www.pokergo.com/schedule",
+        "method": "NUXT_SSR_HTML",
+        "cloudflare": False,
+        "notes": "Nuxt.js Vite app. Plain Fetcher gets 200 on /schedule (395KB). Schedule data rendered client-side — body text has visible schedule UI elements. Device token in window.__NUXT__.config: 5650cee3... API base: api.pokergo.com",
+        "api_base": "https://api.pokergo.com",
+        "device_token": "5650cee3635cc2dcfc971562ae512ea92ab476aea6de3e71a7413198225b5b3a",
     },
     "NAPT": {
         "full_name": "North American Poker Tour (PokerStars)",
         "type": "major",
         "official_site": "https://www.pokerstarslive.com",
+        # Plain Fetcher returns 200 — no CF bypass needed
         "source_url": "https://www.pokerstarslive.com/napt/lasvegas/schedule/",
-        "method": "STEALTHY_HTML",
-        "cloudflare": True,
-        "notes": "PokerStars site. NAPT Las Vegas is the main North America stop.",
+        "method": "CONTENTSTACK_SPA",
+        "cloudflare": False,
+        "notes": "PokerStars Live uses Contentstack CMS. Plain Fetcher 200 OK (192KB). Schedule populated by React client. Contentstack stack_api_key=blteecf9626d9a38b03. NAPT 2026 schedule not yet published. Evidence captured.",
+        "contentstack_stack_key": "blteecf9626d9a38b03",
     },
 }
 
@@ -825,41 +834,364 @@ def scrape_mspt(tour_code, batch_id, dry_run):
     return events, prov, body
 
 
-def scrape_stealthy(tour_code, batch_id, dry_run, config):
+def scrape_wpt(tour_code, batch_id, dry_run):
     """
-    Generic StealthySession+camoufox scraper for CF-protected tour sites.
-    Used for: WPT, RGPS, CPPT, PGT, NAPT.
+    WPT: World Poker Tour — Astro SSG HTML multi-page scraper.
+    Source pages (plain Fetcher — no CF bypass needed):
+      /event/schedule       — upcoming events
+      /tours/main-tour      — main tour history + upcoming
+      /tours/prime          — WPT Prime sub-series
+      /tours/special-events — special events
+    Data embeds: ISO datetime in data-tz-datetime, buy-in in <strong>$N,NNN</strong>,
+    venue in .text-red-600 links, location in .text-xs spans, event slug in href=/event/
     """
-    source_url = config['source_url']
-    fallbacks = config.get('fallback_urls', [])
-    native_endpoints = config.get('try_native_endpoints', [])
+    config = TOUR_REGISTRY['WPT']
+    sub_pages = config['sub_pages']
+    primary_source = config['source_url']
 
-    # First: try any native JSON endpoints (no CF bypass needed for JSON APIs)
-    for ep_url in native_endpoints:
-        print(f"  [Trying native endpoint] {ep_url}")
-        body, status, sha = scrapling_get(ep_url, use_cloudflare=False)
-        if body and status == 200:
+    all_events = []
+    combined_body = b""
+    seen_slugs = set()
+
+    for page_url in sub_pages:
+        print(f"  [Fetcher] {page_url}")
+        body, status, sha = scrapling_get(page_url, use_cloudflare=False)
+        if not body or status != 200:
+            print(f"  [SKIP] {page_url} → HTTP {status}")
+            continue
+
+        combined_body += body
+        html = body.decode('utf-8', errors='replace')
+
+        # ── Extract events from this page ─────────────────────────────────────
+        # Strategy: find all <tr> rows and event-nav-item cards
+        # Each event has: data-tz-datetime (ISO), venue (.text-red-600), location (.text-xs),
+        # buy-in (<strong>$N,NNN</strong>), name (link text), slug (href=/event/SLUG)
+
+        # Collect all unique event slugs from this page
+        slugs = re.findall(r'href="/event/([a-z0-9\-]+)(?:/details)?"', html)
+        slugs = [s for s in slugs if s not in ('results', 'schedule')]
+
+        # Extract all date → slug associations
+        # Pattern: the ISO datetime and the event slug appear near each other
+        # Use finditer across the full HTML, merging date+slug+name+venue+location+buyin
+
+        # Pull all dates
+        dates = {}
+        for m in re.finditer(r'data-tz-datetime="([^"]+)"', html):
+            pos = m.start()
+            # Find the enclosing event block (look 5000 chars forward)
+            block = html[pos:pos+5000]
+            slug_m = re.search(r'href="/event/([a-z0-9\-]+)(?:/details)?"', block)
+            name_m = re.search(r'class="[^"]*font-semibold[^"]*"[^>]*>.*?href="/event/[^"]+"[^>]*>([^<]{5,100})</a>', block, re.DOTALL)
+            venue_m = re.search(r'class="[^"]*text-red-600[^"]*"[^>]*>([^<]{5,80})</a>', block)
+            loc_m = re.search(r'<span class="text-xs">([A-Z][^<,]{1,30},\s*[A-Z]{2}[^<]{0,15})</span>', block)
+            buyin_m = re.search(r'<strong>\$([0-9,]+)</strong>', block)
+
+            slug = slug_m.group(1) if slug_m else None
+            if not slug or slug in seen_slugs:
+                continue
+            seen_slugs.add(slug)
+
+            dt = m.group(1)
+            name = name_m.group(1).strip() if name_m else slug.replace('-', ' ').title()
+            # Clean HTML entities
+            name = re.sub(r'&amp;', '&', name)
+            name = re.sub(r'&#3[0-9]+;', "'", name)
+            name = name.strip()
+
+            venue = venue_m.group(1).strip() if venue_m else ''
+            venue = re.sub(r'&amp;', '&', venue).strip()
+
+            location = loc_m.group(1).strip() if loc_m else ''
+            city, state = '', ''
+            if location and ',' in location:
+                parts = location.split(',')
+                city = parts[0].strip()[:50]
+                state = parts[1].strip()[:20] if len(parts) > 1 else ''
+
+            buyin = int(buyin_m.group(1).replace(',', '')) if buyin_m else None
+
+            # Determine sub-tour from page URL
+            if 'prime' in page_url:
+                sub_tour = 'WPT Prime'
+            elif 'special' in page_url:
+                sub_tour = 'WPT Special Events'
+            else:
+                sub_tour = 'WPT Main Tour'
+
+            # Parse date
+            date_str = None
             try:
-                data = json.loads(body.decode('utf-8', errors='replace'))
-                print(f"  [JSON API HIT] {ep_url} → {type(data).__name__}")
-                events = parse_generic_json(data, tour_code, ep_url)
-                if events:
-                    prov = build_provenance(ep_url, body, __file__, method="Scrapling/NativeJSON")
-                    return events, prov, body
+                dt_obj = datetime.fromisoformat(dt.replace('Z', '+00:00'))
+                date_str = dt_obj.strftime('%Y-%m-%d')
+            except Exception:
+                date_str = dt[:10] if dt else None
+
+            all_events.append({
+                "tour_code": tour_code,
+                "stop_name": f"{sub_tour} — {venue}" if venue else f"{sub_tour} — {name[:40]}",
+                "stop_venue": venue[:80] if venue else '',
+                "stop_city": city,
+                "stop_state": state.split(',')[0].strip()[:20] if ',' in state else state[:20],
+                "stop_start_date": date_str,
+                "stop_end_date": None,
+                "event_number": len(all_events) + 1,
+                "event_name": name[:100],
+                "game_type": "NLH",
+                "buy_in": buyin,
+                "is_main_event": 'championship' in name.lower() or 'main' in name.lower(),
+                "source_url": page_url,
+                "data_quality": "scraped_verified",
+            })
+
+        print(f"    [{page_url.split('/')[-1]}] {len(all_events)} cumulative events")
+
+    print(f"  [WPT] Total: {len(all_events)} events across {len(sub_pages)} pages")
+    prov = build_provenance(primary_source, combined_body, __file__, method="Scrapling/AstroSSG")
+    return all_events, prov, combined_body
+
+
+def scrape_cppt(tour_code, batch_id, dry_run):
+    """
+    CPPT: Card Player Poker Tour — DEFUNCT.
+    Verified via StealthySession: cardplayerpokertour.com solved CF Turnstile
+    but redirected to cardplayer.com historical article (no upcoming events).
+    Evidence captured for audit trail. Returns 0 events.
+    Source: https://www.cardplayer.com/poker-tournaments/card-player-poker-tour
+    """
+    config = TOUR_REGISTRY['CPPT']
+    source_url = config['source_url']
+
+    print(f"  [CPPT] Status: DEFUNCT — scraping historical article for evidence")
+    print(f"  [CPPT] Source of truth: {source_url}")
+
+    # Capture evidence from the cardplayer.com redirect destination
+    body, status, sha = scrapling_get(source_url, use_cloudflare=False)
+    if not body:
+        # Fallback: try with StealthySession to get through CF on cardplayerpokertour.com
+        body, status, sha = scrapling_get(
+            "https://www.cardplayerpokertour.com/", use_cloudflare=True
+        )
+
+    if body:
+        html = body.decode('utf-8', errors='replace')
+        text = re.sub(r'<[^>]+>', ' ', html[:5000])
+        text = re.sub(r'\s+', ' ', text).strip()
+        print(f"  [CPPT] Confirmed defunct: {text[:200]}")
+        prov = build_provenance(source_url, body, __file__, method="Scrapling/Defunct")
+    else:
+        # Build minimal provenance for audit
+        prov = {
+            "source_url": source_url,
+            "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
+            "scrape_html_hash": "defunct_no_body",
+            "scrape_byte_count": 0,
+            "scrape_agent": __file__,
+            "scrape_method": "Scrapling/Defunct",
+            "batch_id": str(batch_id),
+            "status": "defunct",
+        }
+        body = b""
+
+    print(f"  [CPPT] 0 events — tour is no longer active")
+    return [], prov, body
+
+
+def scrape_pgt(tour_code, batch_id, dry_run):
+    """
+    PGT: PokerGO Tour — Nuxt.js SSR site at pokergo.com/schedule.
+    Plain Fetcher works (no CF bypass needed) — 200 OK.
+    Device token found in window.__NUXT__.config.public.deviceToken.
+    Schedule data is client-side rendered — the body text shows the schedule UI
+    but event rows are populated via XHR to api.pokergo.com after page load.
+    Source: https://www.pokergo.com/schedule
+    """
+    config = TOUR_REGISTRY['PGT']
+    source_url = config['source_url']
+    device_token = config['device_token']
+
+    print(f"  [PGT] Fetching Nuxt schedule page: {source_url}")
+    body, status, sha = scrapling_get(source_url, use_cloudflare=False)
+    if not body or status != 200:
+        print(f"  [PGT] Fetch failed: HTTP {status}")
+        return [], None, None
+
+    html = body.decode('utf-8', errors='replace')
+    prov = build_provenance(source_url, body, __file__, method="Scrapling/NuxtSSR")
+
+    events = []
+
+    # ── 1. Check Nuxt __NUXT_DATA__ for SSR-embedded schedule data ───────────
+    nuxt_m = re.search(r'<script[^>]+id="__NUXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
+    if nuxt_m:
+        try:
+            nd = json.loads(nuxt_m.group(1))
+            # Nuxt 3 payload is a flat array — look for event/series objects
+            for item in nd:
+                if not isinstance(item, dict):
+                    continue
+                name = (item.get('name') or item.get('title') or item.get('event_name') or '').strip()
+                if not name:
+                    continue
+                start = item.get('start_date') or item.get('date') or item.get('startDate') or ''
+                buyin = parse_buyin(item.get('buy_in') or item.get('buyIn') or item.get('price') or 0)
+                venue = str(item.get('venue') or item.get('location') or '')[:80]
+                events.append({
+                    "tour_code": tour_code,
+                    "stop_name": f"PGT — {venue}" if venue else f"PGT — {name[:40]}",
+                    "stop_venue": venue,
+                    "stop_city": str(item.get('city', ''))[:50],
+                    "stop_state": str(item.get('state', ''))[:20],
+                    "stop_start_date": str(start)[:10] if start else None,
+                    "stop_end_date": None,
+                    "event_number": len(events) + 1,
+                    "event_name": name[:100],
+                    "game_type": infer_game_type(name),
+                    "buy_in": buyin,
+                    "is_main_event": 'championship' in name.lower(),
+                    "source_url": source_url,
+                    "data_quality": "scraped_verified",
+                })
+            if events:
+                print(f"  [PGT] Extracted {len(events)} events from __NUXT_DATA__")
+                return events, prov, body
+        except Exception as e:
+            print(f"  [PGT] NUXT_DATA parse error: {e}")
+
+    # ── 2. Try the PokerGO API with device token ──────────────────────────────
+    api_base = config['api_base']
+    api_endpoints = [
+        f"{api_base}/v4/api/schedule/events",
+        f"{api_base}/v4/api/schedule/series",
+        f"{api_base}/v4/api/pgt",
+        f"{api_base}/v4/api/events/upcoming",
+        f"{api_base}/v3/api/schedule",
+    ]
+    for ep in api_endpoints:
+        print(f"  [PGT API] {ep}")
+        body_api, status_api, sha_api = scrapling_get(
+            ep, use_cloudflare=False
+        )
+        if body_api and status_api == 200:
+            try:
+                d = json.loads(body_api.decode('utf-8', errors='replace'))
+                api_events = parse_generic_json(d, tour_code, ep)
+                if api_events:
+                    print(f"  [PGT API] Found {len(api_events)} events at {ep}")
+                    prov_api = build_provenance(ep, body_api, __file__, method="Scrapling/PGT-API")
+                    return api_events, prov_api, body_api
             except Exception:
                 pass
 
-    # Try StealthySession for the schedule page
+    # ── 3. Fallback: regex on body text ──────────────────────────────────────
+    text = re.sub(r'<[^>]+>', ' ', html)
+    text = re.sub(r'\s+', ' ', text)
+    sched_idx = text.lower().find('schedule')
+    if sched_idx > 0:
+        sched_text = text[sched_idx:sched_idx+5000]
+        print(f"  [PGT] Body schedule text: {sched_text[:500]}")
+    else:
+        print(f"  [PGT] Body text: {text[:500]}")
+
+    print(f"  [PGT] 0 events — schedule populated client-side, no events in SSR payload")
+    return [], prov, body
+
+
+def scrape_napt(tour_code, batch_id, dry_run):
+    """
+    NAPT: North American Poker Tour (PokerStars Live).
+    Plain Fetcher returns 200 OK (192KB) — no CF bypass needed.
+    Site: pokerstarslive.com/napt/lasvegas/schedule/
+    Architecture: React SPA with Contentstack CMS backend.
+    Stack API key: blteecf9626d9a38b03 (found in page CDN assets).
+    Schedule data loaded client-side via Contentstack delivery API.
+    The schedule HTML page shows filter UI but no events when CMS has no published data.
+    Source of truth: https://www.pokerstarslive.com/napt/lasvegas/schedule/
+    """
+    config = TOUR_REGISTRY['NAPT']
+    source_url = config['source_url']
+
+    print(f"  [NAPT] Fetching PokerStars Live schedule: {source_url}")
+    body, status, sha = scrapling_get(source_url, use_cloudflare=False)
+    if not body or status != 200:
+        print(f"  [NAPT] Fetch failed: HTTP {status}")
+        return [], None, None
+
+    html = body.decode('utf-8', errors='replace')
+    prov = build_provenance(source_url, body, __file__, method="Scrapling/ContentstackSPA")
+
+    events = []
+
+    # ── Extract any visible tournament rows from the HTML ─────────────────────
+    # The PokerStars Live schedule renders event rows in a React table.
+    # When a schedule is published, rows appear with structured data.
+    # Look for event rows with: Event Number, Buy-In, Game Type
+    text = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL)
+    text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL)
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    # Find schedule section
+    sched_idx = text.lower().find('tournament schedule')
+    if sched_idx > 0:
+        sched_text = text[sched_idx:sched_idx+10000]
+        print(f"  [NAPT] Schedule section found: {sched_text[:400]}")
+
+        # Try to parse event rows: "Event N  NLH  $X,XXX  Day Month  StartStack"
+        event_rows = re.findall(
+            r'(?:Event\s+([0-9]+)|([0-9]+))\s+'
+            r'(No.Limit|Pot.Limit|NLH|PLO|Mixed|Hold|Omaha)[^$]*'
+            r'\$([0-9,]+)',
+            sched_text, re.IGNORECASE
+        )
+        for ev_num, ev_num2, game, buyin_str in event_rows:
+            ev_num = int(ev_num or ev_num2 or len(events) + 1)
+            buyin = int(buyin_str.replace(',', ''))
+            game_type = 'NLH' if 'limit' in game.lower() or 'nlh' in game.lower() else game.upper()
+            events.append({
+                "tour_code": tour_code,
+                "stop_name": "NAPT Las Vegas",
+                "stop_venue": "Las Vegas",
+                "stop_city": "Las Vegas",
+                "stop_state": "NV",
+                "stop_start_date": None,
+                "stop_end_date": None,
+                "event_number": ev_num,
+                "event_name": f"NAPT Event #{ev_num} — {game_type}",
+                "game_type": game_type,
+                "buy_in": buyin,
+                "is_main_event": ev_num == 1,
+                "source_url": source_url,
+                "data_quality": "scraped_verified",
+            })
+
+    if events:
+        print(f"  [NAPT] Extracted {len(events)} events from HTML schedule")
+    else:
+        print(f"  [NAPT] 0 events — NAPT 2026 schedule not yet published to Contentstack CMS")
+
+    return events, prov, body
+
+
+def scrape_stealthy(tour_code, batch_id, dry_run, config):
+    """
+    Generic StealthySession+camoufox scraper for CF-protected tour sites.
+    Used for: RGPS (Shopify).
+    """
+    source_url = config['source_url']
+    fallbacks = config.get('fallback_urls', [])
+
     all_urls = [source_url] + fallbacks
     for url in all_urls:
-        print(f"  [StealthySession] Attempting: {url}")
+        print(f"  [StealthySession+camoufox] Attempting: {url}")
         body, status, sha = scrapling_get(url, use_cloudflare=True)
         if body and status == 200:
             events = parse_tour_html(body, tour_code, url)
             if events:
                 prov = build_provenance(url, body, __file__, method="Scrapling/StealthySession")
                 return events, prov, body
-            print(f"  [WARN] Page loaded but 0 events parsed — schedule may not be published yet")
+            print(f"  [WARN] Page loaded but 0 events parsed")
             prov = build_provenance(url, body, __file__, method="Scrapling/StealthySession")
             return [], prov, body
         time.sleep(2)
@@ -881,10 +1213,8 @@ def parse_generic_json(data, tour_code, source_url):
         venue = item.get('venue') or item.get('location') or item.get('casino') or ''
         if isinstance(venue, dict):
             venue = venue.get('name') or venue.get('title') or ''
-
         if not name:
             continue
-
         events.append({
             "tour_code": tour_code,
             "stop_name": f"{tour_code} 2026",
@@ -905,52 +1235,11 @@ def parse_generic_json(data, tour_code, source_url):
 
 
 def parse_tour_html(body, tour_code, source_url):
-    """Parse HTML page from StealthySession into event list."""
+    """Parse HTML page into event list (RGPS fallback parser)."""
     html = body.decode('utf-8', errors='replace') if isinstance(body, bytes) else body
     text = re.sub(r'<[^>]+>', ' ', html)
     text = re.sub(r'\s+', ' ', text)
-
     events = []
-
-    # Check for Next.js __NEXT_DATA__ (WPT uses Next.js)
-    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
-    if m:
-        try:
-            next_data = json.loads(m.group(1))
-            props = next_data.get('props', {}).get('pageProps', {})
-            for key in ['events', 'schedule', 'tournaments', 'stops']:
-                items = props.get(key)
-                if isinstance(items, list) and items:
-                    print(f"  [Next.js] Found '{key}' array with {len(items)} items")
-                    for item in items:
-                        name = (item.get('name') or item.get('title') or item.get('eventName') or '').strip()
-                        if not name:
-                            continue
-                        buy_in = parse_buyin(item.get('buyIn') or item.get('buy_in') or 0)
-                        start = item.get('startDate') or item.get('start_date') or item.get('date') or ''
-                        venue = item.get('venue') or item.get('location') or item.get('casino') or ''
-                        if isinstance(venue, dict):
-                            venue = venue.get('name') or venue.get('title') or ''
-                        events.append({
-                            "tour_code": tour_code,
-                            "stop_name": f"{tour_code} 2026",
-                            "stop_venue": str(venue)[:80],
-                            "stop_city": '',
-                            "stop_state": '',
-                            "stop_start_date": str(start)[:10] if start else None,
-                            "stop_end_date": None,
-                            "event_number": len(events) + 1,
-                            "event_name": name[:100],
-                            "game_type": infer_game_type(name),
-                            "buy_in": buy_in,
-                            "is_main_event": 'main' in name.lower(),
-                            "source_url": source_url,
-                            "data_quality": "scraped_verified",
-                        })
-                    if events:
-                        return events
-        except Exception as e:
-            print(f"  [WARN] Next.js parse error: {e}")
 
     # Fallback: Regex patterns on stripped text
     buyin_pattern = re.compile(
@@ -984,7 +1273,6 @@ def parse_tour_html(body, tour_code, source_url):
             "source_url": source_url,
             "data_quality": "scraped_verified",
         })
-
     return events
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1015,6 +1303,14 @@ def scrape_tour(tour_code, batch_id, dry_run=False):
             events, prov, raw_bytes = scrape_gcpt(tour_code, batch_id, dry_run)
         elif tour_code == 'MSPT':
             events, prov, raw_bytes = scrape_mspt(tour_code, batch_id, dry_run)
+        elif tour_code == 'WPT':
+            events, prov, raw_bytes = scrape_wpt(tour_code, batch_id, dry_run)
+        elif tour_code == 'CPPT':
+            events, prov, raw_bytes = scrape_cppt(tour_code, batch_id, dry_run)
+        elif tour_code == 'PGT':
+            events, prov, raw_bytes = scrape_pgt(tour_code, batch_id, dry_run)
+        elif tour_code == 'NAPT':
+            events, prov, raw_bytes = scrape_napt(tour_code, batch_id, dry_run)
         else:
             events, prov, raw_bytes = scrape_stealthy(tour_code, batch_id, dry_run, reg)
     except Exception as e:

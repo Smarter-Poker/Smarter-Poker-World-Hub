@@ -6187,6 +6187,615 @@ test('evaluatePostflopHand: combo draw gets strength boost', () => {
     expect(comboResult.strength).toBeGreaterThanOrEqual(45); // Combo draw minimum
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 50: evaluatePostflopHand EXOTIC BOARD TEXTURE STRESS TESTS
+// ═══════════════════════════════════════════════════════════
+
+// --- 50a: MONOTONE BOARDS (all one suit) ---
+test('evaluatePostflopHand: monotone board — nut flush with suited ace', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ah5h on 9h 7h 2h — hero has the nut flush on a monotone flop
+    const r = evaluatePostflopHand(['Ah', '5h'], ['9h', '7h', '2h']);
+    expect(r.category).toBe('flush');
+    expect(r.strength).toBeGreaterThanOrEqual(85);
+});
+
+test('evaluatePostflopHand: monotone board — no suit match = no flush, just draw detection', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // As Kd on 9h 7h 2h — hero has zero hearts, no flush
+    const r = evaluatePostflopHand(['As', 'Kd'], ['9h', '7h', '2h']);
+    expect(r.category !== 'flush').toBe(true);
+    expect(r.hasFlushDraw).toBe(false);
+    // AK high with no draw on monotone board — should be weak
+    expect(r.strength).toBeLessThanOrEqual(25);
+});
+
+test('evaluatePostflopHand: 4-flush on board — one-card flush is weaker', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ah 3d on 9h 7h 2h Th — 4 hearts on board, hero has Ah = flush but devalued
+    const r = evaluatePostflopHand(['Ah', '3d'], ['9h', '7h', '2h', 'Th']);
+    expect(r.category).toBe('flush');
+    // Should be penalized for 4-flush board (-5 penalty)
+    expect(r.strength).toBeLessThanOrEqual(85);
+});
+
+// --- 50b: QUAD BOARDS (board has quads or trips) ---
+test('evaluatePostflopHand: board trips — hero ace kicker is bluff-catcher not value', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // A9 on 5-5-5-K-2 — board trips, hero just has ace kicker
+    const r = evaluatePostflopHand(['As', '9d'], ['5h', '5d', '5c', 'Kh', '2s']);
+    expect(r.category).toBe('board_trips');
+    // Ace kicker on board trips — best non-boat hand, but still just a bluff-catcher
+    expect(r.strength).toBeGreaterThanOrEqual(35);
+    expect(r.strength).toBeLessThanOrEqual(42);
+});
+
+test('evaluatePostflopHand: board trips — low kicker is near-worthless', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 3d 4c on 8-8-8-K-2 — low kicker with board trips
+    const r = evaluatePostflopHand(['3d', '4c'], ['8h', '8d', '8c', 'Kh', '2s']);
+    expect(r.category).toBe('board_trips');
+    expect(r.strength).toBeLessThanOrEqual(25);
+});
+
+test('evaluatePostflopHand: hero has quads (pocket pair + board pair)', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 55 on 5-5-K-8-2 — hero makes quads
+    const r = evaluatePostflopHand(['5s', '5c'], ['5h', '5d', 'Kh', '8s', '2c']);
+    expect(r.category).toBe('quads');
+    expect(r.strength).toBeGreaterThanOrEqual(96);
+});
+
+// --- 50c: DOUBLE-PAIRED BOARDS ---
+test('evaluatePostflopHand: double-paired board — hero AA is best bluff-catcher', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // AA on K-K-5-5-8 — hero has 3 pairs, best 5-card = KKAA8 but anyone with K or 5 has full house
+    const r = evaluatePostflopHand(['As', 'Ah'], ['Ks', 'Kd', '5h', '5c', '8d']);
+    // Should detect two_pair_weak or similar — not overvalue this
+    expect(r.strength).toBeLessThanOrEqual(48);
+});
+
+test('evaluatePostflopHand: double-paired board — hero 33 is counterfeited', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 33 on K-K-5-5-8 — hero's 33 below both board pairs = playing the board
+    const r = evaluatePostflopHand(['3s', '3h'], ['Ks', 'Kd', '5h', '5c', '8d']);
+    expect(r.category).toBe('board_two_pair');
+    expect(r.strength).toBeLessThanOrEqual(25);
+});
+
+test('evaluatePostflopHand: double-paired board — hero has one of the board pair ranks = full house', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // K9 on K-K-5-5-8 — hero has a king, making KKK55 full house
+    const r = evaluatePostflopHand(['Ks', '9h'], ['Kh', 'Kd', '5h', '5c', '8d']);
+    expect(r.category).toBe('full_house');
+    expect(r.strength).toBeGreaterThanOrEqual(88);
+});
+
+// --- 50d: STRAIGHT FLUSH / ROYAL FLUSH boards ---
+test('evaluatePostflopHand: hero has straight flush', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 6h 7h on 8h 9h Th — hero has 6-7-8-9-T straight flush
+    const r = evaluatePostflopHand(['6h', '7h'], ['8h', '9h', 'Th']);
+    expect(r.category).toBe('straight_flush');
+    expect(r.strength).toBeGreaterThanOrEqual(98);
+});
+
+test('evaluatePostflopHand: hero has royal flush', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ah Kh on Qh Jh Th — royal flush
+    const r = evaluatePostflopHand(['Ah', 'Kh'], ['Qh', 'Jh', 'Th']);
+    expect(r.category).toBe('royal_flush');
+    expect(r.strength).toBe(100);
+});
+
+test('evaluatePostflopHand: wheel straight flush (A-2-3-4-5 suited)', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ah 2h on 3h 4h 5h — wheel straight flush
+    const r = evaluatePostflopHand(['Ah', '2h'], ['3h', '4h', '5h']);
+    expect(r.category).toBe('straight_flush');
+    expect(r.strength).toBeGreaterThanOrEqual(97);
+});
+
+// --- 50e: WHEEL-HEAVY BOARDS ---
+test('evaluatePostflopHand: wheel straight (A-2-3-4-5)', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // A3 on 2-4-5-K-9 — hero has A-2-3-4-5 wheel straight
+    const r = evaluatePostflopHand(['As', '3d'], ['2h', '4c', '5s', 'Kh', '9d']);
+    expect(r.category).toBe('straight');
+    expect(r.strength).toBeGreaterThanOrEqual(70);
+});
+
+test('evaluatePostflopHand: wheel draw (A-2-3-4 need 5)', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // A2 on 3-4-K — A-2-3-4 present, need 5 for wheel = gutshot
+    const r = evaluatePostflopHand(['As', '2d'], ['3h', '4c', 'Kd']);
+    // Should detect gutshot to the wheel
+    expect(r.hasGutshot || r.hasOESD).toBe(true);
+});
+
+// --- 50f: BROADWAY-HEAVY BOARDS (all high cards) ---
+test('evaluatePostflopHand: broadway straight (T-J-Q-K-A)', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // AK on T-J-Q-7-2 — broadway straight
+    const r = evaluatePostflopHand(['As', 'Kd'], ['Th', 'Jc', 'Qs', '7h', '2d']);
+    expect(r.category).toBe('straight');
+    expect(r.strength).toBeGreaterThanOrEqual(75);
+});
+
+test('evaluatePostflopHand: 4-to-a-broadway board — one-card straight is devalued', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ac 3d on Th Jc Qs Kh 2d — hero has A for AKQJT straight but 4 of 5 cards on board
+    const r = evaluatePostflopHand(['Ac', '3d'], ['Th', 'Jc', 'Qs', 'Kh', '2d']);
+    expect(r.category).toBe('straight');
+    // One-card straight should be penalized: anyone with an Ace also has this straight
+    expect(r.strength).toBeLessThanOrEqual(78);
+});
+
+// --- 50g: SET ON PAIRED BOARD ---
+test('evaluatePostflopHand: set on board with pair elsewhere — full house', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 77 on 7-K-K-5-2 — hero has set of 7s + board pair of Kings = 777KK full house
+    const r = evaluatePostflopHand(['7s', '7h'], ['7d', 'Kh', 'Kd', '5c', '2s']);
+    expect(r.category).toBe('full_house');
+    expect(r.strength).toBeGreaterThanOrEqual(88);
+});
+
+// --- 50h: COMBO DRAW on exotic textures ---
+test('evaluatePostflopHand: flush draw + OESD on connected board = combo draw', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Jh Th on 9c 8h 2h — flush draw (3 hearts) + OESD (8-9-T-J)
+    const r = evaluatePostflopHand(['Jh', 'Th'], ['9c', '8h', '2h']);
+    expect(r.hasFlushDraw).toBe(true);
+    expect(r.hasOESD || r.hasGutshot).toBe(true);
+    expect(r.strength).toBeGreaterThanOrEqual(45); // Combo draw minimum
+});
+
+test('evaluatePostflopHand: nut flush draw + gutshot = strong combo draw', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ah 5h on 9h 7d 8c — nut flush draw (Ah + 9h + need 1 more heart... wait need 4 suited)
+    // Need 4 of same suit total: Ah Th on 9h 7d 8h — Ah, Th, 9h, 8h = wait that's flush already
+    // Flush draw = 4 of suit: Ah Th on 9h 7d 2c Kh — 4 hearts (Ah,Th,9h,Kh), need 1 more
+    // No wait, on the flop: Ah Th on 9h 7d 2c — total hearts: Ah, Th, 9h = 3 (backdoor only on flop)
+    // For flush draw on flop need: hero 2 suited + board 2 of same suit = 4 total
+    // Ah Th on 9h 7h 8c — Ah, Th, 9h, 7h = 4 hearts → flush draw + gutshot (need J for TJQKA or 6 for 6789T)
+    const r = evaluatePostflopHand(['Ah', 'Th'], ['9h', '7h', '8c']);
+    expect(r.hasFlushDraw).toBe(true);
+    expect(r.isNutFlushDraw).toBe(true);
+    // OESD: 7-8-9-T and hero has T, need J or 6 = OESD (8 outs)
+    expect(r.hasOESD || r.hasGutshot).toBe(true);
+    expect(r.strength).toBeGreaterThanOrEqual(45);
+});
+
+// --- 50i: OVERPAIR ON SCARY BOARDS ---
+test('evaluatePostflopHand: AA on 8-7-6 all clubs — overpair but flush+straight possible', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // As Ad on 8c 7c 6c — overpair on monotone connected board, no club
+    const r = evaluatePostflopHand(['As', 'Ad'], ['8c', '7c', '6c']);
+    expect(r.category).toBe('overpair');
+    // Still should be valued as overpair — the function doesn't discount for board texture beyond draws
+    expect(r.strength).toBeGreaterThanOrEqual(55);
+});
+
+// --- 50j: TOP PAIR KICKER TESTS ---
+test('evaluatePostflopHand: top pair ace kicker vs top pair weak kicker', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // AK on K-7-2 — TPAK
+    const tpak = evaluatePostflopHand(['As', 'Kd'], ['Kh', '7c', '2s']);
+    // K3 on K-7-2 — top pair weak kicker
+    const tpwk = evaluatePostflopHand(['Ks', '3d'], ['Kh', '7c', '2s']);
+    expect(tpak.category).toBe('top_pair');
+    expect(tpwk.category).toBe('top_pair');
+    expect(tpak.strength).toBeGreaterThan(tpwk.strength);
+    expect(tpak.strength).toBeGreaterThanOrEqual(47); // TPAK
+    expect(tpwk.strength).toBeLessThanOrEqual(42);    // Weak kicker
+});
+
+// --- 50k: UNDERPAIR / THIRD PAIR ---
+test('evaluatePostflopHand: underpair 22 on A-K-Q board = very weak', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const r = evaluatePostflopHand(['2s', '2h'], ['Ah', 'Kd', 'Qc']);
+    expect(r.category).toBe('underpair');
+    expect(r.strength).toBeLessThanOrEqual(30);
+});
+
+test('evaluatePostflopHand: second pair on 3-street board', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // QJ on K-Q-7-3-2 — second pair (queens)
+    const r = evaluatePostflopHand(['Qs', 'Jd'], ['Kh', 'Qc', '7s', '3d', '2c']);
+    expect(r.category).toBe('second_pair');
+    expect(r.strength).toBeGreaterThanOrEqual(33);
+    expect(r.strength).toBeLessThanOrEqual(40);
+});
+
+// --- 50l: HIGH CARD / AIR on various boards ---
+test('evaluatePostflopHand: complete air — 72o on AKQ board', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const r = evaluatePostflopHand(['7s', '2d'], ['Ah', 'Kd', 'Qc']);
+    expect(r.category).toBe('high_card');
+    expect(r.strength).toBeLessThanOrEqual(20);
+});
+
+test('evaluatePostflopHand: ace-high on low board = some showdown value', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const r = evaluatePostflopHand(['As', 'Jd'], ['5h', '3c', '2s']);
+    // No pair but AJ high — should have moderate high-card strength
+    expect(r.category).toBe('high_card');
+    expect(r.strength).toBeGreaterThanOrEqual(18);
+});
+
+// --- 50m: BACKDOOR FLUSH DRAW ---
+test('evaluatePostflopHand: backdoor flush draw on flop adds small bonus', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ah Kh on 9h 7d 2c — only 1 heart on board + 1 in hand = 2 hearts, need backdoor
+    // Wait — that's only 2 hearts total. Need 3. Let me use: Ah Kh on 9h 7d 2h would be flush draw.
+    // For backdoor: Ah Kh on 9d 7h 2c — AhKh with one heart on board (7h) = 3 hearts total = backdoor
+    const r = evaluatePostflopHand(['Ah', 'Kh'], ['9d', '7h', '2c']);
+    expect(r.hasBackdoorFlush).toBe(true);
+    // AK high + backdoor flush bonus
+    expect(r.strength).toBeGreaterThanOrEqual(20);
+});
+
+// --- 50n: POCKET PAIR DIFFERENT SUIT on flush board (Phase 44 regression test) ---
+test('evaluatePostflopHand: pocket pair different suits — straight flush check doesnt crash', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 9h 9d on 8h 7h 6h Th — hero 9h contributes to straight flush (6-7-8-9-T hearts)
+    const r = evaluatePostflopHand(['9h', '9d'], ['8h', '7h', '6h', 'Th']);
+    // Hero's 9h is part of the 6-7-8-9-T heart straight flush
+    expect(r.category).toBe('straight_flush');
+    expect(r.strength).toBeGreaterThanOrEqual(98);
+});
+
+// --- 50o: PAIR + FLUSH DRAW BONUS ---
+test('evaluatePostflopHand: top pair + flush draw = strength bonus', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Kh 9h on Kd 7h 2h — top pair kings + flush draw
+    const r = evaluatePostflopHand(['Kh', '9h'], ['Kd', '7h', '2h']);
+    expect(r.category).toBe('top_pair');
+    expect(r.hasFlushDraw).toBe(true);
+    // Should get +5 pair+draw bonus, so top pair 41 base (weak kicker 9) + 5 = 46+
+    expect(r.strength).toBeGreaterThanOrEqual(46);
+});
+
+// --- 50p: BOARD PAIR — hero doesn't pair ---
+test('evaluatePostflopHand: board pair, hero has overcards = marginal', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // AK on 5-5-8-3-2 — board pair of 5s, hero doesnt pair. Category = board_pair
+    const r = evaluatePostflopHand(['As', 'Kd'], ['5h', '5c', '8d', '3s', '2c']);
+    expect(r.category).toBe('board_pair');
+    expect(r.strength).toBeGreaterThanOrEqual(23); // Ace kicker
+    expect(r.strength).toBeLessThanOrEqual(30);
+});
+
+// --- 50q: FULL HOUSE — pocket pair making trips part ---
+test('evaluatePostflopHand: pocket pair makes trips in full house — extra strong', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // KK on K-7-7-2-5 — KKK77 full house. Hero pocket pair is trips part → strongest
+    const r = evaluatePostflopHand(['Ks', 'Kh'], ['Kd', '7c', '7d', '2s', '5h']);
+    expect(r.category).toBe('full_house');
+    expect(r.strength).toBeGreaterThanOrEqual(93); // Kings full + pocket pair trips bonus
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 51: BUG #39 — BOARD-MADE STRAIGHT/FLUSH DETECTION
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #39: board-made broadway straight — hero has no straight cards', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 27 on T-J-Q-K-A — board straight, hero doesn't contribute
+    const r = evaluatePostflopHand(['2s', '7d'], ['Th', 'Jc', 'Qd', 'Ks', 'Ah']);
+    expect(r.category).toBe('board_straight');
+    // Should be ~40 (chop hand), NOT 13 (would cause fold)
+    expect(r.strength).toBeGreaterThanOrEqual(38);
+    expect(r.strength).toBeLessThanOrEqual(48);
+});
+
+test('BUG #39: board-made low straight — hero has no straight cards', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 2d Kc on 5-6-7-8-9 — board has 5-6-7-8-9 straight, hero doesn't improve it
+    // Actually hero K (rank 11) might pair or be kicker. Test: hero 2d 3c on 5-6-7-8-9
+    const r = evaluatePostflopHand(['2d', '3c'], ['5h', '6c', '7d', '8s', '9h']);
+    expect(r.category).toBe('board_straight');
+    expect(r.strength).toBeGreaterThanOrEqual(38);
+});
+
+test('BUG #39: board-made wheel straight A-2-3-4-5', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 9d Tc on A-2-3-4-5 — board wheel, hero doesn't contribute
+    const r = evaluatePostflopHand(['9d', 'Tc'], ['Ah', '2s', '3c', '4d', '5h']);
+    // Hero 9 and T don't participate in wheel. But hero T is kicker above 5, and
+    // the board-made straight check should fire.
+    expect(r.category).toBe('board_straight');
+    expect(r.strength).toBeGreaterThanOrEqual(38);
+});
+
+test('BUG #39: board-made flush, hero has no matching suit', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 2d 7c on 3h 6h 9h Th Kh — board 5-card heart flush, hero has no hearts
+    const r = evaluatePostflopHand(['2d', '7c'], ['3h', '6h', '9h', 'Th', 'Kh']);
+    expect(r.category).toBe('board_flush');
+    // Very weak — anyone with a heart beats us
+    expect(r.strength).toBeGreaterThanOrEqual(28);
+    expect(r.strength).toBeLessThanOrEqual(35);
+});
+
+test('BUG #39: board straight+flush, hero has neither', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // 2d 7c on Th Jh Qh Kh Ah — board has straight flush! Hero has nothing.
+    const r = evaluatePostflopHand(['2d', '7c'], ['Th', 'Jh', 'Qh', 'Kh', 'Ah']);
+    // Board has both straight and flush — board_flush should override since it's weaker for hero
+    expect(r.strength).toBeGreaterThanOrEqual(28);
+    expect(r.strength).toBeLessThanOrEqual(45);
+});
+
+// Verify existing cases still work after BUG #39 fix
+test('BUG #39 regression: hero-contributing straight still works normally', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // AK on T-J-Q-7-2 — hero contributes A and K to broadway straight
+    const r = evaluatePostflopHand(['As', 'Kd'], ['Th', 'Jc', 'Qs', '7h', '2d']);
+    expect(r.category).toBe('straight');
+    expect(r.strength).toBeGreaterThanOrEqual(75);
+});
+
+test('BUG #39 regression: hero-contributing flush still works normally', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ah 5h on 9h 7h 2h — hero makes nut flush
+    const r = evaluatePostflopHand(['Ah', '5h'], ['9h', '7h', '2h']);
+    expect(r.category).toBe('flush');
+    expect(r.strength).toBeGreaterThanOrEqual(85);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 52: INTEGRATION TESTS — Full getDecision Pipeline
+// Tests call getDecision with realistic game states to verify
+// the entire decision pipeline works end-to-end without crashing.
+// ═══════════════════════════════════════════════════════════
+
+// Helper to build realistic engine states
+function makeEngineState(overrides = {}) {
+    return {
+        tableId: 'test-table-integration',
+        phase: overrides.phase || 'preflop',
+        communityCards: overrides.communityCards || [],
+        potTotal: overrides.potTotal || 10,
+        currentBet: overrides.currentBet || 2,
+        variant: overrides.variant || 'holdem',
+        players: overrides.players || [
+            { id: 'hero-test', holeCards: overrides.heroCards || [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }], stack: overrides.heroStack || 500, position: overrides.heroPosition || 'btn', folded: false, invested: overrides.heroInvested || 0 },
+            { id: 'villain-1', holeCards: [{ rank: '7', suit: 'd' }, { rank: '2', suit: 'c' }], stack: 500, position: 'bb', folded: false, invested: 2 },
+        ],
+        ...overrides,
+    };
+}
+
+function makeHoleCards(c1, c2) {
+    // c1 = 'As' → { rank: 'A', suit: 's' }
+    const rankMap = { 'T': 'T', 'J': 'J', 'Q': 'Q', 'K': 'K', 'A': 'A' };
+    const toCard = (s) => ({ rank: rankMap[s[0]] || s[0], suit: s[1] });
+    return [toCard(c1), toCard(c2)];
+}
+
+function makeBoardCards(cards) {
+    const rankMap = { 'T': 'T', 'J': 'J', 'Q': 'Q', 'K': 'K', 'A': 'A' };
+    return cards.map(s => ({ rank: rankMap[s[0]] || s[0], suit: s[1] }));
+}
+
+const standardLegalActions = [
+    { type: 'fold' },
+    { type: 'call', amount: 2 },
+    { type: 'raise', minAmount: 6, maxAmount: 500 },
+];
+
+const checkOrBetActions = [
+    { type: 'check' },
+    { type: 'bet', minAmount: 2, maxAmount: 500 },
+];
+
+// --- 52a: Preflop AKo open from button ---
+asyncTest('Integration: getDecision — preflop AKo from BTN does not crash', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards('As', 'Kh'),
+        heroPosition: 'btn',
+        potTotal: 3,
+        currentBet: 2,
+        heroInvested: 0,
+    });
+    const result = await getDecision('hero-test', state, standardLegalActions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    expect(!!result.action).toBe(true);
+    expect(!!result.action.type).toBe(true);
+    // AKo from BTN should NOT fold preflop
+    expect(result.action.type !== 'fold').toBe(true);
+    expect(typeof result.delayMs).toBe('number');
+    expect(result.delayMs).toBeGreaterThanOrEqual(0);
+});
+
+// --- 52b: Preflop 72o from UTG — should fold or play passively ---
+asyncTest('Integration: getDecision — preflop 72o from UTG', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards('7s', '2d'),
+        heroPosition: 'utg',
+        potTotal: 3,
+        currentBet: 2,
+        heroInvested: 0,
+    });
+    const result = await getDecision('hero-test', state, standardLegalActions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    expect(!!result.action).toBe(true);
+    // 72o from UTG should fold almost always (unless chaotic personality)
+    // Just verify it returns a valid action
+    expect(['fold', 'call', 'raise', 'check', 'bet', 'all_in'].includes(result.action.type)).toBe(true);
+});
+
+// --- 52c: Flop top pair — should not fold ---
+asyncTest('Integration: getDecision — flop top pair AK on K-7-2 rainbow', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'flop',
+        heroCards: makeHoleCards('As', 'Kh'),
+        communityCards: makeBoardCards(['Kd', '7c', '2s']),
+        potTotal: 20,
+        currentBet: 0,
+        heroInvested: 0,
+        heroPosition: 'btn',
+    });
+    const result = await getDecision('hero-test', state, checkOrBetActions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    expect(!!result.action.type).toBe(true);
+    // Top pair top kicker should bet or check — never fold (fold isn't even legal here)
+    expect(['check', 'bet'].includes(result.action.type)).toBe(true);
+});
+
+// --- 52d: River with strong hand facing bet ---
+asyncTest('Integration: getDecision — river flush facing bet', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'river',
+        heroCards: makeHoleCards('Ah', 'Kh'),
+        communityCards: makeBoardCards(['Qh', '7h', '2h', 'Td', '3c']),
+        potTotal: 100,
+        currentBet: 50,
+        heroInvested: 0,
+        heroPosition: 'bb',
+    });
+    const facingBetActions = [
+        { type: 'fold' },
+        { type: 'call', amount: 50 },
+        { type: 'raise', minAmount: 100, maxAmount: 500 },
+    ];
+    const result = await getDecision('hero-test', state, facingBetActions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    // Nut flush on river facing bet — should call or raise, NOT fold
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// --- 52e: No hole cards — should check or fold gracefully ---
+asyncTest('Integration: getDecision — no hole cards does not crash', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        players: [
+            { id: 'hero-test', holeCards: [], stack: 500, position: 'btn', folded: false, invested: 0 },
+            { id: 'villain-1', stack: 500, position: 'bb', folded: false, invested: 2 },
+        ],
+    });
+    const result = await getDecision('hero-test', state, standardLegalActions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    // Should gracefully return check or fold
+    expect(['fold', 'check'].includes(result.action.type)).toBe(true);
+});
+
+// --- 52f: Empty legal actions — should return fold ---
+asyncTest('Integration: getDecision — empty legal actions returns fold', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState();
+    const result = await getDecision('hero-test', state, [], { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    expect(result.action.type).toBe('fold');
+});
+
+// --- 52g: Multiway pot (4 players) ---
+asyncTest('Integration: getDecision — multiway flop 4 players', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'flop',
+        heroCards: makeHoleCards('Jh', 'Th'),
+        communityCards: makeBoardCards(['9h', '8d', '2c']),
+        potTotal: 40,
+        currentBet: 10,
+        heroInvested: 0,
+        heroPosition: 'co',
+        players: [
+            { id: 'hero-test', holeCards: makeHoleCards('Jh', 'Th'), stack: 500, position: 'co', folded: false, invested: 0 },
+            { id: 'villain-1', stack: 500, position: 'btn', folded: false, invested: 10 },
+            { id: 'villain-2', stack: 500, position: 'bb', folded: false, invested: 10 },
+            { id: 'villain-3', stack: 500, position: 'sb', folded: false, invested: 10 },
+        ],
+    });
+    const facingBet = [
+        { type: 'fold' },
+        { type: 'call', amount: 10 },
+        { type: 'raise', minAmount: 25, maxAmount: 500 },
+    ];
+    const result = await getDecision('hero-test', state, facingBet, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    expect(!!result.action).toBe(true);
+    // JThh on 9h8d2c = OESD + backdoor flush draw = strong draw. Should not fold multiway.
+    expect(['call', 'raise'].includes(result.action.type)).toBe(true);
+});
+
+// --- 52h: Short stack all-in decision ---
+asyncTest('Integration: getDecision — short stack preflop AQs', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards('As', 'Qs'),
+        heroStack: 20, // 10bb — short stack
+        potTotal: 3,
+        currentBet: 2,
+        heroInvested: 0,
+        heroPosition: 'btn',
+    });
+    const shortStackActions = [
+        { type: 'fold' },
+        { type: 'call', amount: 2 },
+        { type: 'raise', minAmount: 6, maxAmount: 20 },
+        { type: 'all_in', amount: 20 },
+    ];
+    const result = await getDecision('hero-test', state, shortStackActions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    // AQs at 10bb from BTN — should shove or raise, not fold
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+// --- 52i: Turn with draw completing ---
+asyncTest('Integration: getDecision — turn completes flush draw', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'turn',
+        heroCards: makeHoleCards('Ah', 'Kh'),
+        communityCards: makeBoardCards(['9h', '7h', '2d', 'Th']),
+        potTotal: 60,
+        currentBet: 0,
+        heroInvested: 0,
+        heroPosition: 'btn',
+    });
+    const result = await getDecision('hero-test', state, checkOrBetActions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    // Nut flush on turn — should bet for value
+    expect(['check', 'bet'].includes(result.action.type)).toBe(true);
+});
+
+// --- 52j: Validate action amounts are within legal bounds ---
+asyncTest('Integration: getDecision — raise amount within legal bounds', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards('As', 'Ad'),
+        heroPosition: 'btn',
+        potTotal: 5,
+        currentBet: 4,
+        heroInvested: 1,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 3 },
+        { type: 'raise', minAmount: 10, maxAmount: 500 },
+    ];
+    const result = await getDecision('hero-test', state, actions, { bigBlind: 2 });
+    expect(!!result).toBe(true);
+    if (result.action.type === 'raise' && result.action.amount !== undefined) {
+        // If raise, amount must be within legal bounds
+        expect(result.action.amount).toBeGreaterThanOrEqual(10);
+        expect(result.action.amount).toBeLessThanOrEqual(500);
+    }
+    // AA should not fold preflop
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
