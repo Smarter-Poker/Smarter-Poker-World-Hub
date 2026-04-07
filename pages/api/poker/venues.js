@@ -1012,34 +1012,60 @@ export default async function handler(req, res) {
           const charityVenues = venues.filter(v => v.venue_type === 'charity');
           if (charityVenues.length > 0) {
               try {
-                  const charityIds = charityVenues.map(v => v.id);
-                  const { data: upcomingTours } = await getSupabase()
-                      .from('venue_daily_tournaments')
-                      .select('venue_id, day_of_week, city')
-                      .in('venue_id', charityIds)
-                      .eq('is_active', true)
-                      .eq('data_quality', 'scraped_verified');
+                  const charityIds = charityVenues.map(v => v.id).filter(id => typeof id === 'number');
+                  const charityNames = charityVenues.map(v => v.name).filter(Boolean);
+
+                  // Run BOTH joins in parallel: ID-based (linked rows) + name-based (unlinked rows where venue_id=null)
+                  const [idResult, nameResult] = await Promise.all([
+                      charityIds.length > 0
+                          ? getSupabase()
+                              .from('venue_daily_tournaments')
+                              .select('venue_id, venue_name, day_of_week')
+                              .in('venue_id', charityIds)
+                              .eq('is_active', true)
+                          : Promise.resolve({ data: [] }),
+                      charityNames.length > 0
+                          ? getSupabase()
+                              .from('venue_daily_tournaments')
+                              .select('venue_id, venue_name, day_of_week')
+                              .is('venue_id', null)
+                              .in('venue_name', charityNames)
+                              .eq('is_active', true)
+                          : Promise.resolve({ data: [] }),
+                  ]);
+
+                  // Build name→id map for the null-venue_id rows
+                  const nameToId = {};
+                  charityVenues.forEach(v => { if (v.name) nameToId[v.name] = v.id; });
+
+                  // Stitch venue_id onto name-matched rows
+                  const nameRows = (nameResult.data || []).map(t => ({
+                      ...t,
+                      venue_id: nameToId[t.venue_name] ?? t.venue_id,
+                  })).filter(t => t.venue_id);
+
+                  const upcomingTours = [...(idResult.data || []), ...nameRows];
                       
                   if (upcomingTours && upcomingTours.length > 0) {
                       const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
                       const todayIdx = new Date(localCurrentTime).getDay();
-                      const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                      const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                       const todayStr = DAYS[todayIdx];
                       
                       const toursByVenue = {};
                       upcomingTours.forEach(t => {
-                          if (!toursByVenue[t.venue_id]) toursByVenue[t.venue_id] = [];
-                          toursByVenue[t.venue_id].push(t);
+                          const key = t.venue_id || t.venue_name;
+                          if (!toursByVenue[key]) toursByVenue[key] = [];
+                          toursByVenue[key].push(t);
                       });
                       
                       venues.forEach(v => {
                           if (v.venue_type !== 'charity') return;
                           
-                          // Only overwrite if it wasn't already set by a fully populated social page run_schedule
-                          const hasTours = toursByVenue[v.id] || [];
+                          const hasTours = toursByVenue[v.id] || toursByVenue[v.name] || [];
                           if (hasTours.length === 0) return; 
                           
-                          const todayTour = hasTours.find(t => t.day_of_week === todayStr);
+                          const todayTour = hasTours.find(t => t.day_of_week.toLowerCase() === todayStr);
                           if (todayTour) {
                               v.is_today = true;
                               v.next_event = null;
@@ -1049,11 +1075,11 @@ export default async function handler(req, res) {
                               for (let i = 1; i <= 7; i++) {
                                   const nextIdx = (todayIdx + i) % 7;
                                   const nextDayStr = DAYS[nextIdx];
-                                  const nextTour = hasTours.find(t => t.day_of_week === nextDayStr);
+                                  const nextTour = hasTours.find(t => t.day_of_week.toLowerCase() === nextDayStr);
                                   if (nextTour) {
                                       v.next_event = {
                                           day: nextTour.day_of_week,
-                                          location: nextTour.city || v.city || 'Local Area'
+                                          location: v.city || 'Local Area'
                                       };
                                       break;
                                   }
