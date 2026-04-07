@@ -306,6 +306,9 @@ export default function PokerNearMePage() {
     const bus = eventBus;
     const userId = user?.id;
     const fetchSequenceRef = useRef(0);
+    const fetchToursSeqRef = useRef(0);
+    const fetchSeriesSeqRef = useRef(0);
+    const fetchDailySeqRef = useRef(0);
 
     // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
     useVenueRealtime(() => {
@@ -1027,18 +1030,35 @@ export default function PokerNearMePage() {
         };
     }, [userLocation, allVenuesForMap]);
 
-    // --- Merge geocoded social pages into geofence feed ---
+    // --- Merge real-time venue updates and social pages into map feed ---
     useEffect(() => {
         if (!venues || venues.length === 0) return;
+        
+        // Extract social pages
         const socialWithCoords = venues.filter(v =>
             v.is_social_page && v.latitude && v.longitude
         );
-        if (socialWithCoords.length === 0) return;
+
+        // Build a map of updated standard venues from the live fetch
+        const liveUpdates = {};
+        venues.forEach(v => {
+            if (!v.is_social_page && v.id) {
+                liveUpdates[String(v.id)] = v;
+            }
+        });
 
         setAllVenuesForMap(prev => {
-            // Remove any previously merged social pages, then add fresh ones
+            // 1. Remove previously merged social pages
             const withoutSocial = prev.filter(v => !String(v.id).startsWith('sp-'));
-            return [...withoutSocial, ...socialWithCoords];
+            
+            // 2. Overwrite standard venues with fresh live data (to sync has_tournaments, etc)
+            const syncedStandard = withoutSocial.map(v => {
+                const fresh = liveUpdates[String(v.id)];
+                return fresh ? { ...v, ...fresh } : v;
+            });
+
+            // 3. Append fresh social pages
+            return [...syncedStandard, ...socialWithCoords];
         });
     }, [venues]);
 
@@ -1534,7 +1554,11 @@ export default function PokerNearMePage() {
             }
 
             const url = '/api/poker/tours?' + params;
+            const currentSeq = ++fetchToursSeqRef.current;
             const json = await cachedFetch(url);
+            
+            if (fetchToursSeqRef.current !== currentSeq) return;
+            
             setTours(json.data || []);
         } catch (e) {
             console.error('Fetch tours error:', e);
@@ -1559,7 +1583,11 @@ export default function PokerNearMePage() {
             }
 
             const url = '/api/poker/series?' + params;
+            const currentSeq = ++fetchSeriesSeqRef.current;
             const json = await cachedFetch(url);
+            
+            if (fetchSeriesSeqRef.current !== currentSeq) return;
+            
             setSeries(json.data || []);
         } catch (e) {
             console.error('Fetch series error:', e);
@@ -1597,7 +1625,11 @@ export default function PokerNearMePage() {
             }
 
             const url = '/api/poker/daily-tournaments?' + params;
+            const currentSeq = ++fetchDailySeqRef.current;
             const json = await cachedFetch(url);
+            
+            if (fetchDailySeqRef.current !== currentSeq) return;
+            
             const tournamentList = json.tournaments || [];
             setDailyTournaments(tournamentList);
             // Update dbStats with tournament count

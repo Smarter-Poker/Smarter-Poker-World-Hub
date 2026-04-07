@@ -47,15 +47,6 @@ TOURN_RE = re.compile(
 # ── Hardcoded venue list: 31 targets ──
 # Each entry: (db_id, name, state, city, [urls_to_try_in_order], [pa_slug], [bravo_slug])
 VENUES = [
-    # ── NV ──
-    (2172, "Silver Legacy",  "NV", "Reno",       ["https://www.silverlegacyreno.com/gaming/poker-room"], "silver-legacy-resort-casino", "silver-legacy-resort-casino"),
-    (2163, "Aliante",        "NV", "N Las Vegas", ["https://www.aliantegaming.com/casino/table-games/poker", "https://www.aliantegaming.com"], "aliante-casino-hotel-spa", "aliante-casino"),
-    (2141, "Treasure Island","NV", "Las Vegas",   ["http://www.treasureislandlasvegas.com/entertainment/poker"], "treasure-island-ti-hotel-casino", "treasure-island"),
-    (2166, "Jokers Wild",    "NV", "Henderson",   ["https://www.jokerswildcasino.com/gaming/poker", "https://www.jokerswildcasino.com"], "jokers-wild-henderson", "jokers-wild"),
-    (2173, "Eldorado",       "NV", "Reno",        ["http://www.eldoradoreno.com/reno-casinos/poker/", "http://www.eldoradoreno.com"], "eldorado-reno", "eldorado-reno"),
-    (2147, "Four Queens",    "NV", "Las Vegas",   ["https://www.fourqueens.com/casino/poker", "https://www.fourqueens.com"], "four-queens-hotel-casino", "four-queens"),
-    (2162, "M Resort",       "NV", "Henderson",   ["http://www.themresort.com/gaming/poker.html", "http://www.themresort.com"], "m-resort-spa-casino", "m-resort"),
-    (2146, "Fremont",        "NV", "Las Vegas",   ["https://www.fremont.com/casino/poker", "https://www.fremont.com"], "fremont-casino", "fremont-casino"),
     # ── CA ──
     (1929, "Artichoke Joe's Casino", "CA", "San Bruno",  ["https://www.artichokejoes.com/poker/tournaments", "https://www.artichokejoes.com/"], "artichoke-joes-casino-san-bruno", "artichoke-joes"),
     (1864, "Table Mountain Casino",  "CA", "Friant",     ["https://www.tablemountaincasino.com/play/poker"], "table-mountain-casino", "table-mountain-casino"),

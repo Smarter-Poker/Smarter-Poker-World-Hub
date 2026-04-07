@@ -159,14 +159,12 @@ function buildCharityEventBlock(venue) {
         return (
             <div className="vc3-charity-event vc3-charity-today">
                 <div className="vc3-charity-event-label">
-                    <span className="vc3-charity-dot" />
                     Event Today
                 </div>
                 <div className="vc3-charity-date-big">Today</div>
                 {addr ? <div className="vc3-charity-addr">{addr}</div> : null}
                 {timeStr ? (
                     <div className="vc3-charity-meta">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         {timeStr}
                         {te.buy_in > 0 ? <><span className="vc3-charity-sep">·</span>${te.buy_in} Buy-In</> : null}
                     </div>
@@ -194,7 +192,6 @@ function buildCharityEventBlock(venue) {
         return (
             <div className="vc3-charity-event">
                 <div className="vc3-charity-event-label">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     {isTomorrow ? 'Tomorrow' : 'Next Event'}
                 </div>
                 <div className="vc3-charity-date-big">
@@ -204,7 +201,6 @@ function buildCharityEventBlock(venue) {
                 {addr ? <div className="vc3-charity-addr">{addr}</div> : null}
                 {timeStr ? (
                     <div className="vc3-charity-meta">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         {timeStr}
                         {ne.buy_in > 0 ? <><span className="vc3-charity-sep">·</span>${ne.buy_in} Buy-In</> : null}
                     </div>
@@ -362,11 +358,12 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     openNativeMaps({ address: [venue.address, venue.city, venue.state].filter(Boolean).join(', '), mode: 'search' });
                 }}
                 title="Open In Maps"
+                style={{ justifyContent: 'flex-start' }}
             >
+                <span>{venue.address ? (venue.address + ' - ') : ''}{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
                 </svg>
-                <span>{venue.address ? (venue.address + ' - ') : ''}{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}</span>
             </a>
 
             {/* Home Game Host Info — Avatar + Name + Profile Link */}
@@ -456,7 +453,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         LIVE NOW: {venue.live_data.tables_running} Table{venue.live_data.tables_running !== 1 ? 's' : ''}
                     </span>
                 )}
-                {venue.has_tournaments && <span className="vc3-badge vc3-badge-tourney">Tournaments</span>}
+                {venue.has_tournaments && <></>}
                 {venue.max_gtd > 0 && (
                     <span className="vc3-badge vc3-badge-gtd" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>
                         {formatMoney(venue.max_gtd)}+ GTD

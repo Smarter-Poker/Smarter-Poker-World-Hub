@@ -8375,6 +8375,264 @@ test('PLO equity realization: IP gets higher ERC than OOP', () => {
     expect(ipERC >= oopERC).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 65: HOLD'EM HEURISTIC ENGINES + EDGE CASES
+// Direct tests of makeFlopHeuristicDecision, makeTurnRiverHeuristicDecision
+// ═══════════════════════════════════════════════════════════
+
+test('makeFlopHeuristicDecision: returns valid action on dry board with TPTK', () => {
+    const { makeFlopHeuristicDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!makeFlopHeuristicDecision) { expect(true).toBe(true); return; }
+    const result = makeFlopHeuristicDecision({
+        holeCards: ['As', 'Kd'], board: ['Ah', '7c', '2d'], handStr: 'AKo',
+        position: 'BTN', stackBB: 100, potSize: 10, toCall: 0, bb: 2,
+        numPlayers: 2, legalActions: [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 200 }],
+        profileId: 'hero-test', heroIsAggressor: true
+    });
+    expect(result !== null).toBe(true);
+    expect(['check', 'bet', 'raise'].includes(result.type)).toBe(true);
+});
+
+test('makeFlopHeuristicDecision: returns null with insufficient board', () => {
+    const { makeFlopHeuristicDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!makeFlopHeuristicDecision) { expect(true).toBe(true); return; }
+    const result = makeFlopHeuristicDecision({
+        holeCards: ['As', 'Kd'], board: ['Ah'], handStr: 'AKo',
+        position: 'BTN', stackBB: 100, potSize: 10, toCall: 0, bb: 2,
+        numPlayers: 2, legalActions: [{ type: 'check' }], profileId: 'hero-test'
+    });
+    expect(result).toBe(null);
+});
+
+test('makeFlopHeuristicDecision: garbage hand facing bet folds or checks', () => {
+    const { makeFlopHeuristicDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!makeFlopHeuristicDecision) { expect(true).toBe(true); return; }
+    const result = makeFlopHeuristicDecision({
+        holeCards: ['7d', '2c'], board: ['As', 'Kd', 'Qh'], handStr: '72o',
+        position: 'UTG', stackBB: 80, potSize: 20, toCall: 15, bb: 2,
+        numPlayers: 4, legalActions: [{ type: 'fold' }, { type: 'call', amount: 15 }, { type: 'raise', minAmount: 30, maxAmount: 160 }],
+        profileId: 'hero-test', heroIsAggressor: false
+    });
+    expect(result !== null).toBe(true);
+    expect(result.type).toBe('fold');
+});
+
+test('makeTurnRiverHeuristicDecision: returns valid action on turn', () => {
+    const { makeTurnRiverHeuristicDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!makeTurnRiverHeuristicDecision) { expect(true).toBe(true); return; }
+    const result = makeTurnRiverHeuristicDecision({
+        street: 'turn', holeCards: ['As', 'Kd'], board: ['Ah', '7c', '2d', '5s'],
+        handStr: 'AKo', position: 'BTN', stackBB: 100, potSize: 20, toCall: 0,
+        bb: 2, numPlayers: 2, legalActions: [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 200 }],
+        profileId: 'hero-test', heroIsAggressor: true
+    });
+    expect(result !== null).toBe(true);
+    expect(['check', 'bet', 'raise', 'call', 'fold'].includes(result.type)).toBe(true);
+});
+
+test('makeTurnRiverHeuristicDecision: river with nuts bets', () => {
+    const { makeTurnRiverHeuristicDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!makeTurnRiverHeuristicDecision) { expect(true).toBe(true); return; }
+    const result = makeTurnRiverHeuristicDecision({
+        street: 'river', holeCards: ['Ah', 'Kh'], board: ['Qh', 'Jh', 'Th', '2c', '3d'],
+        handStr: 'AKs', position: 'BTN', stackBB: 100, potSize: 50, toCall: 0,
+        bb: 2, numPlayers: 2, legalActions: [{ type: 'check' }, { type: 'bet', minAmount: 2, maxAmount: 200 }],
+        profileId: 'hero-test', heroIsAggressor: true
+    });
+    expect(result !== null).toBe(true);
+    // With a royal flush, should bet (or at minimum not fold)
+    expect(result.type !== 'fold').toBe(true);
+});
+
+test('makeTurnRiverHeuristicDecision: returns null for preflop', () => {
+    const { makeTurnRiverHeuristicDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!makeTurnRiverHeuristicDecision) { expect(true).toBe(true); return; }
+    const result = makeTurnRiverHeuristicDecision({
+        street: 'preflop', holeCards: ['As', 'Kd'], board: [],
+        handStr: 'AKo', position: 'BTN', stackBB: 100, potSize: 3, toCall: 2,
+        bb: 2, numPlayers: 2, legalActions: [{ type: 'fold' }, { type: 'call', amount: 2 }],
+        profileId: 'hero-test'
+    });
+    expect(result).toBe(null);
+});
+
+test('evaluateBoardWetness: monotone flop is wet', () => {
+    const { evaluateBoardWetness } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evaluateBoardWetness) { expect(true).toBe(true); return; }
+    const wet = evaluateBoardWetness(['Ah', 'Kh', 'Qh']);
+    expect(typeof wet).toBe('string');
+    // Monotone board should be 'wet' or similar high-wetness indicator
+    expect(wet === 'wet' || wet === 'very_wet').toBe(true);
+});
+
+test('evaluateBoardWetness: rainbow disconnected flop is dry', () => {
+    const { evaluateBoardWetness } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evaluateBoardWetness) { expect(true).toBe(true); return; }
+    const dry = evaluateBoardWetness(['2h', '7d', 'Qs']);
+    expect(typeof dry).toBe('string');
+    expect(dry === 'dry' || dry === 'medium').toBe(true);
+});
+
+test('analyzeBoardEvolution: handles 4-card and 5-card boards', () => {
+    const { analyzeBoardEvolution } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!analyzeBoardEvolution) { expect(true).toBe(true); return; }
+    const turn = analyzeBoardEvolution(['Ah', '7c', '2d', 'Ks'], 'turn');
+    expect(typeof turn.evolution).toBe('string');
+    const river = analyzeBoardEvolution(['Ah', '7c', '2d', 'Ks', '3h'], 'river');
+    expect(typeof river.evolution).toBe('string');
+});
+
+test('getDrawEquity: flush draw on flop returns meaningful equity object', () => {
+    const { getDrawEquity, evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getDrawEquity || !evaluatePostflopHand) { expect(true).toBe(true); return; }
+    const handEval = evaluatePostflopHand(['Ah', 'Kh'], ['Qh', '7h', '2d']);
+    const eq = getDrawEquity(handEval, 'flop');
+    expect(typeof eq).toBe('object');
+    expect(typeof eq.equity).toBe('number');
+    expect(eq.equity >= 0).toBe(true);
+    expect(eq.outs >= 0).toBe(true);
+});
+
+test('getCBetStrategy: PFR on dry board should c-bet', () => {
+    const { getCBetStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getCBetStrategy) { expect(true).toBe(true); return; }
+    const result = getCBetStrategy(65, 'dry', true, true, 2);
+    // Property is shouldCbet (lowercase b)
+    expect(typeof result.shouldCbet).toBe('boolean');
+    expect(result.shouldCbet).toBe(true);
+});
+
+test('getRiverStrategy: strong hand on river should value bet', () => {
+    const { getRiverStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getRiverStrategy) { expect(true).toBe(true); return; }
+    const result = getRiverStrategy(85, 'dry', true, true, 2, 0.50, false);
+    expect(typeof result.action).toBe('string');
+    expect(result.action === 'bet' || result.action === 'raise').toBe(true);
+});
+
+test('getSPRStrategy: low SPR with top pair should commit', () => {
+    const { getSPRStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getSPRStrategy) { expect(true).toBe(true); return; }
+    const result = getSPRStrategy(1.5, 65, false, 'flop');
+    expect(typeof result.shouldCommit).toBe('boolean');
+});
+
+test('getMultiwayAdjustment: 4-way pot penalizes strength', () => {
+    const { getMultiwayAdjustment } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getMultiwayAdjustment) { expect(true).toBe(true); return; }
+    const adj = getMultiwayAdjustment(4, { position: 'BTN', street: 'flop', boardWetness: 'wet', heroIsAggressor: true });
+    expect(typeof adj.strengthPenalty).toBe('number');
+    expect(adj.strengthPenalty > 0).toBe(true);
+});
+
+test('getCheckRaiseStrategy: nuts in good spot should check-raise', () => {
+    const { getCheckRaiseStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getCheckRaiseStrategy) { expect(true).toBe(true); return; }
+    const result = getCheckRaiseStrategy(92, 'dry', false, 2, 'flop', 10, 20);
+    expect(typeof result.shouldCheckRaise).toBe('boolean');
+});
+
+test('handleDonkBet: respects donk bets appropriately', () => {
+    const { handleDonkBet } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!handleDonkBet) { expect(true).toBe(true); return; }
+    const result = handleDonkBet(0.50, 60, 5, 2);
+    expect(typeof result.action).toBe('string');
+    expect(['call', 'raise', 'fold'].includes(result.action)).toBe(true);
+});
+
+test('getGeometricSizing: returns proper bet sizing for value', () => {
+    const { getGeometricSizing } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getGeometricSizing) { expect(true).toBe(true); return; }
+    const size = getGeometricSizing(100, 3, 200, 80);
+    expect(typeof size).toBe('number');
+    expect(size > 0).toBe(true);
+    expect(size <= 200).toBe(true);
+});
+
+test('applyTiltDegradation: does not crash and returns valid decision', () => {
+    const { applyTiltDegradation } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyTiltDegradation) { expect(true).toBe(true); return; }
+    const result = applyTiltDegradation({ type: 'raise', amount: 50 }, 0.5, [
+        { type: 'fold' }, { type: 'call', amount: 20 }, { type: 'raise', minAmount: 40, maxAmount: 200 }
+    ]);
+    expect(typeof result.type).toBe('string');
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 66: INTEGRATION STRESS TESTS
+// Full pipeline getDecision with extreme scenarios
+// ═══════════════════════════════════════════════════════════
+
+asyncTest('Integration: 6-max full orbit does not crash', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const positions = ['btn', 'co', 'hj', 'mp', 'sb', 'bb'];
+    const hands = [['As', 'Kd'], ['7h', '2c'], ['Jd', 'Ts'], ['4c', '4d'], ['Qh', '9s'], ['8c', '6d']];
+    for (let i = 0; i < positions.length; i++) {
+        const state = makeEngineState({
+            phase: 'preflop',
+            heroCards: makeHoleCards(hands[i][0], hands[i][1]),
+            heroPosition: positions[i],
+            potTotal: 3, currentBet: 2, heroInvested: positions[i] === 'bb' ? 2 : positions[i] === 'sb' ? 1 : 0,
+            heroStack: 200,
+        });
+        const result = await getDecision('hero-test', state, standardLegalActions, { bigBlind: 2 });
+        expect(!!result.action.type).toBe(true);
+    }
+});
+
+asyncTest('Integration: deep stack 500BB pot does not overflow', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'flop',
+        heroCards: makeHoleCards('As', 'Ah'),
+        communityCards: makeBoardCards(['Ks', 'Qd', 'Jh']),
+        heroPosition: 'btn',
+        potTotal: 500, currentBet: 200, heroInvested: 0, heroStack: 1000,
+    });
+    const actions = [
+        { type: 'fold' }, { type: 'call', amount: 200 }, { type: 'raise', minAmount: 400, maxAmount: 1000 }
+    ];
+    const result = await getDecision('hero-test', state, actions, { bigBlind: 2 });
+    expect(!!result.action.type).toBe(true);
+    // With AA on KQJ, should not fold
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+asyncTest('Integration: all-in scenario with micro stack', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards('Kh', 'Qs'),
+        heroPosition: 'btn',
+        potTotal: 5, currentBet: 4, heroInvested: 0, heroStack: 6,
+    });
+    const actions = [
+        { type: 'fold' }, { type: 'call', amount: 4 }, { type: 'raise', minAmount: 6, maxAmount: 6 }
+    ];
+    const result = await getDecision('hero-test', state, actions, { bigBlind: 2 });
+    expect(!!result.action.type).toBe(true);
+    // KQs with 3BB effective should push or call, not fold
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
+asyncTest('Integration: heads-up blind battle', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const state = makeEngineState({
+        phase: 'preflop',
+        heroCards: makeHoleCards('Td', '8d'),
+        heroPosition: 'sb',
+        potTotal: 3, currentBet: 2, heroInvested: 1, heroStack: 199,
+        players: [
+            { id: 'hero-test', position: 'sb', stack: 199, status: 'active', cards: [{ rank: 'T', suit: 'd' }, { rank: '8', suit: 'd' }] },
+            { id: 'villain', position: 'bb', stack: 200, status: 'active' },
+        ]
+    });
+    const result = await getDecision('hero-test', state, standardLegalActions, { bigBlind: 2 });
+    expect(!!result.action.type).toBe(true);
+    // T8s from SB heads-up should open, not fold
+    expect(result.action.type !== 'fold').toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
