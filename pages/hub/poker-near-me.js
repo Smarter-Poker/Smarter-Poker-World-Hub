@@ -843,9 +843,11 @@ export default function PokerNearMePage() {
         });
         // -------------------------------------------------------------------------------------------------
 
-        // Combine: exclude venue entries that are already represented inside a tour double-icon
-        // Also exclude 'series' and 'tour' parent entries — these are NOT real venues.
-        // They should only appear on the map through the date-aware tour-stop pin logic above.
+        // Pre-compute the radius enforcement flag outside the filter callback
+        // to avoid minification TDZ (temporal dead zone) errors with const inside filter.
+        const hasRealLoc = !!(userLocation || selectedCity);
+        const inGlobalSearch = globalSearchModeRef.current;
+
         const filteredVenues = allVenuesForMap.filter(v => {
             // Strip out parent tour/series metadata records (e.g. "Illinois Poker Championship")
             // These have coordinates but are NOT playable venues — they're tour containers
@@ -876,14 +878,13 @@ export default function PokerNearMePage() {
             
             // Radius filter + distance computation
             // Only enforce the radius when the user has a REAL location (GPS or city).
-            // Skip enforcement for fallback centroid and global text searches.
+            // Skip enforcement when no real location is known or during global text searches.
             if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
                 const vDlat = (v.latitude - centerLat) * 69;
                 const vDlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
                 const vDist = Math.sqrt(vDlat * vDlat + vDlng * vDlng);
                 v.distance_mi = vDist;
-                const hasRealLoc = !!(userLocation || selectedCity);
-                if (hasRealLoc && !globalSearchModeRef.current && vDist > effRad) return false;
+                if (hasRealLoc && !inGlobalSearch && vDist > effRad) return false;
             }
             return true;
         });
@@ -892,7 +893,7 @@ export default function PokerNearMePage() {
         // Apply UI filters to BOTH arrays here so BOTH map feeds and list feeds are correctly filtered
         return combined.filter(v => {
             // Only bypass dropdown filters during a global text search, NOT during GPS/city searches
-            if (globalSearchModeRef.current && hasSearched) return true;
+            if (inGlobalSearch && hasSearched) return true;
 
             const isTour = v.venue_type === 'tour_stop' || v.venue_type === 'series';
 
