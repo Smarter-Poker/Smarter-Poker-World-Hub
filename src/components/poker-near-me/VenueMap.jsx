@@ -441,26 +441,23 @@ const TOUR_MARKER_COLORS = {
   ROUGHRIDER: '#d97706', PAT: '#22c55e', GCPT: '#06b6d4',
 };
 
-// ─── Helper: Create tour logo icon — DOUBLE ICON (tour on top, venue below) ───
-// Two equal circles stacked vertically — tour circle (colored ring) on top,
-// venue circle (gray ring) directly below with slight overlap.
-// Double-label pill underneath both.
+// ─── Helper: Create tour logo icon — SINGLE CIRCLE (tour logo only) ───
+// One tour circle with colored ring and pulse animation.
+// No venue initials circle — removed to keep the map clean.
 function createTourLogoIcon(L, venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#d4a853';
   const tourLogoUrl = venue.logo_url || '';
   const tourCode = (venue.tour_code || 'TOUR').slice(0, 4);
-  const isRunning = venue.is_running;
 
-  // Circle sizing — both circles MUST be identical in size
+  // Circle sizing
   const circleSize = 36;
-  const overlap = 10;
-  // Container must be wide enough for the circles + any pulse ring overflow (8px each side)
-  const totalWidth = circleSize + 16; // 52px — prevents clipping on either side
-  const totalHeight = (circleSize * 2) - overlap + 4;
+  // Container must be wide enough for the circle + pulse ring overflow (8px each side)
+  const totalWidth = circleSize + 16; // 52px — prevents clipping
+  const totalHeight = circleSize + 16; // square container
   const circleLeft = (totalWidth - circleSize) / 2; // centered horizontally
+  const circleTop = (totalHeight - circleSize) / 2;  // centered vertically
 
-  // ═══ TOUR CIRCLE (top, with colored ring) ═══
-  // All tour stop pins pulse — makes the map feel alive regardless of live status
+  // ═══ TOUR CIRCLE — colored ring with pulse animation ═══
   const pulseRing = `<div style="position:absolute;top:-4px;left:${circleLeft - 4}px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`;
 
   const tourInner = tourLogoUrl
@@ -468,22 +465,7 @@ function createTourLogoIcon(L, venue) {
        <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
     : `<div style="font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
 
-  // ═══ VENUE CIRCLE (bottom) — SAME circleSize as tour circle ═══
-  const hostLogoUrl = venue.host_venue_logo_url || '';
-  const hostName = venue.host_venue_name || venue.stop_venue || '';
-  const hostInitials = hostName.split(/\s+/).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase() || 'V';
-
-  const venueInner = hostLogoUrl
-    ? `<img src="${hostLogoUrl}" alt="" style="width:${circleSize - 8}px;height:${circleSize - 8}px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:10px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`
-    : `<div style="font-size:10px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`;
-
-  // Venue circle: identical size (circleSize × circleSize), gray ring — no overflow clipping on wrapper
-  const venueCircleHtml = hostName
-    ? `<div style="position:absolute;top:${circleSize - overlap}px;left:${circleLeft}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 8px rgba(148,163,184,0.5), 0 3px 10px rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1;overflow:hidden;">${venueInner}</div>`
-    : '';
-
-  // ═══ DOUBLE-LABEL PILL ═══
+  // ═══ LABEL PILL ═══
   const tourLabel = escapeHtml(venue.tour_name || venue.tour_code || '');
   const venueLabel = escapeHtml(truncateName(venue.stop_venue || venue.stop_name || '', 22));
 
@@ -496,10 +478,9 @@ function createTourLogoIcon(L, venue) {
     className: 'tour-logo-marker',
     html: `<div style="position:relative;width:${totalWidth}px;height:${totalHeight}px;">
       ${pulseRing}
-      <div style="position:absolute;top:0;left:${circleLeft}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #ef4444;box-shadow:0 0 14px rgba(239,68,68,0.6), 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">
+      <div style="position:absolute;top:${circleTop}px;left:${circleLeft}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #ef4444;box-shadow:0 0 14px rgba(239,68,68,0.6), 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">
         ${tourInner}
       </div>
-      ${venueCircleHtml}
       ${doublePillHtml}
     </div>`,
     iconSize: [totalWidth, totalHeight],

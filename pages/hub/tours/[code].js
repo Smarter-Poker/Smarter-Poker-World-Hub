@@ -10,7 +10,9 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit } from '../../../src/engine/EventBus';
+
 const TOUR_COLORS = {
   'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
   'WPT': { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff' },
@@ -143,6 +145,8 @@ export default function TourDetailPage() {
   const [activeTab, setActiveTab] = useState('schedule');
   const [eventFilter, setEventFilter] = useState('');
   const [gameFilter, setGameFilter] = useState('all');
+  const [selectedStop, setSelectedStop] = useState(null);
+
 
   const [isFollowed, setIsFollowed] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
@@ -317,6 +321,17 @@ export default function TourDetailPage() {
           onClose={() => setMenuOpen(false)}
       />
 
+      {/* ── Full-Screen Stop Schedule Modal ── */}
+      {selectedStop && (
+        <StopScheduleModal
+          stop={selectedStop}
+          tourCode={String(code)}
+          tourName={tour?.tour_name}
+          tourColor={tourColor}
+          onClose={() => setSelectedStop(null)}
+        />
+      )}
+
       <div className="tour-page">
         {loading && (
           <div className="loading-container">
@@ -432,7 +447,12 @@ export default function TourDetailPage() {
             <section className="sp-schedule-section">
               {/* Current / Next Stop Banner */}
               {currentStop && (
-                <div className={`sp-stop-banner ${currentStopType === 'current' ? 'sp-stop-live' : 'sp-stop-next'}`}>
+                <div
+                  className={`sp-stop-banner sp-stop-banner-clickable ${currentStopType === 'current' ? 'sp-stop-live' : 'sp-stop-next'}`}
+                  onClick={() => setSelectedStop(currentStop)}
+                  role="button" tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && setSelectedStop(currentStop)}
+                >
                   <div className="sp-stop-banner-left">
                     <span className={`sp-stop-status-dot ${currentStopType === 'current' ? 'dot-live' : 'dot-next'}`} />
                     <span className="sp-stop-status-label">
@@ -452,9 +472,14 @@ export default function TourDetailPage() {
                         {formatDateRange(currentStop.stop_start_date, currentStop.stop_end_date)}
                       </span>
                     )}
+                    <span className="sp-view-sched-hint">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      View Full Schedule
+                    </span>
                   </div>
                 </div>
               )}
+
 
               {/* Filter Bar */}
               {(() => {
@@ -606,7 +631,13 @@ export default function TourDetailPage() {
               )}
               <div className="series-grid">
                 {(allStops.length > 0 ? allStops : (tour.upcoming_series || [])).map((s, idx) => (
-                  <div key={idx} className="series-card">
+                  <div
+                    key={idx}
+                    className="series-card series-card-clickable"
+                    onClick={() => setSelectedStop(s)}
+                    role="button" tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && setSelectedStop(s)}
+                  >
                     <div className="series-card-header">
                       <h3 className="series-name">{s.stop_name || s.short_name || s.name}</h3>
                       {s.stop_type && <span className={`sp-stop-type-badge sp-stype-${s.stop_type}`}>{s.stop_type === 'current' ? 'Live Now' : s.stop_type === 'next' ? 'Next' : s.stop_type}</span>}
@@ -623,20 +654,44 @@ export default function TourDetailPage() {
                       <span>{formatDateRange(s.stop_start_date, s.stop_end_date) || s.dates || 'TBD'}</span>
                     </div>
                     {s.events?.length > 0 && <div className="sp-stop-event-count">{s.events.length} Events</div>}
-                    {s.events?.length > 0 && (
-                      <button className="sp-view-stop-btn" onClick={() => { setActiveTab('schedule'); }}>
-                        View Events
-                      </button>
-                    )}
+                    <div className="sp-view-sched-cta">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      View Full Schedule
+                    </div>
                   </div>
                 ))}
-                {allStops.length === 0 && (tour.stops_2026 || []).map((s, idx) => (
-                  <div key={idx} className="series-card">
-                    <div className="series-card-header"><h3 className="series-name">{s.name}</h3></div>
-                    {s.location && <div className="series-location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>{s.location}</span></div>}
-                    <div className="series-dates"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>{s.dates || 'TBD'}</span></div>
-                  </div>
-                ))}
+                {allStops.length === 0 && (tour.stops_2026 || []).map((s, idx) => {
+                  // Convert registry stop to stop shape for modal
+                  const stopShape = {
+                    stop_name: s.name,
+                    stop_venue: s.venue || null,
+                    stop_city: s.location ? s.location.split(',')[0]?.trim() : null,
+                    stop_state: s.location ? s.location.split(',')[1]?.trim() : null,
+                    dates: s.dates,
+                    events: (tour.series_2026 || []).map((e, i) => ({
+                      event_number: i + 1, event_name: e.name,
+                      buy_in: e.buyin, game_type: e.game || 'NLH',
+                      start_display: e.dates || 'TBD', data_quality: 'pending'
+                    }))
+                  };
+                  return (
+                    <div
+                      key={idx}
+                      className="series-card series-card-clickable"
+                      onClick={() => setSelectedStop(stopShape)}
+                      role="button" tabIndex={0}
+                      onKeyDown={e => e.key === 'Enter' && setSelectedStop(stopShape)}
+                    >
+                      <div className="series-card-header"><h3 className="series-name">{s.name}</h3></div>
+                      {s.location && <div className="series-location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>{s.location}</span></div>}
+                      <div className="series-dates"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>{s.dates || 'TBD'}</span></div>
+                      <div className="sp-view-sched-cta">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        View Schedule
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
             )}
@@ -811,6 +866,45 @@ const styles = `
     color: #e2e8f0;
     padding-bottom: 80px;
   }
+
+  /* Clickable cards + banners */
+  .series-card-clickable {
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .series-card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,212,255,0.12);
+    border-color: rgba(0,212,255,0.3) !important;
+  }
+  .series-card-clickable:focus-visible {
+    outline: 2px solid rgba(0,212,255,0.6);
+    outline-offset: 2px;
+  }
+  .sp-view-sched-cta {
+    display: flex; align-items: center; gap: 5px;
+    margin-top: 10px; font-size: 11px; font-weight: 600;
+    color: #00D4FF; text-transform: uppercase; letter-spacing: 0.5px;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .series-card-clickable:hover .sp-view-sched-cta { opacity: 1; }
+
+  .sp-stop-banner-clickable {
+    cursor: pointer;
+    transition: filter 0.15s;
+  }
+  .sp-stop-banner-clickable:hover { filter: brightness(1.08); }
+  .sp-view-sched-hint {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 500;
+    margin-top: 4px;
+  }
+
+  .sp-event-row-clickable {
+    cursor: pointer;
+  }
+  .sp-event-row-clickable:hover { background: rgba(0,212,255,0.04) !important; }
+
 
   /* Loading */
   .loading-container {

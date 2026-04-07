@@ -1862,13 +1862,14 @@ export default function PokerToursPage() {
                     .tour-card-premium {
                         position: relative;
                         background: linear-gradient(145deg, rgba(15,23,42,0.95) 0%, rgba(10,15,28,0.98) 100%);
-                        border: 1.5px solid rgba(148,163,184,0.12);
+                        border: 2px solid rgba(239,68,68,0.65);
                         border-radius: 14px;
                         padding: 18px 20px 14px;
                         cursor: pointer;
                         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                         box-shadow:
                             0 2px 12px rgba(0,0,0,0.3),
+                            0 0 10px rgba(239,68,68,0.18),
                             inset 0 1px 0 rgba(255,255,255,0.04);
                         overflow: hidden;
                     }
@@ -1879,16 +1880,16 @@ export default function PokerToursPage() {
                         left: 0;
                         right: 0;
                         height: 3px;
-                        background: linear-gradient(90deg, transparent, rgba(212,168,83,0.3), transparent);
-                        opacity: 0;
+                        background: linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
+                        opacity: 1;
                         transition: opacity 0.3s;
                     }
                     .tour-card-premium:hover {
-                        border-color: rgba(212,168,83,0.25);
+                        border-color: rgba(239,68,68,0.9);
                         transform: translateY(-2px);
                         box-shadow:
                             0 8px 32px rgba(0,0,0,0.4),
-                            0 0 0 1px rgba(212,168,83,0.08),
+                            0 0 18px rgba(239,68,68,0.35),
                             inset 0 1px 0 rgba(255,255,255,0.06);
                     }
                     .tour-card-premium:hover::before { opacity: 1; }

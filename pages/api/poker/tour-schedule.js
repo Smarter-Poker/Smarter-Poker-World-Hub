@@ -182,6 +182,7 @@ export default async function handler(req, res) {
     stop_name,
     stop,        // 'current', 'next', or undefined = all
     all_stops,   // 'true' = return all stops grouped
+    pdf_detail,  // 'true' = also fetch from tour_event_details (PDF-extracted)
     limit = 500,
   } = req.query;
 
@@ -209,14 +210,113 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // Also query tour_event_details (PDF-extracted data) for this tour
+    let pdfEvents = [];
+    try {
+      let pdfQuery = supabase
+        .from('tour_event_details')
+        .select('*')
+        .eq('tour_code', tour_code.toUpperCase())
+        .order('start_date', { ascending: true })
+        .order('event_number', { ascending: true })
+        .limit(1000);
+
+      if (stop_name) {
+        pdfQuery = pdfQuery.ilike('series_name', `%${stop_name.substring(0, 30)}%`);
+      }
+
+      const { data: pdfRaw } = await pdfQuery;
+      pdfEvents = (pdfRaw || []).map(row => ({
+        id: `pdf_${row.id}`,
+        tour_code: row.tour_code,
+        stop_name: row.series_name || stop_name || tour_code,
+        stop_venue: null,
+        stop_city: null,
+        stop_state: null,
+        stop_start_date: row.start_date || null,
+        stop_end_date: null,
+        event_number: row.event_number || null,
+        event_number_raw: row.event_number_raw || null,
+        event_name: row.event_name,
+        game_type: normalizeGameType(row.game_type),
+        buy_in: row.buy_in || null,
+        buy_in_display: formatMoney(row.buy_in),
+        buy_in_tier: BUY_IN_TIER(row.buy_in),
+        entry_fee: null,
+        guarantee: row.guaranteed || null,
+        guarantee_display: formatMoney(row.guaranteed),
+        starting_chips: row.starting_chips || null,
+        starting_chips_display: row.starting_chips ? row.starting_chips.toLocaleString() : 'TBD',
+        blind_levels_min: row.levels || null,
+        start_date: row.start_date || null,
+        start_time: row.start_time || null,
+        reg_open_time: row.reg_open_time || null,
+        start_display: row.start_date
+          ? new Date(row.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'TBD',
+        date: row.start_date
+          ? new Date(row.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : null,
+        day_of_week: null,
+        is_main_event: row.event_type === 'main_event' || /main\s*event/i.test(row.event_name || ''),
+        is_multi_day: false,
+        re_entry: false,
+        is_high_roller: (row.buy_in || 0) >= 25000,
+        is_ladies_event: row.event_type === 'ladies',
+        is_seniors_event: row.event_type === 'seniors',
+        event_type: row.event_type || null,
+        source_url: row.pdf_source_url || null,
+        scrape_timestamp: row.scraped_at || null,
+        data_quality: 'pdf_extracted',
+        pdf_source_url: row.pdf_source_url || null,
+      }));
+    } catch (_pdfErr) {
+      // PDF detail is supplementary — don't fail the whole request
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Standardize all event records
-    const events = (rawEvents || []).map(standardizeEvent);
+    // Standardize DB events
+    const dbEvents = (rawEvents || []).map(standardizeEvent);
 
-    // If no DB data found, fall back to registry JSON
-    if (!events.length) {
+    // Merge strategy:
+    // If DB has structured stop data (tour_stop_events), use it as primary
+    // Merge in PDF events that aren't already covered
+    let events;
+    if (dbEvents.length > 0) {
+      // Use DB events; enrich with PDF timing/chip data where event_number matches
+      const pdfByNum = {};
+      for (const pe of pdfEvents) {
+        if (pe.event_number) pdfByNum[pe.event_number] = pe;
+      }
+      events = dbEvents.map(ev => {
+        const pdfMatch = pdfByNum[ev.event_number];
+        if (!pdfMatch) return ev;
+        return {
+          ...ev,
+          start_time: ev.start_time || pdfMatch.start_time,
+          reg_open_time: pdfMatch.reg_open_time,
+          starting_chips: ev.starting_chips || pdfMatch.starting_chips,
+          starting_chips_display: ev.starting_chips_display !== 'TBD' ? ev.starting_chips_display : pdfMatch.starting_chips_display,
+          blind_levels_min: ev.blind_levels_min || pdfMatch.blind_levels_min,
+          guarantee: ev.guarantee || pdfMatch.guarantee,
+          guarantee_display: ev.guarantee ? ev.guarantee_display : pdfMatch.guarantee_display,
+          data_quality: 'enriched',
+        };
+      });
+      // Append any PDF events not in DB
+      const dbNums = new Set(dbEvents.map(e => e.event_number).filter(Boolean));
+      for (const pe of pdfEvents) {
+        if (pe.event_number && !dbNums.has(pe.event_number)) {
+          events.push(pe);
+        }
+      }
+    } else if (pdfEvents.length > 0) {
+      // No DB events — use PDF data directly
+      events = pdfEvents;
+    } else {
+      // Still nothing — fall back to registry
       return returnRegistryFallback(tour_code.toUpperCase(), stop, res);
     }
 
