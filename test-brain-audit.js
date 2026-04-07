@@ -9878,13 +9878,13 @@ console.log('\n📋 Phase 79: Memory Leak Detection');
     test('opponentSessionModel grows by unique opponentId', () => {
         // recordOpponentAction takes (opponentId, street, action, context)
         for (let i = 0; i < 50; i++) {
-            B.recordOpponentAction(`opp-mem-${i}`, 'preflop', { type: 'raise', amount: 10 });
+            B.recordOpponentAction(`opp-mem-${i}`, 'preflop', 'raise');
         }
         const sizeBefore = B.opponentSessionModel.size;
         expect(sizeBefore >= 50).toBe(true);
         // Recording same opponent again should not grow the map
         for (let i = 0; i < 50; i++) {
-            B.recordOpponentAction(`opp-mem-${i}`, 'flop', { type: 'bet', amount: 15 });
+            B.recordOpponentAction(`opp-mem-${i}`, 'flop', 'bet');
         }
         const sizeAfter = B.opponentSessionModel.size;
         // Should have at most same number of keys (plus any from other tests)
@@ -10241,6 +10241,196 @@ asyncTests.push({ name: 'ADV: full exports check — all critical functions pres
         }
     }
     expect(missing).toBe(0);
+}});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 81: Cross-Module Integration Tests
+// Full chain: HorsePokerBrain → HorsePokerAdvanced
+// ═══════════════════════════════════════════════════════════
+console.log('\n📋 Phase 81: Cross-Module Integration Tests');
+
+asyncTests.push({ name: 'INTEG: getDecision full pipeline returns valid action shape', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const legalActions = [
+        { type: 'fold' },
+        { type: 'check' },
+        { type: 'call', amount: 4 },
+        { type: 'raise', minAmount: 8, maxAmount: 200 }
+    ];
+    const engineState = {
+        players: [
+            { id: 'integ-hero-1', holeCards: [14, 27], position: 'BTN', stack: 200 }, // Ah Ks
+            { id: 'opp-1', holeCards: [10, 23], position: 'BB', stack: 180 }
+        ],
+        communityCards: [],
+        phase: 'preflop',
+        pot: 3
+    };
+    const tableConfig = { bigBlind: 2 };
+    const result = await B.getDecision('integ-hero-1', engineState, legalActions, tableConfig);
+    expect(typeof result === 'object').toBe(true);
+    expect(typeof result.action === 'object').toBe(true);
+    expect(typeof result.action.type === 'string').toBe(true);
+    expect(['fold', 'check', 'call', 'raise', 'bet', 'all_in'].indexOf(result.action.type) >= 0).toBe(true);
+    expect(typeof result.delayMs === 'number').toBe(true);
+    expect(result.delayMs >= 0).toBe(true);
+}});
+
+asyncTests.push({ name: 'INTEG: getDecision on flop with community cards', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const legalActions = [
+        { type: 'fold' },
+        { type: 'check' },
+        { type: 'call', amount: 10 },
+        { type: 'raise', minAmount: 20, maxAmount: 300 }
+    ];
+    const engineState = {
+        players: [
+            { id: 'integ-hero-2', holeCards: [14, 1], position: 'BTN', stack: 300 }, // Ah As
+            { id: 'opp-2', holeCards: [10, 23], position: 'BB', stack: 280 }
+        ],
+        communityCards: [40, 27, 15], // Kd Ks Jh
+        phase: 'flop',
+        pot: 30
+    };
+    const result = await B.getDecision('integ-hero-2', engineState, legalActions, { bigBlind: 2 });
+    expect(typeof result.action.type === 'string').toBe(true);
+    // With AA on K-K-J board (two pair), hero should NOT fold
+    expect(result.action.type !== 'fold').toBe(true);
+}});
+
+asyncTests.push({ name: 'INTEG: getDecision on river with strong hand', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const legalActions = [
+        { type: 'fold' },
+        { type: 'check' },
+        { type: 'call', amount: 40 },
+        { type: 'raise', minAmount: 80, maxAmount: 500 }
+    ];
+    const engineState = {
+        players: [
+            { id: 'integ-hero-3', holeCards: [14, 1], position: 'BTN', stack: 500 }, // Ah As
+            { id: 'opp-3', holeCards: [10, 23], position: 'BB', stack: 400 }
+        ],
+        communityCards: [40, 27, 15, 2, 3], // 5 cards on river
+        phase: 'river',
+        pot: 100
+    };
+    const result = await B.getDecision('integ-hero-3', engineState, legalActions, { bigBlind: 2 });
+    expect(typeof result.action.type === 'string').toBe(true);
+}});
+
+asyncTests.push({ name: 'INTEG: getDecision handles PLO variant', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const legalActions = [
+        { type: 'fold' },
+        { type: 'check' },
+        { type: 'call', amount: 6 },
+        { type: 'raise', minAmount: 12, maxAmount: 400 }
+    ];
+    const engineState = {
+        players: [
+            { id: 'integ-plo-hero', holeCards: [14, 1, 27, 40], position: 'BTN', stack: 400 }, // 4 cards
+            { id: 'plo-opp', holeCards: [10, 23, 36, 49], position: 'BB', stack: 380 }
+        ],
+        communityCards: [],
+        phase: 'preflop',
+        pot: 3
+    };
+    const result = await B.getDecision('integ-plo-hero', engineState, legalActions, { bigBlind: 2, variant: 'PLO' });
+    expect(typeof result.action.type === 'string').toBe(true);
+}});
+
+asyncTests.push({ name: 'INTEG: validateAndClamp feeds into getDecision output', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Run getDecision 20 times and verify all outputs are valid
+    const legalActions = [
+        { type: 'fold' },
+        { type: 'call', amount: 10 },
+        { type: 'raise', minAmount: 20, maxAmount: 500 }
+    ];
+    const engineState = {
+        players: [
+            { id: 'integ-validate', holeCards: [14, 27], position: 'CO', stack: 500 },
+            { id: 'v-opp', holeCards: [10, 23], position: 'BB', stack: 480 }
+        ],
+        communityCards: [40, 15, 2],
+        phase: 'flop',
+        pot: 25
+    };
+    let allValid = true;
+    for (let i = 0; i < 20; i++) {
+        const result = await B.getDecision('integ-validate', engineState, legalActions, { bigBlind: 2 });
+        const t = result.action.type;
+        if (!['fold', 'call', 'raise', 'bet', 'check', 'all_in'].includes(t)) {
+            allValid = false;
+            console.log(`    Invalid action type: ${t}`);
+        }
+        if (t === 'raise' && result.action.amount !== undefined) {
+            if (result.action.amount < 20 || result.action.amount > 500) {
+                // Amount should be clamped
+                if (result.action.amount !== 0) { // 0 is valid for non-raise
+                    allValid = false;
+                    console.log(`    Amount out of bounds: ${result.action.amount}`);
+                }
+            }
+        }
+    }
+    expect(allValid).toBe(true);
+}});
+
+asyncTests.push({ name: 'INTEG: opponent session model feeds into getDecision', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Pre-seed opponent reads — action is a STRING, not object
+    for (let i = 0; i < 10; i++) {
+        B.recordOpponentAction('opp-session-integ', 'preflop', 'raise');
+        B.recordOpponentAction('opp-session-integ', 'flop', 'bet');
+    }
+    // Need 8+ total actions — we have 20
+    const read = B.getOpponentSessionRead('opp-session-integ');
+    expect(read !== null).toBe(true);
+    // Now run a decision — should use the opponent read internally
+    const result = await B.getDecision('integ-opp-read', {
+        players: [
+            { id: 'integ-opp-read', holeCards: [14, 27], position: 'BTN', stack: 200 },
+            { id: 'opp-session-integ', holeCards: [10, 23], position: 'BB', stack: 180 }
+        ],
+        communityCards: [40, 15, 2],
+        phase: 'flop',
+        pot: 20
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 10 },
+        { type: 'raise', minAmount: 20, maxAmount: 400 }
+    ], { bigBlind: 2 });
+    expect(typeof result.action.type === 'string').toBe(true);
+}});
+
+asyncTests.push({ name: 'INTEG: 50 sequential getDecision calls don\'t crash (stability)', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    let crashes = 0;
+    for (let i = 0; i < 50; i++) {
+        try {
+            await B.getDecision(`stability-hero-${i % 5}`, {
+                players: [
+                    { id: `stability-hero-${i % 5}`, holeCards: [14 - (i % 13), 27 - (i % 10)], position: i % 2 === 0 ? 'BTN' : 'BB', stack: 200 + i * 10 },
+                    { id: `stability-opp-${i % 3}`, holeCards: [10, 23], position: i % 2 === 0 ? 'BB' : 'BTN', stack: 190 + i * 5 }
+                ],
+                communityCards: i % 4 === 0 ? [] : i % 4 === 1 ? [40, 15, 2] : i % 4 === 2 ? [40, 15, 2, 28] : [40, 15, 2, 28, 51],
+                phase: ['preflop', 'flop', 'turn', 'river'][i % 4],
+                pot: 10 + i * 2
+            }, [
+                { type: 'fold' },
+                { type: 'check' },
+                { type: 'call', amount: 4 + i },
+                { type: 'raise', minAmount: 8 + i, maxAmount: 500 }
+            ], { bigBlind: 2 });
+        } catch (e) {
+            crashes++;
+            if (crashes <= 3) console.log(`    Crash ${i}: ${e.message.slice(0, 80)}`);
+        }
+    }
+    expect(crashes).toBe(0);
 }});
 
 // ASYNC TEST RUNNER + SUMMARY
