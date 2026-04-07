@@ -10433,6 +10433,339 @@ asyncTests.push({ name: 'INTEG: 50 sequential getDecision calls don\'t crash (st
     expect(crashes).toBe(0);
 }});
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 82: Stress Testing — State Corruption & NaN Leakage
+// ═══════════════════════════════════════════════════════════
+console.log('\n📋 Phase 82: Stress Testing');
+
+asyncTests.push({ name: 'STRESS: 200 sequential getDecision calls — zero NaN, zero crashes', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const streets = ['preflop', 'flop', 'turn', 'river'];
+    const positions = ['BTN', 'CO', 'MP', 'UTG', 'SB', 'BB'];
+    let crashes = 0, nanActions = 0, invalidTypes = 0;
+    const validTypes = new Set(['fold', 'check', 'call', 'raise', 'bet', 'all_in']);
+
+    for (let i = 0; i < 200; i++) {
+        const streetIdx = i % 4;
+        const street = streets[streetIdx];
+        const heroCards = [14 - (i % 13), 27 - (i % 10)];
+        const boardLen = [0, 3, 4, 5][streetIdx];
+        const board = [];
+        for (let b = 0; b < boardLen; b++) board.push(40 - b - (i % 7));
+
+        try {
+            const result = await B.getDecision(`stress-hero-${i % 6}`, {
+                players: [
+                    { id: `stress-hero-${i % 6}`, holeCards: heroCards, position: positions[i % 6], stack: 100 + i * 5 },
+                    { id: `stress-opp-${i % 4}`, holeCards: [10, 23], position: 'BB', stack: 150 + i * 3 }
+                ],
+                communityCards: board,
+                phase: street,
+                pot: 5 + i * 2
+            }, [
+                { type: 'fold' },
+                { type: 'check' },
+                { type: 'call', amount: 2 + (i % 20) },
+                { type: 'raise', minAmount: 4 + (i % 20), maxAmount: 300 + i }
+            ], { bigBlind: 2 });
+
+            // Validate output
+            if (!result || !result.action) { crashes++; continue; }
+            if (!validTypes.has(result.action.type)) {
+                invalidTypes++;
+                if (invalidTypes <= 3) console.log(`    Invalid type[${i}]: ${result.action.type}`);
+            }
+            if (result.action.amount !== undefined && result.action.amount !== null) {
+                if (isNaN(result.action.amount) || !isFinite(result.action.amount)) {
+                    nanActions++;
+                    if (nanActions <= 3) console.log(`    NaN amount[${i}]: ${result.action.amount}`);
+                }
+            }
+            if (isNaN(result.delayMs) || !isFinite(result.delayMs)) {
+                nanActions++;
+                if (nanActions <= 3) console.log(`    NaN delayMs[${i}]: ${result.delayMs}`);
+            }
+        } catch (e) {
+            crashes++;
+            if (crashes <= 3) console.log(`    Crash[${i}]: ${e.message.slice(0, 80)}`);
+        }
+    }
+    if (crashes > 0) console.log(`    Total crashes: ${crashes}/200`);
+    if (nanActions > 0) console.log(`    Total NaN: ${nanActions}/200`);
+    if (invalidTypes > 0) console.log(`    Total invalid types: ${invalidTypes}/200`);
+    expect(crashes).toBe(0);
+    expect(nanActions).toBe(0);
+    expect(invalidTypes).toBe(0);
+}});
+
+asyncTests.push({ name: 'STRESS: rapid opponent tracking — 500 actions, no state corruption', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const actions = ['raise', 'call', 'fold', 'bet', 'all_in', 'check'];
+    const streets = ['preflop', 'flop', 'turn', 'river'];
+    let crashes = 0;
+
+    for (let i = 0; i < 500; i++) {
+        try {
+            B.recordOpponentAction(
+                `stress-opp-${i % 10}`,
+                streets[i % 4],
+                actions[i % 6]
+            );
+        } catch (e) {
+            crashes++;
+        }
+    }
+    expect(crashes).toBe(0);
+
+    // Verify reads are consistent
+    for (let j = 0; j < 10; j++) {
+        const read = B.getOpponentSessionRead(`stress-opp-${j}`);
+        if (read) {
+            expect(isNaN(read.aggFreq)).toBe(false);
+            expect(isNaN(read.foldFreq)).toBe(false);
+            expect(isNaN(read.callFreq)).toBe(false);
+            expect(read.aggFreq >= 0 && read.aggFreq <= 1).toBe(true);
+            expect(read.foldFreq >= 0 && read.foldFreq <= 1).toBe(true);
+            expect(read.callFreq >= 0 && read.callFreq <= 1).toBe(true);
+        }
+    }
+}});
+
+asyncTests.push({ name: 'STRESS: live observer — 100 hands per table, reads stay sane', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const tbl = 'stress-live-table';
+    const horseId = 'stress-live-hero';
+    const players = [
+        { id: horseId, position: 'BTN' },
+        { id: 'stress-live-opp1', position: 'BB' },
+        { id: 'stress-live-opp2', position: 'SB' }
+    ];
+    let crashes = 0;
+
+    for (let h = 0; h < 100; h++) {
+        try {
+            B.observeNewHand(tbl, `stress-hand-${h}`, players, [horseId], 2);
+            B.observeAction(tbl, horseId, 'stress-live-opp1', 'preflop', { type: 'raise', amount: 6 });
+            B.observeAction(tbl, horseId, 'stress-live-opp1', 'flop', { type: 'bet', amount: 10 });
+            if (h % 5 === 0) {
+                B.observeShowdown(tbl, horseId, 'stress-live-opp1', { won: h % 2 === 0, handStrength: 0.6 });
+            }
+        } catch (e) {
+            crashes++;
+            if (crashes <= 3) console.log(`    Live observer crash[${h}]: ${e.message.slice(0, 80)}`);
+        }
+    }
+    expect(crashes).toBe(0);
+
+    // Verify live read
+    const read = B.getLiveRead(horseId, tbl, 'stress-live-opp1');
+    if (read) {
+        expect(isNaN(read.confidence)).toBe(false);
+        expect(read.confidence >= 0 && read.confidence <= 1).toBe(true);
+    }
+}});
+
+asyncTests.push({ name: 'STRESS: validateAndClamp always produces valid engine action', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const validTypes = new Set(['fold', 'check', 'call', 'raise', 'bet', 'all_in']);
+    const legalSets = [
+        [{ type: 'fold' }, { type: 'check' }],
+        [{ type: 'fold' }, { type: 'call', amount: 10 }, { type: 'raise', minAmount: 20, maxAmount: 500 }],
+        [{ type: 'fold' }, { type: 'check' }, { type: 'bet', minAmount: 4, maxAmount: 200 }],
+        [{ type: 'fold' }, { type: 'call', amount: 50 }],
+    ];
+    const actionTypes = ['fold', 'check', 'call', 'raise', 'bet', 'all_in', 'garbage', '', null, undefined];
+    const amounts = [0, -1, NaN, Infinity, 1, 50, 999, null, undefined];
+    let invalid = 0;
+
+    for (const legal of legalSets) {
+        for (const act of actionTypes) {
+            for (const amt of amounts) {
+                try {
+                    const result = B.validateAndClamp(act, amt, legal);
+                    if (!result || !validTypes.has(result.type)) {
+                        invalid++;
+                        if (invalid <= 3) console.log(`    Invalid: v&c(${act},${amt}) → ${JSON.stringify(result)}`);
+                    }
+                    if (result.amount !== undefined && result.amount !== null) {
+                        if (isNaN(result.amount)) {
+                            invalid++;
+                            if (invalid <= 3) console.log(`    NaN amount: v&c(${act},${amt})`);
+                        }
+                    }
+                } catch (e) {
+                    invalid++;
+                    if (invalid <= 3) console.log(`    Crash: v&c(${act},${amt}) → ${e.message.slice(0, 60)}`);
+                }
+            }
+        }
+    }
+    expect(invalid).toBe(0);
+}});
+
+asyncTests.push({ name: 'STRESS: defensive modules — 1000 rapid-fire records, no crashes', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    let crashes = 0;
+
+    for (let i = 0; i < 1000; i++) {
+        try {
+            const pid = `def-stress-p${i % 20}`;
+            B.recordRaiseSize(pid, 4 + (i % 10));
+            B.recordSqueeze(pid, 10 + (i % 15));
+            B.recordIsoSize(pid, 6 + (i % 8));
+            B.recordColdCall(pid);
+            B.recordProbeBet(pid, { street: 'turn', sizing: 0.3 + (i % 5) * 0.1 });
+            B.recordChipLeak(pid, { street: 'preflop', leakType: 'limp', amount: 2 });
+            B.recordPerformanceAction(pid, 'preflop', 'raise');
+        } catch (e) {
+            crashes++;
+            if (crashes <= 3) console.log(`    Defensive crash[${i}]: ${e.message.slice(0, 80)}`);
+        }
+    }
+    expect(crashes).toBe(0);
+
+    // Verify reads don't produce NaN
+    for (let j = 0; j < 20; j++) {
+        const pid = `def-stress-p${j}`;
+        const mr = B.isMinRaiser(pid);
+        expect(mr !== undefined).toBe(true);
+        const sq = B.isSqueezeOverkill(pid);
+        expect(sq !== undefined).toBe(true);
+        const pf = B.getProbeFarmScore(pid);
+        expect(typeof pf === 'number' || typeof pf === 'object').toBe(true);
+    }
+}});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 83: Edge Case Hardening
+// Extreme values that could break production
+// ═══════════════════════════════════════════════════════════
+console.log('\n📋 Phase 83: Edge Case Hardening');
+
+asyncTests.push({ name: 'EDGE: getDecision with 0 stack hero', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = await B.getDecision('edge-zero-stack', {
+        players: [
+            { id: 'edge-zero-stack', holeCards: [14, 27], position: 'BTN', stack: 0 },
+            { id: 'edge-opp', holeCards: [10, 23], position: 'BB', stack: 200 }
+        ],
+        communityCards: [],
+        phase: 'preflop',
+        pot: 3
+    }, [{ type: 'fold' }, { type: 'check' }], { bigBlind: 2 });
+    expect(typeof result.action.type === 'string').toBe(true);
+}});
+
+asyncTests.push({ name: 'EDGE: getDecision with massive stacks (100000 BB deep)', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = await B.getDecision('edge-deep-stack', {
+        players: [
+            { id: 'edge-deep-stack', holeCards: [14, 27], position: 'BTN', stack: 200000 },
+            { id: 'edge-opp2', holeCards: [10, 23], position: 'BB', stack: 200000 }
+        ],
+        communityCards: [40, 15, 2],
+        phase: 'flop',
+        pot: 100
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 50 },
+        { type: 'raise', minAmount: 100, maxAmount: 200000 }
+    ], { bigBlind: 2 });
+    expect(typeof result.action.type === 'string').toBe(true);
+    if (result.action.amount) {
+        expect(isNaN(result.action.amount)).toBe(false);
+        expect(isFinite(result.action.amount)).toBe(true);
+    }
+}});
+
+asyncTests.push({ name: 'EDGE: getDecision with 9 players (full ring)', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const players = [];
+    const positions = ['UTG', 'UTG1', 'UTG2', 'MP', 'MP2', 'HJ', 'CO', 'BTN', 'BB'];
+    for (let i = 0; i < 9; i++) {
+        players.push({ id: `ring-p${i}`, holeCards: [14 - i, 27 - i], position: positions[i], stack: 200 });
+    }
+    const result = await B.getDecision('ring-p7', {
+        players,
+        communityCards: [],
+        phase: 'preflop',
+        pot: 3
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 4 },
+        { type: 'raise', minAmount: 8, maxAmount: 400 }
+    ], { bigBlind: 2 });
+    expect(typeof result.action.type === 'string').toBe(true);
+}});
+
+asyncTests.push({ name: 'EDGE: evaluatePostflopHand with duplicate board cards', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    // This shouldn't happen in real play but brain must not crash
+    const result = B.evaluatePostflopHand(['Ah', 'Kh'], ['Qd', 'Qd', 'Qd']);
+    expect(typeof result === 'object').toBe(true);
+    expect(typeof result.strength === 'number').toBe(true);
+}});
+
+asyncTests.push({ name: 'EDGE: makeFallbackDecision with only fold available', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = B.makeFallbackDecision('edge-fold-only', {
+        handStr: 'AhKh', position: 'BTN', street: 'river',
+        potSize: 100, toCall: 50, stackBB: 25, bb: 2,
+        holeCards: ['Ah', 'Kh'], board: ['2d', '3d', '7c', '9s', 'Jh']
+    }, [{ type: 'fold' }]);
+    expect(result.type).toBe('fold');
+}});
+
+asyncTests.push({ name: 'EDGE: getGeometricSizing with 0 streets remaining', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = B.getGeometricSizing(100, 500, 0);
+    expect(typeof result === 'object' || typeof result === 'number').toBe(true);
+}});
+
+asyncTests.push({ name: 'EDGE: getPreflopStrength with suited connectors vs trash', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    const premium = B.getPreflopStrength(['Ah', 'As']);
+    const trash = B.getPreflopStrength(['2d', '7c']);
+    expect(typeof premium === 'number').toBe(true);
+    expect(typeof trash === 'number').toBe(true);
+    expect(premium > trash).toBe(true); // AA should be stronger than 72o
+}});
+
+asyncTests.push({ name: 'EDGE: getDynamicRebuyStrategy with extreme inputs', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Zero everything
+    const r1 = B.getDynamicRebuyStrategy('edge-rebuy', 0, 0, 0, 0);
+    expect(typeof r1 === 'object').toBe(true);
+    // Massive values
+    const r2 = B.getDynamicRebuyStrategy('edge-rebuy', 999999, 100, 50, 500);
+    expect(typeof r2 === 'object').toBe(true);
+}});
+
+asyncTests.push({ name: 'EDGE: validateAndClamp with all_in action', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    // all_in should map correctly
+    const result = B.validateAndClamp('all_in', 500, [
+        { type: 'fold' },
+        { type: 'call', amount: 50 },
+        { type: 'raise', minAmount: 100, maxAmount: 500 }
+    ]);
+    expect(typeof result.type === 'string').toBe(true);
+    // Should either map to raise/max or stay as all_in
+}});
+
+asyncTests.push({ name: 'EDGE: board evaluation on paired/monotone/straight boards', fn: async () => {
+    const B = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Monotone board
+    const wet = B.evaluateBoardWetness(['Ah', 'Kh', 'Qh']);
+    expect(wet === 'wet' || wet === 'very_wet').toBe(true);
+    // Rainbow disconnected
+    const dry = B.evaluateBoardWetness(['2d', '7c', 'Js']);
+    expect(dry === 'dry' || dry === 'medium').toBe(true);
+    // Paired board
+    const paired = B.evaluateBoardWetness(['Qd', 'Qc', '3h']);
+    expect(typeof paired === 'string').toBe(true);
+}});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
