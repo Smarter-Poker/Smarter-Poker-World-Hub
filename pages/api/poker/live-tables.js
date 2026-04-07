@@ -117,28 +117,38 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LAYER 1: BATCH-AWARE FILTERING
-    // When a scrape cycle partially fails, old batch records survive
-    // alongside new ones. Find the latest batch_id per source, and
-    // discard all rows that don't belong to it.
+    // LAYER 1: VENUE-AWARE BATCH FILTERING
+    // When a scrape cycle partially fails, some venues don't receive
+    // new batch records. Grouping strictly by global `source` drops them.
+    // Instead, find the latest batch_id PER VENUE, and discard all
+    // older rows for that venue. Also discard games older than 3 hours.
     // ═══════════════════════════════════════════════════════════
-    const latestBatchBySource = {}; // source → { batch_id, timestamp }
+    const latestBatchByVenue = {}; // venue key → { batch_id, timestamp }
     for (const row of (data || [])) {
-      const src = row.source || 'bravo';
+      const key = row.bravo_slug || normalizeForMatch(cleanVenueName(row.venue_name));
       const ts = new Date(row.scrape_timestamp).getTime();
-      if (!latestBatchBySource[src] || ts > latestBatchBySource[src].timestamp) {
-        latestBatchBySource[src] = { batch_id: row.scrape_batch_id, timestamp: ts };
+      if (!latestBatchByVenue[key] || ts > latestBatchByVenue[key].timestamp) {
+        latestBatchByVenue[key] = { batch_id: row.scrape_batch_id, timestamp: ts };
       }
     }
 
-    // Filter: only keep rows from the latest batch per source
+    // Filter: only keep rows from the latest batch per venue + not too stale
     let dedupedRows = 0;
     let batchFilteredRows = 0;
+    const MAX_AGE_MS = 3 * 60 * 60 * 1000; // 3 hours
+
     const batchFiltered = (data || []).filter(row => {
-      const src = row.source || 'bravo';
-      const latestBatch = latestBatchBySource[src];
-      // If we know the latest batch for this source, only keep matching rows
-      // Allow rows without a batch ID (legacy data) to pass through
+      const key = row.bravo_slug || normalizeForMatch(cleanVenueName(row.venue_name));
+      const latestBatch = latestBatchByVenue[key];
+      const ts = new Date(row.scrape_timestamp).getTime();
+      
+      // Drop zombie data older than 3 hours
+      if (Date.now() - ts > MAX_AGE_MS) {
+          batchFilteredRows++;
+          return false;
+      }
+
+      // If we know the latest batch for this venue, only keep matching rows
       if (latestBatch && row.scrape_batch_id && row.scrape_batch_id !== latestBatch.batch_id) {
         batchFilteredRows++;
         return false;

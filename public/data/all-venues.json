@@ -2833,7 +2833,7 @@
     "about": null,
     "follower_count": 0,
     "social_links": {},
-    "slug": null,
+    "slug": "rivers-casino-des-plaines",
     "has_tournaments": true,
     "poker_atlas_url": null,
     "hours": null,
@@ -2854,7 +2854,8 @@
     "scrape_timestamp": "2026-03-29T19:13:36.241476+00:00",
     "scrape_confidence": "high",
     "scrape_batch_id": "0c819170-e0c7-4cd0-b9a9-466ac75b873e",
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1868.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/1868.png",
+    "bravo_slug": "rivers-casino-des-plaines"
   },
   {
     "id": 1870,
@@ -34410,7 +34411,7 @@
     "cover_photo_url": null,
     "profile_photo_url": "https://img1.wsimg.com/isteam/ip/4817695c-872e-4ccf-82e0-bae0f1e06bad/BG%20SMALL.png",
     "tagline": null,
-    "about": "Private members-only social club open to public membership. 5 poker tables including the only multi-action poker table east of the Mississippi. 100% rake-free — revenue from memberships. Progressive high hands daily. Opens 5pm daily.",
+    "about": "Private members-only social club open to public membership. 5 poker tables including the only multi-action poker table east of the Mississippi. 100% rake-free \u2014 revenue from memberships. Progressive high hands daily. Opens 5pm daily.",
     "follower_count": 0,
     "social_links": {},
     "slug": "big-stack-poker-club",
@@ -35019,7 +35020,7 @@
   },
   {
     "id": 2817,
-    "name": "ACES Charity Poker — Atmosphere Sports Bar",
+    "name": "ACES Charity Poker \u2014 Atmosphere Sports Bar",
     "venue_type": "charity",
     "city": "Loganville",
     "state": "GA",
@@ -35092,7 +35093,7 @@
   },
   {
     "id": 2818,
-    "name": "ACES Charity Poker — Del Rio Mexican Grill",
+    "name": "ACES Charity Poker \u2014 Del Rio Mexican Grill",
     "venue_type": "charity",
     "city": "Dacula",
     "state": "GA",
@@ -51768,7 +51769,7 @@
     "about": null,
     "follower_count": 0,
     "social_links": {},
-    "slug": null,
+    "slug": "wind-creek-chicago-southland",
     "has_tournaments": false,
     "poker_atlas_url": null,
     "hours": null,
@@ -51789,7 +51790,8 @@
     "scrape_timestamp": null,
     "scrape_confidence": "unverified",
     "scrape_batch_id": null,
-    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3096.png"
+    "logo_url": "https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/venue-logos/3096.png",
+    "bravo_slug": "wind-creek-chicago-southland"
   },
   {
     "id": 3097,
