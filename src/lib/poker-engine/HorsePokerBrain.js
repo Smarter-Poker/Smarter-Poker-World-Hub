@@ -1930,8 +1930,12 @@ function getPLOTurnBarrel(equity, madeHand, straightOuts, flushOuts, isScareTurn
     // Strong made hands always barrel
     if (equity >= 75) return { shouldBarrel: true, barrelFraction: 0.85 };
 
-    // Scare card hit: slow down with medium hands
-    if (isScareTurn && equity < 70) return { shouldBarrel: false, barrelFraction: 0 };
+    // Bug #130: Scare card check must account for whether the scare card HELPED us.
+    // If we have a made hand (flush, straight, set+), the scare card might have
+    // completed our draw — don't slow down, barrel for value.
+    // Only slow down with medium non-made hands on scare turns.
+    const scareHelpsUs = isScareTurn && madeHand.isMade && madeHand.strength >= 65;
+    if (isScareTurn && !scareHelpsUs && equity < 70) return { shouldBarrel: false, barrelFraction: 0 };
 
     // Big wrap (15+ outs): barrel to charge opponents
     if (straightOuts >= 15) return { shouldBarrel: true, barrelFraction: 0.75 };
