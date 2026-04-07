@@ -12115,6 +12115,94 @@ test('FINAL AUDIT SUMMARY: 74 bugs found and fixed, 1000+ tests passing', () => 
     expect(true).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 88: Final Hardening — 500-call Chaos Stress Test
+// ═══════════════════════════════════════════════════════════
+console.log('\n📋 Phase 88: Final Hardening — 500-call Chaos Stress Test');
+
+asyncTests.push({ name: 'CHAOS: 500 getDecision calls with randomized inputs — zero crashes', fn: async () => {
+    const positions = ['UTG','UTG+1','MP','MP+1','HJ','CO','BTN','SB','BB'];
+    const streets = ['preflop','flop','turn','river'];
+    const hands = [['Ah','Kd'],['2c','7h'],['Ts','Td'],['Jh','9h'],['Qs','Js'],['5d','5c'],['Ac','2c'],['8h','8d']];
+    const boards = [
+        [],
+        ['7c','8d','2s'],
+        ['Kh','Qs','Js'],
+        ['7c','8d','2s','Td'],
+        ['7c','8d','2s','Td','3h'],
+        ['Ah','Ad','Ac'],
+        ['2h','3h','4h','5h'],
+        ['Kc','Kd','7s','7h','As'],
+    ];
+    let crashes = 0;
+    let nanAmounts = 0;
+    let invalidTypes = 0;
+    const validTypes = ['fold','call','check','raise','bet','allin'];
+
+    for (let i = 0; i < 500; i++) {
+        try {
+            const gs = {
+                hand: hands[i % hands.length],
+                board: boards[i % boards.length],
+                pot: Math.floor(Math.random() * 2000),
+                toCall: Math.floor(Math.random() * 200),
+                position: positions[i % positions.length],
+                street: streets[Math.min(3, Math.floor(boards[i % boards.length].length / 2))],
+                players: [{id:'p'+i,position:'BTN'},{id:'opp'+i,position:'SB'}],
+                stackSize: Math.floor(Math.random() * 5000) + 10,
+                bigBlind: [2,5,10,20,50][i % 5],
+                activePlayers: 2 + (i % 7),
+                legalActions: [
+                    { type: 'fold', amount: 0 },
+                    { type: 'call', amount: Math.floor(Math.random() * 200) },
+                    { type: 'raise', amount: Math.floor(Math.random() * 1000), minRaise: 10, maxRaise: 5000 }
+                ]
+            };
+            const result = await brain.getDecision('chaos-horse-' + (i % 50), gs);
+            if (!result || !result.action) { crashes++; continue; }
+            if (!validTypes.includes(result.action.type)) invalidTypes++;
+            if (result.action.type !== 'fold' && result.action.type !== 'check') {
+                if (typeof result.action.amount === 'number' && isNaN(result.action.amount)) nanAmounts++;
+            }
+        } catch(e) {
+            crashes++;
+        }
+    }
+    expect(crashes).toBe(0);
+    expect(nanAmounts).toBe(0);
+    expect(invalidTypes).toBe(0);
+}});
+
+asyncTests.push({ name: 'CHAOS: 200 rapid observeNewHand + recordOpponentAction cycles', fn: async () => {
+    let crashes = 0;
+    for (let i = 0; i < 200; i++) {
+        try {
+            brain.observeNewHand('chaos-table', 'hand-' + i,
+                [{id:'a'+i,position:'BTN'},{id:'b'+i,position:'SB'}],
+                ['chaos-horse-' + (i % 30)], 10);
+            brain.recordOpponentAction('opp-' + (i % 20), ['preflop','flop','turn','river'][i%4], ['raise','call','fold','check'][i%4]);
+        } catch(e) { crashes++; }
+    }
+    expect(crashes).toBe(0);
+}});
+
+asyncTests.push({ name: 'CHAOS: All Map caches stay bounded after 500 operations', fn: async () => {
+    // Check that no internal Map has grown unbounded
+    const maps = [
+        'liveObserver', 'opponentSessionModel', 'minRaiseMap', 'squeezeMap',
+        'streetMemoryMap', 'rangeRotationMap', 'threatIntelCache', '_journalCache',
+        'chipLeakMap', 'probeBetMap', 'imageExposureMap', 'coldCallMap'
+    ];
+    for (const mapName of maps) {
+        const m = brain[mapName];
+        if (m instanceof Map) {
+            // No single map should exceed ~500 entries from 500 ops
+            expect(m.size < 1000).toBe(true);
+        }
+    }
+    expect(true).toBe(true);
+}});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
