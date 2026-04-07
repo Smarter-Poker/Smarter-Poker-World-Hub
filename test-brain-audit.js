@@ -14403,6 +14403,382 @@ asyncTests.push({ name: 'FULL HAND: Complete preflop→flop→turn→river decis
     expect(riverResult.action.type !== 'fold').toBe(true);
 }});
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 95: COMPANION MODULE DIRECT EXPORT TESTS
+// Test GTO, Personality, and Advanced module exports directly
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 95: Companion Module Direct Export Tests ──');
+
+const gto = require('./src/content-engine/services/HorsePokerGTO.js').default || require('./src/content-engine/services/HorsePokerGTO.js');
+const pers = require('./src/content-engine/services/HorsePokerPersonality.js').default || require('./src/content-engine/services/HorsePokerPersonality.js');
+const adv = require('./src/content-engine/services/HorsePokerAdvanced.js').default || require('./src/content-engine/services/HorsePokerAdvanced.js');
+
+// ── 95.1: GTO Module ──
+test('GTO: constructOpponentRange returns valid shape', () => {
+    const result = gto.constructOpponentRange(['raise', 'call'], 'BTN');
+    expect(!!result).toBe(true);
+    expect(typeof result.estimatedWidth).toBe('number');
+});
+
+test('GTO: analyzeBlockers returns valid shape', () => {
+    const result = gto.analyzeBlockers(['Ah', 'Kh'], ['Qh', '7d', '2c']);
+    expect(!!result).toBe(true);
+    expect(typeof result.bluffValue).toBe('number');
+});
+
+test('GTO: analyzeBoardTexture with valid board', () => {
+    const result = gto.analyzeBoardTexture(['Ah', 'Kd', '7c']);
+    expect(!!result).toBe(true);
+    expect(typeof result.texture).toBe('string');
+});
+
+test('GTO: analyzeBoardTexture with empty board returns unknown', () => {
+    const result = gto.analyzeBoardTexture([]);
+    expect(result.texture).toBe('unknown');
+});
+
+test('GTO: getPositionRange returns number', () => {
+    const result = gto.getPositionRange('BTN', 'open');
+    expect(typeof result).toBe('number');
+    expect(result > 0).toBe(true);
+});
+
+test('GTO: calculatePotGeometry with valid inputs', () => {
+    const result = gto.calculatePotGeometry(100, 200, 'flop');
+    expect(!!result).toBe(true);
+    expect(typeof result.geometricSize).toBe('number');
+});
+
+test('GTO: calculatePotGeometry with zero/Infinity guards', () => {
+    const r1 = gto.calculatePotGeometry(0, 200, 'flop');
+    expect(!!r1).toBe(true);
+    const r2 = gto.calculatePotGeometry(Infinity, 200, 'flop');
+    expect(!!r2).toBe(true);
+    const r3 = gto.calculatePotGeometry(100, Infinity, 'flop');
+    expect(!!r3).toBe(true);
+});
+
+test('GTO: getBlindPressure with valid inputs', () => {
+    const result = gto.getBlindPressure(5, 100);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('GTO: getBlindPressure with Infinity guards', () => {
+    const r1 = gto.getBlindPressure(Infinity, 100);
+    expect(!!r1).toBe(true);
+    const r2 = gto.getBlindPressure(5, Infinity);
+    expect(!!r2).toBe(true);
+});
+
+test('GTO: getStackDepthStrategy returns object', () => {
+    const result = gto.getStackDepthStrategy(100);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('GTO: analyzeTableDynamics with array input', () => {
+    const result = gto.analyzeTableDynamics([
+        { vpip: 30, pfr: 20, aggression: 2 },
+        { vpip: 50, pfr: 10, aggression: 1 }
+    ]);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('GTO: getSizingTell returns object', () => {
+    const result = gto.getSizingTell('test-sizing-95');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('GTO: getHeatCheck returns object', () => {
+    const result = gto.getHeatCheck('test-heat-95');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('GTO: recordSessionAction + getSessionAdjustment', () => {
+    gto.recordSessionAction('gto-session-95', 'raise', { won: true });
+    gto.recordSessionAction('gto-session-95', 'fold', { won: false });
+    const adj = gto.getSessionAdjustment('gto-session-95');
+    expect(!!adj).toBe(true);
+    expect(typeof adj).toBe('object');
+});
+
+test('GTO: analyzeTableDynamics returns object', () => {
+    const result = gto.analyzeTableDynamics([
+        { stack: 100, position: 'BTN', vpip: 0.3 },
+        { stack: 80, position: 'BB', vpip: 0.5 }
+    ]);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+// ── 95.2: Personality Module ──
+test('PERSONALITY: getHorsePokerProfile returns object', () => {
+    const result = pers.getHorsePokerProfile('pers-test-95');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('PERSONALITY: getPlayStyle returns key from valid set', () => {
+    const result = pers.getPlayStyle('pers-style-95');
+    expect(!!result).toBe(true);
+    expect(['nit', 'TAG', 'LAG', 'calling_station', 'maniac'].includes(result.key)).toBe(true);
+});
+
+test('PERSONALITY: getSkillTier returns level 1-5', () => {
+    const result = pers.getSkillTier('pers-skill-95');
+    expect(!!result).toBe(true);
+    expect(result.level >= 1 && result.level <= 5).toBe(true);
+});
+
+test('PERSONALITY: getStats returns all required fields', () => {
+    const result = pers.getStats('pers-stats-95');
+    expect(typeof result.vpip).toBe('number');
+    expect(typeof result.pfr).toBe('number');
+    expect(typeof result.threeBet).toBe('number');
+    expect(typeof result.cbet).toBe('number');
+    expect(typeof result.aggression).toBe('number');
+});
+
+test('PERSONALITY: makeDecision returns valid action', () => {
+    const result = pers.makeDecision('pers-decision-95', {
+        potSize: 10, toCall: 5, stackBB: 100, position: 'BTN',
+        street: 'flop', handStrength: 60
+    });
+    expect(!!result).toBe(true);
+    expect(typeof result.action).toBe('string');
+});
+
+test('PERSONALITY: makeDecision with null gameState returns safe default', () => {
+    const result = pers.makeDecision('pers-null-95', null);
+    expect(!!result).toBe(true);
+    expect(result.action).toBe('check');
+});
+
+test('PERSONALITY: shouldSitAtTable returns boolean', () => {
+    const result = pers.shouldSitAtTable('pers-sit-95', '1/2', 4);
+    expect(typeof result === 'boolean' || typeof result === 'object').toBe(true);
+});
+
+test('PERSONALITY: shouldLeaveTable with null returns safe default', () => {
+    const result = pers.shouldLeaveTable('pers-leave-95', null);
+    expect(!!result).toBe(true);
+    expect(result.shouldLeave).toBe(false);
+});
+
+test('PERSONALITY: shouldCashOut returns boolean', () => {
+    const result = pers.shouldCashOut('pers-cash-95', 300, 200, 60, 1, 0.2);
+    expect(typeof result === 'boolean' || typeof result === 'object').toBe(true);
+});
+
+test('PERSONALITY: getSessionProfile returns object', () => {
+    const result = pers.getSessionProfile('pers-sess-95');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('PERSONALITY: getTiltFactor returns number', () => {
+    const result = pers.getTiltFactor('pers-tilt-95');
+    expect(typeof result).toBe('number');
+});
+
+test('PERSONALITY: getAdaptationRate returns number', () => {
+    const result = pers.getAdaptationRate('pers-adapt-95');
+    expect(typeof result).toBe('number');
+});
+
+// ── 95.3: Advanced Module ──
+test('ADVANCED: getTimingPattern returns object', () => {
+    const result = adv.getTimingPattern('adv-timing-95');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('ADVANCED: getActionDelay returns positive number', () => {
+    const result = adv.getActionDelay('adv-delay-95', 'strong');
+    expect(typeof result).toBe('number');
+    expect(result > 0).toBe(true);
+});
+
+test('ADVANCED: recordBadBeat + getTiltLevel', () => {
+    adv.recordBadBeat('adv-tilt-95', 50);
+    adv.recordBadBeat('adv-tilt-95', 30);
+    adv.recordBadBeat('adv-tilt-95', 80);
+    const tilt = adv.getTiltLevel('adv-tilt-95');
+    expect(typeof tilt).toBe('number');
+    expect(tilt > 0).toBe(true);
+});
+
+test('ADVANCED: recordWin + getConsecutiveLosses', () => {
+    adv.recordWin('adv-win-95');
+    const losses = adv.getConsecutiveLosses('adv-win-95');
+    expect(typeof losses).toBe('number');
+    expect(losses >= 0).toBe(true);
+});
+
+test('ADVANCED: getTiltedStyle returns valid style', () => {
+    const result = adv.getTiltedStyle('adv-tilted-95', 'TAG');
+    expect(typeof result).toBe('string');
+});
+
+test('ADVANCED: getTiltedStats returns object', () => {
+    const result = adv.getTiltedStats('adv-tstats-95', { vpip: 25, pfr: 20, aggression: 3 });
+    expect(!!result).toBe(true);
+    expect(typeof result.vpip).toBe('number');
+});
+
+test('ADVANCED: recordShowdown + getTableImage', () => {
+    adv.recordShowdown('adv-show-95', true, true);
+    adv.recordShowdown('adv-show-95', false, false);
+    const image = adv.getTableImage('adv-show-95');
+    expect(!!image).toBe(true);
+    expect(typeof image).toBe('object');
+});
+
+test('ADVANCED: getImageAdjustedAction returns valid action', () => {
+    const result = adv.getImageAdjustedAction('adv-image-95', 'raise', 70);
+    expect(typeof result).toBe('string');
+});
+
+test('ADVANCED: identifyLeak returns object for overbluffer', () => {
+    const result = adv.identifyLeak({ bluffFrequency: 0.6, callFrequency: 0.1, foldFrequency: 0.3, valueFrequency: 0.1 });
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+    expect(result.leak).toBe('overbluffs');
+});
+
+test('ADVANCED: areRivals returns boolean', () => {
+    expect(typeof adv.areRivals('h1-95', 'h2-95')).toBe('boolean');
+});
+
+test('ADVANCED: areFriends returns boolean', () => {
+    expect(typeof adv.areFriends('h1-95', 'h2-95')).toBe('boolean');
+});
+
+test('ADVANCED: getRivalryAggression returns number', () => {
+    const result = adv.getRivalryAggression('h1-95', 'h2-95', 5);
+    expect(typeof result).toBe('number');
+});
+
+test('ADVANCED: recordGrudge + getGrudgeLevel', () => {
+    adv.recordGrudge('grudge-loser-95', 'grudge-winner-95', 100);
+    const level = adv.getGrudgeLevel('grudge-loser-95', 'grudge-winner-95');
+    expect(typeof level).toBe('number');
+    expect(level > 0).toBe(true);
+});
+
+test('ADVANCED: getGrudgeTargeting returns array or object', () => {
+    const result = adv.getGrudgeTargeting('grudge-loser-95', ['grudge-winner-95', 'other-95']);
+    expect(!!result).toBe(true);
+});
+
+test('ADVANCED: getLeaderboardStrategy returns object', () => {
+    const result = adv.getLeaderboardStrategy('lb-horse-95', 3, 10, 50);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('ADVANCED: getMonthlyGoal returns object', () => {
+    const result = adv.getMonthlyGoal('goal-horse-95');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('ADVANCED: getGoalProgress returns object', () => {
+    const result = adv.getGoalProgress('goal-horse-95', { handsPlayed: 100, winRate: 5 });
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('ADVANCED: recordSessionStart + getFatigueLevel', () => {
+    adv.recordSessionStart('fatigue-horse-95');
+    const fatigue = adv.getFatigueLevel('fatigue-horse-95');
+    expect(typeof fatigue).toBe('number');
+    expect(fatigue >= 0 && fatigue <= 1).toBe(true);
+});
+
+test('ADVANCED: getFatigueAdjustedAction returns string', () => {
+    const result = adv.getFatigueAdjustedAction('fatigue-horse-95', 'raise', true);
+    expect(typeof result).toBe('string');
+});
+
+test('ADVANCED: getOpponentRead returns object after enough data', () => {
+    for (let i = 0; i < 10; i++) {
+        adv.recordHandHistory('opp-read-horse-95', 'opp-read-opp-95', { result: i % 2 === 0 ? 'win' : 'loss', potSize: 50 });
+    }
+    const read = adv.getOpponentRead('opp-read-horse-95', 'opp-read-opp-95');
+    expect(!!read).toBe(true);
+    expect(typeof read).toBe('object');
+    expect(typeof read.handsObserved).toBe('number');
+});
+
+test('ADVANCED: getHandHistory returns array', () => {
+    const result = adv.getHandHistory('opp-read-horse-95', 'opp-read-opp-95');
+    expect(Array.isArray(result)).toBe(true);
+});
+
+test('ADVANCED: getSoftplayModifier returns object with modifiers', () => {
+    const result = adv.getSoftplayModifier('sp-h1-95', 'sp-h2-95');
+    expect(typeof result).toBe('object');
+    expect(typeof result.bluffReduction).toBe('number');
+    expect(typeof result.valueReduction).toBe('number');
+    expect(typeof result.isSoftplaying).toBe('boolean');
+});
+
+test('ADVANCED: getExploitAdjustedAction returns object with action', () => {
+    const result = adv.getExploitAdjustedAction('exploit-h-95', 'exploit-o-95', 'call', 3);
+    expect(typeof result).toBe('object');
+    expect(typeof result.exploiting).toBe('boolean');
+});
+
+// ── 95.4: Fuzz test all three modules with garbage inputs ──
+test('FUZZ: GTO functions survive garbage inputs', () => {
+    let crashes = 0;
+    const garbage = [null, undefined, NaN, Infinity, 0, -1, '', 'garbage', [], {}, true];
+    for (const g of garbage) {
+        try { gto.constructOpponentRange(g, g); } catch(e) { crashes++; }
+        try { gto.analyzeBlockers(g, g); } catch(e) { crashes++; }
+        try { gto.analyzeBoardTexture(g); } catch(e) { crashes++; }
+        try { gto.getPositionRange(g, g); } catch(e) { crashes++; }
+        try { gto.calculatePotGeometry(g, g, g); } catch(e) { crashes++; }
+        try { gto.getBlindPressure(g, g); } catch(e) { crashes++; }
+    }
+    expect(crashes).toBe(0);
+});
+
+test('FUZZ: Personality functions survive garbage inputs', () => {
+    let crashes = 0;
+    const garbage = [null, undefined, NaN, Infinity, 0, -1, '', 'garbage', [], {}, true];
+    for (const g of garbage) {
+        try { pers.getPlayStyle(g); } catch(e) { crashes++; }
+        try { pers.getSkillTier(g); } catch(e) { crashes++; }
+        try { pers.getStats(g); } catch(e) { crashes++; }
+        try { pers.makeDecision(g, g); } catch(e) { crashes++; }
+        try { pers.shouldLeaveTable(g, g); } catch(e) { crashes++; }
+        try { pers.getTiltFactor(g); } catch(e) { crashes++; }
+    }
+    expect(crashes).toBe(0);
+});
+
+test('FUZZ: Advanced functions survive garbage inputs', () => {
+    let crashes = 0;
+    const garbage = [null, undefined, NaN, Infinity, 0, -1, '', 'garbage', [], {}, true];
+    for (const g of garbage) {
+        try { adv.getTimingPattern(g); } catch(e) { crashes++; }
+        try { adv.getActionDelay(g, g); } catch(e) { crashes++; }
+        try { adv.getTiltLevel(g); } catch(e) { crashes++; }
+        try { adv.getTableImage(g); } catch(e) { crashes++; }
+        try { adv.identifyLeak(g); } catch(e) { crashes++; }
+        try { adv.getGrudgeLevel(g, g); } catch(e) { crashes++; }
+        try { adv.getFatigueLevel(g); } catch(e) { crashes++; }
+    }
+    expect(crashes).toBe(0);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
