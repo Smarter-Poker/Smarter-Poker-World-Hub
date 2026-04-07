@@ -362,6 +362,214 @@ export default function PokerNearMePage() {
     const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
 
 
+
+    // Live table count for map stats (fetched from live-tables API)
+    const [liveTableCount, setLiveTableCount] = useState(0);
+
+    // UI states
+    const [loading, setLoading] = useState(true);
+    const [venueLoading, setVenueLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [userLocation, setUserLocation] = useState(null);
+    const [gpsLoading, setGpsLoading] = useState(false);
+    const [gpsLocationLabel, setGpsLocationLabel] = useState(null);
+    const [showLocationModal, setShowLocationModal] = useState(false);
+    const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
+    const [showFilters, setShowFilters] = useState(false);
+    const [selectedCity, setSelectedCity] = useState(null);
+    const [nearestDistance, setNearestDistance] = useState(null);
+    const [hasSearched, setHasSearched] = useState(true);
+
+    // Geofence alert state
+    const [geofenceAlert, setGeofenceAlert] = useState(null);
+    const geofenceRef = useRef(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Map fullscreen modal state
+    const [mapFullscreen, setMapFullscreen] = useState(false);
+
+    // ─── Batch fetch review stats for venue cards (star ratings) ───
+    const [pnmReviewStatsMap, setPnmReviewStatsMap] = useState({});
+    const pnmReviewStatsRef = useRef(pnmReviewStatsMap);
+    pnmReviewStatsRef.current = pnmReviewStatsMap;
+    useEffect(() => {
+        if (venues.length === 0) return;
+        const newIds = venues
+            .map(v => v.id)
+            .filter(id => id && !pnmReviewStatsRef.current[String(id)])
+            .slice(0, 50);
+        if (newIds.length === 0) return;
+        fetch('/api/poker/reviews?stats_only=true&venue_ids=' + newIds.join(','))
+            .then(r => r.json())
+            .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
+            .catch(() => { /* silent */ });
+    }, [venues]);
+
+    // ─── Listen for review submissions to refresh review stats for that venue ───
+    useEffect(() => {
+        const handleReviewSubmitted = (e) => {
+            const venueId = e?.detail?.venueId;
+            if (!venueId) return;
+            fetch('/api/poker/reviews?stats_only=true&venue_ids=' + venueId)
+                .then(r => r.json())
+                .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
+                .catch(() => { /* silent */ });
+        };
+        window.addEventListener('pnm:review-submitted', handleReviewSubmitted);
+        return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
+    }, []);
+
+
+
+    // Review panel state (Feature #9)
+    const [reviewVenue, setReviewVenue] = useState(null);
+
+    // Pin-to-card highlight state
+    const [highlightedVenueId, setHighlightedVenueId] = useState(null);
+    const highlightTimeoutRef = useRef(null);
+
+    // Swipe gesture state
+    const touchStartRef = useRef(null);
+    const touchEndRef = useRef(null);
+    const contentRef = useRef(null);
+
+    // Pull-to-refresh state
+    const [pullDistance, setPullDistance] = useState(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const pullStartRef = useRef(null);
+
+    // City autocomplete state
+    const [citySuggestions, setCitySuggestions] = useState([]);
+    const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+
+    // Push notification state
+    const [pushPermission, setPushPermission] = useState('default');
+
+    // Fetch error state for retry UI
+    const [fetchError, setFetchError] = useState(null);
+
+    // Hamburger menu preferences
+    const [preferences, setPreferences] = useState({
+        geofenceAlerts: true,
+        locationEnabled: true,
+        showNewcomerFriendly: true
+    });
+
+    // Intro video state - ONLY show when navigated directly from World Hub card click
+    // NOT when navigating via lobby pods (which add ?tab= params)
+    const [showIntro, setShowIntro] = useState(() => {
+        if (typeof window !== 'undefined') {
+            // If there's a tab param in the URL, user came from lobby — never play intro
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab')) {
+                // Consume the flag so it doesn't stick around
+                sessionStorage.removeItem('poker-near-me-from-hub');
+                return false;
+            }
+            // Only play intro when user came from World Hub page (flag set by WorldHub.tsx)
+            const fromHub = sessionStorage.getItem('poker-near-me-from-hub');
+            if (fromHub === '1' && !sessionStorage.getItem('poker-near-me-intro-seen')) {
+                // Consume the flag immediately so it doesn't replay on refresh
+                sessionStorage.removeItem('poker-near-me-from-hub');
+                return true;
+            }
+        }
+        return false;
+    });
+    const introVideoRef = useRef(null);
+    const cityDebounceRef = useRef(null);
+
+    // ─── Tab-specific tutorial state ───
+    const [tabTutorialsSeen, setTabTutorialsSeen] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                return JSON.parse(localStorage.getItem('pnm_tab_tutorials_seen') || '{}');
+            } catch { return {}; }
+        }
+        return {};
+    });
+    const [showTabTutorial, setShowTabTutorial] = useState(false);
+    const [currentTutorialTab, setCurrentTutorialTab] = useState(null);
+
+    // Trigger tab tutorial on first visit to each tab
+    // DISABLED: Tutorials should no longer auto-play per new standard.
+    // They are now exclusively accessible via the Hamburger Menu.
+    useEffect(() => {
+        // Auto-play disabled
+    }, []);
+
+    const handleTutorialDismiss = useCallback(() => {
+        setShowTabTutorial(false);
+        if (currentTutorialTab) {
+            const updated = { ...tabTutorialsSeen, [currentTutorialTab]: true };
+            setTabTutorialsSeen(updated);
+            try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(updated)); } catch {}
+        }
+    }, [currentTutorialTab, tabTutorialsSeen]);
+
+    const handleTutorialDontShow = useCallback(() => {
+        setShowTabTutorial(false);
+        // Mark ALL tabs as seen
+        const allSeen = { venues: true, events: true, live: true, map: true, saved: true, more: true };
+        setTabTutorialsSeen(allSeen);
+        try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(allSeen)); } catch {}
+    }, []);
+
+    const replayTutorial = useCallback(() => {
+        if (PNM_TAB_TUTORIALS[activeTab]) {
+            setCurrentTutorialTab(activeTab);
+            setShowTabTutorial(true);
+        }
+        setMenuOpen(false);
+    }, [activeTab]);
+
+    const handleIntroEnd = useCallback(() => {
+        sessionStorage.setItem('poker-near-me-intro-seen', 'true');
+        setShowIntro(false);
+    }, []);
+
+    const handleIntroPlay = useCallback(() => {
+        if (introVideoRef.current) {
+            introVideoRef.current.muted = false;
+        }
+    }, []);
+
+    const [filters, setFilters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('poker-near-me-search-filters');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    // ENFORCE defaults on every page entry — this is the expected behavior
+                    // when the Poker Near Me icon is clicked. Users can change once on the page.
+                    parsed.radius = 50;
+                    // ENFORCE venueType=all so tour pins + all venues always show on map
+                    parsed.venueType = 'all';
+                    // ENFORCE game/stakes filters so tour pins aren't accidentally filtered out
+                    parsed.gameType = 'all';
+                    parsed.stakes = 'all';
+                    return { ...parsed };
+                }
+            } catch (e) { console.error(e); }
+        }
+        return {
+            radius: 50,
+            venueType: 'all',
+            hasNLH: false,
+            hasPLO: false,
+            hasMixed: false,
+            tourType: 'all',
+            seriesTimeframe: 90,
+            seriesType: 'all',
+            selectedDay: getCurrentDay(),
+            minBuyin: '',
+            maxBuyin: '',
+            stakes: 'all',
+            gameType: 'all',
+            selectedState: 'all'
+        };
+    });
+
     // ═══ MERGE TOUR STOPS INTO MAP VENUES — ONE pin per tour at current/next stop ═══
     // Mirrors the poker-tours page approach: find current or next-upcoming stop per tour,
     // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
@@ -575,213 +783,6 @@ export default function PokerNearMePage() {
         });
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allVenuesForMap, tours, filters.radius, userLocation, selectedCity, filters.venueType, filters.gameType, filters.stakes]);
-
-    // Live table count for map stats (fetched from live-tables API)
-    const [liveTableCount, setLiveTableCount] = useState(0);
-
-    // UI states
-    const [loading, setLoading] = useState(true);
-    const [venueLoading, setVenueLoading] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [userLocation, setUserLocation] = useState(null);
-    const [gpsLoading, setGpsLoading] = useState(false);
-    const [gpsLocationLabel, setGpsLocationLabel] = useState(null);
-    const [showLocationModal, setShowLocationModal] = useState(false);
-    const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
-    const [showFilters, setShowFilters] = useState(false);
-    const [selectedCity, setSelectedCity] = useState(null);
-    const [nearestDistance, setNearestDistance] = useState(null);
-    const [hasSearched, setHasSearched] = useState(true);
-
-    // Geofence alert state
-    const [geofenceAlert, setGeofenceAlert] = useState(null);
-    const geofenceRef = useRef(null);
-    const [menuOpen, setMenuOpen] = useState(false);
-
-    // Map fullscreen modal state
-    const [mapFullscreen, setMapFullscreen] = useState(false);
-
-    // ─── Batch fetch review stats for venue cards (star ratings) ───
-    const [pnmReviewStatsMap, setPnmReviewStatsMap] = useState({});
-    const pnmReviewStatsRef = useRef(pnmReviewStatsMap);
-    pnmReviewStatsRef.current = pnmReviewStatsMap;
-    useEffect(() => {
-        if (venues.length === 0) return;
-        const newIds = venues
-            .map(v => v.id)
-            .filter(id => id && !pnmReviewStatsRef.current[String(id)])
-            .slice(0, 50);
-        if (newIds.length === 0) return;
-        fetch('/api/poker/reviews?stats_only=true&venue_ids=' + newIds.join(','))
-            .then(r => r.json())
-            .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
-            .catch(() => { /* silent */ });
-    }, [venues]);
-
-    // ─── Listen for review submissions to refresh review stats for that venue ───
-    useEffect(() => {
-        const handleReviewSubmitted = (e) => {
-            const venueId = e?.detail?.venueId;
-            if (!venueId) return;
-            fetch('/api/poker/reviews?stats_only=true&venue_ids=' + venueId)
-                .then(r => r.json())
-                .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
-                .catch(() => { /* silent */ });
-        };
-        window.addEventListener('pnm:review-submitted', handleReviewSubmitted);
-        return () => window.removeEventListener('pnm:review-submitted', handleReviewSubmitted);
-    }, []);
-
-
-
-    // Review panel state (Feature #9)
-    const [reviewVenue, setReviewVenue] = useState(null);
-
-    // Pin-to-card highlight state
-    const [highlightedVenueId, setHighlightedVenueId] = useState(null);
-    const highlightTimeoutRef = useRef(null);
-
-    // Swipe gesture state
-    const touchStartRef = useRef(null);
-    const touchEndRef = useRef(null);
-    const contentRef = useRef(null);
-
-    // Pull-to-refresh state
-    const [pullDistance, setPullDistance] = useState(0);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const pullStartRef = useRef(null);
-
-    // City autocomplete state
-    const [citySuggestions, setCitySuggestions] = useState([]);
-    const [showCitySuggestions, setShowCitySuggestions] = useState(false);
-
-    // Push notification state
-    const [pushPermission, setPushPermission] = useState('default');
-
-    // Fetch error state for retry UI
-    const [fetchError, setFetchError] = useState(null);
-
-    // Hamburger menu preferences
-    const [preferences, setPreferences] = useState({
-        geofenceAlerts: true,
-        locationEnabled: true,
-        showNewcomerFriendly: true
-    });
-
-    // Intro video state - ONLY show when navigated directly from World Hub card click
-    // NOT when navigating via lobby pods (which add ?tab= params)
-    const [showIntro, setShowIntro] = useState(() => {
-        if (typeof window !== 'undefined') {
-            // If there's a tab param in the URL, user came from lobby — never play intro
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('tab')) {
-                // Consume the flag so it doesn't stick around
-                sessionStorage.removeItem('poker-near-me-from-hub');
-                return false;
-            }
-            // Only play intro when user came from World Hub page (flag set by WorldHub.tsx)
-            const fromHub = sessionStorage.getItem('poker-near-me-from-hub');
-            if (fromHub === '1' && !sessionStorage.getItem('poker-near-me-intro-seen')) {
-                // Consume the flag immediately so it doesn't replay on refresh
-                sessionStorage.removeItem('poker-near-me-from-hub');
-                return true;
-            }
-        }
-        return false;
-    });
-    const introVideoRef = useRef(null);
-    const cityDebounceRef = useRef(null);
-
-    // ─── Tab-specific tutorial state ───
-    const [tabTutorialsSeen, setTabTutorialsSeen] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                return JSON.parse(localStorage.getItem('pnm_tab_tutorials_seen') || '{}');
-            } catch { return {}; }
-        }
-        return {};
-    });
-    const [showTabTutorial, setShowTabTutorial] = useState(false);
-    const [currentTutorialTab, setCurrentTutorialTab] = useState(null);
-
-    // Trigger tab tutorial on first visit to each tab
-    // DISABLED: Tutorials should no longer auto-play per new standard.
-    // They are now exclusively accessible via the Hamburger Menu.
-    useEffect(() => {
-        // Auto-play disabled
-    }, []);
-
-    const handleTutorialDismiss = useCallback(() => {
-        setShowTabTutorial(false);
-        if (currentTutorialTab) {
-            const updated = { ...tabTutorialsSeen, [currentTutorialTab]: true };
-            setTabTutorialsSeen(updated);
-            try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(updated)); } catch {}
-        }
-    }, [currentTutorialTab, tabTutorialsSeen]);
-
-    const handleTutorialDontShow = useCallback(() => {
-        setShowTabTutorial(false);
-        // Mark ALL tabs as seen
-        const allSeen = { venues: true, events: true, live: true, map: true, saved: true, more: true };
-        setTabTutorialsSeen(allSeen);
-        try { localStorage.setItem('pnm_tab_tutorials_seen', JSON.stringify(allSeen)); } catch {}
-    }, []);
-
-    const replayTutorial = useCallback(() => {
-        if (PNM_TAB_TUTORIALS[activeTab]) {
-            setCurrentTutorialTab(activeTab);
-            setShowTabTutorial(true);
-        }
-        setMenuOpen(false);
-    }, [activeTab]);
-
-    const handleIntroEnd = useCallback(() => {
-        sessionStorage.setItem('poker-near-me-intro-seen', 'true');
-        setShowIntro(false);
-    }, []);
-
-    const handleIntroPlay = useCallback(() => {
-        if (introVideoRef.current) {
-            introVideoRef.current.muted = false;
-        }
-    }, []);
-
-    const [filters, setFilters] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const saved = localStorage.getItem('poker-near-me-search-filters');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    // ENFORCE defaults on every page entry — this is the expected behavior
-                    // when the Poker Near Me icon is clicked. Users can change once on the page.
-                    parsed.radius = 50;
-                    // ENFORCE venueType=all so tour pins + all venues always show on map
-                    parsed.venueType = 'all';
-                    // ENFORCE game/stakes filters so tour pins aren't accidentally filtered out
-                    parsed.gameType = 'all';
-                    parsed.stakes = 'all';
-                    return { ...parsed };
-                }
-            } catch (e) { console.error(e); }
-        }
-        return {
-            radius: 50,
-            venueType: 'all',
-            hasNLH: false,
-            hasPLO: false,
-            hasMixed: false,
-            tourType: 'all',
-            seriesTimeframe: 90,
-            seriesType: 'all',
-            selectedDay: getCurrentDay(),
-            minBuyin: '',
-            maxBuyin: '',
-            stakes: 'all',
-            gameType: 'all',
-            selectedState: 'all'
-        };
-    });
 
     // Real-time Master Saving & Bus Synchronization
     useEffect(() => {
