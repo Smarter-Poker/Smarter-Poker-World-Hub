@@ -160,6 +160,7 @@ const TOUR_MARKER_COLORS = {
 };
 
 // ─── Create tour-specific icon (red border, tour logo inside) ───
+// Double-label pill: tour name on top, host venue name underneath
 function createTourIcon(L, venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ef4444';
   const logoUrl = venue.logo_url || '';
@@ -174,8 +175,16 @@ function createTourIcon(L, venue) {
        <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
     : `<div style="font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
 
-  const label = venue.tour_name || venue.tour_code || venue.name || '';
-  const escapedLabel = (label || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // Tour name (top line) — bold, colored
+  const tourLabel = (venue.tour_name || venue.tour_code || venue.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // Host venue name (bottom line) — dimmer, smaller
+  const venueLabel = truncateName(venue.stop_venue || venue.stop_name || '', 22).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  // ═══ DOUBLE-LABEL PILL — Tour on top, Venue underneath ═══
+  const doublePillHtml = `<div class="vmp-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px 8px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${tourColor}30;text-shadow:0 1px 2px #000;z-index:999;display:flex;flex-direction:column;align-items:center;gap:1px;max-width:160px;">
+    <div style="font-size:9px;color:${tourColor};letter-spacing:0.4px;font-weight:900;overflow:hidden;text-overflow:ellipsis;max-width:150px;text-shadow:0 0 6px ${tourColor}40;">${tourLabel}</div>
+    ${venueLabel ? `<div style="font-size:8px;color:rgba(200,214,229,0.65);font-weight:600;letter-spacing:0.2px;overflow:hidden;text-overflow:ellipsis;max-width:150px;">${venueLabel}</div>` : ''}
+  </div>`;
 
   return L.divIcon({
     className: 'vmp-venue-marker',
@@ -184,7 +193,7 @@ function createTourIcon(L, venue) {
       <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
         ${innerContent}
       </div>
-      <div class="vmp-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);color:#fff;padding:2px 7px;border-radius:12px;font-size:9px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 8px rgba(0,0,0,0.9);text-shadow:0 1px 2px #000;letter-spacing:0.3px;z-index:999;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${escapedLabel}</div>
+      ${doublePillHtml}
     </div>`,
     iconSize: [38, 38],
     iconAnchor: [19, 19],

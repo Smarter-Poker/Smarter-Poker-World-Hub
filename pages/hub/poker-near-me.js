@@ -733,10 +733,8 @@ export default function PokerNearMePage() {
             const city = locParts[0]?.trim() || '';
             const state = locParts[1]?.trim() || '';
 
-            // Slight offset so tour pin overlaps but is distinct from venue pin
-            // ~0.0008° ≈ 90 meters — visually side-by-side at zoom 9-12
-            lat += 0.0008;
-            lng += 0.001;
+            // No offset — tour pin sits directly on the host venue.
+            // The double-label pill + zIndexOffset: 500 ensures the tour takes visual precedence.
 
             tourPins.push({
                 id: `tour-stop-${tour.tour_code}`,
