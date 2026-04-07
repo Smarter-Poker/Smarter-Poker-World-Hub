@@ -575,9 +575,6 @@ export default function PokerNearMePage() {
     // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
     // then fall back to TOUR_CITY_COORDS, then tour.latitude/longitude.
     // Tour pins offset slightly from venue pins so both are visible simultaneously.
-    // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
-    // MUST be declared before allVenuesWithTours useMemo which reads .current
-    const globalSearchModeRef = useRef(false);
     const allVenuesWithTours = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -846,11 +843,6 @@ export default function PokerNearMePage() {
         });
         // -------------------------------------------------------------------------------------------------
 
-        // Pre-compute the radius enforcement flag outside the filter callback
-        // to avoid minification TDZ (temporal dead zone) errors with const inside filter.
-        const hasRealLoc = !!(userLocation || selectedCity);
-        const inGlobalSearch = globalSearchModeRef.current;
-
         const filteredVenues = allVenuesForMap.filter(v => {
             // Strip out parent tour/series metadata records (e.g. "Illinois Poker Championship")
             // These have coordinates but are NOT playable venues — they're tour containers
@@ -887,7 +879,8 @@ export default function PokerNearMePage() {
                 const vDlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
                 const vDist = Math.sqrt(vDlat * vDlat + vDlng * vDlng);
                 v.distance_mi = vDist;
-                if (hasRealLoc && !inGlobalSearch && vDist > effRad) return false;
+                const hasRealLoc = !!(userLocation || selectedCity);
+                if (hasRealLoc && !globalSearchModeRef.current && vDist > effRad) return false;
             }
             return true;
         });
@@ -896,7 +889,7 @@ export default function PokerNearMePage() {
         // Apply UI filters to BOTH arrays here so BOTH map feeds and list feeds are correctly filtered
         return combined.filter(v => {
             // Only bypass dropdown filters during a global text search, NOT during GPS/city searches
-            if (inGlobalSearch && hasSearched) return true;
+            if (globalSearchModeRef.current && hasSearched) return true;
 
             const isTour = v.venue_type === 'tour_stop' || v.venue_type === 'series';
 
@@ -999,7 +992,8 @@ export default function PokerNearMePage() {
     const [showSearchHistory, setShowSearchHistory] = useState(false);
     const searchDebounceRef = useRef(null);
     const searchWrapperRef = useRef(null);
-
+    // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
+    const globalSearchModeRef = useRef(false);
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
 
     // Map view filters (for enhanced map-first experience)
