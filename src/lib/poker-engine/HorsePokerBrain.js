@@ -5390,7 +5390,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const multiwayPenalty = Math.max(0, (numPlayers - 2) * 5);
     const nutBonus = madeHand.isNut ? 15 : 0;
     const lo8Bonus = lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0;
-    const boardDangerPenalty = (!madeHand.isNut && boardTexture.isDangerous) ? boardTexture.monoBoardPenalty : 0;
+    // Bug #146: Board danger penalty should account for wet boards too, not just monotone.
+    // Wet two-tone boards are dangerous for non-nut hands (flush draws + straight draws everywhere).
+    let boardDangerPenalty = 0;
+    if (!madeHand.isNut) {
+        if (boardTexture.isDangerous) boardDangerPenalty += boardTexture.monoBoardPenalty;
+        if (boardTexture.isWet && !boardTexture.isMonotone) boardDangerPenalty += 5; // Wet but not mono
+    }
     const scareCardPenalty = (scareInfo.isScareTurn || scareInfo.isScareRiver) && !madeHand.isNut ? 12 : 0;
     const tightnessOp = 1 / gameAdj.tightnessFactor;
 

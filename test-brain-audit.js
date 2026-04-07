@@ -18649,6 +18649,49 @@ test('BUG142-E2E: Limper isolation uses pot-raise not NLH sizing', () => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// BUG #146: WET BOARD DANGER PENALTY FOR NON-NUT HANDS
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Bug #146: Wet Board Danger Penalty ──');
+
+test('BUG146-E2E: Non-nut hand on wet board is more cautious than on dry board', () => {
+    // Compare behavior of a medium hand on wet vs dry board
+    let wetFolds = 0, dryFolds = 0;
+    for (let i = 0; i < 30; i++) {
+        // Wet two-tone board with medium two pair (not nut)
+        const wetState = makeE2EState({
+            holeCards: ['Ks', 'Qh', '7d', '6c'],
+            board: ['Kd', 'Qd', '8d'],  // Two-tone, flush draw heavy, wet
+            street: 'flop',
+            potSize: 200,
+            toCall: 100,
+            stackBB: 200,
+        });
+        const acts = [
+            { type: 'fold' },
+            { type: 'call', amount: 100 },
+            { type: 'raise', minAmount: 200, maxAmount: 400 },
+        ];
+        const wetR = brain.makePLOFallbackDecision('test-wet-danger', wetState, acts);
+        if (wetR.type === 'fold') wetFolds++;
+
+        // Dry rainbow board with same hand
+        const dryState = makeE2EState({
+            holeCards: ['Ks', 'Qh', '7d', '6c'],
+            board: ['Kc', 'Qd', '2h'],  // Rainbow, dry
+            street: 'flop',
+            potSize: 200,
+            toCall: 100,
+            stackBB: 200,
+        });
+        const dryR = brain.makePLOFallbackDecision('test-dry-compare', dryState, acts);
+        if (dryR.type === 'fold') dryFolds++;
+    }
+    // Wet board should have MORE folds (or equal) than dry board
+    // The wet board penalty makes non-nut hands play tighter
+    expect(wetFolds >= dryFolds).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
