@@ -589,6 +589,7 @@ export default async function handler(req, res) {
                                                   const dayLabel = nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1);
                                                   nextEvent = {
                                                       day: dayLabel,
+                                                      days_away: i,
                                                       location: nextDayData.location.trim()
                                                   };
                                                   break;
@@ -657,6 +658,7 @@ export default async function handler(req, res) {
                                               const dayLabel = nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1);
                                               nextEvent = {
                                                   day: dayLabel,
+                                                  days_away: i,
                                                   location: nextDayData.location.trim()
                                               };
                                               break;
@@ -674,6 +676,10 @@ export default async function handler(req, res) {
                                   _resolvedHasTournaments: hasTourneys,
                                   _resolvedLatitude: primaryCoords ? primaryCoords.lat : null,
                                   _resolvedLongitude: primaryCoords ? primaryCoords.lng : null,
+                                  // BUG-4 FIX: persist charity schedule state so mapper can read it
+                                  _charityIsOpenToday: isOpenToday,
+                                  _charityTodayLocation: todayLocation,
+                                  _charityNextEvent: nextEvent,
                               });
                           }
 
@@ -1020,14 +1026,15 @@ export default async function handler(req, res) {
                       charityIds.length > 0
                           ? getSupabase()
                               .from('venue_daily_tournaments')
-                              .select('venue_id, venue_name, day_of_week')
+                              // BUG-1 FIX: include start_time and buy_in so cards can display time + buy-in
+                              .select('venue_id, venue_name, day_of_week, start_time, buy_in')
                               .in('venue_id', charityIds)
                               .eq('is_active', true)
                           : Promise.resolve({ data: [] }),
                       charityNames.length > 0
                           ? getSupabase()
                               .from('venue_daily_tournaments')
-                              .select('venue_id, venue_name, day_of_week')
+                              .select('venue_id, venue_name, day_of_week, start_time, buy_in')
                               .is('venue_id', null)
                               .in('venue_name', charityNames)
                               .eq('is_active', true)
@@ -1053,7 +1060,13 @@ export default async function handler(req, res) {
                       const todayStr = DAYS[todayIdx];
                       
                       const toursByVenue = {};
-                      upcomingTours.forEach(t => {
+                      // Sort by start_time ascending so earliest tournament wins on .find()
+                      const sorted = [...upcomingTours].sort((a, b) => {
+                          const ta = a.start_time || '';
+                          const tb = b.start_time || '';
+                          return ta.localeCompare(tb);
+                      });
+                      sorted.forEach(t => {
                           const key = t.venue_id || t.venue_name;
                           if (!toursByVenue[key]) toursByVenue[key] = [];
                           toursByVenue[key].push(t);

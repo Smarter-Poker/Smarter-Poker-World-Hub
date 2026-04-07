@@ -6796,6 +6796,222 @@ asyncTest('Integration: getDecision — raise amount within legal bounds', async
     expect(result.action.type !== 'fold').toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 53: OPPONENT READ → EXPLOIT PIPELINE END-TO-END
+// ═══════════════════════════════════════════════════════════
+
+test('Exploit pipeline: recordHandHistory → getOpponentRead → identifyLeak (overbluffs)', () => {
+    // Use require to get the Advanced module functions
+    const advPath = require.resolve('./src/content-engine/services/HorsePokerAdvanced');
+    delete require.cache[advPath]; // Fresh module for clean hand history cache
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'exploit-test-horse-' + Date.now();
+    const oppId = 'exploit-test-opp-' + Date.now();
+
+    // Record 5 hands where opponent bluffs a LOT (>40% threshold for overbluffs)
+    adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+    adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+    adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+    adv.recordHandHistory(horseId, oppId, { wasBluff: false, wasValue: true, folded: false });
+    adv.recordHandHistory(horseId, oppId, { wasBluff: false, wasValue: false, folded: true });
+
+    // getOpponentRead should now return a non-null read (>3 hands)
+    const read = adv.getOpponentRead(horseId, oppId);
+    expect(read !== null).toBe(true);
+    expect(read.handsObserved).toBe(5);
+    // 3 bluffs out of 5 hands — bluffFrequency should be > 0.4
+    expect(read.bluffFrequency).toBeGreaterThan(0.35);
+    expect(read.tendency).toBe('bluffy');
+
+    // identifyLeak should detect overbluffs
+    const leak = adv.identifyLeak(read);
+    expect(leak !== null).toBe(true);
+    expect(leak.leak).toBe('overbluffs');
+    expect(leak.counter).toBe('call_down_light');
+});
+
+test('Exploit pipeline: getExploitAdjustedAction adjusts fold→call vs overbluffer (skill 5)', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'exploit-test-horse2-' + Date.now();
+    const oppId = 'exploit-test-opp2-' + Date.now();
+
+    // Record opponent as a serial bluffer
+    for (let i = 0; i < 10; i++) {
+        adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+    }
+
+    // At skill level 5, exploit chance = (5-2)*0.25 = 0.75 (75%)
+    // Run 30 trials to confirm exploit fires at least once
+    let exploitFired = false;
+    for (let trial = 0; trial < 30; trial++) {
+        const result = adv.getExploitAdjustedAction(horseId, oppId, 'fold', 5);
+        if (result.exploiting && result.action === 'call') {
+            exploitFired = true;
+            expect(result.leak).toBe('overbluffs');
+            break;
+        }
+    }
+    expect(exploitFired).toBe(true);
+});
+
+test('Exploit pipeline: overfolder detected → bluff_more counter', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'exploit-test-horse3-' + Date.now();
+    const oppId = 'exploit-test-opp3-' + Date.now();
+
+    // Record opponent as a serial folder (>60% fold frequency)
+    for (let i = 0; i < 8; i++) {
+        adv.recordHandHistory(horseId, oppId, { wasBluff: false, wasValue: false, folded: true });
+    }
+    adv.recordHandHistory(horseId, oppId, { wasBluff: false, wasValue: true, folded: false });
+    adv.recordHandHistory(horseId, oppId, { wasBluff: false, wasValue: true, folded: false });
+
+    const read = adv.getOpponentRead(horseId, oppId);
+    expect(read !== null).toBe(true);
+    expect(read.foldFrequency).toBeGreaterThan(0.5);
+
+    const leak = adv.identifyLeak(read);
+    expect(leak !== null).toBe(true);
+    expect(leak.leak).toBe('overfolds');
+    expect(leak.counter).toBe('bluff_more');
+
+    // Exploit converts check→raise against overfolder
+    let exploitFired = false;
+    for (let trial = 0; trial < 30; trial++) {
+        const result = adv.getExploitAdjustedAction(horseId, oppId, 'check', 5);
+        if (result.exploiting && result.action === 'raise') {
+            exploitFired = true;
+            break;
+        }
+    }
+    expect(exploitFired).toBe(true);
+});
+
+test('Exploit pipeline: low skill horse does NOT exploit', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'exploit-test-horse4-' + Date.now();
+    const oppId = 'exploit-test-opp4-' + Date.now();
+
+    // Record opponent as a serial bluffer
+    for (let i = 0; i < 10; i++) {
+        adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+    }
+
+    // Skill level 2 = below threshold, should NEVER exploit
+    for (let trial = 0; trial < 50; trial++) {
+        const result = adv.getExploitAdjustedAction(horseId, oppId, 'fold', 2);
+        expect(result.exploiting).toBe(false);
+        expect(result.action).toBe('fold');
+    }
+});
+
+test('Exploit pipeline: <3 hands returns null read', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'exploit-test-horse5-' + Date.now();
+    const oppId = 'exploit-test-opp5-' + Date.now();
+
+    // Only 2 hands — not enough for a read
+    adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+    adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+
+    const read = adv.getOpponentRead(horseId, oppId);
+    expect(read === null).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 53b: GRUDGE / RIVALRY / SOFTPLAY MODULE TESTS
+// ═══════════════════════════════════════════════════════════
+
+test('Advanced: recordGrudge + getGrudgeLevel tracks grudge intensity', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const loserId = 'grudge-loser-' + Date.now();
+    const winnerId = 'grudge-winner-' + Date.now();
+
+    // Small pot (<20 BB) should NOT create grudge
+    adv.recordGrudge(loserId, winnerId, 10);
+    expect(adv.getGrudgeLevel(loserId, winnerId)).toBe(0);
+
+    // Big pot should create grudge
+    adv.recordGrudge(loserId, winnerId, 50); // intensity += 50 * 0.05 = 2.5
+    const level = adv.getGrudgeLevel(loserId, winnerId);
+    expect(level).toBeGreaterThan(1);
+    expect(level).toBeLessThanOrEqual(5);
+});
+
+test('Advanced: getGrudgeTargeting returns per-opponent targeting data', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'grudge-horse-' + Date.now();
+    const opp1 = 'grudge-opp1-' + Date.now();
+    const opp2 = 'grudge-opp2-' + Date.now();
+
+    // Record big loss to opp1
+    adv.recordGrudge(horseId, opp1, 100); // big grudge
+    // No grudge against opp2
+
+    const targeting = adv.getGrudgeTargeting(horseId, [opp1, opp2]);
+    expect(targeting[opp1].grudgeLevel).toBeGreaterThan(0);
+    expect(targeting[opp1].aggressionMod).toBeGreaterThan(1.0);
+    expect(targeting[opp2].grudgeLevel).toBe(0);
+    expect(targeting[opp2].aggressionMod).toBe(1);
+});
+
+test('Advanced: getRivalryAggression returns boosted aggression for rivals', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    // Test with known rival pair (depends on hash function but test the interface)
+    const base = adv.getRivalryAggression('test-h1', 'test-h2', 1.0);
+    // Should return either 1.0 (not rivals) or 1.5 (rivals)
+    expect(base === 1.0 || base === 1.5).toBe(true);
+});
+
+test('Advanced: getSoftplayModifier returns reduction factors for friends', () => {
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    // Find a pair that ARE friends (same hash bucket mod 10)
+    // areFriends uses (hash1 % 10) === (hash2 % 10)
+    // We'll test the interface regardless
+    const mod = adv.getSoftplayModifier('softplay-h1', 'softplay-h2');
+    // Should have the expected structure
+    expect(mod.bluffReduction !== undefined).toBe(true);
+    expect(mod.valueReduction !== undefined).toBe(true);
+    expect(typeof mod.isSoftplaying).toBe('boolean');
+    // If they're friends, bluffReduction should be < 1
+    if (mod.isSoftplaying) {
+        expect(mod.bluffReduction).toBeLessThan(1.0);
+        expect(mod.valueReduction).toBeLessThan(1.0);
+    }
+});
+
+test('Advanced: BUG #36 recency weighting gives newer hands more weight', () => {
+    const advPath = require.resolve('./src/content-engine/services/HorsePokerAdvanced');
+    delete require.cache[advPath];
+    const adv = require('./src/content-engine/services/HorsePokerAdvanced');
+
+    const horseId = 'recency-horse-' + Date.now();
+    const oppId = 'recency-opp-' + Date.now();
+
+    // Record 5 old bluff hands then 5 recent fold hands
+    for (let i = 0; i < 5; i++) {
+        adv.recordHandHistory(horseId, oppId, { wasBluff: true, wasValue: false, folded: false });
+    }
+    for (let i = 0; i < 5; i++) {
+        adv.recordHandHistory(horseId, oppId, { wasBluff: false, wasValue: false, folded: true });
+    }
+
+    const read = adv.getOpponentRead(horseId, oppId);
+    expect(read !== null).toBe(true);
+    // With recency weighting, the 5 recent folds (higher weight) should push
+    // foldFrequency higher than bluffFrequency (same count but recent folds weigh more)
+    expect(read.foldFrequency).toBeGreaterThan(read.bluffFrequency);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

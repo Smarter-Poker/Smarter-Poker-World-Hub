@@ -221,9 +221,11 @@
     border-radius: 20px;
     padding: 0 14px;
     transition: border-color 0.2s;
+    outline: none;
 }
 .pnm-top-search:focus-within {
     border-color: rgba(255,255,255,0.35);
+    outline: none;
 }
 .pnm-top-search-input {
     flex: 1;
@@ -233,8 +235,14 @@
     color: #e2e8f0;
     font-size: 13px;
     font-family: inherit;
-    outline: none;
+    outline: none !important;
+    -webkit-appearance: none;
+    appearance: none;
     min-width: 0;
+}
+.pnm-top-search-input:focus {
+    outline: none !important;
+    box-shadow: none;
 }
 .pnm-top-search-input::placeholder { color: rgba(148,163,184,0.4); }
 
