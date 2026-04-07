@@ -8829,6 +8829,466 @@ test('PLO internal exports exist', () => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 69: Division-by-zero / NaN Bug Fixes Verification
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 69: Division-by-Zero / NaN Guards ──');
+
+test('BUG42: evaluateDonkBet handles potSize=0 without Infinity', () => {
+    const { evaluateDonkBet } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evaluateDonkBet) { expect(true).toBe(true); return; }
+    const result = evaluateDonkBet(10, 0, true, 50);
+    expect(result.action).toBe('none');
+    expect(result.reason).toBe('no_pot');
+});
+
+test('BUG43: getDynamicRebuyStrategy handles bb=0 without Infinity', () => {
+    const { getDynamicRebuyStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getDynamicRebuyStrategy) { expect(true).toBe(true); return; }
+    const result = getDynamicRebuyStrategy('test-id', 50, 0, 0, 200);
+    expect(typeof result.shouldRebuy).toBe('boolean');
+    expect(isFinite(result.amount)).toBe(true);
+});
+
+test('BUG43: getDynamicRebuyStrategy handles bb=undefined without NaN', () => {
+    const { getDynamicRebuyStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getDynamicRebuyStrategy) { expect(true).toBe(true); return; }
+    const result = getDynamicRebuyStrategy('test-id', 50, undefined, 0, 200);
+    expect(typeof result.shouldRebuy).toBe('boolean');
+    expect(isFinite(result.amount)).toBe(true);
+});
+
+test('BUG44: clampAmt handles NaN input gracefully', () => {
+    // The clampAmt fix returns a valid number when given NaN
+    // We verify this indirectly through makeTurnRiverHeuristicDecision
+    const { makeTurnRiverHeuristicDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!makeTurnRiverHeuristicDecision) { expect(true).toBe(true); return; }
+    // Monster hand (strength 85+) with toCall=0 (first to act) — was the NaN trigger
+    const result = makeTurnRiverHeuristicDecision({
+        street: 'turn',
+        holeCards: ['As', 'Ah'],
+        board: ['Ad', 'Kh', '7c', '2s'],
+        handStr: 'AA',
+        position: 'BTN',
+        stackBB: 100,
+        potSize: 50,
+        toCall: 0, // First to act — the NaN trigger
+        bb: 2,
+        numPlayers: 2,
+        legalActions: [
+            { type: 'check' },
+            { type: 'bet', minAmount: 2, maxAmount: 200 },
+        ],
+    });
+    expect(result).not.toBeNull();
+    if (result.amount !== undefined) {
+        expect(isNaN(result.amount)).toBe(false);
+        expect(isFinite(result.amount)).toBe(true);
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 70: Untested Helper Functions
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 70: Untested Helper Functions ──');
+
+test('getAdaptiveStrategy: insufficient data returns balanced', () => {
+    const { getAdaptiveStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getAdaptiveStrategy) { expect(true).toBe(true); return; }
+    const result = getAdaptiveStrategy('nonexistent-profile');
+    expect(result.reason).toBe('insufficient_data');
+    expect(result.rangeAdjust).toBe(0);
+    expect(result.aggressionAdjust).toBe(0);
+});
+
+test('getRecommendedStake: cash game with 5000 bankroll', () => {
+    const { getRecommendedStake } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getRecommendedStake) { expect(true).toBe(true); return; }
+    const result = getRecommendedStake(5000, 'Cash');
+    expect(typeof result.maxBuyIn).toBe('number');
+    expect(result.maxBuyIn > 0).toBe(true);
+    expect(result.recommendedBlinds).not.toBeNull();
+    expect(result.recommendedBlinds.bb > 0).toBe(true);
+    // 5000 / 25 = 200 per buy-in → 200/100 = 2 max BB → should recommend 1/2 or lower
+    expect(result.recommendedBlinds.bb <= 2).toBe(true);
+});
+
+test('getRecommendedStake: tournament with 10000 bankroll', () => {
+    const { getRecommendedStake } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getRecommendedStake) { expect(true).toBe(true); return; }
+    const result = getRecommendedStake(10000, 'Tournament');
+    expect(result.maxBuyIn).toBe(200); // 10000 / 50 = 200
+    expect(result.recommendedBlinds).toBeNull();
+});
+
+test('getRecommendedStake: tiny bankroll gets smallest stakes', () => {
+    const { getRecommendedStake } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getRecommendedStake) { expect(true).toBe(true); return; }
+    const result = getRecommendedStake(10, 'Cash');
+    expect(result.recommendedBlinds.bb).toBe(0.50); // Minimum stakes
+});
+
+test('isSoftPlayAllowed: first soft-play is allowed', () => {
+    const { isSoftPlayAllowed } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!isSoftPlayAllowed) { expect(true).toBe(true); return; }
+    const allowed = isSoftPlayAllowed('horse-fresh-a', 'horse-fresh-b');
+    expect(allowed).toBe(true);
+});
+
+test('recordSoftPlay + isSoftPlayAllowed: blocks after 3 soft-plays', () => {
+    const { recordSoftPlay, isSoftPlayAllowed } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordSoftPlay || !isSoftPlayAllowed) { expect(true).toBe(true); return; }
+    const h1 = 'horse-sp-x', h2 = 'horse-sp-y';
+    recordSoftPlay(h1, h2);
+    recordSoftPlay(h1, h2);
+    recordSoftPlay(h1, h2);
+    // After 3 soft-plays, should be blocked
+    expect(isSoftPlayAllowed(h1, h2)).toBe(false);
+});
+
+test('shouldAutoSeat: empty horses returns no seat', () => {
+    const { shouldAutoSeat } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!shouldAutoSeat) { expect(true).toBe(true); return; }
+    const result = shouldAutoSeat({ seats: [], minPlayers: 2 }, []);
+    expect(result.shouldSeat).toBe(false);
+});
+
+test('shouldAutoSeat: table needs players returns horse', () => {
+    const { shouldAutoSeat } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!shouldAutoSeat) { expect(true).toBe(true); return; }
+    const result = shouldAutoSeat(
+        { seats: [{ player: null }, { player: 'human1' }], minPlayers: 2 },
+        ['horse1', 'horse2']
+    );
+    expect(result.shouldSeat).toBe(true);
+    expect(['horse1', 'horse2'].includes(result.horseId)).toBe(true);
+});
+
+test('shouldAutoSeat: table full returns no seat', () => {
+    const { shouldAutoSeat } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!shouldAutoSeat) { expect(true).toBe(true); return; }
+    const result = shouldAutoSeat(
+        { seats: [{ player: 'p1' }, { player: 'p2' }], minPlayers: 2 },
+        ['horse1']
+    );
+    expect(result.shouldSeat).toBe(false);
+});
+
+test('evolveHorseSkill: winning session improves drift', () => {
+    const { evolveHorseSkill } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evolveHorseSkill) { expect(true).toBe(true); return; }
+    const result = evolveHorseSkill('evo-test-1', 10); // Winning session
+    expect(result.skillDrift >= 0).toBe(true);
+    expect(typeof result.direction).toBe('string');
+});
+
+test('evolveHorseSkill: losing session regresses drift', () => {
+    const { evolveHorseSkill } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evolveHorseSkill) { expect(true).toBe(true); return; }
+    // Reset by running many losing sessions
+    for (let i = 0; i < 20; i++) evolveHorseSkill('evo-test-2', -10);
+    const result = evolveHorseSkill('evo-test-2', -10);
+    expect(result.skillDrift <= 0).toBe(true);
+    expect(result.skillDrift >= -5).toBe(true); // Min is -5
+});
+
+test('getSkillDrift: unknown profile returns 0', () => {
+    const { getSkillDrift } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getSkillDrift) { expect(true).toBe(true); return; }
+    expect(getSkillDrift('nonexistent-evo')).toBe(0);
+});
+
+test('getSessionReview: returns review structure', () => {
+    const { getSessionReview } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getSessionReview) { expect(true).toBe(true); return; }
+    const review = getSessionReview('nonexistent-review');
+    expect(typeof review.handsPlayed).toBe('number');
+    expect(typeof review.duration).toBe('string');
+    expect(typeof review.grade).toBe('string');
+    expect(['A', 'B', 'C', 'D'].includes(review.grade)).toBe(true);
+});
+
+test('getChatMessages: returns array and drains', () => {
+    const { getChatMessages } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getChatMessages) { expect(true).toBe(true); return; }
+    const msgs = getChatMessages();
+    expect(Array.isArray(msgs)).toBe(true);
+    // Second call should return empty (drained)
+    const msgs2 = getChatMessages();
+    expect(msgs2.length).toBe(0);
+});
+
+test('getThreatScore: unknown opponent returns 0', () => {
+    const { getThreatScore } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getThreatScore) { expect(true).toBe(true); return; }
+    const score = getThreatScore('unknown-threat-opp');
+    expect(score).toBe(0);
+});
+
+test('isBlacklisted: unknown opponent returns false', () => {
+    const { isBlacklisted } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!isBlacklisted) { expect(true).toBe(true); return; }
+    expect(isBlacklisted('unknown-bl-opp')).toBe(false);
+});
+
+test('_applyJournalToProfile: applies journal data correctly', () => {
+    const { _applyJournalToProfile } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!_applyJournalToProfile) { expect(true).toBe(true); return; }
+    const profile = {
+        handsObserved: 0, vpipCount: 0, pfrCount: 0, threeBetCount: 0,
+        threeBetOpportunity: 0, fourBetCount: 0, foldToThreeBet: 0,
+        facedThreeBet: 0, coldCallCount: 0, limpCount: 0,
+        stealAttemptCount: 0, stealOpportunity: 0, foldToSteal: 0,
+        cBetCount: 0, cBetOpportunity: 0, foldToCBet: 0, facedCBet: 0,
+        secondBarrelCount: 0, secondBarrelOpportunity: 0,
+        thirdBarrelCount: 0, thirdBarrelOpportunity: 0,
+        checkRaiseCount: 0, donkBetCount: 0, probeBetCount: 0,
+        foldToRaise: 0, facedRaise: 0,
+        totalBets: 0, totalCalls: 0, totalChecks: 0, totalFolds: 0,
+        wentToShowdown: 0, wonAtShowdown: 0, showdownBluffs: 0,
+        overbetCount: 0, totalDecisionTimeMs: 0, decisionCount: 0,
+        snapActionCount: 0, longTankCount: 0, actionsByPosition: {},
+        flopBetSizes: [], turnBetSizes: [], riverBetSizes: [], preflopRaiseSizes: [],
+    };
+    const journalData = {
+        hands_observed: 50, vpip_count: 20, pfr_count: 10,
+        three_bet_count: 5, three_bet_opportunity: 15,
+        four_bet_count: 1, fold_to_three_bet: 3, faced_three_bet: 8,
+        cold_call_count: 4, limp_count: 2,
+        steal_attempt_count: 6, steal_opportunity: 12,
+        fold_to_steal: 4, cbet_count: 8, cbet_opportunity: 12,
+        fold_to_cbet: 5, faced_cbet: 10,
+        second_barrel_count: 3, second_barrel_opportunity: 6,
+        third_barrel_count: 1, third_barrel_opportunity: 3,
+        check_raise_count: 2, donk_bet_count: 1, probe_bet_count: 3,
+        fold_to_raise: 7, faced_raise: 15,
+        total_bets: 30, total_calls: 25, total_checks: 20, total_folds: 15,
+        went_to_showdown: 10, won_at_showdown: 6, showdown_bluffs: 2,
+        overbet_count: 1, total_decision_time_ms: 50000, decision_count: 90,
+        snap_action_count: 10, long_tank_count: 5,
+        actions_by_position: { BTN: { vpip: 5, pfr: 3 } },
+        avg_flop_bet: 0.55, avg_turn_bet: 0.65, avg_river_bet: 0.70,
+        avg_preflop_raise: 2.8,
+        updated_at: new Date().toISOString(),
+        session_count: 3,
+        opponent_id: 'opp-journal-test',
+    };
+    _applyJournalToProfile(profile, journalData);
+    expect(profile.handsObserved).toBe(50);
+    expect(profile.vpipCount).toBe(20);
+    expect(profile.totalBets).toBe(30);
+    expect(profile._journalSeeded).toBe(true);
+    expect(profile._journalHands).toBe(50);
+    expect(profile._journalSessionCount).toBe(3);
+    expect(profile._journalFreshness > 0.90).toBe(true); // Just created = fresh
+    // Synthetic sizing arrays should be populated
+    expect(profile.flopBetSizes.length).toBe(3);
+    expect(profile.flopBetSizes[0]).toBe(0.55);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 71: getDecision Pipeline Smoke Tests (ASYNC)
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 71: getDecision Pipeline Smoke Tests ──');
+
+asyncTest('getDecision: returns valid action for preflop', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getDecision) { expect(true).toBe(true); return; }
+    const result = await getDecision('test-profile-1', {
+        communityCards: [],
+        phase: 'preflop',
+        potTotal: 3,
+        currentBet: 2,
+        players: [
+            { id: 'test-profile-1', holeCards: [{ rank: 14, suit: 0 }, { rank: 13, suit: 1 }], stack: 200, position: 'btn', folded: false, invested: 0 },
+            { id: 'opp-1', holeCards: [], stack: 200, position: 'bb', folded: false, invested: 2 },
+        ],
+        tableId: 'smoke-test-table-71',
+    }, [
+        { type: 'fold' },
+        { type: 'call', amount: 2 },
+        { type: 'raise', minAmount: 6, maxAmount: 200 },
+    ], { bigBlind: 2 });
+    expect(result).not.toBeNull();
+    expect(typeof result).toBe('object');
+    // getDecision returns { action: { type, amount? }, delayMs }
+    const action = result.action || result;
+    expect(['fold', 'call', 'raise', 'bet', 'check'].includes(action.type)).toBe(true);
+    if (action.amount !== undefined) {
+        expect(isNaN(action.amount)).toBe(false);
+    }
+});
+
+asyncTest('getDecision: returns valid action for flop', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getDecision) { expect(true).toBe(true); return; }
+    const result = await getDecision('test-profile-2', {
+        communityCards: [{ rank: 14, suit: 0 }, { rank: 7, suit: 2 }, { rank: 2, suit: 3 }],
+        phase: 'flop',
+        potTotal: 12,
+        currentBet: 0,
+        players: [
+            { id: 'test-profile-2', holeCards: [{ rank: 13, suit: 0 }, { rank: 13, suit: 1 }], stack: 188, position: 'btn', folded: false, invested: 6 },
+            { id: 'opp-2', holeCards: [], stack: 188, position: 'bb', folded: false, invested: 6 },
+        ],
+        tableId: 'smoke-test-table-71b',
+    }, [
+        { type: 'check' },
+        { type: 'bet', minAmount: 2, maxAmount: 188 },
+    ], { bigBlind: 2 });
+    expect(result).not.toBeNull();
+    const action = result.action || result;
+    expect(['fold', 'call', 'raise', 'bet', 'check'].includes(action.type)).toBe(true);
+});
+
+asyncTest('getDecision: handles missing tableConfig gracefully', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getDecision) { expect(true).toBe(true); return; }
+    let result;
+    try {
+        result = await getDecision('test-profile-3', {
+            communityCards: [],
+            phase: 'preflop',
+            potTotal: 3,
+            currentBet: 2,
+            players: [
+                { id: 'test-profile-3', holeCards: [{ rank: 10, suit: 2 }, { rank: 10, suit: 3 }], stack: 200, position: 'co', folded: false, invested: 0 },
+                { id: 'opp-3', holeCards: [], stack: 200, position: 'bb', folded: false, invested: 2 },
+            ],
+        }, [
+            { type: 'fold' },
+            { type: 'call', amount: 2 },
+            { type: 'raise', minAmount: 6, maxAmount: 200 },
+        ], {}); // Empty tableConfig
+    } catch (e) {
+        result = null;
+    }
+    expect(result).not.toBeNull();
+    expect(typeof result).toBe('object');
+});
+
+asyncTest('getDecision: PLO variant routing works', async () => {
+    const { getDecision } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getDecision) { expect(true).toBe(true); return; }
+    const result = await getDecision('test-plo-profile', {
+        communityCards: [{ rank: 14, suit: 0 }, { rank: 7, suit: 2 }, { rank: 2, suit: 3 }],
+        phase: 'flop',
+        potTotal: 20,
+        currentBet: 0,
+        players: [
+            { id: 'test-plo-profile', holeCards: [
+                { rank: 14, suit: 1 }, { rank: 13, suit: 1 }, { rank: 12, suit: 0 }, { rank: 11, suit: 2 }
+            ], stack: 180, position: 'btn', folded: false, invested: 10 },
+            { id: 'opp-plo', holeCards: [], stack: 180, position: 'bb', folded: false, invested: 10 },
+        ],
+        tableId: 'plo-smoke-table-71',
+    }, [
+        { type: 'check' },
+        { type: 'bet', minAmount: 2, maxAmount: 180 },
+    ], { bigBlind: 2, variant: 'omaha4' });
+    expect(result).not.toBeNull();
+    const action = result.action || result;
+    expect(['fold', 'call', 'raise', 'bet', 'check'].includes(action.type)).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 72: Threat Intelligence & Range Rotation
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Phase 72: Threat Intel & Range Rotation ──');
+
+test('getThreatScore: returns number 0-100', () => {
+    const { getThreatScore } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getThreatScore) { expect(true).toBe(true); return; }
+    const score = getThreatScore('any-opp');
+    expect(typeof score).toBe('number');
+    expect(score >= 0).toBe(true);
+    expect(score <= 100).toBe(true);
+});
+
+test('getRangeRotationGear: returns valid gear', () => {
+    const { getRangeRotationGear } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getRangeRotationGear) { expect(true).toBe(true); return; }
+    const gear = getRangeRotationGear('rr-horse', 'rr-table');
+    expect(typeof gear.gear).toBe('string');
+    expect(['A', 'B', 'C', 'D'].includes(gear.gear)).toBe(true);
+    expect(typeof gear.foldMod).toBe('number');
+    expect(typeof gear.raiseMod).toBe('number');
+});
+
+test('recordRaiseSize + isMinRaiser: insufficient data returns not min-raiser', () => {
+    const { recordRaiseSize, isMinRaiser } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordRaiseSize || !isMinRaiser) { expect(true).toBe(true); return; }
+    recordRaiseSize('minr-opp', 4, 2, false); // One raise (min raise)
+    const result = isMinRaiser('minr-opp');
+    expect(result.isMinRaiser).toBe(false); // Need >=4 samples
+});
+
+test('recordRaiseSize + isMinRaiser: detects habitual min-raiser', () => {
+    const { recordRaiseSize, isMinRaiser } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordRaiseSize || !isMinRaiser) { expect(true).toBe(true); return; }
+    const opp = 'minr-habitual';
+    for (let i = 0; i < 5; i++) recordRaiseSize(opp, 4, 2, i % 2 === 0); // All min raises
+    const result = isMinRaiser(opp);
+    expect(result.isMinRaiser).toBe(true);
+    expect(result.rate > 0.40).toBe(true);
+});
+
+test('recordSqueeze + isSqueezeOverkill: detects oversqueeze', () => {
+    const { recordSqueeze, isSqueezeOverkill } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordSqueeze || !isSqueezeOverkill) { expect(true).toBe(true); return; }
+    const opp = 'sqz-overkill';
+    recordSqueeze(opp, 50, 10); // 5x pot
+    recordSqueeze(opp, 60, 12); // 5x pot
+    recordSqueeze(opp, 55, 11); // 5x pot
+    const result = isSqueezeOverkill(opp);
+    expect(result.isOverkill).toBe(true);
+    expect(result.avgMult >= 4.0).toBe(true);
+});
+
+test('isMechanicalIsolator: insufficient data returns not mechanical', () => {
+    const { isMechanicalIsolator } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!isMechanicalIsolator) { expect(true).toBe(true); return; }
+    const result = isMechanicalIsolator('no-data-iso');
+    expect(result.isMechanical).toBe(false);
+});
+
+test('evaluateDonkBet: strong equity raises', () => {
+    const { evaluateDonkBet } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evaluateDonkBet) { expect(true).toBe(true); return; }
+    const result = evaluateDonkBet(10, 30, true, 75); // Strong equity
+    expect(result.action).toBe('raise');
+});
+
+test('evaluateDonkBet: weak equity folds to big donk', () => {
+    const { evaluateDonkBet } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evaluateDonkBet) { expect(true).toBe(true); return; }
+    const result = evaluateDonkBet(20, 30, true, 20); // Weak equity, 67% pot donk
+    expect(result.action).toBe('fold');
+});
+
+test('evaluateDonkBet: not IP returns none', () => {
+    const { evaluateDonkBet } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evaluateDonkBet) { expect(true).toBe(true); return; }
+    const result = evaluateDonkBet(10, 30, false, 50);
+    expect(result.action).toBe('none');
+});
+
+test('getPLOSPRZone: deep with zero pot', () => {
+    const { getPLOSPRZone } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getPLOSPRZone) { expect(true).toBe(true); return; }
+    const result = getPLOSPRZone(1000, 0);
+    expect(result.zone).toBe('deep');
+    expect(result.shouldCommit).toBe(false);
+});
+
+test('getPLOSPRZone: committed at SPR 1', () => {
+    const { getPLOSPRZone } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getPLOSPRZone) { expect(true).toBe(true); return; }
+    const result = getPLOSPRZone(100, 100);
+    expect(result.zone).toBe('committed');
+    expect(result.shouldCommit).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
