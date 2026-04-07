@@ -771,8 +771,18 @@ export default function PokerNearMePage() {
             });
         });
 
-        // Combine base venues and newly processed tour stops
-        const combined = [...allVenuesForMap, ...tourPins];
+        // Build set of venue names consumed by tour pins — these get folded into the double-icon
+        const consumedVenueNames = new Set();
+        tourPins.forEach(tp => {
+            if (tp.host_venue_name) consumedVenueNames.add(tp.host_venue_name.toLowerCase());
+        });
+
+        // Combine: exclude venue entries that are already represented inside a tour double-icon
+        const filteredVenues = allVenuesForMap.filter(v => {
+            if (!v.name) return true;
+            return !consumedVenueNames.has(v.name.toLowerCase());
+        });
+        const combined = [...filteredVenues, ...tourPins];
 
         // Apply UI filters to BOTH arrays here so BOTH map feeds and list feeds are correctly filtered
         return combined.filter(v => {

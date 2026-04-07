@@ -459,34 +459,45 @@ function classifyPLOPreflop(cards) {
     // Bug #78 fix: AA/KK were dramatically undervalued. In PLO, AA is always premium
     // even with danglers. KK double-suited is tier 1. These bonuses ensure premium pairs
     // score above the open-raise threshold even when bare/rainbow.
-    if (hasAA) highCardScore += 42; // AA is THE best starting hand in PLO
-    else if (hasKK) highCardScore += 28; // KK is tier 1-2
-    else if (hasQQ) highCardScore += 14; // QQ is solid
+    if (hasAA) highCardScore += 48; // AA is THE best starting hand in PLO — always opens
+    else if (hasKK) highCardScore += 32; // KK is tier 1-2 — opens from most positions
+    else if (hasQQ) highCardScore += 16; // QQ connected is solid
+    // General pair bonus for JJ-TT-99 etc (set-mining value in PLO)
+    if (!hasAA && !hasKK && !hasQQ && pairs.length > 0) {
+        const pairRank = Math.max(...pairs.map(([r]) => Number(r)));
+        if (pairRank >= 9) highCardScore += 10;       // JJ, TT (good set mine)
+        else if (pairRank >= 7) highCardScore += 6;    // 99, 88 (decent set mine)
+        else highCardScore += 3;                        // Low pairs (marginal set mine)
+    }
     if (hasAce && !hasAA) highCardScore += 10; // Solitary Ace w/o pair
     if (hasKing && !hasKK) highCardScore += 5;
 
     // Bug #78 fix: High rundowns are much stronger than low rundowns in PLO.
     // T-J-Q-K rundown makes nut straights; 2-3-4-5 makes only bottom straights.
-    // Scale rundown score by the highest card in the best window.
+    // Low rundowns have massive reverse-implied-odds (make non-nut straights that lose to higher).
     const highestRank = Math.max(...ranks);
-    if (highestRank <= 5) bestRundownScore = Math.round(bestRundownScore * 0.55); // Very low rundown penalty
-    else if (highestRank <= 7) bestRundownScore = Math.round(bestRundownScore * 0.70); // Low-mid penalty
-    else if (highestRank <= 9) bestRundownScore = Math.round(bestRundownScore * 0.85); // Mid = slight discount
+    if (highestRank <= 4) bestRundownScore = Math.round(bestRundownScore * 0.35); // 6-high or below: almost unplayable
+    else if (highestRank <= 6) bestRundownScore = Math.round(bestRundownScore * 0.50); // 7-8 high: heavy discount
+    else if (highestRank <= 8) bestRundownScore = Math.round(bestRundownScore * 0.70); // 9-T high: moderate discount
+    else if (highestRank <= 9) bestRundownScore = Math.round(bestRundownScore * 0.85); // J high: slight discount
 
     // ── Dangling card penalty ──
-    // A card that doesn't connect to the best 3-card window is a dangler
-    // Bug #78 fix: Reduce dangler penalty for premium pairs — AA73 is still strong
+    // Bug #78 fix: Check BOTH top and bottom for danglers (J-4-3-2 has J as top dangler)
     const sortedU = uniqueRanks;
     let danglerPenalty = 0;
     if (sortedU.length >= 4) {
-        // Check if the 4th card (lowest) is within 3 of the 3rd card
+        // Check bottom dangler: gap between 3rd and 4th cards (sorted desc)
         const gap34 = sortedU[2] - sortedU[3];
         if (gap34 >= 4) danglerPenalty += 8;
-        if (gap34 >= 6) danglerPenalty += 6; // Terrible dangler (e.g., K-Q-J-3)
+        if (gap34 >= 6) danglerPenalty += 6;
+        // Check top dangler: gap between 1st and 2nd cards (e.g., J-4-3-2 has J disconnected)
+        const gap12 = sortedU[0] - sortedU[1];
+        if (gap12 >= 4) danglerPenalty += 8;
+        if (gap12 >= 6) danglerPenalty += 6;
         // Premium pairs absorb dangler pain — AA with any 2 cards is still strong
-        if (hasAA) danglerPenalty = Math.round(danglerPenalty * 0.35);
-        else if (hasKK) danglerPenalty = Math.round(danglerPenalty * 0.50);
-        else if (hasQQ) danglerPenalty = Math.round(danglerPenalty * 0.65);
+        if (hasAA) danglerPenalty = Math.round(danglerPenalty * 0.30);
+        else if (hasKK) danglerPenalty = Math.round(danglerPenalty * 0.45);
+        else if (hasQQ) danglerPenalty = Math.round(danglerPenalty * 0.60);
     }
 
     // ── Raw score → normalize 0-100 ──
