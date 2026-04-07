@@ -602,8 +602,9 @@ export default function PokerNearMePage() {
             return { start, end };
         }
 
-        // ─── Resolve stop coordinates by matching against real venue database ───
+        // ─── Resolve stop coordinates + host venue info by matching against real venue database ───
         // Cross-validates venue DB matches against TOUR_CITY_COORDS to catch bad data
+        // Returns { lat, lng, hostLogo?, hostName? } so tour pins can render a double-icon
         function findStopCoords(stop) {
             const venueName = (stop.venue || stop.name || '').toLowerCase();
             const location = (stop.location || '').toLowerCase();
@@ -621,11 +622,20 @@ export default function PokerNearMePage() {
                 return Math.sqrt(dlat * dlat + dlng * dlng) > 15;
             }
 
+            // Helper: extract host venue metadata from a matched venue
+            function withHostInfo(match) {
+                return {
+                    lat: match.latitude, lng: match.longitude,
+                    hostLogo: match.logo_url || match.profile_photo_url || match.cover_photo_url || match.image_url || '',
+                    hostName: match.name || '',
+                };
+            }
+
             // 1. Exact venue name match against real venue DB
             if (venueName.length > 2 && allVenuesForMap.length > 0) {
                 let match = allVenuesForMap.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
                 if (match && !isTooFar(match.latitude, match.longitude)) {
-                    return { lat: match.latitude, lng: match.longitude };
+                    return withHostInfo(match);
                 }
 
                 // 2. Partial venue name match (contains)
@@ -636,7 +646,7 @@ export default function PokerNearMePage() {
                         return n.includes(venueName) || venueName.includes(n);
                     });
                     if (match && !isTooFar(match.latitude, match.longitude)) {
-                        return { lat: match.latitude, lng: match.longitude };
+                        return withHostInfo(match);
                     }
                 }
 
@@ -648,7 +658,7 @@ export default function PokerNearMePage() {
                         (v.state || '').toLowerCase() === locationState
                     );
                     if (match && !isTooFar(match.latitude, match.longitude)) {
-                        return { lat: match.latitude, lng: match.longitude };
+                        return withHostInfo(match);
                     }
                 }
             }
@@ -745,6 +755,9 @@ export default function PokerNearMePage() {
                 tour_code: tour.tour_code,
                 tour_name: tour.tour_name || tour.tour_code,
                 logo_url: tour.logo_url,
+                // Host venue metadata for double-icon rendering
+                host_venue_logo_url: resolved.hostLogo || '',
+                host_venue_name: resolved.hostName || activeStop.venue || '',
                 latitude: lat,
                 longitude: lng,
                 city,

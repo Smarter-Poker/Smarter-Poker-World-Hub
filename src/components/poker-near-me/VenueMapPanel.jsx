@@ -159,45 +159,63 @@ const TOUR_MARKER_COLORS = {
   ROUGHRIDER: '#d97706', PAT: '#22c55e', GCPT: '#06b6d4',
 };
 
-// ─── Create tour-specific icon (red border, tour logo inside) ───
-// Double-label pill: tour name on top, host venue name underneath
+// ─── Create tour-specific icon: DOUBLE ICON (tour on top, venue behind) ───
+// Tour circle: colored border ring + tour logo/code
+// Venue circle: gray border + venue logo/initials (slightly behind and below)
+// Double-label pill underneath: tour name (colored) + venue name (dimmer)
 function createTourIcon(L, venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#ef4444';
-  const logoUrl = venue.logo_url || '';
+  const tourLogoUrl = venue.logo_url || '';
   const tourCode = (venue.tour_code || 'TOUR').slice(0, 4);
   const isRunning = venue.is_running;
-  const pulseRing = isRunning
-    ? `<div style="position:absolute;inset:-4px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;"></div>`
+
+  // ═══ HOST VENUE CIRCLE (behind, offset down-right) ═══
+  const hostLogoUrl = venue.host_venue_logo_url || '';
+  const hostName = venue.host_venue_name || venue.stop_venue || '';
+  const hostInitials = hostName.split(/\s+/).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase() || 'V';
+
+  const hostInner = hostLogoUrl
+    ? `<img src="${hostLogoUrl}" alt="" style="width:22px;height:22px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+       <div style="display:none;font-size:8px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`
+    : `<div style="font-size:8px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`;
+
+  const hostCircleHtml = hostName
+    ? `<div style="position:absolute;top:12px;left:12px;width:28px;height:28px;border-radius:50%;background:#ffffff;border:2px solid #94a3b8;box-shadow:0 2px 8px rgba(0,0,0,0.6);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;">${hostInner}</div>`
     : '';
 
-  const innerContent = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:28px;height:28px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
-    : `<div style="font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
+  // ═══ TOUR CIRCLE (on top, with colored ring) ═══
+  const pulseRing = isRunning
+    ? `<div style="position:absolute;top:-4px;left:-4px;width:38px;height:38px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:3;"></div>`
+    : '';
 
-  // Tour name (top line) — bold, colored
-  const tourLabel = (venue.tour_name || venue.tour_code || venue.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  // Host venue name (bottom line) — dimmer, smaller
+  const tourInner = tourLogoUrl
+    ? `<img src="${tourLogoUrl}" alt="" style="width:24px;height:24px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+       <div style="display:none;font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
+    : `<div style="font-size:9px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
+
+  // ═══ DOUBLE-LABEL PILL ═══
+  const tourLabel = (venue.tour_name || venue.tour_code || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const venueLabel = truncateName(venue.stop_venue || venue.stop_name || '', 22).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-  // ═══ DOUBLE-LABEL PILL — Tour on top, Venue underneath ═══
-  const doublePillHtml = `<div class="vmp-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px 8px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${tourColor}30;text-shadow:0 1px 2px #000;z-index:999;display:flex;flex-direction:column;align-items:center;gap:1px;max-width:160px;">
+  const doublePillHtml = `<div class="vmp-pin-label" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px 8px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${tourColor}30;text-shadow:0 1px 2px #000;z-index:999;display:flex;flex-direction:column;align-items:center;gap:1px;max-width:160px;">
     <div style="font-size:9px;color:${tourColor};letter-spacing:0.4px;font-weight:900;overflow:hidden;text-overflow:ellipsis;max-width:150px;text-shadow:0 0 6px ${tourColor}40;">${tourLabel}</div>
     ${venueLabel ? `<div style="font-size:8px;color:rgba(200,214,229,0.65);font-weight:600;letter-spacing:0.2px;overflow:hidden;text-overflow:ellipsis;max-width:150px;">${venueLabel}</div>` : ''}
   </div>`;
 
+  // Total canvas: 42x44 to fit both stacked circles
   return L.divIcon({
     className: 'vmp-venue-marker',
-    html: `<div style="position:relative;width:38px;height:38px;">
+    html: `<div style="position:relative;width:42px;height:44px;">
       ${pulseRing}
-      <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
-        ${innerContent}
+      ${hostCircleHtml}
+      <div style="position:absolute;top:0;left:0;width:30px;height:30px;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:2;">
+        ${tourInner}
       </div>
       ${doublePillHtml}
     </div>`,
-    iconSize: [38, 38],
-    iconAnchor: [19, 19],
-    popupAnchor: [0, -20],
+    iconSize: [42, 44],
+    iconAnchor: [21, 22],
+    popupAnchor: [0, -22],
   });
 }
 

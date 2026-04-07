@@ -456,14 +456,26 @@ function classifyPLOPreflop(cards) {
     const hasKing = ranks.includes(11);
 
     let highCardScore = 0;
-    if (hasAA) highCardScore += 24; // AA is a massive multiplier in PLO
-    else if (hasKK) highCardScore += 14;
-    else if (hasQQ) highCardScore += 8;
+    // Bug #78 fix: AA/KK were dramatically undervalued. In PLO, AA is always premium
+    // even with danglers. KK double-suited is tier 1. These bonuses ensure premium pairs
+    // score above the open-raise threshold even when bare/rainbow.
+    if (hasAA) highCardScore += 42; // AA is THE best starting hand in PLO
+    else if (hasKK) highCardScore += 28; // KK is tier 1-2
+    else if (hasQQ) highCardScore += 14; // QQ is solid
     if (hasAce && !hasAA) highCardScore += 10; // Solitary Ace w/o pair
     if (hasKing && !hasKK) highCardScore += 5;
 
+    // Bug #78 fix: High rundowns are much stronger than low rundowns in PLO.
+    // T-J-Q-K rundown makes nut straights; 2-3-4-5 makes only bottom straights.
+    // Scale rundown score by the highest card in the best window.
+    const highestRank = Math.max(...ranks);
+    if (highestRank <= 5) bestRundownScore = Math.round(bestRundownScore * 0.55); // Very low rundown penalty
+    else if (highestRank <= 7) bestRundownScore = Math.round(bestRundownScore * 0.70); // Low-mid penalty
+    else if (highestRank <= 9) bestRundownScore = Math.round(bestRundownScore * 0.85); // Mid = slight discount
+
     // ── Dangling card penalty ──
     // A card that doesn't connect to the best 3-card window is a dangler
+    // Bug #78 fix: Reduce dangler penalty for premium pairs — AA73 is still strong
     const sortedU = uniqueRanks;
     let danglerPenalty = 0;
     if (sortedU.length >= 4) {
@@ -471,6 +483,10 @@ function classifyPLOPreflop(cards) {
         const gap34 = sortedU[2] - sortedU[3];
         if (gap34 >= 4) danglerPenalty += 8;
         if (gap34 >= 6) danglerPenalty += 6; // Terrible dangler (e.g., K-Q-J-3)
+        // Premium pairs absorb dangler pain — AA with any 2 cards is still strong
+        if (hasAA) danglerPenalty = Math.round(danglerPenalty * 0.35);
+        else if (hasKK) danglerPenalty = Math.round(danglerPenalty * 0.50);
+        else if (hasQQ) danglerPenalty = Math.round(danglerPenalty * 0.65);
     }
 
     // ── Raw score → normalize 0-100 ──

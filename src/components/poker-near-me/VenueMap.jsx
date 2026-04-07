@@ -441,58 +441,63 @@ const TOUR_MARKER_COLORS = {
   ROUGHRIDER: '#d97706', PAT: '#22c55e', GCPT: '#06b6d4',
 };
 
-// ─── Helper: Create tour logo icon for map markers ───
-// Double-label pill: tour name on top (colored), host venue name underneath (dimmer)
+// ─── Helper: Create tour logo icon — DOUBLE ICON (tour on top, venue behind) ───
+// Tour circle: colored border ring + tour logo/code
+// Venue circle: gray border + venue logo/initials (behind, offset down-right)
+// Double-label pill underneath: tour name (colored) + venue name (dimmer)
 function createTourLogoIcon(L, venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#d4a853';
-  const logoUrl = venue.logo_url;
+  const tourLogoUrl = venue.logo_url || '';
+  const tourCode = (venue.tour_code || 'TOUR').slice(0, 4);
   const isRunning = venue.is_running;
-  const pulseRing = isRunning
-    ? `<div style="position:absolute;inset:-4px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;"></div>`
+
+  // ═══ HOST VENUE CIRCLE (behind, offset down-right) ═══
+  const hostLogoUrl = venue.host_venue_logo_url || '';
+  const hostName = venue.host_venue_name || venue.stop_venue || '';
+  const hostInitials = hostName.split(/\s+/).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase() || 'V';
+
+  const hostInner = hostLogoUrl
+    ? `<img src="${hostLogoUrl}" alt="" style="width:26px;height:26px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+       <div style="display:none;font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`
+    : `<div style="font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`;
+
+  const hostCircleHtml = hostName
+    ? `<div style="position:absolute;top:14px;left:14px;width:32px;height:32px;border-radius:50%;background:#ffffff;border:2px solid #94a3b8;box-shadow:0 2px 8px rgba(0,0,0,0.6);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;">${hostInner}</div>`
     : '';
 
-  // Tour name (top line) — bold, colored
+  // ═══ TOUR CIRCLE (on top, with colored ring) ═══
+  const pulseRing = isRunning
+    ? `<div style="position:absolute;top:-4px;left:-4px;width:42px;height:42px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:3;"></div>`
+    : '';
+
+  const tourInner = tourLogoUrl
+    ? `<img src="${tourLogoUrl}" alt="" style="width:28px;height:28px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+       <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
+    : `<div style="font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
+
+  // ═══ DOUBLE-LABEL PILL ═══
   const tourLabel = escapeHtml(venue.tour_name || venue.tour_code || '');
-  // Host venue name (bottom line) — dimmer, smaller
   const venueLabel = escapeHtml(truncateName(venue.stop_venue || venue.stop_name || '', 22));
 
-  // ═══ DOUBLE-LABEL PILL — Tour on top, Venue underneath ═══
-  const doublePillHtml = `<div class="venue-pin-label" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px 10px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${tourColor}30;text-shadow:0 1px 2px #000;z-index:999;display:flex;flex-direction:column;align-items:center;gap:1px;max-width:180px;">
+  const doublePillHtml = `<div class="venue-pin-label" style="position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:6px;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);color:#fff;padding:3px 10px 4px;border-radius:10px;font-weight:800;white-space:nowrap;border:1px solid ${tourColor}60;box-shadow:0 2px 10px rgba(0,0,0,0.9),0 0 6px ${tourColor}30;text-shadow:0 1px 2px #000;z-index:999;display:flex;flex-direction:column;align-items:center;gap:1px;max-width:180px;">
     <div style="font-size:10px;color:${tourColor};letter-spacing:0.4px;font-weight:900;overflow:hidden;text-overflow:ellipsis;max-width:170px;text-shadow:0 0 6px ${tourColor}40;">${tourLabel}</div>
     ${venueLabel ? `<div style="font-size:8.5px;color:rgba(200,214,229,0.65);font-weight:600;letter-spacing:0.2px;overflow:hidden;text-overflow:ellipsis;max-width:170px;">${venueLabel}</div>` : ''}
   </div>`;
 
-  if (logoUrl) {
-    // Logo-based marker — round circle with the tour logo inside
-    return L.divIcon({
-      className: 'tour-logo-marker',
-      html: `<div style="position:relative;width:42px;height:42px;">
-        ${pulseRing}
-        <div style="position:absolute;inset:0;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;">
-          <img src="${logoUrl}" alt="" style="width:32px;height:32px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-          <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${(venue.tour_code || '').slice(0, 4)}</div>
-        </div>
-        ${doublePillHtml}
-      </div>`,
-      iconSize: [42, 42],
-      iconAnchor: [21, 21],
-      popupAnchor: [0, -22],
-    });
-  }
-
-  // Fallback — text badge marker with tour code
+  // Total canvas: 48x48 to fit both stacked circles
   return L.divIcon({
     className: 'tour-logo-marker',
-    html: `<div style="position:relative;width:42px;height:42px;">
+    html: `<div style="position:relative;width:48px;height:48px;">
       ${pulseRing}
-      <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,${tourColor},${tourColor}99);border:2.5px solid #94a3b8;box-shadow:0 0 12px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:9px;font-weight:900;color:#fff;letter-spacing:0.3px;text-shadow:0 1px 2px rgba(0,0,0,0.5);">${(venue.tour_code || 'TOUR').slice(0, 4)}</span>
+      ${hostCircleHtml}
+      <div style="position:absolute;top:0;left:0;width:34px;height:34px;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:2;">
+        ${tourInner}
       </div>
       ${doublePillHtml}
     </div>`,
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
-    popupAnchor: [0, -22],
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    popupAnchor: [0, -24],
   });
 }
 
