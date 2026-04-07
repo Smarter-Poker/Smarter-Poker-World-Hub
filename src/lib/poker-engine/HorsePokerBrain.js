@@ -5546,8 +5546,14 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ═══ PHASE 37: PLO LIVE-READ → FOLD/VALUE THRESHOLD ADJUSTMENTS ═══
     // Live observer data refines static opponent read thresholds with real-time intelligence.
-    const exploitFoldThreshold = Math.max(15, Math.min(55, exploitFoldThresholdBase - ploLiveFoldAdj));
-    const exploitValueThresholdFinal = Math.max(35, Math.min(85, exploitValueThreshold - ploLiveValueAdj));
+    // Bug #151: Blind-vs-blind strategy — widen ranges (lower thresholds) when SB vs BB
+    // Note: getPLOBlindBattleStrategy doesn't use the strength param internally, so we can
+    // call it early here before equityFinal is computed. The full blindBattle is re-assigned later.
+    const blindBattleEarly = getPLOBlindBattleStrategy(position, 0, isSBvsBB, wasPFRaiser, potOdds);
+    const blindBattleFoldAdj = blindBattleEarly.strategy !== 'normal' ? (blindBattleEarly.defendThreshold - 45) : 0;
+    const blindBattleValueAdj = blindBattleEarly.strategy !== 'normal' ? (blindBattleEarly.openThreshold - 52) : 0;
+    const exploitFoldThreshold = Math.max(15, Math.min(55, exploitFoldThresholdBase - ploLiveFoldAdj + blindBattleFoldAdj));
+    const exploitValueThresholdFinal = Math.max(35, Math.min(85, exploitValueThreshold - ploLiveValueAdj + blindBattleValueAdj));
 
     // ── Phase 5+8+GapF: Final equity with all bonuses + Phase 3 adjustments ──
     // equityFinalAdjusted incorporates: Module 12 (multiway), Module 17 (runout),
@@ -5616,7 +5622,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const adaptiveSizer = getAdaptivePLOBetSize(equityFinal, sprZone, boardTexture, exploitProfile, madeHand, potSize, totalOuts);
     // ═══ PHASE 37: LIVE-READ SIZING ADJUSTMENT ═══
     // Apply live-read sizing multiplier: bigger vs stations, smaller vs folders
-    const adaptiveBetSize = clamp(Math.round(adaptiveSizer.betSize * ploLiveSizeAdj));
+    // Bug #149: Side-pot sizing adjustment (smaller bets when equity < 60 in side-pot situations)
+    const adaptiveBetSize = clamp(Math.round(adaptiveSizer.betSize * ploLiveSizeAdj * sidePot.sizeAdj));
 
     // ── Phase 8: Board scenario protection flag ──
     const shouldProtectNow = boardScenario.shouldProtectNow;
@@ -5785,6 +5792,22 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     }
 
     if (toCall === 0) {
+        // ─── Bug #149: SIDE-POT AWARENESS ───
+        // When all opponents are all-in (main pot only), no one can fold — just check.
+        if (sidePot.adjustedTarget === 'main_only') {
+            return { type: 'check' };
+        }
+
+        // ─── Bug #148: MULTIWAY AGGRESSION GOVERNOR ───
+        // In 4+ way pots, only bet/bluff with nut-level equity. This is PLO's #1 leak.
+        // Declared here so all bet/bluff branches below can reference it.
+        const mwAllowBluff = multiWayGov.allowAggression || equityFinal >= multiWayGov.minEquityToBluff;
+        const mwAllowValueBet = multiWayGov.allowAggression || equityFinal >= multiWayGov.minEquityToValueBet;
+
+        // ─── Bug #147: LIMPED POT STRATEGY ───
+        // In limped pots: higher thresholds for betting, suppress bluffs in multiway limped pots.
+        const limpBluffSuppressed = limpedPotStrategy.isLimpedPot && !limpedPotStrategy.bluffAllowed;
+
         // ─── MODULE 28: COLD-CALL TRAP GUARD ───
         // Passively check draws and marginal hands vs opponents who flat preflop to trap
         if (state.isColdCallTrap && !madeHand.isMade) {
@@ -5827,8 +5850,10 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // Monsters: build pot (slow-play for range balance if MSP/SPR says so)
         // Phase 8: confidence passiveBias — low confidence = check more with medium holdings
-        const monsterThreshold = 80 + equityConfidence.passiveBias;
-        if (equityFinal >= monsterThreshold && canRaise) {
+        // Bug #147: In limped pots, raise the bet threshold (need stronger hand to bet)
+        const limpedThresholdBoost = limpedPotStrategy.isLimpedPot ? (limpedPotStrategy.limpedBetThreshold - 55) : 0;
+        const monsterThreshold = 80 + equityConfidence.passiveBias + limpedThresholdBoost;
+        if (equityFinal >= monsterThreshold && canRaise && mwAllowValueBet) {
             if ((sprZone.zone === 'very_deep' || msp.shouldSlowPlay) && isIP && !madeHand.isNut && Math.random() < 0.35)
                 return { type: 'check' }; // Slow-play
             return { type: raiseAction.type, amount: adaptiveBetSize }; // Phase 8: adaptive sizing
@@ -5867,20 +5892,24 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         }
 
         // Phase 7: Calibrated probe bet (replaces fixed Phase 2 probe)
-        if (calibratedProbe.shouldProbe && canRaise)
+        // Bug #147+#148: Suppress probes in limped multiway pots and when multiway gov blocks
+        if (calibratedProbe.shouldProbe && canRaise && mwAllowBluff && !limpBluffSuppressed)
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * calibratedProbe.probeSizing)) };
 
         // Strong draws: semi-bluff (ERC-adjusted + runout quality + wrap outs)
         // Bug #87: Blocker-aware semi-bluffing — having nut flush blockers or straight
         // blockers makes our semi-bluffs much more effective (opponent less likely to have the nuts)
+        // Bug #148: Multiway governor gates bluffs in 3+ way pots
+        // Bug #147: Limped pot bluff suppression
         const realizedOuts = totalOuts * erc;
         const blockerBluffBoost = blockers.hasFlushBlocker ? 0.12 : blockers.hasStraightBlocker ? 0.06 : 0;
-        if (realizedOuts >= 14 && canRaise && Math.random() < (0.65 + blockerBluffBoost))
+        if (realizedOuts >= 14 && canRaise && mwAllowBluff && Math.random() < (0.65 + blockerBluffBoost))
             return { type: raiseAction.type, amount: adaptiveBetSize };
-        if (realizedOuts >= 9 && canRaise && Math.random() < (0.38 + blockerBluffBoost))
+        if (realizedOuts >= 9 && canRaise && mwAllowBluff && !limpBluffSuppressed && Math.random() < (0.38 + blockerBluffBoost))
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.50)) };
         // Bug #87: Pure blocker bluff — no real outs but we block the nuts
-        if (realizedOuts < 6 && blockers.canBluffRiver && canRaise && equityFinal >= 20 && Math.random() < 0.18)
+        // Bug #148: Completely suppressed in multiway when governor says no
+        if (realizedOuts < 6 && blockers.canBluffRiver && canRaise && mwAllowBluff && !limpBluffSuppressed && equityFinal >= 20 && Math.random() < 0.18)
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.55)) };
 
         // Medium made hands + redraw: bet for protection
@@ -6001,7 +6030,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
-    if (continuanceScore >= flopContinuance.raiseThreshold && canRaise) {
+    // Bug #148: Multiway governor gates raises in 3+ way facing-bet situations
+    if (continuanceScore >= flopContinuance.raiseThreshold && canRaise && multiWayGov.allowAggression) {
         // Module 32: Donk-overcall penalty
         if (!isIP && toCall > 0 && donkBoost > 0 && continuanceScore < flopContinuance.raiseThreshold + donkBoost) {
             console.log(`[HorseBrain] 📉 MODULE 32 DONK LEAK: passing on marginal raise OOP due to leak pattern.`);
@@ -6033,6 +6063,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // Backdoor + medium equity with good immediate odds
     if (equityFinal >= 38 && potOdds < 0.25 && canCall) return { type: 'call' };
+
+    // Bug #150: Cold-call decision — in multiway pots, fold marginal hands instead of calling
+    // If the cold-call module says we shouldn't call (hand too weak or math doesn't work),
+    // respect it instead of auto-calling. Exception: PLO8 nut low (handled above).
+    if (!coldCallDecision.shouldColdCall && (state.numCallers || 0) >= 1 && equityFinal < 50) {
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
 
     // Generic call if continuance score passed threshold (final fallback before fold)
     if (canCall) return { type: 'call' };
@@ -19795,6 +19832,12 @@ module.exports = {
     // Exposed for testing (Phase 105) — bugs #136-138
     approximatePLOHvR,
     getAdaptivePLOBetSize,
+
+    // Exposed for testing (Phase 106) — bugs #147-151: dead module wiring
+    getPLOLimpedPotStrategy,
+    getPLOSidePotAwareness,
+    getPLOColdCallDecision,
+    getPLOBlindBattleStrategy,
 
     // Exposed for testing (Phase 69-77)
     applyExploitIntensifier,

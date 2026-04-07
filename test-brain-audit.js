@@ -18692,6 +18692,185 @@ test('BUG146-E2E: Non-nut hand on wet board is more cautious than on dry board',
     expect(wetFolds >= dryFolds).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// BUG #147: LIMPED POT STRATEGY WIRING
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Bug #147: Limped Pot Strategy ──');
+
+test('BUG147-E2E: Limped pot suppresses bluffs in multiway', () => {
+    // In a 4-way limped pot with a weak hand, the brain should NOT bluff
+    let bluffs = 0;
+    for (let i = 0; i < 30; i++) {
+        const state = makeE2EState({
+            holeCards: ['9s', '8h', '3d', '2c'],
+            board: ['Kd', 'Jc', '5h'],
+            street: 'flop',
+            potSize: 80,
+            toCall: 0,
+            stackBB: 100,
+            numPlayers: 4,
+            isLimpedPot: true,
+        });
+        const acts = [
+            { type: 'check' },
+            { type: 'bet', minAmount: 20, maxAmount: 80 },
+        ];
+        const r = brain.makePLOFallbackDecision('test-limp-bluff', state, acts);
+        if (r.type === 'bet') bluffs++;
+    }
+    // In a 4-way limped pot with garbage, should almost never bluff
+    expect(bluffs <= 8).toBe(true);
+});
+
+test('BUG147-UNIT: Limped pot returns higher bet threshold than non-limped', () => {
+    const limped = brain.getPLOLimpedPotStrategy(true, { strength: 50 }, 55, 3);
+    const nonLimped = brain.getPLOLimpedPotStrategy(false, { strength: 50 }, 55, 3);
+    // Limped pot threshold should be higher (harder to bet)
+    expect(limped.limpedBetThreshold > nonLimped.limpedBetThreshold).toBe(true);
+    expect(limped.isLimpedPot).toBe(true);
+    expect(nonLimped.isLimpedPot).toBe(false);
+    // Multiway limped: no bluffing allowed
+    expect(limped.bluffAllowed).toBe(false);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #148: MULTIWAY AGGRESSION GOVERNOR WIRING
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Bug #148: Multiway Aggression Governor ──');
+
+test('BUG148-E2E: 5-way pot suppresses bluffs (only nuts can bet)', () => {
+    let bets = 0;
+    for (let i = 0; i < 30; i++) {
+        const state = makeE2EState({
+            holeCards: ['Ts', '9h', '4d', '3c'],
+            board: ['Kd', 'Jc', '2h'],
+            street: 'flop',
+            potSize: 100,
+            toCall: 0,
+            stackBB: 100,
+            numPlayers: 5,
+        });
+        const acts = [
+            { type: 'check' },
+            { type: 'bet', minAmount: 25, maxAmount: 100 },
+        ];
+        const r = brain.makePLOFallbackDecision('test-5way-bluff', state, acts);
+        if (r.type === 'bet') bets++;
+    }
+    // In a 5-way pot with air, should almost never bet (governor blocks it)
+    expect(bets <= 5).toBe(true);
+});
+
+test('BUG148-E2E: Heads-up allows normal aggression with medium draws', () => {
+    let bets = 0;
+    for (let i = 0; i < 30; i++) {
+        const state = makeE2EState({
+            holeCards: ['Ah', 'Kh', 'Qd', '9c'],
+            board: ['Jh', 'Th', '3c'],
+            street: 'flop',
+            potSize: 100,
+            toCall: 0,
+            stackBB: 100,
+            numPlayers: 2,
+            wasPFRaiser: true,
+        });
+        const acts = [
+            { type: 'check' },
+            { type: 'bet', minAmount: 25, maxAmount: 100 },
+        ];
+        const r = brain.makePLOFallbackDecision('test-hu-aggro', state, acts);
+        if (r.type === 'bet') bets++;
+    }
+    // Heads-up with nut flush draw + straight draw, should bet often
+    expect(bets >= 15).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #149: SIDE-POT AWARENESS WIRING
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Bug #149: Side-Pot Awareness ──');
+
+test('BUG149-UNIT: Side-pot main_only → check (all opponents all-in)', () => {
+    const result = brain.getPLOSidePotAwareness([{ stack: 50 }], 100, 0, 60);
+    expect(result.adjustedTarget).toBe('main_only');
+    expect(result.sizeAdj).toBe(0);
+});
+
+test('BUG149-UNIT: No side pot → sizeAdj = 1.0', () => {
+    const result = brain.getPLOSidePotAwareness([], 100, 2, 60);
+    expect(result.hasSidePot).toBe(false);
+    expect(result.sizeAdj).toBe(1);
+});
+
+test('BUG149-UNIT: Side pot with weak equity → sizeAdj = 0.85', () => {
+    const result = brain.getPLOSidePotAwareness([{ stack: 50 }], 100, 1, 45);
+    expect(result.hasSidePot).toBe(true);
+    expect(result.sizeAdj).toBe(0.85);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #150: COLD-CALL DECISION WIRING
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Bug #150: Cold-Call Decision ──');
+
+test('BUG150-UNIT: Weak hand OOP with large raise → shouldColdCall false', () => {
+    const r = brain.getPLOColdCallDecision(40, false, 0.35, 2, 6);
+    expect(r.shouldColdCall).toBe(false);
+});
+
+test('BUG150-UNIT: Strong hand IP with small raise → shouldColdCall true', () => {
+    const r = brain.getPLOColdCallDecision(70, true, 0.20, 0, 3);
+    expect(r.shouldColdCall).toBe(true);
+});
+
+test('BUG150-E2E: Multiway cold-call with weak hand → folds instead of auto-calling', () => {
+    let folds = 0;
+    for (let i = 0; i < 30; i++) {
+        const state = makeE2EState({
+            holeCards: ['9s', '7h', '3d', '2c'],
+            board: ['Kd', 'Jc', '5h'],
+            street: 'flop',
+            potSize: 200,
+            toCall: 80,
+            stackBB: 100,
+            numPlayers: 4,
+            numCallers: 2,
+        });
+        const acts = [
+            { type: 'fold' },
+            { type: 'call', amount: 80 },
+            { type: 'raise', minAmount: 160, maxAmount: 300 },
+        ];
+        const r = brain.makePLOFallbackDecision('test-cold-call', state, acts);
+        if (r.type === 'fold') folds++;
+    }
+    // With garbage in a 4-way pot, should fold most of the time
+    expect(folds >= 15).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #151: BLIND-VS-BLIND STRATEGY WIRING
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Bug #151: Blind Battle Strategy ──');
+
+test('BUG151-UNIT: SB vs BB → strategy hu_steal, low openThreshold', () => {
+    const r = brain.getPLOBlindBattleStrategy('SB', 50, true, false, 0.25);
+    expect(r.strategy).toBe('hu_steal');
+    expect(r.openThreshold).toBe(38);
+});
+
+test('BUG151-UNIT: BB vs SB with good odds → defends wide', () => {
+    const r = brain.getPLOBlindBattleStrategy('BB', 40, true, false, 0.20);
+    expect(r.strategy).toBe('bb_defend_wide');
+    expect(r.defendThreshold).toBe(28);
+});
+
+test('BUG151-UNIT: Non-blind battle → normal thresholds', () => {
+    const r = brain.getPLOBlindBattleStrategy('BTN', 50, false, false, 0.25);
+    expect(r.strategy).toBe('normal');
+    expect(r.openThreshold).toBe(52);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
