@@ -842,14 +842,26 @@ export default function PokerNearMePage() {
             if (group.length === 1) {
                 charityBestIds.add(group[0].id);
             } else {
-                // Sort to pick the "best" and "next" event representation
+                // Sort to pick the "best" representation — data richness wins over stub records
                 const sorted = group.sort((a, b) => {
-                    // Prefer venues with actual data (complete scrape) over empty stubs
-                    if (a.scrape_status === 'complete' && b.scrape_status !== 'complete') return -1;
-                    if (b.scrape_status === 'complete' && a.scrape_status !== 'complete') return 1;
-                    // Tie breakers: highest trust_score, then most recently scraped/added (highest id)
+                    // 1. Prefer venues with actual scrape data (games_offered, tournament_schedule)
+                    const aRich = (a.games_offered && a.games_offered.length > 0) || (a.tournament_schedule && a.tournament_schedule.length > 0);
+                    const bRich = (b.games_offered && b.games_offered.length > 0) || (b.tournament_schedule && b.tournament_schedule.length > 0);
+                    if (aRich && !bRich) return -1;
+                    if (bRich && !aRich) return 1;
+                    // 2. Prefer complete scrape_status over empty/no_data
+                    const statusRank = { complete: 0, verified: 1, scraped_verified: 2, no_data: 99 };
+                    const aRank = statusRank[a.scrape_status] ?? 50;
+                    const bRank = statusRank[b.scrape_status] ?? 50;
+                    if (aRank !== bRank) return aRank - bRank;
+                    // 3. Prefer high scrape_confidence
+                    const confRank = { high: 0, medium: 1, low: 2, unverified: 99 };
+                    const aC = confRank[a.scrape_confidence] ?? 50;
+                    const bC = confRank[b.scrape_confidence] ?? 50;
+                    if (aC !== bC) return aC - bC;
+                    // 4. Highest trust_score, then higher id as final tiebreaker
                     if ((b.trust_score || 0) !== (a.trust_score || 0)) return (b.trust_score || 0) - (a.trust_score || 0);
-                    return b.id - a.id; 
+                    return b.id - a.id;
                 });
                 charityBestIds.add(sorted[0].id);
             }

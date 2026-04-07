@@ -130,7 +130,7 @@ export default function VenuesTabPanel({
                     {displayed.map((venue, i) => {
                         const isHighlighted = highlightedVenueId === venue.id;
                         
-                        if (venue.venue_type === 'tour_stop' || venue.venue_type === 'series') {
+                        if (venue.venue_type === 'tour_stop' || venue.venue_type === 'series' || venue.venue_type === 'poker_tour') {
                             // RichTourCard fetches live data to match the exact card on /hub/tours/[code]
                             // including LIVE NOW banner, upcoming stops list, real-time buy-ins, etc.
                             return (

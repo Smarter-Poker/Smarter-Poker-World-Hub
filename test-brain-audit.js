@@ -18871,6 +18871,89 @@ test('BUG151-UNIT: Non-blind battle → normal thresholds', () => {
     expect(r.openThreshold).toBe(52);
 });
 
+// ═══════════════════════════════════════════════════════════
+// BUG #152-#155: PLO8 HI/LO EVALUATION FIXES
+// ═══════════════════════════════════════════════════════════
+console.log('\n── Bug #152-155: PLO8 Hi/Lo Evaluation ──');
+
+test('BUG152-UNIT: PLO8 low hand comparison uses full lexicographic order', () => {
+    // A-2-3 on board 5,6,8 → best low = A-2-3-5-6 (nut low on this board)
+    const hand1 = [{ rank: 12, suit: 'h' }, { rank: 0, suit: 's' }, { rank: 1, suit: 'd' }, { rank: 11, suit: 'c' }]; // A,2,3,K
+    const board = [{ rank: 3, suit: 'h' }, { rank: 4, suit: 'c' }, { rank: 6, suit: 'd' }]; // 5,6,8
+    const r1 = brain.evaluatePLO8Low(hand1, board);
+    expect(r1.hasLow).toBe(true);
+    expect(r1.hasNutLow).toBe(true);
+});
+
+test('BUG153-UNIT: PLO8 board lows sorted before selection', () => {
+    // Board: 8h, 5c, 3d, 2s, Jh — 4 qualifying lows. Must pick lowest 3.
+    // Hold A,4 → best low = A,2,3,4,5 (wheel!) using board 2,3,5
+    const hand = [{ rank: 12, suit: 'h' }, { rank: 2, suit: 's' }, { rank: 11, suit: 'd' }, { rank: 10, suit: 'c' }]; // A,4,K,Q
+    const board = [{ rank: 6, suit: 'h' }, { rank: 3, suit: 'c' }, { rank: 1, suit: 'd' }, { rank: 0, suit: 's' }, { rank: 9, suit: 'h' }]; // 8,5,3,2,J
+    const r = brain.evaluatePLO8Low(hand, board);
+    expect(r.hasLow).toBe(true);
+    expect(r.hasNutLow).toBe(true);
+});
+
+test('BUG154-UNIT: PLO8 duplicate board ranks are deduplicated', () => {
+    // Board: 2h, 2s, 5c, 8d, Kh — two 2s! Only ONE should count for low.
+    const hand = [{ rank: 12, suit: 'h' }, { rank: 1, suit: 's' }, { rank: 5, suit: 'd' }, { rank: 10, suit: 'c' }]; // A,3,7,Q
+    const board = [{ rank: 0, suit: 'h' }, { rank: 0, suit: 's' }, { rank: 3, suit: 'c' }, { rank: 6, suit: 'd' }, { rank: 11, suit: 'h' }]; // 2,2,5,8,K
+    const r = brain.evaluatePLO8Low(hand, board);
+    // A,3 from hole + board (unique) 2,5,8 → low = A,2,3,5,8. Valid!
+    expect(r.hasLow).toBe(true);
+});
+
+test('BUG155-E2E: PLO8 scoop raises pot with nut low + strong high', () => {
+    let raises = 0;
+    for (let i = 0; i < 30; i++) {
+        const state = makeE2EState({
+            holeCards: ['Ah', '2s', 'Kd', 'Kc'],
+            board: ['3h', '5c', 'Kh'],
+            street: 'flop',
+            potSize: 100,
+            toCall: 0,
+            stackBB: 100,
+            numPlayers: 3,
+            isHiLo: true,
+        });
+        const acts = [
+            { type: 'check' },
+            { type: 'bet', minAmount: 25, maxAmount: 100 },
+        ];
+        const r = brain.makePLOFallbackDecision('test-plo8-scoop', state, acts);
+        if (r.type === 'bet') raises++;
+    }
+    // With nut low (A-2 + board 3,5) + top set (KKK), should bet most of the time
+    expect(raises >= 20).toBe(true);
+});
+
+test('BUG155-E2E: PLO8 nut low facing bet NEVER folds', () => {
+    let folds = 0;
+    for (let i = 0; i < 30; i++) {
+        // Board needs 3 qualifying low cards (≤8) for a low to be possible
+        const state = makeE2EState({
+            holeCards: ['Ah', '2s', '9d', '9c'],
+            board: ['3h', '5c', '7d', 'Jd'],
+            street: 'turn',
+            potSize: 200,
+            toCall: 150,
+            stackBB: 100,
+            numPlayers: 3,
+            isHiLo: true,
+        });
+        const acts = [
+            { type: 'fold' },
+            { type: 'call', amount: 150 },
+            { type: 'raise', minAmount: 300, maxAmount: 500 },
+        ];
+        const r = brain.makePLOFallbackDecision('test-plo8-nutlow', state, acts);
+        if (r.type === 'fold') folds++;
+    }
+    // Nut low should NEVER fold (guaranteed half the pot)
+    expect(folds).toBe(0);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

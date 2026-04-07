@@ -1300,6 +1300,9 @@ function evaluatePLO8Low(holeCards, boardCards) {
 
     // Check if we can make a qualifying low using 2 hole cards
     let bestLow = null; // Lower is better (A-2-3-4-5 = best)
+    // Bug #153+#154: Sort and deduplicate board qualifying lows BEFORE selection.
+    // Without this, unsorted/duplicate board lows could yield suboptimal or invalid lows.
+    const boardLowsSorted = [...new Set(bLowQualify)].sort((a, b) => a - b);
     for (let i = 0; i < holeCards.length - 1; i++) {
         for (let j = i + 1; j < holeCards.length; j++) {
             const h1 = hLow[i], h2 = hLow[j];
@@ -1308,15 +1311,24 @@ function evaluatePLO8Low(holeCards, boardCards) {
 
             // Find 3 board low cards that complete the low hand (all different!)
             const needed = [h1, h2];
-            const boardLows = bLowQualify.filter(r => !needed.includes(r)).slice(0, 3);
+            // Bug #153: Use sorted+deduplicated board lows so we pick the LOWEST 3
+            const boardLows = boardLowsSorted.filter(r => !needed.includes(r)).slice(0, 3);
             if (boardLows.length < 3) continue;
 
             // Valid low! Rank it (lower = better; [0,1,2,3,4] = wheel = nut low)
             const lowHand = [...needed, ...boardLows.slice(0, 3)].sort((a, b) => a - b).slice(0, 5);
-            if (!bestLow || lowHand[4] < bestLow[4] ||
-                (lowHand[4] === bestLow[4] && lowHand[3] < bestLow[3])) {
-                bestLow = lowHand;
+            // Bug #152: Full lexicographic comparison — compare all 5 positions, not just top 2.
+            // Low hands are ranked from the highest card down: [4], then [3], then [2], etc.
+            let isBetter = false;
+            if (!bestLow) {
+                isBetter = true;
+            } else {
+                for (let k = 4; k >= 0; k--) {
+                    if (lowHand[k] < bestLow[k]) { isBetter = true; break; }
+                    if (lowHand[k] > bestLow[k]) break;
+                }
             }
+            if (isBetter) bestLow = lowHand;
         }
     }
 
@@ -5382,14 +5394,19 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Bug #133: Use effectiveCleanOuts instead of mergedExactOuts for equity.
     // mergedExactOuts is still used for threshold checks (nut draw protection, combo detection)
     // but the EQUITY VALUE uses dirty-adjusted outs so we don't overvalue tainted draws.
-    const totalOuts = mergedExactOuts + backdoorOuts; // Thresholds use raw count
+    // Bug #155: Include PLO8 low outs in draw equity calculation.
+    // When drawing to a qualifying low in PLO8, low outs add equity (win half the pot).
+    const lo8LowOuts = lo8?.lowOuts || 0;
+    const totalOuts = mergedExactOuts + backdoorOuts + (lo8LowOuts > 0 ? Math.round(lo8LowOuts * 0.5) : 0); // Low outs worth ~half (win half pot)
     const outEquityRaw = Math.min(effectiveCleanOuts * 2.2, 46) * rioInfo.rioMultiplier; // RIO-adjusted, dirty-adjusted
     const outEquity = outEquityRaw * erc;
 
     // Commitment thresholds: multiway = tighter, nut bonus, PLO8 bonus
     const multiwayPenalty = Math.max(0, (numPlayers - 2) * 5);
     const nutBonus = madeHand.isNut ? 15 : 0;
-    const lo8Bonus = lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0;
+    // Bug #155: Scoop bonus — nut low + strong high is worth much more than just nut low
+    const lo8ScoopBonus = lo8?.scoopable && madeHand.strength >= 60 ? 8 : 0;
+    const lo8Bonus = (lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0) + lo8ScoopBonus;
     // Bug #146: Board danger penalty should account for wet boards too, not just monotone.
     // Wet two-tone boards are dangerous for non-nut hands (flush draws + straight draws everywhere).
     let boardDangerPenalty = 0;
@@ -5775,7 +5792,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (fourBetDecision.shouldShoveFlopIn4Bet) {
             return ploPotCommit(gifInfo.shouldThrowGif ? gifInfo.gifCategory : null);
         }
-        if (fourBetDecision.shouldFoldWeakIn4Bet) return { type: 'fold' };
+        // Bug #156: PLO8 nut low overrides 4-bet pot fold — guaranteed half pot
+        if (fourBetDecision.shouldFoldWeakIn4Bet) {
+            if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
+            return { type: 'fold' };
+        }
     }
 
     // Phase 3+5: Commit equity check with ICM awareness (pot-limit: pot-raise to commit)
@@ -5786,6 +5807,12 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Force shallow SPR calls to respect the bomb-pot penalty
         const shortStackCallThreshold = 40 + (bombPotBoost || 0);
         if (allInInfo.allInEquity >= shortStackCallThreshold && canCall) {
+            return { type: 'call' };
+        }
+        // Bug #156: PLO8 nut low override — NEVER fold when we have the nut low.
+        // Nut low guarantees at least half the pot. Must fire BEFORE the commit-fold.
+        if (isHiLo && lo8?.hasNutLow && canCall) {
+            console.log('[HorseBrain] 🎯 PLO8 NUT LOW COMMIT-OVERRIDE: calling with nut low (guaranteed half pot)');
             return { type: 'call' };
         }
         return canCheck ? { type: 'check' } : { type: 'fold' };
@@ -5847,6 +5874,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Phase 3: MSP — play fast NOW if multi-street plan says protect the hand
         if (msp.shouldPlayFastNow && canRaise && equityFinal >= 55)
             return { type: raiseAction.type, amount: adaptiveBetSize };
+
+        // Bug #155: PLO8 scoop opportunity — nut low + decent high = build the pot aggressively
+        // Scooping (winning both halves) is the #1 way to make money in PLO8.
+        if (isHiLo && lo8?.scoopable && madeHand.strength >= 55 && canRaise) {
+            console.log(`[HorseBrain] 🎯 PLO8 SCOOP: nut low + strong high (${madeHand.strength}) — building pot`);
+            return { type: raiseAction.type, amount: adaptiveBetSize };
+        }
 
         // Monsters: build pot (slow-play for range balance if MSP/SPR says so)
         // Phase 8: confidence passiveBias — low confidence = check more with medium holdings
@@ -6000,8 +6034,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // High RIO risk with non-nut draw: fold even with many outs
     // Bug #125: Exempt nut draws from RIO fold — nut draws have zero reverse implied odds
-    if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && !isNutDraw && exactOuts < 16 && potOdds >= 0.30)
+    // Bug #156: PLO8 nut low overrides RIO fold — guaranteed half pot
+    if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && !isNutDraw && exactOuts < 16 && potOdds >= 0.30) {
+        if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
         return { type: 'fold' };
+    }
 
     // Phase 6: Flop/Turn continuance score
     // ─── MODULE 32 / 29 / 28: GLOBAL EQUITY & THRESHOLD REDUCTIONS ───
