@@ -1702,11 +1702,14 @@ function getPLOLimperIsolation(numLimpers, preflopStrength, position, isIP, bb, 
     const isolateThreshold = isIP ? 65 : 72; // IP: isolate more often
     if (preflopStrength < isolateThreshold) return { shouldIsolate: false, isolateSize: 0 };
 
-    // Standard isolation sizing: 3BB + 1BB per limper
-    // Example: 1 limper = 4BB, 2 limpers = 5BB, 3 limpers = 6BB
-    const baseSize = 3 + numLimpers;
-    const isolateSize = Math.round(baseSize * bb);
-    const clamped = Math.max(raiseAction?.minAmount || isolateSize, Math.min(isolateSize, raiseAction?.maxAmount || isolateSize));
+    // Bug #142: PLO isolation should use pot-raise, not Hold'em "3BB + 1BB per limper".
+    // PLO is pot-limit — standard isolation is a pot-raise.
+    // Pot typically = BB + limper(s) * BB = (1 + numLimpers) * BB + SB.
+    // Use calcPLOPotRaise for correct sizing.
+    const approxPot = bb * (1.5 + numLimpers); // SB(0.5) + BB(1) + limpers
+    const toCall = bb; // Calling the BB
+    const isolateSize = calcPLOPotRaise(approxPot, toCall, raiseAction);
+    const clamped = isolateSize; // calcPLOPotRaise already clamps to min/max
 
     return { shouldIsolate: true, isolateSize: clamped };
 }
@@ -2771,24 +2774,27 @@ function getPLODeepStackAdjustments(stackBB) {
  * @param {Object} raiseAction
  * @param {boolean} canRaise
  * @returns {{ shouldSqueeze: boolean, squeezeSize: number, isBluffSqueeze: boolean }}\n */
-function getPLOSqueezePlay(numCallers, isIP, position, strength, potSize, raiseAction, canRaise) {
+function getPLOSqueezePlay(numCallers, isIP, position, strength, potSize, raiseAction, canRaise, toCall) {
     if (!canRaise || !raiseAction) return { shouldSqueeze: false, squeezeSize: 0, isBluffSqueeze: false };
     if (numCallers < 2) return { shouldSqueeze: false, squeezeSize: 0, isBluffSqueeze: false }; // Need 2+ callers
 
     const ipPositions = new Set(['BTN', 'CO']);
     const isLatePos = ipPositions.has(position);
 
+    // Bug #143: Use proper pot-raise formula for squeeze sizing
+    const sqzPotRaise = calcPLOPotRaise(potSize, toCall || 0, raiseAction);
+
     // Value squeeze: premium hands from any position
     if (strength >= 78) {
-        const sqzSize = Math.round(potSize * 1.0); // Full pot squeeze
-        return { shouldSqueeze: true, squeezeSize: Math.max(raiseAction.minAmount || 1, Math.min(sqzSize, raiseAction.maxAmount || sqzSize)), isBluffSqueeze: false };
+        return { shouldSqueeze: true, squeezeSize: sqzPotRaise, isBluffSqueeze: false };
     }
 
     // Bluff squeeze: from late position with semi-premium or marginal hands
     // Works because callers are likely holding marginal hands, not premiums
+    // Size slightly smaller than pot-raise for bluff (85% of pot-raise)
     if (isLatePos && strength >= 58 && Math.random() < 0.35) {
-        const sqzSize = Math.round(potSize * 0.85);
-        return { shouldSqueeze: true, squeezeSize: Math.max(raiseAction.minAmount || 1, Math.min(sqzSize, raiseAction.maxAmount || sqzSize)), isBluffSqueeze: true };
+        const bluffSqz = Math.max(raiseAction.minAmount || 1, Math.round(sqzPotRaise * 0.85));
+        return { shouldSqueeze: true, squeezeSize: bluffSqz, isBluffSqueeze: true };
     }
 
     return { shouldSqueeze: false, squeezeSize: 0, isBluffSqueeze: false };
@@ -3166,8 +3172,9 @@ function optimizePLORiverDecision({
         // Debug: uncomment for tracing river optimizer decisions
         // console.log(`[HorseBrain] 🔍 RIVER OPT: callEq=${callEquity.toFixed(1)} hvrEq=${hvrInfo.hvrEquity?.toFixed(1)} riverEq=${riverEquity.toFixed(1)} thr=${(58+vulnerabilityPenalty-multiwayPenalty).toFixed(1)} vulnPen=${vulnerabilityPenalty}`);
         if (callEquity >= 58 + vulnerabilityPenalty - multiwayPenalty) {
-            // Raise with nuts or near-nuts (never raise with non-nut flush)
-            if (callEquity >= 82 && canRaise && !isNonNutFlush && Math.random() < 0.60) {
+            // Raise with nuts or near-nuts (never raise with non-nut flush/straight)
+            // Bug #144: Non-nut straights also shouldn't raise river facing bet (same death-trap logic as flushes)
+            if (callEquity >= 82 && canRaise && !isNonNutFlush && !isNonNutStraight && Math.random() < 0.60) {
                 return { type: raiseAction?.type || 'call', amount: clampedPotRaise, confidence: 0.90 };
             }
             return { type: 'call', confidence: 0.75 };
@@ -3188,7 +3195,11 @@ function optimizePLORiverDecision({
         const size = riverEquity >= 90 ? clampedPotRaise : clamp(potBetSize);
         return { type: raiseAction?.type || 'bet', amount: size, confidence: 0.95 };
     }
-    if (riverEquity >= 68 && canRaise) {
+    // Bug #145: Non-nut flushes and non-nut straights should NOT value bet river in PLO.
+    // They have showdown value but betting turns them into a bluff when raised.
+    const isNonNutFlushBet = madeHand.category === 'flush' && !madeHand.isNut;
+    const isNonNutStraightBet = madeHand.category === 'straight' && !madeHand.isNut;
+    if (riverEquity >= 68 && canRaise && !isNonNutFlushBet && !isNonNutStraightBet) {
         const size = riverEquity >= 85 ? clamp(potBetSize) : clamp(halfPotBetSize);
         return { type: raiseAction?.type || 'bet', amount: size, confidence: 0.80 };
     }
@@ -5190,7 +5201,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // Phase 5: Squeeze play — when 2+ callers, 3-bet to isolate
         const numCallers = state.numCallers || 0;
-        const squeeze = getPLOSqueezePlay(numCallers, isIP, position, strength, potSize, raiseAction, canRaise);
+        const squeeze = getPLOSqueezePlay(numCallers, isIP, position, strength, potSize, raiseAction, canRaise, toCall);
         if (squeeze.shouldSqueeze) return { type: raiseAction?.type || 'raise', amount: squeeze.squeezeSize };
 
         // Bug #79: Pass hand structure to preflop action for raise-facing playability penalties
