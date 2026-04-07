@@ -552,6 +552,17 @@ class PerformanceTracker {
   }
 
   /**
+   * Get all active sessions with identifiers (for shutdown cleanup).
+   * @returns {Array<{horseId: string, tableId: string}>}
+   */
+  getAllSessions() {
+    return [...this._sessions.entries()].map(([key]) => {
+      const [horseId, tableId] = key.split(':');
+      return { horseId, tableId };
+    });
+  }
+
+  /**
    * Get completed session history.
    * @param {string} [horseId] - Filter by horse (optional)
    * @returns {Array<Object>}

@@ -26,6 +26,8 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
+
 const SAVE_DEBOUNCE_MS = 100; // Don't save more than once per 100ms (was 500ms)
 
 class StateSerializer {
@@ -357,17 +359,19 @@ class StateSerializer {
     this._pendingState = null;
 
     try {
-      // Save public state (no hole cards — visible to club members via RLS)
-      await this.supabase
-        .from('tables')
-        .update({
-          live_state: state,
-          status: this.table?.status === 'running' ? 'running' : (this.table?.status || 'waiting'),
-        })
-        .eq('id', this.tableId);
+      // Phase 48f: Save with retry logic for connection resilience
+      await resilientMutation(this.supabase, () =>
+        this.supabase
+          .from('tables')
+          .update({
+            live_state: state,
+            status: this.table?.status === 'running' ? 'running' : (this.table?.status || 'waiting'),
+          })
+          .eq('id', this.tableId),
+        { label: 'state_flush', critical: true, idempotent: true }
+      );
 
       // Save private state (hole cards) in restricted table
-      // hand_private_state has NO select policy for regular members
       if (state.hand && this.table?.game?.currentHand) {
         const holeCardData = {};
         for (const p of this.table.game.currentHand.players) {
@@ -375,14 +379,17 @@ class StateSerializer {
             holeCardData[p.id] = p.holeCards;
           }
         }
-        await this.supabase
-          .from('hand_private_state')
-          .upsert({
-            table_id: this.tableId,
-            hand_number: state.hand.handNumber,
-            hole_cards: holeCardData,
-            saved_at: new Date().toISOString(),
-          }, { onConflict: 'table_id' });
+        await resilientMutation(this.supabase, () =>
+          this.supabase
+            .from('hand_private_state')
+            .upsert({
+              table_id: this.tableId,
+              hand_number: state.hand.handNumber,
+              hole_cards: holeCardData,
+              saved_at: new Date().toISOString(),
+            }, { onConflict: 'table_id' }),
+          { label: 'hole_card_flush', critical: true, idempotent: true }
+        );
       }
     } catch (err) {
       console.error(`[StateSerializer] Save failed for ${this.tableId}:`, err.message);
@@ -402,16 +409,15 @@ class StateSerializer {
     this._pendingState = null;
 
     try {
-      await this.supabase
-        .from('tables')
-        .update({ live_state: null })
-        .eq('id', this.tableId);
-
-      // Also clear private hole card state
-      await this.supabase
-        .from('hand_private_state')
-        .delete()
-        .eq('table_id', this.tableId);
+      // Phase 48f: Use resilient mutations
+      await resilientMutation(this.supabase, () =>
+        this.supabase.from('tables').update({ live_state: null }).eq('id', this.tableId),
+        { label: 'clear_state', idempotent: true }
+      );
+      await resilientMutation(this.supabase, () =>
+        this.supabase.from('hand_private_state').delete().eq('table_id', this.tableId),
+        { label: 'clear_hole_cards', idempotent: true }
+      );
     } catch (err) {
       // Non-critical
     }
@@ -459,22 +465,19 @@ class StateSerializer {
     try {
       // Read current settings, merge snapshot sub-key, write back.
       // Best-effort: failures are logged but not thrown.
-      const { data: row } = await this.supabase
-        .from('tables')
-        .select('settings')
-        .eq('id', this.tableId)
-        .maybeSingle();
+      // Phase 48f: Use resilient queries
+      const { data: row } = await resilientQuery(this.supabase, () =>
+        this.supabase.from('tables').select('settings').eq('id', this.tableId).maybeSingle(),
+        { label: 'read_settings' }
+      );
 
       const currentSettings = row?.settings || {};
-      await this.supabase
-        .from('tables')
-        .update({
-          settings: {
-            ...currentSettings,
-            snapshot: { seats, savedAt: Date.now() },
-          },
-        })
-        .eq('id', this.tableId);
+      await resilientMutation(this.supabase, () =>
+        this.supabase.from('tables').update({
+          settings: { ...currentSettings, snapshot: { seats, savedAt: Date.now() } },
+        }).eq('id', this.tableId),
+        { label: 'seat_snapshot', idempotent: true }
+      );
     } catch (_err) {
       // Snapshot writes are best-effort — not critical
     }
@@ -489,11 +492,15 @@ class StateSerializer {
   static async loadFromDB(tableId, supabase) {
     if (!supabase) return null;
     try {
-      const { data, error } = await supabase
-        .from('tables')
-        .select('live_state')
-        .eq('id', tableId)
-        .maybeSingle();
+      // Phase 48f: Use resilient query for crash recovery loads (critical path)
+      const { data, error } = await resilientQuery(supabase, () =>
+        supabase
+          .from('tables')
+          .select('live_state')
+          .eq('id', tableId)
+          .maybeSingle(),
+        { critical: true }
+      );
 
       if (error || !data?.live_state) return null;
 
@@ -506,11 +513,14 @@ class StateSerializer {
 
       // Load private hole cards from restricted table
       if (state.hand) {
-        const { data: privateData } = await supabase
-          .from('hand_private_state')
-          .select('hole_cards')
-          .eq('table_id', tableId)
-          .maybeSingle();
+        const { data: privateData } = await resilientQuery(supabase, () =>
+          supabase
+            .from('hand_private_state')
+            .select('hole_cards')
+            .eq('table_id', tableId)
+            .maybeSingle(),
+          { critical: true }
+        );
 
         if (privateData?.hole_cards && state.hand.players) {
           for (const player of state.hand.players) {

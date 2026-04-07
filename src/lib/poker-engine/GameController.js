@@ -238,6 +238,17 @@ class GameController {
     // Stop health watchdog
     if (this.healthWatchdog) this.healthWatchdog.destroy();
 
+    // Phase 48f: End all active performance tracker sessions on shutdown
+    try {
+      const activeSessions = performanceTracker.getAllSessions();
+      for (const session of activeSessions) {
+        const stats = performanceTracker.endSession(session.horseId, session.tableId);
+        if (stats && this.supabase) {
+          await performanceTracker.persistSessionStats(this.supabase, stats).catch(() => {});
+        }
+      }
+    } catch (_) { /* don't block shutdown */ }
+
     // Save final snapshots
     await this._saveAllSnapshots();
 
@@ -294,6 +305,11 @@ class GameController {
               seat._sitOutTime = seat._sitOutTime || now;
               if (now - seat._sitOutTime > 5 * 60000) {
                 console.log(`[HorseAI Watchdog] 🧟 Zombie removed: ${playerId.substring(0, 8)} sitting out > 5m on ${tableId}`);
+                // Phase 48f: End session + persist stats on ALL exit paths
+                const zombieStats = performanceTracker.endSession(playerId, tableId);
+                if (zombieStats && this.supabase) {
+                  performanceTracker.persistSessionStats(this.supabase, zombieStats).catch(() => {});
+                }
                 this.standUp(tableId, playerId);
                 requiresHeal = true;
               }
@@ -304,6 +320,11 @@ class GameController {
             // Anomaly 2: Zero-Chip Zombie (Failed to rebuy)
             if (seat.stack === 0 && table.game && !table.game.handInProgress) {
               console.log(`[HorseAI Watchdog] 💸 Zero-Chip removed: ${playerId.substring(0, 8)} busted on ${tableId}`);
+              // Phase 48f: End session + persist stats on ALL exit paths
+              const bustedStats = performanceTracker.endSession(playerId, tableId);
+              if (bustedStats && this.supabase) {
+                performanceTracker.persistSessionStats(this.supabase, bustedStats).catch(() => {});
+              }
               this.standUp(tableId, playerId);
               requiresHeal = true;
             }
@@ -767,17 +788,32 @@ class GameController {
       const result = await this.lobby.closeTable(tableId);
       if (!result.success) return result;
 
+      // Phase 48f: End all active performance sessions for this table
+      try {
+        const allSessions = performanceTracker.getAllSessions();
+        for (const sess of allSessions) {
+          if (sess.tableId === tableId) {
+            const stats = performanceTracker.endSession(sess.horseId, sess.tableId);
+            if (stats && this.supabase) {
+              await performanceTracker.persistSessionStats(this.supabase, stats).catch(() => {});
+            }
+          }
+        }
+      } catch (_) { /* non-fatal */ }
+
       // Clear AI session tracking
       HorsePokerBrain.clearTableSessions(tableId);
       // Clear live observer data for this table
       HorsePokerBrain.clearTableLiveObservers(tableId);
 
-      // Update DB
+      // Update DB (Phase 48f: resilient mutation)
       if (this.supabase) {
-        await this.supabase
-          .from('tables')
-          .update({ status: 'closed' })
-          .eq('id', tableId);
+        await resilientMutation(this.supabase, () =>
+          this.supabase
+            .from('tables')
+            .update({ status: 'closed' })
+            .eq('id', tableId)
+        );
       }
 
       return { success: true };
@@ -854,6 +890,18 @@ class GameController {
 
     const entry = this.lobby.tables.get(tableId);
     if (!entry) return { success: false, error: 'Table not found' };
+
+    // Phase 48f: Safety net — end any active PerformanceTracker session on standUp
+    // This catches manual standups or any exit path that didn't explicitly end the session
+    try {
+      const existingSession = performanceTracker.getSession(playerId, tableId);
+      if (existingSession) {
+        const stats = performanceTracker.endSession(playerId, tableId);
+        if (stats && this.supabase) {
+          performanceTracker.persistSessionStats(this.supabase, stats).catch(() => {});
+        }
+      }
+    } catch (_) { /* never block standUp */ }
 
     const result = entry.table.standUp(playerId);
     this._broadcastTableState(tableId);
@@ -1250,6 +1298,21 @@ class GameController {
           },
           horseIds
         );
+
+        // Phase 48f: Record hand progress for stuck-hand detection
+        if (this._healthWatchdog) {
+          const handKey = `${tableId}_hand${game.handNumber || 0}`;
+          this._healthWatchdog.recordHandProgress(tableId, handKey);
+        }
+
+        // Phase 48f: Record opponent timing for bot detection
+        if (decisionTimeMs > 0) {
+          for (const hId of horseIds) {
+            if (hId !== actorId) {
+              performanceTracker.recordOpponentTiming(actorId, decisionTimeMs);
+            }
+          }
+        }
       } catch (err) {
         // Never let observer errors break the game loop
         console.error(`[LiveObserver] action_processed hook failed:`, err.message);
@@ -1316,6 +1379,27 @@ class GameController {
       HorsePokerBrain.evaluateSessions(this, entry.table).catch(err => {
         console.error(`[HorseAI] evaluateSessions failed:`, err.message);
       });
+
+      // Phase 48f: Record hand results in PerformanceTracker for all horses at table
+      try {
+        const players = entry.table.game?.currentHand?.players || data.players || [];
+        const horseIds = HorsePokerBrain.getHorseIdsAtTable(players);
+        for (const hId of horseIds) {
+          const playerData = players.find(p => String(p.id) === String(hId));
+          if (playerData) {
+            performanceTracker.recordHand(hId, tableId, {
+              chipDelta: playerData.netResult || 0,
+              vpip: playerData.vpip || false,
+              pfr: playerData.pfr || false,
+              wonHand: playerData.wonHand || false,
+              wentToShowdown: playerData.wentToShowdown || false,
+              rakePaid: playerData.rakePaid || 0,
+            });
+          }
+        }
+      } catch (perfErr) {
+        console.error(`[PerformanceTracker] recordHand failed:`, perfErr.message);
+      }
 
       // ═══ BOMB POT FREQUENCY TRIGGER ═══
       const freq = entry.config?.bombPotFrequency || 0;

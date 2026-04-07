@@ -19,6 +19,7 @@ const { StateSerializer } = require('./StateSerializer');
 const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
 const HorsePokerBrain = require('./HorsePokerBrain');
+const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
 
 // ── Phase mapping: engine phases → display phases ──
 const DISPLAY_PHASE = {
@@ -596,8 +597,8 @@ class LobbyManager {
         console.log(`[BBJ]   Loser: ${bbjData.loserId} (${bbjData.loserHand})`);
         console.log(`[BBJ]   Winner: ${bbjData.winnerId} (${bbjData.winnerHand})`);
 
-        // Award via bbj_pools table (works for all clubs)
-        const { data: awardResult, error: awardErr } = await sb.rpc('award_bbj', {
+        // Award via bbj_pools table (Phase 48f: resilient — financial critical)
+        const { data: awardResult, error: awardErr } = await resilientMutation(sb, () => sb.rpc('award_bbj', {
           p_club_id: clubId,
           p_table_id: config.tableId,
           p_hand_number: bbjData.handNumber || 0,
@@ -616,7 +617,7 @@ class LobbyManager {
           p_stakes_tier: tier?.label?.toLowerCase() || 'small',
           p_game_variant: config.variant || 'nlh',
           p_big_blind: config.bigBlind,
-        });
+        }), { critical: true });
 
         if (awardErr) {
           console.error('[BBJ] Award error:', awardErr.message);
@@ -827,7 +828,8 @@ class LobbyManager {
           //   5. Ledger entries + global sequential hand ID
           const canonicalHandId = data.handId ||
             (data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`);
-          const { data: rakeResult, error: rakeErr } = await sb.rpc('record_rake', {
+          // Phase 48f: resilient — financial critical
+          const { data: rakeResult, error: rakeErr } = await resilientMutation(sb, () => sb.rpc('record_rake', {
             p_hand_id: canonicalHandId,
             p_club_id: clubId,
             p_table_id: config.tableId,
@@ -836,7 +838,7 @@ class LobbyManager {
             p_num_players: dealtPlayerIds.length || finalStacks.length,
             p_bbj_contribution: bbjContribution,
             p_dealt_player_ids: dealtPlayerIds.length > 0 ? dealtPlayerIds : null,
-          });
+          }), { critical: true });
 
           if (rakeErr) {
             console.error('[LobbyManager] Rake RPC failed:', rakeErr.message);
@@ -852,11 +854,12 @@ class LobbyManager {
           // settlement_periods.hands_played and total_rake stay at 0 forever,
           // making auto-settlement distribute nothing.
           try {
-            await sb.rpc('increment_settlement_counters', {
+            // Phase 48f: resilient mutation
+            await resilientMutation(sb, () => sb.rpc('increment_settlement_counters', {
               p_club_id: clubId,
               p_rake: rakeAmount,
               p_hands: 1,
-            });
+            }));
           } catch (settlErr) {
             console.error('[LobbyManager] Settlement counter increment failed:', settlErr.message);
             // Non-fatal — don't block hand progression
@@ -937,15 +940,16 @@ class LobbyManager {
           const potTotal = data.potTotal || data.result?.pots?.reduce((s, p) => s + p.amount, 0) || 0;
           // Increment hands_dealt; update running avg_pot using exponential moving average
           // avg_pot = (old_avg * 0.9) + (new_pot * 0.1) — smoothed over many hands
-          await sb.rpc('update_table_stats', {
+          // Phase 48f: resilient mutation
+          await resilientMutation(sb, () => sb.rpc('update_table_stats', {
             p_table_id: config.tableId,
             p_pot_total: potTotal,
-          }).catch(() => {
+          })).catch(() => {
             // RPC might not exist — fallback to simple update
-            sb.from('tables').update({
+            resilientMutation(sb, () => sb.from('tables').update({
               hands_dealt: table.handCount || 0,
               updated_at: new Date().toISOString(),
-            }).eq('id', config.tableId).then(() => { }).catch((err) => console.error('[LobbyManager] Table stats update failed:', err));
+            }).eq('id', config.tableId)).catch((err) => console.error('[LobbyManager] Table stats update failed:', err));
           });
         }
       } catch (_) {
@@ -1023,10 +1027,11 @@ class LobbyManager {
 
       const sb = ChipBridge.getSupabase();
       if (sb) {
-        await sb.from('tables').update({
+        // Phase 48f: resilient mutation
+        await resilientMutation(sb, () => sb.from('tables').update({
           current_players: count,
           updated_at: new Date().toISOString(),
-        }).eq('id', tableId);
+        }).eq('id', tableId));
       }
     } catch (e) {
       // Non-fatal — lobby count update is best-effort

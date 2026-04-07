@@ -12,6 +12,9 @@
  * Each hand produces a self-contained JSON record.
  */
 
+// Phase 48f: Resilient DB operations
+const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
+
 // ============ HAND HISTORY RECORDER ============
 
 class HandHistoryRecorder {
@@ -224,29 +227,32 @@ class HandHistoryRecorder {
     const handRecord = { ...this._currentHand };
     const handId = handRecord.id;
     
-    // Persist to Supabase
+    // Persist to Supabase (Phase 48f: resilient mutation)
     try {
       if (this.supabase) {
-        const { error } = await this.supabase
-          .from('hand_histories')
-          .insert({
-            id: handId,
-            table_id: handRecord.tableId,
-            club_id: handRecord.clubId,
-            hand_number: handRecord.handNumber,
-            variant: handRecord.variant,
-            betting_structure: handRecord.bettingStructure,
-            small_blind: handRecord.smallBlind,
-            big_blind: handRecord.bigBlind,
-            player_ids: handRecord.players.map(p => p.id),
-            hand_data: handRecord,
-            rake: handRecord.rake || 0,
-            pot_total: (handRecord.pots || []).reduce((sum, p) => sum + (p.amount || 0), 0),
-            winner_ids: (handRecord.winners || []).map(w => w.playerId),
-            started_at: handRecord.startedAt,
-            completed_at: handRecord.completedAt,
-          });
-        
+        const { error } = await resilientMutation(this.supabase, () =>
+          this.supabase
+            .from('hand_histories')
+            .insert({
+              id: handId,
+              table_id: handRecord.tableId,
+              club_id: handRecord.clubId,
+              hand_number: handRecord.handNumber,
+              variant: handRecord.variant,
+              betting_structure: handRecord.bettingStructure,
+              small_blind: handRecord.smallBlind,
+              big_blind: handRecord.bigBlind,
+              player_ids: handRecord.players.map(p => p.id),
+              hand_data: handRecord,
+              rake: handRecord.rake || 0,
+              pot_total: (handRecord.pots || []).reduce((sum, p) => sum + (p.amount || 0), 0),
+              winner_ids: (handRecord.winners || []).map(w => w.playerId),
+              started_at: handRecord.startedAt,
+              completed_at: handRecord.completedAt,
+            }),
+          { critical: true }
+        );
+
         if (error) {
           console.error('Hand history save error:', error);
           return { success: false, handId, error: error.message };
@@ -298,13 +304,14 @@ class HandHistoryQuery {
       .select('*')
       .contains('player_ids', [playerId])
       .order('completed_at', { ascending: false });
-    
+
     if (options.variant) query = query.eq('variant', options.variant);
     if (options.tableId) query = query.eq('table_id', options.tableId);
     if (options.limit) query = query.limit(options.limit);
     if (options.offset) query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
-    
-    const { data, error } = await query;
+
+    // Phase 48f: resilient query
+    const { data, error } = await resilientQuery(this.supabase, () => query);
     if (error) throw error;
     return data || [];
   }
@@ -316,13 +323,16 @@ class HandHistoryQuery {
    * @returns {Promise<Array>}
    */
   async getTableHands(tableId, limit = 50) {
-    const { data, error } = await this.supabase
-      .from('hand_histories')
-      .select('*')
-      .eq('table_id', tableId)
-      .order('completed_at', { ascending: false })
-      .limit(limit);
-    
+    // Phase 48f: resilient query
+    const { data, error } = await resilientQuery(this.supabase, () =>
+      this.supabase
+        .from('hand_histories')
+        .select('*')
+        .eq('table_id', tableId)
+        .order('completed_at', { ascending: false })
+        .limit(limit)
+    );
+
     if (error) throw error;
     return data || [];
   }
@@ -333,11 +343,14 @@ class HandHistoryQuery {
    * @returns {Promise<Object|null>}
    */
   async getHand(handId) {
-    const { data, error } = await this.supabase
-      .from('hand_histories')
-      .select('*')
-      .eq('id', handId)
-      .maybeSingle();
+    // Phase 48f: resilient query
+    const { data, error } = await resilientQuery(this.supabase, () =>
+      this.supabase
+        .from('hand_histories')
+        .select('*')
+        .eq('id', handId)
+        .maybeSingle()
+    );
 
     if (error) return null;
     return data || null;
@@ -357,8 +370,9 @@ class HandHistoryQuery {
     
     if (options.variant) query = query.eq('variant', options.variant);
     if (options.since) query = query.gte('completed_at', options.since);
-    
-    const { data, error } = await query;
+
+    // Phase 48f: resilient query
+    const { data, error } = await resilientQuery(this.supabase, () => query);
     if (error) throw error;
     
     if (!data || data.length === 0) {
