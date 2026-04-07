@@ -712,7 +712,169 @@ def parse_pokeratlas_json(data: dict, venue_name: str, api_url: str, html_hash: 
     return results
 
 
+# ── PokerAtlas HTML Schedule Parser (section.tournament-schedule) ────────────
+_PA_DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+
+def parse_pa_html_schedule(html: str, venue_name: str, venue_state: str) -> list:
+    """
+    Parse PokerAtlas /tournaments HTML page using the known CSS structure:
+      <section class="tournament-schedule"><ol><li><div class="tournament">...
+    Falls back to React/hydration JSON data embedded in the page.
+    Returns list of tournament dicts ready to insert.
+    """
+    if 'tournament-schedule' not in html and 'no-tournaments' not in html:
+        return []
+    if 'no-tournaments' in html or 'no tournaments listed' in html.lower():
+        return []
+    # State check via JSON-LD
+    jld_m = re.search(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', html, re.DOTALL | re.I)
+    if jld_m:
+        try:
+            obj = json.loads(jld_m.group(1))
+            page_state = (obj.get('address') or {}).get('addressRegion', '')
+            if page_state and page_state.upper() != venue_state.upper():
+                return []
+        except Exception:
+            pass
+    ts_now = datetime.now(timezone.utc).isoformat()
+    results, seen = [], set()
+    # Section-based parse
+    sched = re.search(r'<section[^>]*class="tournament-schedule"[^>]*>(.*?)</section>', html, re.DOTALL)
+    if sched:
+        for entry in re.finditer(
+            r'<div[^>]*class="tournament"[^>]*>(.*?)</div>\s*(?:</div>)*\s*(?:</a>)?',
+            sched.group(1), re.DOTALL
+        ):
+            parsed = _pa_entry_to_records(entry.group(1), venue_name, ts_now)
+            for t in parsed:
+                dk = f"{t['day_of_week']}-{t['start_time']}-{t.get('buy_in','')}-{t['game_type']}"
+                if dk not in seen:
+                    seen.add(dk)
+                    results.append(t)
+    # React/hydration JSON fallback
+    if not results:
+        jm = re.search(r'"tournaments"\s*:\s*(\[.*?\])', html, re.DOTALL)
+        if jm:
+            try:
+                for item in json.loads(jm.group(1))[:100]:
+                    if not isinstance(item, dict): continue
+                    raw_days = item.get('days') or _PA_DAY_NAMES[:]
+                    active = raw_days if isinstance(raw_days, list) else _PA_DAY_NAMES[:]
+                    buyin_raw = item.get('buyIn') or item.get('buy_in') or 0
+                    try: buyin = int(float(buyin_raw))
+                    except Exception: continue
+                    if not (10 <= buyin <= 50000): continue
+                    st = str(item.get('startTime') or item.get('time') or '').upper().strip()
+                    gm = str(item.get('gameType') or item.get('game') or 'NLH')
+                    t_name = str(item.get('name') or '')[:100] or None
+                    for day in active:
+                        dk = f"{day}-{st}-{buyin}-{gm}"
+                        if dk not in seen:
+                            seen.add(dk)
+                            results.append({
+                                'venue_name': venue_name, 'day_of_week': day,
+                                'event_date': None, 'start_time': st,
+                                'buy_in': buyin, 'game_type': _pa_norm_game(gm),
+                                'format': None, 'guaranteed': item.get('guaranteed'),
+                                'starting_stack': None, 'blind_levels': None,
+                                'rebuy_addon': None, 'late_registration': None,
+                                'tournament_name': t_name, 'data_quality': 'scraped_verified',
+                                'is_active': True, 'scrape_batch_id': BATCH_ID,
+                                'scrape_timestamp': ts_now, 'scrape_html_hash': '',
+                                'scrape_confidence': 'high', 'last_scraped': ts_now,
+                            })
+            except Exception:
+                pass
+    return results
+
+
+def _pa_entry_to_records(entry_html: str, venue_name: str, ts_now: str) -> list:
+    """Parse one PokerAtlas <div class=\"tournament\"> into 1+ records (one per day)."""
+    nm = re.search(r'class="name"[^>]*>\s*<span>(.*?)</span>', entry_html, re.DOTALL)
+    t_name = re.sub(r'<[^>]+>', '', nm.group(1)).strip()[:100] if nm else None
+    hm = re.search(r'class="hour">(.*?)</span>', entry_html, re.DOTALL)
+    start_time = re.sub(r'<[^>]+>', '', hm.group(1)).strip().upper() if hm else ''
+    bm = re.search(r'class="buy-in">\$?([\d,]+)', entry_html)
+    buyin = int(bm.group(1).replace(',','')) if bm else None
+    if buyin is not None and not (10 <= buyin <= 50000):
+        return []
+    gm = re.search(r'class="type">(.*?)</span>', entry_html, re.DOTALL)
+    game = _pa_norm_game(re.sub(r'<[^>]+>','',gm.group(1)).strip() if gm else 'NLH')
+    dm = re.search(r'<div class="days">(.*?)</div>', entry_html, re.DOTALL)
+    if dm:
+        items = re.findall(r'<li[^>]*class="([^"]*)"[^>]*>\s*(\w+)\s*</li>', dm.group(1))
+        active = [_PA_DAY_NAMES[i] for i,(cls,_) in enumerate(items)
+                  if i < len(_PA_DAY_NAMES) and 'active' in cls]
+        active = active or _PA_DAY_NAMES[:]
+    else:
+        active = _PA_DAY_NAMES[:]
+    gtd = None
+    gm2 = re.search(r'(?:guaranteed|gtd)[^$]*\$?([\d,]+)', entry_html, re.I)
+    if gm2:
+        try: gtd = int(gm2.group(1).replace(',',''))
+        except Exception: pass
+    if not start_time and buyin is None:
+        return []
+    base = {
+        'venue_name': venue_name, 'event_date': None, 'start_time': start_time,
+        'buy_in': buyin, 'game_type': game, 'format': None, 'guaranteed': gtd,
+        'starting_stack': None, 'blind_levels': None, 'rebuy_addon': None,
+        'late_registration': None, 'tournament_name': t_name,
+        'data_quality': 'scraped_verified', 'is_active': True,
+        'scrape_batch_id': BATCH_ID, 'scrape_timestamp': ts_now,
+        'scrape_html_hash': '', 'scrape_confidence': 'high', 'last_scraped': ts_now,
+    }
+    return [{**base, 'day_of_week': d} for d in active]
+
+
+def _pa_norm_game(raw: str) -> str:
+    u = raw.upper().strip()
+    if 'HOLDEM' in u or 'NLH' in u or 'HOLD' in u or 'NL ' in u: return 'NLH'
+    if 'OMAHA' in u or 'PLO' in u: return 'PLO'
+    if 'MIXED' in u: return 'Mixed'
+    if 'STUD' in u: return 'Stud'
+    if 'LIMIT' in u and 'NO' not in u: return 'Limit Holdem'
+    return raw.strip() or 'NLH'
+
+
+# ── Multi-slug PokerAtlas URL generator ─────────────────────────────────────
+def make_pa_slug_variants(venue: dict) -> list:
+    """Generate up to 8 PokerAtlas variant URLs for a venue."""
+    name = venue.get('name', '')
+    city = venue.get('city', '') or ''
+    out, seen = [], set()
+
+    def slugify(s):
+        s = re.sub(r"[''`]", '', s)
+        return re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
+
+    def add(u):
+        if u and u not in seen:
+            seen.add(u); out.append(('pokeratlas', u))
+
+    ns, cs = slugify(name), slugify(city)
+    # Stored slug
+    stored = venue.get('pokeratlas_slug') or ''
+    if stored: add(f"https://www.pokeratlas.com/poker-room/{stored}/tournaments")
+    # From stored URL fields
+    for fld in ('poker_atlas_url', 'pokeratlas_url', 'scrape_url', 'schedule_scrape_url'):
+        pu = venue.get(fld) or ''
+        if 'pokeratlas.com/poker-room/' in pu:
+            slug = pu.split('/poker-room/')[-1].strip('/').split('/')[0]
+            if slug: add(f"https://www.pokeratlas.com/poker-room/{slug}/tournaments")
+    # Generated variants
+    if ns and cs: add(f"https://www.pokeratlas.com/poker-room/{ns}-{cs}/tournaments")
+    if ns:        add(f"https://www.pokeratlas.com/poker-room/{ns}/tournaments")
+    # Strip generic suffixes
+    stripped = re.sub(r'\b(casino|resort|hotel|club|room|poker|gaming|card|house)\b', '', name, flags=re.I)
+    s2 = slugify(stripped)
+    if s2 and cs: add(f"https://www.pokeratlas.com/poker-room/{s2}-{cs}/tournaments")
+    if s2:        add(f"https://www.pokeratlas.com/poker-room/{s2}/tournaments")
+    return out[:8]
+
+
 # ── Venue scope validator ────────────────────────────────────────────────────
+
 def venue_name_tokens(name: str) -> set:
     """Break venue name into meaningful lowercase tokens (3+ chars, skip stopwords)."""
     STOPWORDS = {'the','and','of','at','in','on','for','a','an','by',
@@ -828,14 +990,11 @@ def build_url_list(venue: dict) -> list:
         saved = re.sub(r'(/tournaments)+$', '/tournaments', saved.rstrip('/'))
         add('saved_source', saved)
 
-    # 2. PokerAtlas HTML page — JSON-LD will be used to discover canonical website
-    pa_url = venue.get('poker_atlas_url') or venue.get('pokeratlas_url') or ''
-    pa_slug = venue.get('pokeratlas_slug') or ''
-    if not pa_slug and '/poker-room/' in pa_url:
-        pa_slug = pa_url.split('/poker-room/')[-1].strip('/').split('/')[0]
-    if pa_slug:
-        add('pokeratlas', f"https://www.pokeratlas.com/poker-room/{pa_slug}/tournaments")
-    else:
+    # 2. PokerAtlas HTML page — multi-slug variants + JSON-LD canonical discovery
+    for pa_label, pa_u in make_pa_slug_variants(venue):
+        add(pa_label, pa_u)
+    # Fallback: single generated slug if make_pa_slug_variants returned nothing
+    if not any(lbl == 'pokeratlas' for lbl, _ in urls):
         gen_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
         add('pokeratlas', f"https://www.pokeratlas.com/poker-room/{gen_slug}/tournaments")
 
@@ -1110,7 +1269,24 @@ def scrape_venue(venue: dict, session, dry_run: bool) -> dict:
             except (json.JSONDecodeError, Exception) as e:
                 print(f"      [pokeratlas_api] JSON parse failed: {str(e)[:60]}")
                 candidates = []
+        elif src == 'pokeratlas':
+            # Try structured HTML parser first (most accurate for PA pages)
+            candidates = parse_pa_html_schedule(html, name, state)
+            if candidates:
+                print(f"      ✅ PA HTML parser: {len(candidates)} tournaments (structured)")
+                # Stamp html_hash on all PA-parsed records
+                for rec in candidates:
+                    rec['scrape_html_hash'] = h
+                    rec['source_url'] = url
+            else:
+                # Fall back to generic regex extractor
+                if not has_tournament_content(html):
+                    print(f"      [NO CONTENT] No tournament keywords found")
+                    time.sleep(1)
+                    continue
+                candidates = extract_tournaments(html, name, url, h)
         else:
+            # All other sources: bravo, website, saved_source, etc.
             if not has_tournament_content(html):
                 print(f"      [NO CONTENT] No tournament keywords found")
                 time.sleep(1)

@@ -2852,10 +2852,16 @@ function approximatePLOHvR(madeHand, exactOuts, opponentActions, boardTexture, s
 
     // Raiser on flop: likely strong made hand or big draw
     if (raised && street === 'flop') opponentRangeType = 'strong';
+    // Raised on turn: very strong or huge draw committed
+    else if (raised && street === 'turn') opponentRangeType = 'very_strong';
+    // Raised on river: polarized — nuts or bluff
+    else if (raised && street === 'river') opponentRangeType = 'polarized';
     // Checked and then bet turn: likely medium top pair to two-pair
     else if (checked && bet && street === 'turn') opponentRangeType = 'medium';
     // Called flop and called turn: likely a draw or medium hand
     else if (called && street === 'river') opponentRangeType = 'drawing_missed';
+    // Bet multiple streets: strong or committed bluff
+    else if (bet && street !== 'flop') opponentRangeType = 'aggressor';
     // Checked twice: often a weak hand or slow-play
     else if (checked && checked) opponentRangeType = 'weak_or_slowplay';
 
@@ -2865,12 +2871,41 @@ function approximatePLOHvR(madeHand, exactOuts, opponentActions, boardTexture, s
     const effectiveOuts = (street === 'river') ? 0 : exactOuts;
     let hvrBaseEquity = madeHand.strength + Math.min(effectiveOuts * 2.2, 46);
 
+    // Bug #137: Board texture adjustment — on wet/dangerous boards, non-nut hands
+    // have LOWER HvR equity because opponent ranges include more monsters
+    let boardAdj = 0;
+    if (boardTexture.isWet && !madeHand.isNut) boardAdj -= 5;
+    if (boardTexture.isDangerous && !madeHand.isNut) boardAdj -= 4;
+    if (boardTexture.isMonotone && madeHand.category !== 'flush') boardAdj -= 8;
+    // Dry board = our medium hands hold up better
+    if (!boardTexture.isWet && !boardTexture.isDangerous && madeHand.strength >= 55) boardAdj += 4;
+
+    // Bug #137: Non-nut vulnerability discount in HvR
+    // A king-high flush on a 3-flush board has much less HvR equity than the nut flush
+    const isNonNutFlush = madeHand.category === 'flush' && !madeHand.isNut;
+    const isNonNutStraight = madeHand.category === 'straight' && !madeHand.isNut;
+    let vulnAdj = 0;
+    if (isNonNutFlush) vulnAdj = -8;  // Non-nut flushes get hammered in PLO
+    if (isNonNutStraight) vulnAdj = -5; // Non-nut straights are risky too
+
     // Adjust based on opponent's range type
     let hvrAdjustment = 0;
     switch (opponentRangeType) {
         case 'strong':
             // Against a strong range, our medium hands lose value
             hvrAdjustment = madeHand.isNut ? 5 : -15;
+            break;
+        case 'very_strong':
+            // Turn raise = very strong. Even good hands need to be careful
+            hvrAdjustment = madeHand.isNut ? 3 : -20;
+            break;
+        case 'polarized':
+            // River raise = nuts or bluff. Medium hands are in terrible shape
+            hvrAdjustment = madeHand.isNut ? 8 : madeHand.strength >= 80 ? -5 : -18;
+            break;
+        case 'aggressor':
+            // Multi-street bettor: strong line. Discount non-nut hands more
+            hvrAdjustment = madeHand.isNut ? 6 : madeHand.strength >= 75 ? -3 : -12;
             break;
         case 'medium':
             // Against medium, our strong hands gain, medium stays neutral
@@ -2888,8 +2923,8 @@ function approximatePLOHvR(madeHand, exactOuts, opponentActions, boardTexture, s
             hvrAdjustment = 0;
     }
 
-    const hvrEquity = Math.max(0, Math.min(100, hvrBaseEquity + hvrAdjustment));
-    return { hvrEquity, opponentRangeType, hvrAdjustment };
+    const hvrEquity = Math.max(0, Math.min(100, hvrBaseEquity + hvrAdjustment + boardAdj + vulnAdj));
+    return { hvrEquity, opponentRangeType, hvrAdjustment: hvrAdjustment + boardAdj + vulnAdj };
 }
 
 // ── 6c. REVERSE IMPLIED ODDS ──
@@ -4317,6 +4352,30 @@ function calculatePLODirtyOuts(holeCards, boardCards, straightOuts, flushDraw, m
                 isDirty = true;
             }
 
+            // (c) Completes a HIGHER straight for opponents
+            // If we make a 9-high straight but the same card enables a J-high straight,
+            // someone with JT could have the better straight. In PLO with 4 cards, this is VERY common.
+            if (!isDirty) {
+                const ourHighStraight = completingRanks.get(rank) || 0;
+                // Check if this card on the new board enables any HIGHER straight
+                // that an opponent could make with 2 hole cards (any 2 of the missing ranks)
+                const newBoardWithCard = [...boardRanks, rank];
+                for (const { needed, highVal: high } of wrapWindows) {
+                    if (high <= ourHighStraight) continue; // Only care about HIGHER straights
+                    if (madeHighs.has(high)) continue; // Already made before
+                    // How many of these 5 ranks are on the new board?
+                    const onBoard = needed.filter(r => newBoardWithCard.includes(r)).length;
+                    // Opponent needs exactly 2 from hole, 3 from board
+                    // So board must have at least 3 of the 5 needed ranks
+                    if (onBoard >= 3) {
+                        // A higher straight is possible — opponent just needs 2 cards
+                        // In PLO, 4 hole cards = C(4,2)=6 combos, so ~15-25% someone has it
+                        isDirty = true;
+                        break;
+                    }
+                }
+            }
+
             if (isDirty) dirtyCards++;
             else cleanCards++;
         }
@@ -4470,10 +4529,32 @@ function getAdaptivePLOBetSize(equity, sprZone, boardTexture, exploitProfile, ma
     else if (outs >= 9) fraction = Math.max(fraction, 0.65); // Good draw: at least 65% pot
     else if (outs >= 6) fraction = Math.max(fraction, 0.50); // Moderate draw: at least 50% pot
 
-    // Board texture adjustment
-    if (boardTexture.isMonotone && !madeHand.isNutFlush) fraction *= 0.80; // Proceed cautiously
-    if (boardTexture.isDangerous && madeHand.isNut) fraction *= 1.15;     // Charge draws!
-    if (boardTexture.texture === 'rainbow') fraction *= 0.90;             // Dry boards: smaller bets
+    // Bug #138: Board texture-aware bet sizing (critical PLO concept)
+    // WET boards with draws: bet BIGGER to deny equity (charge them to draw)
+    // DRY boards with no draws: bet SMALLER (they fold to any bet, maximize call frequency)
+    // Monotone: proceed cautiously unless we have the nuts
+    if (boardTexture.isMonotone && !madeHand.isNut) {
+        fraction *= 0.75; // Monotone: very cautious without nuts
+    } else if (boardTexture.isWet) {
+        // Wet board: many draws possible. Bet BIGGER to charge them.
+        // With nut hands: pot it (max protection + value)
+        // With good hands: 70-85% (deny draws profitable odds)
+        if (madeHand.isNut || madeHand.strength >= 80) {
+            fraction = Math.max(fraction, 0.85); // Charge draws hard
+        } else if (madeHand.isMade && madeHand.strength >= 60) {
+            fraction = Math.max(fraction, 0.70); // Protect medium hands on wet board
+        }
+    } else if (!boardTexture.isWet && !boardTexture.isDangerous) {
+        // DRY board: small bets get called more often (they think we're bluffing)
+        // With monster: small to induce (trap sizing)
+        // With medium: small for thin value
+        if (madeHand.isNut && Math.random() < 0.40) {
+            fraction = Math.min(fraction, 0.45); // Trap sizing with nuts on dry board
+        } else {
+            fraction *= 0.85; // Generally smaller on dry boards
+        }
+    }
+    if (boardTexture.isDangerous && madeHand.isNut) fraction = Math.max(fraction, 0.90); // Charge draws!
 
     // Opponent type adjustment
     if (exploitProfile?.strategy?.valueWider) fraction *= 1.10;  // Stations: size up
@@ -5455,6 +5536,31 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         + runoutBonus + deepDrawBonus + historyCorrection.equityCorrection
         + lateSession.calldownLoosen
     ));
+
+    // ─── Bug #136: NON-NUT VULNERABILITY PENALTY (ALL STREETS) ───
+    // In PLO, non-nut flushes and non-nut straights are DEATH TRAPS.
+    // River penalty is in optimizePLORiverDecision (Bug #127). This adds
+    // a smaller penalty on flop/turn to prevent over-investing with non-nut made hands.
+    // On flop: small penalty (cards to come can improve us or make it clearer)
+    // On turn: medium penalty (one card left, vulnerability becomes more real)
+    // River: handled by optimizePLORiverDecision's vulnerability penalty
+    if (street !== 'preflop' && madeHand.isMade) {
+        const isNonNutFlush = madeHand.category === 'flush' && !madeHand.isNut;
+        const isNonNutStraight = madeHand.category === 'straight' && !madeHand.isNut;
+        if (isNonNutFlush || isNonNutStraight) {
+            const vuln = madeHand.vulnerability || 0;
+            // Flop: -3 to -6 equity (small, cards to come might help)
+            // Turn: -5 to -10 equity (more dangerous, one card left)
+            // River: handled separately in optimizer
+            const streetMultiplier = street === 'flop' ? 1.5 : street === 'turn' ? 2.5 : 0;
+            const vulnPenalty = isNonNutFlush
+                ? Math.round(vuln * streetMultiplier)
+                : Math.round(vuln * streetMultiplier * 0.8); // Straights slightly less vulnerable
+            if (vulnPenalty > 0) {
+                equityFinal = Math.max(0, equityFinal - vulnPenalty);
+            }
+        }
+    }
 
     // ─── MODULE 28 & 32: GLOBAL EQUITY REDUCTION ───
     const coldCallPenalty = (state.isColdCallTrap) ? 10 : 0;

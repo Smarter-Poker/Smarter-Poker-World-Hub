@@ -4,11 +4,10 @@
  */
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { MapErrorBoundary } from './VenueMap';
 
 const VenueCard = dynamic(() => import('./VenueCard'), { ssr: false });
 const VenueMap = dynamic(() => import('./VenueMap'), { ssr: false });
-import { MapErrorBoundary } from './VenueMap';
-import dynamic from 'next/dynamic';
 const RichTourCard = dynamic(() => import('./RichTourCard'), { ssr: false });
 
 const RADIUS_TIERS = [50, 100, 200, 500];
