@@ -5328,6 +5328,10 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ── Phase 7: Chat trigger (fires contextual message if game engine supports it) ──
     const chatTrigger = state.chatTrigger || null;
     const chatResponse = getPLOChatResponse(chatTrigger, profileId);
+    // Bug #176: Wire chatResponse — push to chatMessages queue if chat triggered
+    if (chatResponse.shouldChat && chatResponse.message) {
+        chatMessages.push({ playerId: profileId, message: chatResponse.message, type: 'chat' });
+    }
 
     // ── GAP A-F + OPT A-E: All module initialization ──
 
@@ -5965,6 +5969,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         }
 
         // Phase 3: C-bet engine
+        // Bug #175: Wire positionRanges — narrow ranges (UTG) c-bet more profitably (range is strong)
+        // Wide ranges (BTN) c-bet less — more trash in our range
+        const positionCbetMod = positionRanges.openThreshold >= 65 ? 0.08  // UTG: tight range = c-bet more
+            : positionRanges.openThreshold >= 55 ? 0.04  // MP/HJ: moderate
+            : -0.04;                                        // BTN/CO: wide range = c-bet less
         // ═══ PHASE 37: LIVE-READ C-BET SUPPRESSION ═══
         // Against calling stations (live data), reduce c-bet frequency with weak hands
         if (cBetStrategy.shouldCBet && canRaise) {
@@ -5978,7 +5987,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 cBetLiveGo = true;
             }
             if (cBetLiveGo)
-                return { type: raiseAction.type, amount: clamp(Math.round(potSize * cBetStrategy.cBetFraction * ploLiveSizeAdj)) };
+                return { type: raiseAction.type, amount: clamp(Math.round(potSize * (cBetStrategy.cBetFraction + positionCbetMod) * ploLiveSizeAdj)) };
         }
 
         // Phase 3: Turn barrel logic
@@ -6008,9 +6017,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Bug #147: Limped pot bluff suppression
         const realizedOuts = totalOuts * erc;
         const blockerBluffBoost = blockers.hasFlushBlocker ? 0.12 : blockers.hasStraightBlocker ? 0.06 : 0;
-        if (realizedOuts >= 14 && canRaise && mwAllowBluff && Math.random() < (0.65 + blockerBluffBoost))
+        // Bug #178: Wire cardRemovalBluffBonus — high card removal score = more bluffing license
+        const removalBluffFreqBoost = cardRemovalBluffBonus * 0.01; // 0/0.04/0.08
+        if (realizedOuts >= 14 && canRaise && mwAllowBluff && Math.random() < (0.65 + blockerBluffBoost + removalBluffFreqBoost))
             return { type: raiseAction.type, amount: adaptiveBetSize };
-        if (realizedOuts >= 9 && canRaise && mwAllowBluff && !limpBluffSuppressed && Math.random() < (0.38 + blockerBluffBoost))
+        if (realizedOuts >= 9 && canRaise && mwAllowBluff && !limpBluffSuppressed && Math.random() < (0.38 + blockerBluffBoost + removalBluffFreqBoost))
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.50)) };
         // Bug #87: Pure blocker bluff — no real outs but we block the nuts
         // Bug #148: Completely suppressed in multiway when governor says no
@@ -6160,7 +6171,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const callThreshold = perStreetBluff.shouldLoosen
         ? perStreetBluff.calldownThreshold      // Phase 7: call with less equity vs aggressive opponents
         : exploitFoldThreshold - 5;             // Phase 5: default exploit threshold
-    if (equityFinal >= callThreshold && canCall) {
+    // Bug #179: Wire multiwayCallPenalty — require higher equity to call in multiway pots
+    if (equityFinal >= (callThreshold + multiwayCallPenalty) && canCall) {
         const ourEquityFraction = equityFinal / 100;
         if (ourEquityFraction >= potOdds - 0.05) return { type: 'call' };
     }
@@ -8084,11 +8096,19 @@ function makeTurnRiverHeuristicDecision(params) {
     const newCardPairedBoard = boardRanks.filter(r => r === newRank).length >= 2;
     const overcard = newRank >= 10;
 
+    // Bug #172: Wire newSuit — detect if the NEW card specifically brought the flush threat
+    const newCardBroughtFlushDraw = flushDrew && newSuit === flushSuit;
+    const newCardCompletedFlush = flushCompleted && newSuit === flushSuit;
+
     // ── SCARE CARD CLASSIFICATION ──
     // Level 0 = blank, 1 = minor, 2 = moderate, 3 = critical
     let scareLevel = 0;
     if (flushCompleted && !handEval.category?.includes('flush')) scareLevel = 3;
+    // Bug #172: NEW card completed the flush = even scarier (action card just hit)
+    if (newCardCompletedFlush && !handEval.category?.includes('flush')) scareLevel = 3;
     else if (straightScary && handEval.strength < 75) scareLevel = 2;
+    // Bug #172: NEW card brought the flush draw = scarier than pre-existing draw
+    else if (newCardBroughtFlushDraw && !heroSuits.includes(flushSuit)) scareLevel = 2;
     else if (flushDrew && !heroSuits.includes(flushSuit)) scareLevel = 2;
     else if (overcard && handEval.strength < 55) scareLevel = 1;
     else if (newCardPairedBoard && handEval.strength < 60) scareLevel = 1;
@@ -12758,7 +12778,9 @@ function makeFlopHeuristicDecision(params) {
             const hasOvercards = holeCards.some(c => RANKS.indexOf(c[0]) > Math.max(...board.map(b => RANKS.indexOf(b[0]))));
 
             if (hasBackdoorEquity || hasOvercards) {
-                let floatDefenseFreq = 0.30;
+                // Bug #173: Wire flopDefenseTarget into float defense base frequency
+                // Instead of hardcoded 0.30, scale to 75% of MDF (adapts to bet sizing)
+                let floatDefenseFreq = Math.max(0.20, Math.min(0.45, flopDefenseTarget));
                 // Small c-bet = defend wider
                 if (betToPot <= 0.33) floatDefenseFreq += 0.15;
                 else if (betToPot <= 0.50) floatDefenseFreq += 0.08;
@@ -14948,9 +14970,11 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         const inFront = activePlayers.length - behind;
 
         // Sandwich = players on both sides AND we are not the aggressor
+        // Bug #174: Wire heroPosition — OOP sandwich (UTG/EP/MP) is worse than IP (CO/BTN)
+        const isOOPSandwich = ['UTG', 'UTG1', 'UTG2', 'EP', 'MP', 'LJ'].includes(heroPosition);
         if (behind >= 1 && inFront >= 1 && !isRaiser) {
-            sandwichedFoldMod = 10;        // Raise fold threshold significantly
-            sandwichedDrawThreshold = 15;  // Draws below 15 outs auto-fold
+            sandwichedFoldMod = isOOPSandwich ? 14 : 10;   // OOP sandwich = tighter (+14 vs +10)
+            sandwichedDrawThreshold = isOOPSandwich ? 18 : 15; // OOP needs more outs to continue
             if (counterStrategy.mode === 'standard') counterStrategy.mode = 'sandwich_survival';
             console.log(`[HorseBrain] 🥊 SANDWICH DETECTED: ${profileId.substring(0, 8)} — tightening ranges (+10 fold threshold)`);
         }

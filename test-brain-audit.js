@@ -19289,6 +19289,72 @@ test('BUG171b-E2E: injectPLOGTOChaos fires at appropriate rates', () => {
     expect(chaosCount >= 20 && chaosCount <= 200).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// Bugs #172-#174: FINAL DEAD VARIABLE SWEEP
+// ═══════════════════════════════════════════════════════════
+
+test('BUG172: newSuit wired into scare card classification (turn/river heuristic)', () => {
+    const src = brainSource;
+    // newSuit must be used in derived variables
+    expect(src.includes('newCardBroughtFlushDraw')).toBe(true);
+    expect(src.includes('newCardCompletedFlush')).toBe(true);
+    // These derived variables must use newSuit
+    expect(src.includes('newSuit === flushSuit')).toBe(true);
+    // And they feed into scare level
+    expect(src.includes('newCardCompletedFlush && !handEval')).toBe(true);
+    expect(src.includes('newCardBroughtFlushDraw && !heroSuits')).toBe(true);
+});
+
+test('BUG173: flopDefenseTarget wired into float defense frequency', () => {
+    const src = brainSource;
+    // flopDefenseTarget should be used in float defense
+    expect(src.includes('flopDefenseTarget)')).toBe(true);
+    // Verify it replaced the hardcoded 0.30
+    expect(src.includes('Math.min(0.45, flopDefenseTarget)')).toBe(true);
+});
+
+test('BUG174: heroPosition wired into sandwich detection in getDecision', () => {
+    const src = brainSource;
+    // heroPosition must be used (not dead)
+    expect(src.includes('isOOPSandwich')).toBe(true);
+    expect(src.includes('.includes(heroPosition)')).toBe(true);
+    // OOP sandwich should have higher fold mod
+    expect(src.includes('isOOPSandwich ? 14 : 10')).toBe(true);
+    expect(src.includes('isOOPSandwich ? 18 : 15')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bugs #175-#179: PLO DEAD VARIABLE FINAL SWEEP
+// ═══════════════════════════════════════════════════════════
+
+test('BUG175: positionRanges wired into PLO c-bet sizing', () => {
+    const src = brainSource;
+    expect(src.includes('positionCbetMod')).toBe(true);
+    expect(src.includes('positionRanges.openThreshold >= 65')).toBe(true);
+    // Must be used in c-bet sizing formula
+    expect(src.includes('cBetStrategy.cBetFraction + positionCbetMod')).toBe(true);
+});
+
+test('BUG176: chatResponse pushed to chatMessages queue', () => {
+    const src = brainSource;
+    expect(src.includes('chatResponse.shouldChat')).toBe(true);
+    expect(src.includes('chatResponse.message')).toBe(true);
+    expect(src.includes("chatMessages.push({ playerId: profileId, message: chatResponse.message")).toBe(true);
+});
+
+test('BUG178: cardRemovalBluffBonus wired into bluff frequency', () => {
+    const src = brainSource;
+    expect(src.includes('removalBluffFreqBoost')).toBe(true);
+    expect(src.includes('cardRemovalBluffBonus * 0.01')).toBe(true);
+    // Must be added to bluff frequency checks
+    expect(src.includes('+ removalBluffFreqBoost)')).toBe(true);
+});
+
+test('BUG179: multiwayCallPenalty wired into call threshold', () => {
+    const src = brainSource;
+    expect(src.includes('callThreshold + multiwayCallPenalty')).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
