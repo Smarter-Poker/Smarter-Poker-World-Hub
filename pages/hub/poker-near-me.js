@@ -43,7 +43,7 @@ import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/
 import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
 
 // Page configuration constants
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 20;
 const PAGE_SIZE_DAILY = 50;
 const PAGE_SIZE_LIVE = 30;
 const LIVE_REFRESH_MS = 120000; // 2 minutes
