@@ -607,6 +607,31 @@ function countStraightOuts(holeRanks, boardRanks) {
                     bestType = bestOuts >= 17 ? 'wrap_20' : bestOuts >= 13 ? 'wrap_17' : 'wrap_13';
                 }
             }
+
+            // Bug #180: window6 wider wrap detection — 6 consecutive unique ranks
+            // spanning hole + board with 3+ hole contributions = mega-wrap (20 outs)
+            // E.g., hole [J,T,9,6] board [8,7,x] → window6 covers 6-7-8-9-T-J = 20-out wrap
+            if (window6.length >= 6) {
+                const w6span = window6[5] - window6[0];
+                const holesInW6 = window6.filter(r => holeRanks.includes(r)).length;
+                if (w6span <= 6 && holesInW6 >= 3) {
+                    const w6Outs = 20;
+                    if (w6Outs > bestOuts) {
+                        bestOuts = w6Outs;
+                        bestType = 'wrap_20';
+                    }
+                }
+            }
+        }
+
+        // Bug #180b: sortedHole/sortedBoard wrap quality adjustment
+        // Consecutive hole cards = tighter wrap structure = +1 quality out
+        // Highly connected board = opponents share draw equity = -1 out
+        if (bestType.startsWith('wrap')) {
+            const holeSpread = sortedHole[0] - sortedHole[sortedHole.length - 1];
+            if (holeSpread <= 4) bestOuts = Math.min(20, bestOuts + 1);
+            const boardSpread = sortedBoard[0] - sortedBoard[sortedBoard.length - 1];
+            if (boardSpread <= 3 && sortedBoard.length >= 3) bestOuts = Math.max(4, bestOuts - 1);
         }
     }
 
@@ -649,7 +674,11 @@ function countFlushOuts(holeCards, boardCards) {
             // Nut flush draw: if our highest hole card of this suit is the Ace (rank 12)
             const maxHoleRankOfSuit = Math.max(...holeOfSuit.map(c => c.rank));
             const maxBoardRankOfSuit = Math.max(...boardOfSuit.map(c => c.rank), 0);
-            isNutFlushDraw = maxHoleRankOfSuit === 12; // Ace of that suit in hand
+            // Bug #181: Wire maxBoardRankOfSuit + holeRanks into nut flush detection
+            // Nut flush draw if: (a) we hold the Ace of suit, OR
+            // (b) the Ace is on the board AND we hold the King of suit (King-high = nut draw)
+            isNutFlushDraw = maxHoleRankOfSuit === 12
+                || (maxBoardRankOfSuit === 12 && maxHoleRankOfSuit === 11);
         }
     }
 
@@ -661,7 +690,14 @@ function countFlushOuts(holeCards, boardCards) {
         bestOuts = Math.max(bestOuts - 2, 0); // Reduce by 2 for diminished implied odds
     }
 
-    return { outs: bestOuts, isNutFlushDraw, suit: bestSuit, holdingThreeOfSuit: !!holdingThreeOfSuit };
+    // Bug #181b: Wire holeRanks — detect high-card backup equity alongside flush draw
+    // Off-suit Broadway hole cards (T+) provide top-pair/overpair backup when flush misses
+    // This combo-draw potential increases implied odds
+    const maxHoleRank = Math.max(...holeRanks, 0);
+    const hasHighBackup = bestSuit && maxHoleRank >= 10 &&
+        holeCards.some(c => c.suit !== bestSuit && c.rank >= 10);
+
+    return { outs: bestOuts, isNutFlushDraw, suit: bestSuit, holdingThreeOfSuit: !!holdingThreeOfSuit, hasHighBackup: !!hasHighBackup };
 }
 
 /**
@@ -795,6 +831,19 @@ function countBackdoorOuts(holeCards, boardCards) {
 
     backdoor += bdFH;
 
+    // Bug #182: Wire boardSuits — detect board flush texture for backdoor value
+    // If board is two-tone in a suit we DON'T draw to, opponents likely have flush draws
+    // Our backdoor draws gain +1 pseudo-out from fold equity on non-flush scare cards
+    const boardSuitFreq = {};
+    for (const s of boardSuits) boardSuitFreq[s] = (boardSuitFreq[s] || 0) + 1;
+    const twoToneSuits = Object.entries(boardSuitFreq).filter(([, c]) => c >= 2).map(([s]) => s);
+    const boardTwoToneNotOurs = twoToneSuits.some(s =>
+        holeCards.filter(c => c.suit === s).length < 2 // We don't have the flush draw in this suit
+    );
+    if (boardTwoToneNotOurs && backdoor > 0 && backdoor < 6) {
+        backdoor += 1; // Fold equity boost: opponents fear flush completion on our scare cards
+    }
+
     return backdoor;
 }
 
@@ -886,10 +935,19 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
             // Count how many flush ranks beat ours (higher cards of this suit not in our hand/board)
             const allFlushRanks = [...hOfSuit.map(c => c.rank), ...bOfSuit.map(c => c.rank)];
             const highestUsed = Math.max(maxHoleRank, maxBoardRank);
-            // Cards above our highest flush card that aren't accounted for = can beat us
+            // Bug #183: Wire highestUsed — vulnerability starts ABOVE highest flush card (hole OR board)
+            // Previously used maxHoleRank which undercounted when board had higher flush card
             flushVulnerability = 0;
-            for (let r = maxHoleRank + 1; r <= 12; r++) {
+            for (let r = highestUsed + 1; r <= 12; r++) {
                 if (!allFlushRanks.includes(r)) flushVulnerability++;
+            }
+
+            // Bug #183b: Wire bSuits — detect 4-flush board (extra vulnerability)
+            // With 4+ board cards of same suit, more opponents can make flushes
+            // (only need 2 of 4 hole cards of that suit in PLO)
+            const boardFlushCount = bSuits.filter(s => s === suit).length;
+            if (boardFlushCount >= 4 && !hasNutFlush) {
+                flushVulnerability += 2; // Extra vulnerability on 4-flush boards
             }
 
             if (hasNutFlush) {
@@ -1293,9 +1351,17 @@ function evaluatePLO8Low(holeCards, boardCards) {
 
     // Need 3 low cards on board to have a chance at qualifying low
     if (bLowQualify.length < 3 && boardCards.length >= 3) {
+        // Bug #184: Wire hLowQualify into low out calculation
+        // Need 2+ qualifying hole cards to even make a low; 3-4 gives more combos = better odds
+        if (hLowQualify.length < 2) {
+            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false };
+        }
         // Count potential low outs (how many board cards can still come low)
-        const lowOuts = boardCards.length < 5 ? 4 * Math.max(0, 3 - bLowQualify.length) : 0;
-        return { hasNutLow: false, hasLow: false, lowOuts: Math.min(lowOuts, 16), scoopable: false };
+        const baseLowOuts = boardCards.length < 5 ? 4 * Math.max(0, 3 - bLowQualify.length) : 0;
+        // More qualifying hole cards = more combos to make low = effective out boost
+        const holeLowBonus = hLowQualify.length >= 3 ? 2 : 0;
+        const lowOuts = Math.min(baseLowOuts + holeLowBonus, 16);
+        return { hasNutLow: false, hasLow: false, lowOuts, scoopable: false };
     }
 
     // Check if we can make a qualifying low using 2 hole cards
@@ -1967,6 +2033,10 @@ function getPLOTurnBarrel(equity, madeHand, straightOuts, flushOuts, isScareTurn
     // Combo draws (flush + straight): always barrel turn
     if (flushOuts >= 6 && straightOuts >= 8) return { shouldBarrel: true, barrelFraction: 0.80 };
 
+    // Bug #185: Wire totalOuts — combined outs semi-bluff barrel
+    // Neither straight nor flush alone crosses threshold but combined draw is strong
+    if (totalOuts >= 12 && equity >= 35) return { shouldBarrel: true, barrelFraction: 0.65 };
+
     // Medium equity: check back in position (pot control)
     if (equity >= 50 && equity < 65 && isIP) return { shouldBarrel: false, barrelFraction: 0 };
 
@@ -2293,7 +2363,15 @@ function handlePLODonkBet(donkBetFraction, equity, madeHand, totalOuts, isIP, ra
         if (raiseAction) return { action: 'raise', amount: clampDonk(donkPotRaise) };
     }
 
-    // Medium equity with good immediate odds: flat call
+    // Bug #186: Wire isPolarized — against polarized donks, raise-or-fold, don't flat
+    // Flatting a polarized range with medium hands is -EV: we get value-owned by their nutted hands
+    // and they get a free river bluff with their air
+    if (isPolarized && equity >= 45 && equity < 65 && canCall) {
+        // Polarized donk: fold marginal equity instead of flatting
+        return { action: 'fold' };
+    }
+
+    // Medium equity with good immediate odds: flat call (non-polarized)
     if (equity >= 45 && canCall) return { action: 'call' };
 
     // Small donk (< 40% pot) with any equity: call
@@ -2351,23 +2429,28 @@ function getPLOGifTrigger(madeHand, equity, allInEquity, profileId) {
     const hash = getHash(profileId);
     const rand = Math.random();
 
+    // Bug #187: Wire hash — each horse gets a deterministic GIF personality
+    // hash range 0-1: low = stoic (less GIFs), high = expressive (more GIFs)
+    // Personality modifier: ±15% trigger probability shift based on hash
+    const personalityMod = (hash - 0.5) * 0.30; // -0.15 to +0.15
+
     // High equity all-in = confident GIF
-    if (allInEquity >= 72 && madeHand.isNut && rand < 0.70) {
+    if (allInEquity >= 72 && madeHand.isNut && rand < (0.70 + personalityMod)) {
         return { shouldThrowGif: true, gifCategory: 'celebration' };
     }
 
     // Monster hand (set+) going all-in = dominant GIF
-    if (['full_house', 'top_set', 'nut_flush'].includes(madeHand.category) && rand < 0.55) {
+    if (['full_house', 'top_set', 'nut_flush'].includes(madeHand.category) && rand < (0.55 + personalityMod)) {
         return { shouldThrowGif: true, gifCategory: 'dominant' };
     }
 
     // Close-equity all-in (coin flip) = suspense GIF
-    if (allInEquity >= 48 && allInEquity < 65 && rand < 0.40) {
+    if (allInEquity >= 48 && allInEquity < 65 && rand < (0.40 + personalityMod)) {
         return { shouldThrowGif: true, gifCategory: 'suspense' };
     }
 
     // Behind but going for it (draw) = fighting GIF
-    if (allInEquity < 48 && allInEquity >= 30 && rand < 0.30) {
+    if (allInEquity < 48 && allInEquity >= 30 && rand < (0.30 + personalityMod)) {
         return { shouldThrowGif: true, gifCategory: 'fighting' };
     }
 
@@ -2561,6 +2644,16 @@ function getPLOCardRemovalEffects(holeCards, boardCards) {
             blocksFlushedNuts = true;
             removalScore += 18;
             nutCombosRemoved += 4; // Removes all Axx flush nut combos
+        }
+    }
+
+    // Bug #188: Wire hSuits — flush suit removal even without the Ace
+    // Holding 2+ cards of the dominant board suit removes flush combos from opponents
+    if (dom && !blocksFlushedNuts) {
+        const holeDomSuitCount = hSuits.filter(s => s === dom).length;
+        if (holeDomSuitCount >= 2) {
+            removalScore += 6; // Removes some flush combos (not nut-level but meaningful)
+            nutCombosRemoved += 1;
         }
     }
 
@@ -3329,23 +3422,30 @@ function detectPLOBetSizingTell(opponentBetFraction, opponentRead, street) {
 function getPLOStackPreservation(stackBB, startingStackBB) {
     const stackRatio = stackBB / Math.max(startingStackBB, 1);
 
+    // Bug #189: Wire stackRatio — heavy losses from starting stack increase preservation
+    // stackRatio < 0.4 = lost 60%+ of starting stack = extra tilt-prevention tightening
+    const lossModifier = stackRatio < 0.25 ? 0.20
+        : stackRatio < 0.40 ? 0.10
+        : stackRatio < 0.60 ? 0.05
+        : 0;
+
     // Critical: under 10BB — must shove or fold, no more post-flop play
     if (stackBB <= 10) {
-        return { isShort: true, isCritical: true, reshoveRange: 60, preservationFactor: 1.60 };
+        return { isShort: true, isCritical: true, reshoveRange: 60, preservationFactor: 1.60 + lossModifier };
     }
 
     // Short: 10-20BB — tight is right, only strong hands
     if (stackBB <= 20) {
-        return { isShort: true, isCritical: false, reshoveRange: 72, preservationFactor: 1.35 };
+        return { isShort: true, isCritical: false, reshoveRange: 72, preservationFactor: 1.35 + lossModifier };
     }
 
     // Moderate: 20-35BB — cautious play, avoid marginal flips
     if (stackBB <= 35) {
-        return { isShort: false, isCritical: false, reshoveRange: 80, preservationFactor: 1.15 };
+        return { isShort: false, isCritical: false, reshoveRange: 80, preservationFactor: 1.15 + lossModifier };
     }
 
-    // Healthy stack: no preservation needed
-    return { isShort: false, isCritical: false, reshoveRange: 100, preservationFactor: 1.0 };
+    // Healthy stack: no preservation needed (but tilt from big losses still matters)
+    return { isShort: false, isCritical: false, reshoveRange: 100, preservationFactor: 1.0 + lossModifier };
 }
 
 // ── 7c. DYNAMIC PROBE FREQUENCY CALIBRATOR ──
@@ -4462,13 +4562,19 @@ function calculatePLODirtyOuts(holeCards, boardCards, straightOuts, flushDraw, m
                 const boardHighestFlushRank = Math.max(
                     ...boardCards.filter(c => c.suit === fSuit).map(c => c.rank), -1
                 );
-                // Count how many HIGHER flush cards are unaccounted for
+                // Bug #190: Wire highestNeeded — count unaccounted higher flush ranks
                 const highestNeeded = Math.max(ourHighestFlushRank, boardHighestFlushRank);
-                // If the out card itself is lower rank than unaccounted high cards,
-                // someone could still hold a higher flush. But this is a per-hand
-                // vulnerability, not per-out. We mark non-nut flush outs that DON'T
-                // pair the board as "slightly dirty" — 75% value instead of 50%.
-                // The real risk is the non-nut flush itself, handled by vulnerability penalty.
+                let higherUnaccounted = 0;
+                for (let r = highestNeeded + 1; r <= 12; r++) {
+                    const isUsed = holeCards.some(c => c.rank === r && c.suit === fSuit)
+                        || boardCards.some(c => c.rank === r && c.suit === fSuit);
+                    if (!isUsed) higherUnaccounted++;
+                }
+                // 2+ unaccounted higher flush cards = very likely someone has a better flush draw
+                // Mark this out as dirty (opponent can make a higher flush with the same runout)
+                if (higherUnaccounted >= 2) {
+                    isDirty = true;
+                }
             }
 
             if (isDirty) dirtyFlush++;
@@ -13463,11 +13569,12 @@ function getOOPDecisionMatrix(params) {
             };
         }
         // Default: mostly check-call, sometimes check-raise
-        const crFreq = 0.25 + aggressionBias / 40;
+        // Bug #191: Wire isDeep — deep stacks favor check-call (implied odds) over check-raise
+        const crFreq = isDeep ? 0.18 + aggressionBias / 50 : 0.30 + aggressionBias / 40;
         return {
             action: Math.random() < crFreq ? 'check_raise' : 'check_call',
             frequency: 0.75,
-            sizeFraction: 3.0, reason: 'strong_default_mix'
+            sizeFraction: isDeep ? 3.5 : 2.8, reason: isDeep ? 'strong_deep_mix' : 'strong_default_mix'
         };
     }
 
@@ -13522,7 +13629,8 @@ function getOOPDecisionMatrix(params) {
     if (hasStrongDraw) {
         // Strong draw (flush draw, OESD): check-raise semi-bluff or check-call
         if (!multiway && street !== 'river') {
-            let crFreq = 0.30 + aggressionBias / 40;
+            // Bug #191b: Wire isDeep into draw CR — deep stacks = lower CR freq (implied odds favor calling)
+            let crFreq = isDeep ? 0.22 + aggressionBias / 50 : 0.35 + aggressionBias / 35;
             // Against weak-tight: check-raise more (they fold)
             if (oppTendency === 'weak-tight' && oppConfidence > 0.3) crFreq += 0.12;
             // ═══ LIVE-READ OOP DRAW CR (Phase 28) ═══
@@ -14184,6 +14292,19 @@ function analyzeBoardEvolution(board, street) {
         } else if (flopMaxSuit < 2 && turnMaxSuit >= 2) {
             result.boardGotWetter = true;
             result.callerImpact += 1;
+        }
+
+        // Bug #192: Wire flopFlushDrawSuit — track if turn card hits the SPECIFIC flop draw suit
+        // Turn card matching the flop's 2-suit = flush draw got stronger (3-flush board)
+        // Turn card in a DIFFERENT suit = flop flush draw got no help (board got drier for that draw)
+        if (flopFlushDrawSuit && turnSuit === flopFlushDrawSuit && turnMaxSuit < 3) {
+            // 3-flush on board now but didn't complete — draw improved, board much wetter
+            result.boardGotWetter = true;
+            result.callerImpact += 2; // Callers with flush draws picked up 3rd suited card
+            result.pfrImpact -= 1;
+        } else if (flopFlushDrawSuit && turnSuit !== flopFlushDrawSuit && flopMaxSuit >= 2) {
+            // Flop had flush draw but turn missed it — slightly drier for flush drawers
+            result.callerImpact -= 1;
         }
 
         // Straight completion check (simplified)
