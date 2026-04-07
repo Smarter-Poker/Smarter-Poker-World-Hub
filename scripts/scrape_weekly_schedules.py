@@ -1028,10 +1028,21 @@ def build_url_list(venue: dict) -> list:
     if website:
         base = website if website.startswith('http') else f"https://{website}"
         base = base.rstrip('/')
+        # CRITICAL: Validate the extracted hostname is a real domain (has a dot, min 5 chars)
+        # This prevents malformed entries like 'gaming/poker' → 'https://gaming/poker/tournaments'
+        try:
+            hostname = base.split('//')[1].split('/')[0].lstrip('www.')
+            if '.' not in hostname or len(hostname) < 5:
+                website = ''  # Invalid domain — skip all website paths
+        except (IndexError, Exception):
+            website = ''
+    if website:
+        base_for_paths = (website if website.startswith('http') else f"https://{website}").rstrip('/')
         # Normalize: strip trailing page filename (e.g. /poker-room.html, /index.php)
-        last_seg = base.split('/')[-1]
+        last_seg = base_for_paths.split('/')[-1]
         if '.' in last_seg and not last_seg.startswith('www.') and len(last_seg) > 4:
-            base = base.rsplit('/', 1)[0]
+            base_for_paths = base_for_paths.rsplit('/', 1)[0]
+        base = base_for_paths
 
         for path in [
             '/poker/tournaments',

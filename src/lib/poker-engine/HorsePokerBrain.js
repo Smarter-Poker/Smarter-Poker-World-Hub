@@ -19771,6 +19771,10 @@ module.exports = {
     handlePLODonkBet,
     calculatePLODirtyOuts,
 
+    // Exposed for testing (Phase 105) — bugs #136-138
+    approximatePLOHvR,
+    getAdaptivePLOBetSize,
+
     // Exposed for testing (Phase 69-77)
     applyExploitIntensifier,
     recordStreetAction,
