@@ -5684,6 +5684,95 @@ test('PerformanceTracker: recordHand updates session stats', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: BRAIN DECISION QUALITY BUG FIXES
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #17: evaluatePostflopHand tracks isNutFlushDraw correctly', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Ace-high flush draw = NUT flush draw
+    const nutFD = evaluatePostflopHand(['Ah', '5s'], ['Kh', '9h', '3d']);
+    expect(nutFD.hasFlushDraw).toBe(true);
+    expect(nutFD.isNutFlushDraw).toBe(true);
+
+    // 7-high flush draw = NOT nut flush draw
+    const lowFD = evaluatePostflopHand(['7h', '5s'], ['Kh', '9h', '3d']);
+    expect(lowFD.hasFlushDraw).toBe(true);
+    expect(lowFD.isNutFlushDraw).toBe(false);
+
+    // King-high flush draw when Ace of suit is on board = NUT flush draw
+    const secondNut = evaluatePostflopHand(['Kh', '5s'], ['Ah', '9h', '3d']);
+    expect(secondNut.hasFlushDraw).toBe(true);
+    expect(secondNut.isNutFlushDraw).toBe(true);
+});
+
+test('BUG #17: getDrawEquity gives nut premium only to actual nut draws', () => {
+    const { evaluatePostflopHand, getDrawEquity } = require('./src/lib/poker-engine/HorsePokerBrain');
+
+    // Nut flush draw → should have positive premium
+    const nutFD = evaluatePostflopHand(['Ah', '5s'], ['Kh', '9h', '3d']);
+    const nutEq = getDrawEquity(nutFD, 'flop');
+    expect(nutEq.isNutDraw).toBe(true);
+
+    // Low flush draw → should NOT have nut premium (and has reverse implied penalty)
+    const lowFD = evaluatePostflopHand(['7h', '5s'], ['Kh', '9h', '3d']);
+    const lowEq = getDrawEquity(lowFD, 'flop');
+    expect(lowEq.isNutDraw).toBe(false);
+    // Low flush draw equity should be less than nut draw equity (same outs, but different adjustments)
+    expect(lowEq.equity).toBeLessThan(nutEq.equity);
+});
+
+test('BUG #18: getDecision opponent read uses resilientQuery', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    // The opponent read section should use resilientQuery, not raw supabase
+    const readSection = src.substring(src.indexOf('horse_opponent_reads') - 200, src.indexOf('horse_opponent_reads') + 200);
+    expect(readSection.includes('resilientQuery') || readSection.includes('rq(sb')).toBe(true);
+});
+
+test('BUG #19: GTO guardrail semi-bluffs strong draws when checked to', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    // GUARDRAIL 2 should check for strong draws as well as strong made hands
+    const guardSection = src.substring(src.indexOf('GUARDRAIL 2'), src.indexOf('GUARDRAIL 3'));
+    expect(guardSection.includes('hasStrongDraw')).toBe(true);
+    expect(guardSection.includes('isSemiBluff')).toBe(true);
+    expect(guardSection.includes('drawEq.outs')).toBe(true);
+});
+
+test('BUG #20: River value bet frequency adjusts for opponent tendency', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    // GUARDRAIL 3 should adjust frequency based on opponent reads
+    const guardSection = src.substring(src.indexOf('GUARDRAIL 3'), src.indexOf('GUARDRAIL 3') + 600);
+    expect(guardSection.includes('riverVBetFreq')).toBe(true);
+    expect(guardSection.includes('opponentAdjustment.callMod')).toBe(true);
+    expect(guardSection.includes('opponentAdjustment.foldMod')).toBe(true);
+    expect(guardSection.includes('bluffAware')).toBe(true);
+});
+
+test('ChipBridge: all DB calls use SupabaseResilience', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/ChipBridge.js', 'utf8');
+    expect(src.includes("require('./SupabaseResilience')")).toBe(true);
+    // Financial RPCs must be resilient + critical
+    expect(src.includes("resilientMutation(sb, () => sb.rpc('lock_chips_for_table'")).toBe(true);
+    expect(src.includes("resilientMutation(sb, () => sb.rpc('unlock_chips_from_table'")).toBe(true);
+    // Rake recording must be resilient
+    expect(src.includes("resilientMutation(sb, () => sb.from('rake_records')")).toBe(true);
+    // Queries must be resilient
+    expect(src.includes("resilientQuery(sb, () => sb")).toBe(true);
+});
+
+test('GameController: tournament refund RPCs use resilientMutation', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
+    // cancelTournament refund operations must be resilient
+    const cancelSection = src.substring(src.indexOf('cancelTournament') || 0);
+    expect(cancelSection.includes("resilientMutation(this.supabase, () => this.supabase.rpc('unlock_chips_from_table'")).toBe(true);
+    expect(cancelSection.includes("resilientMutation(this.supabase, () => this.supabase.from('chip_transactions')")).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

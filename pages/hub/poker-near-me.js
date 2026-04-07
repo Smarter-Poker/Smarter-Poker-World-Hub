@@ -2219,30 +2219,6 @@ export default function PokerNearMePage() {
                                 {liveGames.length > 0 && <span className="pnm-tab-badge">{liveGames.length}</span>}
                             </button>
                         </div>
-
-                        {/* Quick Filter Chips */}
-                        <div className="pnm-chip-strip">
-                            <button className={'pnm-chip' + (mapFilters.cashGames ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, cashGames: !p.cashGames }))}>
-                                <span className="chip-dot cash" />
-                                Cash Games
-                            </button>
-                            <button className={'pnm-chip' + (mapFilters.tournaments ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, tournaments: !p.tournaments }))}>
-                                <span className="chip-dot mtt" />
-                                Tournaments
-                            </button>
-                            <button className={'pnm-chip' + (mapFilters.is24Hours ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, is24Hours: !p.is24Hours }))}>
-                                <span className="chip-dot live" />
-                                24/7 Open
-                            </button>
-                            <button className={'pnm-chip' + (mapFilters.lowStakes ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, lowStakes: !p.lowStakes }))}>
-                                <span className="chip-dot stakes" />
-                                Low Stakes
-                            </button>
-                            <button className={'pnm-chip' + (mapFilters.topRated ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, topRated: !p.topRated }))}>
-                                <span className="chip-dot rated" />
-                                Top Rated
-                            </button>
-                        </div>
                     </>
                 )}
 

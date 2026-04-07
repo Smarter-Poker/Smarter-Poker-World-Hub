@@ -40,6 +40,12 @@ RATE_S      = 1   # seconds between venues
 BATCH_ID    = str(uuid.uuid4())
 CIRCUIT_MAX = 5   # abort after N consecutive network failures
 
+# Domains known to hang / be unresponsive — skip entirely
+SLOW_DOMAINS = {
+    'themresort.com',     # M Resort — all paths timeout
+    'aliantegaming.com',  # Aliante — redirects/hangs
+}
+
 # ── Tournament keyword patterns ───────────────────────────────────────────────
 TOURN_RE = re.compile(
     r'tournament|tourney|buy.?in|\$\d{2,}.*?(?:buy|entry)|bounty|'
@@ -627,12 +633,17 @@ def audit_venue(name: str, state: str, city: str, session, dry_run: bool) -> dic
                          '/gaming/poker','/casino/poker','/poker','']:
                 urls.append(('website_db', f"{base_url}{path}"))
 
-    # Deduplicate
+    # Deduplicate + filter known-slow domains
     seen_u, deduped = set(), []
     for src, u in urls:
-        if u and u not in seen_u:
-            seen_u.add(u); deduped.append((src, u))
-    urls = deduped[:10]
+        if not u or u in seen_u:
+            continue
+        domain = u.split('//')[-1].split('/')[0].lstrip('www.')
+        if any(domain.endswith(sd) for sd in SLOW_DOMAINS):
+            print(f"    [BLOCKLIST] Skipping {domain}")
+            continue
+        seen_u.add(u); deduped.append((src, u))
+    urls = deduped[:8]
 
     ts_now = datetime.now(timezone.utc).isoformat()
 

@@ -6182,7 +6182,22 @@ function evaluatePostflopHand(holeCards, board) {
         strength += 3; // Pair + straight draw
     }
 
-    return { strength: Math.min(100, strength), category, hasFlushDraw, hasOESD, hasGutshot, hasBackdoorFlush };
+    // BUG #17 FIX: Track nut flush draw status for downstream equity calculations
+    let isNutFlushDraw = false;
+    if (hasFlushDraw) {
+        for (const suit of heroSuits) {
+            if ((suitCounts[suit] || 0) === 4) {
+                const heroFlushRank = Math.max(...heroRanks.filter((r, idx) => heroSuits[idx] === suit));
+                // Check if hero has the ace of the flush suit — no higher card possible
+                if (heroFlushRank >= 12) isNutFlushDraw = true;
+                // Also check if ace of that suit is on the board — then king-high is nut draw
+                const aceOnBoard = board.some(c => RANKS.indexOf(c[0]) === 12 && c[1] === suit);
+                if (!isNutFlushDraw && aceOnBoard && heroFlushRank >= 11) isNutFlushDraw = true;
+            }
+        }
+    }
+
+    return { strength: Math.min(100, strength), category, hasFlushDraw, hasOESD, hasGutshot, hasBackdoorFlush, isNutFlushDraw };
 }
 
 /**
@@ -11871,14 +11886,18 @@ function getDrawEquity(handEval, street) {
 
     // ═══ NUT DRAW PREMIUM ═══
     // Nut flush draws and nut straight draws are worth more because they win bigger pots
-    const isNutDraw = handEval.hasFlushDraw && handEval.category !== 'flush'; // Will be nut flush
+    // BUG #17 FIX: Was treating ALL flush draws as nut draws. Must check for ace-high flush draw
+    // specifically — a 7-high flush draw is NOT a nut draw and has reverse implied odds.
+    const isNutDraw = handEval.hasFlushDraw && handEval.category !== 'flush' && handEval.isNutFlushDraw === true;
     const nutPremium = isNutDraw ? 0.03 : 0; // ~3% implied odds premium for nut draws
+    // Reverse implied odds penalty for non-nut flush draws (they make 2nd best flushes)
+    const reverseImpliedPenalty = (handEval.hasFlushDraw && !isNutDraw && handEval.category !== 'flush') ? -0.02 : 0;
 
     return {
-        equity: Math.min(0.65, equity / 100 + nutPremium),
+        equity: Math.min(0.65, Math.max(0, equity / 100 + nutPremium + reverseImpliedPenalty)),
         outs: Math.round(outs * 10) / 10, // Round to 1 decimal
         isNutDraw,
-        shouldCall: (potOdds) => (equity / 100 + nutPremium) >= potOdds,
+        shouldCall: (potOdds) => (equity / 100 + nutPremium + reverseImpliedPenalty) >= potOdds,
         // ═══ IMPLIED ODDS ADJUSTED CALL (new) ═══
         // For nut draws and big draws, calling is profitable even when direct odds are short
         shouldCallWithImplied: (potOdds, stackBB) => {
@@ -13265,14 +13284,17 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             const opponents = engineState.players?.filter(p => String(p.id) !== String(profileId) && !p.folded) || [];
             if (opponents.length > 0) {
                 const oppId = opponents[0].id;
-                const { data: readData } = await sb
+                // BUG #18 FIX: Use resilient query (this is in the hot decision path)
+                const { resilientQuery: rq } = require('./SupabaseResilience');
+                const { data: readData } = await rq(sb, () => sb
                     .from('horse_opponent_reads')
                     .select('bluff_frequency, call_frequency, tendency')
                     .eq('horse_id', profileId)
                     .eq('opponent_id', oppId)
                     .order('updated_at', { ascending: false })
                     .limit(1)
-                    .maybeSingle();
+                    .maybeSingle()
+                );
                 if (readData) {
                     // ═══ Phase 39B FIX: callMod sign convention was INVERTED ═══
                     // Old code set callMod=5 for bluffers and callMod=-3 for stations,
@@ -13396,12 +13418,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             }
 
             // GUARDRAIL 2: Bet strong hands when not facing action
-            // Override GTO 'check' with 'bet' if hand strength >= 65 (strong made hand)
-            if (finalAction === 'check' && !facingBet && handEval.strength >= 60) {
+            // Override GTO 'check' with 'bet' if hand strength >= 60 (strong made hand)
+            // BUG #19 FIX: Also semi-bluff with strong draws (flush draws, OESDs, combo draws)
+            const hasStrongDraw = (drawEq.outs >= 8); // Flush draw, OESD, or combo draw
+            const shouldBetHand = handEval.strength >= 60 || (hasStrongDraw && street !== 'river');
+            if (finalAction === 'check' && !facingBet && shouldBetHand) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                 if (raiseAction) {
                     const isIPGuard = new Set(['BTN', 'CO', 'HJ']).has(position);
-                    const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, false, {
+                    const isSemiBluff = handEval.strength < 60 && hasStrongDraw;
+                    const sizeFrac = getOptimalBetSize(handEval.category, street, potSize, isSemiBluff, {
                         isInPosition: isIPGuard, numPlayers, handStrength: handEval.strength, stackBB
                     });
                     const betSize = Math.round(potSize * sizeFrac);
@@ -13411,9 +13437,17 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             }
 
             // GUARDRAIL 3: Value bet strong hands on the river
+            // BUG #20 FIX: Was using fixed 65% frequency. Adjust based on opponent tendency:
+            // - vs calling station: bet more often (they call light)
+            // - vs nit/folder: bet less often (they only call with better)
+            // - vs unknown: default 65%
             if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= 50) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
-                if (raiseAction && Math.random() < 0.65) { // 65% value bet frequency
+                let riverVBetFreq = 0.65;
+                if (opponentAdjustment.callMod > 0) riverVBetFreq = 0.85; // Station → bet more
+                if (opponentAdjustment.foldMod > 0 && handEval.strength < 70) riverVBetFreq = 0.40; // Nit → thin value less
+                if (opponentAdjustment.bluffAware) riverVBetFreq = Math.min(riverVBetFreq, 0.55); // Bluffy opp → they might check-raise bluff
+                if (raiseAction && Math.random() < riverVBetFreq) {
                     const isIPGuard3 = new Set(['BTN', 'CO', 'HJ']).has(position);
                     const sizeFrac = getOptimalBetSize(handEval.category, 'river', potSize, false, {
                         isInPosition: isIPGuard3, numPlayers, handStrength: handEval.strength, stackBB
