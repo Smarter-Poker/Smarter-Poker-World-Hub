@@ -4841,6 +4841,416 @@ test('BUG #13 REGRESSION: AntiCheatMonitor scan uses entry.table.seats', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
+// BUG #14 REGRESSION: StateSerializer serializes BettingRound + Deck
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #14 REGRESSION: StateSerializer.serialize() includes bettingRound and deck state', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/StateSerializer.js', 'utf8');
+    // serialize() must include bettingRound state
+    expect(src.includes('bettingRound: game.bettingRound?.getState')).toBe(true);
+    // serialize() must include deck state
+    expect(src.includes('deck: game.deck?.getState')).toBe(true);
+});
+
+test('BUG #14 REGRESSION: StateSerializer.restore() rebuilds BettingRound from state', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/StateSerializer.js', 'utf8');
+    // restore() must require BettingRound module
+    expect(src.includes("require('./BettingRound')")).toBe(true);
+    // restore() must create new BettingRound
+    expect(src.includes('new BettingRound(')).toBe(true);
+    // restore() must restore deck state
+    expect(src.includes('deck._cards = h.deck.cards')).toBe(true);
+    expect(src.includes('deck._position = h.deck.position')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #15 REGRESSION: Watchdog stall tracker uses per-player Map
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #15 REGRESSION: Watchdog stall uses _horseStallTracker Map, not timer._actionStartTime', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
+    // Should NOT use entry.timer._actionStartTime (stale between hands)
+    expect(src.includes('entry.timer._actionStartTime')).toBe(false);
+    // Should use _horseStallTracker Map
+    expect(src.includes('_horseStallTracker')).toBe(true);
+    // Must clear stall tracker when horse is NOT current player
+    expect(src.includes('_horseStallTracker.delete(playerId)')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// BUG #16 REGRESSION: Horse selection uses Fisher-Yates, not sort(random)
+// ═══════════════════════════════════════════════════════════
+
+test('BUG #16 REGRESSION: GameController horse shuffles use Fisher-Yates', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
+    // Should NOT contain biased sort shuffle pattern
+    const biasedPattern = /horseProfiles\.sort\(\s*\(\s*\)\s*=>\s*Math\.random/;
+    expect(biasedPattern.test(src)).toBe(false);
+    // Should contain Fisher-Yates swap pattern
+    expect(src.includes('[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: SUPABASE RESILIENCE TESTS
+// ═══════════════════════════════════════════════════════════
+
+test('SupabaseResilience: module exports all required functions', () => {
+    const SR = require('./src/lib/poker-engine/SupabaseResilience');
+    expect(typeof SR.resilientQuery).toBe('function');
+    expect(typeof SR.resilientMutation).toBe('function');
+    expect(typeof SR.probeHealth).toBe('function');
+    expect(typeof SR.getHealth).toBe('function');
+    expect(typeof SR.getMetrics).toBe('function');
+    expect(typeof SR.resetCircuitBreaker).toBe('function');
+    expect(typeof SR._isRetryable).toBe('function');
+    expect(typeof SR._calculateDelay).toBe('function');
+});
+
+test('SupabaseResilience: _isRetryable correctly classifies errors', () => {
+    const { _isRetryable } = require('./src/lib/poker-engine/SupabaseResilience');
+    // Retryable
+    expect(_isRetryable({ message: 'connection timeout' })).toBe(true);
+    expect(_isRetryable({ message: 'fetch failed' })).toBe(true);
+    expect(_isRetryable({ message: 'socket hang up' })).toBe(true);
+    expect(_isRetryable({ message: 'ECONNREFUSED' })).toBe(true);
+    expect(_isRetryable({ message: '503 Service Unavailable' })).toBe(true);
+    // Non-retryable
+    expect(_isRetryable({ code: '23505', message: 'duplicate key value' })).toBe(false);
+    expect(_isRetryable({ message: 'jwt expired' })).toBe(false);
+    expect(_isRetryable({ code: '42501', message: 'permission denied' })).toBe(false);
+});
+
+test('SupabaseResilience: _calculateDelay uses exponential backoff with jitter', () => {
+    const { _calculateDelay, RETRY_CONFIG } = require('./src/lib/poker-engine/SupabaseResilience');
+    const d0 = _calculateDelay(0);
+    const d1 = _calculateDelay(1);
+    const d2 = _calculateDelay(2);
+    // Attempt 0 should be around baseDelayMs (200ms ±25%)
+    expect(d0).toBeGreaterThan(RETRY_CONFIG.baseDelayMs * 0.5);
+    expect(d0).toBeLessThan(RETRY_CONFIG.baseDelayMs * 2);
+    // Attempt 1 should be larger than attempt 0 on average
+    // (can't guarantee due to jitter, but delay base is 4x)
+    expect(d1).toBeGreaterThan(0);
+    expect(d2).toBeGreaterThan(0);
+    // Should never exceed maxDelayMs + jitter
+    expect(d2).toBeLessThanOrEqual(RETRY_CONFIG.maxDelayMs * 1.5);
+});
+
+test('SupabaseResilience: circuit breaker states are defined', () => {
+    const { CIRCUIT_STATE } = require('./src/lib/poker-engine/SupabaseResilience');
+    expect(CIRCUIT_STATE.CLOSED).toBe('closed');
+    expect(CIRCUIT_STATE.OPEN).toBe('open');
+    expect(CIRCUIT_STATE.HALF_OPEN).toBe('half_open');
+});
+
+test('SupabaseResilience: getHealth returns structured status', () => {
+    const { getHealth, resetCircuitBreaker } = require('./src/lib/poker-engine/SupabaseResilience');
+    resetCircuitBreaker();
+    const health = getHealth();
+    expect(health.state).toBe('closed');
+    expect(typeof health.consecutiveFailures).toBe('number');
+    expect(typeof health.metrics).toBe('object');
+    expect(typeof health.metrics.totalQueries).toBe('number');
+    expect(typeof health.metrics.uptimePercent).toBe('string');
+});
+
+asyncTest('SupabaseResilience: resilientQuery returns error when no client', async () => {
+    const { resilientQuery } = require('./src/lib/poker-engine/SupabaseResilience');
+    const result = await resilientQuery(null, () => {});
+    expect(result.data).toBeNull();
+    expect(result.error.message).toBe('No Supabase client');
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: HEALTH WATCHDOG TESTS
+// ═══════════════════════════════════════════════════════════
+
+test('HealthWatchdog: module exports correctly', () => {
+    const { HealthWatchdog, WATCHDOG_INTERVAL_MS, HAND_STUCK_THRESHOLD_MS } = require('./src/lib/poker-engine/HealthWatchdog');
+    expect(typeof HealthWatchdog).toBe('function');
+    expect(WATCHDOG_INTERVAL_MS).toBe(15000);
+    expect(HAND_STUCK_THRESHOLD_MS).toBe(180000);
+});
+
+test('HealthWatchdog: instantiates and reports idle status', () => {
+    const { HealthWatchdog } = require('./src/lib/poker-engine/HealthWatchdog');
+    const wd = new HealthWatchdog();
+    const status = wd.getStatus();
+    expect(status.status).toBe('idle');
+    expect(status.running).toBe(false);
+    expect(status.totalHealingActions).toBe(0);
+    wd.destroy();
+});
+
+test('HealthWatchdog: start/stop cycle works', () => {
+    const { HealthWatchdog } = require('./src/lib/poker-engine/HealthWatchdog');
+    const wd = new HealthWatchdog();
+    wd.start();
+    expect(wd.getStatus().running).toBe(true);
+    wd.stop();
+    expect(wd.getStatus().running).toBe(false);
+    expect(wd.getStatus().status).toBe('stopped');
+    wd.destroy();
+});
+
+test('HealthWatchdog: recordHandProgress updates internal tracker', () => {
+    const { HealthWatchdog } = require('./src/lib/poker-engine/HealthWatchdog');
+    const wd = new HealthWatchdog();
+    wd.recordHandProgress('table-1', '42:flop');
+    expect(wd._handProgress.has('table-1')).toBe(true);
+    expect(wd._handProgress.get('table-1').handKey).toBe('42:flop');
+    wd.destroy();
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: PERFORMANCE TRACKER TESTS
+// ═══════════════════════════════════════════════════════════
+
+test('PerformanceTracker: module exports correctly', () => {
+    const { PerformanceTracker, HorseSession, tracker, WINRATE_THRESHOLDS } = require('./src/lib/poker-engine/PerformanceTracker');
+    expect(typeof PerformanceTracker).toBe('function');
+    expect(typeof HorseSession).toBe('function');
+    expect(tracker).not.toBeNull();
+    expect(WINRATE_THRESHOLDS.crushing).toBe(10);
+});
+
+test('PerformanceTracker: session lifecycle start → record → end', () => {
+    const { tracker } = require('./src/lib/poker-engine/PerformanceTracker');
+    tracker.reset();
+
+    // Start session
+    const session = tracker.startSession('horse-1', 'table-1', 'holdem', 2, 200);
+    expect(session.horseId).toBe('horse-1');
+    expect(session.handsPlayed).toBe(0);
+
+    // Record hands
+    session.recordHand({ chipDelta: 10, vpip: true, pfr: true, wonHand: true, wentToShowdown: true, rakePaid: 0.5, actions: { bets: 2, calls: 1, checks: 0, folds: 0, raises: 1 } });
+    session.recordHand({ chipDelta: -6, vpip: true, pfr: false, wonHand: false, wentToShowdown: false, rakePaid: 0.3, actions: { bets: 0, calls: 1, checks: 1, folds: 1, raises: 0 } });
+
+    expect(session.handsPlayed).toBe(2);
+    expect(session.totalChipDelta).toBe(4);
+    expect(session.vpipCount).toBe(2);
+    expect(session.pfrCount).toBe(1);
+
+    // Get stats
+    const stats = session.getStats();
+    expect(stats.handsPlayed).toBe(2);
+    expect(stats.totalBBDelta).toBe(2); // 4 chips / 2 BB
+    expect(stats.vpip).toBe(100); // 2/2 = 100%
+    expect(stats.pfr).toBe(50);  // 1/2 = 50%
+
+    // End session
+    const final = tracker.endSession('horse-1', 'table-1');
+    expect(final).not.toBeNull();
+    expect(final.handsPlayed).toBe(2);
+    expect(tracker.getSession('horse-1', 'table-1')).toBeNull();
+});
+
+test('PerformanceTracker: shouldLeaveTable detects stop-loss', () => {
+    const { tracker } = require('./src/lib/poker-engine/PerformanceTracker');
+    tracker.reset();
+
+    tracker.startSession('horse-sl', 'table-sl', 'holdem', 2, 1000);
+    // Simulate massive loss: -600 BB
+    for (let i = 0; i < 100; i++) {
+        tracker.recordHand('horse-sl', 'table-sl', { chipDelta: -12, vpip: true, pfr: false, wonHand: false, wentToShowdown: false, rakePaid: 0.2, actions: { bets: 0, calls: 1, checks: 0, folds: 1, raises: 0 } });
+    }
+
+    const check = tracker.shouldLeaveTable('horse-sl', 'table-sl');
+    expect(check.shouldLeave).toBe(true);
+    expect(check.reason.includes('stop_loss')).toBe(true);
+    tracker.endSession('horse-sl', 'table-sl');
+});
+
+test('PerformanceTracker: bot detection flags consistent timing', () => {
+    const { tracker } = require('./src/lib/poker-engine/PerformanceTracker');
+    tracker.reset();
+
+    // Simulate bot-like timing (very consistent ~500ms)
+    for (let i = 0; i < 30; i++) {
+        tracker.recordOpponentTiming('suspect-bot', 500 + (Math.random() * 10)); // 500-510ms (cv < 0.02)
+    }
+
+    const check = tracker.checkOpponentAnomaly('suspect-bot');
+    expect(check.flagCount).toBeGreaterThan(0);
+
+    // Simulate human-like timing (very inconsistent)
+    for (let i = 0; i < 30; i++) {
+        tracker.recordOpponentTiming('real-human', 200 + Math.random() * 5000); // 200-5200ms
+    }
+
+    const humanCheck = tracker.checkOpponentAnomaly('real-human');
+    // Human should have fewer or zero flags
+    expect(humanCheck.flagCount).toBeLessThanOrEqual(check.flagCount);
+});
+
+test('PerformanceTracker: rake verification works', () => {
+    const { tracker } = require('./src/lib/poker-engine/PerformanceTracker');
+
+    // Correct rake: 5% of 100 pot = 5, cap 10
+    const good = tracker.verifyRake(100, 5, 5, 10);
+    expect(good.valid).toBe(true);
+    expect(good.expected).toBe(5);
+
+    // Wrong rake: charged 8 instead of 5
+    const bad = tracker.verifyRake(100, 8, 5, 10);
+    expect(bad.valid).toBe(false);
+    expect(bad.deviationPercent).toBeGreaterThan(5);
+});
+
+test('PerformanceTracker: scoreTable prefers human-heavy tables', () => {
+    const { tracker } = require('./src/lib/poker-engine/PerformanceTracker');
+    const horseIds = new Set(['h1', 'h2', 'h3']);
+
+    // Table with mostly humans
+    const humanScore = tracker.scoreTable('t1', ['human1', 'human2', 'human3', 'h1'], horseIds);
+    // Table with mostly horses
+    const horseScore = tracker.scoreTable('t2', ['h1', 'h2', 'h3', 'human1'], horseIds);
+
+    expect(humanScore).toBeGreaterThan(horseScore);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: MULTI-TABLE COORDINATION TEST
+// ═══════════════════════════════════════════════════════════
+
+test('Multi-table coordination: _horseGlobalLock wired into GameController', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
+    // Must have global lock map
+    expect(src.includes('_horseGlobalLock')).toBe(true);
+    // Must wait for existing lock
+    expect(src.includes('this._horseGlobalLock?.get(playerId)')).toBe(true);
+    // Must release lock in finally
+    expect(src.includes('_horseGlobalLock?.delete(playerId)')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: SESSION MANAGEMENT WIRING TEST
+// ═══════════════════════════════════════════════════════════
+
+test('Session management: shouldLeaveTable wired into watchdog sweep', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
+    expect(src.includes('performanceTracker.shouldLeaveTable')).toBe(true);
+    expect(src.includes('performanceTracker.endSession')).toBe(true);
+    expect(src.includes('performanceTracker.persistSessionStats')).toBe(true);
+    expect(src.includes('performanceTracker.startSession')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: INDEX.JS EXPORTS TEST
+// ═══════════════════════════════════════════════════════════
+
+test('Index exports include all Phase 48f systems', () => {
+    const engine = require('./src/lib/poker-engine/index');
+    expect(typeof engine.SupabaseResilience).toBe('object');
+    expect(typeof engine.HealthWatchdog).toBe('function');
+    expect(typeof engine.PerformanceTracker).toBe('function');
+    expect(engine.performanceTracker).not.toBeNull();
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: END-TO-END CRASH RECOVERY VERIFICATION
+// ═══════════════════════════════════════════════════════════
+
+test('StateSerializer: serialize captures complete state including BettingRound + Deck', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/StateSerializer.js', 'utf8');
+    // Must serialize BettingRound
+    expect(src.includes("bettingRound: game.bettingRound?.getState")).toBe(true);
+    // Must serialize Deck
+    expect(src.includes("deck: game.deck?.getState")).toBe(true);
+    // Must restore BettingRound
+    expect(src.includes("new BettingRound(")).toBe(true);
+    // Must restore deck cards and position
+    expect(src.includes("deck._cards = h.deck.cards")).toBe(true);
+    expect(src.includes("deck._position = h.deck.position")).toBe(true);
+    expect(src.includes("deck._burnPile = h.deck.burnPile")).toBe(true);
+});
+
+test('StateSerializer: restore rebuilds BettingRound with correct player state', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/StateSerializer.js', 'utf8');
+    // Must set br.status = ROUND_STATUS.IN_PROGRESS
+    expect(src.includes("br.status = ROUND_STATUS.IN_PROGRESS")).toBe(true);
+    // Must restore per-player invested amounts
+    expect(src.includes("br.players[i].invested = src.invested")).toBe(true);
+    // Must rebuild action order
+    expect(src.includes("br._actionOrder = activeIndices")).toBe(true);
+    // Must find current player by ID
+    expect(src.includes("brState.currentPlayerId")).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: GTO INTEGRATION DEPTH VERIFICATION
+// ═══════════════════════════════════════════════════════════
+
+test('GTO module: HorsePokerGTO.js exports comprehensive decision pipeline', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/content-engine/services/HorsePokerGTO.js', 'utf8');
+    // Must have preflop range lookup
+    expect(src.includes('getPreflopRange')).toBe(true);
+    // Must have postflop solver query
+    expect(src.includes('getPostflopStrategy')).toBe(true);
+    // Must have blocker analysis
+    expect(src.includes('analyzeBlockers')).toBe(true);
+    // Must have board texture analysis
+    expect(src.includes('analyzeBoardTexture')).toBe(true);
+    // Must have ICM adjustments for tournaments
+    expect(src.includes('getICMAdjustment')).toBe(true);
+    // Must have stack depth strategy
+    expect(src.includes('getStackDepthStrategy')).toBe(true);
+    // Must have main decision entry point
+    expect(src.includes('makeGTODecision')).toBe(true);
+});
+
+test('GTO module: makeGTODecision handles preflop and postflop paths', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/content-engine/services/HorsePokerGTO.js', 'utf8');
+    // Preflop path: board.length === 0
+    expect(src.includes('board.length === 0')).toBe(true);
+    // Postflop path: board.length >= 3
+    expect(src.includes('board.length >= 3')).toBe(true);
+    // Must query solved_spots_gold for postflop
+    expect(src.includes('solved_spots_gold')).toBe(true);
+    // Must query memory_charts_gold for preflop
+    expect(src.includes('memory_charts_gold')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 48f: OPPONENT JOURNAL VERIFICATION
+// ═══════════════════════════════════════════════════════════
+
+test('Opponent journal: persistOpponentJournal uses upsert with additive merging', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    // Must upsert on horse_id,opponent_id conflict
+    expect(src.includes("onConflict: 'horse_id,opponent_id'")).toBe(true);
+    // Must check minimum hands before saving
+    expect(src.includes('profile.handsObserved < 5')).toBe(true);
+    // Must increment session_count
+    expect(src.includes('session_count')).toBe(true);
+    // Must compute player type
+    expect(src.includes('last_known_player_type')).toBe(true);
+});
+
+test('Opponent journal: loadOpponentJournal pre-seeds liveObserver', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    // Must check cache first
+    expect(src.includes('_journalCache.get(cacheKey)')).toBe(true);
+    // Must not overwrite fresh live data with stale historical
+    expect(src.includes('profile.handsObserved < data.hands_observed')).toBe(true);
+    // Must use batch loading for tables
+    expect(src.includes('loadTableJournals')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

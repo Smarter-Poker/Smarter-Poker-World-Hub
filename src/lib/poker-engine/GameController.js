@@ -37,6 +37,9 @@ const { AntiCheat } = require('./AntiCheat');
 const { AntiCheatMonitor } = require('./AntiCheatMonitor');
 const { ClubLedger } = require('./ClubLedger');
 const HorsePokerBrain = require('./HorsePokerBrain');
+const { HealthWatchdog } = require('./HealthWatchdog');
+const { tracker: performanceTracker } = require('./PerformanceTracker');
+const { resilientQuery, resilientMutation } = require('./SupabaseResilience');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -198,6 +201,22 @@ class GameController {
     // Runs every 60 seconds to continuously ensure tables and tournaments are populated
     this._horsePipelineInterval = setInterval(() => this._runHorsePipeline(), 60000);
 
+    // ─── Phase 48f: Health Watchdog — Zero-Intervention System Monitor ──
+    this.healthWatchdog = new HealthWatchdog({
+      gameController: this,
+      supabase: this.supabase,
+      lobby: this.lobby,
+    });
+    this.healthWatchdog.start();
+
+    // ─── Phase 48f: Performance Tracker — Available globally ────────────
+    this.performanceTracker = performanceTracker;
+
+    // ─── Phase 48f: Multi-Table Coordination Lock ──────────────────────
+    // Prevents the same horse from being in _triggerHorseAction on multiple
+    // tables simultaneously. Ensures one decision completes before the next.
+    this._horseGlobalLock = new Map(); // horseId → Promise<void>
+
     this.initialized = true;
     console.log(`[GameController] Initialized (${this.lobby.tables.size} tables recovered)`);
   }
@@ -215,6 +234,9 @@ class GameController {
     // Stop anti-cheat monitor
     if (this.antiCheatMonitor) this.antiCheatMonitor.stop();
     if (this.antiCheat) this.antiCheat.cleanup();
+
+    // Stop health watchdog
+    if (this.healthWatchdog) this.healthWatchdog.destroy();
 
     // Save final snapshots
     await this._saveAllSnapshots();
@@ -289,10 +311,32 @@ class GameController {
             // Anomaly 3: Action Stall (> 60s without acting)
             const game = table.game;
             if (game?.bettingRound && String(game.bettingRound.getCurrentPlayer()?.id) === String(playerId)) {
-              entry.timer._actionStartTime = entry.timer._actionStartTime || now;
-              if (now - entry.timer._actionStartTime > 60000) {
+              // Phase 48f FIX #15: Track stall per-player, not globally on timer
+              // Use a Map keyed by playerId to avoid stale timestamps from previous hands
+              if (!entry._horseStallTracker) entry._horseStallTracker = new Map();
+              const tracker = entry._horseStallTracker;
+              if (!tracker.has(playerId)) tracker.set(playerId, now);
+              const stallStart = tracker.get(playerId);
+              if (now - stallStart > 60000) {
                 console.warn(`[HorseAI Watchdog] ⏱️ Stall detected: ${playerId.substring(0, 8)} frozen > 60s on ${tableId}. Forcing fold.`);
                 table.processAction(playerId, { type: 'fold' });
+                tracker.delete(playerId);
+                requiresHeal = true;
+              }
+            } else {
+              // Phase 48f FIX #15: Clear stall tracker when horse is NOT the current player
+              if (entry._horseStallTracker) entry._horseStallTracker.delete(playerId);
+            }
+            // Phase 48f: Session Management (#7) — Check if horse should leave
+            if (!table.game?.handInProgress) {
+              const leaveCheck = performanceTracker.shouldLeaveTable(playerId, tableId);
+              if (leaveCheck.shouldLeave) {
+                console.log(`[HorseAI Session] 🚪 ${playerId.substring(0, 8)} leaving ${tableId}: ${leaveCheck.reason}`);
+                const sessionStats = performanceTracker.endSession(playerId, tableId);
+                if (sessionStats && this.supabase) {
+                  performanceTracker.persistSessionStats(this.supabase, sessionStats).catch(() => {});
+                }
+                this.standUp(tableId, playerId);
                 requiresHeal = true;
               }
             }
@@ -1026,6 +1070,18 @@ class GameController {
     if (this._horseActionPending.has(key)) return;
     this._horseActionPending.add(key);
 
+    // Phase 48f: Multi-Table Coordination (#8)
+    // If this horse is deciding on another table, wait for that to finish first.
+    // This prevents timing out on Table A while tanking on Table B.
+    const existingLock = this._horseGlobalLock?.get(playerId);
+    if (existingLock) {
+      try { await Promise.race([existingLock, new Promise(r => setTimeout(r, 10000))]); }
+      catch (_) { /* timeout or error, proceed anyway */ }
+    }
+    let _resolveLock;
+    const lockPromise = new Promise(r => { _resolveLock = r; });
+    this._horseGlobalLock?.set(playerId, lockPromise);
+
     try {
       const entry = this.lobby.tables.get(tableId);
       if (!entry) return;
@@ -1109,6 +1165,9 @@ class GameController {
       console.error(`[HorseAI] _triggerHorseAction error:`, err.message);
     } finally {
       this._horseActionPending.delete(key);
+      // Phase 48f: Release multi-table coordination lock
+      if (_resolveLock) _resolveLock();
+      this._horseGlobalLock?.delete(playerId);
     }
   }
 
@@ -1369,8 +1428,12 @@ class GameController {
       horseProfiles = [...horseIds].map(id => ({ id, alias: `Horse ${id.substring(0, 6)}`, avatar_url: null, balance: Infinity }));
     }
 
-    // Shuffle to randomize which horses sit
-    const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
+    // Phase 48f FIX #16: Use Fisher-Yates shuffle instead of biased sort comparator
+    const shuffled = [...horseProfiles];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
 
     // Filter by personality preferences and seat them
     let seated = 0;
@@ -1417,6 +1480,9 @@ class GameController {
       if (result.success) {
         seated++;
         HorsePokerBrain.recordSitDown(tableId, horse.id, buyIn);
+        // Phase 48f: Start performance tracking session
+        const variant = entry.config?.variant || 'holdem';
+        performanceTracker.startSession(horse.id, tableId, variant, bigBlind, buyIn);
         console.log(`[HorseAI] 🐴 ${horse.alias || horse.id.substring(0, 8)} seated at ${tableId} (seat ${seatSlot.index}) physically locking ${buyIn} chips!`);
       } else if (clubId) {
         // Rollback physical lock if memory table rejects them
@@ -1503,8 +1569,12 @@ class GameController {
       return { success: false, error: 'No horse profiles with sufficient funds', registered: 0 };
     }
 
-    // Shuffle and register
-    const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
+    // Phase 48f FIX #16: Use Fisher-Yates shuffle instead of biased sort comparator
+    const shuffled = [...horseProfiles];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     let registered = 0;
 
     // Phase 2: Filter by stakes preference

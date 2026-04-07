@@ -30,6 +30,11 @@ const { TournamentController, TOURNAMENT_TYPE, TOURNAMENT_STATUS, ENTRY_STATUS, 
 const { TournamentBridge } = require('./TournamentBridge');
 const { ClubLedger, TRANSACTION_TYPE } = require('./ClubLedger');
 
+// Phase 48f: Autonomy & Resilience Layer
+const SupabaseResilience = require('./SupabaseResilience');
+const { HealthWatchdog } = require('./HealthWatchdog');
+const { PerformanceTracker, tracker: performanceTracker } = require('./PerformanceTracker');
+
 module.exports = {
   // Phase 1: Spread all Deck and HandEval exports (includes classes + helpers)
   ...DeckModule,
@@ -57,4 +62,10 @@ module.exports = {
   SPIN_MULTIPLIERS, DEFAULT_PAYOUT_STRUCTURES, SNG_PAYOUT_STRUCTURES,
   TournamentBridge,
   ClubLedger, TRANSACTION_TYPE,
+
+  // Phase 48f: Autonomy & Resilience Layer
+  SupabaseResilience,
+  HealthWatchdog,
+  PerformanceTracker,
+  performanceTracker,
 };
