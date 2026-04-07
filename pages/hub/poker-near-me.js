@@ -805,9 +805,18 @@ export default function PokerNearMePage() {
         });
 
         // Build set of venue names consumed by tour pins — these get folded into the double-icon
+        // Also build a word-stem set for fuzzy matching ("Grand Victoria Casino" → "grand victoria")
         const consumedVenueNames = new Set();
+        const consumedVenueStems = new Set(); // normalized 2-word stems for partial matching
         tourPins.forEach(tp => {
-            if (tp.host_venue_name) consumedVenueNames.add(tp.host_venue_name.toLowerCase());
+            if (tp.host_venue_name) {
+                const n = tp.host_venue_name.toLowerCase();
+                consumedVenueNames.add(n);
+                // Add 2-word stem: "grand victoria casino" → "grand victoria"
+                const words = n.split(/\s+/).filter(Boolean);
+                if (words.length >= 2) consumedVenueStems.add(words.slice(0, 2).join(' '));
+                if (words.length >= 3) consumedVenueStems.add(words.slice(0, 3).join(' '));
+            }
         });
 
         // --- NEW: Deduplicate charity venues so they only show ONE pin (the "next" or primary event) ---
@@ -852,23 +861,24 @@ export default function PokerNearMePage() {
             // These have coordinates but are NOT playable venues — they're tour containers
             if (v.venue_type === 'series' || v.venue_type === 'tour') return false;
             
-            // Deduplication for map: Flag venues already represented inside a tour double-icon
-            // Uses both exact name matching and spatial proximity (0.1 miles) to catch name discrepancies
-            let hideOnMap = false;
-            if (v.name && consumedVenueNames.has(v.name.toLowerCase())) {
-                hideOnMap = true;
-            } else if (v.latitude && v.longitude) {
+            // Deduplication: exclude venues already represented by a RichTourCard tour pin
+            // Uses exact name match, word-stem match, and spatial proximity (< 0.1 miles)
+            if (v.name) {
+                const vName = v.name.toLowerCase();
+                const vWords = vName.split(/\s+/).filter(Boolean);
+                // Exact or stem match ("grand victoria" ↔ "grand victoria casino")
+                const nameMatch = consumedVenueNames.has(vName)
+                    || (vWords.length >= 2 && consumedVenueStems.has(vWords.slice(0, 2).join(' ')))
+                    || (vWords.length >= 3 && consumedVenueStems.has(vWords.slice(0, 3).join(' ')));
+                if (nameMatch) return false; // Fully exclude — RichTourCard covers this venue
+            }
+            if (v.latitude && v.longitude) {
                 for (const tp of tourPins) {
                     const dlat = (v.latitude - tp.latitude) * 69;
                     const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
-                    const dist = Math.sqrt(dlat * dlat + dlng * dlng);
-                    if (dist < 0.1) {
-                        hideOnMap = true;
-                        break;
-                    }
+                    if (Math.sqrt(dlat * dlat + dlng * dlng) < 0.1) return false; // Same location as tour pin
                 }
             }
-            if (hideOnMap) v.hideOnMap = true;
             
             // Charity deduplication (allow only ONE venue per charity brand)
             if (v.venue_type === 'charity' && v.id) {
