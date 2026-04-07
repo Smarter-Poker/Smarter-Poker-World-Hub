@@ -659,7 +659,15 @@ function countFlushOuts(holeCards, boardCards) {
         }
     }
 
-    return { outs: bestOuts, isNutFlushDraw, suit: bestSuit };
+    // Bug #84: If we hold 3+ cards of the flush suit, our implied odds are REDUCED.
+    // Opponents are less likely to have that suit themselves, so when we hit,
+    // we get less action. Also, having 3 of a suit means we hold more of the outs ourselves.
+    const holdingThreeOfSuit = bestSuit && holeCards.filter(c => c.suit === bestSuit).length >= 3;
+    if (holdingThreeOfSuit && bestOuts > 0) {
+        bestOuts = Math.max(bestOuts - 2, 0); // Reduce by 2 for diminished implied odds
+    }
+
+    return { outs: bestOuts, isNutFlushDraw, suit: bestSuit, holdingThreeOfSuit: !!holdingThreeOfSuit };
 }
 
 /**
@@ -697,7 +705,7 @@ function countBackdoorOuts(holeCards, boardCards) {
  */
 function evaluatePLOMadeHand(holeCards, boardCards) {
     if (!boardCards || boardCards.length === 0) {
-        return { strength: 0, category: 'no_board', isNut: false, hasRedraw: false };
+        return { strength: 0, category: 'no_board', isNut: false, hasRedraw: false, isMade: false };
     }
 
     const hRanks = holeCards.map(c => c.rank);
@@ -707,10 +715,48 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
 
     const boardTop = bRanks[0]; // Highest board rank
 
+    // ── Bug #82a: Check for Quads (four of a kind) ──
+    const allRanks = [...hRanks, ...bRanks];
+    const allRankFreq = {};
+    for (const r of allRanks) allRankFreq[r] = (allRankFreq[r] || 0) + 1;
+    for (const [rank, count] of Object.entries(allRankFreq)) {
+        if (count >= 4) {
+            const r = parseInt(rank);
+            const holeCount = hRanks.filter(hr => hr === r).length;
+            const boardCount = bRanks.filter(br => br === r).length;
+            // PLO rule: must use exactly 2 hole cards. Need at least 2 from hole OR 2 from board
+            if (holeCount >= 2 && boardCount >= 2) {
+                return { strength: 98, category: 'quads', isNut: true, hasRedraw: false, isMade: true };
+            }
+            // If we have a pocket pair matching a board pair = quads
+            if (holeCount >= 2 && boardCount >= 2) {
+                return { strength: 98, category: 'quads', isNut: true, hasRedraw: false, isMade: true };
+            }
+        }
+    }
+
+    // ── Bug #82b: Check for Straight Flush ──
+    for (const suit of new Set(hSuits)) {
+        const hOfSuit = holeCards.filter(c => c.suit === suit).map(c => c.rank);
+        const bOfSuit = boardCards.filter(c => c.suit === suit).map(c => c.rank);
+        if (hOfSuit.length >= 2 && bOfSuit.length >= 3) {
+            // Check if we can make a 5-card straight flush using 2 hole + 3 board
+            for (let high = 12; high >= 4; high--) {
+                const needed = [high, high - 1, high - 2, high - 3, high - 4];
+                const holePart = needed.filter(r => hOfSuit.includes(r));
+                const boardPart = needed.filter(r => bOfSuit.includes(r));
+                if (holePart.length >= 2 && boardPart.length >= 3 && holePart.length + boardPart.length >= 5) {
+                    return { strength: 100, category: 'straight_flush', isNut: true, hasRedraw: false, isMade: true };
+                }
+            }
+        }
+    }
+
     // ── Check for Flush (must have 2+ hole cards of same suit matching 3+ board) ──
     let flushStrength = 0;
     let hasNutFlush = false;
     let hasFlush = false;
+    let flushHasRedraw = false;
     for (const suit of new Set(hSuits)) {
         const hOfSuit = holeCards.filter(c => c.suit === suit);
         const bOfSuit = boardCards.filter(c => c.suit === suit);
@@ -718,11 +764,26 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
             hasFlush = true;
             const maxHoleRank = Math.max(...hOfSuit.map(c => c.rank));
             hasNutFlush = maxHoleRank === 12; // Ace-high flush
-            flushStrength = hasNutFlush ? 95 : 75 + maxHoleRank * 1.5;
+            // Bug #82c: In PLO, 2nd nut flush is MUCH weaker than nut flush.
+            // Non-nut flushes face serious reverse implied odds.
+            if (hasNutFlush) {
+                flushStrength = 95;
+            } else if (maxHoleRank === 11) { // King-high flush
+                flushStrength = 80; // Decent but vulnerable
+            } else {
+                flushStrength = 60 + maxHoleRank; // 3rd nut and below: very risky in PLO
+            }
+            // Bug #82d: Check for flush + set/two-pair redraw (full house potential)
+            // If any of our hole cards pair the board, we have a full house redraw
+            if (hRanks.some(r => bRanks.includes(r))) flushHasRedraw = true;
+            // If we have a pocket pair, we have set-mine potential on future boards
+            const hRankFreqLocal = {};
+            for (const r of hRanks) hRankFreqLocal[r] = (hRankFreqLocal[r] || 0) + 1;
+            if (Object.values(hRankFreqLocal).some(cnt => cnt >= 2)) flushHasRedraw = true;
         }
     }
     if (hasFlush) {
-        return { strength: flushStrength, category: hasNutFlush ? 'nut_flush' : 'flush', isNut: hasNutFlush, hasRedraw: false };
+        return { strength: flushStrength, category: hasNutFlush ? 'nut_flush' : 'flush', isNut: hasNutFlush, hasRedraw: flushHasRedraw, isMade: true };
     }
 
     // ── Check for Straight (must use exactly 2 hole cards) ──
@@ -741,7 +802,7 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         }
     }
     if (bestStraight > 0) {
-        return { strength: Math.min(bestStraight, 90), category: isNutStraight ? 'nut_straight' : 'straight', isNut: isNutStraight, hasRedraw: false };
+        return { strength: Math.min(bestStraight, 90), category: isNutStraight ? 'nut_straight' : 'straight', isNut: isNutStraight, hasRedraw: false, isMade: true };
     }
 
     // ── Trips on board (one pair board + our pair = full house) ──
@@ -770,7 +831,8 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
                     strength: isTopSet ? 88 : 78,
                     category: 'full_house',
                     isNut: isTopSet,
-                    hasRedraw: isTopSet
+                    hasRedraw: isTopSet,
+                    isMade: true
                 };
             }
         }
@@ -780,21 +842,36 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
                 strength: hp > boardTrips[0] ? 82 : 72,
                 category: 'full_house',
                 isNut: false,
-                hasRedraw: false
+                hasRedraw: false,
+                isMade: true
             };
         }
     }
 
     // ── Set (Pocket pair in hole hits board rank = trips in PLO = set only if 1 on board) ──
+    // Bug #86: Set-over-set risk in PLO is MUCH higher than Hold'em (4 hole cards each).
+    // Top set is strong. Middle set is okay but risky. Bottom set is very dangerous
+    // and should be played cautiously — it's a trap hand in PLO.
     for (const hp of holePairs) {
         if (bRanks.includes(hp) && bRankFreq[hp] === 1) {
-            // We have a set (trip w/ pair in hole, 1 on board)
             const isTopSet = hp === boardTop;
+            // Bug #86: Calculate set position relative to board
+            const sortedBoardUnique = [...new Set(bRanks)].sort((a, b) => b - a);
+            const setPosition = sortedBoardUnique.indexOf(hp); // 0=top, 1=middle, 2+=bottom
+            let setStrength;
+            if (isTopSet) {
+                setStrength = 76; // Top set: strong but not invincible in PLO
+            } else if (setPosition === 1) {
+                setStrength = 60; // Middle set: risky, set-over-set happens often in PLO
+            } else {
+                setStrength = 50; // Bottom set: very dangerous, play cautiously
+            }
             return {
-                strength: isTopSet ? 76 : 65,
-                category: isTopSet ? 'top_set' : 'set',
+                strength: setStrength,
+                category: isTopSet ? 'top_set' : setPosition === 1 ? 'middle_set' : 'bottom_set',
                 isNut: false, // Sets aren't nuts in PLO if flushes/straights possible
-                hasRedraw: true // Sets often have full house redraws
+                hasRedraw: true, // Sets have full house redraws
+                isMade: true
             };
         }
     }
@@ -809,7 +886,8 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
             strength: isTopTwoPair ? 55 : 40,
             category: isTopTwoPair ? 'top_two_pair' : 'two_pair',
             isNut: false,
-            hasRedraw: true
+            hasRedraw: true,
+            isMade: true
         };
     }
 
@@ -821,7 +899,8 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
                 strength: isTopPair ? 38 : 25,
                 category: isTopPair ? 'top_pair' : 'low_pair',
                 isNut: false,
-                hasRedraw: false
+                hasRedraw: false,
+                isMade: true
             };
         }
     }
@@ -832,7 +911,8 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         strength: maxHole > boardTop ? 20 : 10,
         category: maxHole > boardTop ? 'overcards' : 'air',
         isNut: false,
-        hasRedraw: false
+        hasRedraw: false,
+        isMade: false
     };
 }
 
@@ -2391,10 +2471,25 @@ function getPLOReverseImpliedOdds(isNutFlushDraw, isNutStraightDraw, boardTextur
     let rioDiscount = 0;
     let rioRisk = 'low';
 
-    // Non-nut flush draw: could hit 2nd-best flush (VERY common in PLO)
+    // Bug #83: Non-nut DRAWS (not just made hands) have significant RIO in PLO.
+    // Drawing to the 2nd or 3rd nut flush is a recipe for stacking off with 2nd best.
+    // This was only checking made hand category before — now checks draw quality too.
+
+    // Non-nut flush draw: could HIT 2nd-best flush (VERY common in PLO)
     if (!isNutFlushDraw && madeHand.category === 'flush') {
         rioDiscount = numPlayers > 2 ? -18 : -10;
         rioRisk = 'high';
+    }
+    // Bug #83: Non-nut flush DRAW (not yet made): if we're drawing without the nut flush draw,
+    // we might make a flush that loses to a bigger flush. This is the #1 way to go broke in PLO.
+    if (!isNutFlushDraw && madeHand.category !== 'flush' && madeHand.category !== 'nut_flush') {
+        // We're still drawing — if we have flush outs but they're not the nut flush draw,
+        // apply a penalty. The penalty is milder than for made non-nut flushes because
+        // we haven't invested as much yet.
+        if (boardTexture.isMonotone || (boardTexture.twoTone && !isNutFlushDraw)) {
+            rioDiscount = Math.min(rioDiscount, numPlayers > 2 ? -12 : -6);
+            rioRisk = rioRisk === 'very_high' ? 'very_high' : 'medium';
+        }
     }
     // Non-nut straight draw on a monotone board: flush already beats us when we hit
     if (!isNutStraightDraw && boardTexture.isMonotone) {
@@ -2403,16 +2498,24 @@ function getPLOReverseImpliedOdds(isNutFlushDraw, isNutStraightDraw, boardTextur
     }
     // Non-nut flush draw on paired board: full house beats our flush
     if (!isNutFlushDraw && boardTexture.isPaired) {
-        rioDiscount = -15;
+        rioDiscount = Math.min(rioDiscount, -15);
         rioRisk = 'high';
     }
-    // Nut draws: minimal RIO
-    if (isNutFlushDraw || isNutStraightDraw) {
-        rioDiscount = numPlayers > 3 ? -5 : 0; // Small penalty multi-way even with nuts
+    // Bug #83: Non-nut straight on wet board: higher straight could be out there
+    if (!isNutStraightDraw && !boardTexture.isMonotone && boardTexture.isWet) {
+        rioDiscount = Math.min(rioDiscount, numPlayers > 2 ? -8 : -4);
+        if (rioRisk === 'low') rioRisk = 'medium';
+    }
+    // Nut draws: minimal RIO (checked LAST to override penalties)
+    if (isNutFlushDraw && isNutStraightDraw) {
+        rioDiscount = numPlayers > 3 ? -3 : 0; // Combo nut draw: almost no RIO
+        rioRisk = 'low';
+    } else if (isNutFlushDraw || isNutStraightDraw) {
+        rioDiscount = Math.max(rioDiscount, numPlayers > 3 ? -5 : 0); // Small penalty multi-way even with nuts
         rioRisk = 'low';
     }
 
-    // RIO multiplier: 0.70 to 1.0 (how much of draw equity we actually realize)
+    // RIO multiplier: 0.60 to 1.0 (how much of draw equity we actually realize)
     const rioMultiplier = Math.max(0.60, 1.0 + rioDiscount / 100);
     return { rioMultiplier, rioRisk, rioDiscount };
 }
@@ -4826,11 +4929,17 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * calibratedProbe.probeSizing)) };
 
         // Strong draws: semi-bluff (ERC-adjusted + runout quality + wrap outs)
+        // Bug #87: Blocker-aware semi-bluffing — having nut flush blockers or straight
+        // blockers makes our semi-bluffs much more effective (opponent less likely to have the nuts)
         const realizedOuts = totalOuts * erc;
-        if (realizedOuts >= 14 && canRaise && Math.random() < 0.65)
+        const blockerBluffBoost = blockers.hasFlushBlocker ? 0.12 : blockers.hasStraightBlocker ? 0.06 : 0;
+        if (realizedOuts >= 14 && canRaise && Math.random() < (0.65 + blockerBluffBoost))
             return { type: raiseAction.type, amount: adaptiveBetSize };
-        if (realizedOuts >= 9 && canRaise && Math.random() < 0.38)
+        if (realizedOuts >= 9 && canRaise && Math.random() < (0.38 + blockerBluffBoost))
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.50)) };
+        // Bug #87: Pure blocker bluff — no real outs but we block the nuts
+        if (realizedOuts < 6 && blockers.canBluffRiver && canRaise && equityFinal >= 20 && Math.random() < 0.18)
+            return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.55)) };
 
         // Medium made hands + redraw: bet for protection
         if (equityFinal >= 55 && madeHand.hasRedraw && canRaise)
@@ -4847,21 +4956,30 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // ─── FACING A BET (Flop / Turn) ───
 
+    // Bug #85: Multiway tightening when facing bets.
+    // In PLO multiway pots (3+ players), when someone bets into multiple opponents,
+    // they're usually strong. We need SIGNIFICANTLY stronger hands to raise/continue.
+    const multiwayRaisePenalty = numPlayers >= 4 ? 8 : numPlayers >= 3 ? 4 : 0;
+    const multiwayCallPenalty = numPlayers >= 4 ? 5 : numPlayers >= 3 ? 2 : 0;
+
     // Phase 2: Check-raise with nuts OOP
     const crBet = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
     if (crBet.shouldCheckRaise && canRaise)
         return { type: raiseAction.type, amount: clamp(crBet.crSize) };
 
     // Monster facing a bet: raise using proper PLO pot geometry
-    if (equityFinal >= 78 && canRaise) {
+    // Bug #85: Multiway requires even stronger hand to raise
+    if (equityFinal >= (78 + multiwayRaisePenalty) && canRaise) {
         return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
     }
 
     // Big combo draw: raise for value + protection (use exact de-duped outs)
-    if (comboDrawInfo.isCombo && exactOuts >= 18 && canRaise && Math.random() < 0.55) {
+    // Bug #85: In multiway, don't raise draws as aggressively (too much dead money risk)
+    const comboRaiseFreq = numPlayers >= 3 ? 0.35 : 0.55;
+    if (comboDrawInfo.isCombo && exactOuts >= 18 && canRaise && Math.random() < comboRaiseFreq) {
         return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
     }
-    if (flushDraw.outs >= 9 && straightDraw.outs >= 13 && !comboDrawInfo.isCombo && canRaise && Math.random() < 0.55) {
+    if (flushDraw.outs >= 9 && straightDraw.outs >= 13 && !comboDrawInfo.isCombo && canRaise && Math.random() < comboRaiseFreq) {
         return { type: raiseAction?.type || 'call', amount: clampedPotRaise };
     }
 
@@ -18487,6 +18605,9 @@ module.exports = {
     getPLOSPRZone,
     analyzePLOBoardTexture,
     evaluatePLO8Low,
+    // Exposed for testing (Phase 100) — PLO postflop internals
+    getPLOReverseImpliedOdds,
+    getPLOBlockers,
     getPLOEquityRealization,
     detectScareCard,
 
