@@ -197,7 +197,7 @@ export default function PokerNearMePage() {
 
     // Active tab state — persisted with sortBy and seriesViewMode
     const { filters: uiFilters, setFilter: setUiFilter } = usePersistedFilters('poker-near-me', {
-        activeTab: 'venues',
+        activeTab: 'map',
         activeEventTab: 'daily',
         activeMoreTab: 'overview',
         sortBy: 'distance',
@@ -436,9 +436,14 @@ export default function PokerNearMePage() {
                 const saved = localStorage.getItem('poker-near-me-search-filters');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    // ENFORCE 50-mile default on every page entry — this is the expected behavior
-                    // when the Poker Near Me icon is clicked. Users can expand from 50mi once on the page.
+                    // ENFORCE defaults on every page entry — this is the expected behavior
+                    // when the Poker Near Me icon is clicked. Users can change once on the page.
                     parsed.radius = 50;
+                    // ENFORCE venueType=all so tour pins + all venues always show on map
+                    parsed.venueType = 'all';
+                    // ENFORCE game/stakes filters so tour pins aren't accidentally filtered out
+                    parsed.gameType = 'all';
+                    parsed.stakes = 'all';
                     return { ...parsed };
                 }
             } catch (e) { console.error(e); }

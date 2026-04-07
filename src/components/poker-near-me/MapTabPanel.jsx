@@ -27,46 +27,49 @@ export default function MapTabPanel({
     router,
     setIframeModal,
 }) {
-    // Apply map-specific filters
+    // Helper: tour stop pins should ALWAYS appear on the map regardless of filters
+    const isTour = (v) => v.venue_type === 'tour_stop' || v.venue_type === 'poker_tour';
+
+    // Apply map-specific filters — tour stops are exempt (they don't have cash/tournament/stakes data)
     let filteredVenues = allVenuesForMap;
     if (mapFilters.cashGames) {
-        filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.games_offered && v.games_offered.length > 0));
     }
     if (mapFilters.tournaments) {
-        filteredVenues = filteredVenues.filter(v => v.has_tournaments);
+        filteredVenues = filteredVenues.filter(v => isTour(v) || v.has_tournaments);
     }
     if (mapFilters.is24Hours) {
-        filteredVenues = filteredVenues.filter(v => !['charity', 'home_game'].includes(v.venue_type) && (v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24'))));
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (!['charity', 'home_game'].includes(v.venue_type) && (v.is_24_hours || (v.hours_of_operation && v.hours_of_operation.includes('24')))));
     }
     if (mapFilters.lowStakes) {
-        filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => {
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.stakes_cash && v.stakes_cash.some(s => {
             const match = s.match(/\$?(\d+)/);
             return match && parseInt(match[1]) <= 2;
-        }));
+        })));
     }
     if (mapFilters.topRated) {
-        filteredVenues = filteredVenues.filter(v => (v.trust_score || 0) >= 4.0);
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.trust_score || 0) >= 4.0);
     }
 
-    // Apply sidebar filters
+    // Apply sidebar filters — tour stops are exempt unless explicitly filtering for a specific venue type
     if (filters.venueType && filters.venueType !== 'all') {
-        filteredVenues = filteredVenues.filter(v => v.venue_type === filters.venueType || (filters.venueType === 'tour_stop' && v.venue_type === 'poker_tour') || (filters.venueType === 'card_room' && v.venue_type === 'poker_club'));
+        filteredVenues = filteredVenues.filter(v => isTour(v) || v.venue_type === filters.venueType || (filters.venueType === 'tour_stop' && v.venue_type === 'poker_tour') || (filters.venueType === 'card_room' && v.venue_type === 'poker_club'));
     }
 
     if (filters.gameType === 'cash') {
-        filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.games_offered && v.games_offered.length > 0));
     } else if (filters.gameType === 'mtt') {
-        filteredVenues = filteredVenues.filter(v => v.has_tournaments);
+        filteredVenues = filteredVenues.filter(v => isTour(v) || v.has_tournaments);
     } else if (filters.gameType === 'mixed') {
-        filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.some(g => /mixed|horse|8-game/i.test(g)));
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.games_offered && v.games_offered.some(g => /mixed|horse|8-game/i.test(g))));
     }
 
     if (filters.stakes === '$1/2') {
-        filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3')));
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3'))));
     } else if (filters.stakes === '$2/5') {
-        filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')));
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5'))));
     } else if (filters.stakes === '$5/10+') {
-        filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('5/10') || s.includes('10/20') || s.includes('25/50')));
+        filteredVenues = filteredVenues.filter(v => isTour(v) || (v.stakes_cash && v.stakes_cash.some(s => s.includes('5/10') || s.includes('10/20') || s.includes('25/50'))));
     }
 
     const toggleMapFilter = (key) => {
