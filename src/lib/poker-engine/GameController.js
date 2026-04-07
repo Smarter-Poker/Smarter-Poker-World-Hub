@@ -289,12 +289,21 @@ class GameController {
             // Anomaly 3: Action Stall (> 60s without acting)
             const game = table.game;
             if (game?.bettingRound && String(game.bettingRound.getCurrentPlayer()?.id) === String(playerId)) {
-              entry.timer._actionStartTime = entry.timer._actionStartTime || now;
-              if (now - entry.timer._actionStartTime > 60000) {
+              // Phase 48f FIX #15: Track stall per-player, not globally on timer
+              // Use a Map keyed by playerId to avoid stale timestamps from previous hands
+              if (!entry._horseStallTracker) entry._horseStallTracker = new Map();
+              const tracker = entry._horseStallTracker;
+              if (!tracker.has(playerId)) tracker.set(playerId, now);
+              const stallStart = tracker.get(playerId);
+              if (now - stallStart > 60000) {
                 console.warn(`[HorseAI Watchdog] ⏱️ Stall detected: ${playerId.substring(0, 8)} frozen > 60s on ${tableId}. Forcing fold.`);
                 table.processAction(playerId, { type: 'fold' });
+                tracker.delete(playerId);
                 requiresHeal = true;
               }
+            } else {
+              // Phase 48f FIX #15: Clear stall tracker when horse is NOT the current player
+              if (entry._horseStallTracker) entry._horseStallTracker.delete(playerId);
             }
           }
         }
@@ -1369,8 +1378,12 @@ class GameController {
       horseProfiles = [...horseIds].map(id => ({ id, alias: `Horse ${id.substring(0, 6)}`, avatar_url: null, balance: Infinity }));
     }
 
-    // Shuffle to randomize which horses sit
-    const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
+    // Phase 48f FIX #16: Use Fisher-Yates shuffle instead of biased sort comparator
+    const shuffled = [...horseProfiles];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
 
     // Filter by personality preferences and seat them
     let seated = 0;
@@ -1503,8 +1516,12 @@ class GameController {
       return { success: false, error: 'No horse profiles with sufficient funds', registered: 0 };
     }
 
-    // Shuffle and register
-    const shuffled = horseProfiles.sort(() => Math.random() - 0.5);
+    // Phase 48f FIX #16: Use Fisher-Yates shuffle instead of biased sort comparator
+    const shuffled = [...horseProfiles];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     let registered = 0;
 
     // Phase 2: Filter by stakes preference
