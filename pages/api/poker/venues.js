@@ -1069,11 +1069,19 @@ export default async function handler(req, res) {
                           if (todayTour) {
                               v.is_today = true;
                               v.next_event = null;
-                              v.has_tournaments = true; // ← VDT rows confirm tournaments exist
+                              v.has_tournaments = true;
+                              // Enrich is_today with schedule detail for the card
+                              v.today_event = {
+                                  start_time: todayTour.start_time || null,
+                                  buy_in: todayTour.buy_in || null,
+                                  location: v.city || 'Local Area',
+                                  address: v.address || null,
+                                  state: v.state || null,
+                              };
                           } else {
                               v.is_today = false;
-                              v.has_tournaments = true; // ← VDT rows confirm tournaments exist
-                              // Find closest next day
+                              v.has_tournaments = true;
+                              // Find closest next day — include schedule detail
                               for (let i = 1; i <= 7; i++) {
                                   const nextIdx = (todayIdx + i) % 7;
                                   const nextDayStr = DAYS[nextIdx];
@@ -1081,7 +1089,12 @@ export default async function handler(req, res) {
                                   if (nextTour) {
                                       v.next_event = {
                                           day: nextTour.day_of_week,
-                                          location: v.city || 'Local Area'
+                                          days_away: i,
+                                          start_time: nextTour.start_time || null,
+                                          buy_in: nextTour.buy_in || null,
+                                          location: v.city || 'Local Area',
+                                          address: v.address || null,
+                                          state: v.state || null,
                                       };
                                       break;
                                   }

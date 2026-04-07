@@ -18,6 +18,22 @@ const formatMoney = (amount) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
 };
 
+// Formats "13:00:00" or "1:00 PM" → "1:00 PM"
+const formatTime = (t) => {
+    if (!t) return null;
+    // Already 12h format
+    if (/am|pm/i.test(t)) return t.trim();
+    // 24h HH:MM[:SS]
+    const m = t.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return t;
+    let h = parseInt(m[1], 10);
+    const min = m[2];
+    const period = h >= 12 ? 'PM' : 'AM';
+    if (h === 0) h = 12;
+    else if (h > 12) h -= 12;
+    return `${h}:${min} ${period}`;
+};
+
 const VENUE_TYPE_LABELS = {
     casino: 'Casino',
     card_room: 'Poker Club',
@@ -130,6 +146,74 @@ function getVenueUrl(venue) {
         return '/club/' + venue.social_page_id;
     }
     return '/hub/venues/' + venue.id;
+}
+
+// Pre-computed charity event display block
+function buildCharityEventBlock(venue) {
+    if (venue.venue_type !== 'charity') return null;
+
+    if (venue.is_today) {
+        const te = venue.today_event || {};
+        const timeStr = formatTime(te.start_time);
+        const addr = [te.location || venue.city, te.state || venue.state].filter(Boolean).join(', ');
+        return (
+            <div className="vc3-charity-event vc3-charity-today">
+                <div className="vc3-charity-event-label">
+                    <span className="vc3-charity-dot" />
+                    Event Today
+                </div>
+                <div className="vc3-charity-date-big">Today</div>
+                {addr ? <div className="vc3-charity-addr">{addr}</div> : null}
+                {timeStr ? (
+                    <div className="vc3-charity-meta">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        {timeStr}
+                        {te.buy_in > 0 ? <><span className="vc3-charity-sep">·</span>${te.buy_in} Buy-In</> : null}
+                    </div>
+                ) : null}
+            </div>
+        );
+    }
+
+    if (venue.next_event) {
+        const ne = venue.next_event;
+        const daysAway = ne.days_away;
+        let nextDate = null;
+        if (daysAway != null) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysAway);
+            nextDate = d;
+        }
+        const dayLabel = ne.day ? (ne.day.charAt(0).toUpperCase() + ne.day.slice(1)) : '';
+        const dateLabel = nextDate
+            ? nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : null;
+        const isTomorrow = daysAway === 1;
+        const timeStr = formatTime(ne.start_time);
+        const addr = [ne.location || venue.city, ne.state || venue.state].filter(Boolean).join(', ');
+        return (
+            <div className="vc3-charity-event">
+                <div className="vc3-charity-event-label">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    {isTomorrow ? 'Tomorrow' : 'Next Event'}
+                </div>
+                <div className="vc3-charity-date-big">
+                    {isTomorrow ? 'Tomorrow' : dayLabel}
+                    {dateLabel && !isTomorrow ? <span className="vc3-charity-date-cal">{dateLabel}</span> : null}
+                </div>
+                {addr ? <div className="vc3-charity-addr">{addr}</div> : null}
+                {timeStr ? (
+                    <div className="vc3-charity-meta">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        {timeStr}
+                        {ne.buy_in > 0 ? <><span className="vc3-charity-sep">·</span>${ne.buy_in} Buy-In</> : null}
+                    </div>
+                ) : null}
+            </div>
+        );
+    }
+
+    return null;
 }
 
 export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, onFavorite, onNavigate, checkinCount, reviewStats, index = 0 }) {
@@ -450,8 +534,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     </div>
                 )}
 
-                {/* Hours */}
-                {((venue.hours || venue.hours_weekday) && venue.venue_type !== 'charity') ? (
+                {/* Hours — non-charity venues */}
+                {((venue.hours || venue.hours_weekday) && venue.venue_type !== 'charity') && (
                     <p className="vc3-hours">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
                             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -461,21 +545,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             <span className="vc3-hours-next"> ({openStatus.nextChange})</span>
                         )}
                     </p>
-                ) : venue.venue_type === 'charity' && venue.is_today ? (
-                    <p className="vc3-hours" style={{ color: '#4ade80', fontWeight: '600' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.9 }}>
-                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                        Event Today @ {venue.city || 'Local Area'}
-                    </p>
-                ) : venue.venue_type === 'charity' && !venue.is_today && venue.next_event ? (
-                    <p className="vc3-hours" style={{ color: '#ffffff', fontWeight: '500' }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.8 }}>
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        Upcoming: {String(venue.next_event.day || '').charAt(0).toUpperCase() + String(venue.next_event.day || '').slice(1)} @ {venue.next_event.location}
-                    </p>
-                ) : null}
+                )}
+
+                {/* Charity — Big Date Block */}
+                {buildCharityEventBlock(venue)}
 
                 {/* Game Tags — color-coded */}
                 {Array.isArray(venue.games_offered) && venue.games_offered.length > 0 && (
@@ -738,6 +811,90 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-pill-details:hover { background: rgba(255,255,255,0.22); box-shadow: 0 0 12px rgba(255,255,255,0.15); }
 
 
+
+                /* ── Charity Event Big Date Block ──────────────────────── */
+                .vc3-charity-event {
+                    margin: 2px 0 8px;
+                    padding: 10px 12px 10px;
+                    background: linear-gradient(135deg, rgba(59,130,246,0.10), rgba(139,92,246,0.06));
+                    border: 1px solid rgba(59,130,246,0.28);
+                    border-radius: 10px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                .vc3-charity-today {
+                    background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(16,185,129,0.07));
+                    border-color: rgba(34,197,94,0.35);
+                    box-shadow: 0 0 16px rgba(34,197,94,0.12);
+                }
+                .vc3-charity-event-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    font-size: 10px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    letter-spacing: 0.8px;
+                    color: rgba(255,255,255,0.45);
+                }
+                .vc3-charity-today .vc3-charity-event-label { color: #4ade80; }
+                .vc3-charity-dot {
+                    width: 7px; height: 7px; border-radius: 50%;
+                    background: #4ade80;
+                    box-shadow: 0 0 8px #4ade80;
+                    animation: livePulse 1.5s ease-in-out infinite;
+                    flex-shrink: 0;
+                }
+                .vc3-charity-date-big {
+                    font-size: 22px;
+                    font-weight: 800;
+                    color: #ffffff;
+                    letter-spacing: -0.3px;
+                    line-height: 1.1;
+                    display: flex;
+                    align-items: baseline;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                }
+                .vc3-charity-today .vc3-charity-date-big { color: #4ade80; }
+                .vc3-charity-date-cal {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: rgba(255,255,255,0.55);
+                    background: rgba(255,255,255,0.08);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    border-radius: 5px;
+                    padding: 2px 7px;
+                    white-space: nowrap;
+                }
+                .vc3-charity-addr {
+                    font-size: 12px;
+                    color: rgba(255,255,255,0.6);
+                    font-weight: 500;
+                    margin-top: 1px;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+                .vc3-charity-addr::before {
+                    content: '';
+                    display: inline-block;
+                    width: 3px; height: 3px;
+                    border-radius: 50%;
+                    background: rgba(255,255,255,0.3);
+                    flex-shrink: 0;
+                }
+                .vc3-charity-meta {
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                    font-size: 13px;
+                    font-weight: 700;
+                    color: rgba(255,255,255,0.85);
+                    margin-top: 2px;
+                }
+                .vc3-charity-sep { color: rgba(255,255,255,0.3); margin: 0 1px; }
 
                 @media (max-width: 480px) {
                     .vc3-actions { flex-direction: column; gap: 8px; }
