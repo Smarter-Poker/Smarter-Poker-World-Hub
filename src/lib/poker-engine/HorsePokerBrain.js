@@ -756,38 +756,69 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         }
     }
 
-    // ── Check for Flush (must have 2+ hole cards of same suit matching 3+ board) ──
+    // ── Check for Flush — Bug #112: Nut vs non-nut flush awareness ──
+    // In PLO, flush rank matters MORE than in Hold'em because:
+    // - Everyone has 4 hole cards → suited holdings are common
+    // - Non-nut flushes have MASSIVE reverse implied odds
+    // - The 2nd nut flush pays off the nut flush in huge pots
+    //
+    // What beats a non-nut flush:
+    //   Any higher flush of the same suit, full house, quads, straight flush.
+    //   If you hold K-high flush, anyone with Ace of that suit beats you.
+    //   In PLO with 4 cards, the chance someone has the Ace of your suit is ~35%.
+    //
+    // CRITICAL PLO RULE: If you don't have the nut flush, proceed with EXTREME caution.
+    // Many PLO fish go broke with 2nd nut flush vs nut flush. Don't be that fish.
     let flushStrength = 0;
     let hasNutFlush = false;
     let hasFlush = false;
     let flushHasRedraw = false;
+    let flushVulnerability = 0;
     for (const suit of new Set(hSuits)) {
         const hOfSuit = holeCards.filter(c => c.suit === suit);
         const bOfSuit = boardCards.filter(c => c.suit === suit);
         if (hOfSuit.length >= 2 && bOfSuit.length >= 3) {
             hasFlush = true;
             const maxHoleRank = Math.max(...hOfSuit.map(c => c.rank));
+            const maxBoardRank = Math.max(...bOfSuit.map(c => c.rank));
             hasNutFlush = maxHoleRank === 12; // Ace-high flush
-            // Bug #82c: In PLO, 2nd nut flush is MUCH weaker than nut flush.
-            // Non-nut flushes face serious reverse implied odds.
-            if (hasNutFlush) {
-                flushStrength = 95;
-            } else if (maxHoleRank === 11) { // King-high flush
-                flushStrength = 80; // Decent but vulnerable
-            } else {
-                flushStrength = 60 + maxHoleRank; // 3rd nut and below: very risky in PLO
+
+            // Count how many flush ranks beat ours (higher cards of this suit not in our hand/board)
+            const allFlushRanks = [...hOfSuit.map(c => c.rank), ...bOfSuit.map(c => c.rank)];
+            const highestUsed = Math.max(maxHoleRank, maxBoardRank);
+            // Cards above our highest flush card that aren't accounted for = can beat us
+            flushVulnerability = 0;
+            for (let r = maxHoleRank + 1; r <= 12; r++) {
+                if (!allFlushRanks.includes(r)) flushVulnerability++;
             }
+
+            if (hasNutFlush) {
+                flushStrength = 95; // Nut flush: only FH/quads/SF beat us
+            } else if (maxHoleRank === 11) { // King-high flush
+                flushStrength = 78; // Only Ace-high flush beats us, but it's ~35% likely in PLO
+            } else if (maxHoleRank === 10) { // Queen-high flush
+                flushStrength = 68; // 2 higher flushes possible — getting dangerous
+            } else {
+                flushStrength = 55 + maxHoleRank; // 4th nut and below: VERY risky in PLO
+                // At this point you should NOT be building big pots with this flush
+            }
+
             // Bug #82d: Check for flush + set/two-pair redraw (full house potential)
-            // If any of our hole cards pair the board, we have a full house redraw
             if (hRanks.some(r => bRanks.includes(r))) flushHasRedraw = true;
-            // If we have a pocket pair, we have set-mine potential on future boards
             const hRankFreqLocal = {};
             for (const r of hRanks) hRankFreqLocal[r] = (hRankFreqLocal[r] || 0) + 1;
             if (Object.values(hRankFreqLocal).some(cnt => cnt >= 2)) flushHasRedraw = true;
         }
     }
     if (hasFlush) {
-        return { strength: flushStrength, category: hasNutFlush ? 'nut_flush' : 'flush', isNut: hasNutFlush, hasRedraw: flushHasRedraw, isMade: true };
+        return {
+            strength: flushStrength,
+            category: hasNutFlush ? 'nut_flush' : 'flush',
+            isNut: hasNutFlush,
+            hasRedraw: flushHasRedraw,
+            isMade: true,
+            vulnerability: flushVulnerability // How many higher flushes can exist
+        };
     }
 
     // ── Check for Straight (must use exactly 2 hole cards) ──
@@ -804,27 +835,77 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     // Example: Board [8,9,T], Hole [T,J,Q,K] → window [8,9,10,11,12]:
     //   boardPart={8,9,10}(3), holePart={10,11,12}(3), sum=6≠5 → MISSED valid straight.
     // Fix: use the same bO/hO/bth/miss decomposition as the wrap detector (Bug #48c).
+    // Bug #112: Comprehensive straight nut-vs-non-nut differentiation.
+    // In PLO, straights are MUCH more dangerous than in Hold'em:
+    // - Multiple players often make different straights on the same board
+    // - The idiot end (bottom straight) is a classic cooler hand that loses max
+    // - Non-nut straights face HUGE reverse implied odds (you pay off the nut straight)
+    //
+    // What beats a non-nut straight:
+    //   Any higher straight, any flush, any full house, quads, straight flush.
+    //   On a board of 7-8-9: holding 5-6 (9-high straight) loses to ANYONE with T-J (J-high),
+    //   J-T (same), or T-6/T-5 wraps. EVERY higher straight crushes you.
+    let bestStraightHigh = -1;
     for (const { needed, high } of madeStrWindows) {
         const bO = needed.filter(r => bRanks.includes(r) && !hRanks.includes(r));
         const hO = needed.filter(r => !bRanks.includes(r) && hRanks.includes(r));
         const bth = needed.filter(r => bRanks.includes(r) && hRanks.includes(r));
         const miss = needed.filter(r => !bRanks.includes(r) && !hRanks.includes(r));
-        if (miss.length > 0) continue; // Not all 5 ranks present
-        // PLO rule: exactly 2 from hole, exactly 3 from board
-        // hO = hole-only, bO = board-only, bth = shared (can assign to either)
+        if (miss.length > 0) continue;
         if (hO.length > 2 || bO.length > 3) continue;
-        const needFromBth_hole = 2 - hO.length;  // How many shared ranks we assign to "hole"
-        const needFromBth_board = 3 - bO.length;  // How many shared ranks we assign to "board"
+        const needFromBth_hole = 2 - hO.length;
+        const needFromBth_board = 3 - bO.length;
         if (needFromBth_hole >= 0 && needFromBth_board >= 0 && needFromBth_hole + needFromBth_board <= bth.length) {
-            const straightStrength = 60 + high * 2;
-            if (straightStrength > bestStraight) {
-                bestStraight = straightStrength;
-                isNutStraight = high > boardTop + 1; // Top straight using high hole cards
+            if (high > bestStraightHigh) {
+                bestStraightHigh = high;
             }
         }
     }
-    if (bestStraight > 0) {
-        return { strength: Math.min(bestStraight, 90), category: isNutStraight ? 'nut_straight' : 'straight', isNut: isNutStraight, hasRedraw: false, isMade: true };
+    if (bestStraightHigh >= 0) {
+        // Determine the highest POSSIBLE straight on this board (nut straight)
+        let nutStraightHigh = -1;
+        for (const { needed, high } of madeStrWindows) {
+            const allAvail = [...new Set([...bRanks])]; // Board ranks available
+            // How many of the 5 needed ranks are on the board?
+            const boardHas = needed.filter(r => allAvail.includes(r));
+            // Need at least 3 on the board (PLO: 3 from board, 2 from hole)
+            if (boardHas.length >= 3) {
+                const missing = needed.filter(r => !allAvail.includes(r));
+                // The missing ranks must come from hole (exactly 2 or fewer needed)
+                if (missing.length <= 2) {
+                    if (high > nutStraightHigh) nutStraightHigh = high;
+                }
+            }
+        }
+
+        isNutStraight = bestStraightHigh === nutStraightHigh;
+        const straightsAbove = nutStraightHigh - bestStraightHigh; // How many higher straights exist
+
+        let straightStrength;
+        if (isNutStraight) {
+            straightStrength = 85; // Nut straight: very strong (only flushes/FH beat us)
+        } else if (straightsAbove === 1) {
+            straightStrength = 72; // 2nd nut straight: decent but one higher exists
+        } else if (straightsAbove === 2) {
+            straightStrength = 62; // 3rd nut: dangerous, play carefully
+        } else {
+            straightStrength = 52; // Idiot end / bottom straight: TRAP hand in PLO
+            // This is the hand that costs the most chips — you have a straight but
+            // it's the WORST possible straight, and anyone with a wrap has the nuts.
+        }
+
+        // Wheel (5-high) is always the worst straight — extra penalty
+        if (bestStraightHigh === 3) straightStrength = Math.min(straightStrength, 50);
+
+        bestStraight = straightStrength;
+        return {
+            strength: bestStraight,
+            category: isNutStraight ? 'nut_straight' : 'straight',
+            isNut: isNutStraight,
+            hasRedraw: false,
+            isMade: true,
+            vulnerability: straightsAbove // How many higher straights can exist
+        };
     }
 
     // ── Trips on board (one pair board + our pair = full house) ──
@@ -837,35 +918,68 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     for (const r of hRanks) hRankFreq[r] = (hRankFreq[r] || 0) + 1;
     const holePairs = Object.entries(hRankFreq).filter(([, c]) => c >= 2).map(([r]) => parseInt(r));
 
-    // ── Full House ──
+    // ── Full House — Bug #112: Comprehensive nut vs non-nut differentiation ──
+    // In PLO, full house RANK matters enormously:
+    // - Top full house (trips of the HIGHEST board card) is very strong
+    // - Middle full house is dangerous — higher FH exists in opponent's range
+    // - Bottom full house is a TRAP hand — it's the hand that loses the most money
+    //   because you feel great about having a boat but someone with higher trips stacks you.
+    //
+    // What beats each full house:
+    //   Any FH with trips of a higher rank, quads, straight flush.
+    //   On a K-K-7 board: KKK-xx beats 777-KK. If you have 777-KK (trips of 7),
+    //   ANYONE with a single King has a higher full house than you.
+    //
+    // Key PLO insight: the trips part determines who wins FH vs FH battles.
+    // If board is [K,K,7], having 7-7 (making 777-KK) LOSES to anyone with K-x (making KKK-xx).
     // Case A: Hole pair hits a board rank (making trips) AND another pair exists
     // Case B: Board has trips AND we have any pocket pair (boat)
-    // Phase 48 FIX: Was returning full_house for ANY hole pair when board had a pair,
-    // even when the hole pair didn't connect to the board at all.
     for (const hp of holePairs) {
         // Case A: Our pair matches a board card → we have trips
         if (bRanks.includes(hp)) {
-            // We have trips; any other pair on board completes the boat
             const otherBoardPairs = boardPairs.filter(bp => bp !== hp);
             if (otherBoardPairs.length > 0 || boardTrips.length > 0) {
-                const isTopSet = hp === boardTop;
+                // Determine nut status: are we making trips of the HIGHEST possible rank?
+                // The highest trips comes from having a pocket pair of the highest board card.
+                const sortedUniqueBoard = [...new Set(bRanks)].sort((a, b) => b - a);
+                const isTopTrips = hp === sortedUniqueBoard[0];
+                // Count how many HIGHER full houses exist (trips of higher board ranks)
+                const higherTripsRanks = sortedUniqueBoard.filter(br => br > hp && bRankFreq[br] >= 1);
+                const vulnerability = higherTripsRanks.length; // Each higher board rank can make a bigger FH
+
+                let fhStrength;
+                if (isTopTrips) {
+                    fhStrength = 90; // Top full house: very strong, only quads/SF beat us
+                } else if (vulnerability === 1) {
+                    fhStrength = 74; // One higher FH possible — moderate, be cautious
+                } else {
+                    fhStrength = 65; // 2+ higher FH possible — TRAP hand, play very carefully
+                }
                 return {
-                    strength: isTopSet ? 88 : 78,
+                    strength: fhStrength,
                     category: 'full_house',
-                    isNut: isTopSet,
-                    hasRedraw: isTopSet,
-                    isMade: true
+                    isNut: isTopTrips,
+                    hasRedraw: isTopTrips,
+                    isMade: true,
+                    vulnerability // How many higher full houses can exist
                 };
             }
         }
         // Case B: Board has trips and we have a pocket pair → boat
+        // Our FH = board trips + our pocket pair. Opponent with a higher pocket pair has a higher FH.
         if (boardTrips.length > 0) {
+            const tripRank = boardTrips[0];
+            // With board trips, FH rank = our pair rank (everyone has the same trips).
+            // Nut FH = AA (Aces full). We're the nut if our pair is higher than any board non-trip rank.
+            const isHighPair = hp >= 10; // JJ+ is a strong pair
+            const isAces = hp === 12;
             return {
-                strength: hp > boardTrips[0] ? 82 : 72,
+                strength: isAces ? 88 : isHighPair ? 78 : hp > tripRank ? 70 : 62,
                 category: 'full_house',
-                isNut: false,
+                isNut: isAces,
                 hasRedraw: false,
-                isMade: true
+                isMade: true,
+                vulnerability: isAces ? 0 : 12 - hp // How many pair ranks beat ours
             };
         }
     }
@@ -898,60 +1012,83 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         }
     }
 
-    // ── Bug #111 fix: Trips/Full House via single hole card + board pair ──
-    // In PLO, board pair + single matching hole card = trips (set).
+    // ── Bug #111 fix + Bug #112: Trips/Full House via single hole card + board pair ──
+    // In PLO, board pair + single matching hole card = trips.
     // If another hole card also pairs a different board card → full house.
     // Example: Board [K,K,7], Hole [K,7,J,Q] → KKK77 full house.
-    // This was missed because old code only checked pocket pairs (holePairs).
+    //
+    // CRITICAL for horses to understand:
+    // - Trips via board pair (1 hole + 2 board) is WEAKER than set via pocket pair (2 hole + 1 board)
+    //   because opponents can also easily have trips (they only need 1 card of the paired rank).
+    // - A SINGLE hole card making trips means ANYONE with a higher card of that rank beats us...
+    //   wait, it's the same rank. But opponents with a POCKET PAIR of that rank have QUADS.
+    // - Full house vulnerability: same as Case A — trips rank determines winner in FH vs FH.
     for (const bp of boardPairs) {
-        // Check if any single hole card matches this board pair rank
         const holeHasBP = hRanks.filter(hr => hr === bp);
         if (holeHasBP.length >= 1) {
             // We have trips of rank bp (1 from hole + 2 from board)
-            // Check if another hole card pairs a different board rank → full house
             const otherHoleRanks = hRanks.filter(hr => hr !== bp);
             const otherBoardRanks = [...new Set(bRanks.filter(br => br !== bp))];
             const secondPairRank = otherHoleRanks.find(hr => otherBoardRanks.includes(hr));
             if (secondPairRank !== undefined) {
                 // Full house: trips(bp) + pair(secondPairRank)
-                const isTopTrips = bp === boardTop || bp > Math.max(...otherBoardRanks, -1);
+                const sortedUniqueBoard = [...new Set(bRanks)].sort((a, b) => b - a);
+                const isTopTrips = bp === sortedUniqueBoard[0];
+                const higherTripsRanks = sortedUniqueBoard.filter(br => br > bp && bRankFreq[br] >= 1);
+                const vulnerability = higherTripsRanks.length;
+
+                // Bug #112: Trips via board pair is slightly weaker than via pocket pair
+                // (opponents more easily make the same trips with just 1 card)
+                let fhStrength;
+                if (isTopTrips) {
+                    fhStrength = 87; // Top FH via board pair — strong but slightly less than pocket pair FH
+                } else if (vulnerability === 1) {
+                    fhStrength = 70; // One higher FH possible
+                } else {
+                    fhStrength = 60; // Bottom FH — DANGER: multiple higher FH exist
+                }
                 return {
-                    strength: isTopTrips ? 85 : 75,
+                    strength: fhStrength,
                     category: 'full_house',
-                    isNut: isTopTrips && bp >= 10, // High trips = near-nut
+                    isNut: isTopTrips,
                     hasRedraw: false,
-                    isMade: true
+                    isMade: true,
+                    vulnerability
                 };
             }
             // Also check: another board pair exists (e.g., board [K,K,8,8])
             const otherBoardPairs = boardPairs.filter(p => p !== bp);
             if (otherBoardPairs.length > 0) {
                 const isTopTrips = bp >= Math.max(...otherBoardPairs);
+                const vulnerability = isTopTrips ? 0 : 1;
                 return {
-                    strength: isTopTrips ? 85 : 75,
+                    strength: isTopTrips ? 85 : 68,
                     category: 'full_house',
                     isNut: false,
                     hasRedraw: false,
-                    isMade: true
+                    isMade: true,
+                    vulnerability
                 };
             }
-            // No full house, but we have trips — classify as set
+            // No full house, but we have trips — classify as set/trips
+            // IMPORTANT: Trips via board pair = anyone with 1 card of this rank also has trips!
+            // Much weaker than hidden set (pocket pair + 1 on board).
             const isTopSet = bp === boardTop;
             const sortedBoardUnique = [...new Set(bRanks)].sort((a, b) => b - a);
             const tripPosition = sortedBoardUnique.indexOf(bp);
             let tripStrength;
             if (isTopSet) {
-                tripStrength = 72; // Trips via board pair slightly weaker than set via pocket pair
+                tripStrength = 68; // Trips of top card via board pair: decent but transparent
             } else if (tripPosition === 1) {
-                tripStrength = 56;
+                tripStrength = 52; // Middle trips: risky — top trips beats us
             } else {
-                tripStrength = 46;
+                tripStrength = 42; // Bottom trips: very weak — almost any other trips beats us
             }
             return {
                 strength: tripStrength,
                 category: isTopSet ? 'top_set' : tripPosition === 1 ? 'middle_set' : 'bottom_set',
                 isNut: false,
-                hasRedraw: false, // No full house redraw (unlike pocket-pair sets)
+                hasRedraw: false,
                 isMade: true
             };
         }
@@ -6301,16 +6438,72 @@ function evaluatePostflopHand(holeCards, board) {
         const pairs = Object.keys(rankCounts).filter(r => rankCounts[r] >= 2).map(Number);
         if (trips.length >= 1 && pairs.length >= 2) {
             if (heroRanks.some(r => rankCounts[r] >= 2)) {
-                // ═══ FULL HOUSE RANKING ═══
-                // Rank of trips matters most, then rank of pair
+                // ═══ BUG #112: NUT-VS-NON-NUT FULL HOUSE (Hold'em) ═══
+                // A full house's value depends heavily on WHERE it ranks among possible full houses.
+                // Top full house (nut) is a monster; bottom full house is a TRAP hand that loses the max.
+                //
+                // WHAT BEATS A NON-NUT FULL HOUSE:
+                //   - Quads (any quad beats any full house)
+                //   - Higher full house (higher trips rank, or same trips with higher pair)
+                //   - Straight flush (rare but devastating)
+                //
+                // VULNERABILITY CALCULATION:
+                //   Count how many HIGHER full houses are possible given the board.
+                //   Board [K,7,7]: KKK77 is nut FH. 777KK is 2nd. 777AA would need AA in hand.
+                //   Board [K,K,7]: KKK77 nut FH. KKK-AA needs A on board or in hand.
+
                 const bestTrip = Math.max(...trips.filter(t => heroRanks.includes(t) || boardRankCounts[t] >= 3));
                 const bestPair = Math.max(...pairs.filter(p => p !== bestTrip));
-                strength = 88; category = 'full_house';
-                // Higher trips = better full house
-                if (bestTrip >= 10) strength = 91; // Jacks full or better
-                if (bestTrip >= 12) strength = 93; // Kings full or better
-                // Hero has pocket pair that makes the trips part → VERY strong
+                category = 'full_house';
+
+                // Count how many higher full houses are possible
+                // CRITICAL distinction:
+                //   "criticalHigher" = board has 2+ of a rank above our trips → opponent needs just 1 card
+                //                      to make higher trips. This is VERY likely and VERY dangerous.
+                //   "moderateHigher" = board has 1 of a rank above our trips → opponent needs pocket pair
+                //                      of that rank. Less common but still possible.
+                //   "sameTripsHigherPair" = if board provides our trips, opponent's pair rank matters.
+                let criticalHigher = 0;
+                let moderateHigher = 0;
+                const allRanks = [0,1,2,3,4,5,6,7,8,9,10,11,12];
+
+                for (const r of allRanks) {
+                    if (r <= bestTrip) continue;
+                    const boardCount = boardRankCounts[r] || 0;
+                    if (boardCount >= 2) criticalHigher++; // Opponent with 1 card makes higher trips
+                    else if (boardCount >= 1) moderateHigher++; // Opponent needs pocket pair
+                }
+
+                // Same-trips scenario: board has 3 of bestTrip → everyone has trips, pair decides
+                let sameTripsHigherPair = 0;
+                if ((boardRankCounts[bestTrip] || 0) >= 3) {
+                    for (const r of allRanks) {
+                        if (r > bestPair && r !== bestTrip) sameTripsHigherPair++;
+                    }
+                }
+
+                // Assign strength based on vulnerability
+                if (criticalHigher === 0 && moderateHigher === 0 && sameTripsHigherPair === 0) {
+                    strength = 93; // Nut full house — no higher FH possible
+                } else if (criticalHigher === 0 && moderateHigher <= 2 && sameTripsHigherPair === 0) {
+                    strength = 90; // Near-nut — only pocket pairs above beat us (rare)
+                } else if (criticalHigher <= 1 && sameTripsHigherPair <= 3) {
+                    strength = 78; // Middle FH — one critical or a few same-trips above
+                } else {
+                    strength = 68; // Bottom FH — TRAP hand, many better FHs very likely
+                }
+
+                // Hero has pocket pair that makes the trips part → more disguised and stronger
                 if (heroRanks[0] === heroRanks[1] && heroRanks.includes(bestTrip)) strength += 2;
+
+                // Board trips scenario: everyone has trips, only pocket pair differentiates
+                if ((boardRankCounts[bestTrip] || 0) >= 3) {
+                    // Board has trips — hero's pair determines FH rank
+                    if (bestPair >= 12) strength = Math.max(strength, 88); // Aces full via board trips
+                    else if (bestPair >= 10) strength = Math.max(strength, 78); // JJ+ full via board trips
+                    else if (bestPair >= 7) strength = Math.max(strength, 70); // Medium pair
+                    else strength = Math.max(strength, 62); // Low pair — weakest FH
+                }
             }
         }
     }
@@ -6321,20 +6514,44 @@ function evaluatePostflopHand(holeCards, board) {
         if (flushSuit && heroSuits.includes(flushSuit)) {
             const flushCards = allCards.filter(c => c[1] === flushSuit).map(c => RANKS.indexOf(c[0])).sort((a, b) => b - a);
             const heroFlushCards = heroRanks.filter((r, i) => heroSuits[i] === flushSuit);
-            // ═══ FLUSH RANKING ═══
-            // How high is our highest flush card? This determines nut-ness.
-            strength = 82; category = 'flush';
-            if (heroFlushCards.includes(flushCards[0])) {
-                strength = 88; // Nut flush (highest flush card is ours)
-            } else if (heroFlushCards.includes(flushCards[1])) {
-                strength = 86; // Second nut flush
-            } else if (heroFlushCards.some(r => r >= 10)) {
-                strength = 84; // High flush (Jack+ high)
+            const maxHeroFlush = Math.max(...heroFlushCards);
+            category = 'flush';
+
+            // ═══ BUG #112: NUT-VS-NON-NUT FLUSH (Hold'em) ═══
+            // A flush's value is determined by the HIGHEST card in the flush.
+            // The nut flush (Ace-high) is a monster. A low flush is a TRAP hand.
+            //
+            // WHAT BEATS A NON-NUT FLUSH:
+            //   - Any higher flush (opponent has a higher card of the same suit)
+            //   - Full house, quads, straight flush
+            //
+            // VULNERABILITY: Count how many cards of the flush suit are HIGHER than
+            // our best flush card AND not already on the board or in our hand.
+            // Each such card = one possible higher flush an opponent could hold.
+
+            const boardFlushCards = boardRanks.filter((r, i) => boardSuits[i] === flushSuit);
+            const knownFlushCards = [...new Set([...boardFlushCards, ...heroFlushCards])];
+            let higherFlushCount = 0;
+            for (let r = maxHeroFlush + 1; r <= 12; r++) {
+                if (!knownFlushCards.includes(r)) higherFlushCount++;
             }
+
+            if (higherFlushCount === 0) {
+                strength = 90; // Nut flush — no higher flush possible
+            } else if (higherFlushCount === 1) {
+                strength = 82; // 2nd nut flush (K-high when Ace not accounted for)
+            } else if (higherFlushCount === 2) {
+                strength = 74; // Q-high flush — two higher flushes possible
+            } else {
+                strength = 60 + maxHeroFlush; // Lower flushes: base + rank bonus
+                // J-high = 70, T-high = 69, 9-high = 68, etc.
+            }
+
             // ═══ BOARD FLUSH WARNING ═══
-            // If 4+ flush cards are on the board, our flush is less valuable
+            // If 4+ flush cards are on the board, our flush is MUCH less valuable
+            // because anyone with a SINGLE card of that suit also has a flush
             const boardFlushCount = boardSuits.filter(s => s === flushSuit).length;
-            if (boardFlushCount >= 4) strength -= 5; // Anyone with one card of this suit has a flush
+            if (boardFlushCount >= 4) strength -= 8; // One-card flush = very common for opponents
         }
     }
 
@@ -6342,31 +6559,87 @@ function evaluatePostflopHand(holeCards, board) {
     if (category === 'high_card') {
         const uniqueRanks = [...new Set(ranks)].sort((a, b) => a - b);
         let foundStraight = false;
+        let bestStraightHigh = -1;
+
+        // First, find the BEST straight hero is part of
         for (let i = uniqueRanks.length - 1; i >= 4; i--) {
             if (uniqueRanks[i] - uniqueRanks[i - 4] === 4) {
                 const straightRanks = uniqueRanks.slice(i - 4, i + 1);
                 if (heroRanks.some(r => straightRanks.includes(r))) {
-                    strength = 75; category = 'straight';
-                    // ═══ STRAIGHT RANKING ═══
-                    if (heroRanks.includes(straightRanks[4])) strength = 80; // Top of straight (nut end)
-                    else if (heroRanks.includes(straightRanks[0])) strength = 73; // Bottom of straight (idiot end)
-                    // ═══ BOARD STRAIGHT WARNING ═══
-                    // If 4 of the 5 straight cards are on the board, our straight is vulnerable
-                    const boardStraightCards = straightRanks.filter(r => boardRanks.includes(r));
-                    if (boardStraightCards.length >= 4) strength -= 5; // One-card straight
+                    bestStraightHigh = straightRanks[4]; // Top card of our best straight
                     foundStraight = true;
+                    break;
                 }
-                // ═══ Phase 44 FIX: was `break` unconditionally — if hero doesn't contribute to the
-                // highest straight, we must keep looking for lower straights hero IS part of ═══
-                if (foundStraight) break;
             }
         }
-        // Wheel straight (A-2-3-4-5)
+        // Check wheel straight (A-2-3-4-5)
         if (!foundStraight && uniqueRanks.includes(12) && uniqueRanks.includes(0) && uniqueRanks.includes(1) && uniqueRanks.includes(2) && uniqueRanks.includes(3)) {
             if (heroRanks.some(r => [12, 0, 1, 2, 3].includes(r))) {
-                strength = 72; category = 'straight';
-                // Wheel is the lowest straight — vulnerable to higher straights
+                bestStraightHigh = 3; // Wheel tops out at 5 (rank 3)
+                foundStraight = true;
             }
+        }
+
+        if (foundStraight) {
+            category = 'straight';
+
+            // ═══ BUG #112: NUT-VS-NON-NUT STRAIGHT (Hold'em) ═══
+            // A straight's value depends on whether it's the NUT straight (highest possible)
+            // or if higher straights exist that DESTROY us.
+            //
+            // WHAT BEATS A NON-NUT STRAIGHT:
+            //   - Any higher straight (opponent holds cards making a higher 5-card run)
+            //   - Flush (any flush beats any straight)
+            //   - Full house, quads, straight flush
+            //
+            // VULNERABILITY: Compute the NUT straight high on this board, then measure
+            // how far below it our straight is.
+
+            // Compute nut straight: the highest possible straight using these board cards
+            const boardUniqueRanks = [...new Set(boardRanks)].sort((a, b) => a - b);
+            let nutStraightHigh = -1;
+
+            // Check all possible straights (high card from 4 to 12)
+            for (let high = 12; high >= 4; high--) {
+                const needed = [high, high-1, high-2, high-3, high-4];
+                const boardHas = needed.filter(r => boardUniqueRanks.includes(r)).length;
+                // In Hold'em, a straight needs at least 3 board cards (hero has 2 hole cards max)
+                if (boardHas >= 3) {
+                    nutStraightHigh = high;
+                    break;
+                }
+            }
+            // Check wheel as nut (only if no higher straight found)
+            if (nutStraightHigh === -1) {
+                const wheelRanks = [12, 0, 1, 2, 3];
+                const boardWheelCount = wheelRanks.filter(r => boardUniqueRanks.includes(r)).length;
+                if (boardWheelCount >= 3) nutStraightHigh = 3;
+            }
+
+            const vulnerability = nutStraightHigh - bestStraightHigh;
+
+            if (vulnerability === 0) {
+                strength = 85; // Nut straight — highest possible
+            } else if (vulnerability === 1) {
+                strength = 74; // 2nd nut straight — one higher exists
+            } else if (vulnerability === 2) {
+                strength = 66; // 3rd nut straight
+            } else {
+                strength = 55; // Idiot end / bottom straight — TRAP hand
+            }
+
+            // Wheel is always capped — lowest possible straight
+            if (bestStraightHigh === 3) {
+                strength = Math.min(strength, 52); // Wheel cap
+            }
+
+            // ═══ BOARD STRAIGHT WARNING ═══
+            // If 4 of the 5 straight cards are on the board, anyone with 1 card has the straight
+            const bestStraightRanks = bestStraightHigh === 3
+                ? [12, 0, 1, 2, 3]
+                : [bestStraightHigh, bestStraightHigh-1, bestStraightHigh-2, bestStraightHigh-3, bestStraightHigh-4];
+            const boardStraightCards = bestStraightRanks.filter(r => boardRanks.includes(r));
+            if (boardStraightCards.length >= 4) strength -= 5; // One-card straight = very common
         }
     }
 
