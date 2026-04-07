@@ -5295,9 +5295,19 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // + backdoor draws. On a SAFE TURN (no flush completes, no board pair), THEN raise.
     const isNakedNutStraightFacing = (madeHand.category === 'nut_straight' || madeHand.category === 'straight')
         && madeHand.isNut && !madeHand.hasRedraw;
-    if (isNakedNutStraightFacing && street === 'flop' && canCall) {
-        console.log('[HorseBrain] 🎯 BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop — flatting to avoid freeroll.');
-        return { type: 'call' };
+    if (isNakedNutStraightFacing && street === 'flop') {
+        // Exception: if calling would commit 60%+ of our stack, just go all-in
+        // (no point in "protecting" against freerolls when we're already pot-committed)
+        const stack = stackBB * bb;
+        const callFraction = stack > 0 ? toCall / stack : 0;
+        if (callFraction >= 0.60) {
+            console.log(`[HorseBrain] 🎯 BUG #118 PLO FREEROLL OVERRIDE: call is ${Math.round(callFraction * 100)}% of stack — shoving with nut straight.`);
+            return { type: 'all_in' };
+        }
+        if (canCall) {
+            console.log('[HorseBrain] 🎯 BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop — flatting to avoid freeroll.');
+            return { type: 'call' };
+        }
     }
     // Bug #118 turn escalation: naked nut straight on a SAFE turn → NOW raise
     if (isNakedNutStraightFacing && street === 'turn' && canRaise) {
