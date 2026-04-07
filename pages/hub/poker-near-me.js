@@ -52,6 +52,108 @@ const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
 const RADIUS_TIERS = [50, 100, 200, 500]; // Progressive radius expansion for "Load More"
 
+// ═══ CITY COORDINATES — used to place individual tour stop pins on the map ═══
+const TOUR_CITY_COORDS = {
+    'las vegas, nv': [36.1699, -115.1398],
+    'hollywood, fl': [26.0112, -80.1495],
+    'atlantic city, nj': [39.3643, -74.4229],
+    'lincoln, ca': [38.8916, -121.293],
+    'durant, ok': [33.9943, -96.3709],
+    'tampa, fl': [27.9506, -82.4572],
+    'bell gardens, ca': [33.9653, -118.1514],
+    'elgin, il': [42.0354, -88.2826],
+    'lake tahoe, nv': [39.0968, -120.0324],
+    'tunica, ms': [34.6846, -90.3829],
+    'biloxi, ms': [30.396, -88.8853],
+    'cherokee, nc': [35.4743, -83.3146],
+    'san diego, ca': [32.7157, -117.1611],
+    'el cajon, ca': [32.7948, -116.9625],
+    'portland, or': [45.5155, -122.6789],
+    'council bluffs, ia': [41.2619, -95.8608],
+    'black hawk, co': [39.7969, -105.4903],
+    'choctaw, ok': [35.4976, -97.2687],
+    'shreveport, la': [32.5252, -93.7502],
+    'new orleans, la': [29.9511, -90.0715],
+    'kinder, la': [30.4855, -92.851],
+    'gulfport, ms': [30.3674, -89.0928],
+    'marksville, la': [31.1268, -92.0632],
+    'oklahoma city, ok': [35.4676, -97.5164],
+    'minneapolis, mn': [44.9778, -93.265],
+    'kansas city, mo': [39.0997, -94.5786],
+    'st. louis, mo': [38.627, -90.1994],
+    'los angeles, ca': [34.0522, -118.2437],
+    'phoenix, az': [33.4484, -112.074],
+    'scottsdale, az': [33.4942, -111.9261],
+    'chicago, il': [41.8781, -87.6298],
+    'east chicago, in': [41.6354, -87.4473],
+    'gary, in': [41.5934, -87.3464],
+    'detroit, mi': [42.3314, -83.0458],
+    'bismarck, nd': [46.8083, -100.7837],
+    'fargo, nd': [46.8772, -96.7898],
+    'deadwood, sd': [44.3767, -103.7296],
+    'thackerville, ok': [33.7918, -97.1303],
+    'mount pleasant, mi': [43.5978, -84.7753],
+    'prior lake, mn': [44.7133, -93.4227],
+    'welch, mn': [44.5669, -92.7233],
+    'columbus, mn': [45.2448, -93.0343],
+    'charleston, wv': [38.3498, -81.6326],
+    'temecula, ca': [33.4936, -117.1484],
+    'west palm beach, fl': [26.7153, -80.0534],
+    'jacksonville, fl': [30.3322, -81.6557],
+    'austin, tx': [30.2672, -97.7431],
+    'round rock, tx': [30.5083, -97.6789],
+    'houston, tx': [29.7604, -95.3698],
+    'san jose, ca': [37.3382, -121.8863],
+    'commerce, ca': [33.9975, -118.1597],
+    'bossier city, la': [32.516, -93.7321],
+    'fort yates, nd': [46.0886, -100.6301],
+    'mandan, nd': [46.8267, -100.8891],
+    'dickinson, nd': [46.8792, -102.7896],
+    'belcourt, nd': [48.8411, -99.7457],
+    'philadelphia, pa': [39.9526, -75.1652],
+    'choctaw, ms': [32.7693, -89.117],
+    'larchwood, ia': [43.4525, -96.5378],
+    'riverside, ia': [41.4797, -91.5829],
+    'st. charles, mo': [38.7881, -90.4974],
+    'milwaukee, wi': [43.0389, -87.9065],
+    'battle creek, mi': [42.3212, -85.1797],
+    'cleveland, oh': [41.4993, -81.6944],
+    'cincinnati, oh': [39.1031, -84.512],
+    'columbus, oh': [39.9612, -82.9988],
+    'pittsburgh, pa': [40.4406, -79.9959],
+    'denver, co': [39.7392, -104.9903],
+    'salt lake city, ut': [40.7608, -111.891],
+    'reno, nv': [39.5296, -119.8138],
+    'laughlin, nv': [35.1679, -114.5716],
+    'henderson, nv': [36.0395, -114.9817],
+    'miami, fl': [25.7617, -80.1918],
+    'orlando, fl': [28.5383, -81.3792],
+    'daytona beach, fl': [29.2108, -81.0228],
+    'memphis, tn': [35.1495, -90.049],
+    'nashville, tn': [36.1627, -86.7816],
+    'atlanta, ga': [33.749, -84.388],
+    'charlotte, nc': [35.2271, -80.8431],
+    'richmond, va': [37.5407, -77.436],
+    'baltimore, md': [39.2904, -76.6122],
+    'washington, dc': [38.9072, -77.0369],
+    'boston, ma': [42.3601, -71.0589],
+    'new york, ny': [40.7128, -74.006],
+    'minnetonka, mn': [44.9211, -93.4687],
+    'burnsville, mn': [44.7677, -93.2777],
+    'isle, mn': [46.1478, -93.4694],
+};
+
+function resolveCityCoords(location) {
+    if (!location) return null;
+    const key = location.toLowerCase().trim();
+    if (TOUR_CITY_COORDS[key]) return TOUR_CITY_COORDS[key];
+    const cityPart = key.split(',')[0].trim();
+    for (const [k, v] of Object.entries(TOUR_CITY_COORDS)) {
+        if (k.startsWith(cityPart + ',')) return v;
+    }
+    return null;
+}
+
 // Tab order for swipe navigation
 const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
 const EVENTS_SUB_TABS = ['tours', 'series', 'daily', 'calendar'];
@@ -236,27 +338,89 @@ export default function PokerNearMePage() {
     const [dailyTournaments, setDailyTournaments] = useState([]);
     const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
 
-    // ═══ MERGE TOUR STOPS INTO MAP VENUES — so tours appear as red pins ═══
+
+    // ═══ MERGE TOUR STOPS INTO MAP VENUES — individual stop pins, date-aware ═══
+    // Each active/upcoming stop in stops_2026 becomes its own red pin on the map.
+    // Correctly places MSPT Minnesota Apr 7-19 in Columbus MN, East Chicago Apr 21 in East Chicago IN, etc.
     const allVenuesWithTours = useMemo(() => {
-        const tourPins = (tours || []).reduce((acc, tour) => {
-            if (tour.latitude && tour.longitude) {
-                acc.push({
-                    id: 'tour-' + (tour.id || tour.tour_code),
-                    name: tour.name || tour.tour_name || tour.tour_code,
+        const today = new Date();
+
+        today.setHours(0, 0, 0, 0);
+        const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+
+        function parseStopDates(dateStr) {
+            if (!dateStr) return null;
+            const parts = dateStr.split(/\s*[-–]\s*/);
+            function parseOne(s, fallbackMonth) {
+                if (!s) return null;
+                s = s.trim().replace(',', '');
+                const m = s.match(/^([A-Z][a-z]{2})\s+(\d{1,2})(?:\s+(\d{4}))?/);
+                if (m) {
+                    const month = MONTHS[m[1]];
+                    if (month === undefined) return null;
+                    return new Date(m[3] ? parseInt(m[3]) : 2026, month, parseInt(m[2]));
+                }
+                const dayOnly = s.match(/^(\d{1,2})$/);
+                if (dayOnly && fallbackMonth !== undefined) return new Date(2026, fallbackMonth, parseInt(dayOnly[1]));
+                return null;
+            }
+            const start = parseOne(parts[0]);
+            if (!start) return null;
+            const end = parts.length >= 2 ? (parseOne(parts[parts.length - 1], start.getMonth()) || start) : start;
+            return { start, end };
+        }
+
+        const tourPins = [];
+        const seen = new Set(); // prevent duplicate pins at same city for same tour
+
+        (tours || []).forEach(tour => {
+            const allStops = [
+                ...(tour.stops_2026 || []).map(s => ({ ...s, _type: 'stop' })),
+                ...(tour.series_2026 || []).map(s => ({ ...s, _type: 'series' })),
+            ];
+
+            allStops.forEach((stop, idx) => {
+                const dates = parseStopDates(stop.dates);
+                // Only show current or upcoming stops (end date >= today)
+                if (dates && dates.end < today) return;
+
+                const location = stop.location || '';
+                const coords = resolveCityCoords(location);
+                if (!coords) return; // skip if no coords
+
+                const [lat, lng] = coords;
+                const dedupeKey = `${tour.tour_code}-${location.toLowerCase()}`;
+                if (seen.has(dedupeKey)) return;
+                seen.add(dedupeKey);
+
+                const isActive = dates && dates.start <= today && dates.end >= today;
+                const locParts = location.split(',');
+                const city = locParts[0]?.trim() || '';
+                const state = locParts[1]?.trim() || '';
+
+                tourPins.push({
+                    id: `tour-stop-${tour.tour_code}-${idx}`,
+                    name: stop.name || `${tour.tour_name || tour.tour_code} — ${city}`,
+                    stop_name: stop.name || '',
                     venue_type: 'tour_stop',
                     tour_code: tour.tour_code,
-                    tour_name: tour.name || tour.tour_name,
+                    tour_name: tour.tour_name || tour.tour_code,
                     logo_url: tour.logo_url,
-                    latitude: tour.latitude,
-                    longitude: tour.longitude,
-                    city: tour.city || '',
-                    state: tour.state || '',
-                    is_running: tour.is_running,
+                    latitude: lat,
+                    longitude: lng,
+                    city,
+                    state,
+                    location,
+                    dates: stop.dates || '',
+                    buyin: stop.buyin,
+                    is_running: isActive,
+                    has_tournaments: true,
                 });
-            }
-            return acc;
-        }, []);
+            });
+        });
+
         return [...allVenuesForMap, ...tourPins];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allVenuesForMap, tours]);
 
     // Live table count for map stats (fetched from live-tables API)

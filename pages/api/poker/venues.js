@@ -1069,8 +1069,10 @@ export default async function handler(req, res) {
                           if (todayTour) {
                               v.is_today = true;
                               v.next_event = null;
+                              v.has_tournaments = true; // ← VDT rows confirm tournaments exist
                           } else {
                               v.is_today = false;
+                              v.has_tournaments = true; // ← VDT rows confirm tournaments exist
                               // Find closest next day
                               for (let i = 1; i <= 7; i++) {
                                   const nextIdx = (todayIdx + i) % 7;
