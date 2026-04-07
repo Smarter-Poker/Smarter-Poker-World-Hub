@@ -395,7 +395,65 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
             "last_scraped":   ts_now,
         })
 
+    # ── Strategy 3: Plain-text line-by-line (PDF schedules, text-only pages) ──
+    # Catches "Monday 7:00 PM $125 NLH" style lines common in PDF calendars
+    DAY_PAT = re.compile(
+        r'\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|'
+        r'Mon|Tue|Wed|Thu|Fri|Sat|Sun|Daily|Nightly|Weekday|Weekend)\b',
+        re.IGNORECASE
+    )
+    DAY_MAP = {'Mon':'Monday','Tue':'Tuesday','Wed':'Wednesday','Thu':'Thursday',
+               'Fri':'Friday','Sat':'Saturday','Sun':'Sunday'}
+    for line in html.split('\n'):
+        line = line.strip()
+        if len(line) < 12 or len(line) > 300 or '$' not in line:
+            continue
+        tm = re.search(r'((?:[01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|am|pm|a\.m\.|p\.m\.)?|\b[1-9]\d?\s*(?:AM|PM|am|pm)\b)', line)
+        bi = re.search(r'\$(\d{1,3}(?:,\d{3})*)', line)
+        if not tm or not bi:
+            continue
+        buyin = int(bi.group(1).replace(',', ''))
+        if not 10 <= buyin <= 50000:
+            continue
+        start_time = tm.group(1).upper().strip().replace('A.M.','AM').replace('P.M.','PM')
+        if start_time.endswith('A'): start_time += 'M'
+        elif start_time.endswith('P'): start_time += 'M'
+        event_date = parse_date_from_text(line)
+        day_m = DAY_PAT.search(line) if not event_date else None
+        day_of_week = None
+        if day_m:
+            d = day_m.group(1).capitalize()
+            day_of_week = DAY_MAP.get(d, d)
+        game = "NLH"
+        if re.search(r'\bPLO\b', line, re.I): game = "PLO"
+        elif re.search(r'\bOmaha\b', line, re.I): game = "Omaha"
+        elif re.search(r'\bMixed\b', line, re.I): game = "Mixed"
+        fmt = None
+        for f, pat in [("Deep Stack","deep.?stack"),("Bounty","bounty"),
+                       ("Mystery Bounty","mystery.?bounty"),("Rebuy","rebuy"),
+                       ("Turbo","turbo"),("Satellite","satellite")]:
+            if re.search(pat, line, re.I): fmt = f; break
+        gtd = None
+        gm = re.search(r'(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)', line, re.I)
+        if gm: gtd = int(gm.group(1).replace(',',''))
+        dedup_key = f"{event_date or day_of_week}-{start_time}-{buyin}-{game}"
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        results.append({
+            "venue_name": venue_name, "day_of_week": day_of_week or "Daily",
+            "event_date": event_date, "start_time": start_time, "buy_in": buyin,
+            "game_type": game, "format": fmt, "guaranteed": gtd,
+            "starting_stack": None, "blind_levels": None, "rebuy_addon": None,
+            "late_registration": None, "tournament_name": None,
+            "source_url": source_url, "data_quality": "scraped_verified",
+            "scrape_html_hash": html_hash, "scrape_timestamp": ts_now,
+            "scrape_batch_id": BATCH_ID, "scrape_confidence": "medium",
+            "is_active": True, "last_scraped": ts_now,
+        })
+
     return results
+
 
 
 # ── Anti-hallucination guard ──────────────────────────────────────────────────

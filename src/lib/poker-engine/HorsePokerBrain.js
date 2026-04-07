@@ -1260,10 +1260,12 @@ function evaluatePLO8Low(holeCards, boardCards) {
 function getPLOSPRZone(effectiveStack, potSize) {
     if (potSize <= 0) return { zone: 'deep', shouldCommit: false, note: 'no_pot' };
     const spr = effectiveStack / potSize;
+    // Bug #120: PLO SPR zones — tighter commit thresholds than Hold'em.
+    // In PLO, even at SPR 2-3 you still have play — only auto-commit at SPR ≤ 2.
     if (spr <= 1) return { zone: 'committed', shouldCommit: true, note: 'all_in_or_fold' };
-    if (spr <= 3) return { zone: 'shallow', shouldCommit: true, note: 'commit_sets_and_wraps' };
-    if (spr <= 6) return { zone: 'medium', shouldCommit: false, note: 'commit_only_nuts' };
-    if (spr <= 13) return { zone: 'deep', shouldCommit: false, note: 'pot_control_draws' };
+    if (spr <= 2) return { zone: 'shallow', shouldCommit: true, note: 'commit_sets_and_wraps' };
+    if (spr <= 4) return { zone: 'medium', shouldCommit: false, note: 'commit_only_nuts' };
+    if (spr <= 10) return { zone: 'deep', shouldCommit: false, note: 'pot_control_draws' };
     return { zone: 'very_deep', shouldCommit: false, note: 'value_oriented_plays' };
 }
 
@@ -5075,7 +5077,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         toCall > 0 ? toCall / (potSize + toCall) : 0,
         stackBB,
         numPlayers,
-        boardTexture.isWet || false
+        boardTexture.isWet || false,
+        street
     );
     if (rioGuard.shouldBlock) console.log(`[HorseBrain] 🔄 MODULE 27 RIO BLOCK: ${rioGuard.reason}`);
 
@@ -5416,7 +5419,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         return { type: 'call' };
 
     // ─── MODULE 27: RIO GUARD — veto draw calls when RIO > forward implied odds ───
-    if (rioGuard.shouldBlock && toCall > 0 && !madeHand.isMade) {
+    // Bug #122: Exempt NUT draws from RIO block — nut flush draws and nut straight draws
+    // have minimal reverse implied odds because you have the best possible hand when you hit.
+    if (rioGuard.shouldBlock && toCall > 0 && !madeHand.isMade && !isNutDraw) {
         console.log(`[HorseBrain] 🚫 MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
@@ -16900,9 +16905,11 @@ function isSqueezeOverkill(oppId) {
 // ─────────────────────────────────────────────────────────────────────────────
 // MODULE 27: REVERSE IMPLIED ODDS GUARD
 // ─────────────────────────────────────────────────────────────────────────────
-function detectReverseImplied(outs, potOdds, effectiveStack, numOpponents, boardIsWet) {
+function detectReverseImplied(outs, potOdds, effectiveStack, numOpponents, boardIsWet, street) {
     if (outs <= 0) return { shouldBlock: false, rioFactor: 0, reason: 'no draw outs — made hand' };
-    const drawEquity = Math.min(outs * 2.0, 45) / 100;
+    // Bug #122: Use 2-street equity on flop (rule of 4), single-street on turn (rule of 2)
+    const perOut = (street === 'turn') ? 2.0 : 3.5; // Flop: ~3.5% per out (2 cards to come)
+    const drawEquity = Math.min(outs * perOut, 65) / 100;
     const forwardImplied = drawEquity * effectiveStack * 0.6;
     const rioMultiplier = boardIsWet ? (1 + numOpponents * 0.3) : (1 + numOpponents * 0.15);
     const reverseImplied = potOdds * effectiveStack * rioMultiplier;

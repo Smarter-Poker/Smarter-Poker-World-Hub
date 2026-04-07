@@ -575,6 +575,9 @@ export default function PokerNearMePage() {
     // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
     // then fall back to TOUR_CITY_COORDS, then tour.latitude/longitude.
     // Tour pins offset slightly from venue pins so both are visible simultaneously.
+    // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
+    // MUST be declared before allVenuesWithTours useMemo which reads .current
+    const globalSearchModeRef = useRef(false);
     const allVenuesWithTours = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -996,8 +999,7 @@ export default function PokerNearMePage() {
     const [showSearchHistory, setShowSearchHistory] = useState(false);
     const searchDebounceRef = useRef(null);
     const searchWrapperRef = useRef(null);
-    // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
-    const globalSearchModeRef = useRef(false);
+
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
 
     // Map view filters (for enhanced map-first experience)
