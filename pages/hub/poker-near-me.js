@@ -788,6 +788,43 @@ export default function PokerNearMePage() {
             if (tp.host_venue_name) consumedVenueNames.add(tp.host_venue_name.toLowerCase());
         });
 
+        // --- NEW: Deduplicate charity venues so they only show ONE pin (the "next" or primary event) ---
+        const charityBestIds = new Set();
+        const charityGroups = new Map();
+
+        allVenuesForMap.forEach(v => {
+            if (v.venue_type === 'charity' && v.name) {
+                let bn = v.name.replace(/\s*\(.*\)/g, ''); // Remove parentheticals like (CCG Poker)
+                bn = bn.split(' — ')[0]; // Em dash
+                bn = bn.split(' - ')[0]; // En dash / Hyphen
+                bn = bn.split(' @ ')[0];
+                bn = bn.toLowerCase().trim();
+                
+                if (!charityGroups.has(bn)) {
+                    charityGroups.set(bn, []);
+                }
+                charityGroups.get(bn).push(v);
+            }
+        });
+
+        charityGroups.forEach(group => {
+            if (group.length === 1) {
+                charityBestIds.add(group[0].id);
+            } else {
+                // Sort to pick the "best" and "next" event representation
+                const sorted = group.sort((a, b) => {
+                    // Prefer venues with actual data (complete scrape) over empty stubs
+                    if (a.scrape_status === 'complete' && b.scrape_status !== 'complete') return -1;
+                    if (b.scrape_status === 'complete' && a.scrape_status !== 'complete') return 1;
+                    // Tie breakers: highest trust_score, then most recently scraped/added (highest id)
+                    if ((b.trust_score || 0) !== (a.trust_score || 0)) return (b.trust_score || 0) - (a.trust_score || 0);
+                    return b.id - a.id; 
+                });
+                charityBestIds.add(sorted[0].id);
+            }
+        });
+        // -------------------------------------------------------------------------------------------------
+
         // Combine: exclude venue entries that are already represented inside a tour double-icon
         // Also exclude 'series' and 'tour' parent entries — these are NOT real venues.
         // They should only appear on the map through the date-aware tour-stop pin logic above.
@@ -795,8 +832,27 @@ export default function PokerNearMePage() {
             // Strip out parent tour/series metadata records (e.g. "Illinois Poker Championship")
             // These have coordinates but are NOT playable venues — they're tour containers
             if (v.venue_type === 'series' || v.venue_type === 'tour') return false;
-            if (!v.name) return true;
-            return !consumedVenueNames.has(v.name.toLowerCase());
+            
+            // Name-based deduplication
+            if (v.name && consumedVenueNames.has(v.name.toLowerCase())) return false;
+            
+            // Charity deduplication (allow only ONE venue per charity brand)
+            if (v.venue_type === 'charity' && v.id) {
+                if (!charityBestIds.has(v.id)) return false;
+            }
+            
+            // Coordinate-based deduplication: aggressive removal of any separate pins sitting right underneath
+            // a tour pin (within ~0.1 miles). This handles cases like "Grand Victoria" vs "Grand Victoria Casino".
+            if (v.latitude && v.longitude) {
+                for (const tp of tourPins) {
+                    const dlat = (v.latitude - tp.latitude) * 69;
+                    const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
+                    const dist = Math.sqrt(dlat * dlat + dlng * dlng);
+                    if (dist < 0.1) return false;
+                }
+            }
+            
+            return true;
         });
         const combined = [...filteredVenues, ...tourPins];
 
