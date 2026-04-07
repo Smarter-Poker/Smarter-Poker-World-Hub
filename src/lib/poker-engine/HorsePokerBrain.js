@@ -4812,7 +4812,7 @@ function auditPLODecision(proposedAction, {
  * @param {number} numPlayers
  * @param {Object} [handStructure] - From enhancePLOPreflopScore: {doubleSuitBonus, connectivityScore, pairBonus, danglerPenalty}
  */
-function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction, toCall, bb, stackBB, position, numPlayers, handStructure) {
+function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction, toCall, bb, stackBB, position, numPlayers, handStructure, potSize) {
     const isBTN = position === 'BTN';
     const isSB = position === 'SB';
     const isBB = position === 'BB';
@@ -4876,22 +4876,24 @@ function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
 
     // Facing a re-raise (4-bet spot) — need top 5% hands
     // Use raiseFacingAdj: speculative hands should NOT be calling 3-bets
+    // Bug #135: Use pot-raise formula, not arbitrary multipliers (PLO is pot-limit)
     const isFacing3Bet = toCall > bb * 8;
     if (isFacing3Bet) {
         if (raiseFacingAdj >= 88 && canRaise) {
-            const size = Math.round(toCall * 2.5);
-            return { type: raiseAction?.type || 'raise', amount: Math.min(size, raiseAction?.maxAmount || size) };
+            const potRaise4b = calcPLOPotRaise(potSize, toCall, raiseAction);
+            return { type: raiseAction?.type || 'raise', amount: potRaise4b };
         }
         if (raiseFacingAdj >= 70 && canCall) return { type: 'call' }; // Flat with premium
         return { type: 'fold' };
     }
 
     // Facing a raise (3-bet spot) — use raiseFacingAdj for call thresholds
+    // Bug #135: Use pot-raise formula (PLO is pot-limit)
     const isFacingRaise = toCall > bb * 2.5;
     if (isFacingRaise) {
         if (raiseFacingAdj >= 78 && canRaise) {
-            const size3b = Math.round(toCall * 3);
-            return { type: raiseAction?.type || 'raise', amount: Math.min(size3b, raiseAction?.maxAmount || size3b) };
+            const potRaise3b = calcPLOPotRaise(potSize, toCall, raiseAction);
+            return { type: raiseAction?.type || 'raise', amount: potRaise3b };
         }
         if (raiseFacingAdj >= 62 && canCall) return { type: 'call' };
         if (raiseFacingAdj >= 48 && isIP && canCall) return { type: 'call' }; // IP flat — raised threshold from 45 to 48
@@ -4899,10 +4901,11 @@ function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
     }
 
     // Facing an open — mild penalty applies
+    // Bug #135: Use pot-raise formula (PLO is pot-limit)
     if (toCall > bb) {
         if (raiseFacingAdj >= 65 && canRaise) {
-            const size = Math.round(toCall * 3.5);
-            return { type: raiseAction?.type || 'raise', amount: Math.min(size, raiseAction?.maxAmount || size) };
+            const potRaiseVsOpen = calcPLOPotRaise(potSize, toCall, raiseAction);
+            return { type: raiseAction?.type || 'raise', amount: potRaiseVsOpen };
         }
         if (raiseFacingAdj >= 48 && canCall) return { type: 'call' };
         if (raiseFacingAdj >= 38 && isIP && canCall) return { type: 'call' }; // Raised from 35 to 38
@@ -5107,7 +5110,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // Bug #79: Pass hand structure to preflop action for raise-facing playability penalties
         return getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
-            toCall, bb, stackBB, position, numPlayers, preflopEnhancement);
+            toCall, bb, stackBB, position, numPlayers, preflopEnhancement, potSize);
     }
 
     // ─── POSTFLOP ───

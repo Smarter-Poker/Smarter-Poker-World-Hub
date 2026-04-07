@@ -17790,6 +17790,206 @@ test('E2E Bug #134: Non-nut flush facing river donk does NOT raise via Module 24
     expect(raiseCount <= 5).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ STRESS TEST: 500 random PLO scenarios ══');
+// ═══════════════════════════════════════════════════════════
+
+test('STRESS: 500 random PLO scenarios — zero NaN, zero undefined, zero crashes, zero all_in', () => {
+    const ranks = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+    const suits = ['h','d','c','s'];
+    const streets = ['preflop','flop','turn','river'];
+    const positions = ['UTG','UTG+1','MP','HJ','CO','BTN','SB','BB'];
+    const validTypes = new Set(['fold','check','call','raise','bet']);
+
+    function randomCard(usedSet) {
+        let card;
+        do {
+            card = ranks[Math.floor(Math.random() * 13)] + suits[Math.floor(Math.random() * 4)];
+        } while (usedSet.has(card));
+        usedSet.add(card);
+        return card;
+    }
+
+    let nanCount = 0, undefinedCount = 0, crashCount = 0, allInCount = 0, invalidType = 0;
+
+    for (let i = 0; i < 500; i++) {
+        try {
+            const used = new Set();
+            const street = streets[Math.floor(Math.random() * 4)];
+            const numHole = Math.random() < 0.1 ? 5 : 4; // 10% PLO5
+            const holeCards = [];
+            for (let h = 0; h < numHole; h++) holeCards.push(randomCard(used));
+
+            let board = [];
+            if (street === 'flop') { for (let b = 0; b < 3; b++) board.push(randomCard(used)); }
+            else if (street === 'turn') { for (let b = 0; b < 4; b++) board.push(randomCard(used)); }
+            else if (street === 'river') { for (let b = 0; b < 5; b++) board.push(randomCard(used)); }
+
+            const potSize = Math.floor(Math.random() * 2000) + 10;
+            const toCall = Math.random() < 0.3 ? 0 : Math.floor(Math.random() * potSize * 0.8);
+            const stackBB = Math.floor(Math.random() * 500) + 5;
+            const numPlayers = Math.floor(Math.random() * 5) + 2;
+            const bb = Math.random() < 0.5 ? 2 : 5;
+            const maxAmount = Math.round(potSize + 2 * toCall) + Math.floor(Math.random() * 200);
+
+            const state = {
+                gameVariant: 'PLO',
+                street,
+                holeCards,
+                board,
+                potSize,
+                toCall,
+                bb,
+                stackBB,
+                position: positions[Math.floor(Math.random() * positions.length)],
+                numPlayers,
+                wasPFRaiser: Math.random() < 0.4,
+                isIn4BetPot: Math.random() < 0.1,
+                isBombPot: Math.random() < 0.05,
+                isLimpedPot: Math.random() < 0.15,
+                isDonkSituation: Math.random() < 0.1,
+                donkBetFraction: Math.random() < 0.1 ? Math.random() * 0.8 : 0,
+                opponentActionHistory: [],
+                numHoleCards: numHole,
+            };
+
+            const actions = [{ type: 'fold' }];
+            if (toCall === 0) actions.push({ type: 'check' });
+            if (toCall > 0) actions.push({ type: 'call', amount: toCall });
+            actions.push({ type: 'raise', minAmount: Math.max(1, toCall * 2 || bb * 2), maxAmount: maxAmount });
+
+            const result = brain.makePLOFallbackDecision('stress-' + i, state, actions);
+
+            if (!result || result.type === undefined) { undefinedCount++; continue; }
+            if (result.type === 'all_in') allInCount++;
+            if (!validTypes.has(result.type)) invalidType++;
+            if (result.amount !== undefined && result.amount !== null && isNaN(result.amount)) nanCount++;
+
+        } catch (e) {
+            crashCount++;
+        }
+    }
+
+    expect(crashCount).toBe(0);
+    expect(nanCount).toBe(0);
+    expect(undefinedCount).toBe(0);
+    expect(allInCount).toBe(0);
+    expect(invalidType).toBe(0);
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ EDGE CASES: PLO boundary conditions ══');
+// ═══════════════════════════════════════════════════════════
+
+test('EDGE: PLO5 (5 hole cards) does not crash', () => {
+    const state = makeE2EState({
+        holeCards: ['Ah', 'Kh', 'Qd', 'Jd', '9c'],
+        board: ['Th', '8h', '2c'],
+        street: 'flop',
+        numHoleCards: 5,
+    });
+    const actions = makeE2EActions();
+    const result = brain.makePLOFallbackDecision('test-plo5', state, actions);
+    expect(result.type !== undefined).toBe(true);
+    expect(result.type !== 'all_in').toBe(true);
+});
+
+test('EDGE: Zero outs hand on dry board does not crash', () => {
+    // 2h 3d 4c 5s on Kh Kd Ah — no draws, no made hand
+    const state = makeE2EState({
+        holeCards: ['2h', '3d', '4c', '5s'],
+        board: ['Kh', 'Kd', 'Ah'],
+        street: 'flop',
+        toCall: 100,
+        potSize: 200,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 100 },
+        { type: 'raise', minAmount: 200, maxAmount: 600 },
+    ];
+    const result = brain.makePLOFallbackDecision('test-zero', state, actions);
+    expect(result.type !== undefined).toBe(true);
+    // Should fold with no hand and no draws
+    expect(result.type === 'fold').toBe(true);
+});
+
+test('EDGE: Short stack (5BB) preflop does not crash or return all_in', () => {
+    const state = makeE2EState({
+        holeCards: ['Ah', 'Ad', 'Kh', 'Kd'],
+        board: [],
+        street: 'preflop',
+        stackBB: 5,
+        potSize: 3,
+        toCall: 2,
+        bb: 1,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 2 },
+        { type: 'raise', minAmount: 4, maxAmount: 9 },
+    ];
+    const result = brain.makePLOFallbackDecision('test-short', state, actions);
+    expect(result.type !== undefined).toBe(true);
+    expect(result.type !== 'all_in').toBe(true);
+});
+
+test('EDGE: Bomb pot (multi-way, inflated pot) does not crash', () => {
+    const state = makeE2EState({
+        holeCards: ['Jh', 'Th', '9d', '8d'],
+        board: ['7h', '6h', '2c'],
+        street: 'flop',
+        potSize: 500,
+        toCall: 0,
+        numPlayers: 6,
+        isBombPot: true,
+        bombPotBoost: 15,
+    });
+    const actions = [
+        { type: 'check' },
+        { type: 'raise', minAmount: 50, maxAmount: 500 },
+    ];
+    const result = brain.makePLOFallbackDecision('test-bomb', state, actions);
+    expect(result.type !== undefined).toBe(true);
+    expect(result.type !== 'all_in').toBe(true);
+});
+
+test('EDGE: River with all board cards paired does not crash', () => {
+    // Completely paired board: QQ998
+    const state = makeE2EState({
+        holeCards: ['Ah', 'Kh', '3d', '4c'],
+        board: ['Qh', 'Qd', '9c', '9s', '8h'],
+        street: 'river',
+        potSize: 300,
+        toCall: 150,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 150 },
+        { type: 'raise', minAmount: 300, maxAmount: 750 },
+    ];
+    const result = brain.makePLOFallbackDecision('test-paired', state, actions);
+    expect(result.type !== undefined).toBe(true);
+});
+
+test('EDGE: Monotone board (4 of same suit) does not crash', () => {
+    const state = makeE2EState({
+        holeCards: ['Ah', 'Kh', '3d', '4c'],
+        board: ['Jh', 'Th', '9h', '2h', '5c'],
+        street: 'river',
+        potSize: 400,
+        toCall: 200,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 200 },
+        { type: 'raise', minAmount: 400, maxAmount: 1000 },
+    ];
+    const result = brain.makePLOFallbackDecision('test-mono', state, actions);
+    expect(result.type !== undefined).toBe(true);
+    expect(result.type !== 'all_in').toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
