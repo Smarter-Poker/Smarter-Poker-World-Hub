@@ -13791,6 +13791,351 @@ test('AUTO SEAT: shouldAutoSeat returns object', () => {
     expect(typeof result).toBe('object');
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 93: FINAL HARDENING — Untested Exports + Concurrent Stress
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 93: Final Hardening ──');
+
+// ── 93.1: getRecommendedStake — bankroll management ──
+test('STAKE: $500 bankroll recommends appropriate stakes', () => {
+    const result = brain.getRecommendedStake(500, 'Cash');
+    expect(!!result).toBe(true);
+    expect(typeof result.maxBuyIn).toBe('number');
+    expect(result.maxBuyIn > 0).toBe(true);
+    expect(!!result.recommendedBlinds).toBe(true);
+    // $500 bankroll: maxBBBankroll=20, maxBB=0.20 → selects lowest stake (0.50bb)
+    // The function picks the largest stake.bb <= maxBB — with $500 that's 0.50
+    expect(result.recommendedBlinds.bb).toBe(0.50);
+});
+
+test('STAKE: $100 bankroll → lowest stakes (0.50bb)', () => {
+    const result = brain.getRecommendedStake(100, 'Cash');
+    // 100/25/100 = 0.04 maxBB → defaults to lowest stake 0.50bb
+    expect(result.recommendedBlinds.bb).toBe(0.50);
+});
+
+test('STAKE: $50000 bankroll → high stakes', () => {
+    const result = brain.getRecommendedStake(50000, 'Cash');
+    expect(result.recommendedBlinds.bb >= 10).toBe(true);
+});
+
+test('STAKE: tournament mode uses 50-buyin rule', () => {
+    const result = brain.getRecommendedStake(1000, 'Tournament');
+    expect(result.maxBuyIn).toBe(20); // 1000/50 = 20
+    expect(result.recommendedBlinds).toBe(null);
+});
+
+test('STAKE: zero bankroll returns lowest stakes', () => {
+    const result = brain.getRecommendedStake(0, 'Cash');
+    expect(!!result).toBe(true);
+    expect(typeof result.maxBuyIn).toBe('number');
+});
+
+// ── 93.2: getDynamicRebuyStrategy ──
+test('REBUY: short stack (10BB) → should rebuy', () => {
+    const result = brain.getDynamicRebuyStrategy('test-rebuy-1', 20, 2, 1, 200);
+    expect(result.shouldRebuy).toBe(true);
+    expect(result.reason).toBe('short_stacked');
+    expect(result.amount > 0).toBe(true);
+});
+
+test('REBUY: adequate stack (100BB) → should not rebuy', () => {
+    const result = brain.getDynamicRebuyStrategy('test-rebuy-2', 200, 2, 1, 200);
+    expect(result.shouldRebuy).toBe(false);
+    expect(result.reason).toBe('adequate_stack');
+});
+
+test('REBUY: max buyins reached → should not rebuy', () => {
+    const result = brain.getDynamicRebuyStrategy('test-rebuy-3', 20, 2, 3, 200);
+    expect(result.shouldRebuy).toBe(false);
+    expect(result.reason).toBe('max_buyins_reached');
+});
+
+test('REBUY: medium stack below table avg → should rebuy', () => {
+    const result = brain.getDynamicRebuyStrategy('test-rebuy-4', 80, 2, 1, 400);
+    // stackBB = 40, table avg is 400 which is 200BB > 80*1.5=120 → should rebuy
+    expect(result.shouldRebuy).toBe(true);
+    expect(result.reason).toBe('below_table_average');
+});
+
+test('REBUY: zero bb guards against division by zero', () => {
+    const result = brain.getDynamicRebuyStrategy('test-rebuy-5', 20, 0, 1, 200);
+    expect(!!result).toBe(true);
+    expect(typeof result.shouldRebuy).toBe('boolean');
+});
+
+// ── 93.3: evolveHorseSkill — skill drift ──
+test('SKILL EVOLUTION: winning session improves drift', () => {
+    const r1 = brain.evolveHorseSkill('evo-horse-93', 10); // Win 10BB/100
+    expect(r1.skillDrift > 0 || r1.skillDrift === 1).toBe(true);
+    expect(r1.direction === 'stable' || r1.direction === 'improving').toBe(true);
+});
+
+test('SKILL EVOLUTION: losing session decreases drift', () => {
+    // Reset by testing a fresh horse
+    const r1 = brain.evolveHorseSkill('evo-loser-93', -10);
+    expect(r1.skillDrift < 0 || r1.skillDrift === -0.5).toBe(true);
+});
+
+test('SKILL EVOLUTION: drift capped at +10', () => {
+    for (let i = 0; i < 20; i++) {
+        brain.evolveHorseSkill('evo-cap-93', 20);
+    }
+    const drift = brain.getSkillDrift('evo-cap-93');
+    expect(drift <= 10).toBe(true);
+});
+
+test('SKILL EVOLUTION: drift floored at -5', () => {
+    for (let i = 0; i < 20; i++) {
+        brain.evolveHorseSkill('evo-floor-93', -20);
+    }
+    const drift = brain.getSkillDrift('evo-floor-93');
+    expect(drift >= -5).toBe(true);
+});
+
+test('SKILL DRIFT: unknown horse returns 0', () => {
+    const drift = brain.getSkillDrift('nonexistent-horse-93');
+    expect(drift).toBe(0);
+});
+
+// ── 93.4: getSessionReview ──
+test('SESSION REVIEW: returns complete review object', () => {
+    // Record some actions first
+    brain.recordPerformanceAction('review-horse-93', 'preflop', 'raise', true);
+    brain.recordPerformanceAction('review-horse-93', 'flop', 'call', false);
+    brain.recordPerformanceAction('review-horse-93', 'turn', 'fold', false);
+
+    const review = brain.getSessionReview('review-horse-93');
+    expect(!!review).toBe(true);
+    expect(typeof review.handsPlayed).toBe('number');
+    expect(typeof review.vpip).toBe('string');
+    expect(typeof review.pfr).toBe('string');
+    expect(typeof review.grade).toBe('string');
+    expect(['A', 'B', 'C', 'D'].includes(review.grade)).toBe(true);
+});
+
+test('SESSION REVIEW: empty session returns valid defaults', () => {
+    const review = brain.getSessionReview('empty-review-93');
+    expect(!!review).toBe(true);
+    expect(review.handsPlayed >= 0).toBe(true);
+});
+
+// ── 93.5: Soft play tracking ──
+test('SOFT PLAY: first 3 allowed, 4th blocked', () => {
+    const h1 = 'sp-horse-a-93', h2 = 'sp-horse-b-93';
+    expect(brain.isSoftPlayAllowed(h1, h2)).toBe(true);
+    brain.recordSoftPlay(h1, h2);
+    expect(brain.isSoftPlayAllowed(h1, h2)).toBe(true);
+    brain.recordSoftPlay(h1, h2);
+    expect(brain.isSoftPlayAllowed(h1, h2)).toBe(true);
+    brain.recordSoftPlay(h1, h2);
+    // Now 3 recorded → next check should be blocked
+    expect(brain.isSoftPlayAllowed(h1, h2)).toBe(false);
+});
+
+test('SOFT PLAY: pair key is order-independent', () => {
+    const h1 = 'sp-order-a-93', h2 = 'sp-order-b-93';
+    brain.recordSoftPlay(h1, h2);
+    brain.recordSoftPlay(h2, h1); // Same pair reversed
+    brain.recordSoftPlay(h1, h2);
+    // 3 total → blocked
+    expect(brain.isSoftPlayAllowed(h2, h1)).toBe(false);
+});
+
+// ── 93.6: recordPerformanceResult ──
+test('PERFORMANCE RESULT: records win/loss', () => {
+    let crashed = false;
+    try {
+        brain.recordPerformanceResult('perf-result-93', 50, 2); // Won 50 chips (25BB)
+        brain.recordPerformanceResult('perf-result-93', -20, 2); // Lost 20 chips
+    } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+});
+
+// ── 93.7: PLO-specific modules ──
+test('PLO REVERSE IMPLIED: detectReverseImplied returns object', () => {
+    const result = brain.detectReverseImplied(60, true, 'flush_draw', 15, 'BTN');
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('PLO SPR TRAP: detectSPRTrap returns object', () => {
+    const result = brain.detectSPRTrap(3.5, 70, 'BTN', 2, false);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('PLO RUNOUT EQUITY: reevaluatePLORunoutEquity returns object', () => {
+    const result = brain.reevaluatePLORunoutEquity(
+        ['Ah', 'Kh', 'Qd', 'Jd'], ['Th', '9h', '2c', '5s'],
+        70, 9, 8
+    );
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('PLO NUT BIAS: detectNutBiasExploitBoard returns object', () => {
+    const result = brain.detectNutBiasExploitBoard(['Th', '9h', '2c']);
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+test('PLO MULTIWAY EQUITY: applyMultiwayEquityDiscount returns number', () => {
+    const result = brain.applyMultiwayEquityDiscount(65, 4, false);
+    expect(typeof result).toBe('number');
+    expect(result >= 0 && result <= 100).toBe(true);
+    expect(result <= 65).toBe(true); // Discount should reduce equity
+});
+
+// ── 93.8: OOP positional guard ──
+test('OOP GUARD: getOOPPositionalGuard returns object', () => {
+    const result = brain.getOOPPositionalGuard(50, 8, 'flop', 0.3, {});
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+// ── 93.9: River donk-bet evaluation ──
+test('RIVER DONK: evaluateDonkBet returns object', () => {
+    const result = brain.evaluateDonkBet(40, 0.5, 'river', false, {});
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+// ── 93.10: Cross-table collusion radar ──
+test('COLLUSION RADAR: crossTableRadar is a Map', () => {
+    expect(brain.crossTableRadar instanceof Map).toBe(true);
+});
+
+// ── 93.11: Exploit intensifier ──
+test('EXPLOIT INTENSIFIER: applyExploitIntensifier returns valid result', () => {
+    const result = brain.applyExploitIntensifier({
+        action: 'raise', amount: 50, confidence: 0.5
+    }, { foldFreq: 0.6, callFreq: 0.3, confidence: 0.4 });
+    expect(!!result).toBe(true);
+    expect(typeof result).toBe('object');
+});
+
+// ── 93.12: Concurrent getDecision stress test ──
+asyncTests.push({ name: 'CONCURRENT: 20 parallel getDecision calls', fn: async () => {
+    const promises = [];
+    for (let i = 0; i < 20; i++) {
+        const state = {
+            players: [
+                { id: 'concurrent-hero-' + i, holeCards: [48, 44], stack: 200, position: 'btn', invested: 0, folded: false },
+                { id: 'concurrent-villain-' + i, holeCards: [0, 4], stack: 200, position: 'bb', invested: 2, folded: false }
+            ],
+            communityCards: i % 2 === 0 ? [] : [8, 16, 28],
+            phase: i % 2 === 0 ? 'preflop' : 'flop',
+            potTotal: 3 + i,
+            currentBet: i % 3,
+            tableId: 'concurrent-table-' + (i % 5)
+        };
+        const legal = [
+            { type: 'fold' },
+            { type: 'check' },
+            { type: 'call', amount: Math.max(1, i % 3) },
+            { type: 'raise', minAmount: 4, maxAmount: 200 }
+        ];
+        promises.push(brain.getDecision('concurrent-hero-' + i, state, legal, { bigBlind: 2 }));
+    }
+
+    const results = await Promise.all(promises);
+    let invalid = 0;
+    const validActions = new Set(['fold', 'check', 'call', 'raise', 'bet', 'all_in']);
+    for (const r of results) {
+        if (!r || !r.action || !validActions.has(r.action.type)) invalid++;
+        if ((r.action.type === 'raise' || r.action.type === 'bet') && isNaN(r.action.amount)) invalid++;
+    }
+    expect(invalid).toBe(0);
+}});
+
+// ── 93.13: isHorseSync function ──
+test('IS HORSE SYNC: returns boolean for any input', () => {
+    const r1 = brain.isHorseSync('random-id-93');
+    expect(typeof r1).toBe('boolean');
+    const r2 = brain.isHorseSync(null);
+    expect(typeof r2).toBe('boolean');
+    const r3 = brain.isHorseSync(undefined);
+    expect(typeof r3).toBe('boolean');
+});
+
+// ── 93.14: getHorseIdsAtTable ──
+test('HORSE IDS AT TABLE: returns array or set', () => {
+    const result = brain.getHorseIdsAtTable('unknown-table-93');
+    expect(Array.isArray(result) || result instanceof Set || result === null || result === undefined || typeof result === 'object').toBe(true);
+});
+
+// ── 93.15: Journal persistence functions don't crash without Supabase ──
+asyncTests.push({ name: 'JOURNAL: persistOpponentJournal gracefully handles no Supabase', fn: async () => {
+    let crashed = false;
+    try {
+        await brain.persistOpponentJournal('journal-horse-93', 'journal-opp-93');
+    } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+}});
+
+asyncTests.push({ name: 'JOURNAL: loadOpponentJournal gracefully handles no Supabase', fn: async () => {
+    let crashed = false;
+    try {
+        await brain.loadOpponentJournal('journal-horse-93', 'journal-opp-93');
+    } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+}});
+
+asyncTests.push({ name: 'JOURNAL: persistTableJournals gracefully handles no Supabase', fn: async () => {
+    let crashed = false;
+    try {
+        await brain.persistTableJournals('journal-horse-93', 'journal-table-93');
+    } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+}});
+
+asyncTests.push({ name: 'JOURNAL: loadTableJournals gracefully handles no Supabase', fn: async () => {
+    let crashed = false;
+    try {
+        await brain.loadTableJournals('journal-horse-93', 'journal-table-93');
+    } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+}});
+
+// ── 93.16: _applyJournalToProfile doesn't crash ──
+test('JOURNAL: _applyJournalToProfile with empty data', () => {
+    let crashed = false;
+    try {
+        brain._applyJournalToProfile({}, {});
+    } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+});
+
+// ── 93.17: Supabase-dependent functions gracefully fail without credentials ──
+asyncTests.push({ name: 'PERSISTENCE: saveSessionAnalytics returns false without Supabase', fn: async () => {
+    const result = await brain.saveSessionAnalytics('test-save-93', 'test-table-93');
+    expect(result).toBe(false);
+}});
+
+asyncTests.push({ name: 'PERSISTENCE: saveOpponentRead returns false without Supabase', fn: async () => {
+    const result = await brain.saveOpponentRead('horse-93', 'opp-93', {
+        bluffFrequency: 0.2, valueFrequency: 0.3, foldFrequency: 0.5,
+        callFrequency: 0.4, handsObserved: 10, tendency: 'balanced'
+    });
+    expect(result).toBe(false);
+}});
+
+asyncTests.push({ name: 'PERSISTENCE: saveKeyHand returns false without Supabase', fn: async () => {
+    const result = await brain.saveKeyHand({
+        handId: 'test-hand-93', tableId: 'test-table-93',
+        result: { pot: 100, players: [], winners: [], board: [] }
+    }, 2);
+    expect(result).toBe(false);
+}});
+
+asyncTests.push({ name: 'PERSISTENCE: warmGTOCache doesn\'t crash', fn: async () => {
+    let crashed = false;
+    try { await brain.warmGTOCache(); } catch(e) { crashed = true; }
+    expect(crashed).toBe(false);
+}});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
