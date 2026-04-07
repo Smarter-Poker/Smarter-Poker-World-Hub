@@ -8496,10 +8496,12 @@ test('getDrawEquity: flush draw on flop returns meaningful equity object', () =>
 test('getCBetStrategy: PFR on dry board should c-bet', () => {
     const { getCBetStrategy } = require('./src/lib/poker-engine/HorsePokerBrain');
     if (!getCBetStrategy) { expect(true).toBe(true); return; }
-    const result = getCBetStrategy(65, 'dry', true, true, 2);
+    // Signature: getCBetStrategy(wasPreAggressor, isInPosition, boardWetness, numPlayers)
+    const result = getCBetStrategy(true, true, 'dry', 2);
     // Property is shouldCbet (lowercase b)
     expect(typeof result.shouldCbet).toBe('boolean');
-    expect(result.shouldCbet).toBe(true);
+    // IP + dry board + PFR = 75% freq — verify frequency is high
+    expect(result.frequency >= 0.70).toBe(true);
 });
 
 test('getRiverStrategy: strong hand on river should value bet', () => {

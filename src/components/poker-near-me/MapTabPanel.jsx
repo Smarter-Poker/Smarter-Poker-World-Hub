@@ -54,36 +54,7 @@ export default function MapTabPanel({
         filteredVenues = filteredVenues.filter(v => isTour(v) || (v.trust_score || 0) >= 4.0);
     }
 
-    // Apply sidebar filters:
-    // Tours are MTT-only venues. They show under "all" and "mtt" game types, hidden for cash/mixed/stakes.
-    if (filters.venueType && filters.venueType !== 'all') {
-        filteredVenues = filteredVenues.filter(v =>
-            v.venue_type === filters.venueType ||
-            (filters.venueType === 'tour_stop' && isTour(v)) ||
-            (filters.venueType === 'card_room' && v.venue_type === 'poker_club')
-        );
-    }
-
-    if (filters.gameType === 'cash') {
-        // Cash-only: tours are NOT cash game venues — exclude them
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && (v.games_offered && v.games_offered.length > 0));
-    } else if (filters.gameType === 'mtt') {
-        // MTT filter: tour stops ARE MTT events — include them
-        filteredVenues = filteredVenues.filter(v => isTour(v) || v.has_tournaments);
-    } else if (filters.gameType === 'mixed') {
-        // Mixed-only: tours don't run mixed games — exclude them
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && (v.games_offered && v.games_offered.some(g => /mixed|horse|8-game/i.test(g))));
-    }
-    // gameType === 'all' (default): tours appear on the map — no filter applied
-
-    // Stakes filters: tour stops have no cash stakes — always exclude them from stakes filtering
-    if (filters.stakes === '$1/2') {
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && (v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3'))));
-    } else if (filters.stakes === '$2/5') {
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && (v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5'))));
-    } else if (filters.stakes === '$5/10+') {
-        filteredVenues = filteredVenues.filter(v => !isTour(v) && (v.stakes_cash && v.stakes_cash.some(s => s.includes('5/10') || s.includes('10/20') || s.includes('25/50'))));
-    }
+    // (Sidebar filters are now applied upstream in poker-near-me.js to keep feeds in sync)
 
     const toggleMapFilter = (key) => {
         setMapFilters(prev => ({ ...prev, [key]: !prev[key] }));

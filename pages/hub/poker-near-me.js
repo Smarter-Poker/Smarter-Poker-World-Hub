@@ -396,6 +396,14 @@ export default function PokerNearMePage() {
         const tourPins = [];
         const seen = new Set(); // prevent duplicate pins at same city for same tour
 
+        const effRad = filters.radius === 'Any' ? 5000 : Number(filters.radius || 50);
+        let centerLat = null, centerLng = null;
+        if (userLocation) {
+            centerLat = userLocation.lat; centerLng = userLocation.lng;
+        } else if (selectedCity) {
+            centerLat = selectedCity.latitude; centerLng = selectedCity.longitude;
+        }
+
         (tours || []).forEach(tour => {
             const allStops = [
                 ...(tour.stops_2026 || []).map(s => ({ ...s, _type: 'stop' })),
@@ -412,6 +420,17 @@ export default function PokerNearMePage() {
                 if (!coords) return; // skip if no coords
 
                 const [lat, lng] = coords;
+
+                // DISTANCE FILTER
+                let distanceMi = null;
+                // If a center is defined, enforce radius filtering for tourPins just like fetchVenues does for venues
+                if (centerLat !== null && centerLng !== null) {
+                    const dlat = (lat - centerLat) * 69;
+                    const dlng = (lng - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
+                    distanceMi = Math.sqrt(dlat * dlat + dlng * dlng);
+                    if (distanceMi > effRad) return;
+                }
+
                 const dedupeKey = `${tour.tour_code}-${location.toLowerCase()}`;
                 if (seen.has(dedupeKey)) return;
                 seen.add(dedupeKey);
@@ -436,15 +455,53 @@ export default function PokerNearMePage() {
                     location,
                     dates: stop.dates || '',
                     buyin: stop.buyin,
+                    distance_mi: distanceMi,
                     is_running: isActive,
                     has_tournaments: true,
                 });
             });
         });
 
-        return [...allVenuesForMap, ...tourPins];
+        // Combine base venues and newly processed tour stops
+        const combined = [...allVenuesForMap, ...tourPins];
+
+        // Apply UI filters to BOTH arrays here so BOTH map feeds and list feeds are correctly filtered
+        return combined.filter(v => {
+            const isTour = v.venue_type === 'tour_stop' || v.venue_type === 'series';
+
+            // Venue Type filter
+            if (filters.venueType && filters.venueType !== 'all') {
+                if (v.venue_type !== filters.venueType) {
+                    // special rule: 'card_room' filter also shows 'poker_club'
+                    if (!(filters.venueType === 'card_room' && v.venue_type === 'poker_club') &&
+                        !(filters.venueType === 'tour_stop' && isTour)) {
+                        return false; 
+                    }
+                }
+            }
+
+            // Game Type filter
+            if (filters.gameType === 'cash') {
+                if (isTour || !(v.games_offered && v.games_offered.length > 0)) return false;
+            } else if (filters.gameType === 'mtt') {
+                if (!isTour && !v.has_tournaments) return false;
+            } else if (filters.gameType === 'mixed') {
+                if (isTour || !(v.games_offered && v.games_offered.some(g => /mixed|horse|8-game/i.test(g)))) return false;
+            }
+
+            // Stakes filter (exclude tour stops, they don't have stakes_cash)
+            if (filters.stakes === '$1/2') {
+                if (isTour || !(v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3')))) return false;
+            } else if (filters.stakes === '$2/5') {
+                if (isTour || !(v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')))) return false;
+            } else if (filters.stakes === '$5/10+') {
+                if (isTour || !(v.stakes_cash && v.stakes_cash.some(s => s.includes('5/10') || s.includes('10/20') || s.includes('25/50')))) return false;
+            }
+
+            return true;
+        });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allVenuesForMap, tours]);
+    }, [allVenuesForMap, tours, filters.radius, userLocation, selectedCity, filters.venueType, filters.gameType, filters.stakes]);
 
     // Live table count for map stats (fetched from live-tables API)
     const [liveTableCount, setLiveTableCount] = useState(0);
@@ -2044,7 +2101,7 @@ export default function PokerNearMePage() {
     // Shared VenuesTabPanel JSX — single definition for 3 render paths
     const venuesTabJsx = (
         <VenuesTabPanel
-            venues={venues}
+            venues={allVenuesWithTours}
             venueLoading={venueLoading}
             loading={loading}
             sortBy={sortBy}
