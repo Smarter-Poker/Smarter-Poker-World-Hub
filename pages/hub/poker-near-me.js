@@ -603,16 +603,30 @@ export default function PokerNearMePage() {
         }
 
         // ─── Resolve stop coordinates by matching against real venue database ───
+        // Cross-validates venue DB matches against TOUR_CITY_COORDS to catch bad data
         function findStopCoords(stop) {
             const venueName = (stop.venue || stop.name || '').toLowerCase();
             const location = (stop.location || '').toLowerCase();
             const locationCity = location.split(',')[0]?.trim() || '';
             const locationState = location.split(',')[1]?.trim() || '';
 
+            // Get trusted city coords for cross-validation
+            const trustedCity = resolveCityCoords(stop.location || '');
+
+            // Distance check helper — reject if >15 miles from expected city
+            function isTooFar(lat, lng) {
+                if (!trustedCity) return false; // no city coords = can't validate, allow it
+                const dlat = (lat - trustedCity[0]) * 69;
+                const dlng = (lng - trustedCity[1]) * 69 * Math.cos(trustedCity[0] * Math.PI / 180);
+                return Math.sqrt(dlat * dlat + dlng * dlng) > 15;
+            }
+
             // 1. Exact venue name match against real venue DB
             if (venueName.length > 2 && allVenuesForMap.length > 0) {
                 let match = allVenuesForMap.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
-                if (match) return { lat: match.latitude, lng: match.longitude };
+                if (match && !isTooFar(match.latitude, match.longitude)) {
+                    return { lat: match.latitude, lng: match.longitude };
+                }
 
                 // 2. Partial venue name match (contains)
                 if (venueName.length > 5) {
@@ -621,7 +635,9 @@ export default function PokerNearMePage() {
                         const n = v.name.toLowerCase();
                         return n.includes(venueName) || venueName.includes(n);
                     });
-                    if (match) return { lat: match.latitude, lng: match.longitude };
+                    if (match && !isTooFar(match.latitude, match.longitude)) {
+                        return { lat: match.latitude, lng: match.longitude };
+                    }
                 }
 
                 // 3. City + state match (first venue in that city)
@@ -631,13 +647,14 @@ export default function PokerNearMePage() {
                         (v.city || '').toLowerCase() === locationCity &&
                         (v.state || '').toLowerCase() === locationState
                     );
-                    if (match) return { lat: match.latitude, lng: match.longitude };
+                    if (match && !isTooFar(match.latitude, match.longitude)) {
+                        return { lat: match.latitude, lng: match.longitude };
+                    }
                 }
             }
 
-            // 4. Fallback to TOUR_CITY_COORDS hardcoded map
-            const cityCoords = resolveCityCoords(stop.location || '');
-            if (cityCoords) return { lat: cityCoords[0], lng: cityCoords[1] };
+            // 4. Fallback to TOUR_CITY_COORDS hardcoded map (trusted source)
+            if (trustedCity) return { lat: trustedCity[0], lng: trustedCity[1] };
 
             return null;
         }
@@ -716,10 +733,8 @@ export default function PokerNearMePage() {
             const city = locParts[0]?.trim() || '';
             const state = locParts[1]?.trim() || '';
 
-            // Slight offset so tour pin doesn't sit exactly on the venue pin
-            // ~0.003° ≈ 0.2 miles / 350 meters — visible overlap but distinct
-            lat += 0.003;
-            lng += 0.004;
+            // Tour pin sits directly on venue — tour takes visual precedence
+            // (VenueMapPanel gives tour pins zIndexOffset: 500 + pulsing animation)
 
             tourPins.push({
                 id: `tour-stop-${tour.tour_code}`,

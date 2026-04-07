@@ -495,9 +495,9 @@ export default function VenueMapPanel({ venues = [], userLocation, onVenueSelect
         </div>`;
       }
 
-      // Tour pins get a slight offset (~150m) so they overlap but don't fully cover venue dots
-      const lat = isTourStop ? v.latitude + 0.002 : v.latitude;
-      const lng = isTourStop ? v.longitude + 0.002 : v.longitude;
+      // Tour pins render at exact venue coordinates — tour takes visual precedence
+      const lat = v.latitude;
+      const lng = v.longitude;
 
       const marker = L.marker([lat, lng], { icon: venueIcon, zIndexOffset: isTourStop ? 500 : 0 })
         .bindPopup(popupHtml, { className: 'pnm-popup', maxWidth: 300, closeButton: true });
