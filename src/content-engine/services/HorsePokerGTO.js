@@ -75,7 +75,6 @@ export function getCacheStats() {
 
 function getHorseHash(profileId) {
     if (!profileId) return 0;
-    profileId = String(profileId);
     let hash = 0;
     for (let i = 0; i < profileId.length; i++) {
         hash = ((hash << 5) - hash) + profileId.charCodeAt(i);
@@ -183,7 +182,6 @@ export async function getPostflopStrategy(params) {
  * @returns {Object} Estimated range
  */
 export function constructOpponentRange(actions, position) {
-    if (!Array.isArray(actions)) actions = [];
     let rangeWidth = 100; // Start with 100% of hands
     let rangeStrength = 'balanced';
 
@@ -226,9 +224,6 @@ export function constructOpponentRange(actions, position) {
  * @returns {Object} Blocker analysis
  */
 export function analyzeBlockers(holeCards, board) {
-    if (!Array.isArray(holeCards)) holeCards = [];
-    if (!Array.isArray(board)) board = [];
-    if (holeCards.length === 0 && board.length === 0) return { blocksNutFlush: false, blocksNutStraight: false, blocksSets: false, blockerScore: 0 };
     const allCards = [...holeCards, ...board].map(parseCard);
     const heroCards = holeCards.map(parseCard);
 
@@ -289,7 +284,6 @@ export function analyzeBlockers(holeCards, board) {
  * @returns {Object} Texture analysis
  */
 export function analyzeBoardTexture(board) {
-    if (!Array.isArray(board) || board.length === 0) return { texture: 'unknown', flush: false, straight: false, paired: false, highCard: 0, connectivity: 0 };
     const cards = board.map(parseCard);
 
     // Suit analysis
@@ -305,7 +299,7 @@ export function analyzeBoardTexture(board) {
     for (let i = 0; i < ranks.length - 1; i++) {
         gaps.push(ranks[i] - ranks[i + 1]);
     }
-    const avgGap = gaps.length > 0 ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 0;
+    const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
 
     // High card info
     const highCard = ranks[0];
@@ -446,8 +440,6 @@ export function getSizingTell(profileId) {
  * @returns {Object} Sizing strategy for geometric sizing
  */
 export function calculatePotGeometry(potSize, effectiveStack, street) {
-    if (typeof potSize !== 'number' || !isFinite(potSize) || potSize <= 0) potSize = 1;
-    if (typeof effectiveStack !== 'number' || !isFinite(effectiveStack) || effectiveStack <= 0) effectiveStack = 1;
     const spr = effectiveStack / potSize;
 
     // Streets remaining
@@ -570,8 +562,6 @@ export function getStackDepthStrategy(stackBB) {
  * @returns {Object} Stealing adjustments
  */
 export function getBlindPressure(blindLevel, avgStack) {
-    if (typeof blindLevel !== 'number' || !isFinite(blindLevel) || blindLevel <= 0) blindLevel = 1;
-    if (typeof avgStack !== 'number' || !isFinite(avgStack) || avgStack <= 0) avgStack = 1;
     const avgBB = avgStack / blindLevel;
 
     if (avgBB > 50) {

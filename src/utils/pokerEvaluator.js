@@ -281,7 +281,7 @@ export function classifyHandGroup(notation, boardCards) {
     const boardStrs = board.map(c => `${c.rank}${c.suit}`);
 
     // Parse notation
-    if (!notation || typeof notation !== 'string' || notation.length < 2) return [];
+    if (!notation || notation.length < 2) return [];
 
     let rank1 = notation[0].toUpperCase();
     let rank2 = notation[1].toUpperCase();

@@ -174,7 +174,7 @@ function calculateEquity(players, board, variant = 'holdem', iterations = 2000) 
   const minCard = isShortDeck ? 16 : 0; // Short deck: 6+ = rank 4 = card 16
   const remaining = [];
   for (let c = minCard; c < 52; c++) {
-    if (!dead.has(c)) remaining.push(c);
+    if (!dead.has(c)) remaining.add ? null : remaining.push(c);
   }
 
   const cardsNeeded = 5 - board.length;

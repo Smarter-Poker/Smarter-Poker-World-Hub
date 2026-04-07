@@ -174,7 +174,6 @@ const STAKES_KEYS = Object.keys(STAKES_LEVELS);
 // ═══════════════════════════════════════════════════════════════════════════
 function getHorseHash(profileId) {
     if (!profileId) return 0;
-    profileId = String(profileId); // Bug #61: coerce to string
     let hash = 0;
     for (let i = 0; i < profileId.length; i++) {
         hash = ((hash << 5) - hash) + profileId.charCodeAt(i);
@@ -381,7 +380,6 @@ export function getAdaptationRate(profileId) {
  * @returns {Object} Decision with action and sizing
  */
 export function makeDecision(profileId, gameState) {
-    if (!gameState || typeof gameState !== 'object') return { action: 'check', sizing: 0, confidence: 0, reasoning: 'invalid_state' };
     const profile = getHorsePokerProfile(profileId);
     const { handStrength, potSize, toCall, position, street, opponentActions } = gameState;
 
@@ -514,7 +512,6 @@ export function shouldSitAtTable(profileId, stakes, currentPlayers = 0) {
  * @returns {Object} Decision and reasoning
  */
 export function shouldLeaveTable(profileId, sessionState) {
-    if (!sessionState || typeof sessionState !== 'object') return { shouldLeave: false, reason: 'invalid_session_state' };
     const { minutesPlayed, stackChange, handsPlayed } = sessionState;
     const session = getSessionProfile(profileId);
     const tiltFactor = getTiltFactor(profileId);

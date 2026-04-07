@@ -132,7 +132,7 @@ function getFlushSuit(allCards) {
  * @returns {{ classification: string, subType: string, rank: number, category: string }}
  */
 export function evaluateHand(holeCards, board) {
-    if (!Array.isArray(holeCards) || holeCards.length < 2 || !Array.isArray(board) || board.length < 3) {
+    if (!holeCards || holeCards.length < 2 || !board || board.length < 3) {
         return { classification: 'AIR', subType: 'Insufficient cards', rank: 1, category: 'air' };
     }
 
