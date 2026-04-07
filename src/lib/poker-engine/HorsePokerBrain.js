@@ -6046,14 +6046,69 @@ function evaluatePostflopHand(holeCards, board) {
                 }
             } else {
                 // Board paired, no hero pair
+                // BUG #28 FIX: topBoardRank was out of scope here (defined in heroPair branch)
+                const topBR = Math.max(...boardRanks);
                 strength = 18; category = 'no_pair';
                 // But if hero has overcards to the board, slightly better
-                if (heroRanks.some(r => r > topBoardRank)) strength = 20;
+                if (heroRanks.some(r => r > topBR)) strength = 20;
             }
         }
     }
 
-    // High card only
+    // ═══ BUG #28 FIX: BOARD-MADE HANDS — hero doesn't contribute but inherits board hand ═══
+    // When board has trips or two-pair and hero doesn't hold any of those ranks,
+    // the hero still "has" the board hand — kicker determines relative strength.
+    // Previously these fell through to strength 18-20, causing hero to fold.
+    //
+    // CRITICAL STRENGTH CONTEXT (don't overvalue these hands!):
+    //   Board trips (555K2): ANY pocket pair = full house, any 5 = quads.
+    //     → In a typical played range, 15-25% of opponents have a pocket pair.
+    //     → If they're betting into trip board, full house frequency is even higher.
+    //     → Ace kicker = best NON-full-house hand, but that's a bluff-catcher, not a value hand.
+    //   Board two-pair (KK552): Anyone with K or 5 = full house. That's a LOT of combos.
+    //     → K and 5 are common in played ranges. Full houses are very frequent here.
+    //   Board single pair (5582K): Anyone with a 5 has trips. Pairs make two-pair.
+    //     → Hero is only better than worse unpaired hands.
+    if (category === 'high_card' || category === 'no_pair') {
+        const boardTripRanks = Object.keys(boardRankCounts).filter(r => boardRankCounts[r] >= 3).map(Number);
+        const boardPairRanks = Object.keys(boardRankCounts).filter(r => boardRankCounts[r] >= 2).map(Number);
+        const bestKicker = Math.max(...heroRanks);
+        const secondKicker = Math.min(...heroRanks);
+
+        if (boardTripRanks.length >= 1) {
+            // Board trips (e.g., 5-5-5-K-2) — everyone has trips, kicker matters but...
+            // ANY pocket pair = full house (beats us). Any matching rank = quads.
+            // Ace kicker is the best NON-full-house, but it's essentially a bluff-catcher.
+            // Against an actual betting range, we're behind a significant % of the time.
+            category = 'board_trips';
+            if (bestKicker >= 12) strength = 38; // Ace kicker — best bluff-catcher, not a value hand
+            else if (bestKicker >= 11) strength = 34; // King kicker
+            else if (bestKicker >= 9) strength = 30; // Jack/Ten kicker
+            else strength = 22; // Low kicker — nearly any played hand beats us
+            // Second kicker is marginal (only matters in chop scenarios like A9 vs A8)
+            if (secondKicker >= 10) strength += 1;
+        } else if (boardPairRanks.length >= 2) {
+            // Board two-pair (e.g., K-K-5-5-2) — everyone has two-pair, kicker decides but...
+            // Anyone with K = kings full. Anyone with 5 = fives full.
+            // K and 5 are VERY common in played ranges. Full houses dominate.
+            category = 'board_two_pair';
+            if (bestKicker >= 12) strength = 35; // Ace kicker — best non-boat, still a bluff-catcher
+            else if (bestKicker >= 11) strength = 32; // King kicker
+            else if (bestKicker >= 9) strength = 28; // Jack/Ten kicker
+            else strength = 20; // Low kicker — behind almost everything in a betting range
+        } else if (boardPairRanks.length === 1) {
+            // Board single pair (e.g., 5-5-K-8-2), hero doesn't pair — kicker-dependent
+            // Anyone with a 5 has trips. Anyone with KK, 88, etc has two-pair.
+            // Hero only beats other unpaired hands with worse kickers.
+            category = 'board_pair';
+            if (bestKicker >= 12) strength = 25; // Ace high on paired board — marginal
+            else if (bestKicker >= 11) strength = 23; // King high
+            else if (bestKicker >= 9) strength = 20; // Decent high card
+            else strength = 15; // Low kicker — virtually no showdown value
+        }
+    }
+
+    // High card only (no board-made hands either)
     if (category === 'high_card') {
         const highCard = Math.max(...heroRanks);
         const secondCard = Math.min(...heroRanks);
@@ -12144,6 +12199,8 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
         second_pair: 0.33, third_pair: 0.30, underpair: 0.33,
         // Thin value
         two_pair_weak: 0.45, bottom_pair: 0.25,
+        // Board-made hands (BUG #28): hero doesn't contribute — these are bluff-catchers
+        board_trips: 0.30, board_two_pair: 0.28, board_pair: 0.25,
         // Draws (semi-bluff sizing)
         no_pair: 0.33, high_card: 0.33, unknown: 0.40
     };
@@ -16053,8 +16110,16 @@ function evaluateDonkBet(toCall, potSize, isIP, equity) {
     if (equity >= 65) {
         return { action: 'raise', reason: `Donk into strong equity (${equity.toFixed(0)}) — raise to deny blocker bluffs` };
     }
-    if (equity < 38) {
-        return { action: 'fold', reason: `Thin-value donk likely ahead (equity=${equity.toFixed(0)})` };
+    // BUG #27 FIX: Fold threshold must scale with donk bet size.
+    // Small donks (< 35% pot) give excellent pot odds (~0.26) — need only ~26% equity.
+    // Medium donks (35-60% pot) need ~0.35 equity.
+    // Large donks (60-80% pot) need ~0.43 equity.
+    // Old code used fixed equity < 38, folding profitable calls vs small donks.
+    const foldEquityThreshold = donkFraction >= 0.60 ? 45
+        : donkFraction >= 0.35 ? 38
+        : 28; // Small donk = call very wide
+    if (equity < foldEquityThreshold) {
+        return { action: 'fold', reason: `Thin-value donk likely ahead (equity=${equity.toFixed(0)} < ${foldEquityThreshold} for ${Math.round(donkFraction * 100)}%pot donk)` };
     }
     return { action: 'call', reason: `Medium equity (${equity.toFixed(0)}) vs donk — call and re-evaluate` };
 }

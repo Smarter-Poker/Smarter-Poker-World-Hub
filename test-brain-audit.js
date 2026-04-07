@@ -2012,9 +2012,18 @@ test('evaluateDonkBet: strong equity raises', () => {
     expect(r.action).toBe('raise');
 });
 
-test('evaluateDonkBet: weak equity folds', () => {
-    const r = evalDonk(15, 50, true, 30);
+test('evaluateDonkBet: weak equity folds vs medium donk', () => {
+    // BUG #27: fold threshold now scales with donk size
+    // Medium donk (35-60% pot): fold threshold = 38
+    const r = evalDonk(25, 50, true, 30); // 50% pot donk, equity 30 < 38 → fold
     expect(r.action).toBe('fold');
+});
+
+test('evaluateDonkBet: weak equity CALLS small donk (BUG #27)', () => {
+    // Small donk (< 35% pot): fold threshold = 28
+    // Equity 30 >= 28 → should CALL (old code wrongly folded this)
+    const r = evalDonk(15, 50, true, 30); // 30% pot donk, equity 30 >= 28 → call
+    expect(r.action).toBe('call');
 });
 
 test('evaluateDonkBet: medium equity calls', () => {
@@ -3217,6 +3226,68 @@ test('evaluatePostflopHand: 4 to a flush on board + hero has flush', () => {
     const r = brain.evaluatePostflopHand(['Ah', '2h'], ['3h', '5h', '7h', '9d', 'Jc']);
     // Hero has flush (Ah + 2h + 3 hearts on board)
     expect(r.strength).toBeGreaterThanOrEqual(70);
+});
+
+// ─── BUG #28: Board-made hands with kicker ───
+// IMPORTANT: Board trips/two-pair are NOT strong hands. Any pocket pair = full house.
+// Ace kicker on board trips is a BLUFF-CATCHER, not a value hand.
+test('BUG #28: board trips + ace kicker → bluff-catcher strength ~38 (not 18-20)', () => {
+    // Board: 5h 5d 5s Kc 2h, Hero: Ah 9d — trips with ace kicker
+    // But ANY pocket pair = full house, any 5 = quads. This is NOT a strong hand.
+    const r = brain.evaluatePostflopHand(['Ah', '9d'], ['5h', '5d', '5s', 'Kc', '2h']);
+    expect(r.category).toBe('board_trips');
+    expect(r.strength).toBeGreaterThanOrEqual(35);  // Better than the old 18-20
+    expect(r.strength).toBeLessThanOrEqual(42);      // But NOT a value hand — pocket pairs crush us
+});
+
+test('BUG #28: board trips + low kicker → very weak ~22', () => {
+    // Board: 5h 5d 5s Kc 2h, Hero: 3s 4d — trips with garbage kicker
+    // Behind any pocket pair AND any higher unpaired hand
+    const r = brain.evaluatePostflopHand(['3s', '4d'], ['5h', '5d', '5s', 'Kc', '2h']);
+    expect(r.category).toBe('board_trips');
+    expect(r.strength).toBeLessThanOrEqual(26);
+    expect(r.strength).toBeGreaterThanOrEqual(18);
+});
+
+test('BUG #28: board two-pair + ace kicker → bluff-catcher ~35 (not 18-20)', () => {
+    // Board: Kh Kd 5s 5c 2h, Hero: Ah 9d — two pair ace kicker
+    // But anyone with K = kings full, anyone with 5 = fives full. Lots of full houses.
+    const r = brain.evaluatePostflopHand(['Ah', '9d'], ['Kh', 'Kd', '5s', '5c', '2h']);
+    expect(r.category).toBe('board_two_pair');
+    expect(r.strength).toBeGreaterThanOrEqual(32);   // Better than 18-20
+    expect(r.strength).toBeLessThanOrEqual(40);       // But NOT strong — full houses everywhere
+});
+
+test('BUG #28: board two-pair + low kicker → very weak ~20', () => {
+    // Board: Kh Kd 5s 5c 2h, Hero: 3s 4d — two pair with garbage kicker
+    const r = brain.evaluatePostflopHand(['3s', '4d'], ['Kh', 'Kd', '5s', '5c', '2h']);
+    expect(r.category).toBe('board_two_pair');
+    expect(r.strength).toBeLessThanOrEqual(24);
+    expect(r.strength).toBeGreaterThanOrEqual(16);
+});
+
+test('BUG #28: board single pair + ace kicker → marginal ~25 (not 20)', () => {
+    // Board: 5h 5d Kc 8s 2h, Hero: Ah 9d — board pair with ace kicker
+    // Anyone with 5 has trips, KK/88/22 have two-pair. Hero only beats worse unpaired.
+    const r = brain.evaluatePostflopHand(['Ah', '9d'], ['5h', '5d', 'Kc', '8s', '2h']);
+    expect(r.category).toBe('board_pair');
+    expect(r.strength).toBeGreaterThanOrEqual(23);
+    expect(r.strength).toBeLessThanOrEqual(28);
+});
+
+test('BUG #28: board single pair + low kicker stays very weak', () => {
+    // Board: 5h 5d Kc 8s 2h, Hero: 3s 4d — board pair with garbage kicker
+    const r = brain.evaluatePostflopHand(['3s', '4d'], ['5h', '5d', 'Kc', '8s', '2h']);
+    expect(r.category).toBe('board_pair');
+    expect(r.strength).toBeLessThanOrEqual(18);
+});
+
+test('BUG #28: board trips — pocket pair opponent has full house (hero loses)', () => {
+    // Verify that hero WITH a pocket pair on a trip board gets full house, not board_trips
+    // Board: 5h 5d 5s Kc 2h, Hero: 9s 9d — FULL HOUSE 555-99
+    const r = brain.evaluatePostflopHand(['9s', '9d'], ['5h', '5d', '5s', 'Kc', '2h']);
+    expect(r.category).toBe('full_house');
+    expect(r.strength).toBeGreaterThanOrEqual(85);
 });
 
 // ─── validateAndClamp stress ───
