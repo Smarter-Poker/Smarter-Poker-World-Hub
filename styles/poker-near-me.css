@@ -284,7 +284,7 @@
 /* ═══ TOP FILTER BAR ═══ */
 .pnm-filter-bar {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 12px;
     padding: 10px 20px;
     background: rgba(6,10,20,0.5);
@@ -303,6 +303,7 @@
     text-transform: uppercase;
     letter-spacing: 1px;
     color: rgba(148,163,184,0.45);
+    text-align: center;
 }
 .pnm-filter-select {
     padding: 7px 10px;
@@ -319,6 +320,12 @@
 .pnm-filter-select:focus {
     border-color: rgba(255,255,255,0.35);
     outline: none;
+}
+/* Location area and apply btn align with the bottom of filter groups */
+.pnm-location-area,
+.pnm-apply-btn,
+.pnm-live-games-inline {
+    align-self: flex-end;
 }
 .pnm-apply-btn {
     display: flex;
@@ -341,6 +348,12 @@
     background: linear-gradient(135deg, #64748b, #334155);
     transform: translateY(-1px);
     box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+
+/* Live Games inline button in filter bar */
+.pnm-live-games-inline {
+    margin-left: 4px;
+    flex-shrink: 0;
 }
 
 /* Live Games button in filter bar */
