@@ -362,6 +362,42 @@
     flex-shrink: 0;
 }
 
+/* ═══ VENUES BUTTON — below the map ═══ */
+.pnm-venues-below-map {
+    display: flex;
+    justify-content: center;
+    padding: 14px 20px 8px;
+}
+.pnm-venues-below-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 28px;
+    background: rgba(0,0,0,0.3);
+    border: 1.5px solid rgba(148,163,184,0.2);
+    border-radius: 22px;
+    color: rgba(200,214,229,0.85);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: inherit;
+    letter-spacing: 0.4px;
+}
+.pnm-venues-below-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.35);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.pnm-venues-below-btn.active {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.4);
+    color: #ffffff;
+}
+
 /* ═══ QUICK CHIP STRIP ═══ */
 .pnm-chip-strip {
     display: flex;

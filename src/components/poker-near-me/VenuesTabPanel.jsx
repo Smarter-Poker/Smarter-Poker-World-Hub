@@ -52,7 +52,7 @@ export default function VenuesTabPanel({
 
     const sorted = getSortedVenues(venues);
     const displayed = sorted.slice(0, displayCount.venues);
-    const remaining = venues.length - displayed.length;
+    const remaining = sorted.length - displayed.length;
 
     return (
         <>
@@ -83,7 +83,7 @@ export default function VenuesTabPanel({
 
             {/* Results bar */}
             <div className="results-bar">
-                <span className="results-count">{venues.length} Result{venues.length !== 1 ? 's' : ''} Found</span>
+                <span className="results-count">{sorted.length} Result{sorted.length !== 1 ? 's' : ''} Found</span>
                 
                 <div className="sort-results-wrapper">
                     <label className="sort-results-label">Sort:</label>
@@ -128,8 +128,9 @@ export default function VenuesTabPanel({
                         const isHighlighted = highlightedVenueId === venue.id;
                         
                         if (venue.venue_type === 'tour_stop' || venue.venue_type === 'series') {
-                            // Adapt tourPin shape → TourCard's expected props
-                            const tourForCard = {
+                            // Use the full tour object (attached at tourPin creation) so TourCard
+                            // renders identically to the Tours tab — with buy-ins, regions, stops, etc.
+                            const tourForCard = venue.full_tour_data || {
                                 tour_code: venue.tour_code,
                                 tour_name: venue.tour_name || venue.name,
                                 logo_url: venue.logo_url,
@@ -137,8 +138,6 @@ export default function VenuesTabPanel({
                                 headquarters: venue.stop_venue
                                     ? `${venue.stop_venue}${venue.city ? ' — ' + venue.city : ''}${venue.state ? ', ' + venue.state : ''}`
                                     : venue.location || '',
-                                upcoming_series: venue.dates ? [{ short_name: venue.dates, name: venue.dates, start_date: null }] : [],
-                                official_website: null,
                             };
                             return (
                                 <div key={venue.id || `tour-${i}`} id={`tour-card-${venue.tour_code || i}`}

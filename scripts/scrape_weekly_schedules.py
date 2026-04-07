@@ -54,9 +54,10 @@ CIRCUIT_MAX  = 5     # abort session after N consecutive failures
 BATCH_ID     = str(uuid.uuid4())
 SCRAPER_NAME = "scrape_weekly_schedules.py"
 
-# Known slow/broken domains — skip immediately
+# Known slow/broken domains — skip for 'website' source
+# (PokerAtlas is handled separately as 'pokeratlas' source)
 SKIP_DOMAINS = {
-    'themresort.com', 'aliantegaming.com',
+    'themresort.com', 'aliantegaming.com', 'pokeratlas.com',
 }
 
 # Venue types to SKIP — these are handled by other scrapers
@@ -751,6 +752,8 @@ def build_url_list(venue: dict) -> list:
     # 1. Saved source of truth (from previous successful scrape)
     saved = venue.get('scrape_url') or venue.get('schedule_scrape_url') or ''
     if saved:
+        # Normalize: strip duplicate trailing path segments (e.g. /tournaments/tournaments)
+        saved = re.sub(r'(/tournaments)+$', '/tournaments', saved.rstrip('/'))
         add('saved_source', saved)
 
     # 2. PokerAtlas HTML page — JSON-LD will be used to discover canonical website
@@ -764,9 +767,19 @@ def build_url_list(venue: dict) -> list:
         gen_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
         add('pokeratlas', f"https://www.pokeratlas.com/poker-room/{gen_slug}/tournaments")
 
-    # 3. Bravo Poker Live
-    bravo_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
-    add('bravo', f"https://www.bravopokerlive.com/poker-rooms/{bravo_slug}")
+    # 3. Bravo Poker Live — use stored slug if available, else generate
+    bravo_stored = venue.get('bravo_url') or ''
+    bravo_slug_stored = venue.get('bravo_slug') or ''
+    if bravo_slug_stored:
+        add('bravo', f"https://www.bravopokerlive.com/poker-rooms/{bravo_slug_stored}")
+    elif bravo_stored and 'bravopokerlive.com' in bravo_stored:
+        add('bravo', bravo_stored)
+    else:
+        # Generated slug — remove venue-generic suffixes that confuse Bravo
+        bravo_slug = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+        # Bravo uses shorter slugs — strip trailing city/state duplicates
+        bravo_slug = re.sub(r'-(casino|poker|room|club|house)$', '', bravo_slug)
+        add('bravo', f"https://www.bravopokerlive.com/poker-rooms/{bravo_slug}")
 
     # 4. HendonMob (search — filtered at record level)
     encoded_name = urllib.parse.quote_plus(name)
@@ -775,15 +788,25 @@ def build_url_list(venue: dict) -> list:
     # 5. CardPlayer.com (search — filtered at record level)
     add('cardplayer', f"https://www.cardplayer.com/poker-tournaments/search?q={encoded_name}")
 
-    # 6. Direct venue website
+    # 6. Direct venue website — try multiple path patterns
     website = venue.get('website') or ''
     if website:
         base = website if website.startswith('http') else f"https://{website}"
         base = base.rstrip('/')
-        for path in ['/poker/tournaments', '/tournaments', '']:
+        for path in [
+            '/poker/tournaments',
+            '/poker-room/tournaments',
+            '/gaming/poker/tournaments',
+            '/tournaments',
+            '/events',
+            '/poker',
+            '/poker-room',
+            '',
+        ]:
             add('website', f"{base}{path}")
 
-    return urls[:10]  # Cap at 10 attempts per venue
+    return urls[:18]  # 14 base paths + up to 4 JSON-LD injected URLs
+
 
 
 # ── Core scrape function ──────────────────────────────────────────────────────
@@ -985,7 +1008,8 @@ def load_venues(args) -> list:
     """
     params = (
         "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
-        "pokeratlas_url,pokeratlas_slug,scrape_url,schedule_scrape_url,"
+        "pokeratlas_url,pokeratlas_slug,bravo_url,bravo_slug,"
+        "scrape_url,schedule_scrape_url,"
         "schedule_last_scraped_at,last_scraped_at,has_tournaments"
         "&has_tournaments=eq.true"
         "&is_active=eq.true"

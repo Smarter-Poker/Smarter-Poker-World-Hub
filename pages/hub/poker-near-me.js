@@ -779,6 +779,9 @@ export default function PokerNearMePage() {
                 distance_mi: distanceMi,
                 is_running: isActive,
                 has_tournaments: true,
+                // Full tour object — passed directly to TourCard so it renders
+                // identically to the Tours tab (buy-ins, regions, upcoming stops, website)
+                full_tour_data: tour,
             });
         });
 
@@ -856,23 +859,21 @@ export default function PokerNearMePage() {
                 if (!charityBestIds.has(v.id)) return false;
             }
             
-            // Radius filter: only include venues within the search radius
-            // This keeps the venue list and map in sync with the selected radius
-            if (centerLat == null && allVenuesForMap.length > 0) {
-                const withCoords = allVenuesForMap.filter(cv => cv.latitude && cv.longitude);
-                if (withCoords.length > 0) {
-                    centerLat = withCoords.reduce((s, cv) => s + cv.latitude, 0) / withCoords.length;
-                    centerLng = withCoords.reduce((s, cv) => s + cv.longitude, 0) / withCoords.length;
-                }
-            }
-
-            if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
+            // Radius filter: only apply when the user has a REAL location (GPS or city).
+            // Skip the radius check when using the fallback centroid (no location known)
+            // and skip entirely during global text search (user searched by name).
+            const hasRealLocation = !!(userLocation || selectedCity);
+            if (hasRealLocation && !globalSearchModeRef.current && centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
                 const dlat = (v.latitude - centerLat) * 69;
                 const dlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
                 const dist = Math.sqrt(dlat * dlat + dlng * dlng);
                 v.distance_mi = dist;
-                // Global search bypass: do not hide distant venues when a search is active
-                if (!hasSearched && dist > effRad) return false;
+                if (dist > effRad) return false;
+            } else if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
+                // Still compute distance_mi for sorting even if not filtering
+                const dlat = (v.latitude - centerLat) * 69;
+                const dlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
+                v.distance_mi = Math.sqrt(dlat * dlat + dlng * dlng);
             }
             return true;
         });
@@ -880,8 +881,8 @@ export default function PokerNearMePage() {
 
         // Apply UI filters to BOTH arrays here so BOTH map feeds and list feeds are correctly filtered
         return combined.filter(v => {
-            // Global search bypass: do not apply UI dropdown presets when a search is active
-            if (hasSearched) return true;
+            // Only bypass dropdown filters during a global text search, NOT during GPS/city searches
+            if (globalSearchModeRef.current && hasSearched) return true;
 
             const isTour = v.venue_type === 'tour_stop' || v.venue_type === 'series';
 
@@ -2592,21 +2593,7 @@ export default function PokerNearMePage() {
                     <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 
-                {/* ═══ TOP SEARCH BAR + TAB NAVIGATION ═══ */}
-                <div className="pnm-top-search-bar">
-                    {/* Tab navigation pills — Venues only */}
-                    <div className="pnm-top-tabs">
-                        <button
-                            className={'pnm-top-tab' + (activeTab === 'venues' ? ' active' : '')}
-                            onClick={() => setActiveTab(activeTab === 'venues' ? 'map' : 'venues')}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-                            Venues
-                            {venues.length > 0 && <span className="pnm-tab-badge">{venues.length}</span>}
-                        </button>
-                    </div>
 
-                </div>
 
                 {/* ═══ TOP FILTER BAR: Location + Dropdowns + Apply + Live Games ═══ */}
                 {(activeTab === 'map' || activeTab === 'venues') && (
@@ -2770,6 +2757,19 @@ export default function PokerNearMePage() {
                         {/* Push notification setup moved to the 'more' settings tab */}
 
                         {renderContent()}
+
+                        {/* Venues button — below the map */}
+                        {activeTab === 'map' && (
+                            <div className="pnm-venues-below-map">
+                                <button
+                                    className={'pnm-venues-below-btn' + (activeTab === 'venues' ? ' active' : '')}
+                                    onClick={() => setActiveTab('venues')}
+                                >
+                                    Venues
+                                    {venues.length > 0 && <span className="pnm-tab-badge">{venues.length}</span>}
+                                </button>
+                            </div>
+                        )}
                     </div>{/* end pnm-content */}
                     </div>{/* end pnm-main */}
                 </div>{/* end pnm-layout */}

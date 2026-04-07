@@ -4598,8 +4598,14 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const aceCount = holeRanksPreflop.filter(r => r === 12).length;
         if (aceCount >= 2 && canRaise) {
             const stack = stackBB * bb;
-            // Calculate pot size: potting = current pot + toCall, then raise to 3x that
-            const potRaiseSize = raiseAction?.maxAmount || Math.round((potSize + toCall) * 3);
+            // Bug #119: Was using raiseAction.maxAmount (= hero's entire stack) as potRaiseSize,
+            // which meant stackPctCommitted was always ~100% → AA ALWAYS shoved preflop.
+            // Fix: compute actual pot-raise size. Pot raise in PLO = current pot + 2*toCall + toCall.
+            // When opening (toCall=0), standard raise = 3-4x pot.
+            const actualPotRaise = toCall > 0
+                ? Math.round(potSize + toCall * 2)  // Pot-raise facing a bet
+                : Math.round((potSize + toCall) * 3.5); // Standard open sizing
+            const potRaiseSize = Math.min(actualPotRaise, raiseAction?.maxAmount || actualPotRaise);
             // How much of our stack goes in if we pot/re-pot?
             const totalCommitted = toCall + potRaiseSize;
             const stackPctCommitted = totalCommitted / stack;
