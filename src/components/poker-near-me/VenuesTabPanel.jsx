@@ -39,7 +39,10 @@ export default function VenuesTabPanel({
     iframeModal,
     setIframeModal,
 }) {
-    if (venues.length === 0 && !venueLoading && !loading) {
+    // Defensive guard — venues may be null/undefined during initial load or after a crash
+    const safeVenues = Array.isArray(venues) ? venues : [];
+
+    if (safeVenues.length === 0 && !venueLoading && !loading) {
         return (
             <div className="empty-state">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -50,7 +53,7 @@ export default function VenuesTabPanel({
         );
     }
 
-    const sorted = getSortedVenues(venues);
+    const sorted = getSortedVenues(safeVenues);
     const displayed = sorted.slice(0, displayCount.venues);
     const remaining = sorted.length - displayed.length;
 
@@ -107,7 +110,7 @@ export default function VenuesTabPanel({
                 </div>
 
                 <span className="results-showing">
-                    {(userLocation || nearestDistance) ? `Nearest: ${nearestDistance || '0'} Miles` : `Showing ${displayed.length} of ${venues.length}`}
+                    {(userLocation || nearestDistance) ? `Nearest: ${nearestDistance || '0'} Miles` : `Showing ${displayed.length} of ${safeVenues.length}`}
                 </span>
                 
                 {!mapFullscreen && (

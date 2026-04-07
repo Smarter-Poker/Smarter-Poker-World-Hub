@@ -575,7 +575,7 @@ export default function PokerNearMePage() {
     // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
     // then fall back to TOUR_CITY_COORDS, then tour.latitude/longitude.
     // Tour pins offset slightly from venue pins so both are visible simultaneously.
-    const allVenuesWithTours = useMemo(() => {
+    const allVenuesWithTours = useMemo(() => { try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
@@ -924,6 +924,10 @@ export default function PokerNearMePage() {
 
             return true;
         });
+    } catch (err) {
+        console.error('[PNM] allVenuesWithTours crash — returning safe empty array:', err);
+        return Array.isArray(allVenuesForMap) ? allVenuesForMap : [];
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allVenuesForMap, tours, filters.radius, userLocation, selectedCity, filters.venueType, filters.gameType, filters.stakes, hasSearched]);
 

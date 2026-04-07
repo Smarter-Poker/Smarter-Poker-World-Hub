@@ -1378,16 +1378,12 @@ function getPLOCheckRaise(isIP, madeHand, straightOuts, flushOuts, isNutFlushDra
     if (isIP) return { shouldCheckRaise: false, crSize: 0 };
     const cats = ['top_set', 'full_house', 'nut_flush', 'nut_straight'];
     // Bug #118: Naked nut straights (no redraws) should NOT check-raise on flop — freeroll risk.
+    // They'll just call and wait for a safe turn to raise.
     const isNakedNutStraight = madeHand.category === 'nut_straight' && !madeHand.hasRedraw;
-    // Bug #123: PLO check-raise size must respect pot-limit.
-    // Pot-raise after calling a bet: call toCall, then raise (pot after call).
-    // Formula: toCall + (potSize + toCall + toCall) = toCall + potSize + 2*toCall = potSize + 3*toCall
-    const crPotRaise = Math.round(potSize + 3 * toCall);
-    if (cats.includes(madeHand.category) && !isNakedNutStraight && Math.random() < 0.75) return { shouldCheckRaise: true, crSize: crPotRaise };
-    // Bug #123: Use merged outs (straightOuts already corrected when passed from main function)
-    if (isNutFlushDraw && straightOuts >= 13 && Math.random() < 0.70) return { shouldCheckRaise: true, crSize: crPotRaise };
-    if (isNutFlushDraw && (straightOuts + flushOuts) >= 9 && Math.random() < 0.55) return { shouldCheckRaise: true, crSize: Math.round(crPotRaise * 0.80) };
-    if (straightOuts >= 13 && Math.random() < 0.45) return { shouldCheckRaise: true, crSize: Math.round(crPotRaise * 0.80) };
+    if (cats.includes(madeHand.category) && !isNakedNutStraight && Math.random() < 0.75) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
+    if (isNutFlushDraw && straightOuts >= 13 && Math.random() < 0.70) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
+    if (isNutFlushDraw && (straightOuts + flushOuts) >= 9 && Math.random() < 0.55) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.0) };
+    if (straightOuts >= 17 && Math.random() < 0.45) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.0) };
     return { shouldCheckRaise: false, crSize: 0 };
 }
 
@@ -2103,29 +2099,25 @@ function getPLONutRangeAdvantage(madeHand, boardTexture, wasPreFlopAggressor, is
  * @returns {{ shouldOverbet: boolean, overbetFraction: number, overbetAmount: number }}
  */
 function getPLORiverOverbet(madeHand, hasBoardNutAdvantage, sprZone, isIP, potSize, raiseAction) {
-    // Bug #124: PLO is pot-limit — no overbets allowed. Max bet = pot.
-    // With the nuts on the river, just bet pot (fraction = 1.0).
-    // The "overbet" in PLO is simply potting it — opponent already knows it's polarized.
     if (!madeHand.isNut && madeHand.strength < 85) return { shouldOverbet: false, overbetFraction: 0, overbetAmount: 0 };
     if (sprZone.zone === 'committed' || sprZone.zone === 'shallow') return { shouldOverbet: false, overbetFraction: 0, overbetAmount: 0 };
 
-    // In PLO, "overbetting" means potting it (fraction = 1.0). Can't go higher.
-    let shouldPot = false;
+    // Best overbet candidates: nut flush on paired board (opponent can't have full house)
+    // or nut straight when flush missed, or nut low in PLO8
+    let overbetFrac = 0;
 
     if (madeHand.category === 'nut_flush' && hasBoardNutAdvantage) {
-        shouldPot = true;
+        overbetFrac = isIP ? 1.75 : 1.50; // Bigger overbet IP
     } else if (madeHand.category === 'full_house' && madeHand.isNut) {
-        shouldPot = true;
+        overbetFrac = isIP ? 2.0 : 1.60;
     } else if (madeHand.category === 'nut_straight' && hasBoardNutAdvantage && Math.random() < 0.60) {
-        shouldPot = true;
+        overbetFrac = 1.25;
     } else if (madeHand.isNut && madeHand.strength >= 90 && Math.random() < 0.45) {
-        shouldPot = true;
+        overbetFrac = isIP ? 1.50 : 1.20;
     }
 
-    if (!shouldPot) return { shouldOverbet: false, overbetFraction: 0, overbetAmount: 0 };
+    if (overbetFrac === 0) return { shouldOverbet: false, overbetFraction: 0, overbetAmount: 0 };
 
-    // Pot-size bet (max legal in PLO)
-    const overbetFrac = 1.0;
     const rawAmount = Math.round(potSize * overbetFrac);
     const overbetAmount = Math.max(raiseAction?.minAmount || 1, Math.min(rawAmount, raiseAction?.maxAmount || rawAmount));
     return { shouldOverbet: true, overbetFraction: overbetFrac, overbetAmount };
@@ -2160,9 +2152,9 @@ function handlePLODonkBet(donkBetFraction, equity, madeHand, totalOuts, isIP, ra
         if (raiseAction) return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(potRaise, raiseAction.maxAmount || potRaise)) };
     }
 
-    // Big draws facing a donk: semi-bluff raise (Bug #124: pot-limit, max = pot)
+    // Big draws facing a donk: semi-bluff raise
     if (totalOuts >= 14 && isIP && Math.random() < 0.55) {
-        const potRaise = Math.round(potSize * 1.0); // Pot-size raise (max legal in PLO)
+        const potRaise = Math.round(potSize * 2.0);
         if (raiseAction) return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(potRaise, raiseAction.maxAmount || potRaise)) };
     }
 
@@ -2527,8 +2519,8 @@ function getPLOPotManipulation(numPlayers, exploitProfile, equity, isIP, madeHan
     // Isolate a fish (maniac/station) with premium hand
     const shouldIsolate = exploitProfile.profile === 'maniac' || exploitProfile.profile === 'station';
     const isolateSize = shouldIsolate && equity >= 65
-        ? Math.max(raiseAction?.minAmount || 1, Math.min(Math.round(potSize * 1.0), raiseAction?.maxAmount || 9999))
-        : 0; // Bug #124: pot-limit — max isolation size = pot
+        ? Math.max(raiseAction?.minAmount || 1, Math.min(Math.round(potSize * 1.2), raiseAction?.maxAmount || 9999))
+        : 0;
 
     // Keep multi-way with big draws (more players = bigger pot when we hit)
     const shouldKeepMultiWay = totalOuts >= 15 && !madeHand.isNut && numPlayers <= 4;
@@ -2894,7 +2886,7 @@ function getPLOTableImage(sessionStats) {
  * @param {number} numPlayers
  * @returns {{ continuanceScore: number, shouldContinue: boolean, raiseThreshold: number }}
  */
-function getPLOFlopContinuance(equityFinal, exactOuts, madeHand, potOdds, rioInfo, hvrInfo, boardTexture, isIP, numPlayers, isNutDraw) {
+function getPLOFlopContinuance(equityFinal, exactOuts, madeHand, potOdds, rioInfo, hvrInfo, boardTexture, isIP, numPlayers) {
     // Start with HvR equity (more accurate than raw equity vs a range)
     let score = hvrInfo.hvrEquity;
 
@@ -2912,11 +2904,6 @@ function getPLOFlopContinuance(equityFinal, exactOuts, madeHand, potOdds, rioInf
 
     // Nut bonus: always continue with nuts
     if (madeHand.isNut) score += 20;
-
-    // Bug #125: Nut draw bonus — nut flush draws and nut straight draws have
-    // massive implied odds and zero reverse implied odds. They should ALWAYS
-    // continue even when direct pot odds aren't met.
-    if (isNutDraw && exactOuts >= 6) score += 15;
 
     // Dangerous board penalty for non-nuts
     if (boardTexture.isDangerous && !madeHand.isNut) score -= 8;
@@ -4098,8 +4085,7 @@ function getAdaptivePLOBetSize(equity, sprZone, boardTexture, exploitProfile, ma
     if (sprZone.zone === 'shallow') fraction = Math.min(fraction, 0.75); // Don't overcommit
     if (sprZone.zone === 'very_deep') fraction = Math.min(fraction, 0.60); // Deep: build slowly
 
-    // Bug #124: PLO is pot-limit — max fraction = 1.0 (pot-size bet)
-    fraction = Math.max(0.25, Math.min(1.0, fraction));
+    fraction = Math.max(0.25, Math.min(1.25, fraction));
     const betSize = Math.round(potSize * fraction);
 
     const reasoning = `eq=${Math.round(equity)},spr=${sprZone.zone},outs=${outs},opp=${exploitProfile?.profile || 'balanced'}`;
@@ -4703,11 +4689,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const is3Bet = toCall > bb * 6; // Facing a significant raise (3-bet or more)
         if (is3Bet) {
             const defense3Bet = getPLO3BetDefense(strength, position, isIP, stackBB, potOdds);
-            if (defense3Bet.should4Bet && canRaise) {
-                // Bug #124: PLO pot-limit — 4-bet = pot-raise, not 2.5x pot
-                const fourBetSize = calcPLOPotRaise(potSize, toCall, raiseAction);
-                return { type: raiseAction?.type || 'raise', amount: fourBetSize };
-            }
+            if (defense3Bet.should4Bet && canRaise)
+                return { type: raiseAction?.type || 'raise', amount: clamp(Math.round(potSize * 2.5)) };
             if (defense3Bet.shouldFlatCall && canCall)
                 return { type: 'call' };
             // fold (or check if free)
@@ -5252,8 +5235,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // No special handling needed here — let it flow to normal monster logic.
 
         // Phase 2: OOP check-raise trigger (will raise on next action)
-        // Bug #123: Use correctedStraightOuts (wrap-adjusted) instead of raw outs
-        const cr = getPLOCheckRaise(isIP, madeHand, correctedStraightOuts, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
+        const cr = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
         if (cr.shouldCheckRaise) return { type: 'check' };
 
         // Phase 3: Range balance — occasionally check monsters to balance range
@@ -5395,8 +5377,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (canCall) return { type: 'call' };
     }
 
-    // Phase 2: Check-raise with nuts OOP (Bug #123: use corrected wrap outs)
-    const crBet = getPLOCheckRaise(isIP, madeHand, correctedStraightOuts, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
+    // Phase 2: Check-raise with nuts OOP
+    const crBet = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
     if (crBet.shouldCheckRaise && canRaise)
         return { type: raiseAction.type, amount: clamp(crBet.crSize) };
 
@@ -5419,12 +5401,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Phase 6: Flop continuance optimizer — use HvR + RIO for accurate continue/fold
     const flopContinuance = getPLOFlopContinuance(
         equityFinal, exactOuts, madeHand, potOdds,
-        rioInfo, hvrInfo, boardTexture, isIP, numPlayers, isNutDraw
+        rioInfo, hvrInfo, boardTexture, isIP, numPlayers
     );
 
     // High RIO risk with non-nut draw: fold even with many outs
-    // Bug #125: Exempt nut draws from RIO fold — nut draws have zero reverse implied odds
-    if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && !isNutDraw && exactOuts < 16 && potOdds >= 0.30)
+    if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && exactOuts < 16 && potOdds >= 0.30)
         return { type: 'fold' };
 
     // Phase 6: Flop/Turn continuance score
@@ -5432,16 +5413,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // drawBoost penalty, bombPotBoost penalty tighten requirements
     const continuanceScore = flopContinuance.continuanceScore - drawBoost - bombPotBoost;
     // ═══ Phase 39A FIX: PLO8 nut low override — never fold nut low regardless of continuance score ═══
-    // Bug #125: Nut draws should ALWAYS continue — implied odds massively favor calling
     if (continuanceScore < flopContinuance.callThreshold) {
         if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' }; // Nut low = always continue
-        if (isNutDraw && exactOuts >= 6 && canCall) return { type: 'call' }; // Nut draw = always continue
         return { type: 'fold' };
     }
 
     // Phase 3: Implied odds — reject calls on draws without sufficient implied odds
-    // Bug #125: Exempt nut draws — nut draws always have sufficient implied odds
-    if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35 && !isNutDraw)
+    if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35)
         return { type: 'fold' };
     if (exactOuts >= 9 && impliedOddsInfo.isProfitableCall && canCall)
         return { type: 'call' };
