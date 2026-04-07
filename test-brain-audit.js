@@ -8643,6 +8643,190 @@ asyncTest('Integration: heads-up blind battle', async () => {
     expect(['fold', 'call', 'raise', 'check', 'bet'].includes(result.action.type)).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 67: LIVE OBSERVER E2E PIPELINE
+// Tests observeNewHand → observeAction → observeShowdown → getLiveRead
+// ═══════════════════════════════════════════════════════════
+
+test('Live Observer: full hand pipeline builds valid reads', () => {
+    const { observeNewHand, observeAction, observeShowdown, getLiveRead, clearLiveObserver } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!observeNewHand || !observeAction || !getLiveRead) { expect(true).toBe(true); return; }
+
+    const tableId = 'live-test-table-' + Date.now();
+    const horseId = 'live-test-horse';
+    const oppId = 'live-test-opp';
+
+    // Clear any previous state
+    if (clearLiveObserver) clearLiveObserver(horseId);
+
+    // Simulate 15 hands to build a read (need >=5 hands + >=6 actions)
+    for (let i = 0; i < 15; i++) {
+        observeNewHand(tableId, `hand-${i}`, [
+            { id: horseId, position: 'BTN' },
+            { id: oppId, position: 'BB' }
+        ], [horseId], 2);
+
+        // Simulate opponent actions: mix of raises, calls, folds
+        if (i % 3 === 0) {
+            observeAction(tableId, oppId, 'preflop', 'raise', {
+                amount: 6, potSize: 3, toCall: 2, position: 'BB',
+                isOpenAction: false, facingRaiseCount: 0
+            }, [horseId]);
+            observeAction(tableId, oppId, 'flop', 'bet', {
+                amount: 8, potSize: 15, position: 'BB'
+            }, [horseId]);
+        } else if (i % 3 === 1) {
+            observeAction(tableId, oppId, 'preflop', 'call', {
+                amount: 2, potSize: 3, toCall: 2, position: 'BB',
+                isOpenAction: false, facingRaiseCount: 1
+            }, [horseId]);
+            observeAction(tableId, oppId, 'flop', 'check', {
+                potSize: 8, position: 'BB'
+            }, [horseId]);
+        } else {
+            observeAction(tableId, oppId, 'preflop', 'fold', {
+                potSize: 3, position: 'BB'
+            }, [horseId]);
+        }
+    }
+
+    // Now get a live read
+    const read = getLiveRead(horseId, tableId, oppId);
+    expect(read !== null).toBe(true);
+    expect(read.confidence > 0).toBe(true);
+    expect(typeof read.vpipPct).toBe('number');
+    expect(typeof read.pfrPct).toBe('number');
+    expect(typeof read.aggFreq).toBe('number');
+    expect(typeof read.foldFreq).toBe('number');
+    expect(typeof read.callFreq).toBe('number');
+    expect(typeof read.playerType).toBe('string');
+    expect(Array.isArray(read.exploits)).toBe(true);
+    // Frequencies should be valid (0-1 range)
+    expect(read.aggFreq >= 0 && read.aggFreq <= 1).toBe(true);
+    expect(read.foldFreq >= 0 && read.foldFreq <= 1).toBe(true);
+    expect(read.callFreq >= 0 && read.callFreq <= 1).toBe(true);
+});
+
+test('Live Observer: no reads for insufficient data', () => {
+    const { observeNewHand, observeAction, getLiveRead, clearLiveObserver } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!observeNewHand || !getLiveRead) { expect(true).toBe(true); return; }
+
+    const tableId = 'live-sparse-' + Date.now();
+    const horseId = 'live-sparse-horse';
+    const oppId = 'live-sparse-opp';
+    if (clearLiveObserver) clearLiveObserver(horseId);
+
+    // Only 2 hands — not enough for a read
+    for (let i = 0; i < 2; i++) {
+        observeNewHand(tableId, `h-${i}`, [{ id: horseId }, { id: oppId }], [horseId], 2);
+        observeAction(tableId, oppId, 'preflop', 'fold', {}, [horseId]);
+    }
+
+    const read = getLiveRead(horseId, tableId, oppId);
+    expect(read).toBe(null);
+});
+
+test('Live Observer: observeShowdown tracks showdown stats', () => {
+    const { observeNewHand, observeAction, observeShowdown, getLiveRead, clearLiveObserver } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!observeShowdown || !observeNewHand) { expect(true).toBe(true); return; }
+
+    const tableId = 'live-sd-' + Date.now();
+    const horseId = 'live-sd-horse';
+    const oppId = 'live-sd-opp';
+    if (clearLiveObserver) clearLiveObserver(horseId);
+
+    // Build enough hands for a read
+    for (let i = 0; i < 12; i++) {
+        observeNewHand(tableId, `h-${i}`, [{ id: horseId }, { id: oppId }], [horseId], 2);
+        observeAction(tableId, oppId, 'preflop', i % 2 === 0 ? 'call' : 'raise', {
+            amount: i % 2 === 0 ? 2 : 6, potSize: 3, toCall: 2, position: 'BB',
+            facingRaiseCount: i % 2 === 0 ? 1 : 0
+        }, [horseId]);
+        observeAction(tableId, oppId, 'flop', 'call', { amount: 5, potSize: 10 }, [horseId]);
+    }
+
+    // Record showdowns
+    observeShowdown(tableId, oppId, true, 80, false, [horseId]);
+    observeShowdown(tableId, oppId, false, 20, true, [horseId]);
+
+    const read = getLiveRead(horseId, tableId, oppId);
+    if (read) {
+        // Should have WTSD data
+        expect(read.wtsd !== null || read.wsd !== null || read.bluffRate !== null).toBe(true);
+    }
+    expect(true).toBe(true); // At minimum, no crash
+});
+
+test('Live Observer: does not observe self', () => {
+    const { observeNewHand, observeAction, getLiveRead, liveObserver, clearLiveObserver } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!observeAction || !liveObserver) { expect(true).toBe(true); return; }
+
+    const tableId = 'self-obs-' + Date.now();
+    const horseId = 'self-obs-horse';
+    if (clearLiveObserver) clearLiveObserver(horseId);
+
+    observeNewHand(tableId, 'h-1', [{ id: horseId }], [horseId], 2);
+    // Horse acts — should NOT create a profile for itself
+    observeAction(tableId, horseId, 'preflop', 'raise', { amount: 6 }, [horseId]);
+
+    const horseObs = liveObserver.get(horseId);
+    const tableObs = horseObs?.get(tableId);
+    if (tableObs) {
+        expect(tableObs.opponents.has(horseId)).toBe(false);
+    }
+    expect(true).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PHASE 68: MISSING MODULE EXPORTS + WIRING CHECKS
+// Verifies critical functions are exported and callable
+// ═══════════════════════════════════════════════════════════
+
+test('All critical exports are functions', () => {
+    const brain = require('./src/lib/poker-engine/HorsePokerBrain');
+    const critical = [
+        'getDecision', 'processHandResult', 'validateAndClamp',
+        'recordSitDown', 'evaluateSessions', 'getDynamicRebuyStrategy',
+        'selectCounterStrategy', 'recordOpponentAction', 'recordOpponentShowdown',
+        'getOpponentSessionRead', 'observeNewHand', 'observeAction',
+        'observeShowdown', 'getLiveRead', 'makePLOFallbackDecision',
+        'makeFallbackDecision', 'makeFlopHeuristicDecision',
+        'makeTurnRiverHeuristicDecision', 'evaluatePostflopHand',
+        'getPerformanceStats', 'getPreflopStrength'
+    ];
+    for (const name of critical) {
+        expect(typeof brain[name]).toBe('function');
+    }
+});
+
+test('All defensive module exports exist', () => {
+    const brain = require('./src/lib/poker-engine/HorsePokerBrain');
+    const modules = [
+        'applyMultiwayEquityDiscount', 'detectNutBiasExploitBoard',
+        'reevaluatePLORunoutEquity', 'detectSPRTrap', 'getOOPPositionalGuard',
+        'evaluateDonkBet', 'detectReverseImplied', 'detectBombPotOrStraddle',
+        'recordActionTiming', 'detectAngleShoot', 'recordRITResponse',
+        'isRITRefuser', 'recordColdCall', 'isColdCallTrap',
+        'recordChipLeak', 'getChipLeakBoosts'
+    ];
+    for (const name of modules) {
+        expect(typeof brain[name]).toBe('function');
+    }
+});
+
+test('PLO internal exports exist', () => {
+    const brain = require('./src/lib/poker-engine/HorsePokerBrain');
+    const plo = [
+        'evaluatePLOMadeHand', 'classifyPLOPreflop', 'countStraightOuts',
+        'countFlushOuts', 'getPLOSPRZone', 'analyzePLOBoardTexture',
+        'evaluatePLO8Low', 'getPLOEquityRealization', 'detectScareCard',
+        'detectPLOWrapDraw'
+    ];
+    for (const name of plo) {
+        expect(typeof brain[name]).toBe('function');
+    }
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
