@@ -362,12 +362,13 @@ export default function PokerNearMePage() {
     const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
 
 
-    // ═══ MERGE TOUR STOPS INTO MAP VENUES — individual stop pins, date-aware ═══
-    // Each active/upcoming stop in stops_2026 becomes its own red pin on the map.
-    // Correctly places MSPT Minnesota Apr 7-19 in Columbus MN, East Chicago Apr 21 in East Chicago IN, etc.
+    // ═══ MERGE TOUR STOPS INTO MAP VENUES — ONE pin per tour at current/next stop ═══
+    // Mirrors the poker-tours page approach: find current or next-upcoming stop per tour,
+    // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
+    // then fall back to TOUR_CITY_COORDS, then tour.latitude/longitude.
+    // Tour pins offset slightly from venue pins so both are visible simultaneously.
     const allVenuesWithTours = useMemo(() => {
         const today = new Date();
-
         today.setHours(0, 0, 0, 0);
         const MONTHS = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
 
@@ -393,8 +394,48 @@ export default function PokerNearMePage() {
             return { start, end };
         }
 
+        // ─── Resolve stop coordinates by matching against real venue database ───
+        function findStopCoords(stop) {
+            const venueName = (stop.venue || stop.name || '').toLowerCase();
+            const location = (stop.location || '').toLowerCase();
+            const locationCity = location.split(',')[0]?.trim() || '';
+            const locationState = location.split(',')[1]?.trim() || '';
+
+            // 1. Exact venue name match against real venue DB
+            if (venueName.length > 2 && allVenuesForMap.length > 0) {
+                let match = allVenuesForMap.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
+                if (match) return { lat: match.latitude, lng: match.longitude };
+
+                // 2. Partial venue name match (contains)
+                if (venueName.length > 5) {
+                    match = allVenuesForMap.find(v => {
+                        if (!v.name || !v.latitude) return false;
+                        const n = v.name.toLowerCase();
+                        return n.includes(venueName) || venueName.includes(n);
+                    });
+                    if (match) return { lat: match.latitude, lng: match.longitude };
+                }
+
+                // 3. City + state match (first venue in that city)
+                if (locationCity && locationState) {
+                    match = allVenuesForMap.find(v =>
+                        v.latitude &&
+                        (v.city || '').toLowerCase() === locationCity &&
+                        (v.state || '').toLowerCase() === locationState
+                    );
+                    if (match) return { lat: match.latitude, lng: match.longitude };
+                }
+            }
+
+            // 4. Fallback to TOUR_CITY_COORDS hardcoded map
+            const cityCoords = resolveCityCoords(stop.location || '');
+            if (cityCoords) return { lat: cityCoords[0], lng: cityCoords[1] };
+
+            return null;
+        }
+
         const tourPins = [];
-        const seen = new Set(); // prevent duplicate pins at same city for same tour
+        const seen = new Set();
 
         const effRad = filters.radius === 'Any' ? 5000 : Number(filters.radius || 50);
         let centerLat = null, centerLng = null;
@@ -406,59 +447,91 @@ export default function PokerNearMePage() {
 
         (tours || []).forEach(tour => {
             const allStops = [
-                ...(tour.stops_2026 || []).map(s => ({ ...s, _type: 'stop' })),
-                ...(tour.series_2026 || []).map(s => ({ ...s, _type: 'series' })),
+                ...(tour.stops_2026 || []),
+                ...(tour.series_2026 || []),
             ];
 
-            allStops.forEach((stop, idx) => {
+            // ─── Find current running stop or next upcoming stop (ONE per tour) ───
+            let currentRunning = null;
+            let nextUpcoming = null;
+
+            for (const stop of allStops) {
                 const dates = parseStopDates(stop.dates);
-                // Only show current or upcoming stops (end date >= today)
-                if (dates && dates.end < today) return;
-
-                const location = stop.location || '';
-                const coords = resolveCityCoords(location);
-                if (!coords) return; // skip if no coords
-
-                const [lat, lng] = coords;
-
-                // DISTANCE FILTER
-                let distanceMi = null;
-                // If a center is defined, enforce radius filtering for tourPins just like fetchVenues does for venues
-                if (centerLat !== null && centerLng !== null) {
-                    const dlat = (lat - centerLat) * 69;
-                    const dlng = (lng - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
-                    distanceMi = Math.sqrt(dlat * dlat + dlng * dlng);
-                    if (distanceMi > effRad) return;
+                if (!dates) continue;
+                if (dates.start <= today && dates.end >= today) {
+                    currentRunning = stop;
                 }
+                if (dates.start > today) {
+                    if (!nextUpcoming) {
+                        nextUpcoming = stop;
+                    } else {
+                        const existingDates = parseStopDates(nextUpcoming.dates);
+                        if (existingDates && dates.start < existingDates.start) {
+                            nextUpcoming = stop;
+                        }
+                    }
+                }
+            }
 
-                const dedupeKey = `${tour.tour_code}-${location.toLowerCase()}`;
-                if (seen.has(dedupeKey)) return;
-                seen.add(dedupeKey);
+            const activeStop = currentRunning || nextUpcoming;
+            if (!activeStop) return; // No current or upcoming stop — skip this tour
 
-                const isActive = dates && dates.start <= today && dates.end >= today;
-                const locParts = location.split(',');
-                const city = locParts[0]?.trim() || '';
-                const state = locParts[1]?.trim() || '';
+            // ─── Resolve coordinates using venue DB, then city map, then tour lat/lng ───
+            let resolved = findStopCoords(activeStop);
 
-                tourPins.push({
-                    id: `tour-stop-${tour.tour_code}-${idx}`,
-                    name: stop.name || `${tour.tour_name || tour.tour_code} — ${city}`,
-                    stop_name: stop.name || '',
-                    venue_type: 'tour_stop',
-                    tour_code: tour.tour_code,
-                    tour_name: tour.tour_name || tour.tour_code,
-                    logo_url: tour.logo_url,
-                    latitude: lat,
-                    longitude: lng,
-                    city,
-                    state,
-                    location,
-                    dates: stop.dates || '',
-                    buyin: stop.buyin,
-                    distance_mi: distanceMi,
-                    is_running: isActive,
-                    has_tournaments: true,
-                });
+            // Ultimate fallback: use lat/lng stored directly on the tour object
+            if (!resolved && tour.latitude && tour.longitude) {
+                resolved = { lat: tour.latitude, lng: tour.longitude };
+            }
+
+            if (!resolved) return; // Cannot resolve coordinates — skip
+
+            let lat = resolved.lat;
+            let lng = resolved.lng;
+
+            // DISTANCE FILTER — respect radius
+            let distanceMi = null;
+            if (centerLat !== null && centerLng !== null) {
+                const dlat = (lat - centerLat) * 69;
+                const dlng = (lng - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
+                distanceMi = Math.sqrt(dlat * dlat + dlng * dlng);
+                if (distanceMi > effRad) return;
+            }
+
+            // Dedupe by tour code (ONE pin per tour)
+            if (seen.has(tour.tour_code)) return;
+            seen.add(tour.tour_code);
+
+            const isActive = !!currentRunning;
+            const location = activeStop.location || '';
+            const locParts = location.split(',');
+            const city = locParts[0]?.trim() || '';
+            const state = locParts[1]?.trim() || '';
+
+            // Slight offset so tour pin doesn't sit exactly on the venue pin
+            // ~0.003° ≈ 0.2 miles / 350 meters — visible overlap but distinct
+            lat += 0.003;
+            lng += 0.004;
+
+            tourPins.push({
+                id: `tour-stop-${tour.tour_code}`,
+                name: activeStop.name || `${tour.tour_name || tour.tour_code} — ${city}`,
+                stop_name: activeStop.name || activeStop.venue || '',
+                stop_venue: activeStop.venue || '',
+                venue_type: 'tour_stop',
+                tour_code: tour.tour_code,
+                tour_name: tour.tour_name || tour.tour_code,
+                logo_url: tour.logo_url,
+                latitude: lat,
+                longitude: lng,
+                city,
+                state,
+                location,
+                dates: activeStop.dates || '',
+                buyin: activeStop.buyin,
+                distance_mi: distanceMi,
+                is_running: isActive,
+                has_tournaments: true,
             });
         });
 
