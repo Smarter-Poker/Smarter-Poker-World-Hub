@@ -1375,7 +1375,10 @@ function getPLOProbeBet(isIP, equity, boardTexture, numPlayers) {
 function getPLOCheckRaise(isIP, madeHand, straightOuts, flushOuts, isNutFlushDraw, toCall, potSize) {
     if (isIP) return { shouldCheckRaise: false, crSize: 0 };
     const cats = ['top_set', 'full_house', 'nut_flush', 'nut_straight'];
-    if (cats.includes(madeHand.category) && Math.random() < 0.75) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
+    // Bug #118: Naked nut straights (no redraws) should NOT check-raise on flop — freeroll risk.
+    // They'll just call and wait for a safe turn to raise.
+    const isNakedNutStraight = madeHand.category === 'nut_straight' && !madeHand.hasRedraw;
+    if (cats.includes(madeHand.category) && !isNakedNutStraight && Math.random() < 0.75) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
     if (isNutFlushDraw && straightOuts >= 13 && Math.random() < 0.70) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.5) };
     if (isNutFlushDraw && (straightOuts + flushOuts) >= 9 && Math.random() < 0.55) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.0) };
     if (straightOuts >= 17 && Math.random() < 0.45) return { shouldCheckRaise: true, crSize: Math.round(potSize * 2.0) };
@@ -5175,6 +5178,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             return { type: 'check' };
         }
 
+        // Bug #118: PLO nut straight freeroll protection — when we have initiative (toCall=0)
+        // with a naked nut straight on the flop, we CAN bet/pot it (we're leading the action).
+        // The freeroll guard only applies when FACING a bet/raise — see the facing-bet section.
+        // No special handling needed here — let it flow to normal monster logic.
+
         // Phase 2: OOP check-raise trigger (will raise on next action)
         const cr = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);
         if (cr.shouldCheckRaise) return { type: 'check' };
@@ -5280,6 +5288,33 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // they're usually strong. We need SIGNIFICANTLY stronger hands to raise/continue.
     const multiwayRaisePenalty = numPlayers >= 4 ? 8 : numPlayers >= 3 ? 4 : 0;
     const multiwayCallPenalty = numPlayers >= 4 ? 5 : numPlayers >= 3 ? 2 : 0;
+
+    // Bug #118: PLO nut straight freeroll protection — facing a bet on FLOP with a naked
+    // nut straight (no flush draw, no FH draw, no backdoor equity): JUST CALL.
+    // Don't raise and get all the money in where opponent can freeroll with same straight
+    // + backdoor draws. On a SAFE TURN (no flush completes, no board pair), THEN raise.
+    const isNakedNutStraightFacing = (madeHand.category === 'nut_straight' || madeHand.category === 'straight')
+        && madeHand.isNut && !madeHand.hasRedraw;
+    if (isNakedNutStraightFacing && street === 'flop' && canCall) {
+        console.log('[HorseBrain] 🎯 BUG #118 PLO FREEROLL GUARD: naked nut straight facing bet on flop — flatting to avoid freeroll.');
+        return { type: 'call' };
+    }
+    // Bug #118 turn escalation: naked nut straight on a SAFE turn → NOW raise
+    if (isNakedNutStraightFacing && street === 'turn' && canRaise) {
+        const boardSuits = boardCards.map(c => c.suit);
+        const suitCounts = {};
+        for (const s of boardSuits) suitCounts[s] = (suitCounts[s] || 0) + 1;
+        const flushPossible = Object.values(suitCounts).some(c => c >= 3);
+        const boardRankFreq = {};
+        for (const r of boardCards.map(c => c.rank)) boardRankFreq[r] = (boardRankFreq[r] || 0) + 1;
+        const boardPaired = Object.values(boardRankFreq).some(c => c >= 2);
+        if (!flushPossible && !boardPaired) {
+            console.log('[HorseBrain] 🎯 BUG #118 PLO SAFE TURN: naked nut straight on safe turn — raising now.');
+            return { type: raiseAction.type, amount: clampedPotRaise };
+        }
+        // Unsafe turn (flush possible or board paired): still just call
+        if (canCall) return { type: 'call' };
+    }
 
     // Phase 2: Check-raise with nuts OOP
     const crBet = getPLOCheckRaise(isIP, madeHand, straightDraw.outs, flushDraw.outs, flushDraw.isNutFlushDraw, toCall, potSize);

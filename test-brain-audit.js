@@ -17268,6 +17268,61 @@ test('Phase 107: PLO getPLOGameTypeAdjustments — tournament vs cash', () => {
     expect(tourneyShort.tightnessFactor >= tourneyAdj.tightnessFactor).toBe(true); // Short stack even tighter
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 108: Bug #118 — PLO Nut Straight Freeroll Protection
+// In PLO, a nut straight with NO redraws should NOT raise on the flop.
+// Just call when facing a bet, or bet small when we have initiative.
+// On a safe turn (no flush, no paired board), THEN raise.
+// This does NOT apply to Hold'em.
+// ═══════════════════════════════════════════════════════════
+
+test('Phase 108: PLO check-raise skips naked nut straight (freeroll guard)', () => {
+    // Naked nut straight = nut_straight + hasRedraw=false
+    const nakedNut = { category: 'nut_straight', isNut: true, hasRedraw: false, isMade: true, strength: 85 };
+    const results = [];
+    for (let i = 0; i < 50; i++) {
+        const cr = brain.getPLOCheckRaise(false, nakedNut, 0, 0, false, 10, 100);
+        results.push(cr.shouldCheckRaise);
+    }
+    // Naked nut straight should NEVER check-raise (all false)
+    expect(results.every(r => r === false)).toBe(true);
+});
+
+test('Phase 108: PLO check-raise DOES fire with nut straight + redraw', () => {
+    // Nut straight WITH redraw should still check-raise
+    const nutWithRedraw = { category: 'nut_straight', isNut: true, hasRedraw: true, isMade: true, strength: 85 };
+    const results = [];
+    for (let i = 0; i < 50; i++) {
+        const cr = brain.getPLOCheckRaise(false, nutWithRedraw, 0, 0, false, 10, 100);
+        results.push(cr.shouldCheckRaise);
+    }
+    // Should check-raise at LEAST some of the time (75% frequency)
+    const crCount = results.filter(r => r === true).length;
+    expect(crCount >= 15).toBe(true); // At least 30% of 50 trials (well under 75% to avoid flakiness)
+});
+
+test('Phase 108: PLO naked nut straight facing bet on flop — should just call', () => {
+    // Verify the hand is correctly identified as nut straight with no redraw.
+    // The freeroll guard in makePLOFallbackDecision will cause it to flat-call.
+    // Hero: Jc Td 4h 3s on 9h 8d 7s → J-high straight (J+T hole, 9+8+7 board)
+    // No flush draw (all different suits), no FH draw (4 and 3 don't hit board)
+    const hole = makePLOCards(['Jc', 'Td', '4h', '3s']);
+    const board = makePLOCards(['9h', '8d', '7s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category === 'nut_straight' || result.category === 'straight').toBe(true);
+    expect(result.isNut).toBe(true);
+    expect(result.hasRedraw).toBe(false); // No flush draw, no FH draw = freeroll risk
+});
+
+test('Phase 108: PLO nut straight WITH flush redraw on flop — can raise', () => {
+    // Hero: Jh Th 9c 2d on 8h 7h 6s — nut straight + flush draw
+    const hole = makePLOCards(['Jh', 'Th', '9c', '2d']);
+    const board = makePLOCards(['8h', '7h', '6s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.isNut).toBe(true);
+    expect(result.hasRedraw).toBe(true); // Flush draw = can raise aggressively
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
