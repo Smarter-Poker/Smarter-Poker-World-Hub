@@ -804,9 +804,20 @@ export default function PokerNearMePage() {
             });
         });
 
-        // No consumed venue suppression — both the RichTourCard (tour) and the real venue card
-        // are shown independently. The tour card shows circuit/series info; the venue card shows
-        // the actual casino details (hours, games, stakes, etc.).
+        // ─── Map-only suppression: venues hosted by a tour stop are hidden on the MAP
+        // (so only the WSOP logo pin shows, not an overlapping plain venue dot) but they
+        // still appear as a VenueCard in the card list alongside the RichTourCard.
+        const consumedVenueNames = new Set();
+        const consumedVenueStems = new Set();
+        tourPins.forEach(tp => {
+            if (tp.host_venue_name) {
+                const n = tp.host_venue_name.toLowerCase();
+                consumedVenueNames.add(n);
+                const words = n.split(/\s+/).filter(Boolean);
+                if (words.length >= 2) consumedVenueStems.add(words.slice(0, 2).join(' '));
+                if (words.length >= 3) consumedVenueStems.add(words.slice(0, 3).join(' '));
+            }
+        });
 
         // --- NEW: Deduplicate charity venues so they only show ONE pin (the "next" or primary event) ---
         const charityBestIds = new Set();
@@ -849,7 +860,24 @@ export default function PokerNearMePage() {
             // Strip out parent tour/series metadata records (e.g. "Illinois Poker Championship")
             // These have coordinates but are NOT playable venues — they're tour containers
             if (v.venue_type === 'series' || v.venue_type === 'tour') return false;
-            
+
+            // MAP-ONLY: if this venue is the host of a tour stop, hide its plain dot on the map
+            // (the WSOP logo pin already appears there). The venue card still shows in the list.
+            if (v.name) {
+                const vName = v.name.toLowerCase();
+                const vWords = vName.split(/\s+/).filter(Boolean);
+                const nameMatch = consumedVenueNames.has(vName)
+                    || (vWords.length >= 2 && consumedVenueStems.has(vWords.slice(0, 2).join(' ')))
+                    || (vWords.length >= 3 && consumedVenueStems.has(vWords.slice(0, 3).join(' ')));
+                if (nameMatch) v.hideOnMap = true; // ← card stays, map pin removed
+            }
+            if (!v.hideOnMap && v.latitude && v.longitude) {
+                for (const tp of tourPins) {
+                    const dlat = (v.latitude - tp.latitude) * 69;
+                    const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
+                    if (Math.sqrt(dlat * dlat + dlng * dlng) < 0.1) { v.hideOnMap = true; break; }
+                }
+            }
 
             // Charity deduplication (allow only ONE venue per charity brand)
             if (v.venue_type === 'charity' && v.id) {

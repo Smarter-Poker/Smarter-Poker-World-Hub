@@ -1479,10 +1479,11 @@ function getPLOCheckRaise(isIP, madeHand, straightOuts, flushOuts, isNutFlushDra
     const cats = ['top_set', 'full_house', 'nut_flush', 'nut_straight'];
     // Bug #118: Naked nut straights (no redraws) should NOT check-raise on flop — freeroll risk.
     const isNakedNutStraight = madeHand.category === 'nut_straight' && !madeHand.hasRedraw;
-    // Bug #123: PLO check-raise size must respect pot-limit.
-    // Pot-raise after calling a bet: call toCall, then raise (pot after call).
-    // Formula: toCall + (potSize + toCall + toCall) = toCall + potSize + 2*toCall = potSize + 3*toCall
-    const crPotRaise = Math.round(potSize + 3 * toCall);
+    // Bug #123+#141: PLO check-raise size must respect pot-limit.
+    // potSize already includes the opponent's bet. After we call: pot = potSize + toCall.
+    // Max raise = pot after call = potSize + toCall.
+    // Total = toCall (call) + (potSize + toCall) (raise) = potSize + 2*toCall.
+    const crPotRaise = Math.round(potSize + 2 * toCall);
     if (cats.includes(madeHand.category) && !isNakedNutStraight && Math.random() < 0.75) return { shouldCheckRaise: true, crSize: crPotRaise };
     // Bug #123: Use merged outs (straightOuts already corrected when passed from main function)
     if (isNutFlushDraw && straightOuts >= 13 && Math.random() < 0.70) return { shouldCheckRaise: true, crSize: crPotRaise };
@@ -1524,9 +1525,10 @@ function getPLOGameTypeAdjustments(gameType, stackBB) {
 // NOTE: Simple PLO pot-raise formula (legacy / simple call-sites only).
 // The full version with raiseAction clamping is defined below.
 function _calcPLOPotRaiseSimple(toCall, potSize) {
-    // PLO pot raise formula: call + (pot + call + call) = call + new_pot_after_call
-    // Proper formula: toCall + (potSize + 2 * toCall)
-    return toCall + (potSize + 2 * toCall);
+    // Bug #141: PLO pot raise formula — potSize already includes the opponent's bet.
+    // After we call: pot = potSize + toCall. Max raise = pot after call.
+    // Total = toCall (call) + (potSize + toCall) (raise) = potSize + 2*toCall.
+    return toCall + (potSize + toCall);
 }
 
 /**
@@ -1547,9 +1549,12 @@ function _calcPLOPotRaiseSimple(toCall, potSize) {
  * @returns {number} Exact PLO pot-raise amount (clamped to legal range)
  */
 function calcPLOPotRaise(potSize, toCall, raiseAction) {
-    const potAfterCall = potSize + toCall;          // Pot grows by the call
-    const maxPotRaise = potAfterCall + potSize;     // Raise the new pot on top
-    const totalRaise = toCall + maxPotRaise;        // Total money to put in
+    // Bug #141: CRITICAL FIX — old formula was potAfterCall + potSize = 2*potSize + toCall,
+    // which is nearly DOUBLE the correct pot-raise. Was silently capped by raiseAction.maxAmount.
+    // Correct PLO pot-raise: call toCall, pot becomes (potSize + toCall), raise that amount.
+    // Total chips we put in = toCall + (potSize + toCall) = potSize + 2*toCall.
+    const potAfterCall = potSize + toCall;           // Pot after we call
+    const totalRaise = toCall + potAfterCall;        // Call + raise (pot after call)
     const size = Math.round(totalRaise);
     const min = raiseAction?.minAmount || 1;
     const max = raiseAction?.maxAmount || size;
@@ -2472,9 +2477,10 @@ function getPLOBlindDefense(position, strength, toCall, bb, potSize, numPlayers,
         // Defend vs 4x or 5x open: call with top 45%
         if (raiseFraction <= 5.5 && strength >= 55 && canCall) return { action: 'call' };
         // 3-bet squeeze (multi-way steal): squeeze with top 25%
+        // Bug #140: Use proper PLO pot-raise formula for squeeze sizing
         if (numPlayers >= 3 && strength >= 75 && canRaise && raiseAction) {
-            const sqz = Math.round(potSize * 0.85);
-            return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(sqz, raiseAction.maxAmount || sqz)) };
+            const sqz = calcPLOPotRaise(potSize, toCall, raiseAction);
+            return { action: 'raise', amount: sqz };
         }
         // Bug #97: Fold truly weak hands — PLO BB gets great pot odds, defend wider
         if (strength < 32) return { action: 'fold' };
@@ -2485,9 +2491,10 @@ function getPLOBlindDefense(position, strength, toCall, bb, potSize, numPlayers,
         // SB vs BTN steal: defend with premium hands only (top 30%)
         if (raiseFraction <= 3 && strength >= 60 && canCall) return { action: 'call' };
         // 3-bet SB vs BTN with top 15%
+        // Bug #140: Use proper PLO pot-raise formula for 3-bet sizing
         if (strength >= 80 && canRaise && raiseAction) {
-            const threeB = Math.round(potSize * 1.0);
-            return { action: 'raise', amount: Math.max(raiseAction.minAmount || 1, Math.min(threeB, raiseAction.maxAmount || threeB)) };
+            const threeB = calcPLOPotRaise(potSize, toCall, raiseAction);
+            return { action: 'raise', amount: threeB };
         }
         // Fold anything weaker in SB
         if (strength < 58) return { action: 'fold' };
@@ -5131,14 +5138,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const aceCount = holeRanksPreflop.filter(r => r === 12).length;
         if (aceCount >= 2 && canRaise) {
             const stack = stackBB * bb;
-            // Bug #119: Was using raiseAction.maxAmount (= hero's entire stack) as potRaiseSize,
+            // Bug #119+#139: Was using raiseAction.maxAmount (= hero's entire stack) as potRaiseSize,
             // which meant stackPctCommitted was always ~100% → AA ALWAYS shoved preflop.
-            // Fix: compute actual pot-raise size. Pot raise in PLO = current pot + 2*toCall + toCall.
-            // When opening (toCall=0), standard raise = 3-4x pot.
-            const actualPotRaise = toCall > 0
-                ? Math.round(potSize + toCall * 2)  // Pot-raise facing a bet
-                : Math.round((potSize + toCall) * 3.5); // Standard open sizing
-            const potRaiseSize = Math.min(actualPotRaise, raiseAction?.maxAmount || actualPotRaise);
+            // Fix: use proper PLO pot-raise formula via calcPLOPotRaise.
+            // Bug #139: Old formula used (potSize + toCall) * 3.5 when opening (illegal overbet in PLO).
+            const potRaiseSize = calcPLOPotRaise(potSize, toCall, raiseAction);
             // How much of our stack goes in if we pot/re-pot?
             const totalCommitted = toCall + potRaiseSize;
             const stackPctCommitted = totalCommitted / stack;

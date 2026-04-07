@@ -979,9 +979,17 @@ def build_url_list(venue: dict) -> list:
     seen = set()
 
     def add(label, u):
-        if u and u not in seen and not skip_domain(u):
-            seen.add(u)
-            urls.append((label, u))
+        if not u or u in seen or skip_domain(u):
+            return
+        # Validate URL has a proper domain (must contain a dot, min 4 chars in hostname)
+        try:
+            hostname = u.split('//')[1].split('/')[0].lstrip('www.')
+            if '.' not in hostname or len(hostname) < 4:
+                return  # e.g. https://poker/tournaments — invalid, skip
+        except (IndexError, Exception):
+            return
+        seen.add(u)
+        urls.append((label, u))
 
     # 1. Saved source of truth (from previous successful scrape)
     saved = venue.get('scrape_url') or venue.get('schedule_scrape_url') or ''
