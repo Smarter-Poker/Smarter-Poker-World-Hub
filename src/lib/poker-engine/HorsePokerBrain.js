@@ -1051,7 +1051,11 @@ function analyzePLOBoardTexture(boardCards) {
     const suitFreq = {}; for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
     const maxSuit = Math.max(...Object.values(suitFreq));
     const flushCompleted = maxSuit >= 4;
-    const isMonotone = maxSuit === boardCards.length && boardCards.length === 3;
+    // Bug #106: Was `maxSuit === boardCards.length && boardCards.length === 3` — only detected
+    // monotone on the FLOP. A 4-card or 5-card all-same-suit board was labeled 'two_tone'
+    // because isMonotone was false, causing all monotone-specific logic (RIO penalties,
+    // texture classification, aggression dampening) to silently fail on turn/river.
+    const isMonotone = maxSuit === boardCards.length;
     const rankFreq = {}; for (const r of ranks) rankFreq[r] = (rankFreq[r] || 0) + 1;
     const numPairs = Object.values(rankFreq).filter(v => v >= 2).length;
     const isPaired = numPairs >= 1, isDoublePaired = numPairs >= 2;
@@ -1934,7 +1938,7 @@ function getPLO4BetPotDecision(isIn4BetPot, madeHand, straightOuts, flushOuts, e
     // - Any draw with 8+ outs
     // - Any made hand with equity > 45%
     const shouldShoveFlopIn4Bet = equity >= 45 || totalOuts >= 8 ||
-        ['top_set', 'set', 'full_house', 'nut_flush', 'nut_straight', 'two_pair'].includes(madeHand.category);
+        ['top_set', 'middle_set', 'bottom_set', 'full_house', 'nut_flush', 'nut_straight', 'two_pair', 'overpair'].includes(madeHand.category);
 
     // Fold weak holdings in 4-bet pot (no implied odds, SPR too shallow)
     const shouldFoldWeakIn4Bet = equity < 35 && totalOuts < 6;

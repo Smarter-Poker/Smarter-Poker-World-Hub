@@ -833,7 +833,7 @@ export default function PokerNearMePage() {
             // These have coordinates but are NOT playable venues — they're tour containers
             if (v.venue_type === 'series' || v.venue_type === 'tour') return false;
             
-            // Name-based deduplication
+            // Name-based deduplication (exact match — host_venue_name always matches DB name exactly)
             if (v.name && consumedVenueNames.has(v.name.toLowerCase())) return false;
             
             // Charity deduplication (allow only ONE venue per charity brand)
@@ -841,14 +841,15 @@ export default function PokerNearMePage() {
                 if (!charityBestIds.has(v.id)) return false;
             }
             
-            // Coordinate-based deduplication: aggressive removal of any separate pins sitting right underneath
-            // a tour pin (within ~0.1 miles). This handles cases like "Grand Victoria" vs "Grand Victoria Casino".
+            // Coordinate-based deduplication: remove any venue pin within ~0.3 miles of a tour pin.
+            // Threshold 0.3mi (~1600ft) catches the standalone venue dot that sits at the same
+            // physical location as its tour double-icon (e.g. Grand Victoria under WSOPC pin).
             if (v.latitude && v.longitude) {
                 for (const tp of tourPins) {
                     const dlat = (v.latitude - tp.latitude) * 69;
                     const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
                     const dist = Math.sqrt(dlat * dlat + dlng * dlng);
-                    if (dist < 0.1) return false;
+                    if (dist < 0.3) return false;
                 }
             }
             

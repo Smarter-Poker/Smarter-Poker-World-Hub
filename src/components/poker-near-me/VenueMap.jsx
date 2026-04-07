@@ -451,15 +451,17 @@ function createTourLogoIcon(L, venue) {
   const tourCode = (venue.tour_code || 'TOUR').slice(0, 4);
   const isRunning = venue.is_running;
 
-  // Circle sizing
+  // Circle sizing — both circles MUST be identical in size
   const circleSize = 36;
   const overlap = 10;
-  const totalWidth = circleSize + 4;
+  // Container must be wide enough for the circles + any pulse ring overflow (8px each side)
+  const totalWidth = circleSize + 16; // 52px — prevents clipping on either side
   const totalHeight = (circleSize * 2) - overlap + 4;
+  const circleLeft = (totalWidth - circleSize) / 2; // centered horizontally
 
   // ═══ TOUR CIRCLE (top, with colored ring) ═══
   const pulseRing = isRunning
-    ? `<div style="position:absolute;top:-4px;left:-4px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`
+    ? `<div style="position:absolute;top:-4px;left:${circleLeft - 4}px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`
     : '';
 
   const tourInner = tourLogoUrl
@@ -467,18 +469,19 @@ function createTourLogoIcon(L, venue) {
        <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
     : `<div style="font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
 
-  // ═══ VENUE CIRCLE (bottom, gray ring) ═══
+  // ═══ VENUE CIRCLE (bottom) — SAME circleSize as tour circle ═══
   const hostLogoUrl = venue.host_venue_logo_url || '';
   const hostName = venue.host_venue_name || venue.stop_venue || '';
   const hostInitials = hostName.split(/\s+/).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase() || 'V';
 
   const venueInner = hostLogoUrl
     ? `<img src="${hostLogoUrl}" alt="" style="width:${circleSize - 8}px;height:${circleSize - 8}px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`
-    : `<div style="font-size:9px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`;
+       <div style="display:none;font-size:10px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`
+    : `<div style="font-size:10px;font-weight:900;color:#94a3b8;letter-spacing:0.3px;">${hostInitials}</div>`;
 
+  // Venue circle: identical size (circleSize × circleSize), gray ring — no overflow clipping on wrapper
   const venueCircleHtml = hostName
-    ? `<div style="position:absolute;top:${circleSize - overlap}px;left:${(totalWidth - circleSize) / 2}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 8px rgba(148,163,184,0.5), 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;">${venueInner}</div>`
+    ? `<div style="position:absolute;top:${circleSize - overlap}px;left:${circleLeft}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid #94a3b8;box-shadow:0 0 8px rgba(148,163,184,0.5), 0 3px 10px rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1;overflow:hidden;">${venueInner}</div>`
     : '';
 
   // ═══ DOUBLE-LABEL PILL ═══
@@ -494,7 +497,7 @@ function createTourLogoIcon(L, venue) {
     className: 'tour-logo-marker',
     html: `<div style="position:relative;width:${totalWidth}px;height:${totalHeight}px;">
       ${pulseRing}
-      <div style="position:absolute;top:0;left:${(totalWidth - circleSize) / 2}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">
+      <div style="position:absolute;top:0;left:${circleLeft}px;width:${circleSize}px;height:${circleSize}px;border-radius:50%;background:#ffffff;border:2.5px solid ${tourColor};box-shadow:0 0 14px ${tourColor}80, 0 3px 10px rgba(0,0,0,0.7);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:3;">
         ${tourInner}
       </div>
       ${venueCircleHtml}
@@ -509,6 +512,8 @@ function createTourLogoIcon(L, venue) {
 // ─── Helper: Build tour-specific popup HTML ───
 function buildTourPopupHtml(venue) {
   const tourColor = TOUR_MARKER_COLORS[venue.tour_code] || '#d4a853';
+  // Poker tours always use red ring — they are poker tour stops, not regular venues
+  const ringColor = '#ef4444';
   const logoHtml = venue.logo_url
     ? `<img src="${venue.logo_url}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:3px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`
     : `<div style="display:flex;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`;
@@ -517,7 +522,7 @@ function buildTourPopupHtml(venue) {
     ? `<span style="padding:2px 8px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;font-weight:700;letter-spacing:0.3px;border:1px solid rgba(34,197,94,0.3);">LIVE NOW</span>`
     : `<span style="padding:2px 8px;border-radius:4px;background:rgba(59,130,246,0.12);color:#60a5fa;font-size:10px;font-weight:700;letter-spacing:0.3px;border:1px solid rgba(59,130,246,0.25);">UPCOMING</span>`;
 
-  return `<div style="min-width:240px;max-width:320px;padding:16px 18px 14px;">
+  return `<div style="min-width:240px;max-width:320px;padding:16px 18px 14px;border-top:3px solid ${ringColor};">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
       ${logoHtml}
       <div>
