@@ -805,14 +805,17 @@ def build_url_list(venue: dict) -> list:
     # 6. Direct venue website — try multiple path patterns
     website = venue.get('website') or ''
     if website:
+        # Reject pure relative paths (e.g. '/poker-room') stored without domain
+        if website.startswith('/') or len(website) < 8:
+            website = ''
+    if website:
         base = website if website.startswith('http') else f"https://{website}"
         base = base.rstrip('/')
-        # Normalize: strip any trailing page filename (e.g. /poker-room.html, /index.php)
-        # so we get a clean directory base for path expansion
+        # Normalize: strip trailing page filename (e.g. /poker-room.html, /index.php)
         last_seg = base.split('/')[-1]
-        if '.' in last_seg and not last_seg.startswith('www.'):
-            # Looks like a file (e.g. poker-room.html) — strip it
+        if '.' in last_seg and not last_seg.startswith('www.') and len(last_seg) > 4:
             base = base.rsplit('/', 1)[0]
+
         for path in [
             '/poker/tournaments',
             '/poker-room/tournaments',
