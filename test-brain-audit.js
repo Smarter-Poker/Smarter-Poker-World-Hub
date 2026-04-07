@@ -16542,7 +16542,8 @@ test('Phase 103: getPLOCheckRaise crSize is pot-relative when triggered', () => 
         if (result.shouldCheckRaise) { crSize = result.crSize; break; }
     }
     expect(crSize > 0).toBe(true);
-    expect(crSize).toBe(500); // Math.round(200 * 2.5)
+    // Bug #123: pot-limit check-raise = potSize + 3*toCall = 200 + 3*50 = 350
+    expect(crSize).toBe(350);
 });
 
 // ── Bug #108: countStraightOuts no longer overcounts for missing.length===2 ──
