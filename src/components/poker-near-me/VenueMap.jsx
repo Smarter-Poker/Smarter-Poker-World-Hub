@@ -460,9 +460,8 @@ function createTourLogoIcon(L, venue) {
   const circleLeft = (totalWidth - circleSize) / 2; // centered horizontally
 
   // ═══ TOUR CIRCLE (top, with colored ring) ═══
-  const pulseRing = isRunning
-    ? `<div style="position:absolute;top:-4px;left:${circleLeft - 4}px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`
-    : '';
+  // All tour stop pins pulse — makes the map feel alive regardless of live status
+  const pulseRing = `<div style="position:absolute;top:-4px;left:${circleLeft - 4}px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`;
 
   const tourInner = tourLogoUrl
     ? `<img src="${tourLogoUrl}" alt="" style="width:${circleSize - 8}px;height:${circleSize - 8}px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
@@ -628,7 +627,7 @@ function buildPopupHtml(venue) {
 }
 
 // ─── Main Map Component ───
-export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false }) {
+export default function VenueMap({ venues, userLocation, centerLocation, fullHeight = false, onVenueClick, hideLegend = false, radiusMiles, uniformColor, onOpenIframeModal, disableClustering = false, isFavorited }) {
   const [legendCollapsed, setLegendCollapsed] = useState(false);
   const [nearestVenue, setNearestVenue] = useState(null);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -998,6 +997,18 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const venueIcon = isTourStop
         ? createTourLogoIcon(L, venue)
         : createVenueIcon(L, venue, uniformColor || null);
+
+      // Favorited venue pins get a gold pulse ring wrapped around the icon
+      const isFav = !isTourStop && isFavorited && isFavorited('venue', venue.id);
+      const finalIcon = isFav ? (() => {
+        const base = createVenueIcon(L, venue, uniformColor || null);
+        const size = base.options?.iconSize?.[0] || 36;
+        const favHtml = `<div style="position:relative;width:${size + 10}px;height:${size + 10}px;">
+          <div style="position:absolute;top:-1px;left:-1px;width:${size + 2}px;height:${size + 2}px;border-radius:50%;border:2.5px solid #d4a853;opacity:0.85;animation:markerPulse 1.8s ease-in-out infinite;"></div>
+          ${base.options.html}
+        </div>`;
+        return L.divIcon({ ...base.options, html: favHtml, iconSize: [size + 10, size + 10] });
+      })() : venueIcon;
       const popupHtml = isTourStop
         ? buildTourPopupHtml(venue)
         : buildPopupHtml(venue);
@@ -1007,7 +1018,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const markerLat = isTourStop ? venue.latitude + 0.012 : venue.latitude;
       const markerLng = isTourStop ? venue.longitude - 0.008 : venue.longitude;
 
-      const marker = L.marker([markerLat, markerLng], { icon: venueIcon, zIndexOffset: isTourStop ? 1000 : 0 })
+      const marker = L.marker([markerLat, markerLng], { icon: finalIcon, zIndexOffset: isTourStop ? 1000 : isFav ? 500 : 0 })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
 
       if (!isTourStop) {

@@ -11536,6 +11536,14 @@ function makeFlopHeuristicDecision(params) {
         return Math.max(raiseAction.minAmount || amt, Math.min(amt, raiseAction.maxAmount || amt));
     };
 
+    // Bug #158: Wire counterStrategyMode into flop heuristic (was destructured but never read)
+    const flopInStealthMode = counterStrategyMode === 'stealth' || counterStrategyMode === 'anti_bot_stealth';
+    const flopInAntiBot = counterStrategyMode === 'anti_bot' || counterStrategyMode === 'anti_bot_stealth';
+    // Stealth: add ±5% noise to all sizing to foil pattern recognition
+    // Anti-bot: slightly increase c-bet frequency (exploiters fold to aggression)
+    const stealthSizeNoise = flopInStealthMode ? (Math.random() * 0.10 - 0.05) : 0;
+    const antiBotCBetBoost = flopInAntiBot ? 0.06 : 0;
+
     // ── BOARD TEXTURE ANALYSIS ──
     const boardRanks = board.map(c => RANKS.indexOf(c[0])).sort((a, b) => b - a);
     const boardSuits = board.map(c => c[1]);
@@ -11876,15 +11884,39 @@ function makeFlopHeuristicDecision(params) {
 
             // ═══ BOARD-TEXTURE-DRIVEN C-BET STRATEGY ═══
 
+            // Bug #159: TRIPS BOARD → Almost never c-bet (board is 3-of-a-kind, nobody connects)
+            // Only bet with a pocket pair (full house) or the case card (quads)
+            if (boardIsTrips) {
+                if (handEval.strength >= 80) {
+                    // We have a full house or quads — slow-play most of the time
+                    if (Math.random() < 0.25) {
+                        return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * 0.33)) };
+                    }
+                    return { type: 'check' };
+                }
+                // Everybody has trips — pot control, check it down
+                return { type: 'check' };
+            }
+
+            // Bug #159: MEDIUM BOARDS (neither high nor low) → use polarized sizing
+            // These are the most ambiguous textures (e.g., 9-7-3 rainbow).
+            // Neither player has a clear range advantage — bet less but size up.
+            const mediumBoardSizeMod = boardIsMedium ? 0.04 : 0;
+
+            // Bug #159: STRAIGHT-DRAW BOARDS → size up for protection
+            // When the board has straight draw connectivity, draws are more likely.
+            // Bigger bets deny equity and charge draws appropriately.
+            const straightDrawSizeMod = boardHasStraightDraw ? 0.05 : 0;
+
             // STRATEGY 1: HIGH DRY BOARDS → Small c-bet, very high frequency
             // PFR has massive range advantage (Ax, broadway). Bet small, bet often.
             if (boardIsHigh && !boardIsConnected && !boardIsMonotone && boardWet === 'dry') {
                 let cbetFreq = 0.80; // Near-100% c-bet range
                 let cbetFrac = boardIsPaired ? 0.25 : 0.33; // Tiny sizing
 
-                // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
-                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
+                // ═══ RANGE ADVANTAGE + 3-BET POT + COUNTER-STRATEGY + BOARD WIRING ═══
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
 
                 if (multiway) cbetFreq = Math.max(0.30, 0.55 + mwAdj.cbetFreqMod); // Tighten multiway (position/texture aware)
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -11930,8 +11962,8 @@ function makeFlopHeuristicDecision(params) {
                 if (handEval.category === 'overpair') { cbetFreq = 0.70; cbetFrac = 0.55; }
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
 
                 if (multiway) cbetFreq = Math.max(0.15, cbetFreq * (0.60 + mwAdj.cbetFreqMod));
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.10;
@@ -12007,9 +12039,9 @@ function makeFlopHeuristicDecision(params) {
                 let cbetFreq = 0.70;
                 let cbetFrac = 0.25; // Very small — we "always have it" on paired boards
 
-                // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
-                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
+                // ═══ RANGE ADVANTAGE + 3-BET POT + COUNTER-STRATEGY + BOARD WIRING ═══
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
+                cbetFrac = Math.max(0.20, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
 
                 if (handEval.strength >= 75) { cbetFrac = 0.40; } // Bigger with actual trips+
                 if (multiway) cbetFreq = Math.max(0.25, 0.45 + mwAdj.cbetFreqMod);
@@ -12053,8 +12085,8 @@ function makeFlopHeuristicDecision(params) {
                 else { cbetFreq = 0.30; cbetFrac = 0.45; } // Marginal — sometimes bet to take down
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
-                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
+                cbetFrac = Math.max(0.30, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
 
                 // Against callers on wet boards: tighter c-bet range but bigger sizing
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3) {
@@ -12108,8 +12140,8 @@ function makeFlopHeuristicDecision(params) {
                 else cbetFreq = 0.30;
 
                 // ═══ RANGE ADVANTAGE + 3-BET POT WIRING ═══
-                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod;
-                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod);
+                cbetFreq += rangeAdvCbetMod + threeBetCbetMod + liveCBetMod + inHandCBetMod + antiBotCBetBoost;
+                cbetFrac = Math.max(0.25, cbetFrac + rangeAdvSizeMod + threeBetSizeMod + liveCBetSizeMod + inHandCBetSizeMod + stealthSizeNoise);
 
                 if (oppFoldFreq > 0.50 && oppConfidence > 0.3) cbetFreq += 0.12;
                 if (oppCallFreq > 0.60 && oppConfidence > 0.3 && handEval.strength < 40) cbetFreq -= 0.15;
@@ -16072,6 +16104,9 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
     // Only apply preflop speedup if we used the basic delay (Advanced module already accounts for it)
     if (!usedAdvancedTiming && street === 'preflop') delayMs *= 0.7;
+
+    // Bug #157: Add angle-shoot entropy to Hold'em delays (was only applied to PLO at line 14953)
+    delayMs += angleTell.extraEntropyMs;
 
     // Clamp to human-realistic range
     delayMs = Math.round(Math.max(800, Math.min(7000, delayMs)));

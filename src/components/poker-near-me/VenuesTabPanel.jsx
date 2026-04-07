@@ -79,6 +79,7 @@ export default function VenuesTabPanel({
                         fullHeight={mapFullscreen}
                         onVenueClick={onMapVenueClick}
                         radiusMiles={filters.radius}
+                        isFavorited={isFavorited}
                         onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
                     />
                 </MapErrorBoundary>
