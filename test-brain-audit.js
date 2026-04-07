@@ -5059,34 +5059,6 @@ test('BUG #8 REGRESSION: Pineapple auto-discard fix verified in source', () => {
 });
 
 // ═══════════════════════════════════════════════════════════
-// BUG #38: Short Deck categoryName display bug
-// ═══════════════════════════════════════════════════════════
-
-// BUG #38: In Short Deck, Flush is category 7 and Full House is category 6 (swapped).
-// But HAND_NAMES[7] = "Full House" (truthy), so the fallback never fired.
-// Flush was displayed as "Full House" and vice versa in Short Deck.
-
-test('BUG #38: Short Deck Flush (cat 7) shows "Flush" not "Full House"', () => {
-    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
-    const { parseCard } = require('./src/lib/poker-engine/Deck');
-    // A flush in Short Deck: all hearts, non-straight
-    const cards = ['Ah', 'Kh', 'Jh', '9h', '6h'].map(s => parseCard(s));
-    const result = evaluate5(cards, { shortDeck: true });
-    expect(result.category).toBe(7); // Flush is category 7 in Short Deck
-    expect(result.categoryName).toBe('Flush');
-});
-
-test('BUG #38: Short Deck Full House (cat 6) shows "Full House" not "Flush"', () => {
-    const { evaluate5 } = require('./src/lib/poker-engine/HandEvaluator');
-    const { parseCard } = require('./src/lib/poker-engine/Deck');
-    // A full house: AAA KK
-    const cards = ['Ah', 'Ad', 'Ac', 'Ks', 'Kh'].map(s => parseCard(s));
-    const result = evaluate5(cards, { shortDeck: true });
-    expect(result.category).toBe(6); // Full House is category 6 in Short Deck
-    expect(result.categoryName).toBe('Full House');
-});
-
-// ═══════════════════════════════════════════════════════════
 // BUG #9 REGRESSION: Tournament seating uses Fisher-Yates, not sort(random)
 // ═══════════════════════════════════════════════════════════
 

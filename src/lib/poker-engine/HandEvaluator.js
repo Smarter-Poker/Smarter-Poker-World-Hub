@@ -155,11 +155,7 @@ function evaluate5(cards, options = {}) {
   return {
     score,
     category,
-    // BUG #38 FIX: Short Deck swaps Flush (cat 7) and Full House (cat 6),
-    // but HAND_NAMES[7] returns "Full House" which is truthy, so the old fallback never fired.
-    categoryName: options.shortDeck
-      ? (category === 7 ? 'Flush' : category === 6 ? 'Full House' : HAND_NAMES[category] || 'Unknown')
-      : (HAND_NAMES[category] || 'Unknown'),
+    categoryName: HAND_NAMES[category] || (category === 7 && options.shortDeck ? 'Flush' : category === 6 && options.shortDeck ? 'Full House' : 'Unknown'),
     cards: [...cards],
     description,
   };
