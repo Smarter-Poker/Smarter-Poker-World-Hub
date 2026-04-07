@@ -742,11 +742,7 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
             const r = parseInt(rank);
             const holeCount = hRanks.filter(hr => hr === r).length;
             const boardCount = bRanks.filter(br => br === r).length;
-            // PLO rule: must use exactly 2 hole cards. Need at least 2 from hole OR 2 from board
-            if (holeCount >= 2 && boardCount >= 2) {
-                return { strength: 98, category: 'quads', isNut: true, hasRedraw: false, isMade: true };
-            }
-            // If we have a pocket pair matching a board pair = quads
+            // PLO rule: must use exactly 2 hole cards. Need at least 2 from hole AND 2 from board
             if (holeCount >= 2 && boardCount >= 2) {
                 return { strength: 98, category: 'quads', isNut: true, hasRedraw: false, isMade: true };
             }
