@@ -2,9 +2,10 @@
   "metadata": {
     "description": "SOURCE OF TRUTH: Authoritative scraping URLs for all US traveling poker tour schedules. Used by automated scrapers to refresh tour-source-registry.json.",
     "created": "2026-04-04",
-    "last_updated": "2026-04-04",
+    "last_updated": "2026-04-07",
     "refresh_interval_days": 3,
-    "notes": "These URLs are the CANONICAL sources for schedule data. Each tour has primary (official site), secondary (aggregator), and API sources where available."
+    "pdf_scraping_enabled": true,
+    "notes": "These URLs are the CANONICAL sources for schedule data. Each tour has primary (official site), secondary (aggregator), PDF schedule downloads, and API sources where available. PDF sources provide event-level detail (event#, time, buy-in, GTD, chips, levels)."
   },
   "tours": {
     "WSOP": {
@@ -23,8 +24,13 @@
         },
         "pokernews_pdf": {
           "url": "https://content.pokernews.com/2026-wsop-schedule.pdf",
-          "method": "direct_download",
-          "notes": "Printable PDF of full schedule - most reliable static source."
+          "method": "pdf_direct",
+          "notes": "Printable PDF of full WSOP schedule — most reliable static source with all 100 events."
+        },
+        "wsop_official_pdf": {
+          "url": "https://www.wsop.com/2026/assets/2026-WSOP-Schedule.pdf",
+          "method": "pdf_direct",
+          "notes": "Official WSOP 2026 schedule PDF (if available)."
         },
         "pokeratlas": {
           "url": "https://www.pokeratlas.com/poker-tournaments/wsop",
@@ -105,7 +111,20 @@
         "primary": {
           "url": "https://msptpoker.com/schedule/",
           "method": "scrapling",
-          "notes": "Official MSPT schedule page."
+          "notes": "Official MSPT schedule page. Also crawled for PDF links per stop."
+        },
+        "pdf_schedule": {
+          "url": "https://msptpoker.com/schedule/",
+          "method": "pdf_crawl",
+          "pdf_base": "https://msptpoker.com/showpdf.aspx?eventID=",
+          "notes": "Each MSPT stop publishes a full PDF schedule at showpdf.aspx?eventID=NNN. The main schedule page is crawled for all eventID values.",
+          "known_event_ids": {
+            "minnesota_state_2026": 588,
+            "east_chicago_2026": 589,
+            "potawatomi_spring_2026": 590,
+            "michigan_state_2026": 591,
+            "sycuan_showdown_2026": 592
+          }
         },
         "pokeratlas": {
           "url": "https://www.pokeratlas.com/poker-tournaments/mspt",
