@@ -1093,7 +1093,9 @@ export default function PokerNearMePage() {
             if (cached) {
                 const parsed = JSON.parse(cached);
                 if (parsed.venues && parsed.time && (Date.now() - parsed.time) < 3600000) { // 1hr TTL
-                    setAllVenuesForMap(parsed.venues);
+                    // Filter inactive venues — e.g. Ameristar East Chicago (no permanent cash games)
+                    const activeFromCache = parsed.venues.filter(v => v.is_active !== false && v.id !== 3109);
+                    setAllVenuesForMap(activeFromCache);
                     hadCacheHit = true;
                 }
             }
@@ -1104,10 +1106,14 @@ export default function PokerNearMePage() {
             .then(function (json) {
                 var v = json.venues || json.data || json || [];
                 var arr = Array.isArray(v) ? v : [];
-                setAllVenuesForMap(arr);
-                // Cache for offline use
+                // CRITICAL: Exclude inactive venues (is_active:false) from the map — these are venues
+                // that no longer operate permanent cash games (e.g. Ameristar East Chicago, which only
+                // activates during MSPT tour stops). Also exclude Grand Victoria duplicate (ID 3109).
+                var activeArr = arr.filter(function(venue) { return venue.is_active !== false && venue.id !== 3109; });
+                setAllVenuesForMap(activeArr);
+                // Cache for offline use (cache the filtered list)
                 try {
-                    localStorage.setItem(CACHE_KEY, JSON.stringify({ venues: arr, time: Date.now() }));
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
                 } catch (e) { /* storage full, ignore */ }
             })
             .catch(function () {

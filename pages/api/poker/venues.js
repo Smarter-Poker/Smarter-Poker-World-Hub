@@ -154,6 +154,13 @@ function getVenueById(venueId) {
 function applyFilters(venues, { id, state, city, type, tournaments, search, featured }) {
     let filtered = [...venues];
 
+    // Mirror Supabase's is_active=true filter — inactive venues (e.g. tournament-only venues
+    // like Ameristar East Chicago that have no permanent cash games) must not appear in results.
+    // Exception: single-venue lookup by ID always returns the venue regardless of active status.
+    if (!id) {
+        filtered = filtered.filter(v => v.is_active !== false);
+    }
+
     if (id) {
         filtered = filtered.filter(v => String(v.id) === String(id));
     }
