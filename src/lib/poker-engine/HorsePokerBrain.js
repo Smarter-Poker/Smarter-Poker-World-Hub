@@ -7165,10 +7165,16 @@ function makeTurnRiverHeuristicDecision(params) {
             }
 
             // ── EQUITY IMPROVED: We picked up equity → barrel ──
-            if (equityDelta >= 15 && handEval.strength >= 45 && canRaise) {
-                // Board improved us (e.g., hit two pair, set, flush draw completed)
-                const sizeFrac = 0.60;
-                return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
+            // BUG #25 FIX: Was barreling at strength >= 45 which is marginal and can't stand a raise.
+            // A hand that improved from 30→45 is still weak — only barrel when we're genuinely strong (55+)
+            // OR when the improvement was massive (25+ delta) and we have some showdown value.
+            if (equityDelta >= 15 && canRaise) {
+                const shouldBarrelImprovement = handEval.strength >= 55 || (equityDelta >= 25 && handEval.strength >= 45);
+                if (shouldBarrelImprovement) {
+                    // Board improved us (e.g., hit two pair, set, flush draw completed)
+                    const sizeFrac = handEval.strength >= 65 ? 0.66 : 0.50; // Stronger hand = bigger bet
+                    return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
+                }
             }
 
             // ── STRONG DRAWS: Semi-bluff the turn ──
@@ -13408,10 +13414,15 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             const facingBet = toCall > 0;
 
             // GUARDRAIL 1: Don't call with garbage hands facing a bet
-            // Override GTO 'call' with 'fold' if hand strength < 15 and no draws
-            if (finalAction === 'call' && facingBet && handEval.strength < 15 && drawEq.outs === 0) {
+            // Override GTO 'call' with 'fold' if hand is too weak for the price
+            // BUG #21 FIX: Was only folding strength < 15. Hands with strength 15-25
+            // facing a large bet (75%+ pot) are also clear folds. Threshold scales with bet size.
+            if (finalAction === 'call' && facingBet && drawEq.outs === 0) {
                 const potOdds = toCall / (potSize + toCall);
-                if (potOdds >= 0.20) { // Only fold if pot odds aren't amazing
+                const betRelPot = toCall / Math.max(1, potSize);
+                // Fold threshold scales: small bet → only fold garbage, big bet → fold more
+                const foldThreshold = betRelPot >= 0.75 ? 25 : betRelPot >= 0.50 ? 20 : 15;
+                if (handEval.strength < foldThreshold && potOdds >= 0.20) {
                     finalAction = 'fold';
                     finalAmount = null;
                 }
@@ -13420,7 +13431,11 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             // GUARDRAIL 2: Bet strong hands when not facing action
             // Override GTO 'check' with 'bet' if hand strength >= 60 (strong made hand)
             // BUG #19 FIX: Also semi-bluff with strong draws (flush draws, OESDs, combo draws)
-            const hasStrongDraw = (drawEq.outs >= 8); // Flush draw, OESD, or combo draw
+            // BUG #23 FIX: OOP semi-bluffs need more outs (10+) because we face raises
+            // and must fold equity. IP can semi-bluff with 8+ outs since we close the action.
+            const isIPGuardCheck = new Set(['BTN', 'CO', 'HJ']).has(position);
+            const semiBluffOutsThreshold = isIPGuardCheck ? 8 : 10; // IP = 8 outs, OOP = 10 outs
+            const hasStrongDraw = (drawEq.outs >= semiBluffOutsThreshold);
             const shouldBetHand = handEval.strength >= 60 || (hasStrongDraw && street !== 'river');
             if (finalAction === 'check' && !facingBet && shouldBetHand) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
@@ -13441,7 +13456,12 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             // - vs calling station: bet more often (they call light)
             // - vs nit/folder: bet less often (they only call with better)
             // - vs unknown: default 65%
-            if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= 50) {
+            // BUG #22 FIX: Was firing at strength >= 50 which is bluff-catcher territory.
+            // Hands with 50-59 strength are marginal — betting them on the river turns them into
+            // a bluff (worse hands fold, better hands call). Raised threshold to 60 for default,
+            // but vs known calling stations we CAN thin-value at 55+ (they call with worse).
+            const g3StrengthThreshold = (opponentAdjustment.callMod > 0) ? 55 : 60;
+            if (finalAction === 'check' && !facingBet && street === 'river' && handEval.strength >= g3StrengthThreshold) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                 let riverVBetFreq = 0.65;
                 if (opponentAdjustment.callMod > 0) riverVBetFreq = 0.85; // Station → bet more

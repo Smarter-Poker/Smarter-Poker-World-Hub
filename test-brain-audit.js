@@ -5750,7 +5750,7 @@ test('BUG #20: River value bet frequency adjusts for opponent tendency', () => {
     const fs = require('fs');
     const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
     // GUARDRAIL 3 should adjust frequency based on opponent reads
-    const guardSection = src.substring(src.indexOf('GUARDRAIL 3'), src.indexOf('GUARDRAIL 3') + 1000);
+    const guardSection = src.substring(src.indexOf('GUARDRAIL 3'), src.indexOf('GUARDRAIL 3') + 1500);
     expect(guardSection.includes('riverVBetFreq')).toBe(true);
     expect(guardSection.includes('opponentAdjustment.callMod')).toBe(true);
     expect(guardSection.includes('opponentAdjustment.foldMod')).toBe(true);
@@ -5777,6 +5777,59 @@ test('GameController: tournament refund RPCs use resilientMutation', () => {
     const cancelSection = src.substring(src.indexOf('cancelTournament') || 0);
     expect(cancelSection.includes("resilientMutation(this.supabase, () => this.supabase.rpc('unlock_chips_from_table'")).toBe(true);
     expect(cancelSection.includes("resilientMutation(this.supabase, () => this.supabase.from('chip_transactions')")).toBe(true);
+});
+
+test('BUG #21: GUARDRAIL 1 fold threshold scales with bet size', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    const g1Section = src.substring(src.indexOf('GUARDRAIL 1'), src.indexOf('GUARDRAIL 2'));
+    // Must scale threshold based on bet size, not fixed at 15
+    expect(g1Section.includes('foldThreshold')).toBe(true);
+    expect(g1Section.includes('betRelPot')).toBe(true);
+    // Big bet (75%+) should fold at strength < 25
+    expect(g1Section.includes('>= 0.75')).toBe(true);
+});
+
+test('BUG #22: GUARDRAIL 3 river value bet threshold raised to 60+', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    const g3Section = src.substring(src.indexOf('GUARDRAIL 3'), src.indexOf('GUARDRAIL 3') + 1200);
+    // Must use dynamic threshold, not hardcoded 50
+    expect(g3Section.includes('g3StrengthThreshold')).toBe(true);
+    // Default threshold should be 60, not 50 (50-59 is bluff-catcher zone)
+    expect(g3Section.includes('? 55')).toBe(true); // calling station → 55
+    expect(g3Section.includes(': 60')).toBe(true); // default → 60
+});
+
+test('BUG #23: OOP semi-bluffs require more outs than IP', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    const g2Section = src.substring(src.indexOf('GUARDRAIL 2'), src.indexOf('GUARDRAIL 3'));
+    // Must have position-aware outs threshold
+    expect(g2Section.includes('semiBluffOutsThreshold')).toBe(true);
+    // OOP should need 10 outs, IP needs 8 (ternary: ? 8 : 10)
+    expect(g2Section.includes('? 8')).toBe(true);
+    expect(g2Section.includes(': 10')).toBe(true);
+});
+
+test('BUG #25: equity improvement barrel requires strength >= 55', () => {
+    const fs = require('fs');
+    const src = fs.readFileSync('./src/lib/poker-engine/HorsePokerBrain.js', 'utf8');
+    // Find the equity improved section in the turn/river heuristic
+    const eqSection = src.substring(src.indexOf('EQUITY IMPROVED') || 0, (src.indexOf('EQUITY IMPROVED') || 0) + 600);
+    // Should check strength >= 55 for standard barrel, or massive improvement (25+) at 45+
+    expect(eqSection.includes('shouldBarrelImprovement')).toBe(true);
+    expect(eqSection.includes('>= 55')).toBe(true);
+    expect(eqSection.includes('>= 25')).toBe(true); // equityDelta >= 25 exception
+});
+
+test('evaluatePostflopHand: combo draw gets strength boost', () => {
+    const { evaluatePostflopHand } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // OESD + flush draw = combo draw → strength >= 50
+    const comboResult = evaluatePostflopHand(['9h', '8h'], ['7h', '6d', '2h']);
+    // 9h8h on 7h6d2h: flush draw + OESD (5-6-7-8-9 straight possible)
+    expect(comboResult.hasFlushDraw).toBe(true);
+    expect(comboResult.strength).toBeGreaterThanOrEqual(45); // Combo draw minimum
 });
 
 // ASYNC TEST RUNNER + SUMMARY
