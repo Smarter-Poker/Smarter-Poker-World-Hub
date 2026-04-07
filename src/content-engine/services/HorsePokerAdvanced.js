@@ -17,6 +17,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 // ═══════════════════════════════════════════════════════════════════════════
 function getHorseHash(profileId) {
     if (!profileId) return 0;
+    profileId = String(profileId); // Bug #58: coerce to string for .length/.charCodeAt safety
     let hash = 0;
     for (let i = 0; i < profileId.length; i++) {
         hash = ((hash << 5) - hash) + profileId.charCodeAt(i);
@@ -571,6 +572,7 @@ export function getGrudgeLevel(horseId, opponentId) {
  * @returns {Object} Target preferences
  */
 export function getGrudgeTargeting(horseId, opponents) {
+    if (!Array.isArray(opponents)) return {}; // Bug #60: guard non-array opponents
     const targeting = {};
 
     for (const opponentId of opponents) {
@@ -598,6 +600,7 @@ export function getGrudgeTargeting(horseId, opponents) {
  * @returns {Object} Strategy adjustments
  */
 export function getLeaderboardStrategy(profileId, leaderboardPosition, totalPlayers, pointsToNext) {
+    if (!totalPlayers || totalPlayers <= 0) totalPlayers = 1; // Bug #59: guard division by zero
     const percentile = 1 - (leaderboardPosition / totalPlayers);
 
     // Top 10% - protect lead, play tighter

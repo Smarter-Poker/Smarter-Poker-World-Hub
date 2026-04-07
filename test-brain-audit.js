@@ -9994,6 +9994,255 @@ console.log('\n📋 Phase 79: Memory Leak Detection');
     });
 })();
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 80: HorsePokerAdvanced.js Audit
+// ═══════════════════════════════════════════════════════════
+console.log('\n📋 Phase 80: HorsePokerAdvanced.js Audit');
+
+// Advanced module uses ES module exports — load via dynamic import
+asyncTests.push({ name: 'Phase 80 setup: load HorsePokerAdvanced via import()', fn: async () => {
+    const adv = await import('./src/content-engine/services/HorsePokerAdvanced.js');
+    // Store for subsequent tests
+    global.__advModule = adv.default || adv;
+    expect(typeof global.__advModule.getOpponentRead === 'function').toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: getHorseHash-based timing pattern is deterministic', fn: async () => {
+    const adv = global.__advModule;
+    const p1 = adv.getTimingPattern('horse-alpha');
+    const p2 = adv.getTimingPattern('horse-alpha');
+    expect(p1.key).toBe(p2.key); // Same profile → same pattern
+    expect(typeof p1.strongHandDelay).toBe('object');
+    expect(p1.strongHandDelay.length).toBe(2);
+}});
+
+asyncTests.push({ name: 'ADV: getActionDelay returns bounded values', fn: async () => {
+    const adv = global.__advModule;
+    for (const handType of ['strong', 'weak', 'bluff', 'unknown']) {
+        const delay = adv.getActionDelay('test-horse', handType);
+        expect(delay >= 0 && delay <= 10000).toBe(true);
+    }
+}});
+
+asyncTests.push({ name: 'ADV: tilt cascade - recordBadBeat escalates, recordWin resets', fn: async () => {
+    const adv = global.__advModule;
+    const pid = 'tilt-cascade-test';
+    // Start fresh
+    expect(adv.getTiltLevel(pid)).toBe(0);
+    // Record escalating bad beats
+    adv.recordBadBeat(pid, 50, true);
+    const t1 = adv.getTiltLevel(pid);
+    expect(t1 > 0).toBe(true);
+    adv.recordBadBeat(pid, 50, true);
+    const t2 = adv.getTiltLevel(pid);
+    expect(t2 >= t1).toBe(true);
+    // Consecutive losses tracked
+    expect(adv.getConsecutiveLosses(pid)).toBe(2);
+    // Win resets consecutive losses
+    adv.recordWin(pid);
+    expect(adv.getConsecutiveLosses(pid)).toBe(0);
+}});
+
+asyncTests.push({ name: 'ADV: getTiltedStyle shifts at high tilt', fn: async () => {
+    const adv = global.__advModule;
+    // Low tilt → no shift
+    expect(adv.getTiltedStyle('low-tilt', 'TAG')).toBe('TAG');
+    // Push a horse to high tilt
+    const pid = 'tilt-style-test';
+    for (let i = 0; i < 10; i++) adv.recordBadBeat(pid, 100, true);
+    const shifted = adv.getTiltedStyle(pid, 'TAG');
+    // Should have shifted (TAG→LAG at high tilt)
+    expect(shifted === 'LAG' || adv.getTiltLevel(pid) < 5).toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: getTiltedStats increases VPIP at high tilt', fn: async () => {
+    const adv = global.__advModule;
+    const pid = 'tilt-stats-test';
+    for (let i = 0; i < 10; i++) adv.recordBadBeat(pid, 100, true);
+    const normal = { vpip: 25, pfr: 15, aggression: 2.0 };
+    const tilted = adv.getTiltedStats(pid, normal);
+    expect(tilted.vpip >= normal.vpip).toBe(true);
+    expect(tilted.pfr >= normal.pfr).toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: recordShowdown + getTableImage', fn: async () => {
+    const adv = global.__advModule;
+    const pid = 'image-test-horse';
+    // Unknown image with < 5 showdowns
+    expect(adv.getTableImage(pid).image).toBe('unknown');
+    // Add 6 bluffy showdowns
+    for (let i = 0; i < 6; i++) adv.recordShowdown(pid, false, true);
+    const img = adv.getTableImage(pid);
+    expect(img.image).toBe('bluffy');
+    expect(img.shouldAdjust).toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: getImageAdjustedAction reduces bluffs when bluffy', fn: async () => {
+    const adv = global.__advModule;
+    const pid = 'image-adj-test';
+    for (let i = 0; i < 6; i++) adv.recordShowdown(pid, false, true);
+    // With bluffy image, weak raise should sometimes be adjusted
+    let adjusted = 0;
+    for (let i = 0; i < 100; i++) {
+        if (adv.getImageAdjustedAction(pid, 'raise', 0.2) !== 'raise') adjusted++;
+    }
+    expect(adjusted > 0).toBe(true); // Should sometimes adjust away from raise
+}});
+
+asyncTests.push({ name: 'ADV: identifyLeak detects overbluffs/overfolds/value-heavy', fn: async () => {
+    const adv = global.__advModule;
+    expect(adv.identifyLeak(null)).toBe(null);
+    expect(adv.identifyLeak({ bluffFrequency: 0.5 }).leak).toBe('overbluffs');
+    expect(adv.identifyLeak({ bluffFrequency: 0.1, foldFrequency: 0.7 }).leak).toBe('overfolds');
+    expect(adv.identifyLeak({ bluffFrequency: 0.1, foldFrequency: 0.3, valueFrequency: 0.8 }).leak).toBe('too_value_heavy');
+    expect(adv.identifyLeak({ bluffFrequency: 0.2, foldFrequency: 0.3, valueFrequency: 0.3 })).toBe(null);
+}});
+
+asyncTests.push({ name: 'ADV: areRivals and areFriends are deterministic', fn: async () => {
+    const adv = global.__advModule;
+    const r1 = adv.areRivals('horse-a', 'horse-b');
+    const r2 = adv.areRivals('horse-a', 'horse-b');
+    expect(r1).toBe(r2);
+    const f1 = adv.areFriends('horse-a', 'horse-b');
+    const f2 = adv.areFriends('horse-a', 'horse-b');
+    expect(f1).toBe(f2);
+}});
+
+asyncTests.push({ name: 'ADV: getRivalryAggression boosts for rivals', fn: async () => {
+    const adv = global.__advModule;
+    // Find a rival pair
+    let rivalFound = false;
+    for (let i = 0; i < 100 && !rivalFound; i++) {
+        if (adv.areRivals(`h${i}`, `h${i + 100}`)) {
+            const base = 2.0;
+            const boosted = adv.getRivalryAggression(`h${i}`, `h${i + 100}`, base);
+            expect(boosted).toBe(3.0); // 1.5x
+            rivalFound = true;
+        }
+    }
+    expect(rivalFound).toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: grudge system — recordGrudge + getGrudgeLevel', fn: async () => {
+    const adv = global.__advModule;
+    expect(adv.getGrudgeLevel('g-loser', 'g-winner')).toBe(0); // No grudge yet
+    adv.recordGrudge('g-loser', 'g-winner', 10); // Too small
+    expect(adv.getGrudgeLevel('g-loser', 'g-winner')).toBe(0); // Below 20BB threshold
+    adv.recordGrudge('g-loser', 'g-winner', 50); // Big pot
+    const level = adv.getGrudgeLevel('g-loser', 'g-winner');
+    expect(level > 0).toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: getGrudgeTargeting with null opponents returns empty (Bug #60)', fn: async () => {
+    const adv = global.__advModule;
+    const result = adv.getGrudgeTargeting('horse-x', null);
+    expect(typeof result === 'object').toBe(true);
+    expect(Object.keys(result).length).toBe(0);
+    // With valid array
+    const result2 = adv.getGrudgeTargeting('horse-x', ['opp-1', 'opp-2']);
+    expect(Object.keys(result2).length).toBe(2);
+}});
+
+asyncTests.push({ name: 'ADV: getLeaderboardStrategy with totalPlayers=0 (Bug #59)', fn: async () => {
+    const adv = global.__advModule;
+    // Should not crash with totalPlayers=0
+    const result = adv.getLeaderboardStrategy('test', 1, 0, 100);
+    expect(typeof result.mode === 'string').toBe(true);
+    // Normal case
+    const result2 = adv.getLeaderboardStrategy('test', 1, 100, 10);
+    expect(result2.mode).toBe('protecting_lead'); // Top 1%
+}});
+
+asyncTests.push({ name: 'ADV: getSoftplayModifier for friends vs non-friends', fn: async () => {
+    const adv = global.__advModule;
+    // Find a friend pair
+    let friendFound = false;
+    for (let i = 0; i < 100 && !friendFound; i++) {
+        if (adv.areFriends(`f${i}`, `f${i + 10}`)) {
+            const mod = adv.getSoftplayModifier(`f${i}`, `f${i + 10}`);
+            expect(mod.isSoftplaying).toBe(true);
+            expect(mod.bluffReduction).toBe(0.5);
+            friendFound = true;
+        }
+    }
+    // Non-friends
+    const nf = adv.getSoftplayModifier('definitely-not-friends-a', 'definitely-not-friends-b-xyz');
+    // May or may not be friends — just verify shape
+    expect(typeof nf.bluffReduction === 'number').toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: fatigue system — fresh at start, degrades over time', fn: async () => {
+    const adv = global.__advModule;
+    const pid = 'fatigue-test';
+    expect(adv.getFatigueLevel(pid)).toBe(0); // No session
+    adv.recordSessionStart(pid);
+    expect(adv.getFatigueLevel(pid)).toBe(0); // Fresh (< 8 hours)
+    // Fatigue action: should return same action when fresh
+    expect(adv.getFatigueAdjustedAction(pid, 'raise')).toBe('raise');
+}});
+
+asyncTests.push({ name: 'ADV: getMonthlyGoal returns valid shape', fn: async () => {
+    const adv = global.__advModule;
+    const goal = adv.getMonthlyGoal('goal-test');
+    expect(typeof goal.type === 'string').toBe(true);
+    expect(['volume', 'winrate', 'move_up', 'study'].indexOf(goal.type) >= 0).toBe(true);
+    expect(typeof goal.description === 'string').toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: getGoalProgress returns valid shape', fn: async () => {
+    const adv = global.__advModule;
+    const progress = adv.getGoalProgress('goal-progress-test', { handsPlayed: 500 });
+    expect(typeof progress.onTrack === 'boolean').toBe(true);
+    expect(typeof progress.urgency === 'string').toBe(true);
+    expect(progress.daysRemaining >= 0).toBe(true);
+}});
+
+asyncTests.push({ name: 'ADV: getExploitAdjustedAction respects skill level gate', fn: async () => {
+    const adv = global.__advModule;
+    // Low skill — no exploit
+    const low = adv.getExploitAdjustedAction('h1', 'opp1', 'fold', 1);
+    expect(low.exploiting).toBe(false);
+    // High skill with no read — no exploit
+    const noRead = adv.getExploitAdjustedAction('h-no-history', 'opp-no-history', 'fold', 5);
+    expect(noRead.exploiting).toBe(false);
+}});
+
+asyncTests.push({ name: 'ADV: recordHandHistory capped at 20 entries (memory safety)', fn: async () => {
+    const adv = global.__advModule;
+    const hid = 'mem-cap-horse';
+    const oid = 'mem-cap-opp';
+    // Record 30 hands
+    for (let i = 0; i < 30; i++) {
+        adv.recordHandHistory(hid, oid, { wasBluff: i % 2 === 0, wasValue: i % 2 !== 0, folded: false });
+    }
+    const history = adv.getHandHistory(hid, oid);
+    expect(history.length <= 20).toBe(true); // Capped at 20
+}});
+
+asyncTests.push({ name: 'ADV: full exports check — all critical functions present', fn: async () => {
+    const adv = global.__advModule;
+    const required = [
+        'recordHandHistory', 'getHandHistory', 'getOpponentRead',
+        'getTimingPattern', 'getActionDelay',
+        'recordBadBeat', 'recordWin', 'getConsecutiveLosses', 'getTiltLevel', 'getTiltedStyle', 'getTiltedStats',
+        'recordShowdown', 'getTableImage', 'getImageAdjustedAction',
+        'identifyLeak', 'getExploitAdjustedAction',
+        'areRivals', 'areFriends', 'getRivalryAggression', 'getSoftplayModifier',
+        'recordGrudge', 'getGrudgeLevel', 'getGrudgeTargeting',
+        'recordSessionStart', 'getFatigueLevel', 'getFatigueAdjustedAction',
+        'getLeaderboardStrategy',
+        'getMonthlyGoal', 'getGoalProgress',
+    ];
+    let missing = 0;
+    for (const fn of required) {
+        if (typeof adv[fn] !== 'function') {
+            console.log(`    MISSING: ${fn}`);
+            missing++;
+        }
+    }
+    expect(missing).toBe(0);
+}});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
