@@ -5235,7 +5235,14 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     const sprInfo = getSPRStrategy(heroStack, potSize);
 
     // Multiway adjustment (#25)
-    const multiway = getMultiwayAdjustment(numPlayers);
+    // BUG #30 FIX: Was calling without opts — defaulted to BTN/flop/medium/non-aggressor
+    // for ALL positions and streets. Now passes real position, street, and board wetness.
+    const multiway = getMultiwayAdjustment(numPlayers, {
+        position: position || 'BTN',
+        street: street || 'flop',
+        boardWetness: boardWetness, // Already a string: 'dry', 'medium', or 'wet'
+        heroIsAggressor: toCall === 0 // If we're not facing a bet, we likely have the initiative
+    });
 
     // Draw equity (#29)
     const drawEquity = getDrawEquity(handEval, street);
@@ -5992,10 +5999,73 @@ function evaluatePostflopHand(holeCards, board) {
                 // ═══ KICKER AWARENESS ═══
                 // With two pair, kicker doesn't matter as much, but board texture does
             } else if (heroPairs.length === 1) {
-                // One pair from hero, one from board pairing
-                strength = 50; category = 'two_pair_weak';
-                // If hero's pair is top pair + board pair → decent
-                if (heroPairs[0] === Math.max(...boardRanks)) strength = 53;
+                // One pair from hero, one(+) from board pairing
+                // BUG #31 FIX: Was using === which missed overpairs (hero pair > top board card).
+                // BUG #32 FIX: Three-pairs scenario — when board has 2 pairs and hero has a pocket pair,
+                // there are 3 pairs total. The best 5-card hand uses the TOP 2 pairs.
+                // QQ on K-K-5-5-8 = KKQQ8 (drop the 55) = very strong two pair.
+                // We need to check if hero's pair ranks among the top 2 of all 3 pairs.
+                const allPairsSorted = pairRanks.sort((a, b) => b - a);
+                const topTwoPairs = allPairsSorted.slice(0, 2);
+                const heroPairRank = heroPairs[0];
+                const topBoardForTP = Math.max(...boardRanks);
+
+                if (topTwoPairs.includes(heroPairRank) && pairRanks.length >= 3) {
+                    // Hero's pair is one of the top 2 pairs in a 3+ pair scenario.
+                    // BUT: when the board has 2 pairs, BOTH of those ranks make full houses
+                    // for anyone holding them. That's a huge % of played ranges.
+                    // E.g., KK558: any K = KKK55 full house, any 5 = 555KK full house.
+                    // So QQ on KK558 = KKQQ two pair = bluff-catcher, NOT a strong hand.
+                    //
+                    // Count how many board pairs exist — more board pairs = more full houses out there.
+                    const numBoardPairs = Object.values(boardRankCounts).filter(c => c >= 2).length;
+                    if (numBoardPairs >= 2) {
+                        // Board has 2+ pairs — full houses are EVERYWHERE
+                        // Hero's pocket pair is just a better bluff-catcher than having high cards
+                        category = 'two_pair_weak';
+                        if (heroPairRank >= 12) strength = 42; // AA on KK558 = best bluff-catcher but still vulnerable
+                        else if (heroPairRank >= 10) strength = 40; // QQ/JJ on KK558
+                        else if (heroPairRank >= 8) strength = 38; // TT/99
+                        else strength = 35; // Low pair — barely better than board two pair
+                    } else {
+                        // Only 1 board pair + hero pair + another pair = 3 pairs but only 1 board pair
+                        // Less full house risk — hero's two pair is more meaningful
+                        category = 'two_pair';
+                        strength = 55;
+                        if (heroPairRank >= 10) strength = 58;
+                    }
+                } else {
+                    // Hero pair is NOT in the top 2 pairs — weakest position
+                    const numBoardPairsGeneric = Object.values(boardRankCounts).filter(c => c >= 2).length;
+                    const boardPairRanksArr = Object.keys(boardRankCounts).filter(r => boardRankCounts[r] >= 2).map(Number);
+                    const allBoardPairsHigher = boardPairRanksArr.length >= 2 && boardPairRanksArr.every(r => r > heroPairRank);
+
+                    if (numBoardPairsGeneric >= 2 && allBoardPairsHigher) {
+                        // COUNTERFEITED: hero's pair is below BOTH board pairs.
+                        // 33 on KK558 = playing the board KK558. Hero's 33 contributes nothing.
+                        // Treat as board_two_pair (hero doesn't contribute to hand).
+                        category = 'board_two_pair';
+                        const bestKicker = Math.max(...heroRanks);
+                        if (bestKicker >= 12) strength = 35;
+                        else if (bestKicker >= 11) strength = 32;
+                        else if (bestKicker >= 9) strength = 28;
+                        else strength = 20; // Low kicker on counterfeited hand
+                    } else if (numBoardPairsGeneric >= 2) {
+                        // Board has 2+ pairs, hero's pair is between the board pairs
+                        // (e.g., 77 on KK338). Not counterfeited but still weak.
+                        category = 'two_pair_weak';
+                        strength = 34; // Slightly better than counterfeited but still very weak
+                    } else if (heroPairRank > topBoardForTP) {
+                        category = 'two_pair_weak';
+                        strength = 56; // Overpair + single board pair — strongest two_pair_weak
+                    } else if (heroPairRank === topBoardForTP) {
+                        category = 'two_pair_weak';
+                        strength = 53; // Top pair + single board pair — decent
+                    } else {
+                        category = 'two_pair_weak';
+                        strength = 50; // Under pair + single board pair — standard
+                    }
+                }
             }
         }
     }
@@ -6897,7 +6967,8 @@ function makeTurnRiverHeuristicDecision(params) {
         if (exploitResult.exploiting && exploitResult.action) {
             console.log(`[HorseBrain] 🎯 EXPLOIT INTENSIFIER: ${exploitResult.exploit} → ${exploitResult.action}`);
             if (exploitResult.action === 'check') return canCheck ? { type: 'check' } : null;
-            if (exploitResult.action === 'fold') return { type: 'fold' };
+            // BUG #29 FIX: Never fold when check is available — strict dominance
+            if (exploitResult.action === 'fold') return canCheck ? { type: 'check' } : { type: 'fold' };
             if (exploitResult.action === 'call') return canCall ? { type: 'call' } : null;
             if (raiseAction && (exploitResult.action === raiseAction.type || exploitResult.action === 'bet' || exploitResult.action === 'raise')) {
                 const amt = exploitResult.amount ? clampAmt(exploitResult.amount) : null;
@@ -12220,6 +12291,16 @@ function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
         if (handStrength >= 75) baseSizing *= 1.15;
     }
 
+    // ═══ DOUBLE-PAIRED BOARD: SMALL BALL OVERRIDE ═══
+    // When board has 2+ pairs (e.g., KK558), full houses are everywhere.
+    // Anyone matching a board pair rank has a full house. Non-full-house hands
+    // should use small ball sizing — bet small to control the pot and minimize losses
+    // when called by better hands. This applies to ALL non-nutted categories.
+    const boardMadeCategories = new Set(['board_trips', 'board_two_pair', 'board_pair', 'two_pair_weak']);
+    if (boardMadeCategories.has(handCategory) && handStrength < 70) {
+        baseSizing = Math.min(baseSizing, 0.30); // Cap at 30% pot — small ball
+    }
+
     // ═══ POSITION ADJUSTMENTS ═══
     if (!isInPosition) {
         // OOP: bet slightly bigger (we need to charge draws more since we act first)
@@ -14412,6 +14493,12 @@ function validateAndClamp(actionType, amount, legalActions) {
     }
     if (actionType === 'call' && !actionTypes.has('call')) {
         actionType = actionTypes.has('check') ? 'check' : 'fold';
+    }
+    // BUG #29 FIX: NEVER fold when check is available. Folding for free is a strict
+    // dominance violation — checking is always >= folding in EV. If the brain said 'fold'
+    // but check is legal, something went wrong upstream. Safe default: check.
+    if (actionType === 'fold' && actionTypes.has('check')) {
+        actionType = 'check';
     }
 
     // Handle 'all_in' — find the engine's all_in legal action

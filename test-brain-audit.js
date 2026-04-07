@@ -560,6 +560,20 @@ test('5-way significantly tighter', () => {
     expect(r.bluffReduction).toBeLessThan(0.20);
 });
 
+// ─── BUG #30: OOP + late street gets stricter multiway penalty ───
+test('BUG #30: OOP river 4-way is stricter than BTN flop 4-way', () => {
+    const oopRiver = gma(4, { street: 'river', position: 'SB', boardWetness: 'medium' });
+    const ipFlop = gma(4, { street: 'flop', position: 'BTN', boardWetness: 'medium' });
+    expect(oopRiver.strengthPenalty).toBeGreaterThan(ipFlop.strengthPenalty);
+    expect(oopRiver.bluffReduction).toBeLessThan(ipFlop.bluffReduction);
+});
+
+test('BUG #30: wet board 3-way reduces bluff more than dry board', () => {
+    const wet = gma(3, { street: 'flop', position: 'BTN', boardWetness: 'wet' });
+    const dry = gma(3, { street: 'flop', position: 'BTN', boardWetness: 'dry' });
+    expect(wet.bluffReduction).toBeLessThan(dry.bluffReduction);
+});
+
 // ═══════════════════════════════════════════════════════════
 console.log('\n══ getCheckRaiseStrategy ══');
 // ═══════════════════════════════════════════════════════════
@@ -3275,6 +3289,56 @@ test('BUG #28: board single pair + ace kicker → marginal ~25 (not 20)', () => 
     expect(r.strength).toBeLessThanOrEqual(28);
 });
 
+// ─── BUG #31: Overpair + board pair two-pair strength ───
+test('BUG #31: AA on K5582 board = overpair two pair → stronger than top pair two pair', () => {
+    // AA on K-5-5-8-2: two pair Aces+Fives, stronger than any top pair + board pair
+    const r = brain.evaluatePostflopHand(['Ah', 'Ad'], ['Kh', '5d', '5s', '8c', '2h']);
+    expect(r.category).toBe('two_pair_weak');
+    expect(r.strength).toBeGreaterThanOrEqual(54); // Overpair two pair
+});
+
+test('BUG #31: KT on T5582 board = top pair two pair → decent but lower than overpair', () => {
+    const r = brain.evaluatePostflopHand(['Kh', 'Td'], ['Th', '5d', '5s', '8c', '2h']);
+    expect(r.category).toBe('two_pair_weak');
+    expect(r.strength).toBeGreaterThanOrEqual(51);
+    expect(r.strength).toBeLessThanOrEqual(55);
+});
+
+// ─── BUG #32: Three-pairs scenario with board two-pair (full houses everywhere) ───
+test('BUG #32: QQ on KK558 = bluff-catcher (any K or 5 = full house)', () => {
+    const r = brain.evaluatePostflopHand(['Qh', 'Qd'], ['Kh', 'Kd', '5s', '5c', '8h']);
+    expect(r.category).toBe('two_pair_weak');
+    // Strength should be modest — full houses crush this hand
+    expect(r.strength).toBeGreaterThanOrEqual(35);
+    expect(r.strength).toBeLessThanOrEqual(45);
+});
+
+test('BUG #32: AA on KK558 = best bluff-catcher but still cautious', () => {
+    const r = brain.evaluatePostflopHand(['Ah', 'Ad'], ['Kh', 'Kd', '5s', '5c', '8h']);
+    expect(r.category).toBe('two_pair_weak');
+    expect(r.strength).toBeGreaterThanOrEqual(38);
+    expect(r.strength).toBeLessThanOrEqual(48);
+});
+
+test('BUG #32: 33 on KK558 = counterfeited (playing the board) → board_two_pair', () => {
+    // 33 is below both board pairs (KK and 55) — hero is playing KK558
+    const r = brain.evaluatePostflopHand(['3h', '3d'], ['Kh', 'Kd', '5s', '5c', '8h']);
+    expect(r.category).toBe('board_two_pair');
+    expect(r.strength).toBeLessThanOrEqual(25); // Low kicker, counterfeited
+});
+
+test('BUG #32: QQ on KK558 beats counterfeited 33 on KK558', () => {
+    const qq = brain.evaluatePostflopHand(['Qh', 'Qd'], ['Kh', 'Kd', '5s', '5c', '8h']);
+    const threes = brain.evaluatePostflopHand(['3h', '3d'], ['Kh', 'Kd', '5s', '5c', '8h']);
+    expect(qq.strength).toBeGreaterThan(threes.strength);
+});
+
+test('BUG #31: overpair two pair beats top pair two pair in strength', () => {
+    const overpair = brain.evaluatePostflopHand(['Ah', 'Ad'], ['Kh', '5d', '5s', '8c', '2h']);
+    const topPair = brain.evaluatePostflopHand(['Kh', 'Td'], ['Th', '5d', '5s', '8c', '2h']);
+    expect(overpair.strength).toBeGreaterThan(topPair.strength);
+});
+
 test('BUG #28: board single pair + low kicker stays very weak', () => {
     // Board: 5h 5d Kc 8s 2h, Hero: 3s 4d — board pair with garbage kicker
     const r = brain.evaluatePostflopHand(['3s', '4d'], ['5h', '5d', 'Kc', '8s', '2h']);
@@ -3307,6 +3371,36 @@ test('validateAndClamp: completely illegal action falls back to check', () => {
         { type: 'bet', minAmount: 4, maxAmount: 100 },
     ]);
     expect(r.type).toBe('check');
+});
+
+// ─── BUG #29: Never fold when check is available ───
+test('BUG #29: validateAndClamp converts fold → check when check is available', () => {
+    const r = brain.validateAndClamp('fold', null, [
+        { type: 'check' },
+        { type: 'bet', minAmount: 4, maxAmount: 100 },
+    ]);
+    expect(r.type).toBe('check');
+});
+
+test('BUG #29: fold stays fold when check is NOT available (facing a bet)', () => {
+    const r = brain.validateAndClamp('fold', null, [
+        { type: 'fold' },
+        { type: 'call', amount: 10 },
+        { type: 'raise', minAmount: 20, maxAmount: 200 },
+    ]);
+    expect(r.type).toBe('fold');
+});
+
+test('BUG #29: check→fold→check chain — check unavailable but fold converts back to check when available', () => {
+    // This tests the BUG #26 + #29 interaction:
+    // Brain says 'check', check not available → fold (BUG #26).
+    // But if check IS available (shouldn't happen, but defensive), fold → check (BUG #29).
+    // In reality: if check is not available, fold stays fold. This is correct.
+    const r = brain.validateAndClamp('check', null, [
+        { type: 'fold' },
+        { type: 'call', amount: 10 },
+    ]);
+    expect(r.type).toBe('fold'); // check not available, fold is correct
 });
 
 // ─── makeFallbackDecision stress ───
