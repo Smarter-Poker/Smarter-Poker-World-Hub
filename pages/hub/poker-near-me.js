@@ -1719,37 +1719,42 @@ export default function PokerNearMePage() {
         if (!silent) setLoading(false);
     };
 
-    const fetchVenues = async ({ silent = false, radiusOverride = null, searchOverride = null } = {}) => {
+    const fetchVenues = async ({ silent = false, radiusOverride = null, searchOverride = null, globalSearch = false } = {}) => {
         if (!silent) setVenueLoading(true);
         setFetchError(null);
         try {
             const params = new URLSearchParams({ limit: '1000' });
-            if (selectedCity) {
-                params.set('city', selectedCity.name);
-                params.set('state', selectedCity.state);
-            }
-            if (userLocation) {
-                params.set('lat', userLocation.lat.toString());
-                params.set('lng', userLocation.lng.toString());
-                // Use override radius if provided (loadMore case), else read from state
-                const effectiveRadius = radiusOverride || filters.radius;
-                const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
-                params.set('radius', String(miRadius));
-            }
+
             // Use searchOverride when provided (avoids stale closure from React async state)
             const effectiveSearch = searchOverride !== null ? searchOverride : searchQuery;
+
+            if (!globalSearch) {
+                // Location-browse mode: send GPS/city/state/radius params
+                if (selectedCity) {
+                    params.set('city', selectedCity.name);
+                    params.set('state', selectedCity.state);
+                }
+                if (userLocation) {
+                    params.set('lat', userLocation.lat.toString());
+                    params.set('lng', userLocation.lng.toString());
+                    const effectiveRadius = radiusOverride || filters.radius;
+                    const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
+                    params.set('radius', String(miRadius));
+                }
+                if (filters.venueType !== 'all') {
+                    params.set('type', filters.venueType);
+                }
+                if (filters.selectedState && filters.selectedState !== 'all') {
+                    params.set('state', filters.selectedState);
+                }
+                if (filters.hasNLH) params.set('hasNLH', 'true');
+                if (filters.hasPLO) params.set('hasPLO', 'true');
+                if (filters.hasMixed) params.set('hasMixed', 'true');
+            }
+            // Always send the search term (both modes)
             if (effectiveSearch) {
                 params.set('search', effectiveSearch);
             }
-            if (filters.venueType !== 'all') {
-                params.set('type', filters.venueType);
-            }
-            if (filters.selectedState && filters.selectedState !== 'all') {
-                params.set('state', filters.selectedState);
-            }
-            if (filters.hasNLH) params.set('hasNLH', 'true');
-            if (filters.hasPLO) params.set('hasPLO', 'true');
-            if (filters.hasMixed) params.set('hasMixed', 'true');
 
             const url = '/api/poker/venues?' + params;
             const currentSeq = ++fetchSequenceRef.current;
@@ -1995,28 +2000,31 @@ export default function PokerNearMePage() {
     };
 
     const handleSearch = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-        addToSearchHistory(searchQuery);
+        if (cityDebounceRef.current) clearTimeout(cityDebounceRef.current);
+        const query = searchQuery.trim();
+        if (!query) return; // nothing to search
+        addToSearchHistory(query);
         setShowSearchHistory(false);
         setShowCitySuggestions(false);
         setHasSearched(true);
         setShowFilters(false);
-        // Switch to venues tab so results are visible
-        if (activeTab !== 'venues' && activeTab !== 'map') setActiveTab('venues');
-        // Reset pagination on new search
+        // Always land on Venues tab when searching
+        setActiveTab('venues');
         setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
-        // Track search analytics
-        trackSearchEvent('search', { query: searchQuery, tab: activeTab, hasGPS: !!userLocation });
-        fetchAllData({ includeVenues: true });
+        trackSearchEvent('search', { query, tab: 'venues' });
+        // Global search: zero location params, just the text query
+        fetchVenues({ searchOverride: query, globalSearch: true });
     };
 
     const handleSearchInputChange = (e) => {
         const value = e.target.value;
         setSearchQuery(value);
+        // Cancel any pending search debounces
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
 
-        // City autocomplete — debounced to prevent jank during fast typing
+        // City autocomplete suggestions only — NO auto-fetch
         if (cityDebounceRef.current) clearTimeout(cityDebounceRef.current);
         if (value.trim().length >= 2) {
             cityDebounceRef.current = setTimeout(() => {
@@ -2031,23 +2039,10 @@ export default function PokerNearMePage() {
             setShowCitySuggestions(false);
         }
 
-        if (value.trim().length >= 3) {
-            searchDebounceRef.current = setTimeout(() => {
-                setHasSearched(true);
-                // Switch to venues tab so results are visible
-                if (activeTab !== 'venues' && activeTab !== 'map') setActiveTab('venues');
-                setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
-                trackSearchEvent('auto_search', { query: value, tab: activeTab });
-                // Pass value directly to avoid stale closure on searchQuery state
-                fetchVenues({ searchOverride: value.trim() });
-                fetchTours();
-                fetchSeries();
-            }, SEARCH_DEBOUNCE_MS);
-        } else if (value.trim().length === 0) {
-            // Reset to location-based results when search is cleared
-            searchDebounceRef.current = setTimeout(() => {
-                fetchAllData({ includeVenues: true });
-            }, 300);
+        // If user clears the search field, reset to location-based browse
+        if (value.trim().length === 0) {
+            setHasSearched(false);
+            setVenues([]);
         }
     };
 
@@ -2634,11 +2629,20 @@ export default function PokerNearMePage() {
                         <input
                             type="text"
                             className="pnm-top-search-input"
-                            placeholder="Search venues..."
+                            placeholder="Search all venues..."
                             value={searchQuery}
                             onChange={handleSearchInputChange}
                             autoComplete="off"
                         />
+                        {searchQuery.trim().length > 0 && (
+                            <button
+                                type="submit"
+                                className="pnm-search-submit-btn"
+                                aria-label="Search"
+                            >
+                                Go
+                            </button>
+                        )}
                     </form>
                 </div>
 

@@ -251,6 +251,36 @@
 }
 .pnm-top-search-input::placeholder { color: rgba(148,163,184,0.4); }
 
+/* Search submit button — appears when user has typed something */
+.pnm-search-submit-btn {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(200,214,229,0.1) 100%);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: inherit;
+    animation: searchBtnIn 0.15s ease-out;
+}
+.pnm-search-submit-btn:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(200,214,229,0.18) 100%);
+    border-color: rgba(255,255,255,0.5);
+    transform: scale(1.04);
+}
+.pnm-search-submit-btn:active {
+    transform: scale(0.97);
+}
+@keyframes searchBtnIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 /* ═══ TOP FILTER BAR ═══ */
 .pnm-filter-bar {
     display: flex;
