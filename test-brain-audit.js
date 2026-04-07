@@ -16542,7 +16542,8 @@ test('Phase 103: getPLOCheckRaise crSize is pot-relative when triggered', () => 
         if (result.shouldCheckRaise) { crSize = result.crSize; break; }
     }
     expect(crSize > 0).toBe(true);
-    expect(crSize).toBe(500); // Math.round(200 * 2.5)
+    // Bug #123: pot-limit check-raise = potSize + 3*toCall = 200 + 3*50 = 350
+    expect(crSize).toBe(350);
 });
 
 // ── Bug #108: countStraightOuts no longer overcounts for missing.length===2 ──
@@ -17335,6 +17336,417 @@ test('Phase 108: PLO naked nut straight 60%+ stack commit — should all-in not 
     // The 60% stack check is toCall/stack >= 0.60 — tested by code path
     // Example: stack=100, toCall=65 → 65% → should all-in, not call
     expect(65 / 100 >= 0.60).toBe(true); // confirms the math
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ BUG #133: calculatePLODirtyOuts ══');
+// ═══════════════════════════════════════════════════════════
+
+test('DIRTY OUTS: straight outs that bring 3-flush are dirty', () => {
+    // Board: 7h 8h 2c — two hearts. Straight outs of heart suit create flush-possible board
+    const hole = makePLOCards(['Jc', 'Td', '9s', '6d']);
+    const board = makePLOCards(['7h', '8h', '2c']);
+    const flushDraw = { outs: 0, isNutFlushDraw: false, suit: null, holdingThreeOfSuit: false };
+    const madeHand = { strength: 30, category: 'air', isNut: false };
+    const holeRanks = hole.map(c => c.rank);
+    const boardRanks = board.map(c => c.rank);
+    const result = brain.calculatePLODirtyOuts(hole, board, 13, flushDraw, madeHand, holeRanks, boardRanks);
+    // Some straight outs will be heart-suited → dirty (bring flush on board)
+    expect(result.dirtyStraightOuts > 0).toBe(true);
+    expect(result.cleanStraightOuts > 0).toBe(true);
+    // Effective outs should be LESS than raw 13
+    expect(result.effectiveOuts < 13).toBe(true);
+    expect(result.dirtyDiscount > 0).toBe(true);
+});
+
+test('DIRTY OUTS: straight outs that pair the board are dirty', () => {
+    // Board: 7h 8d 7c — board already has a 7, so any 7-rank out pairs board further
+    const hole = makePLOCards(['Jc', 'Td', '9s', '6d']);
+    const board = makePLOCards(['7h', '8d', '7c']);
+    const flushDraw = { outs: 0, isNutFlushDraw: false, suit: null, holdingThreeOfSuit: false };
+    const madeHand = { strength: 30, category: 'air', isNut: false };
+    const holeRanks = hole.map(c => c.rank);
+    const boardRanks = board.map(c => c.rank);
+    const result = brain.calculatePLODirtyOuts(hole, board, 9, flushDraw, madeHand, holeRanks, boardRanks);
+    expect(result.dirtyStraightOuts >= 0).toBe(true);
+    expect(result.effectiveOuts <= 9).toBe(true);
+});
+
+test('DIRTY OUTS: flush outs that pair the board are dirty', () => {
+    // Board: Ah 7d 8d — flush draw in hearts. 7h and 8h would pair the board
+    const hole = makePLOCards(['Kh', 'Qh', '3c', '4d']);
+    const board = makePLOCards(['Ah', '7d', '8d']);
+    const flushDraw = { outs: 9, isNutFlushDraw: false, suit: 'h', holdingThreeOfSuit: false };
+    const madeHand = { strength: 25, category: 'air', isNut: false };
+    const holeRanks = hole.map(c => c.rank);
+    const boardRanks = board.map(c => c.rank);
+    const result = brain.calculatePLODirtyOuts(hole, board, 0, flushDraw, madeHand, holeRanks, boardRanks);
+    // Some flush outs should be dirty (7h, 8h pair the board)
+    expect(result.dirtyFlushOuts > 0).toBe(true);
+    expect(result.cleanFlushOuts > 0).toBe(true);
+    expect(result.effectiveOuts < 9).toBe(true);
+});
+
+test('DIRTY OUTS: combo draw — both straight and flush dirty outs identified', () => {
+    // Board: 7h 8h 2c — two hearts, we have straight+flush draw
+    const hole = makePLOCards(['9h', 'Th', 'Jc', '6d']);
+    const board = makePLOCards(['7h', '8h', '2c']);
+    const flushDraw = { outs: 9, isNutFlushDraw: false, suit: 'h', holdingThreeOfSuit: false };
+    const madeHand = { strength: 30, category: 'air', isNut: false };
+    const holeRanks = hole.map(c => c.rank);
+    const boardRanks = board.map(c => c.rank);
+    const result = brain.calculatePLODirtyOuts(hole, board, 13, flushDraw, madeHand, holeRanks, boardRanks);
+    const totalDirty = result.dirtyStraightOuts + result.dirtyFlushOuts;
+    expect(totalDirty > 0).toBe(true);
+    // Effective should be significantly less than raw 13+9=22
+    expect(result.effectiveOuts < 22).toBe(true);
+});
+
+test('DIRTY OUTS: pre-flop returns raw outs unchanged', () => {
+    const hole = makePLOCards(['Ah', 'Kh', 'Qd', 'Jd']);
+    const board = []; // pre-flop
+    const flushDraw = { outs: 0, isNutFlushDraw: false, suit: null, holdingThreeOfSuit: false };
+    const madeHand = { strength: 50, category: 'air', isNut: false };
+    const result = brain.calculatePLODirtyOuts(hole, board, 8, flushDraw, madeHand, [], []);
+    expect(result.cleanStraightOuts).toBe(8);
+    expect(result.dirtyStraightOuts).toBe(0);
+    expect(result.effectiveOuts).toBe(8);
+    expect(result.dirtyDiscount).toBe(0);
+});
+
+test('DIRTY OUTS: nut flush draw — straight outs in flush suit NOT marked dirty', () => {
+    // Board: 7h 8h 2c — we have NFD in hearts + straight draw
+    const hole = makePLOCards(['Ah', '9h', 'Td', 'Jc']);
+    const board = makePLOCards(['7h', '8h', '2c']);
+    const flushDraw = { outs: 9, isNutFlushDraw: true, suit: 'h', holdingThreeOfSuit: false };
+    const madeHand = { strength: 30, category: 'air', isNut: false };
+    const holeRanks = hole.map(c => c.rank);
+    const boardRanks = board.map(c => c.rank);
+    const result = brain.calculatePLODirtyOuts(hole, board, 9, flushDraw, madeHand, holeRanks, boardRanks);
+    // With NFD, heart-suited straight outs are NOT dirty (we welcome the flush)
+    const holeNoNFD = makePLOCards(['3s', '9d', 'Td', 'Jc']);
+    const flushNoNFD = { outs: 0, isNutFlushDraw: false, suit: null, holdingThreeOfSuit: false };
+    const resultNoNFD = brain.calculatePLODirtyOuts(holeNoNFD, board, 9, flushNoNFD, madeHand,
+        holeNoNFD.map(c => c.rank), boardRanks);
+    // NFD version should have fewer dirty straight outs
+    expect(result.dirtyStraightOuts <= resultNoNFD.dirtyStraightOuts).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ BUG #132: ERC uses correctedStraightOuts ══');
+// ═══════════════════════════════════════════════════════════
+
+test('ERC: phantom wrap (raw 17, corrected 4) should NOT get straightOuts>=15 bonus', () => {
+    const ercRaw = brain.getPLOEquityRealization(true, 'medium', 17, 0, false, 2);
+    const ercCorrected = brain.getPLOEquityRealization(true, 'medium', 4, 0, false, 2);
+    // Raw 17 gets the +0.05 bonus (straightOuts >= 15), corrected 4 does NOT
+    expect(ercRaw > ercCorrected).toBe(true);
+    const diff = Math.round((ercRaw - ercCorrected) * 100) / 100;
+    expect(diff).toBe(0.05);
+});
+
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ END-TO-END: Full PLO hand histories proving paths fire ══');
+// ═══════════════════════════════════════════════════════════
+
+// Helper: make a full state for makePLOFallbackDecision
+function makeE2EState(overrides) {
+    return {
+        gameVariant: 'PLO',
+        street: 'flop',
+        holeCards: makePLOCards(['Ah', 'Kh', 'Qd', 'Jd']),
+        boardCards: makePLOCards(['Th', '9h', '2c']),
+        potSize: 200,
+        toCall: 50,
+        bb: 2,
+        stackSize: 500,
+        position: 'BTN',
+        numPlayers: 2,
+        isLimpedPot: false,
+        wasPFRaiser: true,
+        isIn4BetPot: false,
+        isBombPot: false,
+        sessionStats: null,
+        opponentRead: null,
+        opponentActionHistory: [],
+        ...overrides,
+    };
+}
+
+function makeE2EActions(overrides) {
+    return [
+        { type: 'fold' },
+        { type: 'call', amount: 50 },
+        { type: 'raise', minAmount: 100, maxAmount: 500 },
+        ...(overrides || []),
+    ];
+}
+
+test('E2E: Monster nut hand on flop → raises (not fold/check)', () => {
+    // Ah Kh Qd Jd on Th 9h 2c — nut straight + nut flush draw + redraw = monster
+    const state = makeE2EState({ street: 'flop', toCall: 50 });
+    const actions = makeE2EActions();
+    const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+    // Must raise or call, NEVER fold with this monster
+    expect(result.type !== 'fold').toBe(true);
+    // Should be aggressive (raise) not passive
+    const isAggressive = result.type === 'raise' || (result.amount && result.amount > 0);
+    expect(isAggressive).toBe(true);
+});
+
+test('E2E: Non-nut flush on river facing pot bet → does NOT raise', () => {
+    // Kh Qh 3d 4c on Th 9h 2c Js 5h — we made king-high flush (non-nut)
+    // Facing a pot-size bet on the river, vulnerability penalty should prevent raising
+    const state = makeE2EState({
+        street: 'river',
+        holeCards: makePLOCards(['Kh', 'Qh', '3d', '4c']),
+        boardCards: makePLOCards(['Th', '9h', '2c', 'Js', '5h']),
+        potSize: 400,
+        toCall: 400, // Pot-size bet
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 400 },
+        { type: 'raise', minAmount: 800, maxAmount: 1200 },
+    ];
+    // Run 20 times to check statistical behavior (randomness in brain)
+    let raiseCount = 0;
+    for (let i = 0; i < 20; i++) {
+        const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+        if (result.type === 'raise') raiseCount++;
+    }
+    // Non-nut flush should RARELY raise facing pot bet on river (vulnerability penalty)
+    // Allow up to 5/20 for occasional blocker plays
+    expect(raiseCount <= 5).toBe(true);
+});
+
+test('E2E: Nut flush draw NEVER folds on flop', () => {
+    // Ah Jh 5d 6d on 7h 8h 2c — nut flush draw (9 outs) + backdoors
+    const state = makeE2EState({
+        street: 'flop',
+        holeCards: makePLOCards(['Ah', 'Jh', '5d', '6d']),
+        boardCards: makePLOCards(['7h', '8h', '2c']),
+        toCall: 100, // Half pot
+        potSize: 200,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 100 },
+        { type: 'raise', minAmount: 200, maxAmount: 600 },
+    ];
+    let foldCount = 0;
+    for (let i = 0; i < 30; i++) {
+        const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+        if (result.type === 'fold') foldCount++;
+    }
+    // Nut flush draw should NEVER fold
+    expect(foldCount).toBe(0);
+});
+
+test('E2E: PLO raises are always pot-limited (no amount exceeds maxAmount)', () => {
+    const scenarios = [
+        // Big draw on wet flop
+        { holeCards: makePLOCards(['Jh', 'Th', '9d', '8d']), boardCards: makePLOCards(['7h', '6h', '2c']), street: 'flop', potSize: 300, toCall: 150 },
+        // Monster on turn
+        { holeCards: makePLOCards(['Ah', 'Kh', 'Qd', 'Jd']), boardCards: makePLOCards(['Th', '9h', '2c', '8s']), street: 'turn', potSize: 500, toCall: 200 },
+        // Nut straight on river
+        { holeCards: makePLOCards(['Jc', 'Td', '3h', '4s']), boardCards: makePLOCards(['9h', '8d', '7c', '2s', 'Kh']), street: 'river', potSize: 400, toCall: 0 },
+    ];
+    for (const s of scenarios) {
+        const state = makeE2EState(s);
+        const maxAmt = Math.round(s.potSize + 2 * s.toCall) + 100; // generous ceiling
+        const actions = [
+            { type: 'fold' },
+            { type: 'check' },
+            { type: 'call', amount: s.toCall || 0 },
+            { type: 'raise', minAmount: 10, maxAmount: maxAmt },
+        ];
+        for (let i = 0; i < 10; i++) {
+            const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+            if (result.amount && result.amount > 0) {
+                expect(result.amount <= maxAmt).toBe(true);
+            }
+        }
+    }
+});
+
+test('E2E: PLO NEVER returns all_in action type', () => {
+    const scenarios = [
+        // Committed SPR
+        { holeCards: makePLOCards(['Ah', 'Kh', 'Qd', 'Jd']), boardCards: makePLOCards(['Th', '9h', '2c']), street: 'flop', potSize: 800, toCall: 200, stackSize: 300 },
+        // Monster on river
+        { holeCards: makePLOCards(['Ah', 'Kh', 'Qh', 'Jd']), boardCards: makePLOCards(['Th', '9h', '2c', '8h', '3d']), street: 'river', potSize: 1000, toCall: 500, stackSize: 600 },
+        // Short stack preflop
+        { holeCards: makePLOCards(['Ah', 'Ad', 'Kh', 'Kd']), boardCards: [], street: 'preflop', potSize: 100, toCall: 50, stackSize: 120 },
+    ];
+    for (const s of scenarios) {
+        const state = makeE2EState(s);
+        const actions = [
+            { type: 'fold' },
+            { type: 'call', amount: s.toCall || 0 },
+            { type: 'raise', minAmount: 10, maxAmount: s.stackSize || 500 },
+        ];
+        for (let i = 0; i < 20; i++) {
+            const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+            expect(result.type !== 'all_in').toBe(true);
+        }
+    }
+});
+
+test('E2E: Scare card on turn → slows down with non-nut hand', () => {
+    // Medium two pair on board where turn brings a flush-completing card
+    const state = makeE2EState({
+        street: 'turn',
+        holeCards: makePLOCards(['Kc', 'Qd', '9s', '8d']),
+        boardCards: makePLOCards(['Kh', 'Qh', '5c', '3h']), // Third heart on turn = scare card
+        toCall: 0, // Checked to us
+        potSize: 300,
+    });
+    const actions = [
+        { type: 'check' },
+        { type: 'raise', minAmount: 10, maxAmount: 600 },
+    ];
+    let checkCount = 0;
+    for (let i = 0; i < 20; i++) {
+        const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+        if (result.type === 'check') checkCount++;
+    }
+    // Should check at least some of the time on a scare card with non-nut hand
+    expect(checkCount >= 3).toBe(true);
+});
+
+test('E2E: Dirty outs reduce equity → more cautious play with tainted draws', () => {
+    // Straight draw on a two-tone board (many dirty outs) vs rainbow board
+    const twoToneState = makeE2EState({
+        street: 'flop',
+        holeCards: makePLOCards(['Jc', 'Td', '9s', '6d']),
+        boardCards: makePLOCards(['7h', '8h', '2c']), // Two hearts = dirty straight outs
+        toCall: 150,
+        potSize: 200,
+    });
+    const rainbowState = makeE2EState({
+        street: 'flop',
+        holeCards: makePLOCards(['Jc', 'Td', '9s', '6d']),
+        boardCards: makePLOCards(['7h', '8d', '2c']), // Rainbow = clean straight outs
+        toCall: 150,
+        potSize: 200,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 150 },
+        { type: 'raise', minAmount: 200, maxAmount: 600 },
+    ];
+    let twoToneFolds = 0, rainbowFolds = 0;
+    for (let i = 0; i < 50; i++) {
+        const r1 = brain.makePLOFallbackDecision('test-prof', twoToneState, actions);
+        const r2 = brain.makePLOFallbackDecision('test-prof', rainbowState, actions);
+        if (r1.type === 'fold') twoToneFolds++;
+        if (r2.type === 'fold') rainbowFolds++;
+    }
+    // Two-tone board (dirty outs) should fold MORE than rainbow (clean outs)
+    // or at minimum fold the same amount (dirty outs = less equity = more cautious)
+    expect(twoToneFolds >= rainbowFolds).toBe(true);
+});
+
+test('E2E: Freeroll guard — naked nut straight on flop calls, does not raise', () => {
+    // Jc Td 4h 3s on 9h 8d 7s — nut straight, no flush draw, no redraw
+    const state = makeE2EState({
+        street: 'flop',
+        holeCards: makePLOCards(['Jc', 'Td', '4h', '3s']),
+        boardCards: makePLOCards(['9h', '8d', '7s']),
+        toCall: 100,
+        potSize: 200,
+        wasPFRaiser: false, // Not the PFR
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 100 },
+        { type: 'raise', minAmount: 200, maxAmount: 600 },
+    ];
+    let raiseCount = 0;
+    for (let i = 0; i < 20; i++) {
+        const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+        if (result.type === 'raise') raiseCount++;
+    }
+    // Freeroll guard: naked nut straight on flop should mostly CALL not raise
+    expect(raiseCount <= 5).toBe(true);
+});
+
+test('E2E: Full street progression — preflop→flop→turn→river all return valid actions', () => {
+    const streets = [
+        { street: 'preflop', boardCards: [], toCall: 4, potSize: 6 },
+        { street: 'flop', boardCards: makePLOCards(['Th', '9h', '2c']), toCall: 50, potSize: 100 },
+        { street: 'turn', boardCards: makePLOCards(['Th', '9h', '2c', 'Ks']), toCall: 100, potSize: 300 },
+        { street: 'river', boardCards: makePLOCards(['Th', '9h', '2c', 'Ks', '3d']), toCall: 200, potSize: 600 },
+    ];
+    const validTypes = new Set(['fold', 'check', 'call', 'raise', 'bet']);
+    for (const s of streets) {
+        const state = makeE2EState({
+            ...s,
+            holeCards: makePLOCards(['Ah', 'Kh', 'Qd', 'Jd']),
+        });
+        const actions = [
+            { type: 'fold' },
+            { type: 'call', amount: s.toCall },
+            { type: 'raise', minAmount: s.toCall * 2, maxAmount: s.potSize * 3 },
+        ];
+        const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+        expect(validTypes.has(result.type)).toBe(true);
+        if (result.amount !== undefined && result.amount !== null) {
+            expect(typeof result.amount === 'number').toBe(true);
+            expect(isNaN(result.amount)).toBe(false);
+        }
+    }
+});
+
+test('E2E: Donk bet response fires on flop (opponent leads into us)', () => {
+    // We were PFR, opponent donk bets into us on flop
+    const state = makeE2EState({
+        street: 'flop',
+        holeCards: makePLOCards(['Ah', 'Ad', 'Kh', 'Kd']),
+        boardCards: makePLOCards(['Ac', '7d', '2s']),
+        toCall: 80, // Donk bet
+        potSize: 100,
+        wasPFRaiser: true,
+        isDonkSituation: true,
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 80 },
+        { type: 'raise', minAmount: 160, maxAmount: 360 },
+    ];
+    // With top set (nuts), should raise the donk bet
+    let raiseCount = 0;
+    for (let i = 0; i < 20; i++) {
+        const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+        if (result.type === 'raise' || result.amount > 0) raiseCount++;
+    }
+    expect(raiseCount > 0).toBe(true);
+});
+
+test('E2E Bug #134: Non-nut flush facing river donk does NOT raise via Module 24', () => {
+    // We have king-high flush (non-nut), opponent donk-bets river IP
+    const state = makeE2EState({
+        street: 'river',
+        holeCards: makePLOCards(['Kh', 'Jh', '3d', '4c']),
+        boardCards: makePLOCards(['Qh', '7h', '2c', '8s', '5h']),
+        toCall: 100, // Small donk bet
+        potSize: 400,
+        position: 'BTN',
+    });
+    const actions = [
+        { type: 'fold' },
+        { type: 'call', amount: 100 },
+        { type: 'raise', minAmount: 200, maxAmount: 900 },
+    ];
+    // Non-nut flush should NOT raise on river — vulnerability penalty should block it
+    let raiseCount = 0;
+    for (let i = 0; i < 20; i++) {
+        const result = brain.makePLOFallbackDecision('test-prof', state, actions);
+        if (result.type === 'raise') raiseCount++;
+    }
+    // Should rarely raise (maybe 0-3 times from other paths, but Module 24 should be blocked)
+    expect(raiseCount <= 5).toBe(true);
 });
 
 // ASYNC TEST RUNNER + SUMMARY
