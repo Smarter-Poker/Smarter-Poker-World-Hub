@@ -15246,7 +15246,16 @@ const checkLegal = [
 asyncTest('PIPELINE: AA preflop produces raise or call', async () => {
     let raises = 0;
     for (let i = 0; i < 10; i++) {
-        const result = await brain.getDecision('pipeline-aa-97', makeEngineState97({ holeCards: [48, 49] }), standardLegal, { bigBlind: 2 });
+        const pid = 'p97-aa-' + i + '-' + Date.now();
+        const state = {
+            tableId: 'tbl-97-aa-' + i,
+            phase: 'preflop', potTotal: 6, currentBet: 2, communityCards: [],
+            players: [
+                { id: pid, holeCards: [{rank:'A',suit:'c'},{rank:'A',suit:'d'}], stack: 200, position: 'BTN', folded: false, invested: 0 },
+                { id: 'v-97-aa-' + i, holeCards: [{rank:'7',suit:'d'},{rank:'2',suit:'c'}], stack: 200, position: 'BB', folded: false, invested: 2 }
+            ]
+        };
+        const result = await brain.getDecision(pid, state, standardLegal, { bigBlind: 2 });
         expect(typeof result).toBe('object');
         expect(typeof result.action).toBe('object');
         expect(typeof result.delayMs).toBe('number');
@@ -15289,19 +15298,21 @@ asyncTest('PIPELINE: no hole cards returns check/fold', async () => {
 asyncTest('PIPELINE: strong hand on flop produces aggression', async () => {
     let aggressive = 0;
     for (let i = 0; i < 10; i++) {
-        const state = makeEngineState97({
-            phase: 'flop',
-            holeCards: [48, 44], // Ac, Kc
-            communityCards: [36, 24, 8], // board cards
-            potTotal: 24,
-            currentBet: 0,
-            heroInvested: 0
-        });
-        const result = await brain.getDecision('pipeline-flop-strong-97', state, checkLegal, { bigBlind: 2 });
+        const pid = 'p97-flop-' + i + '-' + Date.now();
+        const state = {
+            tableId: 'tbl-97-flop-' + i,
+            phase: 'flop', potTotal: 10, currentBet: 0,
+            communityCards: [{rank:'A',suit:'h'},{rank:'7',suit:'d'},{rank:'2',suit:'s'}],
+            players: [
+                { id: pid, holeCards: [{rank:'A',suit:'c'},{rank:'A',suit:'d'}], stack: 200, position: 'BTN', folded: false, invested: 0 },
+                { id: 'v-97-flop-' + i, holeCards: [{rank:'8',suit:'d'},{rank:'3',suit:'c'}], stack: 200, position: 'BB', folded: false, invested: 0 }
+            ]
+        };
+        const result = await brain.getDecision(pid, state, checkLegal, { bigBlind: 2 });
         if (result.action.type === 'bet' || result.action.type === 'raise') aggressive++;
     }
-    // Should bet some of the time with strong hand
-    expect(aggressive >= 3).toBe(true);
+    // Set of aces on A72r should bet aggressively
+    expect(aggressive >= 5).toBe(true);
 });
 
 asyncTest('PIPELINE: river decision returns valid action', async () => {
@@ -15352,12 +15363,6 @@ asyncTest('PIPELINE: multiway pot tightens ranges', async () => {
 
 // ── 97.4: Short stack decisions ──
 asyncTest('PIPELINE: short stack pushes or folds', async () => {
-    const state = makeEngineState97({
-        heroStack: 10, // 5bb
-        holeCards: [48, 49], // AA
-        currentBet: 4,
-        potTotal: 10,
-    });
     const shortLegal = [
         { type: 'fold' },
         { type: 'call' },
@@ -15365,7 +15370,16 @@ asyncTest('PIPELINE: short stack pushes or folds', async () => {
     ];
     let allIns = 0;
     for (let i = 0; i < 10; i++) {
-        const result = await brain.getDecision('pipeline-short-97', state, shortLegal, { bigBlind: 2 });
+        const pid = 'p97-short-' + i + '-' + Date.now();
+        const state = {
+            tableId: 'tbl-97-short-' + i,
+            phase: 'preflop', potTotal: 10, currentBet: 4, communityCards: [],
+            players: [
+                { id: pid, holeCards: [{rank:'A',suit:'c'},{rank:'A',suit:'d'}], stack: 10, position: 'BTN', folded: false, invested: 0 },
+                { id: 'v-97-short-' + i, holeCards: [{rank:'7',suit:'d'},{rank:'2',suit:'c'}], stack: 200, position: 'BB', folded: false, invested: 4 }
+            ]
+        };
+        const result = await brain.getDecision(pid, state, shortLegal, { bigBlind: 2 });
         if (result.action.type === 'raise' || result.action.type === 'all_in') allIns++;
     }
     expect(allIns >= 5).toBe(true); // AA short stack should jam frequently
