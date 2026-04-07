@@ -15477,6 +15477,251 @@ asyncTest('PIPELINE: empty tableConfig uses defaults', async () => {
     expect(typeof result.action.type).toBe('string');
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 98: PLO Starting Hand Selection — Bug #78 regression tests
+// Verifies correct preflop classifications, open/fold ranges, and
+// position-adjusted thresholds per Dan's requirements:
+// - J432, 9532 type hands ALWAYS fold
+// - JJ43 can limp/call small raise IP (position bonus)
+// - AA bare always opens
+// - Position is key — tighter OOP, wider IP
+// ═══════════════════════════════════════════════════════════
+
+function makePLOCards(cardStrs) {
+    const RANKS98 = '23456789TJQKA';
+    return cardStrs.map(s => ({ rank: RANKS98.indexOf(s[0]), suit: s[1] }));
+}
+
+// ── 98.1: Premium hands score high enough to always open ──
+test('PLO: AA double-suited is tier 1 (score >= 90)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','Kc','Kd']));
+    expect(score >= 90).toBe(true);
+});
+
+test('PLO: AA + connected suited is tier 1 (score >= 85)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','Jc','Td']));
+    expect(score >= 85).toBe(true);
+});
+
+test('PLO: AA bare rainbow opens in position (score >= 54)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','7h','3s']));
+    expect(score >= 54).toBe(true); // 54+ = opens IP, 62+ with BTN bonus
+});
+
+test('PLO: KK double-suited connected is tier 1 (score >= 85)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Kc','Kd','Qc','Jd']));
+    expect(score >= 85).toBe(true);
+});
+
+test('PLO: KK bare is playable (score >= 45)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Kc','Kd','8h','5s']));
+    expect(score >= 45).toBe(true);
+});
+
+test('PLO: QQJT connected is strong open (score >= 60)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Qc','Qd','Jh','Ts']));
+    expect(score >= 60).toBe(true);
+});
+
+// ── 98.2: Premium rundowns score high ──
+test('PLO: JT98 double-suited is tier 1 open (score >= 75)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Jc','Td','9c','8d']));
+    expect(score >= 75).toBe(true);
+});
+
+test('PLO: T987 double-suited is strong open (score >= 70)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Tc','9c','8d','7d']));
+    expect(score >= 70).toBe(true);
+});
+
+test('PLO: AKQJ suited is max tier (score >= 95)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Ac','Kc','Qc','Jc']));
+    expect(score >= 95).toBe(true);
+});
+
+// ── 98.3: Mid rundowns are playable but not premium ──
+test('PLO: 9876 rainbow is playable IP (score >= 45)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['9c','8d','7h','6s']));
+    expect(score >= 45).toBe(true);
+});
+
+test('PLO: 8765 rainbow is marginal (score 35-55)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['8c','7d','6h','5s']));
+    expect(score >= 35 && score <= 55).toBe(true);
+});
+
+// ── 98.4: Garbage hands ALWAYS fold (score < 35) ──
+test('PLO: J432 is garbage (score < 35)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Jc','4d','3h','2s']));
+    expect(score < 35).toBe(true);
+});
+
+test('PLO: 9532 is garbage (score < 35)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['9c','5d','3h','2s']));
+    expect(score < 35).toBe(true);
+});
+
+test('PLO: K832 is garbage (score < 35)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Kc','8d','3h','2s']));
+    expect(score < 35).toBe(true);
+});
+
+test('PLO: Q732 is garbage (score < 35)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Qc','7d','3h','2s']));
+    expect(score < 35).toBe(true);
+});
+
+test('PLO: 5432 rainbow is marginal IP (score 35-45)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['5c','4d','3h','2s']));
+    expect(score >= 35 && score <= 45).toBe(true); // Playable IP per Dan's requirements
+});
+
+// ── 98.5: JJ43 is marginal but playable in position ──
+test('PLO: JJ43 raw score below open threshold', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Jc','Jd','4h','3s']));
+    expect(score < 55).toBe(true); // Not an auto-open
+});
+
+test('PLO: JJ43 with IP bonus can reach limp/call threshold', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Jc','Jd','4h','3s']));
+    const ipScore = score + 8; // BTN position bonus
+    expect(ipScore >= 45).toBe(true); // Can limp/call IP
+});
+
+// ── 98.6: Connected pair hands are strong ──
+test('PLO: JJT9 double-suited is strong open (score >= 70)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Jc','Jd','Tc','9d']));
+    expect(score >= 70).toBe(true);
+});
+
+test('PLO: TT87 double-suited is open-worthy (score >= 58)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['Tc','Td','8c','7d']));
+    expect(score >= 58).toBe(true);
+});
+
+test('PLO: 9976 double-suited is open IP (score >= 55)', () => {
+    const score = brain.classifyPLOPreflop(makePLOCards(['9c','9d','7c','6d']));
+    expect(score >= 55).toBe(true);
+});
+
+// ── 98.7: AA beats every other hand class in scoring ──
+test('PLO: AA bare scores higher than any non-paired rundown without an ace', () => {
+    const aaBare = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','7h','3s']));
+    const rundown = brain.classifyPLOPreflop(makePLOCards(['9c','8d','7h','6s']));
+    expect(aaBare > rundown).toBe(true);
+});
+
+test('PLO: AA bare scores higher than JJ43', () => {
+    const aa = brain.classifyPLOPreflop(makePLOCards(['Ac','Ad','7h','3s']));
+    const jj = brain.classifyPLOPreflop(makePLOCards(['Jc','Jd','4h','3s']));
+    expect(aa > jj).toBe(true);
+});
+
+// ── 98.8: Position-adjusted action thresholds via getPLOPreflopAction ──
+test('PLO ACTION: AA bare opens from UTG', () => {
+    const cards = makePLOCards(['Ac','Ad','7h','3s']);
+    const score = brain.classifyPLOPreflop(cards);
+    const legal = [{ type: 'fold' }, { type: 'call' }, { type: 'raise', minAmount: 6, maxAmount: 200 }];
+    const r = brain.getPLOPreflopAction(score, false, true, true, legal[2], 2, 2, 100, 'UTG', 6);
+    expect(r.type === 'raise' || r.type === 'call').toBe(true);
+    expect(r.type !== 'fold').toBe(true);
+});
+
+test('PLO ACTION: J432 folds from every position (pure trash)', () => {
+    const cards = makePLOCards(['Jc','4d','3h','2s']);
+    const score = brain.classifyPLOPreflop(cards);
+    expect(score <= 15).toBe(true); // Pure trash gate caps at 10-15
+    const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+    for (const pos of positions) {
+        const r = brain.getPLOPreflopAction(score, pos === 'BB', true, true,
+            { type: 'raise', minAmount: 6, maxAmount: 200 }, 4, 2, 100, pos, 6);
+        expect(r.type === 'fold' || r.type === 'check').toBe(true);
+    }
+});
+
+test('PLO ACTION: 9532 folds from every position', () => {
+    const cards = makePLOCards(['9c','5d','3h','2s']);
+    const score = brain.classifyPLOPreflop(cards);
+    const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+    for (const pos of positions) {
+        const r = brain.getPLOPreflopAction(score, pos === 'BB', true, true,
+            { type: 'raise', minAmount: 6, maxAmount: 200 }, 4, 2, 100, pos, 6);
+        // Should fold or check (BB can check)
+        expect(r.type === 'fold' || r.type === 'check').toBe(true);
+    }
+});
+
+test('PLO ACTION: JJT9ds 3-bets facing a raise', () => {
+    const cards = makePLOCards(['Jc','Jd','Tc','9d']);
+    const score = brain.classifyPLOPreflop(cards);
+    const r = brain.getPLOPreflopAction(score, false, true, true,
+        { type: 'raise', minAmount: 12, maxAmount: 200 }, 6, 2, 100, 'BTN', 6);
+    // Premium connected pair should 3-bet or call — not fold
+    expect(r.type !== 'fold').toBe(true);
+});
+
+// ── 98.9: Suitedness makes a difference ──
+test('PLO: double-suited hand scores higher than rainbow equivalent', () => {
+    const ds = brain.classifyPLOPreflop(makePLOCards(['Tc','9c','8d','7d']));
+    const rb = brain.classifyPLOPreflop(makePLOCards(['Tc','9d','8h','7s']));
+    expect(ds > rb).toBe(true);
+});
+
+test('PLO: single-suited scores between ds and rainbow', () => {
+    const ds = brain.classifyPLOPreflop(makePLOCards(['Tc','9c','8d','7d']));
+    const ss = brain.classifyPLOPreflop(makePLOCards(['Tc','9c','8d','7h']));
+    const rb = brain.classifyPLOPreflop(makePLOCards(['Tc','9d','8h','7s']));
+    expect(ss > rb).toBe(true);
+    expect(ds >= ss).toBe(true);
+});
+
+// ── 98.10: High rundowns beat low rundowns ──
+test('PLO: JT98 scores higher than 5432', () => {
+    const high = brain.classifyPLOPreflop(makePLOCards(['Jc','Td','9h','8s']));
+    const low = brain.classifyPLOPreflop(makePLOCards(['5c','4d','3h','2s']));
+    expect(high > low).toBe(true);
+});
+
+test('PLO: T987 scores higher than 6543', () => {
+    const high = brain.classifyPLOPreflop(makePLOCards(['Tc','9d','8h','7s']));
+    const low = brain.classifyPLOPreflop(makePLOCards(['6c','5d','4h','3s']));
+    expect(high > low).toBe(true);
+});
+
+// ── 98.11: Dangler detection ──
+test('PLO: KQJ3 scores lower than KQJ9 (dangler penalty)', () => {
+    const good = brain.classifyPLOPreflop(makePLOCards(['Kc','Qd','Jh','9s']));
+    const bad = brain.classifyPLOPreflop(makePLOCards(['Kc','Qd','Jh','3s']));
+    expect(good > bad).toBe(true);
+});
+
+test('PLO: AKQ2 scores lower than AKQJ (dangler)', () => {
+    const nut = brain.classifyPLOPreflop(makePLOCards(['Ac','Kd','Qh','Js']));
+    const dang = brain.classifyPLOPreflop(makePLOCards(['Ac','Kd','Qh','2s']));
+    expect(nut > dang).toBe(true);
+});
+
+// ── 98.12: Enhanced preflop scorer ──
+test('PLO ENHANCE: enhancePLOPreflopScore returns correct shape', () => {
+    const r = brain.enhancePLOPreflopScore(makePLOCards(['Ac','Ad','Kc','Kd']));
+    expect(typeof r.doubleSuitBonus).toBe('number');
+    expect(typeof r.connectivityScore).toBe('number');
+    expect(typeof r.pairBonus).toBe('number');
+    expect(typeof r.totalBonus).toBe('number');
+});
+
+test('PLO ENHANCE: double-suited gets higher bonus than rainbow', () => {
+    const ds = brain.enhancePLOPreflopScore(makePLOCards(['Tc','9c','8d','7d']));
+    const rb = brain.enhancePLOPreflopScore(makePLOCards(['Tc','9d','8h','7s']));
+    expect(ds.doubleSuitBonus > rb.doubleSuitBonus).toBe(true);
+});
+
+test('PLO ENHANCE: connected hand gets connectivity bonus', () => {
+    const conn = brain.enhancePLOPreflopScore(makePLOCards(['Jc','Td','9h','8s']));
+    const disc = brain.enhancePLOPreflopScore(makePLOCards(['Kc','7d','3h','2s']));
+    expect(conn.connectivityScore > disc.connectivityScore).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

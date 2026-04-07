@@ -469,35 +469,67 @@ function classifyPLOPreflop(cards) {
         else if (pairRank >= 7) highCardScore += 6;    // 99, 88 (decent set mine)
         else highCardScore += 3;                        // Low pairs (marginal set mine)
     }
+    // Suited side card bonus: AA83 with Ah8h is MUCH stronger than AA83 rainbow
+    // The ace-suited side card gives nut flush draw potential post-flop
+    if (hasAA) {
+        const aceSuits = cards.filter(c => c.rank === 12).map(c => c.suit);
+        const nonAceSuits = cards.filter(c => c.rank !== 12).map(c => c.suit);
+        const hasAceSuitMatch = aceSuits.some(s => nonAceSuits.includes(s));
+        if (hasAceSuitMatch) highCardScore += 8; // Ace matches a side card suit → nut flush draw backup
+    }
+    if (hasKK) {
+        const kingSuits = cards.filter(c => c.rank === 11).map(c => c.suit);
+        const nonKingSuits = cards.filter(c => c.rank !== 11).map(c => c.suit);
+        const hasKingSuitMatch = kingSuits.some(s => nonKingSuits.includes(s));
+        if (hasKingSuitMatch) highCardScore += 5; // King-suited side card
+    }
     if (hasAce && !hasAA) highCardScore += 10; // Solitary Ace w/o pair
     if (hasKing && !hasKK) highCardScore += 5;
 
     // Bug #78 fix: High rundowns are much stronger than low rundowns in PLO.
     // T-J-Q-K rundown makes nut straights; 2-3-4-5 makes only bottom straights.
-    // Low rundowns have massive reverse-implied-odds (make non-nut straights that lose to higher).
+    // Low rundowns have reverse-implied-odds but pure connected low hands can still be IP-playable.
     const highestRank = Math.max(...ranks);
-    if (highestRank <= 4) bestRundownScore = Math.round(bestRundownScore * 0.35); // 6-high or below: almost unplayable
-    else if (highestRank <= 6) bestRundownScore = Math.round(bestRundownScore * 0.50); // 7-8 high: heavy discount
-    else if (highestRank <= 8) bestRundownScore = Math.round(bestRundownScore * 0.70); // 9-T high: moderate discount
-    else if (highestRank <= 9) bestRundownScore = Math.round(bestRundownScore * 0.85); // J high: slight discount
+    if (highestRank <= 3) bestRundownScore = Math.round(bestRundownScore * 0.45); // 5-high: very weak straights
+    else if (highestRank <= 5) bestRundownScore = Math.round(bestRundownScore * 0.58); // 6-7 high: low but connected
+    else if (highestRank <= 7) bestRundownScore = Math.round(bestRundownScore * 0.72); // 8-9 high: moderate discount
+    else if (highestRank <= 9) bestRundownScore = Math.round(bestRundownScore * 0.85); // T-J high: slight discount
 
     // ── Dangling card penalty ──
-    // Bug #78 fix: Check BOTH top and bottom for danglers (J-4-3-2 has J as top dangler)
+    // Bug #78 fix: Check non-paired cards for disconnection from the hand's core
+    // Pair cards (AA, KK etc.) are the VALUE — they can't be danglers.
+    // Only non-paired cards that are far from the rest count as danglers.
     const sortedU = uniqueRanks;
     let danglerPenalty = 0;
-    if (sortedU.length >= 4) {
-        // Check bottom dangler: gap between 3rd and 4th cards (sorted desc)
-        const gap34 = sortedU[2] - sortedU[3];
-        if (gap34 >= 4) danglerPenalty += 8;
-        if (gap34 >= 6) danglerPenalty += 6;
-        // Check top dangler: gap between 1st and 2nd cards (e.g., J-4-3-2 has J disconnected)
-        const gap12 = sortedU[0] - sortedU[1];
-        if (gap12 >= 4) danglerPenalty += 8;
-        if (gap12 >= 6) danglerPenalty += 6;
-        // Premium pairs absorb dangler pain — AA with any 2 cards is still strong
+    const pairedRanks = new Set(pairs.map(([r]) => Number(r)));
+    if (sortedU.length >= 3) {
+        for (let i = 0; i < sortedU.length; i++) {
+            if (pairedRanks.has(sortedU[i])) continue; // Skip paired ranks — they're the hand's value
+            const distances = sortedU.filter((_, j) => j !== i).map(r => Math.abs(r - sortedU[i]));
+            const minDist = Math.min(...distances);
+            if (minDist >= 5) danglerPenalty += 12;       // Extreme dangler (K-4-3-2 type)
+            else if (minDist >= 4) danglerPenalty += 8;    // Bad dangler (J-4-3-2 type)
+            else if (minDist >= 3) danglerPenalty += 4;    // Mild dangler (7-4-3-2 type)
+        }
+        // Premium pairs: side cards being danglers matters less because the pair IS the hand
         if (hasAA) danglerPenalty = Math.round(danglerPenalty * 0.30);
         else if (hasKK) danglerPenalty = Math.round(danglerPenalty * 0.45);
-        else if (hasQQ) danglerPenalty = Math.round(danglerPenalty * 0.60);
+        else if (hasQQ) danglerPenalty = Math.round(danglerPenalty * 0.55);
+    }
+
+    // ── PURE TRASH GATE ──
+    // Hands like J432, K832, 9532, Q732 are auto-fold in PLO regardless of position.
+    // Pattern: one high card completely disconnected from a group of low cards, no premium pair.
+    // These hands make dominated straights, can't nut, and have zero post-flop playability.
+    if (!hasAA && !hasKK && !hasQQ && pairs.length === 0) {
+        // Check if the highest card is >= 3 ranks away from the 2nd highest
+        const topGap = sortedU.length >= 2 ? sortedU[0] - sortedU[1] : 0;
+        // And the rest of the hand is low (all non-top cards <= 6 = rank 4)
+        const lowCards = sortedU.slice(1);
+        const allLow = lowCards.every(r => r <= 4);
+        if (topGap >= 3 && allLow) {
+            return Math.min(30, 10 + suitScore); // Cap at 30 (always fold territory)
+        }
     }
 
     // ── Raw score → normalize 0-100 ──
@@ -3929,11 +3961,21 @@ function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
     const isBTN = position === 'BTN';
     const isSB = position === 'SB';
     const isBB = position === 'BB';
+    const isUTG = position === 'UTG';
+    const isUTG1 = position === 'UTG+1' || position === 'UTG1';
     const ipPositions = new Set(['BTN', 'CO', 'HJ']);
     const isIP = ipPositions.has(position);
 
-    // Position bonus: IP gets to play more hands
-    const posBonus = isIP ? 8 : isBB ? 5 : 0;
+    // Position bonus: tighter UTG/UTG+1, wider IP. Position is KEY in PLO.
+    let posBonus = 0;
+    if (isBTN) posBonus = 10;       // Button: widest range
+    else if (position === 'CO') posBonus = 8;  // Cutoff: very wide
+    else if (position === 'HJ') posBonus = 6;  // Hijack: still IP
+    else if (isBB) posBonus = 5;     // BB: already invested, can defend wider
+    else if (position === 'MP') posBonus = 2;  // Middle: slightly tighter
+    else if (isSB) posBonus = 0;     // SB: OOP postflop, tightest after UTG
+    else if (isUTG1) posBonus = -2;  // UTG+1: tight
+    else if (isUTG) posBonus = -4;   // UTG: tightest range
     const adjStrength = strength + posBonus;
 
     // PLO push/fold: ≤12BB
@@ -18343,6 +18385,8 @@ module.exports = {
     // Exposed for testing (Phase 48) — PLO internals
     evaluatePLOMadeHand,
     classifyPLOPreflop,
+    enhancePLOPreflopScore,
+    getPLOPreflopAction,
     countStraightOuts,
     countFlushOuts,
     getPLOSPRZone,

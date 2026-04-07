@@ -711,6 +711,17 @@ export default function PokerNearMePage() {
             const activeStop = currentRunning || nextUpcoming;
             if (!activeStop) return; // No current or upcoming stop — skip this tour
 
+            // 30-day lookahead cap: if the tour isn't currently running,
+            // only show the next-upcoming stop if it starts within 30 days.
+            // Prevents events months out (e.g. August) from cluttering the map.
+            if (!currentRunning && nextUpcoming) {
+                const upcomingDates = parseStopDates(nextUpcoming.dates);
+                if (upcomingDates) {
+                    const daysAway = (upcomingDates.start - today) / (1000 * 60 * 60 * 24);
+                    if (daysAway > 30) return; // Too far out — don't show on map yet
+                }
+            }
+
             // ─── Resolve coordinates using venue DB, then city map, then tour lat/lng ───
             let resolved = findStopCoords(activeStop);
 
@@ -778,7 +789,12 @@ export default function PokerNearMePage() {
         });
 
         // Combine: exclude venue entries that are already represented inside a tour double-icon
+        // Also exclude 'series' and 'tour' parent entries — these are NOT real venues.
+        // They should only appear on the map through the date-aware tour-stop pin logic above.
         const filteredVenues = allVenuesForMap.filter(v => {
+            // Strip out parent tour/series metadata records (e.g. "Illinois Poker Championship")
+            // These have coordinates but are NOT playable venues — they're tour containers
+            if (v.venue_type === 'series' || v.venue_type === 'tour') return false;
             if (!v.name) return true;
             return !consumedVenueNames.has(v.name.toLowerCase());
         });
