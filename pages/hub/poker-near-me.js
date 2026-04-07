@@ -141,6 +141,26 @@ const TOUR_CITY_COORDS = {
     'minnetonka, mn': [44.9211, -93.4687],
     'burnsville, mn': [44.7677, -93.2777],
     'isle, mn': [46.1478, -93.4694],
+    // Additional cities needed for complete tour coverage
+    'stateline, nv': [38.9627, -119.9494],
+    'robinsonville, ms': [34.7015, -90.3665],
+    'dallas, tx': [32.7767, -96.797],
+    'rohnert park, ca': [38.3396, -122.7011],
+    'pompano beach, fl': [26.2379, -80.1248],
+    'verona, ny': [43.0653, -75.5388],
+    'pine bluff, ar': [34.2284, -92.0032],
+    'north kansas city, mo': [39.1336, -94.5669],
+    'sacramento, ca': [38.5816, -121.4944],
+    'san francisco, ca': [37.7749, -122.4194],
+    'tulsa, ok': [36.154, -95.9928],
+    'council bluffs, ia': [41.2619, -95.8608],
+    'sioux city, ia': [42.4999, -96.4003],
+    'vicksburg, ms': [32.3526, -90.8779],
+    'natchez, ms': [31.5604, -91.4032],
+    'lake charles, la': [30.2266, -93.2174],
+    'baton rouge, la': [30.4515, -91.1871],
+    'hammond, in': [41.5834, -87.5001],
+    'joliet, il': [41.525, -88.0817],
 };
 
 function resolveCityCoords(location) {

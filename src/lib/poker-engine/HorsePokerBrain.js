@@ -14271,36 +14271,130 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         } catch (_) { }
     }
 
-    // --- 5b. APPLY RIVALRY DYNAMICS (#11) ---
-    if (finalAction && (finalAction === 'raise' || finalAction === 'bet' || finalAction === 'call')) {
+    // --- 5b. APPLY RIVALRY / GRUDGE / SOFTPLAY DYNAMICS (#11) ---
+    // BUG #40 FIX: Previously only used areRivals/areFriends boolean checks with flat
+    // coin-flip overrides. Now wires in getRivalryAggression (scaled sizing boost),
+    // getGrudgeTargeting (targeted aggression from big pot losses), and
+    // getSoftplayModifier (nuanced bluff/value reduction vs friends).
+    if (finalAction) {
         try {
             const adv = await getAdvancedModule();
-            if (adv?.areRivals && adv?.areFriends) {
+            if (adv?.areRivals || adv?.areFriends || adv?.getGrudgeTargeting) {
                 const opponents = engineState.players?.filter(p =>
                     String(p.id) !== String(profileId) && !p.folded
                 ) || [];
+                const oppIds = opponents.map(o => String(o.id));
+
+                // ═══ GRUDGE TARGETING: Find if any opponent triggers grudge aggression ═══
+                let grudgeTarget = null;
+                let grudgeAggrMod = 1.0;
+                if (adv.getGrudgeTargeting && oppIds.length > 0) {
+                    const targeting = adv.getGrudgeTargeting(profileId, oppIds);
+                    for (const oppId of oppIds) {
+                        const t = targeting[oppId];
+                        if (t && t.grudgeLevel > 1 && t.aggressionMod > grudgeAggrMod) {
+                            grudgeTarget = oppId;
+                            grudgeAggrMod = t.aggressionMod;
+                        }
+                    }
+                }
+
+                // Apply grudge aggression: boost sizing against grudge targets
+                if (grudgeTarget && grudgeAggrMod > 1.0 && (finalAction === 'raise' || finalAction === 'bet') && finalAmount) {
+                    const boostedAmount = Math.round(finalAmount * grudgeAggrMod);
+                    const raiseAction = legalActions.find(a => a.type === finalAction);
+                    if (raiseAction) {
+                        finalAmount = Math.max(raiseAction.minAmount || finalAmount, Math.min(boostedAmount, raiseAction.maxAmount || boostedAmount));
+                        console.log(`[HorseBrain] 😤 Grudge sizing boost ×${grudgeAggrMod.toFixed(2)} vs ${grudgeTarget.substring(0, 8)}`);
+                    }
+                }
+                // Grudge can also convert call→raise (revenge play)
+                if (grudgeTarget && grudgeAggrMod > 1.3 && finalAction === 'call' && Math.random() < 0.30) {
+                    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                    if (raiseAction) {
+                        finalAction = raiseAction.type;
+                        // Grudge-fueled raise: pot-sized
+                        const grudgeSize = Math.round(potSize * grudgeAggrMod * 0.75);
+                        finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(grudgeSize, raiseAction.maxAmount || grudgeSize));
+                        console.log(`[HorseBrain] 😤 Grudge revenge raise vs ${grudgeTarget.substring(0, 8)}`);
+                    }
+                }
+
+                // ═══ RIVALRY: Scaled aggression (not just a coin flip) ═══
                 for (const opp of opponents) {
                     const oppId = String(opp.id);
-                    if (adv.areRivals(profileId, oppId)) {
-                        // Rivals: increase aggression
-                        if (finalAction === 'call' && legalActions.some(a => a.type === 'raise' || a.type === 'bet') && Math.random() < 0.35) {
+                    if (adv.areRivals && adv.areRivals(profileId, oppId)) {
+                        // Use getRivalryAggression for scaled boost if available
+                        let rivalryMod = 1.5; // default: 50% boost
+                        if (adv.getRivalryAggression) {
+                            rivalryMod = adv.getRivalryAggression(profileId, oppId, 1.0);
+                        }
+                        // Convert call→raise at rate proportional to rivalry (25-45%)
+                        const convertRate = 0.25 + Math.min(0.20, (rivalryMod - 1.0) * 0.4);
+                        if (finalAction === 'call' && legalActions.some(a => a.type === 'raise' || a.type === 'bet') && Math.random() < convertRate) {
                             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                             if (raiseAction) {
                                 finalAction = raiseAction.type;
-                                finalAmount = finalAmount || raiseAction.minAmount;
-                                console.log(`[HorseBrain] ⚔️ Rivalry aggression vs ${oppId.substring(0, 8)}`);
+                                const rivalSize = Math.round((potSize * 0.75) * rivalryMod);
+                                finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(rivalSize, raiseAction.maxAmount || rivalSize));
+                                console.log(`[HorseBrain] ⚔️ Rivalry aggression ×${rivalryMod.toFixed(2)} vs ${oppId.substring(0, 8)}`);
+                            }
+                        }
+                        // Also boost existing raise sizing against rivals
+                        if ((finalAction === 'raise' || finalAction === 'bet') && finalAmount && rivalryMod > 1.0) {
+                            const boosted = Math.round(finalAmount * (1 + (rivalryMod - 1.0) * 0.5)); // Half the rivalry mod as sizing boost
+                            const raiseAction = legalActions.find(a => a.type === finalAction);
+                            if (raiseAction) {
+                                finalAmount = Math.max(raiseAction.minAmount || finalAmount, Math.min(boosted, raiseAction.maxAmount || boosted));
                             }
                         }
                         break;
                     }
-                    if (adv.areFriends(profileId, oppId)) {
-                        // Friends: soft play (don't raise as much)
-                        // Anti-collusion guard (#38)
-                        if (finalAction === 'raise' && Math.random() < 0.25 && isSoftPlayAllowed(profileId, oppId)) {
-                            finalAction = 'call';
-                            finalAmount = null;
-                            recordSoftPlay(profileId, oppId);
-                            console.log(`[HorseBrain] 🤝 Soft play vs friend ${oppId.substring(0, 8)}`);
+                    if (adv.areFriends && adv.areFriends(profileId, oppId)) {
+                        // ═══ SOFTPLAY: Use getSoftplayModifier for nuanced reduction ═══
+                        let softMod = { bluffReduction: 0.5, valueReduction: 0.85, isSoftplaying: true };
+                        if (adv.getSoftplayModifier) {
+                            softMod = adv.getSoftplayModifier(profileId, oppId);
+                        }
+                        if (softMod.isSoftplaying && isSoftPlayAllowed(profileId, oppId)) {
+                            if (finalAction === 'raise' || finalAction === 'bet') {
+                                // Check if this is likely a bluff (weak hand) vs value (strong hand)
+                                let handStrengthForSoft = 50;
+                                if (street !== 'preflop') {
+                                    try {
+                                        const softEval = evaluatePostflopHand(holeCardStrings, boardStrings);
+                                        handStrengthForSoft = softEval.strength;
+                                    } catch (_) { }
+                                } else {
+                                    handStrengthForSoft = getPreflopStrength(handStr);
+                                }
+
+                                if (handStrengthForSoft < 40) {
+                                    // Bluff territory: apply bluffReduction
+                                    if (Math.random() < (1 - softMod.bluffReduction)) {
+                                        // Convert bluff raise/bet → check or call
+                                        if (legalActions.some(a => a.type === 'check')) {
+                                            finalAction = 'check';
+                                            finalAmount = null;
+                                        } else if (legalActions.some(a => a.type === 'call')) {
+                                            finalAction = 'call';
+                                            finalAmount = null;
+                                        }
+                                        recordSoftPlay(profileId, oppId);
+                                        console.log(`[HorseBrain] 🤝 Softplay: bluff suppressed vs friend ${oppId.substring(0, 8)}`);
+                                    }
+                                } else {
+                                    // Value territory: reduce sizing slightly
+                                    if (finalAmount && softMod.valueReduction < 1.0) {
+                                        finalAmount = Math.round(finalAmount * softMod.valueReduction);
+                                        const raiseAction = legalActions.find(a => a.type === finalAction);
+                                        if (raiseAction && finalAmount < (raiseAction.minAmount || 0)) {
+                                            finalAmount = raiseAction.minAmount;
+                                        }
+                                        console.log(`[HorseBrain] 🤝 Softplay: value bet reduced ×${softMod.valueReduction} vs friend ${oppId.substring(0, 8)}`);
+                                    }
+                                }
+                            }
                         }
                         break;
                     }
