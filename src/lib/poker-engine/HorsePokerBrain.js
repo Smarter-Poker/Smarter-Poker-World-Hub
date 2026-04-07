@@ -12257,7 +12257,6 @@ function getDeepStackAdjustment(stackBB) {
  * @returns {number} Bet size as fraction of pot
  */
 function getOptimalBetSize(handCategory, street, potSize, isBluff, opts = {}) {
-    if (!opts || typeof opts !== 'object') opts = {}; // Bug #75: null opts crashes destructuring
     const {
         boardWetness = 'medium',     // 'dry', 'medium', 'wet'
         isInPosition = true,
@@ -12946,7 +12945,6 @@ function applyExploitIntensifier(params) {
  * @returns {Object|null} { type, amount? } or null if not a donk bet
  */
 function handleDonkBet(params) {
-    if (!params || typeof params !== 'object') return null; // Bug #76: null params crashes destructuring
     const {
         heroIsAggressor, street, facingBet, handStrength, handCategory,
         drawOuts, position, potSize, toCall, bb, canRaise, canCall,
