@@ -6310,6 +6310,16 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
         if (canCall) return { type: 'call' };
     }
 
+    // ═══ BUG #113: MADE-BUT-VULNERABLE hands calldown ═══
+    // Bottom straights (55), wheels (52), board-trips FH with weak pair (62), and low flushes
+    // are MADE hands that should call reasonable bets, not fold. The gap between >= 60 (strong)
+    // and >= 35 (medium with good odds < 25%) was too wide — these hands folded to half-pot bets.
+    // A made straight or flush should never fold to a half-pot bet.
+    if (effectiveStrength >= 48 && effectiveStrength < 60) {
+        if (potOdds < 0.35 && canCall) return { type: 'call' }; // Call up to ~half-pot
+        // But don't raise — these hands are vulnerable and can't stand a re-raise
+    }
+
     // ═══ MODULE 27: RIO GUARD IN FALLBACK — block draw calls with bad RIO ═══
     if (fbRioGuard.shouldBlock && drawEquity.outs > 0 && drawEquity.outs < 12) {
         console.log(`[HorseBrain] 🚫 MODULE 27 RIO FALLBACK: folding draw — ${fbRioGuard.reason}`);
@@ -8995,6 +9005,16 @@ function makeTurnRiverHeuristicDecision(params) {
                     }
                 }
             }
+        }
+
+        // ── BUG #114: MADE-BUT-VULNERABLE calldown (PLO turn) ──
+        // Bottom straights (52), wheels (50), low flushes (55-65) are still MADE hands.
+        // They should call reasonable bets, not fold. The gap between >= 55 (strong) and
+        // >= 35 (medium with pot odds < 25%) was too wide — these hands folded to half-pot.
+        if (handEval.strength >= 48 && handEval.strength < turnStrongThreshold && handEval.isMade) {
+            if (betToPot <= 0.50 && canCall) return { type: 'call' }; // Call up to half-pot
+            // Against bigger bets: only call if we're getting good odds or have blockers
+            if (betToPot <= 0.75 && canCall && handEval.strength >= 52) return { type: 'call' };
         }
 
         // ── MEDIUM HANDS: Call with good odds ──
@@ -11964,6 +11984,13 @@ function makeFlopHeuristicDecision(params) {
         if (drawEq.outs >= 4 && drawEq.outs < 6 && betToPot <= 0.33 && !is3BetPot && !is4BetPot) {
             return canCall ? { type: 'call' } : { type: 'fold' };
         }
+    }
+
+    // ── BUG #113b: MADE-BUT-VULNERABLE calldown (flop) ──
+    // Bottom straights (55), wheels (52) are still MADE hands that should call flop bets.
+    // They miss the >= 55 strong threshold but should not fold to standard c-bets.
+    if (handEval.strength >= 48 && handEval.strength < 55) {
+        if (betToPot <= 0.66 && canCall) return { type: 'call' }; // Call up to 2/3 pot on flop
     }
 
     // ── MEDIUM HANDS: Call or fold based on pot odds + opponent ──

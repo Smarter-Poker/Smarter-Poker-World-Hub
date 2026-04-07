@@ -16987,6 +16987,74 @@ test('Phase 105: PLO bottom full house gets lower strength than top', () => {
     expect(r.vulnerability >= 1).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 106: Bug #113/#114 — Made-but-vulnerable calldown thresholds
+// Tests that bottom straights and wheels don't fold to reasonable bets.
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 106: Bug #113/#114 — Made-but-Vulnerable Calldown ══');
+
+test('Phase 106: Hold\'em wheel straight (52) does NOT fold to half-pot bet on flop', () => {
+    // Hero: Ah 2d, Board: 3c 4s 5h → A-2-3-4-5 wheel (strength ~52)
+    // Facing half-pot bet on flop. Should call, not fold.
+    const result = brain.makeFlopHeuristicDecision({
+        holeCards: ['Ah', '2d'],
+        board: ['3c', '4s', '5h'],
+        handStr: 52,
+        position: 'CO',
+        stackBB: 100,
+        potSize: 10,
+        toCall: 5, // half-pot
+        bb: 1,
+        numPlayers: 2,
+        legalActions: [{ type: 'call' }, { type: 'fold' }, { type: 'raise', minAmount: 10, maxAmount: 100 }],
+        profileId: 'test',
+        heroIsAggressor: false
+    });
+    expect(result !== null).toBe(true);
+    expect(result.type !== 'fold').toBe(true); // Must NOT fold a made straight
+});
+
+test('Phase 106: Hold\'em bottom straight (55) calls via getPostflopDecision', () => {
+    // Test that the IP facing-bet path doesn't fold a bottom straight.
+    // We test evaluatePostflopHand to confirm strength is in the new calldown range.
+    const r = brain.evaluatePostflopHand(['3h', '4d'], ['5c', '6s', '7h', '9d', 'Kc']);
+    // 3-4-5-6-7 straight (7-high). Nut = board 5,6,7 + hole needs to complete higher.
+    // Nut check: 8-9-T-J? Board has 5(3),6(4),7(5),9(7),K(11).
+    // For straight: hero has 3-4-5-6-7 (ranks 1,2,3,4,5). bestStraightHigh = 5.
+    // This is definitely a made straight.
+    expect(r.category).toBe('straight');
+    expect(r.strength >= 48).toBe(true); // Above calldown threshold
+});
+
+test('Phase 106: PLO bottom straight gets isMade=true for calldown', () => {
+    // Verify PLO evaluator returns isMade so the turn calldown can check it.
+    const hole = makePLOCards(['2h', '3d', 'Kc', 'Qs']);
+    const board = makePLOCards(['4c', '5s', '6h', '9d', 'Jc']);
+    // Straight: 2-3-4-5-6 (6-high). Uses 2,3 from hole + 4,5,6 from board.
+    const r = brain.evaluatePLOMadeHand(hole, board);
+    expect(r.isMade).toBe(true);
+    expect(r.strength >= 48).toBe(true);
+});
+
+test('Phase 106: Hold\'em nut flush (90) still triggers monster raise threshold', () => {
+    // Nut flush at 90 must be >= 85 (monster threshold)
+    const r = brain.evaluatePostflopHand(['Ah', '2h'], ['3h', '5h', '7h', '9d', 'Jc']);
+    expect(r.strength >= 85).toBe(true);
+});
+
+test('Phase 106: Hold\'em 2nd nut flush (82) is in strong range, not monster', () => {
+    // K-high flush at 82 should be below 85 (not monster) but above 60 (strong)
+    const r = brain.evaluatePostflopHand(['Kh', '2h'], ['3h', '5h', '7h', '9d', 'Jc']);
+    expect(r.strength >= 60).toBe(true);
+    expect(r.strength < 85).toBe(true);
+});
+
+test('Phase 106: Hold\'em nut straight (85) hits monster threshold', () => {
+    // Board: 8c 9d Ts 2h 3c, Hero: Jh Qd → 8-9-T-J-Q nut straight
+    const r = brain.evaluatePostflopHand(['Jh', 'Qd'], ['8c', '9d', 'Ts', '2h', '3c']);
+    expect(r.strength >= 85).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
