@@ -14682,8 +14682,16 @@ function validateAndClamp(actionType, amount, legalActions) {
     }
 
     // If action still not legal, pick the safest legal action
+    // BUG #41 FIX: When brain wanted raise/bet but it's not available, fall back to CALL
+    // before fold. The brain wanted aggression — folding is the worst fallback.
+    // Old code: check → fold (skipped call entirely when raise was unavailable).
     if (!actionTypes.has(actionType)) {
+        // If brain wanted aggression (raise/bet), try call first
+        if ((actionType === 'raise' || actionType === 'bet') && actionTypes.has('call')) {
+            return { type: 'call' };
+        }
         if (actionTypes.has('check')) return { type: 'check' };
+        if (actionTypes.has('call')) return { type: 'call' };
         if (actionTypes.has('fold')) return { type: 'fold' };
         // Last resort: first legal action
         return { type: legalActions[0]?.type || 'fold' };

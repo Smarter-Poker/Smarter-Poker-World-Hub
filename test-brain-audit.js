@@ -7538,6 +7538,89 @@ asyncTest('Edge case: getDecision on flop with AA on dry board', async () => {
     expect(!!result.action.type).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 58: validateAndClamp BUG #41 + EDGE CASE TESTS
+// ═══════════════════════════════════════════════════════════
+
+console.log('\n── Phase 58: validateAndClamp Tests ──');
+
+test('BUG #41: validateAndClamp — raise falls back to call, not fold', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    // Brain wanted to raise but raise isn't available — should call, not fold
+    const result = validateAndClamp('raise', 50, [
+        { type: 'fold' }, { type: 'call', amount: 10 }
+    ]);
+    expect(result.type).toBe('call');
+});
+
+test('BUG #41: validateAndClamp — bet falls back to call, not fold', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('bet', 30, [
+        { type: 'fold' }, { type: 'call', amount: 10 }
+    ]);
+    expect(result.type).toBe('call');
+});
+
+test('validateAndClamp: all_in maps to max raise when no all_in action', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('all_in', null, [
+        { type: 'fold' }, { type: 'call', amount: 10 }, { type: 'raise', minAmount: 20, maxAmount: 200 }
+    ]);
+    expect(result.type).toBe('raise');
+    expect(result.amount).toBe(200);
+});
+
+test('validateAndClamp: all_in falls back to call when no raise available', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('all_in', null, [
+        { type: 'fold' }, { type: 'call', amount: 50 }
+    ]);
+    expect(result.type).toBe('call');
+});
+
+test('validateAndClamp: fold becomes check when check available (BUG #29)', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('fold', null, [
+        { type: 'check' }, { type: 'fold' }
+    ]);
+    expect(result.type).toBe('check');
+});
+
+test('validateAndClamp: NaN amount clamped to minAmount', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('raise', NaN, [
+        { type: 'fold' }, { type: 'raise', minAmount: 4, maxAmount: 100 }
+    ]);
+    expect(result.type).toBe('raise');
+    expect(result.amount).toBe(4);
+});
+
+test('validateAndClamp: amount above max clamped to maxAmount', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('raise', 999, [
+        { type: 'fold' }, { type: 'raise', minAmount: 4, maxAmount: 100 }
+    ]);
+    expect(result.type).toBe('raise');
+    expect(result.amount).toBe(100);
+});
+
+test('validateAndClamp: bet mapped to raise when only raise available', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('bet', 20, [
+        { type: 'fold' }, { type: 'raise', minAmount: 10, maxAmount: 200 }
+    ]);
+    expect(result.type).toBe('raise');
+    expect(result.amount).toBe(20);
+});
+
+test('validateAndClamp: check mapped to fold when check unavailable', () => {
+    const { validateAndClamp } = require('./src/lib/poker-engine/HorsePokerBrain');
+    const result = validateAndClamp('check', null, [
+        { type: 'fold' }, { type: 'call', amount: 10 }
+    ]);
+    expect(result.type).toBe('fold');
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
