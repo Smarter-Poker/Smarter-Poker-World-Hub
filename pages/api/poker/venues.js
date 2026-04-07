@@ -827,18 +827,23 @@ export default async function handler(req, res) {
                   };
               });
 
-              // Filter venues WITH coordinates by radius (allow tours/series to bypass to be filtered client-side via host venues)
-              const withinRadius = venues.filter(v => 
-                  (v.distance_mi != null && v.distance_mi <= maxRadius) || 
-                  ['tour', 'series'].includes(v.venue_type)
-              );
+              // When a venue-name search is active (not a "City, State" query),
+              // bypass radius filtering entirely — return all name-matching venues
+              // worldwide, sorted nearest-first. GPS is used only for distance annotation.
+              const isNameSearch = !!(search && !search.match(/^[^,]+,\s*.+$/));
 
-              // Sort distance-first
-              withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
-              
-              // Only include noCoords if no explicit GPS filter was requested OR if they matched explicit search params
-              // Since this block is inside hasGps, we drop un-locatable venues from a localized radius search
-              venues = withinRadius;
+              if (isNameSearch) {
+                  // Name search: global results, sorted by distance
+                  venues.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
+              } else {
+                  // Location-based browse: apply radius filter normally
+                  const withinRadius = venues.filter(v => 
+                      (v.distance_mi != null && v.distance_mi <= maxRadius) || 
+                      ['tour', 'series'].includes(v.venue_type)
+                  );
+                  withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
+                  venues = withinRadius;
+              }
           }
 
           // --- Single venue by ID: attach daily tournament schedules + venue news ---

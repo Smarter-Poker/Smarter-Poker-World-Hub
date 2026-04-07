@@ -841,15 +841,23 @@ export default function PokerNearMePage() {
                 if (!charityBestIds.has(v.id)) return false;
             }
             
-            // Coordinate-based deduplication: remove any venue pin within ~0.3 miles of a tour pin.
-            // Threshold 0.3mi (~1600ft) catches the standalone venue dot that sits at the same
-            // physical location as its tour double-icon (e.g. Grand Victoria under WSOPC pin).
+            // Radius filter: only include venues within the search radius
+            // This keeps the venue list and map in sync with the selected radius
+            if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
+                const dlat = (v.latitude - centerLat) * 69;
+                const dlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
+                const dist = Math.sqrt(dlat * dlat + dlng * dlng);
+                if (dist > effRad) return false;
+            }
+            
+            // Coordinate-based deduplication: remove venue pins sitting directly under a tour pin
+            // (within ~0.1 miles). The tour double-icon already represents this venue.
             if (v.latitude && v.longitude) {
                 for (const tp of tourPins) {
                     const dlat = (v.latitude - tp.latitude) * 69;
                     const dlng = (v.longitude - tp.longitude) * 69 * Math.cos(v.latitude * Math.PI / 180);
                     const dist = Math.sqrt(dlat * dlat + dlng * dlng);
-                    if (dist < 0.3) return false;
+                    if (dist < 0.1) return false;
                 }
             }
             
@@ -1711,7 +1719,7 @@ export default function PokerNearMePage() {
         if (!silent) setLoading(false);
     };
 
-    const fetchVenues = async ({ silent = false, radiusOverride = null } = {}) => {
+    const fetchVenues = async ({ silent = false, radiusOverride = null, searchOverride = null } = {}) => {
         if (!silent) setVenueLoading(true);
         setFetchError(null);
         try {
@@ -1728,8 +1736,10 @@ export default function PokerNearMePage() {
                 const miRadius = effectiveRadius === 'Any' ? 5000 : Number(effectiveRadius);
                 params.set('radius', String(miRadius));
             }
-            if (searchQuery) {
-                params.set('search', searchQuery);
+            // Use searchOverride when provided (avoids stale closure from React async state)
+            const effectiveSearch = searchOverride !== null ? searchOverride : searchQuery;
+            if (effectiveSearch) {
+                params.set('search', effectiveSearch);
             }
             if (filters.venueType !== 'all') {
                 params.set('type', filters.venueType);
@@ -2028,8 +2038,16 @@ export default function PokerNearMePage() {
                 if (activeTab !== 'venues' && activeTab !== 'map') setActiveTab('venues');
                 setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
                 trackSearchEvent('auto_search', { query: value, tab: activeTab });
-                fetchAllData({ includeVenues: true });
+                // Pass value directly to avoid stale closure on searchQuery state
+                fetchVenues({ searchOverride: value.trim() });
+                fetchTours();
+                fetchSeries();
             }, SEARCH_DEBOUNCE_MS);
+        } else if (value.trim().length === 0) {
+            // Reset to location-based results when search is cleared
+            searchDebounceRef.current = setTimeout(() => {
+                fetchAllData({ includeVenues: true });
+            }, 300);
         }
     };
 

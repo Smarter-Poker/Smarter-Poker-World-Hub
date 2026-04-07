@@ -536,6 +536,18 @@ function buildTourPopupHtml(venue) {
     </div>
     <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${escapeHtml(venue.stop_name || venue.name || 'Tour Stop')}</div>
     ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${venue.dates}</div>` : ''}
+    ${venue.host_venue_name ? `<div style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
+      <div style="font-size:10px;font-weight:700;color:rgba(148,163,184,0.5);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Host Venue</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${venue.host_venue_logo_url
+          ? `<img src="${venue.host_venue_logo_url}" alt="" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1px solid rgba(255,255,255,0.15);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:34px;height:34px;border-radius:8px;background:rgba(148,163,184,0.2);align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#94a3b8;flex-shrink:0;">${escapeHtml((venue.host_venue_name||'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'V')}</div>`
+          : `<div style="display:flex;width:34px;height:34px;border-radius:8px;background:rgba(148,163,184,0.2);align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#94a3b8;flex-shrink:0;">${escapeHtml((venue.host_venue_name||'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'V')}</div>`
+        }
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(venue.host_venue_name)}</div>
+        </div>
+      </div>
+    </div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="fsp-trigger" data-url="/hub/tours/${venue.tour_code}" data-title="${escapeHtml(venue.tour_name || venue.tour_code)}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;border:none;cursor:pointer;">View Tour</button>
       <button class="directions-trigger" data-addr="${encodeURIComponent((venue.city || '') + ', ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;">Directions</button>
