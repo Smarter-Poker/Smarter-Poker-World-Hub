@@ -570,6 +570,10 @@ export default function PokerNearMePage() {
         };
     });
 
+    // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
+    // CRITICAL: Must be declared BEFORE allVenuesWithTours useMemo which references globalSearchModeRef.current
+    const globalSearchModeRef = useRef(false);
+
     // ═══ MERGE TOUR STOPS INTO MAP VENUES — ONE pin per tour at current/next stop ═══
     // Mirrors the poker-tours page approach: find current or next-upcoming stop per tour,
     // resolve coordinates by matching venue name against allVenuesForMap (real venue DB),
@@ -996,8 +1000,6 @@ export default function PokerNearMePage() {
     const [showSearchHistory, setShowSearchHistory] = useState(false);
     const searchDebounceRef = useRef(null);
     const searchWrapperRef = useRef(null);
-    // Global search mode: when true, GPS/city useEffect skips re-fetching so text search results persist
-    const globalSearchModeRef = useRef(false);
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
 
     // Map view filters (for enhanced map-first experience)
