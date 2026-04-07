@@ -16649,6 +16649,138 @@ test('Phase 103: evaluatePLO8Low scoopable when nut low', () => {
     expect(result.scoopable).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+console.log('\n══ PHASE 104: Bugs #110-#111 — PLO made hand detection fixes ══');
+// ═══════════════════════════════════════════════════════════
+
+// ── Bug #110: One-pair now returns BEST match, not first ──
+
+test('Phase 104: One-pair finds best pair not first encountered', () => {
+    // Hole: 7s Qd Kc 5h → ranks [5, 10, 11, 3]
+    // Board: Qh 9d 2c → only Q hits the board. boardTop = Q(10).
+    // Should return top_pair for Q, not miss it.
+    const hole = makePLOCards(['7s', 'Qd', 'Kc', '5h']);
+    const board = makePLOCards(['Qh', '9d', '2c']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('top_pair');
+    expect(result.strength).toBe(38);
+});
+
+test('Phase 104: One-pair with low card first still finds top pair', () => {
+    // Hole: 3s Ts Kd 2h → ranks [1, 8, 11, 0]
+    // Board: Tc 9h 4d → boardTop=8(T). Rank 8 is T.
+    // 3 doesn't hit, T(8) hits → top pair
+    const hole = makePLOCards(['3s', 'Ts', 'Kd', '2h']);
+    const board = makePLOCards(['Tc', '9h', '4d']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('top_pair');
+});
+
+test('Phase 104: One-pair correctly identifies low pair when no top pair exists', () => {
+    // Hole: 3s 4d Kc Ah → ranks [1, 2, 11, 12]
+    // Board: Qh 9d 3c → boardTop=10(Q). Rank 1(3) hits, but not top.
+    const hole = makePLOCards(['3s', '4d', 'Kc', 'Ah']);
+    const board = makePLOCards(['Qh', '9d', '3c']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('low_pair');
+});
+
+// ── Bug #111: Full house via single hole card + board pair ──
+
+test('Phase 104: Full house via board pair + hole card match + second pair', () => {
+    // Board: Kh Kd 7s → board pair of K
+    // Hole: Ks 7c Jd Qd → K matches board pair (trips), 7 matches board 7 (pair)
+    // Result: KKK77 full house
+    const hole = makePLOCards(['Ks', '7c', 'Jd', 'Qd']);
+    const board = makePLOCards(['Kh', 'Kd', '7s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('full_house');
+    expect(result.isMade).toBe(true);
+    expect(result.strength >= 75).toBe(true);
+});
+
+test('Phase 104: Full house via board pair — top trips gets high strength', () => {
+    // Board: Kh Kd 7s → K is boardTop
+    // Hole: Ks 7c Jd Qd → trips of K (top) + pair of 7
+    const hole = makePLOCards(['Ks', '7c', 'Jd', 'Qd']);
+    const board = makePLOCards(['Kh', 'Kd', '7s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.strength >= 80).toBe(true);
+});
+
+test('Phase 104: Trips via board pair without full house', () => {
+    // Board: Kh Kd 7s → board pair of K
+    // Hole: Ks Jc 9d Qd → K matches board pair = trips, but no second pair
+    const hole = makePLOCards(['Ks', 'Jc', '9d', 'Qd']);
+    const board = makePLOCards(['Kh', 'Kd', '7s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('top_set');
+    expect(result.isMade).toBe(true);
+    expect(result.strength >= 50).toBe(true);
+});
+
+test('Phase 104: Trips via lower board pair = middle/bottom set', () => {
+    // Board: Kh 7d 7s → board pair of 7, boardTop=K(11)
+    // Hole: 7c Jd 9d Qd → 7 matches board pair = trips of 7 (not top)
+    const hole = makePLOCards(['7c', 'Jd', '9d', 'Qd']);
+    const board = makePLOCards(['Kh', '7d', '7s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    // 7 is not boardTop (K is), so should be middle or bottom set
+    expect(result.category === 'middle_set' || result.category === 'bottom_set').toBe(true);
+    expect(result.isMade).toBe(true);
+});
+
+test('Phase 104: Full house via board pair on turn board', () => {
+    // Board: 8h 8d 5s Kc → board pair of 8
+    // Hole: 8c 5c Jd Qd → 8 matches board pair (trips), 5 matches board 5 (pair)
+    // Result: 888-55 full house
+    const hole = makePLOCards(['8c', '5c', 'Jd', 'Qd']);
+    const board = makePLOCards(['8h', '8d', '5s', 'Kc']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('full_house');
+    expect(result.isMade).toBe(true);
+});
+
+test('Phase 104: Pocket pair set still works after Bug #111 fix', () => {
+    // Board: Th 8d 5s → no board pair
+    // Hole: Tc Ts Jd Qd → pocket pair T matches board T = set
+    const hole = makePLOCards(['Tc', 'Ts', 'Jd', 'Qd']);
+    const board = makePLOCards(['Th', '8d', '5s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('top_set');
+    expect(result.strength).toBe(76);
+});
+
+test('Phase 104: Pocket pair set on unpaired board still works', () => {
+    // Board: Th 9d 5s → no board pair
+    // Hole: Tc Ts Jd Qd → pocket pair T hits board T = set (original code path)
+    const hole = makePLOCards(['Tc', 'Ts', 'Jd', 'Qd']);
+    const board = makePLOCards(['Th', '9d', '5s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('top_set');
+    expect(result.strength).toBe(76);
+});
+
+test('Phase 104: Pocket pair on board with pair correctly makes full house', () => {
+    // Board: Th 8d 8s → board pair of 8, T on board
+    // Hole: Tc Ts Jd Qd → pocket pair T + board T = trips, board 8 pair = full house TTT88
+    const hole = makePLOCards(['Tc', 'Ts', 'Jd', 'Qd']);
+    const board = makePLOCards(['Th', '8d', '8s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('full_house');
+    expect(result.isMade).toBe(true);
+});
+
+test('Phase 104: Two pair still works when no board pair exists', () => {
+    // Board: Kh 9d 5s → no board pair
+    // Hole: Kc 9s Jd Qd → K and 9 both hit board = two pair
+    const hole = makePLOCards(['Kc', '9s', 'Jd', 'Qd']);
+    const board = makePLOCards(['Kh', '9d', '5s']);
+    const result = brain.evaluatePLOMadeHand(hole, board);
+    expect(result.category).toBe('top_two_pair');
+    expect(result.isMade).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

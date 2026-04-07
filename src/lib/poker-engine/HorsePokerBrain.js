@@ -898,6 +898,65 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         }
     }
 
+    // ── Bug #111 fix: Trips/Full House via single hole card + board pair ──
+    // In PLO, board pair + single matching hole card = trips (set).
+    // If another hole card also pairs a different board card → full house.
+    // Example: Board [K,K,7], Hole [K,7,J,Q] → KKK77 full house.
+    // This was missed because old code only checked pocket pairs (holePairs).
+    for (const bp of boardPairs) {
+        // Check if any single hole card matches this board pair rank
+        const holeHasBP = hRanks.filter(hr => hr === bp);
+        if (holeHasBP.length >= 1) {
+            // We have trips of rank bp (1 from hole + 2 from board)
+            // Check if another hole card pairs a different board rank → full house
+            const otherHoleRanks = hRanks.filter(hr => hr !== bp);
+            const otherBoardRanks = [...new Set(bRanks.filter(br => br !== bp))];
+            const secondPairRank = otherHoleRanks.find(hr => otherBoardRanks.includes(hr));
+            if (secondPairRank !== undefined) {
+                // Full house: trips(bp) + pair(secondPairRank)
+                const isTopTrips = bp === boardTop || bp > Math.max(...otherBoardRanks, -1);
+                return {
+                    strength: isTopTrips ? 85 : 75,
+                    category: 'full_house',
+                    isNut: isTopTrips && bp >= 10, // High trips = near-nut
+                    hasRedraw: false,
+                    isMade: true
+                };
+            }
+            // Also check: another board pair exists (e.g., board [K,K,8,8])
+            const otherBoardPairs = boardPairs.filter(p => p !== bp);
+            if (otherBoardPairs.length > 0) {
+                const isTopTrips = bp >= Math.max(...otherBoardPairs);
+                return {
+                    strength: isTopTrips ? 85 : 75,
+                    category: 'full_house',
+                    isNut: false,
+                    hasRedraw: false,
+                    isMade: true
+                };
+            }
+            // No full house, but we have trips — classify as set
+            const isTopSet = bp === boardTop;
+            const sortedBoardUnique = [...new Set(bRanks)].sort((a, b) => b - a);
+            const tripPosition = sortedBoardUnique.indexOf(bp);
+            let tripStrength;
+            if (isTopSet) {
+                tripStrength = 72; // Trips via board pair slightly weaker than set via pocket pair
+            } else if (tripPosition === 1) {
+                tripStrength = 56;
+            } else {
+                tripStrength = 46;
+            }
+            return {
+                strength: tripStrength,
+                category: isTopSet ? 'top_set' : tripPosition === 1 ? 'middle_set' : 'bottom_set',
+                isNut: false,
+                hasRedraw: false, // No full house redraw (unlike pocket-pair sets)
+                isMade: true
+            };
+        }
+    }
+
     // ── Two Pair (must use 2 hole cards) ──
     // Hole pair + board pair, or 2 hole cards pairing 2 different board cards
     const holeRanksThatHitBoard = hRanks.filter(r => bRanks.includes(r));
@@ -930,17 +989,19 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
     }
 
     // ── One Pair (top pair or under-pair) ──
-    for (const r of hRanks) {
-        if (bRanks.includes(r)) {
-            const isTopPair = r === boardTop;
-            return {
-                strength: isTopPair ? 38 : 25,
-                category: isTopPair ? 'top_pair' : 'low_pair',
-                isNut: false,
-                hasRedraw: false,
-                isMade: true
-            };
-        }
+    // Bug #110 fix: Find the BEST matching rank, not the first one encountered.
+    // With 4 hole cards in PLO, multiple cards can pair the board.
+    const singleHitsBoard = hRanks.filter(r => bRanks.includes(r));
+    if (singleHitsBoard.length >= 1) {
+        const bestHit = Math.max(...singleHitsBoard);
+        const isTopPair = bestHit === boardTop;
+        return {
+            strength: isTopPair ? 38 : 25,
+            category: isTopPair ? 'top_pair' : 'low_pair',
+            isNut: false,
+            hasRedraw: false,
+            isMade: true
+        };
     }
 
     // ── High card / No pair ──
