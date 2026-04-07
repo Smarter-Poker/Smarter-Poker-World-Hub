@@ -809,10 +809,23 @@ function evaluatePLOMadeHand(holeCards, boardCards) {
         madeStrWindows.push({ needed: [h, h - 1, h - 2, h - 3, h - 4], high: h });
     }
     madeStrWindows.push({ needed: [3, 2, 1, 0, 12], high: 3 }); // Wheel (5-high)
+    // Bug #105: Old check `boardPart.length === 3 && holePart.length === 2 && sum === 5`
+    // failed when a rank appeared in BOTH hole and board cards (extremely common in PLO).
+    // Example: Board [8,9,T], Hole [T,J,Q,K] → window [8,9,10,11,12]:
+    //   boardPart={8,9,10}(3), holePart={10,11,12}(3), sum=6≠5 → MISSED valid straight.
+    // Fix: use the same bO/hO/bth/miss decomposition as the wrap detector (Bug #48c).
     for (const { needed, high } of madeStrWindows) {
-        const boardPart = needed.filter(r => bRanks.includes(r));
-        const holePart = needed.filter(r => hRanks.includes(r));
-        if (boardPart.length === 3 && holePart.length === 2 && boardPart.length + holePart.length === 5) {
+        const bO = needed.filter(r => bRanks.includes(r) && !hRanks.includes(r));
+        const hO = needed.filter(r => !bRanks.includes(r) && hRanks.includes(r));
+        const bth = needed.filter(r => bRanks.includes(r) && hRanks.includes(r));
+        const miss = needed.filter(r => !bRanks.includes(r) && !hRanks.includes(r));
+        if (miss.length > 0) continue; // Not all 5 ranks present
+        // PLO rule: exactly 2 from hole, exactly 3 from board
+        // hO = hole-only, bO = board-only, bth = shared (can assign to either)
+        if (hO.length > 2 || bO.length > 3) continue;
+        const needFromBth_hole = 2 - hO.length;  // How many shared ranks we assign to "hole"
+        const needFromBth_board = 3 - bO.length;  // How many shared ranks we assign to "board"
+        if (needFromBth_hole >= 0 && needFromBth_board >= 0 && needFromBth_hole + needFromBth_board <= bth.length) {
             const straightStrength = 60 + high * 2;
             if (straightStrength > bestStraight) {
                 bestStraight = straightStrength;
@@ -3594,8 +3607,9 @@ function getPLODonkBetOpportunity(isIP, wasPFRaiser, madeHand, boardTexture, equ
     // Only donk OOP as the non-PFR (calling station gets position to donk)
     if (isIP || wasPFRaiser) return { shouldDonk: false, donkSize: 0, donkReason: 'n/a' };
 
-    // Donk with the stone nuts on a board that missed the PFR's range
-    if (madeHand.isNut && boardTexture.isMonotone && madeHand.isNutFlush) {
+    // Bug #104: madeHand.isNutFlush doesn't exist. evaluatePLOMadeHand returns
+    // { isNut: true, category: 'nut_flush' }, NOT .isNutFlush. Was always undefined → dead code.
+    if (madeHand.isNut && boardTexture.isMonotone && madeHand.category === 'nut_flush') {
         // Board is all one suit: PFR usually has broadway which misses monotone low board
         return { shouldDonk: true, donkSize: Math.round(potSize * 0.70), donkReason: 'nut_monotone_board' };
     }
@@ -3717,9 +3731,14 @@ function detectPLOWrapDraw(holeRanks, boardRanks) {
     // (exactly 2 hole cards + exactly 3 board cards).
 
     // Step 1: Pre-compute which straights are already MADE before any new card
-    const madeHighs = new Set();
+    // Bug #103: Include wheel (A-2-3-4-5 = ranks [3,2,1,0,12]) in wrap detection
+    const wrapWindows = [];
     for (let high = 12; high >= 4; high--) {
-        const needed = [high, high - 1, high - 2, high - 3, high - 4];
+        wrapWindows.push({ needed: [high, high - 1, high - 2, high - 3, high - 4], highVal: high });
+    }
+    wrapWindows.push({ needed: [3, 2, 1, 0, 12], highVal: 3 }); // Wheel
+    const madeHighs = new Set();
+    for (const { needed, highVal: high } of wrapWindows) {
         const bO = needed.filter(r => boardRanks.includes(r) && !holeRanks.includes(r));
         const hO = needed.filter(r => !boardRanks.includes(r) && holeRanks.includes(r));
         const bth = needed.filter(r => boardRanks.includes(r) && holeRanks.includes(r));
@@ -3740,10 +3759,9 @@ function detectPLOWrapDraw(holeRanks, boardRanks) {
     for (let cardRank = 0; cardRank <= 12; cardRank++) {
         const newBoard = [...boardRanks, cardRank];
 
-        for (let high = 12; high >= 4; high--) {
+        for (const { needed, highVal: high } of wrapWindows) {
             if (madeHighs.has(high)) continue; // Already made before this card
 
-            const needed = [high, high - 1, high - 2, high - 3, high - 4];
             const bO = needed.filter(r => newBoard.includes(r) && !holeRanks.includes(r));
             const hO = needed.filter(r => !newBoard.includes(r) && holeRanks.includes(r));
             const bth = needed.filter(r => newBoard.includes(r) && holeRanks.includes(r));
@@ -3898,10 +3916,12 @@ function projectPLOBoardScenarios(madeHand, flushOuts, straightOuts, boardTextur
     const improveCards = Math.min(flushOuts + straightOuts, remainingCards);
     const improveChance = improveCards / remainingCards;
 
-    // Boards that could hurt us: paired turn, flush completing, straight completing
-    const worsenCards = boardTexture.isFlushComplete ? 0 :
-        boardTexture.isStraightComplete ? 2 :
-            boardTexture.isTwoTone ? 9 : 4; // Approx scare cards
+    // Bug #102: Was using wrong property names (isFlushComplete, isStraightComplete, isTwoTone)
+    // that don't exist on boardTexture. Actual properties are: flushCompleted, straightCompleted, twoTone.
+    // Result: worsenCards was ALWAYS 4 (the fallback), causing inaccurate board projection.
+    const worsenCards = boardTexture.flushCompleted ? 0 :
+        boardTexture.straightCompleted ? 2 :
+            boardTexture.twoTone ? 9 : 4; // Approx scare cards
 
     const worsenChance = worsenCards / remainingCards;
 
@@ -18689,6 +18709,10 @@ module.exports = {
 
     // Exposed for testing (Phase 48c) — wrap draw detector
     detectPLOWrapDraw,
+
+    // Exposed for testing (Phase 102) — deep audit fixes #102-#106
+    projectPLOBoardScenarios,
+    getPLODonkBetOpportunity,
 
     // Exposed for testing (Phase 69-77)
     applyExploitIntensifier,
