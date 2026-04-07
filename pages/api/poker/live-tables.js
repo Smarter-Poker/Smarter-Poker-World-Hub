@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       for (const row of (data || [])) {
         if (!seen.has(row.bravo_slug)) {
           seen.add(row.bravo_slug);
-          venues.push({ slug: row.bravo_slug, name: cleanVenueName(row.venue_name) });
+          venues.push({ slug: row.bravo_slug, name: resolveVenueName(cleanVenueName(row.venue_name)) });
         }
       }
 
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
       
       if (!grouped[resolvedSlug]) {
         grouped[resolvedSlug] = {
-          venue_name: cleanVenueName(row.venue_name),
+          venue_name: resolveVenueName(cleanVenueName(row.venue_name)),
           bravo_slug: resolvedSlug,
           last_updated: row.scrape_timestamp,
           games: [],
@@ -235,7 +235,7 @@ export default async function handler(req, res) {
       
       // If this venue already has Bravo data, prefer Bravo's venue name
       if (src === 'bravo' && !venueData._hasBravoData) {
-        venueData.venue_name = cleanVenueName(row.venue_name);
+        venueData.venue_name = resolveVenueName(cleanVenueName(row.venue_name));
         venueData._hasBravoData = true;
         // Bravo just arrived — purge all previous PokerAtlas catalog games
         // (PA "tables" are catalog estimates, not actual live counts)
