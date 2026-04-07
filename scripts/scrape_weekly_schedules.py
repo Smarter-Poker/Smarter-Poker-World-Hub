@@ -807,6 +807,12 @@ def build_url_list(venue: dict) -> list:
     if website:
         base = website if website.startswith('http') else f"https://{website}"
         base = base.rstrip('/')
+        # Normalize: strip any trailing page filename (e.g. /poker-room.html, /index.php)
+        # so we get a clean directory base for path expansion
+        last_seg = base.split('/')[-1]
+        if '.' in last_seg and not last_seg.startswith('www.'):
+            # Looks like a file (e.g. poker-room.html) — strip it
+            base = base.rsplit('/', 1)[0]
         for path in [
             '/poker/tournaments',
             '/poker-room/tournaments',
@@ -818,6 +824,7 @@ def build_url_list(venue: dict) -> list:
             '',
         ]:
             add('website', f"{base}{path}")
+
 
     return urls[:18]  # 14 base paths + up to 4 JSON-LD injected URLs
 
