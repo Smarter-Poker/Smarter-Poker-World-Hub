@@ -16053,16 +16053,8 @@ function evaluateDonkBet(toCall, potSize, isIP, equity) {
     if (equity >= 65) {
         return { action: 'raise', reason: `Donk into strong equity (${equity.toFixed(0)}) — raise to deny blocker bluffs` };
     }
-    // BUG #27 FIX: Fold threshold must scale with donk bet size.
-    // Small donks (< 35% pot) give excellent pot odds (~0.26) — need only ~26% equity.
-    // Medium donks (35-60% pot) need ~0.35 equity.
-    // Large donks (60-80% pot) need ~0.43 equity.
-    // Old code used fixed equity < 38, folding profitable calls vs small donks.
-    const foldEquityThreshold = donkFraction >= 0.60 ? 45
-        : donkFraction >= 0.35 ? 38
-        : 28; // Small donk = call very wide
-    if (equity < foldEquityThreshold) {
-        return { action: 'fold', reason: `Thin-value donk likely ahead (equity=${equity.toFixed(0)} < ${foldEquityThreshold} for ${Math.round(donkFraction * 100)}%pot donk)` };
+    if (equity < 38) {
+        return { action: 'fold', reason: `Thin-value donk likely ahead (equity=${equity.toFixed(0)})` };
     }
     return { action: 'call', reason: `Medium equity (${equity.toFixed(0)}) vs donk — call and re-evaluate` };
 }

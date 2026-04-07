@@ -607,10 +607,33 @@ def scrape_target(target):
             session.start()
 
             resp = None
+            rendered_html = ""
             for attempt in range(3):
                 try:
                     resp = session.fetch(url, google_search=False)
                     if resp and resp.status == 200:
+                        # Grab JS-rendered HTML using the authenticated underlying playwright context
+                        try:
+                            context = session.context
+                            page = context.new_page()
+                            page.goto(url, timeout=15000, wait_until='domcontentloaded')
+                            
+                            # Wait for JS calendars (WordPress event manager, wix, etc.)
+                            selectors = ['.tribe-events-calendar', '.tribe-event', '.wp-block-tribe', '.schedule-table', 'table', '.event-list', '.schedule', '.tournament']
+                            for sel in selectors:
+                                try:
+                                    page.wait_for_selector(sel, timeout=3000)
+                                    print(f'    ✅ JS rendered calendar matching "{sel}"')
+                                    break
+                                except Exception:
+                                    pass
+                            
+                            page.wait_for_timeout(2000)
+                            rendered_html = page.content()
+                            page.close()
+                        except Exception as jse:
+                            print(f'    ⚠️  Failed to extract JS rendered HTML: {jse}')
+                            rendered_html = ""
                         break
                 except Exception as e:
                     if attempt < 2:
@@ -634,14 +657,13 @@ def scrape_target(target):
                 consecutive_failures += 1
                 continue
 
-            html = body.decode('utf-8', errors='ignore')
-
             # Layer 1: Provenance
             provenance = make_provenance(url, body, resp.status)
             print(f'    ✅ HTTP 200 | {len(body):,} bytes | hash: {provenance["scrape_html_hash"][:12]}...')
 
-            # Layer 2: Extract schedules
-            schedules = extract_schedules_from_html(html, url)
+            # Layer 2: Extract schedules using the JS rendered HTML, fall back to static
+            html_to_parse = rendered_html if len(rendered_html) > len(body) else body.decode('utf-8', errors='ignore')
+            schedules = extract_schedules_from_html(html_to_parse, url)
             print(f'    📅 Schedules extracted: {len(schedules)}')
 
             if schedules:
@@ -649,8 +671,8 @@ def scrape_target(target):
                 if best_result is None or len(schedules) > len(best_result['schedules']):
                     best_result = {
                         'url': url,
-                        'html': html,
-                        'body': body,
+                        'html': html_to_parse,
+                        'body': html_to_parse.encode('utf-8', errors='ignore'),
                         'provenance': provenance,
                         'schedules': schedules,
                     }
@@ -660,7 +682,7 @@ def scrape_target(target):
             else:
                 # Page loaded but no schedule data — try next URL
                 consecutive_failures += 1
-                print(f'    ⚠️  No schedule data in HTML — may be JS-rendered calendar')
+                print(f'    ⚠️  No schedule data in HTML — may be JS-rendered calendar that failed to parse')
 
         except Exception as e:
             print(f'    ❌ Error: {e}')

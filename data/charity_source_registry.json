@@ -298,5 +298,214 @@
     "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
     "last_http_status": null,
     "scrape_count": 2
+  },
+  "Shark Tank Poker Club": {
+    "venue_name": "Shark Tank Poker Club",
+    "venue_json_id": 2806,
+    "state": "OH",
+    "source_of_truth_url": "https://sharktankpokerclub.com",
+    "all_urls_tried": [
+      "https://sharktankpokerclub.com/daily-tournaments",
+      "https://sharktankpokerclub.com/tournaments",
+      "https://sharktankpokerclub.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:08:59.192495+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 200,
+    "last_schedules_found": 1,
+    "scrape_count": 4,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "Big Stack Poker Club": {
+    "venue_name": "Big Stack Poker Club",
+    "venue_json_id": 2807,
+    "state": "OH",
+    "source_of_truth_url": "https://bigstackpokerclub.com/tournaments",
+    "all_urls_tried": [
+      "https://bigstackpokerclub.com/tournaments",
+      "https://bigstackpokerclub.com/schedule",
+      "https://bigstackpokerclub.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:10:21.938213+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 0,
+    "last_schedules_found": 0,
+    "scrape_count": 3,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "The Reserve Poker Club": {
+    "venue_name": "The Reserve Poker Club",
+    "venue_json_id": 2808,
+    "state": "OH",
+    "source_of_truth_url": "https://thereservepoker.com",
+    "all_urls_tried": [
+      "https://thereservepoker.com/tournaments",
+      "https://thereservepoker.com/schedule",
+      "https://thereservepoker.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:11:27.417793+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 200,
+    "last_schedules_found": 3,
+    "scrape_count": 2,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "River Room Players Club": {
+    "venue_name": "River Room Players Club",
+    "venue_json_id": 2809,
+    "state": "OH",
+    "source_of_truth_url": "https://riverroompoker.com",
+    "all_urls_tried": [
+      "https://riverroompoker.com/tournament-schedule",
+      "https://riverroompoker.com/tournaments",
+      "https://riverroompoker.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:11:55.795589+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 200,
+    "last_schedules_found": 7,
+    "scrape_count": 2,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "Westfield Lions Club Poker": {
+    "venue_name": "Westfield Lions Club Poker",
+    "venue_json_id": 2810,
+    "state": "IN",
+    "source_of_truth_url": "https://lionspoker.org/tournament-details",
+    "all_urls_tried": [
+      "https://lionspoker.org/tournament-details",
+      "https://lionspoker.org/schedule",
+      "https://lionspoker.org"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:12:30.273846+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 200,
+    "last_schedules_found": 4,
+    "scrape_count": 2,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "OP Social Club / Outlaw Poker": {
+    "venue_name": "OP Social Club / Outlaw Poker",
+    "venue_json_id": 2811,
+    "state": "IN",
+    "source_of_truth_url": "https://opsocialclub.com/activities",
+    "all_urls_tried": [
+      "https://opsocialclub.com/activities",
+      "https://opsocialclub.com/events",
+      "https://opsocialclub.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:13:06.876445+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 200,
+    "last_schedules_found": 3,
+    "scrape_count": 2,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "Queens Club Inc.": {
+    "venue_name": "Queens Club Inc.",
+    "venue_json_id": 2815,
+    "state": "NC",
+    "source_of_truth_url": "https://queensclubinc.org/schedule",
+    "all_urls_tried": [
+      "https://queensclubinc.org/schedule",
+      "https://queensclubinc.org/tournaments",
+      "https://queensclubinc.org"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:13:59.738530+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 0,
+    "last_schedules_found": 0,
+    "scrape_count": 2,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "High Stax Poker": {
+    "venue_name": "High Stax Poker",
+    "venue_json_id": 2816,
+    "state": "NC",
+    "source_of_truth_url": "https://highstaxpoker.net/schedule",
+    "all_urls_tried": [
+      "https://highstaxpoker.net/schedule",
+      "https://highstaxpoker.net/tournaments",
+      "https://highstaxpoker.net"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:14:46.479755+00:00",
+    "last_batch_id": "d05201a8-4663-4999-ae6a-4d3ac8da7009",
+    "last_http_status": 0,
+    "last_schedules_found": 0,
+    "scrape_count": 2,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "Concord Casino": {
+    "venue_name": "Concord Casino",
+    "venue_json_id": 2820,
+    "state": "NH",
+    "source_of_truth_url": "https://concordnhcasino.com/poker",
+    "all_urls_tried": [
+      "https://concordnhcasino.com/poker",
+      "https://concordnhcasino.com/schedule",
+      "https://concordnhcasino.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:13:49.942778+00:00",
+    "last_batch_id": "a44b19ba-afc5-4148-a801-368cdfa3c232",
+    "last_http_status": 200,
+    "last_schedules_found": 1,
+    "scrape_count": 1,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "Gate City Casino": {
+    "venue_name": "Gate City Casino",
+    "venue_json_id": 2821,
+    "state": "NH",
+    "source_of_truth_url": "https://thegatecitycasino.com/poker",
+    "all_urls_tried": [
+      "https://thegatecitycasino.com/poker",
+      "https://thegatecitycasino.com/schedule",
+      "https://thegatecitycasino.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:14:17.919800+00:00",
+    "last_batch_id": "a44b19ba-afc5-4148-a801-368cdfa3c232",
+    "last_http_status": 200,
+    "last_schedules_found": 4,
+    "scrape_count": 1,
+    "script": "scripts/scrape_charity_schedules_v4.py"
+  },
+  "Pop's Poker": {
+    "venue_name": "Pop's Poker",
+    "venue_json_id": 2822,
+    "state": "VA",
+    "source_of_truth_url": "https://popspoker.com/schedule",
+    "all_urls_tried": [
+      "https://popspoker.com/schedule",
+      "https://popspoker.com/tournaments",
+      "https://popspoker.com"
+    ],
+    "source_type": "venue_website",
+    "source_priority": 1,
+    "last_scraped": "2026-04-07T02:14:52.314277+00:00",
+    "last_batch_id": "a44b19ba-afc5-4148-a801-368cdfa3c232",
+    "last_http_status": 200,
+    "last_schedules_found": 4,
+    "scrape_count": 1,
+    "script": "scripts/scrape_charity_schedules_v4.py"
   }
 }

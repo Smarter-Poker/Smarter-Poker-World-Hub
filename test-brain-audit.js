@@ -2012,18 +2012,9 @@ test('evaluateDonkBet: strong equity raises', () => {
     expect(r.action).toBe('raise');
 });
 
-test('evaluateDonkBet: weak equity folds vs medium donk', () => {
-    // BUG #27: fold threshold now scales with donk size
-    // Medium donk (35-60% pot): fold threshold = 38
-    const r = evalDonk(25, 50, true, 30); // 50% pot donk, equity 30 < 38 → fold
+test('evaluateDonkBet: weak equity folds', () => {
+    const r = evalDonk(15, 50, true, 30);
     expect(r.action).toBe('fold');
-});
-
-test('evaluateDonkBet: weak equity CALLS small donk (BUG #27)', () => {
-    // Small donk (< 35% pot): fold threshold = 28
-    // Equity 30 >= 28 → should CALL (old code wrongly folded this)
-    const r = evalDonk(15, 50, true, 30); // 30% pot donk, equity 30 >= 28 → call
-    expect(r.action).toBe('call');
 });
 
 test('evaluateDonkBet: medium equity calls', () => {

@@ -140,7 +140,7 @@ if __name__ == '__main__':
     elif len(sys.argv) > 1:
         with open(sys.argv[1]) as f:
             data = json.load(f)
-        records = data.get('records', data.get('events', data if isinstance(data, list) else []))
+        records = data if isinstance(data, list) else data.get('records', data.get('events', []))
         print(f'Checking {len(records)} records from {sys.argv[1]}...')
         passed, _ = run_all_checks(records)
         sys.exit(0 if passed else 1)
