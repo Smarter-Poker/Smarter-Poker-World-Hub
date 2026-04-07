@@ -1,6 +1,5 @@
 /**
- * MapTabPanel — Extracted from poker-near-me.js renderMap()
- * Full Map tab with filter chips, sidebar controls, and room detail panel.
+ * MapTabPanel — Full Map view (no internal filter sidebar — all filters live in the page top bar)
  */
 import React from 'react';
 import dynamic from 'next/dynamic';
@@ -78,36 +77,10 @@ export default function MapTabPanel({
 
     return (
         <div className="map-desktop-layout">
-            {/* LEFT COLUMN: Map Section */}
+            {/* Full-width Map — filters live in the page-level top bar */}
             <div className="map-main-section">
-                {/* Header Row */}
-                <div className="map-header-row">
-                    <h2 className="map-title">Explore All Poker Rooms</h2>
-                    <span className="map-stats">{filteredVenues.length} rooms • {liveTableCount.toLocaleString()} active tables • {dailyTournaments.length} tournaments today</span>
-                </div>
-
-                {/* Quick Filter Chips */}
-                <div className="map-filter-chips">
-                    <button className={'filter-chip' + (mapFilters.cashGames ? ' active' : '')} onClick={() => toggleMapFilter('cashGames')}>
-                        <span className="chip-dot cash"></span> Cash Games
-                    </button>
-                    <button className={'filter-chip' + (mapFilters.tournaments ? ' active' : '')} onClick={() => toggleMapFilter('tournaments')}>
-                        <span className="chip-dot mtt"></span> Tournaments
-                    </button>
-                    <button className={'filter-chip' + (mapFilters.is24Hours ? ' active' : '')} onClick={() => toggleMapFilter('is24Hours')}>
-                        <span className="chip-dot live"></span> 24/7 Open
-                    </button>
-                    <button className={'filter-chip' + (mapFilters.lowStakes ? ' active' : '')} onClick={() => toggleMapFilter('lowStakes')}>
-                        <span className="chip-dot stakes"></span> Low Stakes
-                    </button>
-                    <button className={'filter-chip' + (mapFilters.topRated ? ' active' : '')} onClick={() => toggleMapFilter('topRated')}>
-                        <span className="chip-dot rated"></span> Top Rated
-                    </button>
-                </div>
-
-                {/* Map Container */}
                 <div className="map-tab-container" style={{ position: 'relative' }}>
-                    {/* Floating Radius Control */}
+                    {/* Floating Radius Badge */}
                     <div style={{
                         position: 'absolute',
                         top: '16px',
@@ -175,118 +148,6 @@ export default function MapTabPanel({
                         </svg>
                         My Location
                     </button>
-                )}
-            </div>
-
-            {/* RIGHT COLUMN: Sidebar Filters + Room Detail */}
-            <div className="map-sidebar">
-                <div className="sidebar-filters">
-                    <h3 className="sidebar-title">Filters</h3>
-
-                    {/* Radius */}
-                    <div className="sidebar-filter-group">
-                        <label className="sidebar-label">Radius</label>
-                        <select
-                            value={filters.radius}
-                            onChange={e => setFilters(p => ({ ...p, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }))}
-                            className="sidebar-select"
-                        >
-                            <option value={25}>25 Mi</option>
-                            <option value={50}>50 Mi</option>
-                            <option value={100}>100 Mi</option>
-                            <option value={200}>200 Mi</option>
-                            <option value={250}>250 Mi</option>
-                            <option value={500}>500 Mi</option>
-                            <option value="Any">Any</option>
-                        </select>
-                    </div>
-
-                    {/* Venue Type */}
-                    <div className="sidebar-filter-group">
-                        <label className="sidebar-label">Venue Type</label>
-                        <select
-                            value={filters.venueType}
-                            onChange={e => setFilters(p => ({ ...p, venueType: e.target.value }))}
-                            className="sidebar-select"
-                        >
-                            <option value="all">All Locations</option>
-                            <option value="casino">Casino</option>
-                            <option value="card_room">Card Room / Poker Club</option>
-                            <option value="charity">Charity Room</option>
-                            <option value="tour_stop">Poker Tour</option>
-                        </select>
-                    </div>
-
-                    {/* Game Type */}
-                    <div className="sidebar-filter-group">
-                        <label className="sidebar-label">Game Type</label>
-                        <select
-                            value={filters.gameType}
-                            onChange={e => setFilters(p => ({ ...p, gameType: e.target.value }))}
-                            className="sidebar-select"
-                        >
-                            <option value="all">All</option>
-                            <option value="cash">Cash</option>
-                            <option value="mtt">MTT</option>
-                            <option value="mixed">Mixed</option>
-                        </select>
-                    </div>
-
-                    {/* Stakes */}
-                    <div className="sidebar-filter-group">
-                        <label className="sidebar-label">Stakes</label>
-                        <select
-                            value={filters.stakes}
-                            onChange={e => setFilters(p => ({ ...p, stakes: e.target.value }))}
-                            className="sidebar-select"
-                        >
-                            <option value="all">All</option>
-                            <option value="$1/2">$1/2</option>
-                            <option value="$2/5">$2/5</option>
-                            <option value="$5/10+">$5/10+</option>
-                        </select>
-                    </div>
-
-                    {/* Buy-in Range */}
-                    <div className="sidebar-filter-group">
-                        <label className="sidebar-label">Buy-In Range</label>
-                        <div className="sidebar-range-inputs">
-                            <input
-                                type="number"
-                                placeholder="Min"
-                                className="sidebar-input"
-                                value={filters.minBuyin}
-                                onChange={e => setFilters(p => ({ ...p, minBuyin: e.target.value }))}
-                            />
-                            <span className="range-divider">—</span>
-                            <input
-                                type="number"
-                                placeholder="Max"
-                                className="sidebar-input"
-                                value={filters.maxBuyin}
-                                onChange={e => setFilters(p => ({ ...p, maxBuyin: e.target.value }))}
-                            />
-                        </div>
-                    </div>
-
-                    <button className="sidebar-apply-btn" onClick={() => {
-                        setHasSearched(true);
-                        fetchAllData({ includeVenues: true });
-                    }}>
-                        Apply Filters
-                    </button>
-                </div>
-
-                {/* Room Detail Panel */}
-                {selectedRoom && (
-                    <div className="room-detail-panel">
-                        <div className="detail-header">
-                            <h3>{selectedRoom.name}</h3>
-                            <button className="detail-close" onClick={() => setSelectedRoom(null)}>×</button>
-                        </div>
-                        <p className="detail-location">{selectedRoom.city}, {selectedRoom.state}</p>
-                        <button className="detail-view-btn" onClick={() => router.push(selectedRoom.is_social_page ? `/club/${selectedRoom.social_page_id}` : `/hub/venues/${selectedRoom.id}`)}>View Full Details</button>
-                    </div>
                 )}
             </div>
         </div>

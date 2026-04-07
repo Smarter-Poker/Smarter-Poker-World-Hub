@@ -2091,242 +2091,195 @@ export default function PokerNearMePage() {
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
-                    <h1 className="pnm-title">{activeTab === 'live' ? 'LIVE CASH GAMES' : 'POKER NEAR ME'}</h1>
+                    <h1 className="pnm-title">POKER NEAR ME</h1>
                     <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 
-                {/* ═══ MOBILE GPS ACTION ROW — visible only on mobile ═══ */}
-                <div className="mobile-gps-row">
-                    {!userLocation ? (
-                        <button
-                            className={'mobile-gps-enable-btn' + (gpsLoading ? ' loading' : '')}
-                            onClick={requestGpsLocation}
-                            disabled={gpsLoading}
-                        >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                            </svg>
-                            {gpsLoading ? 'Locating...' : 'Enable GPS For Nearby Venues'}
-                        </button>
-                    ) : gpsLocationLabel ? (
-                        <div className="mobile-gps-active">
-                            <div className="mobile-gps-pulse" />
-                            <div className="mobile-gps-info">
-                                <span className="mobile-gps-label-text">Your Location</span>
-                                <strong className="mobile-gps-city">{gpsLocationLabel}</strong>
-                            </div>
-                            <button
-                                className="mobile-gps-clear"
-                                onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }}
-                                aria-label="Clear location"
-                            >&times;</button>
-                        </div>
-                    ) : null}
-                </div>
-
-                {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
-                <div className="pnm-layout">
-
-                    {/* ─── LEFT SIDEBAR NAVIGATION ─── */}
-                    <aside className="pnm-sidebar" role="navigation" aria-label="Poker Near Me navigation">
-
-                        {/* ─── LOCATION ACTIVE BANNER (top of sidebar) ─── */}
-                        {userLocation && gpsLocationLabel && (
-                            <div className="sidebar-location-active">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2.5">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                                </svg>
-                                <span style={{ color: '#3fb950', fontWeight: 700, fontSize: 12 }}>Location Active</span>
-                                <span style={{ color: 'rgba(200,214,229,0.5)', fontSize: 12, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gpsLocationLabel}</span>
+                {/* ═══ TOP ACTION STRIP: GPS + Tab Nav ═══ */}
+                <div className="pnm-top-strip">
+                    {/* Location pill / GPS button */}
+                    <div className="pnm-location-area">
+                        {userLocation && gpsLocationLabel ? (
+                            <div className="pnm-location-pill">
+                                <div className="pnm-location-dot" />
+                                <span className="pnm-location-label">Location Active</span>
+                                <span className="pnm-location-city">{gpsLocationLabel}</span>
                                 <button
+                                    className="pnm-location-clear"
                                     onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }}
-                                    className="sidebar-location-active-clear"
-                                    title="Clear Location"
                                     aria-label="Clear location"
                                 >&times;</button>
                             </div>
-                        )}
-
-                        <nav className="sidebar-nav">
-                            {[
-                                { key: 'venues', label: 'Venues', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg> },
-                                { key: 'events', label: 'Events', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
-                                { key: 'live', label: 'Live Games', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg>, badge: liveGames.length > 0 ? liveGames.length : null },
-                                { key: 'map', label: 'Full Map', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
-                                { key: 'saved', label: 'Saved', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>, badge: Object.keys(favorites).filter(k => favorites[k]).length || null },
-                                { key: 'more', label: 'More Tools', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /><circle cx="5" cy="12" r="1.5" /></svg> },
-                            ].map(tab => (
-                                <button
-                                    key={tab.key}
-                                    className={'sidebar-tab' + (activeTab === tab.key ? ' active' : '')}
-                                    onClick={() => setActiveTab(tab.key)}
-                                    role="tab"
-                                    aria-selected={activeTab === tab.key}
-                                    aria-label={tab.label + ' tab'}
-                                >
-                                    <span className="sidebar-tab-icon">{tab.icon}</span>
-                                    <span className="sidebar-tab-label">{tab.label}</span>
-                                    {tab.badge && <span className="sidebar-tab-badge">{tab.badge}</span>}
-                                </button>
-                            ))}
-                        </nav>
-
-                        {/* Event sub-tabs inside sidebar */}
-                        {activeTab === 'events' && (
-                            <div className="sidebar-sub-nav">
-                                {['tours', 'series', 'daily', 'calendar'].map(sub => (
-                                    <button
-                                        key={sub}
-                                        className={'sidebar-sub-tab' + (activeEventTab === sub ? ' active' : '')}
-                                        onClick={() => setActiveEventTab(sub)}
-                                    >
-                                        {sub.charAt(0).toUpperCase() + sub.slice(1)}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* More tools sub-tabs inside sidebar */}
-                        {activeTab === 'more' && (
-                            <div className="sidebar-sub-nav">
-                                {[
-                                    { id: 'overview', label: 'All Tools' },
-                                    { id: 'roadtrip', label: 'Trip Planner' },
-                                    { id: 'social', label: 'Social Feed' },
-                                    { id: 'alerts', label: 'Alerts' },
-                                    { id: 'nearmenow', label: 'Near Me Now' },
-                                    { id: 'tripcost', label: 'Trip Cost' },
-                                ].map(sub => (
-                                    <button
-                                        key={sub.id}
-                                        className={'sidebar-sub-tab' + (activeMoreTab === sub.id ? ' active' : '')}
-                                        onClick={() => setActiveMoreTab(sub.id)}
-                                    >
-                                        {sub.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* ─── GPS LOCATION (first item) ─── */}
-                        <div className="sidebar-filters">
-                            {/* Show GPS button ONLY when not yet active; location now shown at sidebar top */}
-                            {!userLocation && (
-                                <button className={'sidebar-gps-btn' + (gpsLoading ? ' loading' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="3" />
-                                        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                                    </svg>
-                                    {gpsLoading ? 'Locating...' : 'Enable GPS'}
-                                </button>
-                            )}
-
-                            {/* ─── SEARCH ─── */}
-                            <form className="sidebar-search-form" onSubmit={handleSearch}>
-                                <svg className="sidebar-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        ) : (
+                            <button
+                                className={'pnm-gps-btn' + (gpsLoading ? ' loading' : '')}
+                                onClick={requestGpsLocation}
+                                disabled={gpsLoading}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
                                 </svg>
-                                <input
-                                    type="text"
-                                    className="sidebar-search-input"
-                                    placeholder="Search Venues..."
-                                    value={searchQuery}
-                                    onChange={handleSearchInputChange}
-                                    autoComplete="off"
-                                />
-                            </form>
+                                {gpsLoading ? 'Locating...' : 'Enable GPS'}
+                            </button>
+                        )}
+                    </div>
 
-                            {activeTab === 'venues' && (
-                                <>
-                                    <div className="sidebar-section-title">Filters</div>
+                    {/* Horizontal tab pills */}
+                    <div className="pnm-top-tabs">
+                        <button
+                            className={'pnm-top-tab live' + (activeTab === 'live' ? ' active' : '')}
+                            onClick={() => setActiveTab(activeTab === 'live' ? 'map' : 'live')}
+                        >
+                            <span className="pnm-live-dot" />
+                            Live Games
+                            {liveGames.length > 0 && <span className="pnm-tab-badge">{liveGames.length}</span>}
+                        </button>
+                        <button
+                            className={'pnm-top-tab' + (activeTab === 'events' ? ' active' : '')}
+                            onClick={() => setActiveTab(activeTab === 'events' ? 'map' : 'events')}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                            Events
+                        </button>
+                        <button
+                            className={'pnm-top-tab' + (activeTab === 'saved' ? ' active' : '')}
+                            onClick={() => setActiveTab(activeTab === 'saved' ? 'map' : 'saved')}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
+                            Saved
+                            {Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="pnm-tab-badge">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
+                        </button>
+                        <button
+                            className={'pnm-top-tab' + (activeTab === 'more' ? ' active' : '')}
+                            onClick={() => setActiveTab(activeTab === 'more' ? 'map' : 'more')}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /><circle cx="5" cy="12" r="1.5" /></svg>
+                            More
+                        </button>
+                    </div>
 
-                                    <div className="sidebar-filter-group">
-                                        <label>Radius</label>
-                                        <select
-                                            value={filters.radius}
-                                            onChange={e => { setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) }); }}
-                                            className="sidebar-select"
-                                        >
-                                            <option value={25}>25 Mi</option>
-                                            <option value={50}>50 Mi</option>
-                                            <option value={100}>100 Mi</option>
-                                            <option value={200}>200 Mi</option>
-                                            <option value={250}>250 Mi</option>
-                                            <option value={500}>500 Mi</option>
-                                            <option value="Any">Any</option>
-                                        </select>
-                                    </div>
+                    {/* Search input */}
+                    <form className="pnm-top-search" onSubmit={handleSearch}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, color: 'rgba(148,163,184,0.5)' }}>
+                            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input
+                            type="text"
+                            className="pnm-top-search-input"
+                            placeholder="Search venues..."
+                            value={searchQuery}
+                            onChange={handleSearchInputChange}
+                            autoComplete="off"
+                        />
+                    </form>
+                </div>
 
-                                    <div className="sidebar-filter-group">
-                                        <label>Venue Type</label>
-                                        <select
-                                            value={filters.venueType}
-                                            onChange={e => setFilters({ ...filters, venueType: e.target.value })}
-                                            className="sidebar-select"
-                                        >
-                                            <option value="all">All</option>
-                                            <option value="casino">Casino</option>
-                                            <option value="poker_club">Poker Club</option>
-                                            <option value="charity">Charity</option>
-                                            <option value="poker_tour">Poker Tour</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="sidebar-filter-group">
-                                        <label>Games</label>
-                                        <select
-                                            value={filters.hasNLH ? 'NLH' : filters.hasPLO ? 'PLO' : filters.hasMixed ? 'Mixed' : 'all'}
-                                            onChange={e => {
-                                                const v = e.target.value;
-                                                setFilters({ ...filters, hasNLH: v === 'NLH', hasPLO: v === 'PLO', hasMixed: v === 'Mixed' });
-                                            }}
-                                            className="sidebar-select"
-                                        >
-                                            <option value="all">All Games</option>
-                                            <option value="NLH">NLH</option>
-                                            <option value="PLO">PLO</option>
-                                            <option value="Mixed">Mixed</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="sidebar-filter-group">
-                                        <label>State</label>
-                                        <select
-                                            value={filters.selectedState}
-                                            onChange={e => setFilters(f => ({ ...f, selectedState: e.target.value }))}
-                                            className="sidebar-select"
-                                        >
-                                            <option value="all">All States</option>
-                                            {['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'].map(st => (
-                                                <option key={st} value={st}>{st}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-
-
-                                    {/* ─── APPLY FILTERS BUTTON ─── */}
-                                    <button
-                                        className="sidebar-apply-filters-btn"
-                                        onClick={() => {
-                                            setHasSearched(true);
-                                            setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
-                                            fetchVenues();
-                                        }}
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="20 6 9 17 4 12" />
-                                        </svg>
-                                        Apply Filters
-                                    </button>
-                                </>
-                            )}
+                {/* ═══ TOP FILTER BAR: Dropdowns + Apply ═══ */}
+                {(activeTab === 'map' || activeTab === 'venues') && (
+                    <>
+                        <div className="pnm-filter-bar">
+                            <div className="pnm-filter-group">
+                                <label className="pnm-filter-label">Radius</label>
+                                <select
+                                    className="pnm-filter-select"
+                                    value={filters.radius}
+                                    onChange={e => setFilters({ ...filters, radius: e.target.value === 'Any' ? 'Any' : Number(e.target.value) })}
+                                >
+                                    <option value={25}>25 Mi</option>
+                                    <option value={50}>50 Mi</option>
+                                    <option value={100}>100 Mi</option>
+                                    <option value={200}>200 Mi</option>
+                                    <option value={500}>500 Mi</option>
+                                    <option value="Any">Any Distance</option>
+                                </select>
+                            </div>
+                            <div className="pnm-filter-group">
+                                <label className="pnm-filter-label">Venue Type</label>
+                                <select
+                                    className="pnm-filter-select"
+                                    value={filters.venueType}
+                                    onChange={e => setFilters({ ...filters, venueType: e.target.value })}
+                                >
+                                    <option value="all">All Locations</option>
+                                    <option value="casino">Casino</option>
+                                    <option value="poker_club">Poker Club</option>
+                                    <option value="charity">Charity</option>
+                                    <option value="tour_stop">Poker Tour</option>
+                                </select>
+                            </div>
+                            <div className="pnm-filter-group">
+                                <label className="pnm-filter-label">Game Type</label>
+                                <select
+                                    className="pnm-filter-select"
+                                    value={filters.gameType}
+                                    onChange={e => setFilters({ ...filters, gameType: e.target.value })}
+                                >
+                                    <option value="all">All Games</option>
+                                    <option value="cash">Cash Games</option>
+                                    <option value="mtt">Tournaments</option>
+                                    <option value="mixed">Mixed</option>
+                                </select>
+                            </div>
+                            <div className="pnm-filter-group">
+                                <label className="pnm-filter-label">Stakes</label>
+                                <select
+                                    className="pnm-filter-select"
+                                    value={filters.stakes}
+                                    onChange={e => setFilters({ ...filters, stakes: e.target.value })}
+                                >
+                                    <option value="all">All Stakes</option>
+                                    <option value="$1/2">$1/2</option>
+                                    <option value="$2/5">$2/5</option>
+                                    <option value="$5/10+">$5/10+</option>
+                                </select>
+                            </div>
+                            <button
+                                className="pnm-apply-btn"
+                                onClick={() => {
+                                    setHasSearched(true);
+                                    setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
+                                    fetchVenues();
+                                }}
+                            >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                Apply Filters
+                            </button>
                         </div>
-                    </aside>
+
+                        {/* Quick Filter Chips */}
+                        <div className="pnm-chip-strip">
+                            <button className={'pnm-chip' + (mapFilters.cashGames ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, cashGames: !p.cashGames }))}>
+                                <span className="chip-dot cash" />
+                                Cash Games
+                            </button>
+                            <button className={'pnm-chip' + (mapFilters.tournaments ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, tournaments: !p.tournaments }))}>
+                                <span className="chip-dot mtt" />
+                                Tournaments
+                            </button>
+                            <button className={'pnm-chip' + (mapFilters.is24Hours ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, is24Hours: !p.is24Hours }))}>
+                                <span className="chip-dot live" />
+                                24/7 Open
+                            </button>
+                            <button className={'pnm-chip' + (mapFilters.lowStakes ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, lowStakes: !p.lowStakes }))}>
+                                <span className="chip-dot stakes" />
+                                Low Stakes
+                            </button>
+                            <button className={'pnm-chip' + (mapFilters.topRated ? ' active' : '')} onClick={() => setMapFilters(p => ({ ...p, topRated: !p.topRated }))}>
+                                <span className="chip-dot rated" />
+                                Top Rated
+                            </button>
+                        </div>
+                    </>
+                )}
+
+                {/* ═══ MAIN CONTENT — full width, no sidebar ═══ */}
+                <div className="pnm-layout">
+                    <div className="pnm-main">
+
 
                     {/* ─── MAIN CONTENT AREA ─── */}
-                    <div className="pnm-main">
+
 
                     {/* Geofence notice moved to 'more' tab */}
 
