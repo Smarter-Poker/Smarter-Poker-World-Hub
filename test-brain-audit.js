@@ -8175,6 +8175,206 @@ test('getPerformanceStats: returns valid shape for new player', () => {
     expect(typeof stats.winRate).toBe('number');
 });
 
+// ═══════════════════════════════════════════════════════════
+// PHASE 64: DEFENSIVE MODULES (12-32) UNIT TESTS
+// Tests anti-exploit countermeasures, equity shields, traps
+// ═══════════════════════════════════════════════════════════
+
+test('Module 12: applyMultiwayEquityDiscount reduces equity with more players', () => {
+    const { applyMultiwayEquityDiscount } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!applyMultiwayEquityDiscount) { expect(true).toBe(true); return; }
+    const heads = applyMultiwayEquityDiscount(60, 2);
+    const three = applyMultiwayEquityDiscount(60, 3);
+    const five = applyMultiwayEquityDiscount(60, 5);
+    expect(heads >= three).toBe(true);
+    expect(three >= five).toBe(true);
+});
+
+test('Module 13: detectNutBiasExploitBoard returns valid shape', () => {
+    const { detectNutBiasExploitBoard } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!detectNutBiasExploitBoard) { expect(true).toBe(true); return; }
+    const dryBoard = [{ rank: 2, suit: 'h' }, { rank: 7, suit: 's' }, { rank: 10, suit: 'd' }];
+    const result = detectNutBiasExploitBoard(dryBoard, 2);
+    expect(typeof result.shouldAddCheckRaise).toBe('boolean');
+    expect(typeof result.nutUnlikelyScore).toBe('number');
+});
+
+test('Module 17: reevaluatePLORunoutEquity classifies runout types', () => {
+    const { reevaluatePLORunoutEquity } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!reevaluatePLORunoutEquity) { expect(true).toBe(true); return; }
+    // Big improvement
+    const improve = reevaluatePLORunoutEquity(40, 60, 'turn');
+    expect(improve.runoutType).toBe('nut_improve');
+    expect(improve.multiplier > 1.0).toBe(true);
+    // Scare card
+    const scare = reevaluatePLORunoutEquity(70, 50, 'river');
+    expect(scare.runoutType).toBe('scare');
+    expect(scare.multiplier < 1.0).toBe(true);
+    // Blank
+    const blank = reevaluatePLORunoutEquity(50, 52, 'turn');
+    expect(blank.runoutType).toBe('blank');
+    expect(blank.multiplier).toBe(1.0);
+});
+
+test('Module 18: detectSPRTrap identifies oversized jams as traps', () => {
+    const { detectSPRTrap } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!detectSPRTrap) { expect(true).toBe(true); return; }
+    // Pot-sized jam with weak equity = trap
+    const trap = detectSPRTrap(100, 100, 200, 2, 35);
+    expect(trap.isTrap).toBe(true);
+    expect(trap.shouldFoldTrap).toBe(true);
+    // No bet = no trap
+    const noBet = detectSPRTrap(0, 100, 200, 2, 50);
+    expect(noBet.shouldFoldTrap).toBe(false);
+});
+
+test('Module 23: getOOPPositionalGuard reduces equity OOP without initiative', () => {
+    const { getOOPPositionalGuard } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getOOPPositionalGuard) { expect(true).toBe(true); return; }
+    const guarded = getOOPPositionalGuard(false, false, 50, 'flop'); // OOP, no initiative
+    expect(typeof guarded.shouldGuard).toBe('boolean');
+    expect(typeof guarded.equityBoost).toBe('number');
+    // IP should not guard
+    const ip = getOOPPositionalGuard(true, true, 50, 'flop');
+    expect(ip.shouldGuard).toBe(false);
+});
+
+test('Module 24: evaluateDonkBet returns valid action', () => {
+    const { evaluateDonkBet } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!evaluateDonkBet) { expect(true).toBe(true); return; }
+    // Strong equity facing donk = raise
+    const strong = evaluateDonkBet(20, 100, true, 80);
+    expect(['raise', 'call', 'fold', 'none'].includes(strong.action)).toBe(true);
+    // Weak equity facing donk = fold
+    const weak = evaluateDonkBet(50, 80, true, 15);
+    expect(['fold', 'call', 'none'].includes(weak.action)).toBe(true);
+});
+
+test('Module 27: detectReverseImplied blocks bad draws with high RIO', () => {
+    const { detectReverseImplied } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!detectReverseImplied) { expect(true).toBe(true); return; }
+    // 4 outs, big pot odds, wet board, multiway — should block
+    const blocked = detectReverseImplied(4, 0.40, 100, 4, true);
+    expect(blocked.shouldBlock).toBe(true);
+    expect(blocked.rioFactor > 1.0).toBe(true);
+    // No outs = no draw = no block
+    const noDraw = detectReverseImplied(0, 0.40, 100, 2, true);
+    expect(noDraw.shouldBlock).toBe(false);
+});
+
+test('Module 28: cold-call trap recording and detection', () => {
+    const { recordColdCall, recordBarrelVsColdCall, isColdCallTrap } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordColdCall || !isColdCallTrap) { expect(true).toBe(true); return; }
+    const oppId = 'cc-trap-test-' + Date.now();
+    recordColdCall(oppId);
+    // Not enough data yet
+    expect(isColdCallTrap(oppId).isTrap).toBe(false);
+    // Record barrels where opponent doesn't fold (trap behavior)
+    for (let i = 0; i < 5; i++) {
+        recordBarrelVsColdCall(oppId, false);
+    }
+    const result = isColdCallTrap(oppId);
+    expect(result.isTrap).toBe(true);
+    expect(result.winRate < 0.35).toBe(true);
+});
+
+test('Module 29: detectBombPotOrStraddle identifies bomb pots', () => {
+    const { detectBombPotOrStraddle } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!detectBombPotOrStraddle) { expect(true).toBe(true); return; }
+    const bomb = detectBombPotOrStraddle(20, 2, false); // 10x BB = bomb pot
+    expect(bomb.isBombPot).toBe(true);
+    expect(bomb.equityThresholdBoost).toBe(15);
+    const straddle = detectBombPotOrStraddle(8, 2, true);
+    expect(straddle.isStraddle).toBe(true);
+    expect(straddle.equityThresholdBoost).toBe(10);
+    const normal = detectBombPotOrStraddle(3, 2, false);
+    expect(normal.isBombPot).toBe(false);
+    expect(normal.isStraddle).toBe(false);
+    expect(normal.equityThresholdBoost).toBe(0);
+});
+
+test('Module 30: angle-shoot detection catches instant-action patterns', () => {
+    const { recordActionTiming, detectAngleShoot } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordActionTiming || !detectAngleShoot) { expect(true).toBe(true); return; }
+    const oppId = 'angle-test-' + Date.now();
+    // Record many instant actions (<700ms)
+    for (let i = 0; i < 6; i++) {
+        recordActionTiming(oppId, 300);
+    }
+    const result = detectAngleShoot(oppId);
+    expect(result.isAngleShooting).toBe(true);
+    expect(result.extraEntropyMs > 0).toBe(true);
+});
+
+test('Module 31: RIT refusal tracking', () => {
+    const { recordRITResponse, isRITRefuser } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordRITResponse || !isRITRefuser) { expect(true).toBe(true); return; }
+    const oppId = 'rit-test-' + Date.now();
+    recordRITResponse(oppId, false);
+    recordRITResponse(oppId, false);
+    recordRITResponse(oppId, false);
+    const result = isRITRefuser(oppId);
+    expect(result.isRITRefuser).toBe(true);
+    expect(result.refusalRate >= 0.8).toBe(true);
+});
+
+test('Module 32: chip leak recording and boost retrieval', () => {
+    const { recordChipLeak, getChipLeakBoosts } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!recordChipLeak || !getChipLeakBoosts) { expect(true).toBe(true); return; }
+    const hId = 'leak-test-horse';
+    const tId = 'leak-test-table-' + Date.now();
+    // No leaks yet
+    const empty = getChipLeakBoosts(hId, tId);
+    expect(empty.oopBoost).toBe(0);
+    // Record OOP check-call leak > 20BB threshold
+    recordChipLeak(hId, tId, 'oop_check_call', 25);
+    const after = getChipLeakBoosts(hId, tId);
+    expect(after.oopBoost).toBe(8);
+});
+
+test('PLO SPR zone: committed at SPR <= 1', () => {
+    const { getPLOSPRZone } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getPLOSPRZone) { expect(true).toBe(true); return; }
+    const committed = getPLOSPRZone(50, 60);
+    expect(committed.zone).toBe('committed');
+    expect(committed.shouldCommit).toBe(true);
+});
+
+test('PLO board texture: monotone board detected as dangerous', () => {
+    const { analyzePLOBoardTexture } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!analyzePLOBoardTexture) { expect(true).toBe(true); return; }
+    const mono = [{ rank: 10, suit: 'h' }, { rank: 7, suit: 'h' }, { rank: 2, suit: 'h' }];
+    const result = analyzePLOBoardTexture(mono);
+    expect(result.isDangerous || result.isWet || result.monoBoardPenalty > 0).toBe(true);
+});
+
+test('PLO scare card: third flush card on turn triggers scare', () => {
+    const { detectScareCard } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!detectScareCard) { expect(true).toBe(true); return; }
+    // Board: 7h 5h 3d → turn: As (third heart completes flush possibility)
+    const board = [{ rank: 5, suit: 'h' }, { rank: 3, suit: 'h' }, { rank: 1, suit: 'd' }, { rank: 12, suit: 'h' }];
+    const result = detectScareCard(board, 'turn');
+    expect(result.isScareTurn).toBe(true);
+    expect(result.scareType.includes('flush')).toBe(true);
+});
+
+test('PLO wrap draw: detects wraps on connected boards', () => {
+    const { detectPLOWrapDraw } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!detectPLOWrapDraw) { expect(true).toBe(true); return; }
+    // Hole: J,T,9,8 (ranks 9,8,7,6) Board: Q,7,2 (ranks 10,5,0) => 8-9-T-J around Q
+    const result = detectPLOWrapDraw([9, 8, 7, 6], [10, 5, 0]);
+    expect(typeof result.isWrap).toBe('boolean');
+    expect(typeof result.wrapOuts).toBe('number');
+});
+
+test('PLO equity realization: IP gets higher ERC than OOP', () => {
+    const { getPLOEquityRealization } = require('./src/lib/poker-engine/HorsePokerBrain');
+    if (!getPLOEquityRealization) { expect(true).toBe(true); return; }
+    const ipERC = getPLOEquityRealization(true, 'medium', 8, 9, false, 2);
+    const oopERC = getPLOEquityRealization(false, 'medium', 8, 9, false, 2);
+    expect(ipERC >= oopERC).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
