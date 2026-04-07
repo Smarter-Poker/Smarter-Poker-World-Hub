@@ -18,6 +18,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
 
 let _supabaseAdmin = null;
 
@@ -52,12 +53,13 @@ async function lockChips(clubId, userId, tableId, amount) {
   const sb = getSupabase();
 
   try {
-    const { data: result, error: rpcErr } = await sb.rpc('lock_chips_for_table', {
+    // Phase 48f: resilient — financial critical
+    const { data: result, error: rpcErr } = await resilientMutation(sb, () => sb.rpc('lock_chips_for_table', {
       p_user_id: userId,
       p_club_id: clubId,
       p_table_id: tableId,
       p_amount: amount,
-    });
+    }), { critical: true });
 
     if (rpcErr) {
       console.error('[ChipBridge.lockChips] RPC error:', rpcErr);
@@ -80,14 +82,14 @@ async function lockChips(clubId, userId, tableId, amount) {
       lockedAt: Date.now(),
     });
 
-    // Track in chip_escrow for cold-start recovery (non-blocking)
-    sb.from('chip_escrow').insert({
+    // Track in chip_escrow for cold-start recovery (non-blocking, Phase 48f: resilient)
+    resilientMutation(sb, () => sb.from('chip_escrow').insert({
       club_id: clubId,
       player_id: userId,
       table_id: tableId,
       amount: amount,
       status: 'locked',
-    }).then(({ error }) => {
+    })).then(({ error }) => {
       if (error) console.warn('[ChipBridge] Escrow insert warning:', error.message);
     }).catch(console.error);
 
@@ -115,12 +117,13 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
   const key = _lockKey(tableId, userId);
 
   try {
-    const { data: result, error: rpcErr } = await sb.rpc('unlock_chips_from_table', {
+    // Phase 48f: resilient — financial critical
+    const { data: result, error: rpcErr } = await resilientMutation(sb, () => sb.rpc('unlock_chips_from_table', {
       p_user_id: userId,
       p_club_id: clubId,
       p_table_id: tableId,
       p_amount: cashoutAmount || 0,
-    });
+    }), { critical: true });
 
     if (rpcErr) {
       console.error('[ChipBridge.unlockChips] RPC error:', rpcErr);
@@ -138,15 +141,15 @@ async function unlockChips(clubId, userId, tableId, cashoutAmount) {
     // SUCCESS: clear in-memory lock only after confirmed DB unlock
     _activeLocks.delete(key);
 
-    // Clear chip_escrow record (non-blocking)
-    sb.from('chip_escrow')
+    // Clear chip_escrow record (non-blocking, Phase 48f: resilient)
+    resilientMutation(sb, () => sb.from('chip_escrow')
       .update({ status: 'unlocked', unlocked_at: new Date().toISOString() })
       .eq('player_id', userId)
       .eq('table_id', tableId)
       .eq('status', 'locked')
-      .then(({ error }) => {
-        if (error) console.warn('[ChipBridge] Escrow update warning:', error.message);
-      });
+    ).then(({ error }) => {
+      if (error) console.warn('[ChipBridge] Escrow update warning:', error.message);
+    });
 
     return {
       success: true,
@@ -189,7 +192,8 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       }
     }
 
-    await sb.from('rake_records').insert({
+    // Phase 48f: resilient — financial critical
+    await resilientMutation(sb, () => sb.from('rake_records').insert({
       club_id: clubId,
       table_id: tableId,
       hand_id: handId || `hand_${Date.now()}`,
@@ -198,19 +202,20 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       num_players: numPlayers || 0,
       bbj_contribution: 0,
       player_contributions: Object.keys(contribMap).length > 0 ? contribMap : null,
-    });
+    }), { critical: true });
 
-    // 2. Update club total rake with optimistic lock
-    const { data: club } = await sb
+    // 2. Update club total rake with optimistic lock (Phase 48f: resilient)
+    const { data: club } = await resilientQuery(sb, () => sb
       .from('clubs')
       .select('total_rake, hands_played')
       .eq('id', clubId)
-      .maybeSingle();
+      .maybeSingle()
+    );
 
     if (club) {
       const oldRake = club.total_rake || 0;
       const oldHands = club.hands_played || 0;
-      const { data: upd } = await sb
+      const { data: upd } = await resilientMutation(sb, () => sb
         .from('clubs')
         .update({
           total_rake: oldRake + rakeAmount,
@@ -218,17 +223,19 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
         })
         .eq('id', clubId)
         .eq('total_rake', oldRake) // optimistic lock
-        .select('id');
+        .select('id'),
+        { critical: true }
+      );
 
       // Retry once on conflict (concurrent hand)
       if (!upd?.length) {
-        const { data: fresh } = await sb.from('clubs').select('total_rake, hands_played').eq('id', clubId).maybeSingle();
+        const { data: fresh } = await resilientQuery(sb, () => sb.from('clubs').select('total_rake, hands_played').eq('id', clubId).maybeSingle());
         if (fresh) {
           const freshRake = fresh.total_rake || 0;
-          await sb.from('clubs').update({
+          await resilientMutation(sb, () => sb.from('clubs').update({
             total_rake: freshRake + rakeAmount,
             hands_played: (fresh.hands_played || 0) + 1,
-          }).eq('id', clubId).eq('total_rake', freshRake); // optimistic lock on retry too
+          }).eq('id', clubId).eq('total_rake', freshRake), { critical: true }); // optimistic lock on retry too
         }
       }
     }
@@ -237,11 +244,13 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
     if (playerContributions && playerContributions.length > 0) {
       const playerIds = playerContributions.map(p => p.playerId);
 
-      const { data: members } = await sb
+      // Phase 48f: resilient query
+      const { data: members } = await resilientQuery(sb, () => sb
         .from('club_members')
         .select('user_id, agent_id')
         .eq('club_id', clubId)
-        .in('user_id', playerIds);
+        .in('user_id', playerIds)
+      );
 
       if (members) {
         const agentRake = {};
@@ -255,16 +264,18 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
         }
 
         for (const [agentUserId, rakeGenerated] of Object.entries(agentRake)) {
-          const { data: agent } = await sb
+          // Phase 48f: resilient query + mutation for agent rake tracking
+          const { data: agent } = await resilientQuery(sb, () => sb
             .from('agents')
             .select('id, weekly_rake_generated')
             .eq('user_id', agentUserId)
             .eq('club_id', clubId)
-            .maybeSingle();
+            .maybeSingle()
+          );
 
           if (agent) {
             const oldWeekly = agent.weekly_rake_generated || 0;
-            const { data: rUpd } = await sb
+            const { data: rUpd } = await resilientMutation(sb, () => sb
               .from('agents')
               .update({
                 weekly_rake_generated: oldWeekly + rakeGenerated,
@@ -272,17 +283,18 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
               })
               .eq('id', agent.id)
               .eq('weekly_rake_generated', oldWeekly) // optimistic lock
-              .select('id');
+              .select('id')
+            );
 
             // Retry once on conflict
             if (!rUpd?.length) {
-              const { data: freshA } = await sb.from('agents').select('weekly_rake_generated').eq('id', agent.id).maybeSingle();
+              const { data: freshA } = await resilientQuery(sb, () => sb.from('agents').select('weekly_rake_generated').eq('id', agent.id).maybeSingle());
               if (freshA) {
                 const freshWeekly = freshA.weekly_rake_generated || 0;
-                await sb.from('agents').update({
+                await resilientMutation(sb, () => sb.from('agents').update({
                   weekly_rake_generated: freshWeekly + rakeGenerated,
                   last_active_at: new Date().toISOString(),
-                }).eq('id', agent.id).eq('weekly_rake_generated', freshWeekly); // optimistic lock on retry
+                }).eq('id', agent.id).eq('weekly_rake_generated', freshWeekly)); // optimistic lock on retry
               }
             }
           }

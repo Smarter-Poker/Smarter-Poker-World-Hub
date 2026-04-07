@@ -36,7 +36,7 @@ SB_HDRS = {
 }
 
 BATCH_SIZE  = 30
-RATE_S      = 2   # seconds between venues
+RATE_S      = 1   # seconds between venues
 BATCH_ID    = str(uuid.uuid4())
 CIRCUIT_MAX = 5   # abort after N consecutive network failures
 
@@ -639,10 +639,10 @@ def audit_venue(name: str, state: str, city: str, session, dry_run: bool) -> dic
     for src, url in urls:
         print(f"    [{src}] {url}")
         try:
-            resp = session.fetch(url, google_search=False)
+            resp = session.fetch(url, google_search=False, timeout=20000)
         except Exception as e:
-            print(f"    [ERR] {e}")
-            time.sleep(1)
+            short = str(e)[:80]
+            print(f"    [SKIP] {short}")
             continue
 
         if not resp or resp.status != 200:

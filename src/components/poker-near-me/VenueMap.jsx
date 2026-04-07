@@ -596,6 +596,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const clusterGroupRef = useRef(null);
+  const tourLayerRef = useRef(null); // ← Tour stops NEVER cluster
   const circlesGroupRef = useRef(null);
   const userMarkerRef = useRef(null);
   const radiusCircleRef = useRef(null);
@@ -844,6 +845,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     map.addLayer(clusterGroup);
     clusterGroupRef.current = clusterGroup;
 
+    // ═══ TOUR STOP LAYER — Always-visible, NEVER clustered ═══
+    // Tour pins must always be visible as distinct markers regardless of zoom
+    const tourLayer = L.layerGroup();
+    map.addLayer(tourLayer);
+    tourLayerRef.current = tourLayer;
+
     // Geofence circles at high zoom
     const circlesGroup = L.layerGroup();
     circlesGroup.addTo(map);
@@ -909,6 +916,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       }
       clusterGroupRef.current = null;
       circlesGroupRef.current = null;
+      tourLayerRef.current = null;
     };
   }, [mapReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -918,10 +926,13 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     const L = window.L;
     const clusterGroup = clusterGroupRef.current;
     const circlesGroup = circlesGroupRef.current;
+    const tourLayer = tourLayerRef.current;
 
     // Clear existing markers
     clusterGroup.clearLayers();
     if (circlesGroup) circlesGroup.clearLayers();
+    // ← Always clear tour layer too
+    if (tourLayer) tourLayer.clearLayers();
 
     const validVenues = (venues || []).filter(function(v) { return v.latitude && v.longitude; });
 
@@ -943,7 +954,7 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     setVisibleCount(validVenues.length);
 
     validVenues.forEach(function(venue) {
-      // Use tour logo markers for tour stops, standard markers for everything else
+      // ═══ TOUR STOPS — NEVER clustered, always distinct red/gold pins ═══
       const isTourStop = (venue.venue_type === 'tour_stop' || venue.venue_type === 'poker_tour') && venue.tour_code;
       const venueIcon = isTourStop
         ? createTourLogoIcon(L, venue)
@@ -956,23 +967,25 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       const markerLat = isTourStop ? venue.latitude + 0.002 : venue.latitude;
       const markerLng = isTourStop ? venue.longitude + 0.002 : venue.longitude;
 
-      const marker = L.marker([markerLat, markerLng], { icon: venueIcon, zIndexOffset: isTourStop ? 500 : 0 })
+      const marker = L.marker([markerLat, markerLng], { icon: venueIcon, zIndexOffset: isTourStop ? 1000 : 0 })
         .bindPopup(popupHtml, { maxWidth: 320, className: 'venue-popup', closeButton: true });
 
-      const radius = getGeofenceRadius(venue.venue_type);
-      const circleColor = uniformColor || (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR).fill;
-      const circle = L.circle([venue.latitude, venue.longitude], {
-        radius: radius,
-        color: circleColor,
-        weight: 1,
-        opacity: 0.35,
-        fillColor: circleColor,
-        fillOpacity: 0.08,
-      });
+      if (!isTourStop) {
+        const radius = getGeofenceRadius(venue.venue_type);
+        const circleColor = uniformColor || (VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR).fill;
+        const circle = L.circle([venue.latitude, venue.longitude], {
+          radius: radius,
+          color: circleColor,
+          weight: 1,
+          opacity: 0.35,
+          fillColor: circleColor,
+          fillOpacity: 0.08,
+        });
+        marker._venueCircle = circle;
+      }
 
-      marker._venueCircle = circle;
       marker._venueData = venue;
-      
+
       // Hover preview on desktop
       marker.on('mouseover', function() {
         marker.openPopup();
@@ -986,7 +999,12 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
         }
       });
 
-      clusterGroup.addLayer(marker);
+      if (isTourStop) {
+        // ← Tour stops go to NON-CLUSTERED layer — always visible, never hidden in a cluster ball
+        if (tourLayer) tourLayer.addLayer(marker);
+      } else {
+        clusterGroup.addLayer(marker);
+      }
     });
   }, [venues, uniformColor, mapReady]);
 

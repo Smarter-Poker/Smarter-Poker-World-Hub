@@ -5585,7 +5585,7 @@ test('GameController: hand_complete wires PerformanceTracker.recordHand', () => 
     const src = fs.readFileSync('./src/lib/poker-engine/GameController.js', 'utf8');
     const handCompleteSection = src.substring(src.indexOf("entry.table.on('hand_complete'"));
     expect(handCompleteSection.includes('performanceTracker.recordHand')).toBe(true);
-    expect(handCompleteSection.includes('netBB')).toBe(true);
+    expect(handCompleteSection.includes('chipDelta')).toBe(true);
     expect(handCompleteSection.includes('vpip')).toBe(true);
     expect(handCompleteSection.includes('wentToShowdown')).toBe(true);
 });

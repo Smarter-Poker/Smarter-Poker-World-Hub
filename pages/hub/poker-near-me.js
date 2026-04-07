@@ -2095,71 +2095,8 @@ export default function PokerNearMePage() {
                     <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
                 </div>
 
-                {/* ═══ TOP ACTION STRIP: GPS + Tab Nav ═══ */}
-                <div className="pnm-top-strip">
-                    {/* Location pill / GPS button */}
-                    <div className="pnm-location-area">
-                        {userLocation && gpsLocationLabel ? (
-                            <div className="pnm-location-pill">
-                                <div className="pnm-location-dot" />
-                                <span className="pnm-location-label">Location Active</span>
-                                <span className="pnm-location-city">{gpsLocationLabel}</span>
-                                <button
-                                    className="pnm-location-clear"
-                                    onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }}
-                                    aria-label="Clear location"
-                                >&times;</button>
-                            </div>
-                        ) : (
-                            <button
-                                className={'pnm-gps-btn' + (gpsLoading ? ' loading' : '')}
-                                onClick={requestGpsLocation}
-                                disabled={gpsLoading}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="3" />
-                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                                </svg>
-                                {gpsLoading ? 'Locating...' : 'Enable GPS'}
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Horizontal tab pills */}
-                    <div className="pnm-top-tabs">
-                        <button
-                            className={'pnm-top-tab live' + (activeTab === 'live' ? ' active' : '')}
-                            onClick={() => setActiveTab(activeTab === 'live' ? 'map' : 'live')}
-                        >
-                            <span className="pnm-live-dot" />
-                            Live Games
-                            {liveGames.length > 0 && <span className="pnm-tab-badge">{liveGames.length}</span>}
-                        </button>
-                        <button
-                            className={'pnm-top-tab' + (activeTab === 'events' ? ' active' : '')}
-                            onClick={() => setActiveTab(activeTab === 'events' ? 'map' : 'events')}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                            Events
-                        </button>
-                        <button
-                            className={'pnm-top-tab' + (activeTab === 'saved' ? ' active' : '')}
-                            onClick={() => setActiveTab(activeTab === 'saved' ? 'map' : 'saved')}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
-                            Saved
-                            {Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="pnm-tab-badge">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
-                        </button>
-                        <button
-                            className={'pnm-top-tab' + (activeTab === 'more' ? ' active' : '')}
-                            onClick={() => setActiveTab(activeTab === 'more' ? 'map' : 'more')}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /><circle cx="5" cy="12" r="1.5" /></svg>
-                            More
-                        </button>
-                    </div>
-
-                    {/* Search input */}
+                {/* ═══ TOP SEARCH BAR: under global header, right-aligned ═══ */}
+                <div className="pnm-top-search-bar">
                     <form className="pnm-top-search" onSubmit={handleSearch}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, color: 'rgba(148,163,184,0.5)' }}>
                             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -2175,10 +2112,37 @@ export default function PokerNearMePage() {
                     </form>
                 </div>
 
-                {/* ═══ TOP FILTER BAR: Dropdowns + Apply ═══ */}
+                {/* ═══ TOP FILTER BAR: Location + Dropdowns + Apply + Live Games ═══ */}
                 {(activeTab === 'map' || activeTab === 'venues') && (
                     <>
                         <div className="pnm-filter-bar">
+                            {/* Location pill / GPS button — left of Radius */}
+                            <div className="pnm-location-area">
+                                {userLocation && gpsLocationLabel ? (
+                                    <div className="pnm-location-pill">
+                                        <div className="pnm-location-dot" />
+                                        <span className="pnm-location-label">Location Active</span>
+                                        <span className="pnm-location-city">{gpsLocationLabel}</span>
+                                        <button
+                                            className="pnm-location-clear"
+                                            onClick={() => { setUserLocation(null); setGpsLocationLabel(null); setHasSearched(false); setVenues([]); setNearestDistance(null); }}
+                                            aria-label="Clear location"
+                                        >&times;</button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        className={'pnm-gps-btn' + (gpsLoading ? ' loading' : '')}
+                                        onClick={requestGpsLocation}
+                                        disabled={gpsLoading}
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="3" />
+                                            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                                        </svg>
+                                        {gpsLoading ? 'Locating...' : 'Enable GPS'}
+                                    </button>
+                                )}
+                            </div>
                             <div className="pnm-filter-group">
                                 <label className="pnm-filter-label">Radius</label>
                                 <select
@@ -2244,6 +2208,15 @@ export default function PokerNearMePage() {
                             >
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                                 Apply Filters
+                            </button>
+                            {/* Live Games — right of Apply Filters */}
+                            <button
+                                className={'pnm-top-tab live pnm-live-games-btn' + (activeTab === 'live' ? ' active' : '')}
+                                onClick={() => setActiveTab(activeTab === 'live' ? 'map' : 'live')}
+                            >
+                                <span className="pnm-live-dot" />
+                                Live Games
+                                {liveGames.length > 0 && <span className="pnm-tab-badge">{liveGames.length}</span>}
                             </button>
                         </div>
 
