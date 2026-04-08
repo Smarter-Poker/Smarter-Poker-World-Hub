@@ -8,8 +8,19 @@
  * ~85 functions, ~6100 lines
  */
 
-const { getHash, getAdvancedModule, getPersonalityModule, chatMessages, RANK_ORDER } = require('./core');
-const { getStreetMemory, analyzeStreetNarrative, recordStreetAction } = require('./anti-exploit');
+const { getHash, getAdvancedModule, getPersonalityModule, chatMessages, RANK_ORDER, parseCards } = require('./core');
+const { getStreetMemory, analyzeStreetNarrative, recordStreetAction, applyMultiwayEquityDiscount,
+        getOOPPositionalGuard, evaluateDonkBet, detectReverseImplied,
+        detectNutBiasExploitBoard, reevaluatePLORunoutEquity } = require('./anti-exploit');
+
+// Lazy-load live-observer to avoid circular dependency (barrel wires observer → router → plo-core)
+let _liveObserver = null;
+function getLiveRead(horseId, tableId, opponentId) {
+    if (!_liveObserver) {
+        try { _liveObserver = require('./live-observer'); } catch (_) { return null; }
+    }
+    return _liveObserver.getLiveRead ? _liveObserver.getLiveRead(horseId, tableId, opponentId) : null;
+}
 
 function classifyPLOPreflop(cards) {
     if (!cards || cards.length < 4) return 20;

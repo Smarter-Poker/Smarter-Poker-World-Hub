@@ -360,31 +360,21 @@ def fast_fetch(url):
     """
     Fast static fetch using Scrapling Fetcher with stealthy_headers.
     Much faster than StealthySession browser — use first before launching Playwright.
-    Falls back to urllib with SSL verification disabled for self-signed cert sites.
+    Falls back to verify=False for self-signed cert sites.
     Returns (html_str, body_bytes) or (None, None).
     """
     try:
         from scrapling.fetchers import Fetcher
-        resp = Fetcher.get(url, stealthy_headers=True, timeout=12)
+        resp = None
+        try:
+            resp = Fetcher.get(url, stealthy_headers=True, timeout=12)
+        except Exception:
+            # SSL fallback — for self-signed / invalid cert sites
+            resp = Fetcher.get(url, stealthy_headers=True, timeout=12, verify=False)
+            
         if resp and resp.status == 200:
             body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode('utf-8')
             return body.decode('utf-8', errors='ignore'), body
-    except Exception:
-        pass
-    # SSL fallback — for self-signed / invalid cert sites
-    try:
-        import ssl
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; SmartPokerBot/1.0)',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        })
-        with urllib.request.urlopen(req, timeout=12, context=ctx) as resp:
-            if 200 <= resp.status < 300:
-                body = resp.read()
-                return body.decode('utf-8', errors='ignore'), body
     except Exception:
         pass
     return None, None
@@ -556,10 +546,15 @@ def find_pdf_links(html, base_url):
 def download_pdf(url):
     """Download a PDF and return raw bytes, or None on failure."""
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            if resp.status == 200:
-                return resp.read()
+        from scrapling.fetchers import Fetcher
+        resp = None
+        try:
+            resp = Fetcher.get(url, stealthy_headers=True, timeout=20)
+        except Exception:
+            resp = Fetcher.get(url, stealthy_headers=True, timeout=20, verify=False)
+        if resp and resp.status == 200:
+            body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode()
+            return body
     except Exception as e:
         print(f'    ⚠️  PDF download failed {url}: {e}')
     return None

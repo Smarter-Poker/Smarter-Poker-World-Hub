@@ -1,0 +1,1051 @@
+{
+  "ingestion_timestamp": "2026-04-08T18:30:39.621500+00:00",
+  "batch_id": "aae377b1-4bb2-4589-9ea8-7bf7bbf40f89",
+  "total_in_master": 177,
+  "skipped_existing": 47,
+  "inserted": 130,
+  "failed": 0,
+  "new_series": [
+    {
+      "name": "Agua Caliente Poker Championship",
+      "uid": "venue_agua-caliente-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Ameristar Black Hawk Poker Series",
+      "uid": "venue_ameristar-black-hawk-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Aria Poker Classic",
+      "uid": "venue_aria-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Arizona State Poker Championship",
+      "uid": "venue_arizona-state-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Battles at the Beach",
+      "uid": "venue_battles-at-the-beach_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Bay 101 Shooting Star",
+      "uid": "venue_bay-101-shooting-star_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Beau Rivage Million Dollar Heater",
+      "uid": "venue_beau-rivage-million-dollar-heater_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Beau Rivage Poker Series",
+      "uid": "venue_beau-rivage-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Bellagio Five Diamond Poker Classic",
+      "uid": "venue_bellagio-five-diamond-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "bestbet Orange Park Poker Series",
+      "uid": "venue_bestbet-orange-park-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Bike Series (The Bicycle Casino)",
+      "uid": "venue_bike-series-the-bicycle-casino_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Black Hawk Poker Classic",
+      "uid": "venue_black-hawk-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Boomtown Poker Series",
+      "uid": "venue_boomtown-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Borgata Poker Open",
+      "uid": "venue_borgata-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Caesars AC Poker Classic",
+      "uid": "venue_caesars-ac-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Caesars Palace Poker Classic",
+      "uid": "venue_caesars-palace-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Canterbury Park Poker Classic",
+      "uid": "venue_canterbury-park-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Cherokee Nation Poker Series",
+      "uid": "venue_cherokee-nation-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Cherokee Poker Classic",
+      "uid": "venue_cherokee-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Chickasaw Poker Series",
+      "uid": "venue_chickasaw-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Choctaw Poker Series",
+      "uid": "venue_choctaw-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Chukchansi Gold Poker Series",
+      "uid": "venue_chukchansi-gold-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Cincinnati Poker Open",
+      "uid": "venue_cincinnati-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Circa Poker Series",
+      "uid": "venue_circa-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Coconut Creek Lucky Hearts Open",
+      "uid": "venue_coconut-creek-lucky-hearts-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Colorado Poker Championship",
+      "uid": "venue_colorado-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "DeepStack Showdown",
+      "uid": "venue_deepstack-showdown_2026",
+      "tour": "DSE",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Derby Lane Poker Series",
+      "uid": "venue_derby-lane-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Downstream Casino Poker Classic",
+      "uid": "venue_downstream-casino-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Downtown Grand Poker Series",
+      "uid": "venue_downtown-grand-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Elite Poker Lounge Series",
+      "uid": "venue_elite-poker-lounge-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "FireKeepers Casino Poker Series",
+      "uid": "venue_firekeepers-casino-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Florida State Poker Championship",
+      "uid": "venue_florida-state-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Fort McDowell Poker Series",
+      "uid": "venue_fort-mcdowell-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Foxwoods Mega Stack Challenge",
+      "uid": "venue_foxwoods-mega-stack-challenge_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Foxwoods Poker Classic",
+      "uid": "venue_foxwoods-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Foxwoods World Poker Finals",
+      "uid": "venue_foxwoods-world-poker-finals_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Golden Nugget Grand Poker Series",
+      "uid": "venue_golden-nugget-grand-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Grande Series",
+      "uid": "venue_grande-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Graton Poker Series",
+      "uid": "venue_graton-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Green Valley Ranch Poker Series",
+      "uid": "venue_green-valley-ranch-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Gulf Coast Poker Championship",
+      "uid": "venue_gulf-coast-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Hard Rock Cherokee Poker Classic",
+      "uid": "venue_hard-rock-cherokee-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Hard Rock Tampa Poker Series",
+      "uid": "venue_hard-rock-tampa-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Hard Rock Tulsa Poker Series",
+      "uid": "venue_hard-rock-tulsa-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Hawaiian Gardens Poker Series",
+      "uid": "venue_hawaiian-gardens-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Hialeah Park Poker Series",
+      "uid": "venue_hialeah-park-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Hollywood Columbus Poker Series",
+      "uid": "venue_hollywood-columbus-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Horseshoe Baltimore Poker Series",
+      "uid": "venue_horseshoe-baltimore-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Horseshoe Council Bluffs Poker Series",
+      "uid": "venue_horseshoe-council-bluffs-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Horseshoe Indiana Poker Series",
+      "uid": "venue_horseshoe-indiana-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Horseshoe Las Vegas Poker Series",
+      "uid": "venue_horseshoe-las-vegas-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Hustler Casino Live Poker Series",
+      "uid": "venue_hustler-casino-live-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Illinois Poker Championship",
+      "uid": "venue_illinois-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Isle Casino Poker Series",
+      "uid": "venue_isle-casino-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Jack Casino Cincinnati Poker Series",
+      "uid": "venue_jack-casino-cincinnati-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Jack Casino Cleveland Poker Series",
+      "uid": "venue_jack-casino-cleveland-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Jackson Rancheria Poker Series",
+      "uid": "venue_jackson-rancheria-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Jamul Casino Poker Room Series",
+      "uid": "venue_jamul-casino-poker-room-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Kings Poker Room Series",
+      "uid": "venue_kings-poker-room-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "L'Auberge Poker Series",
+      "uid": "venue_l-auberge-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "LA Poker Classic (Commerce Casino)",
+      "uid": "venue_la-poker-classic-commerce-casino_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Live Casino Poker Series",
+      "uid": "venue_live-casino-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Live Poker Classic",
+      "uid": "venue_live-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Livermore Poker Room Series",
+      "uid": "venue_livermore-poker-room-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Lucky Hearts Poker Open",
+      "uid": "venue_lucky-hearts-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "M Resort Poker Series",
+      "uid": "venue_m-resort-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Macau Poker Open",
+      "uid": "venue_macau-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Magic City Poker Open",
+      "uid": "venue_magic-city-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Maryland Live Poker Series",
+      "uid": "venue_maryland-live-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "MGM Grand Poker Series",
+      "uid": "venue_mgm-grand-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Michigan Poker Championship",
+      "uid": "venue_michigan-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Milly in Philly",
+      "uid": "venue_milly-in-philly_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Mohegan Sun Fall Poker Championship",
+      "uid": "venue_mohegan-sun-fall-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Mohegan Sun Poker Series",
+      "uid": "venue_mohegan-sun-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Morongo Poker Series",
+      "uid": "venue_morongo-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Motor City Poker Championship",
+      "uid": "venue_motor-city-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Muckleshoot Poker Series",
+      "uid": "venue_muckleshoot-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Northwest Poker Championship",
+      "uid": "venue_northwest-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Ocean Casino Poker Series",
+      "uid": "venue_ocean-casino-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Orleans Poker Series",
+      "uid": "venue_orleans-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Oxford Downs Poker Series",
+      "uid": "venue_oxford-downs-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "PacWest Poker Classic",
+      "uid": "venue_pacwest-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Palms Poker Series",
+      "uid": "venue_palms-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Parx Big Stax Poker Series",
+      "uid": "venue_parx-big-stax-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Pearl River Poker Open",
+      "uid": "venue_pearl-river-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Pechanga Poker Series",
+      "uid": "venue_pechanga-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "PGT PLO Series",
+      "uid": "venue_pgt-plo-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Poker House Dallas Tournament Series",
+      "uid": "venue_poker-house-dallas-tournament-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Potawatomi Poker Series",
+      "uid": "venue_potawatomi-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Prairie Meadows Poker Series",
+      "uid": "venue_prairie-meadows-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Prime Social Poker Series",
+      "uid": "venue_prime-social-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Red Rock Poker Series",
+      "uid": "venue_red-rock-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "River Poker Series",
+      "uid": "venue_river-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "River Spirit Poker Series",
+      "uid": "venue_river-spirit-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Rivers Casino Poker Series",
+      "uid": "venue_rivers-casino-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Running Aces Poker Series",
+      "uid": "venue_running-aces-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "San Diego Poker Series",
+      "uid": "venue_san-diego-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "San Manuel Poker Series",
+      "uid": "venue_san-manuel-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Sarasota Kennel Club Poker Series",
+      "uid": "venue_sarasota-kennel-club-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "SD State Poker Championship",
+      "uid": "venue_sd-state-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Seminole Brighton Poker Series",
+      "uid": "venue_seminole-brighton-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Seminole Hard Rock Poker Open",
+      "uid": "venue_seminole-hard-rock-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Seneca Niagara Poker Series",
+      "uid": "venue_seneca-niagara-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Snoqualmie Casino Poker Series",
+      "uid": "venue_snoqualmie-casino-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "South Point Poker Series",
+      "uid": "venue_south-point-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Spring Fling Poker Series",
+      "uid": "venue_spring-fling-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Station Casinos Poker Classic",
+      "uid": "venue_station-casinos-poker-classic_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "SugarHouse Poker Series",
+      "uid": "venue_sugarhouse-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Talking Stick Poker Series",
+      "uid": "venue_talking-stick-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Tampa Bay Downs Poker Series",
+      "uid": "venue_tampa-bay-downs-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "TCH Austin Poker Series",
+      "uid": "venue_tch-austin-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "TCH Dallas Poker Series",
+      "uid": "venue_tch-dallas-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "TCH Houston Space City Stacks",
+      "uid": "venue_tch-houston-space-city-stacks_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Texas Card House Tournament Series",
+      "uid": "venue_texas-card-house-tournament-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Texas Poker Champions",
+      "uid": "venue_texas-poker-champions_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Texas Poker Open & PGT High Rollers",
+      "uid": "venue_texas-poker-open-pgt-high-rollers_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Thunder Valley Poker Series",
+      "uid": "venue_thunder-valley-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Tropicana AC Poker Series",
+      "uid": "venue_tropicana-ac-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Tulalip Poker Series",
+      "uid": "venue_tulalip-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "U.S. Poker Open",
+      "uid": "venue_u-s-poker-open_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Venetian DeepStack Extravaganza",
+      "uid": "venue_venetian-deepstack-extravaganza_2026",
+      "tour": "DSE",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Viejas Casino Poker Series",
+      "uid": "venue_viejas-casino-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Wind Creek Bethlehem Poker Series",
+      "uid": "venue_wind-creek-bethlehem-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "WinStar Poker Series",
+      "uid": "venue_winstar-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Wisconsin State Poker Championship",
+      "uid": "venue_wisconsin-state-poker-championship_2026",
+      "tour": "Independent",
+      "tier": "regional",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "World Series of Poker",
+      "uid": "venue_world-series-of-poker_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "WPT Voyage",
+      "uid": "venue_wpt-voyage_2026",
+      "tour": "WPT",
+      "tier": "major",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "WSOP Online",
+      "uid": "venue_wsop-online_2026",
+      "tour": "WSOP",
+      "tier": "major",
+      "city": "",
+      "state": ""
+    },
+    {
+      "name": "Wynn Poker Series",
+      "uid": "venue_wynn-poker-series_2026",
+      "tour": "Independent",
+      "tier": "local",
+      "city": "",
+      "state": ""
+    }
+  ],
+  "failed_series": []
+}

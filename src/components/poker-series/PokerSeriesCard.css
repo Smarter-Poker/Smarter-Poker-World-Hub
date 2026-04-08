@@ -1,0 +1,257 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   PokerSeriesCard — Futuristic Metal UI Design System
+   Smarter.Poker — Skeuomorphic Sci-Fi Casino Terminal Aesthetic
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap');
+
+/* ── Root Tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --metal-dark:      #0a0a15;
+  --metal-base:      #0d1117;
+  --metal-mid:       #1a2332;
+  --metal-light:     #2a3a4a;
+  --metal-highlight: #3d4f5f;
+
+  --neon-cyan:       #00D4FF;
+  --neon-cyan-glow:  rgba(0,212,255,0.6);
+  --neon-cyan-dim:   rgba(0,212,255,0.25);
+
+  --gold-vip:        #FFD700;
+  --text-primary:    #e8edf2;
+  --text-muted:      rgba(232,237,242,0.55);
+
+  --metal-gradient:  linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
+  --card-gradient:   linear-gradient(145deg, #1c2c3c 0%, #111827 55%, #0a0e17 100%);
+  --glow-cyan:       0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+  --glow-intense:    0 0 5px var(--neon-cyan), 0 0 15px var(--neon-cyan), 0 0 30px var(--neon-cyan-glow);
+}
+
+/* ── Card Container ─────────────────────────────────────────────────────── */
+.psc-card {
+  position: relative;
+  background: var(--card-gradient);
+  border: 2px solid var(--tour-border, var(--metal-highlight));
+  border-radius: 12px;
+  padding: 20px 22px 18px;
+  overflow: hidden;
+  cursor: default;
+  transition: transform 0.25s cubic-bezier(.22,.68,0,1.2),
+              box-shadow  0.25s ease,
+              border-color 0.2s ease;
+  box-shadow:
+    inset 0  1px 0 rgba(255,255,255,0.07),
+    inset 0 -1px 0 rgba(0,0,0,0.35),
+    0 4px 24px rgba(0,0,0,0.55);
+  animation: psc-fadein 0.45s ease both;
+}
+
+.psc-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--tour-bg, transparent) 0%, transparent 60%);
+  border-radius: 10px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.psc-hovered {
+  transform: translateY(-4px) scale(1.012);
+  border-color: var(--tour-border, var(--neon-cyan));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 8px 32px rgba(0,0,0,0.65),
+    0 0 18px var(--tour-glow, var(--neon-cyan-glow));
+}
+
+/* ── Corner Bolts ─────────────────────────────────────────────────────── */
+.psc-bolt {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #5a6a7a 30%, #2a3a4a 70%);
+  border-radius: 50%;
+  border: 1px solid #1a2a3a;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
+  z-index: 2;
+}
+.psc-bolt::after {
+  content: '+';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 7px;
+  color: rgba(255,255,255,0.25);
+  font-family: monospace;
+}
+.psc-bolt--tl { top: 6px;  left: 6px;  }
+.psc-bolt--tr { top: 6px;  right: 6px; }
+.psc-bolt--bl { bottom: 6px; left: 6px; }
+.psc-bolt--br { bottom: 6px; right: 6px; }
+
+/* ── Side Neon Strips ─────────────────────────────────────────────────── */
+.psc-strip {
+  position: absolute;
+  width: 3px;
+  top: 22%;
+  bottom: 22%;
+  background: var(--tour-border, var(--neon-cyan));
+  box-shadow: 0 0 8px var(--tour-glow, var(--neon-cyan-glow));
+  border-radius: 2px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+.psc-hovered .psc-strip { opacity: 1; }
+.psc-strip--left  { left: 6px; }
+.psc-strip--right { right: 6px; }
+
+/* ── Header Row ─────────────────────────────────────────────────────────── */
+.psc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.psc-tour-badge {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tour-text, var(--neon-cyan));
+  background: var(--tour-bg, rgba(0,212,255,0.08));
+  border: 1px solid var(--tour-border, var(--neon-cyan));
+  border-radius: 4px;
+  padding: 3px 8px;
+  box-shadow: 0 0 6px var(--tour-glow, var(--neon-cyan-dim));
+  white-space: nowrap;
+}
+
+.psc-tier-pill {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  padding: 2px 7px;
+  background: rgba(255,255,255,0.03);
+}
+
+/* ── Series Name ────────────────────────────────────────────────────────── */
+.psc-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+  line-height: 1.25;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  padding: 0 14px;
+}
+
+/* ── Stats Grid ─────────────────────────────────────────────────────────── */
+.psc-stats {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.psc-stat {
+  flex: 1;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.psc-divider {
+  width: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 8px 0;
+}
+
+.psc-stat-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.psc-stat-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.psc-stat--dates   { color: #a0c8e0; }
+.psc-stat--buyin   { color: var(--tour-text, var(--neon-cyan)); text-shadow: 0 0 8px var(--tour-glow, var(--neon-cyan-glow)); }
+.psc-stat--location { color: rgba(255,255,255,0.75); font-size: 0.75rem; }
+
+/* ── Action Button ──────────────────────────────────────────────────────── */
+.psc-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 2px;
+}
+
+.psc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tour-text, var(--neon-cyan));
+  background: transparent;
+  border: 1px solid var(--tour-border, var(--neon-cyan));
+  border-radius: 5px;
+  padding: 7px 16px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 0 6px var(--tour-glow, var(--neon-cyan-dim));
+}
+
+.psc-btn:hover {
+  background: var(--tour-bg, rgba(0,212,255,0.1));
+  box-shadow: 0 0 12px var(--tour-glow, var(--neon-cyan-glow));
+  transform: translateY(-1px);
+}
+
+/* ── Entrance Animation ─────────────────────────────────────────────────── */
+@keyframes psc-fadein {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Grid Layout for Page ───────────────────────────────────────────────── */
+.psc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 24px 0;
+}
+
+@media (max-width: 640px) {
+  .psc-grid { grid-template-columns: 1fr; gap: 14px; }
+  .psc-name { font-size: 0.95rem; }
+}

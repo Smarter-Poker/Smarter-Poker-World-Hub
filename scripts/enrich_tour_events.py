@@ -28,6 +28,19 @@ load_dotenv(Path(__file__).parent.parent / ".env.local")
 
 import psycopg2
 import psycopg2.extras
+
+# Helper to extract starting stack (chips) from schedule HTML pages.
+def extract_chips_from_html(html: str) -> dict:
+    """Parse schedule HTML to find event titles and their starting stack.
+    Looks for patterns like "Event Name – $500" or "Event Name – 500".
+    Returns a dict mapping lower‑cased title fragments to chip amounts.
+    """
+    chips = {}
+    for m in re.finditer(r"(?P<title>[\w\s'&]+?)\s*[-–—]\s*\$?(?P<amount>\d{1,5})", html, re.IGNORECASE):
+        title = m.group('title').strip().lower()
+        amount = int(m.group('amount'))
+        chips[title] = amount
+    return chips
 from scrapling.fetchers import Fetcher
 from supabase import create_client
 
@@ -144,10 +157,10 @@ def tz_from_series(series: str, default: str) -> str:
 def write_row(row_id: str, data: dict) -> bool:
     clean = {k: v for k, v in data.items() if v is not None}
     if DRY:
-        score = clean.get("scrape_completeness_score","?")
-        fmt   = clean.get("format","?")
-        tz    = clean.get("timezone","?")
-        cs    = clean.get("starting_stack","?")
+        score = clean.get("scrape_completeness_score", "?")
+        fmt   = clean.get("format", "?")
+        tz    = clean.get("timezone", "?")
+        cs    = clean.get("starting_stack", "?")
         print(f"    [DRY] score={score} fmt={fmt} tz={tz} chips={cs}")
         return True
     try:
@@ -156,6 +169,23 @@ def write_row(row_id: str, data: dict) -> bool:
     except Exception as e:
         print(f"    [WRITE ERR] {e}")
         return False
+
+# ── Helper to extract starting stack from schedule HTML ────────────────────────
+def extract_chips_from_html(html: str) -> dict:
+    """Parse simple "<number> chips" patterns and map them to event titles.
+    Returns a dict mapping lower‑cased event name fragments to an int chip count.
+    This is a heuristic; if no match is found the event will keep None.
+    """
+    mapping = {}
+    # Look for patterns like "Event Name – 100 chips" or "100 chips" near a title
+    # Simplify: capture "<title>...<number> chips" where title is up to 80 chars before the number.
+    pattern = re.compile(r"(?P<title>.{0,80}?)\s+(?P<chips>\d{1,4})\s+chips", re.IGNORECASE)
+    for m in pattern.finditer(html):
+        title = m.group("title").strip().lower()
+        chips = int(m.group("chips"))
+        if title and title not in mapping:
+            mapping[title] = chips
+    return mapping
 
 # ── Fetch all events for a tour via direct psycopg2 (no 1000-row limit) ──────
 def fetch_all_events(tour_code: str) -> list:
@@ -423,10 +453,14 @@ def enrich_generic(tour_code: str, events: list) -> int:
                         domain = re.match(r"https?://[^/]+", sched_url)
                         if domain: struct_url = domain.group() + struct_url
                     print(f"  Found structure PDF: {struct_url}")
+                    chips_map = extract_chips_from_html(html)
+                    if chips_map:
+                        print(f"  Extracted chip info for {len(chips_map)} events")
         except Exception as e:
             print(f"  [FETCH SKIP] {sched_url}: {e.__class__.__name__}")
         time.sleep(RATE)
 
+    chips_map = {}
     ok = 0
     for db in events:
         ev_name = db.get("event_name","") or ""
@@ -442,6 +476,14 @@ def enrich_generic(tour_code: str, events: list) -> int:
         if any(x in ev_name.lower() for x in ["bounty","pko","knockout"]):
             bounty = max(50, buyin // 2) if buyin else None
 
+        # Starting stack – heuristic match from extracted chips map
+        chips = None
+        lowered = ev_name.lower()
+        for title_frag, val in chips_map.items():
+            if title_frag in lowered:
+                chips = val
+                break
+
         # Satellite
         sat_to = f"{tour_code} Main Event" if "satellite" in ev_name.lower() else None
 
@@ -454,6 +496,7 @@ def enrich_generic(tour_code: str, events: list) -> int:
         enriched = {
             "tournament_name":     ev_name or None,
             "format":              infer_format(ev_name),
+            "starting_stack":      chips,
             "bounty_amount":       bounty,
             "satellite_to":        sat_to,
             "payout_levels":       payout,
