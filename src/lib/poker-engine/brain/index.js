@@ -57,6 +57,22 @@ module.exports = {
     isHorse: core.isHorse,
     isHorseSync: core.isHorseSync,
     getHorseIdsAtTable: core.getHorseIdsAtTable,
+    // Constants & shared state
+    RANKS: core.RANKS,
+    SUITS: core.SUITS,
+    RANK_ORDER: core.RANK_ORDER,
+    RANK_NAMES: core.RANK_NAMES,
+    PREFLOP_STRENGTH: core.PREFLOP_STRENGTH,
+    POSITION_MAP: core.POSITION_MAP,
+    getSupabase: core.getSupabase,
+    getHash: core.getHash,
+    resolveESM: core.resolveESM,
+    getGTOModule: core.getGTOModule,
+    getPersonalityModule: core.getPersonalityModule,
+    getAdvancedModule: core.getAdvancedModule,
+    chatMessages: core.chatMessages,
+    multiTableTracker: core.multiTableTracker,
+    evolutionTracker: core.evolutionTracker,
 
     // ═══════════════════════════════════════════════════════════════════════
     // anti-exploit.js — Modules 1-32 (tracking, threat intel, opponent reads)
@@ -300,6 +316,7 @@ module.exports = {
     getDecision: router.getDecision,
     validateAndClamp: router.validateAndClamp,
     shouldAutoSeat: router.shouldAutoSeat,
+    setRouterLiveReadFn: router.setRouterLiveReadFn,
 
     // ═══════════════════════════════════════════════════════════════════════
     // live-observer.js — Always-on opponent tracking

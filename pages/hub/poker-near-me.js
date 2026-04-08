@@ -2225,7 +2225,14 @@ export default function PokerNearMePage() {
             const params = new URLSearchParams();
             if (activeTab !== 'venues') params.set('tab', activeTab);
             if (activeTab === 'events' && activeEventTab !== 'daily') params.set('sub', activeEventTab);
-            if (searchQuery) params.set('q', searchQuery);
+            if (searchQuery) {
+                params.set('q', searchQuery);
+            } else if (typeof window !== 'undefined' && window.location.search.includes('q=')) {
+                // Failsafe: if React state is out of sync but the URL still has ?q=, 
+                // preserve it so we don't accidentally annihilate the deep link.
+                const fallbackQ = new URLSearchParams(window.location.search).get('q');
+                if (fallbackQ) params.set('q', fallbackQ);
+            }
             if (filters.venueType !== 'all') params.set('filter', filters.venueType);
             const qs = params.toString();
             const newUrl = '/hub/poker-near-me' + (qs ? '?' + qs : '');
