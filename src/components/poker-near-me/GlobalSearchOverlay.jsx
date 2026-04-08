@@ -12,6 +12,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { fuzzyMatchScore } from './pnm-utils';
 
 const VenueMap = dynamic(
   () => import('./VenueMap').catch(() => () => null),
@@ -67,9 +68,12 @@ function parseNaturalLanguageQuery(raw) {
   if (!q) return result;
 
   // Detect game type intent
-  if (/\btournament|tourney|tournaments\b/.test(q)) { result.gameType = 'tournament'; result.isNaturalLanguage = true; }
-  else if (/\bcash\s+game|cash\s+games\b/.test(q)) { result.gameType = 'cash'; result.isNaturalLanguage = true; }
-  else if (/\blive\s+game|live\s+games\b/.test(q)) { result.gameType = 'live'; result.isNaturalLanguage = true; }
+  if (/\boutaha\b|\bplo8?\b|\bomaha\b/.test(q)) { result.gameType = 'PLO'; result.isNaturalLanguage = true; }
+  else if (/\bnlh\b|\bt[exas ]*holdem\b|\bno limit\b/.test(q)) { result.gameType = 'NLH'; result.isNaturalLanguage = true; }
+  else if (/\bmixed\b|\bhorse\b/.test(q)) { result.gameType = 'Mixed'; result.isNaturalLanguage = true; }
+  else if (/\btournament[s]?\b|\btourney[s]?\b/.test(q)) { result.gameType = 'tournament'; result.isNaturalLanguage = true; }
+  else if (/\bcash\s+game[s]?\b/.test(q)) { result.gameType = 'cash'; result.isNaturalLanguage = true; }
+  else if (/\blive\s+game[s]?\b/.test(q)) { result.gameType = 'live'; result.isNaturalLanguage = true; }
 
   // Detect time window
   if (/\bnext\s+month\b/.test(q)) { result.timeWindow = 'next_month'; result.isNaturalLanguage = true; }
@@ -342,11 +346,24 @@ export default function GlobalSearchOverlay({
   const [tourResults, setTourResults] = useState([]);
   const [seriesResults, setSeriesResults] = useState([]);
   const [citySuggestions, setCitySuggestions] = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [detailItem, setDetailItem] = useState(null);
   const [nlIntent, setNlIntent] = useState(null); // parsed natural language intent
+  const [userLocation, setUserLocation] = useState(null);
   const debounceRef = useRef(null);
   // [BUG FIX] AbortController ref — cancels stale in-flight venue suggestion fetches
   const abortControllerRef = useRef(null);
+
+  // Load recent searches and GPS from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pnm_recent_searches');
+      if (stored) setRecentSearches(JSON.parse(stored));
+      const gps = localStorage.getItem('sp-user-gps');
+      if (gps) setUserLocation(JSON.parse(gps));
+    } catch { /* ignore */ }
+  }, []);
 
   // Reset & focus when opened; abort in-flight fetches when closed
   useEffect(() => {
@@ -385,25 +402,39 @@ export default function GlobalSearchOverlay({
 
   // In-memory fuzzy match tours
   const matchTours = useCallback((q) => {
-    const lower = q.toLowerCase();
-    return allTours.filter(t => t && (
-      t.tour_name?.toLowerCase().includes(lower) ||
-      t.tour_code?.toLowerCase().includes(lower) ||
-      (Array.isArray(t.regions) && t.regions.some(r => r?.toLowerCase().includes(lower))) ||
-      (Array.isArray(t.stops_2026) && t.stops_2026.some(s => s?.location?.toLowerCase().includes(lower) || s?.name?.toLowerCase().includes(lower)))
-    )).slice(0, 8);
+    return allTours
+      .map(t => {
+        const score = Math.min(
+          fuzzyMatchScore(q, t.tour_name),
+          fuzzyMatchScore(q, t.tour_code),
+          ...(Array.isArray(t.regions) ? t.regions.map(r => fuzzyMatchScore(q, r)) : [Infinity]),
+          ...(Array.isArray(t.stops_2026) ? t.stops_2026.map(s => Math.min(fuzzyMatchScore(q, s.location), fuzzyMatchScore(q, s.name))) : [Infinity])
+        );
+        return { item: t, score };
+      })
+      .filter(t => t.score < 2) // Threshold
+      .sort((a, b) => a.score - b.score)
+      .map(t => t.item)
+      .slice(0, 8);
   }, [allTours]);
 
   // In-memory fuzzy match series
   const matchSeries = useCallback((q) => {
-    const lower = q.toLowerCase();
-    return allSeries.filter(s => s && (
-      s.name?.toLowerCase().includes(lower) ||
-      s.series_name?.toLowerCase().includes(lower) ||
-      s.city?.toLowerCase().includes(lower) ||
-      s.state?.toLowerCase().includes(lower) ||
-      s.venue_name?.toLowerCase().includes(lower)
-    )).slice(0, 8);
+    return allSeries
+      .map(s => {
+        const score = Math.min(
+          fuzzyMatchScore(q, s.name),
+          fuzzyMatchScore(q, s.series_name),
+          fuzzyMatchScore(q, s.city),
+          fuzzyMatchScore(q, s.state),
+          fuzzyMatchScore(q, s.venue_name)
+        );
+        return { item: s, score };
+      })
+      .filter(s => s.score < 2) // Threshold
+      .sort((a, b) => a.score - b.score)
+      .map(s => s.item)
+      .slice(0, 8);
   }, [allSeries]);
 
   // Handle typing — live suggestions for ALL types
@@ -436,7 +467,13 @@ export default function GlobalSearchOverlay({
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
         try {
-          const url = `/api/poker/venues?limit=5&offset=0&search=${encodeURIComponent(val.trim())}&sort=trust`;
+          const params = new URLSearchParams({ limit: '5', offset: '0', sort: 'trust' });
+          if (val.trim()) params.set('search', val.trim());
+          if (userLocation?.lat && userLocation?.lng) {
+            params.set('lat', userLocation.lat);
+            params.set('lng', userLocation.lng);
+          }
+          const url = `/api/poker/venues?${params.toString()}`;
           let data;
           if (cachedFetch) {
             data = await cachedFetch(url);
@@ -475,6 +512,10 @@ export default function GlobalSearchOverlay({
     const params = new URLSearchParams({ limit: '200', offset: '0', sort: 'trust' });
     if (apiQuery) params.set('search', apiQuery);
     if (intent.stateCode) params.set('state', intent.stateCode);
+    if (userLocation?.lat && userLocation?.lng) {
+      params.set('lat', userLocation.lat);
+      params.set('lng', userLocation.lng);
+    }
     const venueUrl = `/api/poker/venues?${params.toString()}`;
 
     // Cancel any previous in-flight request to prevent stale results
@@ -503,6 +544,15 @@ export default function GlobalSearchOverlay({
     setTourResults(matchTours(rawQuery));
     setSeriesResults(matchSeries(rawQuery));
     setIsLoading(false);
+
+    // Save to recents
+    const normalized = rawQuery.toLowerCase();
+    setRecentSearches(prev => {
+      const next = [normalized, ...prev.filter(q => q !== normalized)].slice(0, 5);
+      try { localStorage.setItem('pnm_recent_searches', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+
   }, [localQuery, cachedFetch, matchTours, matchSeries]);
 
   const handleSuggestionClick = useCallback((s) => {
@@ -514,6 +564,40 @@ export default function GlobalSearchOverlay({
   }, [onSearchChange, handleSubmit, onHistorySelect]);
 
   const openDetail = useCallback((item, type) => setDetailItem({ item, type }), []);
+
+  const getSelectableItems = useCallback(() => {
+    if (phase === 'results') return [];
+    if (!localQuery.trim()) return recentSearches.map(r => ({ type: 'recent', data: r }));
+    return [
+      ...citySuggestions.map(c => ({ type: 'city', data: c })),
+      ...venueResults.map(v => ({ type: 'venue', data: v })),
+      ...tourResults.map(t => ({ type: 'tour', data: t })),
+      ...seriesResults.map(s => ({ type: 'series', data: s }))
+    ];
+  }, [phase, localQuery, recentSearches, citySuggestions, venueResults, tourResults, seriesResults]);
+
+  const handleKeyDown = useCallback((e) => {
+    const items = getSelectableItems();
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < items.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : items.length - 1));
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && selectedIndex < items.length && phase === 'input') {
+        e.preventDefault();
+        const item = items[selectedIndex];
+        if (item.type === 'recent' || item.type === 'city') {
+          handleSuggestionClick(item.data);
+        } else {
+          openDetail(item.data, item.type);
+        }
+      }
+    }
+  }, [getSelectableItems, selectedIndex, phase, handleSuggestionClick, openDetail]);
 
   const totalResults = venueResults.length + tourResults.length + seriesResults.length;
   const hasResults = totalResults > 0;
@@ -563,7 +647,7 @@ export default function GlobalSearchOverlay({
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <input
-                ref={inputRef} type="text" value={localQuery} onChange={handleInputChange}
+                ref={inputRef} type="text" value={localQuery} onChange={handleInputChange} onKeyDown={handleKeyDown}
                 placeholder="Search City, Venue, Tour, Series, Tournament..."
                 autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
                 style={{ width: '100%', paddingLeft: 30, paddingRight: localQuery ? 36 : 0, paddingTop: 8, paddingBottom: 8, background: 'transparent', border: 'none', outline: 'none', fontSize: 18, fontWeight: 500, color: '#e0e8f0', letterSpacing: '-0.3px', fontFamily: 'inherit', caretColor: '#6ee7ef' }}
@@ -619,8 +703,27 @@ export default function GlobalSearchOverlay({
           {phase === 'input' && (
             <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px 16px 80px' }}>
 
+              {/* Recent searches */}
+              {!localQuery.trim() && recentSearches.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <SectionHeader
+                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
+                    label="Recent Searches" count={recentSearches.length}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {recentSearches.map((rec, i) => (
+                      <button key={`${rec}-${i}`} className="gso-city-btn" onClick={() => handleHistoryClick(rec)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'transparent', border: '1px solid rgba(110,231,239,0.06)', borderRadius: 10, color: '#c8d6e5', fontSize: 14, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.4)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <span style={{ textTransform: 'capitalize' }}>{rec}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* City suggestions */}
-              {citySuggestions.length > 0 && (
+              {localQuery.trim().length > 0 && citySuggestions.length > 0 && (
                 <div style={{ marginBottom: 20 }}>
                   <SectionHeader
                     icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.4)" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>}

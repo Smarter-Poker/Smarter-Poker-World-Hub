@@ -229,6 +229,43 @@ def anti_hallucination_check(records: list, tour: str) -> bool:
     print(f"  [AH-CHECK] ✅ {len(records)} records passed anti-hallucination gate")
     return True
 
+# ── Date Expansion Requirement ────────────────────────────────────────────────
+def expand_dates_if_recurring(records: list) -> list:
+    """
+    If a tournament runs weekly (e.g. every Monday), expand it into 10 separate
+    records with specific event_date values.
+    """
+    expanded = []
+    DAYS = {"monday":0,"tuesday":1,"wednesday":2,"thursday":3,"friday":4,"saturday":5,"sunday":6}
+    
+    for r in records:
+        day_str = str(r.get("day_of_week", "")).lower()
+        if (r.get("is_recurring") or (day_str in DAYS and not r.get("event_date"))) and day_str in DAYS:
+            parent_id = str(uuid.uuid4())
+            target_dow = DAYS[day_str]
+            today = date.today()
+            # find next target_dow
+            days_ahead = target_dow - today.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            next_date = today + timedelta(days=days_ahead)
+            
+            for i in range(10):
+                new_r = dict(r)
+                new_date = next_date + timedelta(days=i*7)
+                new_r["event_date"] = new_date.isoformat()
+                new_r["start_date"] = new_date.isoformat()
+                new_r["is_recurring"] = True
+                new_r["parent_tournament_id"] = parent_id
+                expanded.append(new_r)
+        else:
+            expanded.append(r)
+    
+    if len(expanded) > len(records):
+        print(f"  [EXPANSION] Expanded {len(records)} raw into {len(expanded)} occurrences (10-week forward)")
+        
+    return expanded
+
 # ── Completeness Score ────────────────────────────────────────────────────────
 RICH_FIELDS = [
     "tournament_name","starting_stack","level_duration_minutes","rebuy_addon",
@@ -1195,6 +1232,9 @@ def main():
         if not records:
             print(f"\n  ⚠️  {tour}: 0 events parsed — table unchanged (correct — never fabricate)")
             continue
+
+        # ── MANDATORY: Date Expansion Pass ───────────────────────────────────────────
+        records = expand_dates_if_recurring(records)
 
         # ── MANDATORY: Anti-hallucination gate before ANY DB write ───────────
         print(f"\n  🔍 Running anti-hallucination check on {len(records)} {tour} records...")

@@ -397,3 +397,71 @@ export function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+
+/**
+ * Compute the Levenshtein distance between two strings.
+ * Used for zero-latency fuzzy search on the client.
+ */
+export function levenshteinDistance(a, b) {
+    if (!a?.length) return b?.length || 0;
+    if (!b?.length) return a?.length || 0;
+    
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    Math.min(matrix[i][j - 1] + 1, // insertion
+                             matrix[i - 1][j] + 1) // deletion
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+/**
+ * Fuzzy matches a search query against a target string.
+ * Uses exact substring priority fallback to Levenshtein distance for typos.
+ * Returns a score where lower is better (0 = exact match). Returns Infinity if no valid match.
+ */
+export function fuzzyMatchScore(query, target) {
+    if (!query || !target) return Infinity;
+    
+    const q = query.toLowerCase().trim();
+    const t = target.toLowerCase().trim();
+    
+    if (t === q) return 0;
+    if (t.includes(q)) return q.length / t.length; // 0.1 to 0.9 depending on coverage
+    
+    // Check if any word in target matches query closely
+    const targetWords = t.split(/\s+/);
+    let bestDist = Infinity;
+    
+    for (const w of targetWords) {
+        if (w.includes(q)) return 0.5;
+        const dist = levenshteinDistance(q, w);
+        // If typo is small relative to word length
+        if (dist <= 2 && q.length >= 3) {
+            bestDist = Math.min(bestDist, dist);
+        }
+    }
+    
+    // Overall string distance
+    const totalDist = levenshteinDistance(q, t);
+    if (totalDist <= 3 && q.length >= 4) {
+        bestDist = Math.min(bestDist, totalDist);
+    }
+    
+    return bestDist === Infinity ? Infinity : bestDist;
+}
+

@@ -1,0 +1,11 @@
+Total returned: 10
+[WSOP Circuit] WSOP Event #3: $500 No-Limit Hold'em Emp | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #5: $5,000 Pot-Limit Omaha | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #1: $550 No-Limit Hold'em Min | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #1: $550 No-Limit Hold'em Min | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #10: $600 No-Limit Hold'em De | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #13: $1,500 No-Limit Hold'em  | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #15: $600 Pot-Limit Omaha Dee | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #19: $25,000 No-Limit Hold'em | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #19: $25,000 No-Limit Hold'em | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker
+[WSOP Circuit] WSOP Event #18: $1,500 No-Limit Hold'em  | URL=https://www.wsop.com/api/tournaments/2026-57th-annual-world-series-of-poker

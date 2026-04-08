@@ -815,10 +815,8 @@ export default async function handler(req, res) {
           }
 
           // --- GPS-based distance calculation and filtering ---
-          // CRITICAL: When a text search is active, SKIP GPS radius filtering entirely.
-          // Search = global Google-style lookup. Radius only applies to location-browse.
           const hasGps = !!(lat && lng);
-          if (hasGps && !search) {
+          if (hasGps) {
               const userLat = parseFloat(lat);
               const userLng = parseFloat(lng);
               const maxRadius = Math.max(0, parseFloat(radius) || 100);
@@ -842,13 +840,35 @@ export default async function handler(req, res) {
                   };
               });
 
-              // Location-browse: filter by radius
-              const withinRadius = venues.filter(v =>
-                  (v.distance_mi != null && v.distance_mi <= maxRadius) ||
-                  ['tour', 'series'].includes(v.venue_type)
-              );
-              withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
-              venues = withinRadius;
+              if (!search) {
+                  // Location-browse: filter by radius
+                  const withinRadius = venues.filter(v =>
+                      (v.distance_mi != null && v.distance_mi <= maxRadius) ||
+                      ['tour', 'series'].includes(v.venue_type)
+                  );
+                  withinRadius.sort((a, b) => (a.distance_mi ?? 9999) - (b.distance_mi ?? 9999));
+                  venues = withinRadius;
+              } else {
+                  // Search mode: do not restrict by radius, but hybrid sort results to favor local matches
+                  venues.sort((a, b) => {
+                      const distA = a.distance_mi ?? 9999;
+                      const distB = b.distance_mi ?? 9999;
+                      
+                      const isLocalA = distA < 100;
+                      const isLocalB = distB < 100;
+                      
+                      // Promote local venues above non-local ones, regardless of slight trust score differences
+                      if (isLocalA && !isLocalB) return -1;
+                      if (!isLocalA && isLocalB) return 1;
+                      
+                      // If both are local or both are far, default to established trust ranking
+                      const trustA = a.trust_score || 0;
+                      const trustB = b.trust_score || 0;
+                      
+                      if (trustA !== trustB) return trustB - trustA;
+                      return distA - distB;
+                  });
+              }
           }
 
           // --- Single venue by ID: attach daily tournament schedules + venue news ---

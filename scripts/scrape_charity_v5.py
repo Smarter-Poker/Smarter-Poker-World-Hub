@@ -53,6 +53,7 @@ TWILIO_ACCOUNT_SID = ''
 TWILIO_AUTH_TOKEN = ''
 TWILIO_PHONE_FROM = ''
 ALERT_PHONE_TO = '+17086775221'
+OPENAI_API_KEY = ''
 
 if CRED_PATH.exists():
     for _line in CRED_PATH.read_text().splitlines():
@@ -63,6 +64,7 @@ if CRED_PATH.exists():
             if _k.strip() == 'TWILIO_ACCOUNT_SID': TWILIO_ACCOUNT_SID = _v
             if _k.strip() == 'TWILIO_AUTH_TOKEN': TWILIO_AUTH_TOKEN = _v
             if _k.strip() == 'TWILIO_PHONE_NUMBER': TWILIO_PHONE_FROM = _v
+            if _k.strip() == 'OPENAI_API_KEY': OPENAI_API_KEY = _v
 
 BATCH_ID = str(uuid.uuid4())
 DRY_RUN = '--dry-run' in sys.argv
@@ -856,6 +858,83 @@ def _extract_context_fields(day, start_time, context, source_url):
         'raw_context': context[:200],
     }
 
+def extract_schedules_via_vision(base64_jpeg, source_url):
+    """
+    Phase 4 Fallback: Pass the screenshot to GPT-4o OCR for visual extraction.
+    Returns list of parsed schedule dicts.
+    """
+    if not OPENAI_API_KEY:
+        print('    ⚠️  OPENAI_API_KEY not found — skipping Vision OCR.')
+        return []
+    
+    import openai
+    print(f'    👁️  Vision Fallback: sending screenshot to GPT-4o OCR...')
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    
+    prompt = '''Extract all recurring poker tournaments detailed in this image.
+Return ONLY a valid JSON object with a single "schedules" array. Each object MUST contain EXACTLY these keys:
+- "day_of_week": e.g., "monday", "tuesday"
+- "start_time": string like "18:00:00" or "TBA"
+- "tournament_name": standard name (e.g., "NLH Bounty") or null
+- "buy_in": integer representing total buy-in (e.g., 60) or null
+- "bounty_amount": integer (if applicable) or null
+- "game_type": string "NLH", "PLO", "Big O", "Mixed", or "Stud"
+- "format": string "Bounty", "Rebuy", "Deep Stack", "Freezeout", or null
+- "guaranteed": integer prize pool or null
+If no regular tournament schedule is found, return {"schedules": []}.'''
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_jpeg}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            timeout=40
+        )
+        content = response.choices[0].message.content
+        data = json.loads(content)
+        schedules = data.get('schedules', [])
+        
+        parsed = []
+        for s in schedules:
+            if not s.get('day_of_week') or not s.get('start_time'): continue
+            day = normalize_day(str(s['day_of_week']))
+            if not day: continue
+            
+            st = parse_time_24h(str(s['start_time'])) or str(s['start_time'])
+            
+            rec = {
+                'day_of_week': day,
+                'start_time': st,
+                'tournament_name': s.get('tournament_name'),
+                'buy_in': s.get('buy_in'),
+                'bounty_amount': s.get('bounty_amount'),
+                'game_type': s.get('game_type') or 'NLH',
+                'format': s.get('format'),
+                'guaranteed': s.get('guaranteed'),
+                'is_recurring': True,
+                'source_url': source_url,
+                'vision_ai_extracted': True,
+            }
+            parsed.append(rec)
+        print(f'    ✅ Vision Extracted {len(parsed)} schedules.')
+        return parsed
+    except Exception as e:
+        print(f'    ❌ Vision Extraction failed: {e}')
+        return []
+
 
 # ══════════════════════════════════════════════════════════
 # COMPLETENESS SCORE
@@ -975,6 +1054,7 @@ def scrape_target(target):
     best_url = ''
     best_body = b''
     pdf_data = {}
+    vision_b64 = ''
 
     # ── PHASE 1a: PokerAtlas slug lookup ──────────────────────────────────
     print(f'  [Phase 1a] PokerAtlas slug lookup...')
@@ -1091,6 +1171,11 @@ def scrape_target(target):
                                     pass
                             page.wait_for_timeout(2500)
                             rendered = page.content()
+                            try:
+                                screenshot_bytes = page.screenshot(full_page=True, type='jpeg', quality=65)
+                                vision_b64 = base64.b64encode(screenshot_bytes).decode('utf-8')
+                            except Exception as pe:
+                                print(f'    ⚠️  Screenshot failed: {pe}')
                             page.close()
                             html_to_use = rendered if len(rendered) > len(body) else body.decode('utf-8', errors='ignore')
                         except Exception as je:
@@ -1134,6 +1219,10 @@ def scrape_target(target):
     schedules = extract_next_data_schedules(best_html, best_url)
     if not schedules:
         schedules = extract_rich_fields_from_html(best_html, best_url)
+        
+    if not schedules and vision_b64:
+        schedules = extract_schedules_via_vision(vision_b64, best_url)
+        
     print(f'  📅 Schedules extracted: {len(schedules)}')
 
     if not schedules:
@@ -1156,6 +1245,7 @@ def scrape_target(target):
     # 10-week date expansion
     all_dated_records = []
     for sched in schedules:
+        is_vision = sched.pop('vision_ai_extracted', False)
         dated = expand_to_dated_records(sched, state, pdf_data or None)
         for rec in dated:
             rec['scrape_html_hash'] = provenance['scrape_html_hash']
@@ -1164,6 +1254,8 @@ def scrape_target(target):
             rec['data_quality'] = 'scraped_verified'
             rec['best_scrape_url'] = best_url
             rec['source_url'] = best_url
+            if is_vision:
+                rec['flags'].append('vision_ai_extracted')
         all_dated_records.extend(dated)
 
     print(f'  ✅ {len(schedules)} schedules × 10 dates = {len(all_dated_records)} records')
