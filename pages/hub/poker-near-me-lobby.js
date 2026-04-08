@@ -729,7 +729,8 @@ export default function PokerNearMeLobby() {
       .then(r => r.json())
       .then(json => {
         const v = json.venues || json.data || json || [];
-        const count = Array.isArray(v) ? v.length : 0;
+        const filteredVenues = Array.isArray(v) ? v.filter(venue => venue.venue_type !== 'series') : [];
+        const count = filteredVenues.length;
         if (count > 0) setTotalVenueCount(count);
       })
       .catch(() => { /* silent */ });

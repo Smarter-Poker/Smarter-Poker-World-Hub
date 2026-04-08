@@ -128,7 +128,21 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'GET') {
-        const { venue_id, user_id, count_only } = req.query;
+        const { venue_id, user_id, count_only, today } = req.query;
+
+        // Global check-ins (last 24 hours) for map count aggregation
+        if (today === 'true') {
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const { data, error } = await getSupabase()
+            .from('venue_checkins')
+            .select('venue_id, id')
+            .gte('created_at', twentyFourHoursAgo);
+          if (error) {
+            console.error('Error fetching global today checkins:', error);
+            return res.status(500).json({ success: false, error: error.message });
+          }
+          return res.status(200).json({ success: true, data: data || [] });
+        }
 
         // Venue check-ins (last 24 hours)
         if (venue_id) {

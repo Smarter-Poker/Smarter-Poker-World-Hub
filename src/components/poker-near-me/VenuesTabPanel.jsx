@@ -39,6 +39,7 @@ export default function VenuesTabPanel({
     setIframeModal,
     openVenueModal,
     checkinCounts,
+    onMapVenueClick,
 }) {
     // Defensive guard — venues may be null/undefined during initial load or after a crash
     const safeVenues = Array.isArray(venues) ? venues : [];
