@@ -741,11 +741,7 @@ export default function LiveGamesFeed({
                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', animation: 'lgf-pulse 1.5s ease-in-out infinite' }} />
                             {v.totalTables} Table{v.totalTables !== 1 ? 's' : ''} Running
                         </span>
-                        {v.totalWait > 0 && (
-                            <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.3)' }}>
-                                {v.totalWait} Waiting{v.waitEstimate ? ` (~${v.waitEstimate.label})` : ''}
-                            </span>
-                        )}
+
                         {!v._isLive && (
                             <span style={{ padding: '3px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', textTransform: 'uppercase' }}>Last Known</span>
                         )}

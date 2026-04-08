@@ -298,7 +298,7 @@ module.exports = {
     makePLO6Decision: plo6Brain.makePLO6Decision,
 
     // ═══════════════════════════════════════════════════════════════════════
-    // holdem-brain.js — Hold'em decision engine (20 functions)
+    // holdem-brain.js — Hold'em decision engine (32 functions)
     // ═══════════════════════════════════════════════════════════════════════
     makeFallbackDecision: holdemBrain.makeFallbackDecision,
     evaluatePostflopHand: holdemBrain.evaluatePostflopHand,
@@ -321,6 +321,17 @@ module.exports = {
     handleDonkBet: holdemBrain.handleDonkBet,
     applyTiltDegradation: holdemBrain.applyTiltDegradation,
     setLiveReadFn: holdemBrain.setLiveReadFn,
+    // Advanced NLHE strategy (Phase 5 expansion — 10 functions)
+    getBlindBattleStrategy: holdemBrain.getBlindBattleStrategy,
+    getHoldemBlockerAnalysis: holdemBrain.getHoldemBlockerAnalysis,
+    getThinValueStrategy: holdemBrain.getThinValueStrategy,
+    getBluffCatchStrategy: holdemBrain.getBluffCatchStrategy,
+    calculatePotAndImpliedOdds: holdemBrain.calculatePotAndImpliedOdds,
+    getRangeAdvantage: holdemBrain.getRangeAdvantage,
+    getPolarizationStrategy: holdemBrain.getPolarizationStrategy,
+    getPositionStrategy: holdemBrain.getPositionStrategy,
+    getMultiStreetPlan: holdemBrain.getMultiStreetPlan,
+    getShortStackNLHEStrategy: holdemBrain.getShortStackNLHEStrategy,
 
     // ═══════════════════════════════════════════════════════════════════════
     // tournament-brain.js — Tournament-specific strategy adjustments
