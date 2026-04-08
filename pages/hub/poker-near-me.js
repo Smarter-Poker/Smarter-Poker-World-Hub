@@ -2199,8 +2199,10 @@ export default function PokerNearMePage() {
 
     // ═══ DEEP LINK PERSISTENCE: write tab + search to URL (debounced) ═══
     const deepLinkRef = useRef(null);
+    const paramsAbsorbed = useRef(false);
+
     useEffect(() => {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || !router.isReady || !paramsAbsorbed.current) return;
         if (deepLinkRef.current) clearTimeout(deepLinkRef.current);
         deepLinkRef.current = setTimeout(() => {
             const params = new URLSearchParams();
@@ -2210,16 +2212,25 @@ export default function PokerNearMePage() {
             if (filters.venueType !== 'all') params.set('filter', filters.venueType);
             const qs = params.toString();
             const newUrl = '/hub/poker-near-me' + (qs ? '?' + qs : '');
-            if (router.asPath !== newUrl) {
+            
+            // Re-read current path to check if we really need to replace
+            const currentUrl = router.asPath;
+            if (currentUrl !== newUrl) {
                 router.replace(newUrl, undefined, { shallow: true });
             }
         }, 500);
         return () => { if (deepLinkRef.current) clearTimeout(deepLinkRef.current); };
-    }, [activeTab, activeEventTab, searchQuery, filters.venueType]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [activeTab, activeEventTab, searchQuery, filters.venueType, router.isReady, router.asPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Read deep link params on mount (backward-compatible with legacy tab URLs)
+    // Read deep link params on mount (Wait for router.isReady!)
     useEffect(() => {
-        if (router.query.q) setSearchQuery(String(router.query.q));
+        if (!router.isReady || paramsAbsorbed.current) return;
+        paramsAbsorbed.current = true; // Mark as absorbed so writer unblocks
+
+        if (router.query.q) {
+            setSearchQuery(String(router.query.q));
+            setShowGlobalSearch(true); // Automatically open the global search modal!
+        }
         if (router.query.tab) {
             const tab = String(router.query.tab);
             // Legacy tab mapping: tours/series/daily/calendar → events + sub-tab
@@ -2243,7 +2254,7 @@ export default function PokerNearMePage() {
         if (router.query.filter) {
             setFilters(prev => ({ ...prev, venueType: String(router.query.filter) }));
         }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [router.isReady, router.query]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ═══ SWIPE GESTURE HANDLERS ═══
     const handleTouchStart = useCallback((e) => {

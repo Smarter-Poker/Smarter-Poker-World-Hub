@@ -385,10 +385,9 @@ def log_audit(inserted: int, deduped: int, found: int):
             "records_inserted": inserted,
             "records_found": found,
             "scrape_timestamp": STARTED,
-            "notes": f"Series discovery v3: +{inserted} new, {deduped} DB dupes removed",
         }], on_conflict=None)
     except Exception as e:
-        log.warning(f"  Audit log failed: {e}")
+        log.warning(f"  Audit log failed (non-fatal): {e}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -886,7 +885,10 @@ def insert_new_series(items: list) -> int:
         "is_active": True,
         "has_tournaments": True,
         "data_quality": "scraped_verified",
-        "notes": f"Discovered v3 batch={BATCH_ID[:8]} src={item.get('scrape_source','?')}",
+        "source": item.get("scrape_source", "discovery_v3"),
+        "scrape_source": item.get("scrape_source", "discovery_v3"),
+        "scrape_html_hash": item.get("scrape_html_hash", ""),
+        "scrape_timestamp": item.get("scrape_timestamp", STARTED),
     } for item in items]
     return sb_upsert("poker_venues", records, on_conflict="name")
 
@@ -1035,7 +1037,10 @@ def main():
             "is_active": True,
             "has_tournaments": True,
             "data_quality": "scraped_verified",
-            "notes": f"v3 batch={BATCH_ID[:8]} src={s.get('scrape_source','?')}",
+            "source": s.get("scrape_source", "discovery_v3"),
+            "scrape_source": s.get("scrape_source", "discovery_v3"),
+            "scrape_html_hash": s.get("scrape_html_hash", ""),
+            "scrape_timestamp": s.get("scrape_timestamp", STARTED),
         } for s in clean], on_conflict="name")
         log.info(f"  ✅ Inserted: {inserted}")
     elif dry_run:
