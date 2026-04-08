@@ -539,6 +539,7 @@ export default function TourDetailPage() {
                           <div className="sp-col-date">Date</div>
                           <div className="sp-col-time">Start Time</div>
                           <div className="sp-col-latereg">Late Reg</div>
+                          <div className="sp-col-chips">Chips</div>
                           <div className="sp-col-gtd">Guarantee</div>
                         </div>
 
@@ -582,6 +583,9 @@ export default function TourDetailPage() {
                               </div>
                               <div className="sp-col-latereg">
                                 <span className="sp-latereg-val">{evt.late_registration || '—'}</span>
+                              </div>
+                              <div className="sp-col-chips">
+                                <span className="sp-chips-val">{evt.starting_chips_display || (evt.starting_chips ? evt.starting_chips.toLocaleString() : 'TBD')}</span>
                               </div>
                               <div className="sp-col-gtd">
                                 {evt.guarantee ? (
@@ -1846,7 +1850,7 @@ const styles = `
   }
   .sp-event-header-row {
     display: grid;
-    grid-template-columns: 44px 1fr 100px 110px 100px 130px 100px;
+    grid-template-columns: 44px 1fr 100px 100px 90px 100px 90px 100px;
     gap: 0;
     padding: 0 12px;
     height: 36px;
@@ -1861,7 +1865,7 @@ const styles = `
   }
   .sp-event-row {
     display: grid;
-    grid-template-columns: 44px 1fr 100px 110px 100px 130px 100px;
+    grid-template-columns: 44px 1fr 100px 100px 90px 100px 90px 100px;
     gap: 0;
     padding: 0 12px;
     min-height: 52px;
@@ -1946,6 +1950,9 @@ const styles = `
   .sp-time-val { font-size: 11px; color: #64748b; }
 
   .sp-chips-val { font-size: 12px; color: #94a3b8; }
+  .sp-col-chips {
+    display: flex; align-items: center; justify-content: flex-start;
+  }
   .sp-levels-val { font-size: 12px; color: #94a3b8; }
 
   .sp-col-gtd {
@@ -2018,7 +2025,7 @@ const styles = `
     }
     .sp-col-num { justify-content: flex-start; }
     .sp-col-name { flex-direction: column; align-items: flex-start; }
-    .sp-col-buyin, .sp-col-date, .sp-col-time, .sp-col-latereg, .sp-col-gtd {
+    .sp-col-buyin, .sp-col-date, .sp-col-time, .sp-col-latereg, .sp-col-chips, .sp-col-gtd {
       display: flex;
       justify-content: flex-start;
       margin-left: 44px;
@@ -2027,6 +2034,7 @@ const styles = `
     .sp-col-date::before { content: 'Date: '; font-size: 11px; color: #4b5563; min-width: 40px; }
     .sp-col-time::before { content: 'Time: '; font-size: 11px; color: #4b5563; min-width: 44px; }
     .sp-col-latereg::before { content: 'Late Reg: '; font-size: 11px; color: #4b5563; min-width: 48px; }
+    .sp-col-chips::before { content: 'Chips: '; font-size: 11px; color: #4b5563; min-width: 44px; }
     .sp-col-gtd::before { content: 'GTD: '; font-size: 11px; color: #4b5563; min-width: 36px; }
     .sp-tabs-bar { padding: 0 10px; }
     .sp-tab { padding: 10px 14px; font-size: 13px; }
