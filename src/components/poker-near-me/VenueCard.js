@@ -341,7 +341,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     {/* Distance + Heart in a row */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                         {venue.distance_mi && (
-                            <span className="vc3-distance" style={{ width: 'auto' }}>
+                            <span className="vc3-distance">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <polygon points="3 11 22 2 13 21 11 13 3 11" />
                                 </svg>
@@ -780,17 +780,17 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
                 .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
                 .vc3-type-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
-                .vc3-city-type-row { display: inline-flex; align-items: center; flex-wrap: wrap; margin: 1px 0; }
+                .vc3-city-type-row { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; margin: 1px 0; }
                 .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; }
                 .vc3-city-state:hover { color: #ffffff; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.9); }
                 .vc3-logo-img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
                 .vc3-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; min-width: 60px; }
-                .vc3-fav { position: relative; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; align-self: flex-end; }
+                .vc3-fav { position: relative; background: none; border: none; padding: 4px; cursor: pointer; transition: transform 0.2s; }
                 .vc3-fav:hover { transform: scale(1.15); }
                 .vc3-fav.active svg { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); }
-                .vc3-distance { display: inline-flex; align-items: center; justify-content: flex-end; gap: 3px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; width: 100%; }
+                .vc3-distance { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; white-space: nowrap; }
                 .vc3-hours-compact { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; display: block; text-align: right; width: 100%; }
                 .vc3-open-pill.closed { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
                 .vc3-open-dot.closed { background: #ef4444; animation: none; }

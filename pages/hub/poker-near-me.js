@@ -1195,6 +1195,13 @@ export default function PokerNearMePage() {
     const gpsAutoRequestedRef = useRef(false);
     useEffect(() => {
         if (gpsAutoRequestedRef.current) return;
+        
+        // Safety check: if deep-linking a search query, DO NOT load GPS as it overwrites searchQuery state
+        if (typeof window !== 'undefined' && window.location.search.includes('q=')) {
+            gpsAutoRequestedRef.current = true;
+            return;
+        }
+        
         gpsAutoRequestedRef.current = true;
 
         // Restore saved GPS location from localStorage for instant venue display
@@ -2222,39 +2229,52 @@ export default function PokerNearMePage() {
         return () => { if (deepLinkRef.current) clearTimeout(deepLinkRef.current); };
     }, [activeTab, activeEventTab, searchQuery, filters.venueType, router.isReady, router.asPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Read deep link params on mount (Wait for router.isReady!)
+    // Read deep link params on mount (Bypass Next.js router.query hydration delays)
     useEffect(() => {
-        if (!router.isReady || paramsAbsorbed.current) return;
-        paramsAbsorbed.current = true; // Mark as absorbed so writer unblocks
+        if (typeof window === 'undefined' || paramsAbsorbed.current) return;
 
-        if (router.query.q) {
-            setSearchQuery(String(router.query.q));
+        // Parse native URL immediately for 100% reliable deep-linking on first load
+        const searchParams = new URLSearchParams(window.location.search);
+        const qParam = searchParams.get('q');
+        const tabParam = searchParams.get('tab');
+        const subParam = searchParams.get('sub');
+        const filterParam = searchParams.get('filter');
+
+        if (qParam) {
+            setSearchQuery(qParam);
             setShowGlobalSearch(true); // Automatically open the global search modal!
         }
-        if (router.query.tab) {
-            const tab = String(router.query.tab);
+        
+        if (tabParam) {
             // Legacy tab mapping: tours/series/daily/calendar → events + sub-tab
             const LEGACY_EVENT_TABS = { tours: 'tours', series: 'series', daily: 'daily', calendar: 'calendar' };
-            if (LEGACY_EVENT_TABS[tab]) {
+            if (LEGACY_EVENT_TABS[tabParam]) {
                 setActiveTab('events');
-                setActiveEventTab(LEGACY_EVENT_TABS[tab]);
-            } else if (tab === 'favorites') {
+                setActiveEventTab(LEGACY_EVENT_TABS[tabParam]);
+            } else if (tabParam === 'favorites') {
                 setActiveTab('saved');
-            } else if (TAB_ORDER.includes(tab)) {
-                setActiveTab(tab);
+            } else if (TAB_ORDER.includes(tabParam)) {
+                setActiveTab(tabParam);
             }
         }
+        
         // Read events sub-tab from URL
-        if (router.query.sub && EVENTS_SUB_TABS.includes(router.query.sub)) {
-            setActiveEventTab(String(router.query.sub));
+        if (subParam && EVENTS_SUB_TABS.includes(subParam)) {
+            setActiveEventTab(subParam);
         }
-        if (router.query.sub && MORE_SUB_TABS.includes(router.query.sub)) {
-            setActiveMoreTab(String(router.query.sub));
+        if (subParam && MORE_SUB_TABS.includes(subParam)) {
+            setActiveMoreTab(subParam);
         }
-        if (router.query.filter) {
-            setFilters(prev => ({ ...prev, venueType: String(router.query.filter) }));
+        
+        if (filterParam) {
+            setFilters(prev => ({ ...prev, venueType: filterParam }));
         }
-    }, [router.isReady, router.query]); // eslint-disable-line react-hooks/exhaustive-deps
+
+        // Only release the writer block once Next's router is successfully hydrated
+        if (router.isReady) {
+            paramsAbsorbed.current = true;
+        }
+    }, [router.isReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ═══ SWIPE GESTURE HANDLERS ═══
     const handleTouchStart = useCallback((e) => {
@@ -2711,12 +2731,12 @@ export default function PokerNearMePage() {
                         isOpen={showGlobalSearch}
                         onClose={() => {
                             setShowGlobalSearch(false);
-                            if (router.query.q) {
-                                // Strip ?q= so it doesn't re-trigger on refresh if they closed it
+                            // Only replace if URL currently contains ?q=
+                            if (typeof window !== 'undefined' && window.location.search.includes('q=')) {
                                 router.replace('/hub/poker-near-me', undefined, { shallow: true });
                             }
                         }}
-                        searchQuery={router.query.q || ""}
+                        searchQuery={searchQuery}
                         onSearchChange={() => {}}
                         trackSearchEvent={trackSearchEvent}
                         allTours={tours || []}
