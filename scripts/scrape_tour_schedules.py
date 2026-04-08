@@ -392,8 +392,22 @@ def scrape_mspt() -> list:
         date_m = re.search(r'<div\s+class=["\']date_in["\']>(.*?)</div>', s, re.S)
         if not date_m: continue
         date_text = strip_html(date_m.group(1))
+        # Handle formats like "Apr 7-19, 2026" or "May 5-10, 2026"
         start_date_str = date_text.split("-")[0].strip() if "-" in date_text else date_text
         parsed_start = parse_date_str(start_date_str + " 2026")
+        
+        # Parse End Date if range exists
+        if "-" in date_text:
+            parts = date_text.split("-")
+            end_str = parts[1].split(",")[0].strip() # "19" or "10"
+            # If end_str is just digits, prepend the month from start_date
+            if end_str.isdigit():
+                month_m = re.search(r'([a-zA-Z]+)', start_date_str)
+                if month_m:
+                    end_str = f"{month_m.group(1)} {end_str}"
+            parsed_end = parse_date_str(end_str + " 2026")
+        else:
+            parsed_end = parsed_start
         
         cnt_m = re.search(r'<div\s+class=["\']schedule_cnt["\']>(.*?)</div>', s, re.S)
         venue_name = "Unknown Venue"
@@ -444,6 +458,7 @@ def scrape_mspt() -> list:
             extra={
                 "guaranteed": guar_amount,
                 "structure_sheet_url": pdf_url,
+                "end_date": parsed_end
             },
         )
         records.append(ev)
@@ -907,6 +922,7 @@ def build_event_record(
 
         # Schedule (from scrape only — NULL if not on page)
         "start_date":          start_date,
+        "end_date":            extra.get("end_date"),
         "event_date":          start_date,
         "start_time":          extra.get("start_time"),
         "day_of_week":         None,   # only set if source page lists it

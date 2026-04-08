@@ -426,7 +426,7 @@ export default function TourDetailPage() {
             <section className="sp-tabs-bar">
               <div className="sp-tabs-inner">
                 {[
-                  { id: 'schedule', label: currentStopType === 'current' ? 'Current Event' : currentStopType === 'next' ? 'Next Event' : 'Event Schedule', count: allEvents.length || (tour.series_2026||[]).length },
+                  { id: 'schedule', label: currentStopType === 'current' ? 'Current Event' : currentStopType === 'next' ? 'Next Event' : 'Event Schedule' },
                   { id: 'stops',    label: 'All Stops',      count: allStops.length || (tour.stops_2026||[]).length },
                   { id: 'about',    label: 'About' },
                   { id: 'results',  label: 'Results', count: results.length || null },

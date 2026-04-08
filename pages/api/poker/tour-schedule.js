@@ -94,8 +94,12 @@ const classifyStops = (events, today) => {
   const future = [], past = [];
 
   for (const stop of stops) {
-    const start = stop.stop_start_date ? new Date(stop.stop_start_date) : null;
-    const end = stop.stop_end_date ? new Date(stop.stop_end_date) : start;
+    const minEventDate = stop.events.reduce((min, ev) => (!min || new Date(ev.start_date) < min) ? new Date(ev.start_date) : min, null);
+    const maxEventDate = stop.events.reduce((max, ev) => (!max || new Date(ev.start_date) > max) ? new Date(ev.start_date) : max, null);
+
+    const start = stop.stop_start_date ? new Date(stop.stop_start_date) : minEventDate;
+    let end = stop.stop_end_date ? new Date(stop.stop_end_date) : maxEventDate;
+    if (!end) end = start;
 
     if (!start) {
       future.push(stop);
