@@ -1054,6 +1054,15 @@ def scrape_target(target):
                     break
                 time.sleep(0.2)
 
+    # ── Verify Static HTML Yields Data before skipping Phase 3 ────────────
+    if best_html:
+        tmp_sched = extract_next_data_schedules(best_html, best_url)
+        if not tmp_sched:
+            tmp_sched = extract_rich_fields_from_html(best_html, best_url)
+        if not tmp_sched:
+            print(f'    ⚠️  Static HTML had keywords but 0 schedules parsed. Forcing JS Browser Fallback.')
+            best_html = ''
+
     # ── PHASE 3: StealthySession JS browser (fallback only) ───────────────
     if not best_html:
         print(f'  [Phase 3] StealthySession JS browser (Playwright fallback)...')
