@@ -357,12 +357,35 @@ export default function GlobalSearchOverlay({
 
   // Load recent searches and GPS from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('pnm_recent_searches');
-      if (stored) setRecentSearches(JSON.parse(stored));
+    const syncRecents = () => {
+      try {
+        const stored = localStorage.getItem('pnm_recent_searches');
+        if (stored) setRecentSearches(JSON.parse(stored));
+      } catch { /* ignore */ }
+    };
+    
+    const syncGPS = () => {
       const gps = localStorage.getItem('sp-user-gps');
-      if (gps) setUserLocation(JSON.parse(gps));
-    } catch { /* ignore */ }
+      if (gps) try { setUserLocation(JSON.parse(gps)); } catch { /* ignore */ }
+    };
+
+    // Initial load
+    syncRecents();
+    syncGPS();
+
+    // Bus listener for cross-tab or cross-component sync
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'pnm_recent_searches') syncRecents();
+      if (e.key === 'sp-user-gps') syncGPS();
+    });
+    window.addEventListener('pnm_recent_recents_updated', syncRecents);
+    window.addEventListener('sp_user_gps_updated', syncGPS);
+    
+    return () => {
+      window.removeEventListener('storage', syncRecents);
+      window.removeEventListener('pnm_recent_recents_updated', syncRecents);
+      window.removeEventListener('sp_user_gps_updated', syncGPS);
+    };
   }, []);
 
   // Reset & focus when opened; abort in-flight fetches when closed
@@ -549,7 +572,10 @@ export default function GlobalSearchOverlay({
     const normalized = rawQuery.toLowerCase();
     setRecentSearches(prev => {
       const next = [normalized, ...prev.filter(q => q !== normalized)].slice(0, 5);
-      try { localStorage.setItem('pnm_recent_searches', JSON.stringify(next)); } catch { /* ignore */ }
+      try { 
+        localStorage.setItem('pnm_recent_searches', JSON.stringify(next)); 
+        window.dispatchEvent(new Event('pnm_recent_recents_updated'));
+      } catch { /* ignore */ }
       return next;
     });
 
