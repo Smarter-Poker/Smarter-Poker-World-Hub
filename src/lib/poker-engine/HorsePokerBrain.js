@@ -5307,9 +5307,10 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 const bHasA2 = bHasAce && bRanks.includes(0);
                 const bHasA3 = bHasAce && bRanks.includes(1);
                 const bNumLow = new Set(bRanks.filter(r => r <= 6 || r === 12).map(r => r === 12 ? -1 : r)).size;
-                if (bHasA2) blindPlo8Bonus = 20;
-                else if (bHasA3) blindPlo8Bonus = 12;
-                else if (bHasAce && bNumLow >= 3) blindPlo8Bonus = 8;
+                if (bHasA2 && bNumLow >= 3) blindPlo8Bonus = 40;
+                else if (bHasA2) blindPlo8Bonus = 30;
+                else if (bHasA3) blindPlo8Bonus = 22;
+                else if (bHasAce && bNumLow >= 3) blindPlo8Bonus = 15;
             }
             const blindDef = getPLOBlindDefense(position, baseStrength + loosenessBias + blindPlo8Bonus, toCall, bb, potSize, numPlayers, legalActions);
             if (blindDef) return { type: blindDef.action, amount: blindDef.amount };
@@ -5326,7 +5327,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // Bug #201: PLO8 preflop low-card valuation — in Hi-Lo, low cards are premium.
         // A-2-3-x, A-2-4-x, A-3-4-x are tier 1 hands because they make nut/near-nut lows.
-        // Without this, the classifier treats them like garbage (low rundowns get 0.45x penalty).
+        // The PLO classifier applies a 0.45x penalty to low rundowns (5-high hands) because
+        // in regular PLO they make only bottom straights. But in PLO8, low cards ARE the value.
+        // A-2-3-5 gets base strength ~10 in PLO classifier — needs +40 to reach playable (~50).
         let plo8PreflopBonus = 0;
         if (isHiLo) {
             const hRanksPreflop = holeCards.map(c => c.rank);
@@ -5339,12 +5342,12 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             // Count qualifying low cards (A counts as low in PLO8)
             const numLowCards = uniqueLowRanks.size;
 
-            if (hasA2 && numLowCards >= 3) plo8PreflopBonus = 25;       // A-2-x-x with 3+ lows = premium
-            else if (hasA2) plo8PreflopBonus = 20;                       // A-2 bare = still very strong
-            else if (hasA3 && numLowCards >= 3) plo8PreflopBonus = 15;   // A-3-x-x with backup lows
-            else if (hasA3) plo8PreflopBonus = 10;                       // A-3 bare
-            else if (hasAce && numLowCards >= 3) plo8PreflopBonus = 8;   // Ace + low cards
-            else if (numLowCards >= 3) plo8PreflopBonus = 5;             // Low cards but no Ace (weak low draw)
+            if (hasA2 && numLowCards >= 3) plo8PreflopBonus = 45;       // A-2-x-x with 3+ lows = premium (e.g. A-2-3-5)
+            else if (hasA2) plo8PreflopBonus = 35;                       // A-2 bare = still very strong
+            else if (hasA3 && numLowCards >= 3) plo8PreflopBonus = 30;   // A-3-x-x with backup lows
+            else if (hasA3) plo8PreflopBonus = 20;                       // A-3 bare
+            else if (hasAce && numLowCards >= 3) plo8PreflopBonus = 15;  // Ace + low cards
+            else if (numLowCards >= 3) plo8PreflopBonus = 8;             // Low cards but no Ace (weak low draw)
         }
         const strength = baseStrengthPreflop + loosenessBias + deepAdj.preflopRangeExpansion + preflopEnhancement.totalBonus + plo8PreflopBonus;
 

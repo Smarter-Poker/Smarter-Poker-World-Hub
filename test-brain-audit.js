@@ -19906,6 +19906,158 @@ test('PLO8: numHoleCards removed from destructuring (source verify)', () => {
     expect(src.includes('isHiLo } = state')).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// Bug #201: PLO8 preflop low-card valuation
+// ═══════════════════════════════════════════════════════════
+
+test('BUG201: A-2-3-5 plays preflop in PLO8 (does not fold)', () => {
+    const la = [{ type: 'call', amount: 2 }, { type: 'raise', minAmount: 7, maxAmount: 200 }, { type: 'fold' }];
+    let folds = 0;
+    for (let i = 0; i < 20; i++) {
+        const d = brain.makePLOFallbackDecision('b201-' + i, {
+            holeCards: ['Ah', '2d', '3s', '5c'], board: [], street: 'preflop', position: 'CO',
+            stackBB: 100, potSize: 5, toCall: 2, bb: 2, numPlayers: 2, isHiLo: true, gameType: 'cash'
+        }, la);
+        if (d.type === 'fold') folds++;
+    }
+    expect(folds <= 3).toBe(true); // Should rarely fold premium PLO8 hand
+});
+
+test('BUG201: A-2-3-5 folds in regular PLO (no Hi-Lo bonus)', () => {
+    const la = [{ type: 'call', amount: 2 }, { type: 'raise', minAmount: 7, maxAmount: 200 }, { type: 'fold' }];
+    let folds = 0;
+    for (let i = 0; i < 20; i++) {
+        const d = brain.makePLOFallbackDecision('b201nhl-' + i, {
+            holeCards: ['Ah', '2d', '3s', '5c'], board: [], street: 'preflop', position: 'CO',
+            stackBB: 100, potSize: 5, toCall: 2, bb: 2, numPlayers: 2, isHiLo: false, gameType: 'cash'
+        }, la);
+        if (d.type === 'fold') folds++;
+    }
+    expect(folds >= 15).toBe(true); // Should fold in regular PLO (low junk)
+});
+
+test('BUG201: A-2-K-K raises preflop in PLO8', () => {
+    const la = [{ type: 'call', amount: 2 }, { type: 'raise', minAmount: 7, maxAmount: 200 }, { type: 'fold' }];
+    let raises = 0;
+    for (let i = 0; i < 20; i++) {
+        const d = brain.makePLOFallbackDecision('b201kk-' + i, {
+            holeCards: ['Ah', '2d', 'Ks', 'Kc'], board: [], street: 'preflop', position: 'CO',
+            stackBB: 100, potSize: 5, toCall: 2, bb: 2, numPlayers: 2, isHiLo: true, gameType: 'cash'
+        }, la);
+        if (d.type === 'raise' || d.type === 'bet') raises++;
+    }
+    expect(raises >= 15).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #202/#203: Quartering risk + board low devaluation
+// ═══════════════════════════════════════════════════════════
+
+test('BUG202: quartering risk HIGH when 4+ board lows', () => {
+    // Board A-2-3-5-7 = 5 qualifying low ranks
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 1, suit: 'h' }, { rank: 2, suit: 'd' }, { rank: 11, suit: 's' }, { rank: 10, suit: 'c' }],
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'c' }, { rank: 1, suit: 's' }, { rank: 3, suit: 'd' }, { rank: 5, suit: 'h' }]
+    );
+    expect(lo8.quarteringRisk === 'high').toBe(true);
+    expect(lo8.lowValueDiscount <= 0.50).toBe(true);
+});
+
+test('BUG202: quartering risk LOW when exactly 3 board lows on flop', () => {
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 3, suit: 'c' }, { rank: 5, suit: 's' }]
+    );
+    expect(lo8.quarteringRisk === 'low').toBe(true);
+    expect(lo8.lowValueDiscount === 1.0).toBe(true);
+});
+
+test('BUG203: lowValueDiscount wired into lo8Bonus (source verify)', () => {
+    const src = brainSource;
+    expect(src.includes('lo8LowDiscount')).toBe(true);
+    expect(src.includes('lo8?.lowValueDiscount')).toBe(true);
+    expect(src.includes('Bug #202')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #204: lo8LowOuts equity cap
+// ═══════════════════════════════════════════════════════════
+
+test('BUG204: lo8 effective low outs capped at 6 (source verify)', () => {
+    const src = brainSource;
+    expect(src.includes('lo8EffectiveLowOuts')).toBe(true);
+    expect(src.includes('Math.min(Math.round(lo8LowOuts * 0.5 * lo8LowDiscount), 6)')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #205: Split pot pot-control
+// ═══════════════════════════════════════════════════════════
+
+test('BUG205: nut low + weak high checks (pot-control)', () => {
+    let checks = 0;
+    for (let i = 0; i < 20; i++) {
+        const d = brain.makePLOFallbackDecision('b205-' + i, {
+            holeCards: ['Ah', '2d', '9s', '8c'], board: ['3h', '5c', '7s'],
+            street: 'flop', position: 'co', stackBB: 100, potSize: 30,
+            toCall: 0, bb: 2, numPlayers: 3, isHiLo: true, gameType: 'cash'
+        }, [{ type: 'check' }, { type: 'raise', minAmount: 5, maxAmount: 100 }]);
+        if (d.type === 'check') checks++;
+    }
+    expect(checks >= 12).toBe(true); // Most should check (pot-control with weak high)
+});
+
+test('BUG205: source has PLO8 POT-CONTROL comment', () => {
+    const src = brainSource;
+    expect(src.includes('PLO8 POT-CONTROL')).toBe(true);
+    expect(src.includes('Bug #205')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #206: Non-nut low calling threshold
+// ═══════════════════════════════════════════════════════════
+
+test('BUG206: source has non-nut low bet fraction check', () => {
+    const src = brainSource;
+    expect(src.includes('betFraction <= 0.60')).toBe(true);
+    expect(src.includes('Bug #206')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// E2E: Full getDecision pipeline with variant plo8
+// ═══════════════════════════════════════════════════════════
+
+asyncTest('E2E: getDecision plo8 flop nut-low never folds', async () => {
+    let folds = 0;
+    for (let i = 0; i < 10; i++) {
+        const d = await brain.getDecision('e2e-flop-' + i, {
+            phase: 'flop', communityCards: ['3h', '5c', '7s'], potTotal: 30, currentBet: 10, variant: 'plo8',
+            players: [
+                { id: 'e2e-flop-' + i, holeCards: ['Ah', '2d', 'Ks', 'Kc'], position: 'CO', stack: 200, invested: 0, folded: false },
+                { id: 'v1', holeCards: [], position: 'BB', stack: 200, invested: 10, folded: false }
+            ]
+        }, [{ type: 'call', amount: 10 }, { type: 'raise', minAmount: 20, maxAmount: 200 }, { type: 'fold' }],
+        { variant: 'plo8', bigBlind: 2 });
+        if (d?.action?.type === 'fold') folds++;
+    }
+    expect(folds).toBe(0);
+});
+
+asyncTest('E2E: getDecision plo8 preflop A-2-3-5 plays', async () => {
+    let folds = 0;
+    for (let i = 0; i < 10; i++) {
+        const d = await brain.getDecision('e2e-pf-' + i, {
+            phase: 'preflop', communityCards: [], potTotal: 5, currentBet: 2, variant: 'plo8',
+            players: [
+                { id: 'e2e-pf-' + i, holeCards: ['Ah', '2d', '3s', '5c'], position: 'CO', stack: 200, invested: 0, folded: false },
+                { id: 'v1', holeCards: [], position: 'BB', stack: 200, invested: 2, folded: false }
+            ]
+        }, [{ type: 'call', amount: 2 }, { type: 'raise', minAmount: 7, maxAmount: 200 }, { type: 'fold' }],
+        { variant: 'plo8', bigBlind: 2 });
+        if (d?.action?.type === 'fold') folds++;
+    }
+    expect(folds <= 2).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
