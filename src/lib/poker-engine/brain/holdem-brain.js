@@ -22,6 +22,9 @@ const { getHash, getPreflopStrength, getPersonalityModule, getAdvancedModule, ch
 const { selectCounterStrategy, detectReverseImplied, getOpponentSessionRead, recordStreetAction, getStreetMemory, analyzeStreetNarrative } = require('./anti-exploit');
 const { getAdaptiveStrategy, getPerformanceStats } = require('./session-analytics');
 
+// Alias: monolith used RANKS, core.js exports RANK_ORDER — they are identical arrays
+const RANKS = RANK_ORDER;
+
 // Live observer is not yet extracted — stub with safe fallback
 let _getLiveRead = null;
 function setLiveReadFn(fn) { _getLiveRead = fn; }

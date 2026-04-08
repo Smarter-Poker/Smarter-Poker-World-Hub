@@ -13,9 +13,37 @@
  *   - In-hand action sequence for current hand
  *   - LRU eviction to prevent unbounded memory growth
  *
- * This module has ZERO external dependencies — fully self-contained.
+ * Dependencies:
+ *   - session-analytics.js: loadTableJournals (lazy-loaded to avoid circular deps)
  */
 
+// Lazy-load session-analytics to avoid circular dependency
+let _sessionAnalytics = null;
+function _getSA() {
+    if (!_sessionAnalytics) {
+        try { _sessionAnalytics = require('./session-analytics'); }
+        catch (_) { _sessionAnalytics = {}; }
+    }
+    return _sessionAnalytics;
+}
+function loadTableJournals(tableId, playerIds, horseIds) {
+    try {
+        const fn = _getSA().loadTableJournals;
+        return fn ? fn(tableId, playerIds, horseIds) : Promise.resolve();
+    } catch (_) { return Promise.resolve(); }
+}
+function persistTableJournals(horseId, tableId) {
+    try {
+        const fn = _getSA().persistTableJournals;
+        return fn ? fn(horseId, tableId) : Promise.resolve();
+    } catch (_) { return Promise.resolve(); }
+}
+function persistOpponentJournal(horseId, opponentId, profile) {
+    try {
+        const fn = _getSA().persistOpponentJournal;
+        return fn ? fn(horseId, opponentId, profile) : Promise.resolve();
+    } catch (_) { return Promise.resolve(); }
+}
 
 const liveObserver = new Map(); // horseId → Map<tableId, TableObserver>
 
