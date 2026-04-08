@@ -44,6 +44,90 @@ const TOUR_COLORS = {
   RGPS: '#10b981', PGT: '#8b5cf6', NAPT: '#f87171', FPN: '#818cf8',
 };
 
+// ─── Natural Language Query Parser ───────────────────────────────────────────
+// Parses queries like "tournaments next month in Illinois" into structured intents
+const US_STATES = {
+  alabama:'AL', alaska:'AK', arizona:'AZ', arkansas:'AR', california:'CA', colorado:'CO',
+  connecticut:'CT', delaware:'DE', florida:'FL', georgia:'GA', hawaii:'HI', idaho:'ID',
+  illinois:'IL', indiana:'IN', iowa:'IA', kansas:'KS', kentucky:'KY', louisiana:'LA',
+  maine:'ME', maryland:'MD', massachusetts:'MA', michigan:'MI', minnesota:'MN', mississippi:'MS',
+  missouri:'MO', montana:'MT', nebraska:'NE', nevada:'NV', 'new hampshire':'NH',
+  'new jersey':'NJ', 'new mexico':'NM', 'new york':'NY', 'north carolina':'NC',
+  'north dakota':'ND', ohio:'OH', oklahoma:'OK', oregon:'OR', pennsylvania:'PA',
+  'rhode island':'RI', 'south carolina':'SC', 'south dakota':'SD', tennessee:'TN',
+  texas:'TX', utah:'UT', vermont:'VT', virginia:'VA', washington:'WA',
+  'west virginia':'WV', wisconsin:'WI', wyoming:'WY',
+};
+// Also accept abbreviations directly
+const STATE_ABBREVS = Object.values(US_STATES);
+
+function parseNaturalLanguageQuery(raw) {
+  const q = (raw || '').toLowerCase().trim();
+  const result = { location: null, stateCode: null, timeWindow: null, gameType: null, isNaturalLanguage: false, cleanQuery: raw };
+  if (!q) return result;
+
+  // Detect game type intent
+  if (/\btournament|tourney|tournaments\b/.test(q)) { result.gameType = 'tournament'; result.isNaturalLanguage = true; }
+  else if (/\bcash\s+game|cash\s+games\b/.test(q)) { result.gameType = 'cash'; result.isNaturalLanguage = true; }
+  else if (/\blive\s+game|live\s+games\b/.test(q)) { result.gameType = 'live'; result.isNaturalLanguage = true; }
+
+  // Detect time window
+  if (/\bnext\s+month\b/.test(q)) { result.timeWindow = 'next_month'; result.isNaturalLanguage = true; }
+  else if (/\bthis\s+week\b/.test(q)) { result.timeWindow = 'this_week'; result.isNaturalLanguage = true; }
+  else if (/\bnext\s+week\b/.test(q)) { result.timeWindow = 'next_week'; result.isNaturalLanguage = true; }
+  else if (/\bthis\s+weekend\b|\bweekend\b/.test(q)) { result.timeWindow = 'this_weekend'; result.isNaturalLanguage = true; }
+  else if (/\btoday\b/.test(q)) { result.timeWindow = 'today'; result.isNaturalLanguage = true; }
+  else if (/\btomorrow\b/.test(q)) { result.timeWindow = 'tomorrow'; result.isNaturalLanguage = true; }
+
+  // Detect location — full state name first
+  for (const [name, code] of Object.entries(US_STATES)) {
+    if (q.includes(name)) { result.stateCode = code; result.location = name; result.isNaturalLanguage = true; break; }
+  }
+  // Then 2-letter abbreviation (e.g. "in IL", " IL ")
+  if (!result.stateCode) {
+    const abbrMatch = q.match(/\b([A-Za-z]{2})\b/g);
+    if (abbrMatch) {
+      for (const abbr of abbrMatch) {
+        const upper = abbr.toUpperCase();
+        if (STATE_ABBREVS.includes(upper)) { result.stateCode = upper; result.location = upper; result.isNaturalLanguage = true; break; }
+      }
+    }
+  }
+
+  // Build a clean keyword-only query for the API (strip NL words)
+  if (result.isNaturalLanguage) {
+    let clean = q
+      .replace(/\bnext\s+month\b|\bthis\s+week\b|\bnext\s+week\b|\bthis\s+weekend\b|\bweekend\b|\btoday\b|\btomorrow\b/g, '')
+      .replace(/\btournament[s]?\b|\btourney\b|\bcash\s+games?\b|\blive\s+games?\b/g, '')
+      .replace(/\b(in|at|near|around|for|the|show|me|all|find|with)\b/g, '')
+      .replace(/\s+/g, ' ').trim();
+    // Remove the state name from the clean query too (it gets passed as a separate filter)
+    if (result.location && result.location.length > 2) clean = clean.replace(new RegExp(result.location, 'gi'), '').trim();
+    result.cleanQuery = clean || (result.stateCode || '');
+  }
+
+  return result;
+}
+
+function TimeWindowLabel({ timeWindow }) {
+  const labels = {
+    today: '📅 Today',
+    tomorrow: '📅 Tomorrow',
+    this_week: '📅 This Week',
+    next_week: '📅 Next Week',
+    this_weekend: '📅 This Weekend',
+    next_month: '📅 Next Month',
+  };
+  const label = labels[timeWindow];
+  if (!label) return null;
+  return (
+    <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontSize: 11, fontWeight: 700, marginLeft: 6 }}>
+      {label}
+    </span>
+  );
+}
+
+
 // ═══════════════════════════════════════════════════════════
 // DETAIL MODAL
 // ═══════════════════════════════════════════════════════════
@@ -259,6 +343,7 @@ export default function GlobalSearchOverlay({
   const [seriesResults, setSeriesResults] = useState([]);
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [detailItem, setDetailItem] = useState(null);
+  const [nlIntent, setNlIntent] = useState(null); // parsed natural language intent
   const debounceRef = useRef(null);
 
   // Reset & focus when opened
@@ -350,26 +435,36 @@ export default function GlobalSearchOverlay({
     }
   }, [onSearchChange, matchTours, matchSeries, cachedFetch]);
 
-  // Full search on submit
+  // Full search on submit — supports natural language queries
   const handleSubmit = useCallback(async (e, overrideQuery) => {
     e?.preventDefault?.();
-    const query = (overrideQuery || localQuery).trim();
-    if (!query) return;
+    const rawQuery = (overrideQuery || localQuery).trim();
+    if (!rawQuery) return;
     inputRef.current?.blur();
     setPhase('results');
     setIsLoading(true);
     setCitySuggestions([]);
     setDetailItem(null);
 
-    const venueUrl = `/api/poker/venues?limit=200&offset=0&search=${encodeURIComponent(query)}&sort=trust`;
+    // Parse for natural language intent
+    const intent = parseNaturalLanguageQuery(rawQuery);
+    setNlIntent(intent.isNaturalLanguage ? intent : null);
+    const apiQuery = intent.isNaturalLanguage ? intent.cleanQuery : rawQuery;
+
+    // Build venue API URL — inject state filter if detected
+    const params = new URLSearchParams({ limit: '200', offset: '0', sort: 'trust' });
+    if (apiQuery) params.set('search', apiQuery);
+    if (intent.stateCode) params.set('state', intent.stateCode);
+    const venueUrl = `/api/poker/venues?${params.toString()}`;
     try {
       const data = await (cachedFetch ? cachedFetch(venueUrl) : fetch(venueUrl).then(r => r.json()));
       const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setVenueResults(venues);
     } catch { setVenueResults([]); }
 
-    setTourResults(matchTours(query));
-    setSeriesResults(matchSeries(query));
+    // For tours/series — use the full raw query for broader matching
+    setTourResults(matchTours(rawQuery));
+    setSeriesResults(matchSeries(rawQuery));
     setIsLoading(false);
   }, [localQuery, cachedFetch, matchTours, matchSeries]);
 
@@ -590,10 +685,25 @@ export default function GlobalSearchOverlay({
               )}
 
               {!isLoading && hasResults && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, padding: '10px 14px', background: 'rgba(110,231,239,0.05)', border: '1px solid rgba(110,231,239,0.1)', borderRadius: 10 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6ee7ef" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  <span style={{ fontSize: 13, color: '#6ee7ef', fontWeight: 600 }}>{totalResults} result{totalResults !== 1 ? 's' : ''} for "{localQuery}"</span>
-                  <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', marginLeft: 4 }}>— No location filter</span>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, padding: '10px 14px', background: 'rgba(110,231,239,0.05)', border: '1px solid rgba(110,231,239,0.1)', borderRadius: 10 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6ee7ef" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span style={{ fontSize: 13, color: '#6ee7ef', fontWeight: 600 }}>{totalResults} result{totalResults !== 1 ? 's' : ''} for "{localQuery}"</span>
+                    {nlIntent ? (
+                      <>
+                        {nlIntent.stateCode && <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(110,231,239,0.15)', color: '#6ee7ef', fontSize: 11, fontWeight: 700 }}>📍 {nlIntent.stateCode}</span>}
+                        {nlIntent.timeWindow && <TimeWindowLabel timeWindow={nlIntent.timeWindow} />}
+                        {nlIntent.gameType && <span style={{ padding: '2px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.15)', color: '#34d399', fontSize: 11, fontWeight: 700 }}>🃏 {nlIntent.gameType === 'tournament' ? 'Tournaments' : nlIntent.gameType === 'cash' ? 'Cash Games' : 'Live Games'}</span>}
+                      </>
+                    ) : (
+                      <span style={{ fontSize: 12, color: 'rgba(200,214,229,0.35)', marginLeft: 4 }}>— Global Search</span>
+                    )}
+                  </div>
+                  {nlIntent?.isNaturalLanguage && (
+                    <div style={{ marginTop: 8, padding: '8px 14px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 8, fontSize: 11, color: 'rgba(200,214,229,0.5)', lineHeight: 1.5 }}>
+                      <span style={{ color: '#a78bfa', fontWeight: 700 }}>Smart Search</span> — Detected intent: {[nlIntent.gameType && `${nlIntent.gameType}s`, nlIntent.timeWindow?.replace('_', ' '), nlIntent.stateCode && `in ${nlIntent.stateCode}`].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
                 </div>
               )}
 

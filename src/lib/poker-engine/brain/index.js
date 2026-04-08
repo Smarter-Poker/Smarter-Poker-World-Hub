@@ -23,6 +23,7 @@
 const core = require('./core');
 const antiExploit = require('./anti-exploit');
 const sessionAnalytics = require('./session-analytics');
+const plo8Brain = require('./plo8-brain');
 
 // Phase 2: Legacy monolith (still serves most functions during migration)
 const legacy = require('../HorsePokerBrain');
@@ -112,4 +113,7 @@ module.exports = {
     persistTableJournals: sessionAnalytics.persistTableJournals,
     loadTableJournals: sessionAnalytics.loadTableJournals,
     _applyJournalToProfile: sessionAnalytics._applyJournalToProfile,
+
+    // plo8-brain.js (PLO8 Hi-Lo)
+    evaluatePLO8Low: plo8Brain.evaluatePLO8Low,
 };
