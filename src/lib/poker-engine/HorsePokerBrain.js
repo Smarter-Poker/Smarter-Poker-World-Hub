@@ -13674,9 +13674,12 @@ function getOOPDecisionMatrix(params) {
         };
     }
 
-    // ═══ TIER 5: AIR / GARBAGE (< 15 strength, no draws) ═══
+    // ═══ TIER 5: AIR / GARBAGE (< 25 strength, no draws) ═══
     // Check-fold most of the time, occasionally check-raise bluff
-    if (handStrength < 15) {
+    // Bug #193: Was < 15 — hands with 15-24 strength and no draws (bottom pair, Ace high)
+    // are NOT calling hands facing bets. aggressionBias can push 13→17, dodging the air tier.
+    // Expanded to < 25 so true garbage doesn't leak chips calling with nothing.
+    if (handStrength < 25) {
         // Check-raise bluff at low frequency on good boards
         if (!multiway && street !== 'river' && boardWetness === 'dry') {
             let bluffCRFreq = 0.08 + aggressionBias / 60;
@@ -13704,10 +13707,12 @@ function getOOPDecisionMatrix(params) {
         };
     }
 
-    // Default fallthrough
+    // Default fallthrough — Bug #193: was check_call, letting garbage hands call bets.
+    // Any hand that falls through ALL tiers without a draw is not worth calling.
+    // Fold facing bets; if somehow checked to, check back.
     return {
-        action: 'check_call', frequency: 0.50,
-        sizeFraction: 0, reason: 'default_fallthrough'
+        action: 'check_fold', frequency: 0.75,
+        sizeFraction: 0, reason: 'default_fallthrough_fold'
     };
 }
 

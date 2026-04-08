@@ -2,7 +2,7 @@
   "metadata": {
     "description": "SOURCE OF TRUTH: Authoritative scraping URLs for all US traveling poker tour schedules. Used by automated scrapers to refresh tour-source-registry.json.",
     "created": "2026-04-04",
-    "last_updated": "2026-04-07",
+    "last_updated": "2026-04-08",
     "refresh_interval_days": 3,
     "pdf_scraping_enabled": true,
     "notes": "These URLs are the CANONICAL sources for schedule data. Each tour has primary (official site), secondary (aggregator), PDF schedule downloads, and API sources where available. PDF sources provide event-level detail (event#, time, buy-in, GTD, chips, levels)."
@@ -28,9 +28,9 @@
           "notes": "Printable PDF of full WSOP schedule — most reliable static source with all 100 events."
         },
         "wsop_official_pdf": {
-          "url": "https://www.wsop.com/2026/assets/2026-WSOP-Schedule.pdf",
+          "url": "https://www.wsop.com/2026/assets/2026-WSOP-Official-Schedule.pdf",
           "method": "pdf_direct",
-          "notes": "Official WSOP 2026 schedule PDF (if available)."
+          "notes": "Verified official WSOP 2026 schedule PDF."
         },
         "pokeratlas": {
           "url": "https://www.pokeratlas.com/poker-tournaments/wsop",
@@ -67,6 +67,11 @@
           "method": "puppeteer",
           "notes": "WPT Prime (lower buy-in) series schedule."
         },
+        "stop_schedules": {
+          "url": "https://www.worldpokertour.com/tournaments/",
+          "method": "puppeteer",
+          "notes": "Stop-level schedule pages for individual WPT events."
+        },
         "pokeratlas": {
           "url": "https://www.pokeratlas.com/poker-tournaments/wpt",
           "method": "scrapling",
@@ -89,6 +94,11 @@
           "url": "https://www.wsop.com/circuit/",
           "method": "puppeteer",
           "notes": "Official WSOP Circuit page with all domestic stop dates."
+        },
+        "pdf_crawl": {
+          "url": "https://www.wsop.com/circuit/schedule/",
+          "method": "pdf_crawl",
+          "notes": "Crawl for PDF schedule links on individual stop pages."
         },
         "maineventtravel": {
           "url": "https://maineventtravel.com/wsop-circuit/",
@@ -123,7 +133,10 @@
             "east_chicago_2026": 589,
             "potawatomi_spring_2026": 590,
             "michigan_state_2026": 591,
-            "sycuan_showdown_2026": 592
+            "sycuan_showdown_2026": 592,
+            "riverside_2026": 593,
+            "black_hawk_2026": 594,
+            "deadwood_2026": 595
           }
         },
         "pokeratlas": {
@@ -148,6 +161,11 @@
           "url": "https://www.rungoodgear.com/poker/",
           "method": "scrapling",
           "notes": "Official RunGood schedule page (via rungoodgear.com)."
+        },
+        "pdf_crawl": {
+          "url": "https://www.rungoodgear.com/poker/",
+          "method": "pdf_crawl",
+          "notes": "Crawl for PDF schedule links on stop-specific pages."
         },
         "rungood_events": {
           "url": "https://rungood.com/schedule",
