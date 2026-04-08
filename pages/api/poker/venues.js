@@ -1174,7 +1174,8 @@ export default async function handler(req, res) {
           }
 
           // --- Apply limit and return ---
-          const total = venues.length;
+          // Only count physical playable venues in the total — series and tours are NOT counted as venues
+          const total = venues.filter(v => !['series', 'tour'].includes(v.venue_type)).length;
           // No cap — return all venues (dataset is manageable size)
           const limited = venues;
 

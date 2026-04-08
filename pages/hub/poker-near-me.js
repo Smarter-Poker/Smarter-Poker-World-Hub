@@ -2730,7 +2730,7 @@ export default function PokerNearMePage() {
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
                     <p className="pnm-subtitle">
-                        {allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '764'} Venues
+                        {allVenuesForMap.filter(v => !['series', 'tour'].includes(v.venue_type)).length > 0 ? allVenuesForMap.filter(v => !['series', 'tour'].includes(v.venue_type)).length.toLocaleString() : '507'} Venues
                         &nbsp;&bull;&nbsp;
                         {liveTableCount > 0 ? liveTableCount.toLocaleString() : '316'} Live Tables
                         &nbsp;&bull;&nbsp;
