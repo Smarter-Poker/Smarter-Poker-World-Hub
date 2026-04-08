@@ -35,8 +35,10 @@ export default async function handler(req, res) {
   }
 
   const { venue_id, venue } = req.query;
+  const safeVenueId = venue_id ? venue_id.replace(/[()'",.;]/g, '').trim() : null;
+  const safeVenue = venue ? venue.replace(/[()'",.;]/g, '').trim() : null;
 
-  if (!venue_id && !venue) {
+  if (!safeVenueId && !safeVenue) {
     return res.status(400).json({ success: false, error: 'venue_id or venue name required' });
   }
 
@@ -51,11 +53,11 @@ export default async function handler(req, res) {
       .gte('snapshot_time', fourWeeksAgo)
       .order('snapshot_time', { ascending: true });
 
-    if (venue_id) {
+    if (safeVenueId) {
       // Match by bravo_slug pattern for venue_id
-      query = query.or(`bravo_slug.eq.${venue_id},bravo_slug.ilike.%${venue_id}%`);
-    } else if (venue) {
-      query = query.ilike('venue_name', `%${venue}%`);
+      query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
+    } else if (safeVenue) {
+      query = query.ilike('venue_name', `%${safeVenue}%`);
     }
 
     const { data, error } = await query.limit(10000);

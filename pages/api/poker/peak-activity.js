@@ -20,6 +20,9 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default async function handler(req, res) {
   const { venue, venue_id, game_type } = req.query;
+  const safeVenue = venue ? venue.replace(/[()'",.;]/g, '').trim() : null;
+  const safeVenueId = venue_id ? venue_id.replace(/[()'",.;]/g, '').trim() : null;
+  const safeGameType = game_type ? game_type.replace(/[()'",.;]/g, '').trim() : null;
   
   // CDN cache: fresh for 5min, serve stale up to 10min
   res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
@@ -40,10 +43,10 @@ export default async function handler(req, res) {
         .gte('snapshot_time', twoWeeksAgo)
         .order('snapshot_time', { ascending: true });
       
-      if (venue_id) {
-        query = query.or(`bravo_slug.eq.${venue_id},bravo_slug.ilike.%${venue_id}%`);
-      } else if (venue) {
-        query = query.ilike('venue_name', `%${venue}%`);
+      if (safeVenueId) {
+        query = query.or(`bravo_slug.eq.${safeVenueId},bravo_slug.ilike.%${safeVenueId}%`);
+      } else if (safeVenue) {
+        query = query.ilike('venue_name', `%${safeVenue}%`);
       }
       
       const result = await query.limit(10000);
@@ -68,10 +71,10 @@ export default async function handler(req, res) {
         .gte('snapshot_time', twoWeeksAgo)
         .order('snapshot_time', { ascending: true });
       
-      if (venue_id) {
-        query = query.eq('venue_id', parseInt(venue_id, 10));
-      } else if (venue) {
-        query = query.ilike('venue_name', `%${venue}%`);
+      if (safeVenueId) {
+        query = query.eq('venue_id', parseInt(safeVenueId, 10));
+      } else if (safeVenue) {
+        query = query.ilike('venue_name', `%${safeVenue}%`);
       }
       
       const result = await query.limit(10000);

@@ -120,7 +120,8 @@ export default async function handler(req, res) {
 
           // Filter by game type
           if (game_type && game_type !== 'all') {
-              query = query.ilike('game_type', `%${game_type}%`);
+              const safeGameType = game_type.replace(/[()'",.;]/g, '').trim().slice(0, 100);
+              if (safeGameType) query = query.ilike('game_type', `%${safeGameType}%`);
           }
 
           // Filter by minimum guaranteed prize
@@ -149,7 +150,8 @@ export default async function handler(req, res) {
               .eq('data_quality', 'scraped_verified');
               
           if (state) {
-              charityQuery = charityQuery.ilike('state', state);
+              const safeState = state.replace(/[()'",.;]/g, '').trim().slice(0, 50);
+              if (safeState) charityQuery = charityQuery.ilike('state', safeState);
           }
           const { data: dbCharityEvents } = await charityQuery;
           
@@ -160,7 +162,8 @@ export default async function handler(req, res) {
               .eq('data_quality', 'scraped_verified');
               
           if (state) {
-              toursQuery = toursQuery.ilike('state', state);
+              const safeState = state.replace(/[()'",.;]/g, '').trim().slice(0, 50);
+              if (safeState) toursQuery = toursQuery.ilike('state', safeState);
           }
           const { data: dbToursEvents } = await toursQuery;
 

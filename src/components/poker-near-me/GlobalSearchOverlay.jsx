@@ -445,6 +445,7 @@ export default function GlobalSearchOverlay({
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             data = await r.json();
           }
+          if (signal.aborted) return; // [BUG FIX] Prevent stale state updates if aborted
           const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
           setVenueResults(venues.slice(0, 5));
         } catch (err) {
@@ -475,11 +476,28 @@ export default function GlobalSearchOverlay({
     if (apiQuery) params.set('search', apiQuery);
     if (intent.stateCode) params.set('state', intent.stateCode);
     const venueUrl = `/api/poker/venues?${params.toString()}`;
+
+    // Cancel any previous in-flight request to prevent stale results
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     try {
-      const data = await (cachedFetch ? cachedFetch(venueUrl) : fetch(venueUrl).then(r => r.json()));
+      let data;
+      if (cachedFetch) {
+        data = await cachedFetch(venueUrl);
+      } else {
+        const r = await fetch(venueUrl, { signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        data = await r.json();
+      }
+      if (signal.aborted) return;
       const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       setVenueResults(venues);
-    } catch { setVenueResults([]); }
+    } catch (err) {
+      if (err?.name !== 'AbortError') console.warn('[GlobalSearch] Venue search failed:', err);
+      setVenueResults([]); 
+    }
 
     // For tours/series — use the full raw query for broader matching
     setTourResults(matchTours(rawQuery));

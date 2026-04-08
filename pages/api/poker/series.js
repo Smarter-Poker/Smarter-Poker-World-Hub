@@ -216,14 +216,14 @@ export default async function handler(req, res) {
         }
 
         if (tour) {
-          const safeTour = tour.replace(/[,().]/g, ' ').trim();
+          const safeTour = tour.replace(/[()'",.;]/g, ' ').trim();
           if (safeTour) {
               query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
           }
         }
 
         if (search) {
-          const safeSearch = search.replace(/[,().]/g, ' ').trim();
+          const safeSearch = search.replace(/[()'",.;]/g, ' ').trim();
           if (safeSearch) {
               query = query.or(
                 `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`

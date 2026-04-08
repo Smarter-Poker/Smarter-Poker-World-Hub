@@ -467,10 +467,11 @@ export default async function handler(req, res) {
                       spQuery = null;
                   }
                   if (search) {
-                      const searchAbbrev = resolveStateAbbrev(search);
-                      const searchStateName = STATE_ABBREV_TO_NAME[search.toUpperCase()];
+                      const sanitizedSearch = search.trim().slice(0, 200).replace(/[()'",.;]/g, '');
+                      const searchAbbrev = resolveStateAbbrev(sanitizedSearch);
+                      const searchStateName = STATE_ABBREV_TO_NAME[sanitizedSearch.toUpperCase()];
                       // Build OR filter: name, city, state (verbatim), plus abbreviation/full-name if resolved
-                      let orParts = [`name.ilike.%${search}%`, `location_city.ilike.%${search}%`, `location_state.ilike.%${search}%`];
+                      let orParts = [`name.ilike.%${sanitizedSearch}%`, `location_city.ilike.%${sanitizedSearch}%`, `location_state.ilike.%${sanitizedSearch}%`];
                       if (searchAbbrev) orParts.push(`location_state.ilike.${searchAbbrev}`);
                       if (searchStateName) orParts.push(`location_state.ilike.${searchStateName}`);
                       spQuery = spQuery?.or(orParts.join(','));
