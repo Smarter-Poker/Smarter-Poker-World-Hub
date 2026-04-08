@@ -464,9 +464,9 @@ def enrich_tour_from_inference(tour_code: str, events: list) -> int:
 
         # State-based timezone: try to extract state from series_name
         ev_tz = tz
+        series_safe = series or ""
         if tz == "varies":
-            # Extract state abbrev from series name
-            state_m = re.search(r'\b([A-Z]{2})\b', series[-20:] if len(series) > 20 else series)
+            state_m = re.search(r'\b([A-Z]{2})\b', series_safe[-20:] if len(series_safe) > 20 else series_safe)
             if state_m:
                 ev_tz = STATE_TZ.get(state_m.group(1), "America/Chicago")
             else:
