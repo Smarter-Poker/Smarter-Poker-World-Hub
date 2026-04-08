@@ -329,35 +329,34 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 </svg>
                                 <span>{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}</span>
                             </a>
-                            <span className="vc3-type-label" style={{ color: typeColor.color, marginLeft: '3px' }}>
+                            <span className="vc3-type-label" style={{ color: typeColor.color }}>
                                 {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Right: Distance + Heart row, then Hours below */}
+                {/* Right: Heart, Distance below, then Hours */}
                 <div className="vc3-right-stack">
-                    {/* Distance + Heart in a row */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        {venue.distance_mi && (
-                            <span className="vc3-distance">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <polygon points="3 11 22 2 13 21 11 13 3 11" />
-                                </svg>
-                                {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} mi
-                            </span>
-                        )}
-                        <button
-                            className={'vc3-fav' + (isFavorited ? ' active' : '')}
-                            onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
-                            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                    {/* Heart button */}
+                    <button
+                        className={'vc3-fav' + (isFavorited ? ' active' : '')}
+                        onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
+                        title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                        </svg>
+                    </button>
+                    {/* Distance pill below heart */}
+                    {venue.distance_mi && (
+                        <span className="vc3-distance">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <polygon points="3 11 22 2 13 21 11 13 3 11" />
                             </svg>
-                        </button>
-                    </div>
+                            {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} mi
+                        </span>
+                    )}
                     {/* Hours below */}
                     {(() => {
                         const is247 = (venue.hours === '24/7' || venue.hours_weekday === '24/7');
@@ -783,7 +782,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
                 .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
                 .vc3-type-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
-                .vc3-city-type-row { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; margin: 1px 0; }
+                .vc3-city-type-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 1px 0; }
                 .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; }
                 .vc3-city-state:hover { color: #ffffff; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.9); }
@@ -847,7 +846,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 }
                 .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
                 .vc3-badge-checkin:hover { background: rgba(230,81,0,0.25); }
-                .vc3-data-zone { margin-top: 4px; flex: 1; display: flex; flex-direction: column; }
+                .vc3-data-zone { margin-top: 2px; flex: 1; display: flex; flex-direction: column; }
                 .vc3-live-info {
                     display: flex; gap: 16px; margin-bottom: 8px; padding: 8px 10px;
                     background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);
@@ -903,7 +902,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     display: grid;
                     grid-template-columns: 1fr 1fr;
                     gap: 12px;
-                    margin-top: 8px;
+                    margin-top: 2px;
                     background: rgba(0,0,0,0.15);
                     border: 1px solid rgba(255,255,255,0.04);
                     border-radius: 8px;
