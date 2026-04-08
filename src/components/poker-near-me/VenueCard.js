@@ -672,8 +672,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </div>
             </div>
 
-            {/* === ACTION BAR === */}
-            <div className="vc3-actions">
+            {/* === LOCKED FOOTER === */}
+            <div style={{ marginTop: 'auto' }}>
+                {/* === ACTION BAR === */}
+                <div className="vc3-actions">
                 {/* Secondary actions (Web/Call/Map) */}
                 <div className="vc3-actions-secondary">
                     {venue.website && (
@@ -739,7 +741,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards === */}
             {!['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
-            <div className="vc3-trust" style={{ marginTop: 'auto' }}>
+            <div className="vc3-trust">
                 {reviewStats && reviewStats.total_reviews > 0 ? (
                     <>
                         <div className="vc3-trust-header">
@@ -773,6 +775,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 )}
             </div>
             )}
+            </div>
 
             {/* Old Calendar display successfully abstracted */}
             <style jsx>{`

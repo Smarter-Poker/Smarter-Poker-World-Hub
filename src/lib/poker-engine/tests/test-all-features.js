@@ -7,7 +7,7 @@
 import 'dotenv/config';
 
 // --- Import Brain ---
-const Brain = await import('../HorsePokerBrain.js');
+const Brain = await import('../brain/index.js');
 
 // --- Import Advanced (for fatigue, tilt, rivalry) ---
 const Adv = await import('../../../content-engine/services/HorsePokerAdvanced.js');

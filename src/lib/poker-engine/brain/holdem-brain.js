@@ -42,7 +42,8 @@ try { _advancedModule = getAdvancedModule(); } catch (_) {}
 function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjustment = { callMod: 0, foldMod: 0 }) {
     if (!gameState || typeof gameState !== 'object') return { type: 'fold', amount: 0 }; // Bug #46: guard null/garbage gameState
     if (!Array.isArray(legalActions) || legalActions.length === 0) return { type: 'fold', amount: 0 };
-    const { handStr, position, street, potSize, toCall, stackBB, bb = 2, holeCards: hCards, board: bCards, tableId = 'unknown', primaryOppId = null } = gameState;
+    const { position, street, potSize, toCall, stackBB, bb = 2, holeCards: hCards, board: bCards, tableId = 'unknown', primaryOppId = null } = gameState;
+    const handStr = gameState.handStr || (hCards && hCards.length >= 2 ? require('./core').formatHandString(hCards[0], hCards[1]) : '');
     const hash = getHash(profileId);
     const numPlayers = gameState.numPlayers || 2;
 
