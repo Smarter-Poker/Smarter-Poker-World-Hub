@@ -426,7 +426,7 @@ export default function TourDetailPage() {
             <section className="sp-tabs-bar">
               <div className="sp-tabs-inner">
                 {[
-                  { id: 'schedule', label: 'Event Schedule', count: allEvents.length || (tour.series_2026||[]).length },
+                  { id: 'schedule', label: currentStopType === 'current' ? 'Current Event' : currentStopType === 'next' ? 'Next Event' : 'Event Schedule', count: allEvents.length || (tour.series_2026||[]).length },
                   { id: 'stops',    label: 'All Stops',      count: allStops.length || (tour.stops_2026||[]).length },
                   { id: 'about',    label: 'About' },
                   { id: 'results',  label: 'Results', count: results.length || null },
@@ -536,9 +536,9 @@ export default function TourDetailPage() {
                           <div className="sp-col-num">#</div>
                           <div className="sp-col-name">Event</div>
                           <div className="sp-col-buyin">Buy-In</div>
-                          <div className="sp-col-date">Date / Time</div>
-                          <div className="sp-col-chips">Chips</div>
-                          <div className="sp-col-levels">Levels</div>
+                          <div className="sp-col-date">Date</div>
+                          <div className="sp-col-time">Start Time</div>
+                          <div className="sp-col-latereg">Late Reg</div>
                           <div className="sp-col-gtd">Guarantee</div>
                         </div>
 
@@ -576,13 +576,12 @@ export default function TourDetailPage() {
                               </div>
                               <div className="sp-col-date">
                                 <span className="sp-date-val">{evt.start_display || evt.start_date || 'TBD'}</span>
-                                {evt.start_time && <span className="sp-time-val">{evt.start_time}</span>}
                               </div>
-                              <div className="sp-col-chips">
-                                <span className="sp-chips-val">{evt.starting_chips_display || (evt.starting_chips ? evt.starting_chips.toLocaleString() : 'TBD')}</span>
+                              <div className="sp-col-time">
+                                <span className="sp-time-val">{evt.start_time || 'TBD'}</span>
                               </div>
-                              <div className="sp-col-levels">
-                                <span className="sp-levels-val">{evt.blind_levels_min ? evt.blind_levels_min + ' min' : 'TBD'}</span>
+                              <div className="sp-col-latereg">
+                                <span className="sp-latereg-val">{evt.late_registration || '—'}</span>
                               </div>
                               <div className="sp-col-gtd">
                                 {evt.guarantee ? (
@@ -1847,7 +1846,7 @@ const styles = `
   }
   .sp-event-header-row {
     display: grid;
-    grid-template-columns: 44px 1fr 100px 130px 80px 70px 100px;
+    grid-template-columns: 44px 1fr 100px 110px 100px 130px 100px;
     gap: 0;
     padding: 0 12px;
     height: 36px;
@@ -1862,7 +1861,7 @@ const styles = `
   }
   .sp-event-row {
     display: grid;
-    grid-template-columns: 44px 1fr 100px 130px 80px 70px 100px;
+    grid-template-columns: 44px 1fr 100px 110px 100px 130px 100px;
     gap: 0;
     padding: 0 12px;
     min-height: 52px;
@@ -2019,15 +2018,15 @@ const styles = `
     }
     .sp-col-num { justify-content: flex-start; }
     .sp-col-name { flex-direction: column; align-items: flex-start; }
-    .sp-col-buyin, .sp-col-date, .sp-col-chips, .sp-col-levels, .sp-col-gtd {
-      flex-direction: row;
-      align-items: center;
-      gap: 8px;
+    .sp-col-buyin, .sp-col-date, .sp-col-time, .sp-col-latereg, .sp-col-gtd {
+      display: flex;
+      justify-content: flex-start;
+      margin-left: 44px;
     }
     .sp-col-buyin::before { content: 'Buy-In: '; font-size: 11px; color: #4b5563; min-width: 56px; }
     .sp-col-date::before { content: 'Date: '; font-size: 11px; color: #4b5563; min-width: 40px; }
-    .sp-col-chips::before { content: 'Chips: '; font-size: 11px; color: #4b5563; min-width: 44px; }
-    .sp-col-levels::before { content: 'Levels: '; font-size: 11px; color: #4b5563; min-width: 48px; }
+    .sp-col-time::before { content: 'Time: '; font-size: 11px; color: #4b5563; min-width: 44px; }
+    .sp-col-latereg::before { content: 'Late Reg: '; font-size: 11px; color: #4b5563; min-width: 48px; }
     .sp-col-gtd::before { content: 'GTD: '; font-size: 11px; color: #4b5563; min-width: 36px; }
     .sp-tabs-bar { padding: 0 10px; }
     .sp-tab { padding: 10px 14px; font-size: 13px; }

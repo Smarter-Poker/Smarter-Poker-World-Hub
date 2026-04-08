@@ -2,8 +2,8 @@ name: Charity Scraper V5 (3-Day Autopilot)
 
 on:
   schedule:
-    # Runs every 3 days at 05:00 UTC
-    - cron: '0 5 */3 * *'
+    # Runs every 4 days at 05:00 UTC
+    - cron: '0 5 */4 * *'
   workflow_dispatch:
     inputs:
       venue:
