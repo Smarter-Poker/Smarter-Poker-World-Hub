@@ -325,6 +325,7 @@ export default function PokerNearMePage() {
     const { guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
 
     // Active tab state — persisted with sortBy and seriesViewMode
+    // Always default to 'map' tab — never persist 'live' tab across sessions
     const { filters: uiFilters, setFilter: setUiFilter } = usePersistedFilters('poker-near-me', {
         activeTab: 'map',
         activeEventTab: 'daily',
@@ -334,12 +335,20 @@ export default function PokerNearMePage() {
         venueViewMode: 'list'
     });
 
-    const activeTab = uiFilters.activeTab;
+    // HARDENED: Reset 'live' tab back to 'map' on every mount — live tab is ephemeral
+    const tabResetDoneRef = useRef(false);
+
+    // If persisted tab is 'live', reset it to 'map' immediately (live tab must not persist)
+    const rawActiveTab = uiFilters.activeTab;
+    const activeTab = (rawActiveTab === 'live' || !rawActiveTab) ? 'map' : rawActiveTab;
     const activeEventTab = uiFilters.activeEventTab || 'daily';
     const activeMoreTab = uiFilters.activeMoreTab || 'overview';
     const sortBy = uiFilters.sortBy;
     const seriesViewMode = uiFilters.seriesViewMode;
     const venueViewMode = uiFilters.venueViewMode || 'list';
+
+    // Ephemeral live tab state — never persisted across sessions. Starts always false.
+    const [showLiveTab, setShowLiveTab] = React.useState(false);
     const setActiveTab = (val) => {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
             try { navigator.vibrate(1); } catch (e) { /* ignore */ }
@@ -348,7 +357,19 @@ export default function PokerNearMePage() {
         if (val === 'more') {
             setUiFilter('activeMoreTab', 'overview');
         }
-        setUiFilter('activeTab', val);
+        // 'live' is handled by showLiveTab state — don't write it to persisted storage
+        if (val !== 'live') {
+            setUiFilter('activeTab', val);
+        }
+    };
+    // Helper to toggle live tab — also hides it when switching to any real tab
+    const activateTab = (val) => {
+        if (val === 'live') {
+            setShowLiveTab(prev => !prev);
+        } else {
+            setShowLiveTab(false);
+            setActiveTab(val);
+        }
     };
     const setActiveEventTab = (val) => setUiFilter('activeEventTab', val);
     const setActiveMoreTab = (val) => setUiFilter('activeMoreTab', val);
@@ -615,20 +636,20 @@ export default function PokerNearMePage() {
                 const saved = localStorage.getItem('poker-near-me-search-filters');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    // ENFORCE defaults on every page entry — this is the expected behavior
-                    // when the Poker Near Me icon is clicked. Users can change once on the page.
-                    parsed.radius = 50;
                     // ENFORCE venueType=all so tour pins + all venues always show on map
                     parsed.venueType = 'all';
                     // ENFORCE game/stakes filters so tour pins aren't accidentally filtered out
                     parsed.gameType = 'all';
                     parsed.stakes = 'all';
+                    // Keep the user's saved radius — do NOT override it to 50mi
+                    // Default to 25mi only if no saved radius exists
+                    if (!parsed.radius) parsed.radius = 25;
                     return { ...parsed };
                 }
             } catch (e) { console.error(e); }
         }
         return {
-            radius: 50,
+            radius: 25,
             venueType: 'all',
             hasNLH: false,
             hasPLO: false,
@@ -1567,7 +1588,7 @@ export default function PokerNearMePage() {
 
     // --- Auto-refresh live games when venue is selected ---
     useEffect(() => {
-        if (activeTab === 'live') {
+        if (showLiveTab) {
             // Pre-fetch venue list for search autocomplete
             if (liveVenueList.length === 0) fetchLiveVenueList();
             // Only auto-refresh if a venue is selected
@@ -1577,7 +1598,7 @@ export default function PokerNearMePage() {
             }
         }
         return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current); };
-    }, [activeTab, selectedLiveVenue]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [showLiveTab, selectedLiveVenue]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // --- NEW: Helper functions ---
     const toggleFavorite = useCallback(async (type, id, e, itemData = {}) => {
@@ -2326,6 +2347,14 @@ export default function PokerNearMePage() {
                 setActiveEventTab(LEGACY_EVENT_TABS[tabParam]);
             } else if (tabParam === 'favorites') {
                 setActiveTab('saved');
+            } else if (tabParam === 'live') {
+                // Live tab is ephemeral — activate it but never persist to storage
+                setShowLiveTab(true);
+                // Remove ?tab=live from URL so it doesn't persist on refresh
+                if (typeof window !== 'undefined') {
+                    const cleanUrl = window.location.pathname;
+                    window.history.replaceState({}, '', cleanUrl);
+                }
             } else if (TAB_ORDER.includes(tabParam)) {
                 setActiveTab(tabParam);
             }
@@ -2481,7 +2510,7 @@ export default function PokerNearMePage() {
         setSortBy('default');
         setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
         setFilters({
-            radius: 50,
+            radius: 25,
             venueType: 'all',
             hasNLH: false,
             hasPLO: false,
@@ -2582,7 +2611,7 @@ export default function PokerNearMePage() {
                 setIframeModal={setIframeModal}
             />
         );
-        if (activeTab === 'live') return (
+        if (showLiveTab) return (
             <LiveGamesFeed
                 venues={allVenuesWithTours.length > 0 ? allVenuesWithTours : venues}
                 userLocation={userLocation}
@@ -2922,8 +2951,8 @@ export default function PokerNearMePage() {
                             </div>
                             {/* Live Games button */}
                             <button
-                                className={'pnm-top-tab live pnm-live-games-inline' + (activeTab === 'live' ? ' active' : '')}
-                                onClick={() => setActiveTab(activeTab === 'live' ? 'map' : 'live')}
+                                className={'pnm-top-tab live pnm-live-games-inline' + (showLiveTab ? ' active' : '')}
+                                onClick={() => activateTab('live')}
                             >
                                 <span className="pnm-live-dot" />
                                 Live Games

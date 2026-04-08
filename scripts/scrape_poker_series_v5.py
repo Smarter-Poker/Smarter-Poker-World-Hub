@@ -1009,46 +1009,87 @@ def scrape_series(series: dict, mgr: SessionManager, hm_map: dict, cp_map: dict)
 
     # ── SOURCE 1: PokerAtlas series page ─────────────────────────────────────
     log(f'      [Src 1: PokerAtlas]')
+
+    STOP_WORDS = {'poker','series','classic','championship','open','tournament',
+                  'casino','room','the','and','of','at','in','circuit'}
+
+    def _pa_fetch_series(url: str):
+        """Fetch a PA series page with google_search=True + networkidle — exact targeted_v3 pattern."""
+        html, h = mgr.fetch(url, timeout=30000, wait_until='networkidle', google_search=True)
+        time.sleep(RATE_LIMIT)
+        return html, h
+
+    def _pa_search_slug(query: str) -> str | None:
+        """StealthySession search for a series slug — camoufox + google_search=True."""
+        q    = re.sub(r'[^\w\s]', '', query).strip().replace(' ', '+')
+        surl = f'{PA_BASE}/poker-tournament-series?search={q}'
+        html_s, _ = mgr.fetch(surl, timeout=30000, wait_until='networkidle', google_search=True)
+        time.sleep(RATE_LIMIT)
+        if not html_s:
+            return None
+        pattern = re.compile(
+            r'href="/poker-tournament-series/([^"?]+)"[^>]*>(.*?)</a>',
+            re.IGNORECASE | re.DOTALL,
+        )
+        target_words = set(re.sub(r'[^\w\s]', '', sname).lower().split()) - STOP_WORDS
+        for m in pattern.finditer(html_s):
+            slug      = m.group(1).strip().rstrip('/')
+            link_text = re.sub(r'<[^>]+>', ' ', m.group(2)).strip()
+            link_text = re.sub(r'\s+', ' ', link_text)
+            if not slug or len(link_text) < 4:
+                continue
+            found   = set(re.sub(r'[^\w\s]', '', link_text).lower().split()) - STOP_WORDS
+            overlap = target_words & found
+            if len(overlap) >= max(1, min(2, len(target_words) - 1)):
+                return slug
+        return None
+
+    def _pa_discover_slug() -> str | None:
+        """3-strategy slug discovery — same as v2 + targeted_v3."""
+        log(f'        [PA Search 1] "{sname[:50]}"')
+        slug = _pa_search_slug(sname)
+        if slug: return slug
+
+        key_words = [w for w in sname.split() if w.lower() not in STOP_WORDS][:3]
+        if len(key_words) >= 2:
+            log(f'        [PA Search 2] key words: {" ".join(key_words)}')
+            slug = _pa_search_slug(' '.join(key_words))
+            if slug: return slug
+
+        if vname and len(vname) > 4:
+            log(f'        [PA Search 3] venue: "{vname[:40]}"')
+            slug = _pa_search_slug(vname)
+            if slug: return slug
+
+        return None
+
+    # Build PA URL list for this series
     pa_urls_to_try = []
     if pa_url and 'pokeratlas.com/poker-tournament-series' in pa_url:
         pa_urls_to_try.append(pa_url)
-
-    # Also try slugified names as fallback
-    pa_urls_to_try += [
-        f'{PA_BASE}/poker-tournament-series?search={urllib.parse.quote(sname)}',
-    ]
+    else:
+        slug = _pa_discover_slug()
+        if slug:
+            discovered = f'{PA_BASE}/poker-tournament-series/{slug}'
+            log(f'        ✅ Slug found: {slug[:60]}')
+            pa_urls_to_try.append(discovered)
+            update_source_registry(uid, sname, discovered, 'pokeratlas_search', True, 0)
+        else:
+            log(f'        ❌ No PA slug for "{sname}"')
 
     for try_url in pa_urls_to_try:
-        html, h = mgr.fetch(try_url, timeout=30000)
+        html, h = _pa_fetch_series(try_url)
         if not html:
             continue
-        time.sleep(RATE_LIMIT)
 
-        # If this is a search page, find slug and fetch the real page
-        if 'search=' in try_url:
-            slug_m = re.search(r'/poker-tournament-series/([^"?&\s]+)', html)
-            if slug_m:
-                real_url = f'{PA_BASE}/poker-tournament-series/{slug_m.group(1).rstrip("/")}'
-                if real_url != try_url:
-                    html2, h2 = mgr.fetch(real_url, timeout=30000)
-                    if html2:
-                        html, h = html2, h2
-                        time.sleep(RATE_LIMIT)
-                        # Save discovered URL as source of truth
-                        update_source_registry(uid, sname, real_url, 'pokeratlas', True, 0)
-            else:
-                continue
-
-        # Try __NEXT_DATA__ first (richest data)
+        # __NEXT_DATA__ JSON walker first (richest), fall back to HTML extractor
         recs = parse_pa_next_data(html, uid, sname, vname, city, state, try_url, h)
         if not recs:
-            # Fallback to HTML parser
             recs = parse_html_events(html, uid, sname, vname, city, state, try_url, 'pokeratlas', h)
 
         if recs:
             log(f'        [PA] {len(recs)} events from {try_url[:60]}')
             add(recs, 'pokeratlas', try_url)
-            # PDF hunt from PA page
             for pdf_url in find_pdfs(html, try_url):
                 log(f'        📄 PDF {pdf_url[:60]}')
                 pdf_text = extract_pdf(pdf_url)
