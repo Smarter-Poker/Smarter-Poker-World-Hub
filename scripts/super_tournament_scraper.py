@@ -99,15 +99,19 @@ def expand_dates(r: dict) -> list:
         recs.append(nr)
     return recs
 
-def db_query(endpoint: str, method="GET", payload=None):
+def db_query(endpoint: str, method="GET", payload=None, retries=3):
     req = urllib.request.Request(f"{SUPABASE_URL}/rest/v1/{endpoint}", headers=SB_HDRS, method=method)
     if payload: req.data = json.dumps(payload).encode()
-    try:
-        with urllib.request.urlopen(req, timeout=15) as r:
-            return json.loads(r.read()) if r.status in (200, 201) else []
-    except Exception as e:
-        log(f"DB err: {e}", "ERROR")
-        return []
+    for attempt in range(1, retries + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                return json.loads(r.read()) if r.status in (200, 201) else []
+        except Exception as e:
+            if attempt == retries:
+                log(f"DB err: {e}", "ERROR")
+            else:
+                time.sleep(3)
+    return []
 
 def get_venue_id(venue_name: str, state: str) -> int:
     query = f"poker_venues?select=id,name,state&name=ilike.*{urllib.parse.quote(venue_name)}*"
@@ -156,14 +160,21 @@ class SuperScraperManager:
         self.session = StealthySession(headless=True, solve_cloudflare=True)
         self.session.start()
 
-    def fetch(self, url: str, google=False) -> bytes:
-        try:
-            r = self.session.fetch(url, google_search=google)
-            if r.status == 200:
-                body = r.body if isinstance(r.body, bytes) else str(r.body).encode("utf-8")
-                return body
-        except Exception:
-            pass
+    def fetch(self, url: str, google=False, retries=3) -> bytes:
+        for attempt in range(1, retries + 1):
+            try:
+                r = self.session.fetch(url, google_search=google)
+                if r.status == 200:
+                    body = r.body if isinstance(r.body, bytes) else str(r.body).encode("utf-8")
+                    return body
+                elif r.status in [429, 403, 502, 503, 504]:
+                    log(f"  [W] Rate/Bot limit ({r.status}) on {url[:40]}. Retry {attempt}/{retries}...", "WARN")
+                    time.sleep(5)
+                else:
+                    return b""
+            except Exception as e:
+                log(f"  [W] Connection dropped. Retry {attempt}/{retries}... ({e})", "WARN")
+                time.sleep(5)
         return b""
 
     def stealthy_search(self, query: str, domain_filter: str) -> str:

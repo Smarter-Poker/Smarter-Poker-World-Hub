@@ -339,12 +339,20 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             {typeof venue.distance_mi === 'number' ? venue.distance_mi.toFixed(1) : venue.distance_mi} mi
                         </span>
                     )}
-                    {/* Hours */}
-                    {(venue.hours || venue.hours_weekday) && (
-                        <span className="vc3-hours-compact">
-                            {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) ? '24/7' : (venue.hours_weekday || venue.hours)}
-                        </span>
-                    )}
+                    {/* Hours: Hidden if 24/7 (shown as a green badge later), else displayed here */}
+                    {(() => {
+                        const is247 = (venue.hours === '24/7' || venue.hours_weekday === '24/7');
+                        const isCharityOrHome = ['charity', 'home_game'].includes(venue.venue_type);
+                        const effective247 = is247 && !isCharityOrHome;
+                        
+                        if (effective247 || !(venue.hours || venue.hours_weekday)) return null;
+                        
+                        return (
+                            <span className="vc3-hours-compact">
+                                {venue.hours_weekday || venue.hours}
+                            </span>
+                        );
+                    })()}
                 </div>
             </div>
 
