@@ -1146,8 +1146,8 @@ export default function PokerNearMePage() {
                 }
             }
         } catch (e) { /* ignore */ }
-        // Fetch fresh and update cache
-        fetch('/data/all-venues.json')
+        // Fetch fresh and update cache (bust browser cache with timestamp)
+        fetch('/data/all-venues.json?v=' + Date.now())
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 var v = json.venues || json.data || json || [];

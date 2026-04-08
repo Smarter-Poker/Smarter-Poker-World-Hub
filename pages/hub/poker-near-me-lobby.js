@@ -725,7 +725,7 @@ export default function PokerNearMeLobby() {
 
   // ─── Fetch total venue count (platform-wide) ───
   useEffect(() => {
-    fetch('/data/all-venues.json')
+    fetch('/data/all-venues.json?v=' + Date.now())
       .then(r => r.json())
       .then(json => {
         const v = json.venues || json.data || json || [];
