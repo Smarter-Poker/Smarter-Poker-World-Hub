@@ -10,6 +10,8 @@ import { busEmit } from '../engine/EventBus';
  * Get all favorite venues for a user
  */
 export async function getVenueFavorites(userId) {
+    if (!userId || String(userId).startsWith('anon-')) return [];
+
     const { data, error } = await supabase
         .from('poker_near_me_favorites')
         .select('*')
@@ -28,6 +30,14 @@ export async function getVenueFavorites(userId) {
  * Add a venue to favorites
  */
 export async function addVenueFavorite(userId, venueId, venueData = {}) {
+    if (!userId || !venueId) return null;
+
+    if (String(userId).startsWith('anon-')) {
+        // Broadcast update globally for anonymous users (relies on localStorage exclusively)
+        busEmit.venueSaved(venueId, venueData.name || null);
+        return null;
+    }
+
     const { data, error } = await supabase
         .from('poker_near_me_favorites')
         .upsert({
@@ -55,6 +65,11 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
 export async function removeVenueFavorite(userId, venueId) {
     if (!userId || !venueId) return false;
 
+    if (String(userId).startsWith('anon-')) {
+        busEmit.venueUnsaved(venueId);
+        return true;
+    }
+
     const { error } = await supabase
         .from('poker_near_me_favorites')
         .delete()
@@ -77,6 +92,8 @@ export async function removeVenueFavorite(userId, venueId) {
  */
 export async function isVenueFavorited(userId, venueId) {
     if (!userId || !venueId) return false;
+
+    if (String(userId).startsWith('anon-')) return false;
 
     const { data, error } = await supabase
         .from('poker_near_me_favorites')

@@ -114,6 +114,7 @@ module.exports = {
     getChipLeakBoosts: antiExploit.getChipLeakBoosts,
     recordStreetAction: antiExploit.recordStreetAction,
     getStreetMemory: antiExploit.getStreetMemory,
+    analyzeStreetNarrative: antiExploit.analyzeStreetNarrative,
     recordOpponentAction: antiExploit.recordOpponentAction,
     recordOpponentShowdown: antiExploit.recordOpponentShowdown,
     getOpponentSessionRead: antiExploit.getOpponentSessionRead,
@@ -150,6 +151,12 @@ module.exports = {
     loadTableJournals: sessionAnalytics.loadTableJournals,
     _applyJournalToProfile: sessionAnalytics._applyJournalToProfile,
     _journalCache: sessionAnalytics._journalCache,
+    dailyPlayTracker: sessionAnalytics.dailyPlayTracker,
+    getTodayString: sessionAnalytics.getTodayString,
+    performanceStats: sessionAnalytics.performanceStats,
+    softPlayLog: sessionAnalytics.softPlayLog,
+    JOURNAL_CACHE_TTL: sessionAnalytics.JOURNAL_CACHE_TTL,
+    JOURNAL_PERSIST_INTERVAL: sessionAnalytics.JOURNAL_PERSIST_INTERVAL,
 
     // ═══════════════════════════════════════════════════════════════════════
     // plo8-brain.js — PLO8 Hi-Lo low hand evaluator
@@ -329,6 +336,12 @@ module.exports = {
     clearTableLiveObservers: liveObserver.clearTableLiveObservers,
     cleanupLiveObservers: liveObserver.cleanupLiveObservers,
     liveObserver: liveObserver.liveObserver,
+    // Internal (exposed for testing and cross-module wiring)
+    _getTableObserver: liveObserver._getTableObserver,
+    _createLiveProfile: liveObserver._createLiveProfile,
+    _createInHandModel: liveObserver._createInHandModel,
+    _evictLRUProfiles: liveObserver._evictLRUProfiles,
+    _evictLRUTables: liveObserver._evictLRUTables,
 
     // ═══════════════════════════════════════════════════════════════════════
     // hand-result.js — Post-hand processing pipeline
