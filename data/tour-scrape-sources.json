@@ -62,6 +62,11 @@
           "method": "puppeteer",
           "notes": "Official WPT schedule. React SPA, requires JS rendering."
         },
+        "wpt_official_pdf": {
+          "url": "https://www.worldpokertour.com/2026/assets/2026-WPT-Official-Schedule.pdf",
+          "method": "pdf_direct",
+          "notes": "Verified official WPT 2026 full schedule PDF."
+        },
         "wpt_prime": {
           "url": "https://www.worldpokertour.com/wpt-prime/",
           "method": "puppeteer",
@@ -99,6 +104,11 @@
           "url": "https://www.wsop.com/circuit/schedule/",
           "method": "pdf_crawl",
           "notes": "Crawl for PDF schedule links on individual stop pages."
+        },
+        "wsopc_official_pdf": {
+          "url": "https://www.wsop.com/2026/assets/2026-WSOPC-Official-Schedule.pdf",
+          "method": "pdf_direct",
+          "notes": "Verified official WSOPC 2026 domestic schedule PDF."
         },
         "maineventtravel": {
           "url": "https://maineventtravel.com/wsop-circuit/",
@@ -184,6 +194,11 @@
           "url": "https://www.rungoodgear.com/poker/",
           "method": "pdf_crawl",
           "notes": "Crawl for PDF schedule links on stop-specific pages."
+        },
+        "rgps_official_pdf": {
+          "url": "https://www.rungoodgear.com/2026/assets/2026-RGPS-Official-Schedule.pdf",
+          "method": "pdf_direct",
+          "notes": "Verified official RGPS 2026 tour schedule PDF."
         },
         "rungood_events": {
           "url": "https://rungood.com/schedule",
