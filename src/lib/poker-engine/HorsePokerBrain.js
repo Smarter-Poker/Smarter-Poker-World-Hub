@@ -1354,13 +1354,13 @@ function evaluatePLO8Low(holeCards, boardCards) {
         // Bug #184: Wire hLowQualify into low out calculation
         // Need 2+ qualifying hole cards to even make a low; 3-4 gives more combos = better odds
         if (hLowQualify.length < 2) {
-            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false };
+            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0 };
         }
         // Bug #196: Proper low out calculation — count remaining cards that add a NEW
         // qualifying low rank to the board. Old formula (4 × cardsNeeded) drastically
         // undercounted: A-2 with 2 board lows had only 4 outs instead of ~16-20.
         if (boardCards.length >= 5) {
-            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false };
+            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0 };
         }
         const boardLowRankSet = new Set(bLowQualify);
         const neededBoardLows = 3 - boardLowRankSet.size;
@@ -1402,7 +1402,7 @@ function evaluatePLO8Low(holeCards, boardCards) {
         // More qualifying hole cards = more combos to make low = effective out boost
         const holeLowBonus = hLowQualify.length >= 3 ? 3 : hLowQualify.length >= 4 ? 5 : 0;
         lowOuts = Math.min(lowOuts + holeLowBonus, 20);
-        return { hasNutLow: false, hasLow: false, lowOuts, scoopable: false };
+        return { hasNutLow: false, hasLow: false, lowOuts, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0 };
     }
 
     // Check if we can make a qualifying low using 2 hole cards
@@ -1463,7 +1463,19 @@ function evaluatePLO8Low(holeCards, boardCards) {
     // The pipeline adds its own high-hand strength check (madeHand.strength >= 55).
     const scoopable = hasLow;
 
-    return { hasNutLow, hasLow, lowOuts: 0, scoopable };
+    // Bug #202: Quartering risk — when 4+ board cards are low, almost everyone has a low.
+    // Getting quartered (splitting the low half with another player) is very likely.
+    // Bug #203: Board low saturation — devalue our low when board makes lows trivially easy.
+    const uniqueBoardLowCount = new Set(bLowQualify).size;
+    const quarteringRisk = uniqueBoardLowCount >= 4 ? 'high'
+        : uniqueBoardLowCount >= 3 && boardCards.length >= 4 ? 'medium'
+        : 'low';
+    // Low value discount: 1.0 = full value, lower = devalued
+    const lowValueDiscount = quarteringRisk === 'high' ? 0.50
+        : quarteringRisk === 'medium' ? 0.75
+        : 1.0;
+
+    return { hasNutLow, hasLow, lowOuts: 0, scoopable, quarteringRisk, lowValueDiscount };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5283,11 +5295,23 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ─── PREFLOP ───
     if (street === 'preflop') {
         // Phase 4: Blind defense — run specialized BB/SB logic first
+        // Bug #201: PLO8 blind defense also needs low-card bonus
         if (position === 'BB' || position === 'SB') {
             const baseStrength = holeCards.length > 4
                 ? getBestPLO5or6PreflopStrength(holeCards)
                 : classifyPLOPreflop(holeCards);
-            const blindDef = getPLOBlindDefense(position, baseStrength + loosenessBias, toCall, bb, potSize, numPlayers, legalActions);
+            let blindPlo8Bonus = 0;
+            if (isHiLo) {
+                const bRanks = holeCards.map(c => c.rank);
+                const bHasAce = bRanks.includes(12);
+                const bHasA2 = bHasAce && bRanks.includes(0);
+                const bHasA3 = bHasAce && bRanks.includes(1);
+                const bNumLow = new Set(bRanks.filter(r => r <= 6 || r === 12).map(r => r === 12 ? -1 : r)).size;
+                if (bHasA2) blindPlo8Bonus = 20;
+                else if (bHasA3) blindPlo8Bonus = 12;
+                else if (bHasAce && bNumLow >= 3) blindPlo8Bonus = 8;
+            }
+            const blindDef = getPLOBlindDefense(position, baseStrength + loosenessBias + blindPlo8Bonus, toCall, bb, potSize, numPlayers, legalActions);
             if (blindDef) return { type: blindDef.action, amount: blindDef.amount };
         }
         // PLO5/PLO6: use best-combo strength; PLO4: use standard classifier
@@ -5299,7 +5323,30 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // Phase 8: Double-suit + connectivity + dangler enhancement
         const preflopEnhancement = enhancePLOPreflopScore(holeCards);
-        const strength = baseStrengthPreflop + loosenessBias + deepAdj.preflopRangeExpansion + preflopEnhancement.totalBonus;
+
+        // Bug #201: PLO8 preflop low-card valuation — in Hi-Lo, low cards are premium.
+        // A-2-3-x, A-2-4-x, A-3-4-x are tier 1 hands because they make nut/near-nut lows.
+        // Without this, the classifier treats them like garbage (low rundowns get 0.45x penalty).
+        let plo8PreflopBonus = 0;
+        if (isHiLo) {
+            const hRanksPreflop = holeCards.map(c => c.rank);
+            const hasAce = hRanksPreflop.includes(12);
+            const lowCards = hRanksPreflop.filter(r => r <= 6 || r === 12); // A through 8
+            const uniqueLowRanks = new Set(lowCards.map(r => r === 12 ? -1 : r));
+            // A-2 is the premium low combo — guaranteed nut low on most boards
+            const hasA2 = hasAce && hRanksPreflop.includes(0);
+            const hasA3 = hasAce && hRanksPreflop.includes(1);
+            // Count qualifying low cards (A counts as low in PLO8)
+            const numLowCards = uniqueLowRanks.size;
+
+            if (hasA2 && numLowCards >= 3) plo8PreflopBonus = 25;       // A-2-x-x with 3+ lows = premium
+            else if (hasA2) plo8PreflopBonus = 20;                       // A-2 bare = still very strong
+            else if (hasA3 && numLowCards >= 3) plo8PreflopBonus = 15;   // A-3-x-x with backup lows
+            else if (hasA3) plo8PreflopBonus = 10;                       // A-3 bare
+            else if (hasAce && numLowCards >= 3) plo8PreflopBonus = 8;   // Ace + low cards
+            else if (numLowCards >= 3) plo8PreflopBonus = 5;             // Low cards but no Ace (weak low draw)
+        }
+        const strength = baseStrengthPreflop + loosenessBias + deepAdj.preflopRangeExpansion + preflopEnhancement.totalBonus + plo8PreflopBonus;
 
         // ── Bug #80: AAxx pot/re-pot when 60%+ of stack can go in preflop ──
         // Dan's rule: "when you have AAxx, if by Potting or Re-Potting it can get
@@ -5549,8 +5596,14 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // but the EQUITY VALUE uses dirty-adjusted outs so we don't overvalue tainted draws.
     // Bug #155: Include PLO8 low outs in draw equity calculation.
     // When drawing to a qualifying low in PLO8, low outs add equity (win half the pot).
+    // Bug #202+#203: Apply quartering discount — when board is saturated with lows,
+    // low outs and low bonus are worth less (likely splitting the low half with others).
+    // Bug #204: Cap lo8LowOuts contribution to prevent equity inflation from Bug #196's
+    // larger outs counts. Max 6 effective outs added (was unbounded, could add 10+).
+    const lo8LowDiscount = lo8?.lowValueDiscount || 1.0;
     const lo8LowOuts = lo8?.lowOuts || 0;
-    const totalOuts = mergedExactOuts + backdoorOuts + (lo8LowOuts > 0 ? Math.round(lo8LowOuts * 0.5) : 0); // Low outs worth ~half (win half pot)
+    const lo8EffectiveLowOuts = Math.min(Math.round(lo8LowOuts * 0.5 * lo8LowDiscount), 6);
+    const totalOuts = mergedExactOuts + backdoorOuts + lo8EffectiveLowOuts;
     const outEquityRaw = Math.min(effectiveCleanOuts * 2.2, 46) * rioInfo.rioMultiplier; // RIO-adjusted, dirty-adjusted
     const outEquity = outEquityRaw * erc;
 
@@ -5560,10 +5613,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Bug #155+#197: Scoop bonus — low + strong high is worth much more than just low.
     // Bug #197: scoopable now true for ANY made low (not just nut). Nut low gets bigger bonus.
     // Aligned threshold to 55 to match scoop bet trigger at line 6061.
+    // Bug #202: Apply quartering discount to scoop bonus and lo8Bonus.
     const lo8ScoopBonus = lo8?.scoopable && madeHand.strength >= 55
-        ? (lo8?.hasNutLow ? 10 : 6)  // Nut low scoop > non-nut low scoop
+        ? Math.round((lo8?.hasNutLow ? 10 : 6) * lo8LowDiscount)
         : 0;
-    const lo8Bonus = (lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0) + lo8ScoopBonus;
+    const lo8Bonus = Math.round(((lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0) + lo8ScoopBonus) * lo8LowDiscount);
     // Bug #146: Board danger penalty should account for wet boards too, not just monotone.
     // Wet two-tone boards are dangerous for non-nut hands (flush draws + straight draws everywhere).
     let boardDangerPenalty = 0;
@@ -6125,8 +6179,19 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Bug #155: PLO8 scoop opportunity — nut low + decent high = build the pot aggressively
         // Scooping (winning both halves) is the #1 way to make money in PLO8.
         if (isHiLo && lo8?.scoopable && madeHand.strength >= 55 && canRaise) {
-            console.log(`[HorseBrain] 🎯 PLO8 SCOOP: nut low + strong high (${madeHand.strength}) — building pot`);
-            return { type: raiseAction.type, amount: adaptiveBetSize };
+            // Bug #202: High quartering risk → don't build pot (likely splitting low half)
+            if (lo8.quarteringRisk !== 'high') {
+                console.log(`[HorseBrain] 🎯 PLO8 SCOOP: low + strong high (${madeHand.strength}) — building pot`);
+                return { type: raiseAction.type, amount: adaptiveBetSize };
+            }
+        }
+
+        // Bug #205: PLO8 split-pot pot-control — nut low + WEAK high should check.
+        // Building the pot when we're only winning half is -EV (we pay rake on the full pot
+        // but only win half). Only bet when we have scoop potential (strength >= 55 handled above).
+        if (isHiLo && lo8?.hasNutLow && madeHand.strength < 55) {
+            console.log(`[HorseBrain] 🎯 PLO8 POT-CONTROL: nut low but weak high (${madeHand.strength}) — checking`);
+            return { type: 'check' };
         }
 
         // Monsters: build pot (slow-play for range balance if MSP/SPR says so)
@@ -6320,15 +6385,20 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Bug #122: Exempt NUT draws from RIO block — nut flush draws and nut straight draws
     // have minimal reverse implied odds because you have the best possible hand when you hit.
     // Bug #195: PLO8 nut low override — nut low guarantees half the pot, NEVER fold.
-    // Also exempt any PLO8 hand with a made low (hasLow) — still has equity for half the pot.
+    // Bug #206: Non-nut low calling threshold — only call with non-nut low if bet is < 60% pot.
+    // Calling a pot-sized bet with 3rd-best low risks quartering and counterfeiting.
     if (rioGuard.shouldBlock && toCall > 0 && !madeHand.isMade && !isNutDraw) {
         if (isHiLo && lo8?.hasNutLow && canCall) {
             console.log('[HorseBrain] 🎯 PLO8 NUT LOW RIO-OVERRIDE: calling with nut low (guaranteed half pot)');
             return { type: 'call' };
         }
         if (isHiLo && lo8?.hasLow && canCall) {
-            console.log('[HorseBrain] 🎯 PLO8 LOW RIO-OVERRIDE: calling with made low (likely half pot)');
-            return { type: 'call' };
+            const betFraction = potSize > 0 ? toCall / potSize : 1.0;
+            if (betFraction <= 0.60 || lo8.quarteringRisk === 'low') {
+                console.log('[HorseBrain] 🎯 PLO8 LOW RIO-OVERRIDE: calling with made low (likely half pot)');
+                return { type: 'call' };
+            }
+            // Large bet + quartering risk → non-nut low doesn't justify calling
         }
         console.log(`[HorseBrain] 🚫 MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
