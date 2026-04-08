@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).parent.parent
 CRED_PATH = ROOT / '.agent' / 'skills' / 'credentials' / '.env'
 EVIDENCE_DIR = ROOT / 'data' / 'scrape-evidence'
-SOURCES_FILE = ROOT / 'data' / '../../../../tmp/test-wpt.json'
+SOURCES_FILE = ROOT / 'data' / 'tour-scrape-sources.json'
 
 OPENAI_API_KEY = ''
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
