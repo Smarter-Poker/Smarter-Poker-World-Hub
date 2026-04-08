@@ -578,6 +578,513 @@ function getPLOTournamentOverride(variant, stageInfo, stackBB) {
 }
 
 // ======================================================================
+// PAY JUMP AWARENESS — THE MONEY PRESSURE ENGINE
+// ======================================================================
+
+/**
+ * Calculate pay jump pressure based on remaining players and payout structure.
+ *
+ * Pay jumps create MASSIVE strategic shifts. The difference between:
+ *   - Bubbling vs min-cashing = infinite (0 vs min-cash)
+ *   - 9th vs 8th at final table = small jump
+ *   - 3rd vs 2nd = often 30%+ increase
+ *   - 2nd vs 1st = often 50%+ increase
+ *
+ * This drives the "ladder" strategy: sometimes folding +EV spots
+ * to let shorter stacks bust first, securing a bigger payout.
+ *
+ * @param {Object} tourneyState - { playersRemaining, payoutSpots, payoutStructure, totalPrize }
+ * @returns {{ nextJumpPct: number, ladderValue: number, shouldLadder: boolean, jumpDescription: string }}
+ */
+function calculatePayJumpPressure(tourneyState) {
+    if (!tourneyState) {
+        return { nextJumpPct: 0, ladderValue: 0, shouldLadder: false, jumpDescription: 'none' };
+    }
+
+    const {
+        playersRemaining = 100,
+        payoutSpots = 15,
+        payoutStructure = null,
+        totalPrize = 10000,
+    } = tourneyState;
+
+    // Not in the money yet
+    if (playersRemaining > payoutSpots) {
+        const bubbleDistance = playersRemaining - payoutSpots;
+        if (bubbleDistance <= 3) {
+            return {
+                nextJumpPct: 100, // Infinite jump (0 to min-cash)
+                ladderValue: 1.0,
+                shouldLadder: true,
+                jumpDescription: 'bubble-infinite-jump',
+            };
+        }
+        return { nextJumpPct: 0, ladderValue: 0, shouldLadder: false, jumpDescription: 'pre-money' };
+    }
+
+    // Use payout structure if available, otherwise estimate
+    if (payoutStructure && Array.isArray(payoutStructure) && payoutStructure.length > 0) {
+        const currentSpot = playersRemaining;
+        const nextSpot = currentSpot - 1;
+        if (nextSpot >= 1 && currentSpot <= payoutStructure.length && nextSpot <= payoutStructure.length) {
+            const currentPay = payoutStructure[currentSpot - 1] || 0;
+            const nextPay = payoutStructure[nextSpot - 1] || 0;
+            const jumpPct = currentPay > 0 ? ((nextPay - currentPay) / currentPay) * 100 : 0;
+            return {
+                nextJumpPct: Math.round(jumpPct),
+                ladderValue: Math.min(1.0, jumpPct / 50), // 50%+ jump = max ladder value
+                shouldLadder: jumpPct >= 15, // Ladder if next jump is 15%+ increase
+                jumpDescription: jumpPct >= 40 ? 'massive-jump' : (jumpPct >= 20 ? 'significant-jump' : 'moderate-jump'),
+            };
+        }
+    }
+
+    // Estimate payout jumps based on position
+    let estimatedJumpPct = 0;
+    if (playersRemaining <= 3) {
+        estimatedJumpPct = 35; // Top 3 pay jumps are huge
+    } else if (playersRemaining <= 6) {
+        estimatedJumpPct = 18; // Final table mid-spots
+    } else if (playersRemaining <= 9) {
+        estimatedJumpPct = 12; // Early final table
+    } else if (playersRemaining <= payoutSpots * 0.5) {
+        estimatedJumpPct = 8; // Deep in money
+    } else {
+        estimatedJumpPct = 3; // Just made money, min-cash region
+    }
+
+    return {
+        nextJumpPct: estimatedJumpPct,
+        ladderValue: Math.min(1.0, estimatedJumpPct / 50),
+        shouldLadder: estimatedJumpPct >= 15,
+        jumpDescription: estimatedJumpPct >= 30 ? 'massive-jump' : (estimatedJumpPct >= 15 ? 'significant-jump' : 'standard'),
+    };
+}
+
+// ======================================================================
+// CHIP LEADER vs SHORT STACK DYNAMICS
+// ======================================================================
+
+/**
+ * Adjust strategy based on stack size relative to table average.
+ *
+ * Big stack dynamics:
+ *   - Big stack at bubble: BULLY short stacks mercilessly
+ *   - Big stack at final table: Apply pressure but avoid unnecessary risks
+ *   - Big stack in money: Accumulate, target medium stacks
+ *
+ * Short stack dynamics:
+ *   - Short stack at bubble: TURTLE (fold everything marginal)
+ *   - Short stack at final table: Find good spots to double up
+ *   - Short stack desperate (<8BB): Push/fold math only
+ *
+ * Medium stack dynamics:
+ *   - Worst position in tournaments — too much to fold, too little to bully
+ *   - Avoid confrontations with big stacks
+ *   - Target other medium stacks
+ *
+ * @param {number} stackBB - Our stack in BBs
+ * @param {number} avgStackBB - Table average stack in BBs
+ * @param {Object} stageInfo - From detectTournamentStage
+ * @param {number} numPlayersAtTable - Players at this table
+ * @returns {Object} Stack-relative strategy adjustments
+ */
+function getStackDynamicsAdjustment(stackBB, avgStackBB, stageInfo, numPlayersAtTable) {
+    const ratio = avgStackBB > 0 ? stackBB / avgStackBB : 1.0;
+
+    const result = {
+        stackCategory: 'medium',
+        rangeTighten: 0,
+        aggressionMultiplier: 1.0,
+        avoidBigStacks: false,
+        targetShortStacks: false,
+        pushFoldMode: false,
+        reasoning: 'standard',
+    };
+
+    // Classify stack
+    if (ratio >= 1.8) result.stackCategory = 'chip-leader';
+    else if (ratio >= 1.3) result.stackCategory = 'big';
+    else if (ratio >= 0.7) result.stackCategory = 'medium';
+    else if (ratio >= 0.4) result.stackCategory = 'short';
+    else result.stackCategory = 'desperate';
+
+    // Desperate mode: pure push/fold
+    if (stackBB <= 8 || result.stackCategory === 'desperate') {
+        result.pushFoldMode = true;
+        result.reasoning = 'desperate-push-fold';
+        return result;
+    }
+
+    if (!stageInfo || stageInfo.stage === 'cash') return result;
+
+    // ---- CHIP LEADER / BIG STACK ----
+    if (result.stackCategory === 'chip-leader' || result.stackCategory === 'big') {
+        if (stageInfo.stage === 'bubble') {
+            result.rangeTighten = -12; // WIDEN massively to bully
+            result.aggressionMultiplier = 1.4;
+            result.targetShortStacks = true;
+            result.reasoning = 'big-stack-bubble-bully';
+        } else if (stageInfo.stage === 'final_table') {
+            result.rangeTighten = -5;
+            result.aggressionMultiplier = 1.2;
+            result.targetShortStacks = true;
+            result.reasoning = 'big-stack-ft-pressure';
+        } else {
+            result.rangeTighten = -3;
+            result.aggressionMultiplier = 1.1;
+            result.reasoning = 'big-stack-accumulate';
+        }
+        return result;
+    }
+
+    // ---- MEDIUM STACK (the danger zone) ----
+    if (result.stackCategory === 'medium') {
+        result.avoidBigStacks = true;
+        if (stageInfo.stage === 'bubble') {
+            result.rangeTighten = 8; // Tighten — can't afford to bust
+            result.reasoning = 'medium-stack-bubble-survival';
+        } else if (stageInfo.stage === 'final_table') {
+            result.rangeTighten = 5;
+            result.reasoning = 'medium-stack-ft-careful';
+        } else {
+            result.rangeTighten = 2;
+            result.reasoning = 'medium-stack-standard';
+        }
+        return result;
+    }
+
+    // ---- SHORT STACK ----
+    if (result.stackCategory === 'short') {
+        if (stageInfo.stage === 'bubble') {
+            result.rangeTighten = 15; // MAXIMUM tightness — survive to cash
+            result.aggressionMultiplier = 0.5;
+            result.reasoning = 'short-stack-bubble-turtle';
+        } else if (stageInfo.stage === 'final_table') {
+            result.rangeTighten = 5;
+            result.aggressionMultiplier = 1.3; // Look for good spots to double
+            result.reasoning = 'short-stack-ft-double-up';
+        } else {
+            result.rangeTighten = 8;
+            result.reasoning = 'short-stack-careful';
+        }
+        return result;
+    }
+
+    return result;
+}
+
+// ======================================================================
+// REBUY / ADDON TOURNAMENT LOGIC
+// ======================================================================
+
+/**
+ * Strategy adjustments for rebuy tournament periods.
+ *
+ * During the rebuy period, strategy changes DRAMATICALLY:
+ *   - Can rebuy = more aggressive (like a cash game)
+ *   - Deep stacks early = accumulate mode
+ *   - Near the end of rebuy period = shift to survival
+ *   - After rebuy period ends = full tournament mode
+ *
+ * @param {Object} tourneyState - { isRebuyPeriod, rebuysRemaining, rebuyEndLevel, currentLevel, addonAvailable }
+ * @returns {{ isRebuyActive: boolean, aggressionBoost: number, riskTolerance: number, reasoning: string }}
+ */
+function getRebuyPeriodAdjustment(tourneyState) {
+    if (!tourneyState || !tourneyState.isRebuyPeriod) {
+        return { isRebuyActive: false, aggressionBoost: 0, riskTolerance: 0.5, reasoning: 'no-rebuy' };
+    }
+
+    const { rebuysRemaining = 0, rebuyEndLevel = 10, currentLevel = 1 } = tourneyState;
+    const periodsLeft = rebuyEndLevel - currentLevel;
+
+    // Early rebuy period with rebuys available: play like a cash game
+    if (rebuysRemaining > 0 && periodsLeft > 3) {
+        return {
+            isRebuyActive: true,
+            aggressionBoost: 15, // Widen ranges by 15 points
+            riskTolerance: 0.85, // Take coinflips freely
+            reasoning: 'early-rebuy-cash-mode',
+        };
+    }
+
+    // Late rebuy period: start transitioning
+    if (rebuysRemaining > 0 && periodsLeft <= 3) {
+        return {
+            isRebuyActive: true,
+            aggressionBoost: 5,
+            riskTolerance: 0.65,
+            reasoning: 'late-rebuy-transitioning',
+        };
+    }
+
+    // No rebuys remaining: play survival even during rebuy period
+    return {
+        isRebuyActive: true,
+        aggressionBoost: -5,
+        riskTolerance: 0.45,
+        reasoning: 'no-rebuys-left-survival',
+    };
+}
+
+// ======================================================================
+// SATELLITE TOURNAMENT LOGIC
+// ======================================================================
+
+/**
+ * Strategy for satellite tournaments (win a seat, not a cash prize).
+ *
+ * Satellite strategy is COMPLETELY different from regular tournaments:
+ *   - Goal: SURVIVE to the top N (where N = number of seats awarded)
+ *   - There's NO difference between 1st and Nth place (all get the same seat)
+ *   - Near the bubble: play ULTRA tight, let others bust
+ *   - Big stack: never risk your stack unnecessarily
+ *   - Short stack: find one spot to double up, then turtle
+ *
+ * @param {Object} tourneyState - { isSatellite, seatsAwarded, playersRemaining, stackBB, avgStackBB }
+ * @returns {{ isSatellite: boolean, rangeTighten: number, maxRiskPct: number, reasoning: string }}
+ */
+function getSatelliteAdjustment(tourneyState) {
+    if (!tourneyState || !tourneyState.isSatellite) {
+        return { isSatellite: false, rangeTighten: 0, maxRiskPct: 1.0, reasoning: 'not-satellite' };
+    }
+
+    const {
+        seatsAwarded = 1,
+        playersRemaining = 10,
+        stackBB = 50,
+        avgStackBB = 50,
+    } = tourneyState;
+
+    const seatBubbleDistance = playersRemaining - seatsAwarded;
+    const ratio = avgStackBB > 0 ? stackBB / avgStackBB : 1.0;
+
+    // Already guaranteed a seat (or very close)
+    if (seatBubbleDistance <= 0) {
+        return { isSatellite: true, rangeTighten: 0, maxRiskPct: 1.0, reasoning: 'seat-locked' };
+    }
+
+    // On the seat bubble (within 2 of getting a seat)
+    if (seatBubbleDistance <= 2) {
+        if (ratio >= 1.5) {
+            // Big stack on seat bubble: fold EVERYTHING (you're guaranteed a seat if you don't bust)
+            return { isSatellite: true, rangeTighten: 30, maxRiskPct: 0.1, reasoning: 'big-stack-seat-bubble-turtle' };
+        }
+        if (ratio >= 0.7) {
+            // Medium stack: extremely tight
+            return { isSatellite: true, rangeTighten: 20, maxRiskPct: 0.25, reasoning: 'medium-stack-seat-bubble' };
+        }
+        // Short stack: need to find ONE spot to double
+        return { isSatellite: true, rangeTighten: 5, maxRiskPct: 0.6, reasoning: 'short-stack-seat-bubble-must-gamble' };
+    }
+
+    // Far from seat bubble: play normal-ish but conservative
+    return { isSatellite: true, rangeTighten: 10, maxRiskPct: 0.5, reasoning: 'satellite-general-tight' };
+}
+
+// ======================================================================
+// HEADS-UP TOURNAMENT PLAY
+// ======================================================================
+
+/**
+ * Heads-up tournament strategy adjustments.
+ *
+ * Heads-up play is a COMPLETELY different game:
+ *   - MUCH wider ranges (only 2 players, most hands are playable)
+ *   - Position = everything (BTN acts last on every street)
+ *   - Aggression is paramount (raise most buttons)
+ *   - Stack depth determines strategy:
+ *     > Deep (50BB+): Postflop poker
+ *     > Medium (20-50BB): Raise/fold preflop, bet-fold postflop
+ *     > Shallow (<20BB): Push/fold territory
+ *   - Min-raise > pot-raise (preserve stack, apply constant pressure)
+ *
+ * @param {number} stackBB - Effective stack in BBs
+ * @param {string} position - 'BTN' (acts first preflop, last postflop) or 'BB'
+ * @param {number} handScore - 0-100 hand score
+ * @returns {Object} HU-specific strategy
+ */
+function getHeadsUpTournamentStrategy(stackBB, position, handScore) {
+    const result = {
+        openRange: 0, // Score threshold to open
+        defendRange: 0, // Score threshold to defend BB
+        raiseSize: '2x', // Default open size
+        aggressionLevel: 'standard',
+        pushFoldThreshold: 0,
+        isPushFold: false,
+    };
+
+    // ---- SHALLOW: Push/fold (<20BB) ----
+    if (stackBB < 20) {
+        result.isPushFold = true;
+        if (position === 'BTN' || position === 'SB') {
+            // BTN push ranges by stack depth
+            if (stackBB <= 8) result.pushFoldThreshold = 20; // Push very wide
+            else if (stackBB <= 12) result.pushFoldThreshold = 30;
+            else result.pushFoldThreshold = 38;
+        } else {
+            // BB call ranges (tighter than push ranges)
+            if (stackBB <= 8) result.pushFoldThreshold = 35;
+            else if (stackBB <= 12) result.pushFoldThreshold = 42;
+            else result.pushFoldThreshold = 48;
+        }
+        result.aggressionLevel = 'push-fold';
+        return result;
+    }
+
+    // ---- MEDIUM: Raise/fold pre, bet-fold post (20-50BB) ----
+    if (stackBB < 50) {
+        if (position === 'BTN' || position === 'SB') {
+            result.openRange = 25; // Open 75% of buttons
+            result.raiseSize = '2.2x';
+            result.aggressionLevel = 'aggressive';
+        } else {
+            result.defendRange = 40; // Defend 60% of BBs
+            result.aggressionLevel = 'selective';
+        }
+        return result;
+    }
+
+    // ---- DEEP: Full postflop poker (50BB+) ----
+    if (position === 'BTN' || position === 'SB') {
+        result.openRange = 20; // Open 80% of buttons
+        result.raiseSize = '2.5x';
+        result.aggressionLevel = 'relentless';
+    } else {
+        result.defendRange = 35; // Defend 65% of BBs
+        result.aggressionLevel = 'active';
+    }
+
+    return result;
+}
+
+// ======================================================================
+// PLO TOURNAMENT ALL-IN EQUITY ADJUSTMENT
+// ======================================================================
+
+/**
+ * PLO-specific all-in equity adjustments for tournament spots.
+ *
+ * PLO all-ins run MUCH closer than Hold'em:
+ *   - Hold'em AA vs KK = ~82% vs 18% (huge favorite)
+ *   - PLO4 AAKK ds vs random = ~65% vs 35% (much closer)
+ *   - PLO5 best hand vs random = ~60% vs 40% (almost a flip)
+ *   - PLO6 AA equity vs random = ~52% vs 48% (barely a favorite)
+ *
+ * This means PLO tournaments require EVEN MORE caution about all-ins
+ * because even premium hands are near coin-flips.
+ *
+ * @param {string} variant - 'holdem', 'plo4', 'plo5', 'plo6'
+ * @param {number} baseEquity - Estimated equity (0-1)
+ * @param {Object} stageInfo - From detectTournamentStage
+ * @param {number} stackBB - Effective stack
+ * @returns {{ adjustedEquityThreshold: number, shouldCommit: boolean, reasoning: string }}
+ */
+function getPLOTournamentAllInEquity(variant, baseEquity, stageInfo, stackBB) {
+    // Base equity thresholds (minimum equity to commit)
+    const baseThresholds = {
+        holdem: 0.52,
+        plo4: 0.55,
+        plo5: 0.58,
+        plo6: 0.60,
+    };
+
+    let threshold = baseThresholds[variant] || 0.55;
+
+    if (!stageInfo || stageInfo.stage === 'cash') {
+        return {
+            adjustedEquityThreshold: threshold,
+            shouldCommit: baseEquity >= threshold,
+            reasoning: 'cash-standard-threshold',
+        };
+    }
+
+    // Stage-based adjustments
+    if (stageInfo.stage === 'bubble') {
+        threshold += 0.08; // Need MORE equity on bubble
+    } else if (stageInfo.stage === 'final_table') {
+        threshold += 0.05;
+    } else if (stageInfo.stage === 'in_money') {
+        threshold += 0.03;
+    } else if (stageInfo.stage === 'early' || stageInfo.chipAccumMode) {
+        threshold -= 0.02; // Slightly more willing early
+    }
+
+    // Short stack exception: must gamble with less equity
+    if (stackBB <= 12) {
+        threshold = Math.max(threshold - 0.08, 0.38);
+    } else if (stackBB <= 20) {
+        threshold = Math.max(threshold - 0.03, 0.45);
+    }
+
+    // Heads-up: lower threshold (every pot matters)
+    if (stageInfo.stage === 'heads_up') {
+        threshold = baseThresholds[variant] || 0.52;
+    }
+
+    return {
+        adjustedEquityThreshold: Math.round(threshold * 100) / 100,
+        shouldCommit: baseEquity >= threshold,
+        reasoning: `${variant}-${stageInfo.stage}-${stackBB <= 12 ? 'short' : 'standard'}`,
+    };
+}
+
+// ======================================================================
+// BLIND LEVEL URGENCY — TIME PRESSURE
+// ======================================================================
+
+/**
+ * Calculate urgency based on how many orbits of life remain.
+ *
+ * As blinds increase, stacks shrink in BB terms. The "M ratio" (Harrington)
+ * tells you how many orbits you can survive without playing a hand:
+ *   M = stack / (SB + BB + antes_per_round)
+ *
+ * M zones:
+ *   Green (M > 20): Full poker, no urgency
+ *   Yellow (10 < M < 20): Start opening up, steal more
+ *   Orange (5 < M < 10): Must find spots NOW, can't wait
+ *   Red (1 < M < 5): Push/fold, immediate action required
+ *   Dead (M < 1): All-in next hand with anything
+ *
+ * @param {number} stackBB - Stack in BBs
+ * @param {Object} blindInfo - { sb, bb, ante, numPlayers }
+ * @returns {{ mRatio: number, zone: string, urgencyMultiplier: number, orbitsLeft: number }}
+ */
+function calculateBlindLevelUrgency(stackBB, blindInfo) {
+    if (!blindInfo) {
+        return { mRatio: stackBB || 50, zone: 'green', urgencyMultiplier: 1.0, orbitsLeft: 50 };
+    }
+
+    const { sb = 0.5, bb = 1, ante = 0, numPlayers = 9 } = blindInfo;
+    const totalBlindsPerOrbit = sb + bb + (ante * numPlayers);
+    const mRatio = totalBlindsPerOrbit > 0 ? (stackBB * bb) / totalBlindsPerOrbit : stackBB;
+    const orbitsLeft = Math.round(mRatio);
+
+    let zone = 'green';
+    let urgencyMultiplier = 1.0;
+
+    if (mRatio > 20) {
+        zone = 'green';
+        urgencyMultiplier = 1.0;
+    } else if (mRatio > 10) {
+        zone = 'yellow';
+        urgencyMultiplier = 1.15; // Slightly wider ranges
+    } else if (mRatio > 5) {
+        zone = 'orange';
+        urgencyMultiplier = 1.35; // Must find spots
+    } else if (mRatio > 1) {
+        zone = 'red';
+        urgencyMultiplier = 1.60; // Push/fold territory
+    } else {
+        zone = 'dead';
+        urgencyMultiplier = 2.0; // All-in immediately
+    }
+
+    return { mRatio: Math.round(mRatio * 10) / 10, zone, urgencyMultiplier, orbitsLeft };
+}
+
+// ======================================================================
 // MASTER TOURNAMENT DECISION WRAPPER
 // ======================================================================
 
@@ -602,19 +1109,101 @@ function applyTournamentAdjustments(baseDecision, gameState, legalActions) {
     const street = gameState.street || 'preflop';
     const potSize = gameState.potSize || 0;
     const toCall = gameState.toCall || 0;
-
-    // Get hand strength estimate (rough)
     const handStrength = gameState._handStrength || 50;
 
-    // Adjust postflop decisions
-    const adjusted = adjustTournamentPostflop(
+    // ---- SATELLITE OVERRIDE: Completely different strategy ----
+    if (tourneyState.isSatellite) {
+        const satAdj = getSatelliteAdjustment(tourneyState);
+        if (satAdj.isSatellite) {
+            // In satellites, fold everything marginal near the seat bubble
+            if (handStrength < (50 + satAdj.rangeTighten) && (baseDecision.type === 'call' || baseDecision.type === 'raise' || baseDecision.type === 'bet')) {
+                if (toCall > 0) return { type: 'fold', amount: 0, tourneyInfo: { stage: 'satellite', icmPressure: 1.0, survivalPriority: 1.0 } };
+                const canCheck = legalActions?.some(a => a.type === 'check');
+                if (canCheck) return { type: 'check', amount: 0, tourneyInfo: { stage: 'satellite', icmPressure: 1.0, survivalPriority: 1.0 } };
+            }
+        }
+    }
+
+    // ---- REBUY PERIOD: More aggressive ----
+    const rebuyAdj = getRebuyPeriodAdjustment(tourneyState);
+
+    // ---- HEADS-UP: Different game entirely ----
+    if (stageInfo.stage === 'heads_up') {
+        const huStrategy = getHeadsUpTournamentStrategy(stackBB, gameState.position, handStrength);
+        if (huStrategy.isPushFold && street === 'preflop') {
+            // Push/fold mode: either shove or fold
+            if (handStrength >= huStrategy.pushFoldThreshold) {
+                const raiseAction = legalActions?.find(a => a.type === 'raise' || a.type === 'bet');
+                if (raiseAction) {
+                    return {
+                        type: raiseAction.type,
+                        amount: raiseAction.maxAmount || stackBB * (gameState.bb || 1),
+                        tourneyInfo: { stage: 'heads_up', icmPressure: 0.3, survivalPriority: 0.2 },
+                    };
+                }
+            }
+            const canCheck = legalActions?.some(a => a.type === 'check');
+            if (canCheck) return { type: 'check', amount: 0, tourneyInfo: { stage: 'heads_up', icmPressure: 0.3, survivalPriority: 0.2 } };
+            return { type: 'fold', amount: 0, tourneyInfo: { stage: 'heads_up', icmPressure: 0.3, survivalPriority: 0.2 } };
+        }
+    }
+
+    // ---- STACK DYNAMICS: Adjust based on table position ----
+    const avgStackBB = tourneyState.avgStackBB || stackBB;
+    const stackDynamics = getStackDynamicsAdjustment(stackBB, avgStackBB, stageInfo, gameState.numPlayers || 9);
+
+    // ---- BLIND URGENCY: M-ratio check ----
+    const urgency = calculateBlindLevelUrgency(stackBB, tourneyState.blindInfo || { bb: gameState.bb || 1 });
+
+    // ---- PAY JUMP AWARENESS ----
+    const payJump = calculatePayJumpPressure(tourneyState);
+
+    // Apply postflop adjustments
+    let adjusted = adjustTournamentPostflop(
         baseDecision, stageInfo, stackBB, potSize, toCall,
         handStrength, street, legalActions
     );
 
+    // Pay jump ladder: override marginal spots when laddering is profitable
+    if (payJump.shouldLadder && adjusted.type !== 'fold') {
+        if (handStrength < 60 && (adjusted.type === 'call' || adjusted.type === 'raise' || adjusted.type === 'bet')) {
+            if (toCall > potSize * 0.3) {
+                const canCheck = legalActions?.some(a => a.type === 'check');
+                adjusted = { type: canCheck ? 'check' : 'fold', amount: 0 };
+            }
+        }
+    }
+
+    // Stack dynamics: big stack pressure override
+    if (stackDynamics.targetShortStacks && street === 'preflop' && adjusted.type === 'fold') {
+        // Big stack should be OPENING more, not folding
+        if (handStrength >= (40 - stackDynamics.rangeTighten)) {
+            const raiseAction = legalActions?.find(a => a.type === 'raise' || a.type === 'bet');
+            if (raiseAction && toCall === 0) {
+                const openSize = Math.round((gameState.bb || 1) * 2.2);
+                const amount = Math.max(raiseAction.minAmount || 1, Math.min(openSize, raiseAction.maxAmount || openSize));
+                adjusted = { type: raiseAction.type, amount };
+            }
+        }
+    }
+
+    // Urgency: dead/red zone — push wider
+    if (urgency.zone === 'dead' && street === 'preflop') {
+        const raiseAction = legalActions?.find(a => a.type === 'raise' || a.type === 'bet');
+        if (raiseAction && handStrength >= 15) {
+            adjusted = { type: raiseAction.type, amount: raiseAction.maxAmount || stackBB * (gameState.bb || 1) };
+        }
+    }
+
     // Adjust bet sizing
     if (adjusted.amount && adjusted.amount > 0) {
         adjusted.amount = adjustTournamentBetSize(adjusted.amount, street, stageInfo, stackBB);
+    }
+
+    // Rebuy period aggression boost
+    if (rebuyAdj.isRebuyActive && adjusted.type === 'fold' && handStrength >= (50 - rebuyAdj.aggressionBoost)) {
+        const canCheck = legalActions?.some(a => a.type === 'check');
+        if (canCheck) adjusted = { type: 'check', amount: 0 };
     }
 
     return {
@@ -623,6 +1212,10 @@ function applyTournamentAdjustments(baseDecision, gameState, legalActions) {
             stage: stageInfo.stage,
             icmPressure: stageInfo.icmPressure,
             survivalPriority: stageInfo.survivalPriority,
+            mRatio: urgency.mRatio,
+            mZone: urgency.zone,
+            payJump: payJump.jumpDescription,
+            stackCategory: stackDynamics.stackCategory,
         },
     };
 }
@@ -646,6 +1239,27 @@ module.exports = {
 
     // Variance protection
     evaluateVarianceSpot,
+
+    // Pay jump awareness
+    calculatePayJumpPressure,
+
+    // Stack dynamics
+    getStackDynamicsAdjustment,
+
+    // Rebuy period
+    getRebuyPeriodAdjustment,
+
+    // Satellite tournaments
+    getSatelliteAdjustment,
+
+    // Heads-up tournament play
+    getHeadsUpTournamentStrategy,
+
+    // PLO tournament all-in equity
+    getPLOTournamentAllInEquity,
+
+    // Blind level urgency (M-ratio)
+    calculateBlindLevelUrgency,
 
     // Steal/defense
     getTournamentStealAdjustment,

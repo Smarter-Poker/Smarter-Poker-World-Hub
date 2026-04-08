@@ -279,7 +279,10 @@ function countFlushOuts(holeCards, boardCards) {
         if (boardOfSuit.length < 2) continue; // Not yet a real flush draw
 
         const totalOfSuit = holeOfSuit.length + boardOfSuit.length;
-        if (totalOfSuit >= 5) continue; // Already have a flush (made hand, handled elsewhere)
+        // In Omaha, a flush requires exactly 2 hole cards + 3 board cards of the same suit.
+        // A made flush only exists when the BOARD has 3+ of the suit (and we hold 2+).
+        // If board has only 2 of the suit, we have a flush DRAW regardless of hole card count.
+        if (boardOfSuit.length >= 3 && holeOfSuit.length >= 2) continue; // Already have a made flush
 
         const outs = 13 - totalOfSuit; // Cards left in deck of that suit
         if (outs > bestOuts) {

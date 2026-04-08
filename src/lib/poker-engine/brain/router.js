@@ -38,6 +38,8 @@ const { makePLO6Decision } = require('./plo6-brain');
 
 const { evaluatePLO8Low } = require('./plo8-brain');
 
+const { applyTournamentAdjustments, detectTournamentStage } = require('./tournament-brain');
+
 // Live observer is not yet extracted — stub with safe fallback
 let _getLiveReadFn = null;
 function setRouterLiveReadFn(fn) {
@@ -302,7 +304,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             tableId: tableId || 'unknown',
             primaryOppId: primaryOppId || null,
         }, legalActions);
-        const validPLO5 = validateAndClamp(plo5Decision.type, plo5Decision.amount, legalActions);
+        let plo5Action = { type: plo5Decision.type, amount: plo5Decision.amount || 0 };
+        if (engineState.tourneyState || engineState.tournament) {
+            plo5Action = applyTournamentAdjustments(plo5Action, {
+                tourneyState: engineState.tourneyState || engineState.tournament,
+                stackBB, street, potSize, toCall, bb, numPlayers,
+                position: mapPosition(heroPlayer.position || 'mp'),
+                _handStrength: plo5Decision._handStrength || 50,
+            }, legalActions);
+        }
+        const validPLO5 = validateAndClamp(plo5Action.type, plo5Action.amount, legalActions);
         const delayPLO5 = getActionDelay(profileId, validPLO5.type, street === 'preflop') + angleTell.extraEntropyMs;
         recordPerformanceAction(profileId, street, validPLO5.type, validPLO5.type !== 'fold' && validPLO5.type !== 'check');
         return { action: validPLO5, delayMs: delayPLO5 };
@@ -323,7 +334,17 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             tableId: tableId || 'unknown',
             primaryOppId: primaryOppId || null,
         }, legalActions);
-        const validPLO6 = validateAndClamp(plo6Decision.type, plo6Decision.amount, legalActions);
+        let plo6Action = { type: plo6Decision.type, amount: plo6Decision.amount || 0 };
+        // Apply tournament adjustments if in a tournament
+        if (engineState.tourneyState || engineState.tournament) {
+            plo6Action = applyTournamentAdjustments(plo6Action, {
+                tourneyState: engineState.tourneyState || engineState.tournament,
+                stackBB, street, potSize, toCall, bb, numPlayers,
+                position: mapPosition(heroPlayer.position || 'mp'),
+                _handStrength: plo6Decision._handStrength || 50,
+            }, legalActions);
+        }
+        const validPLO6 = validateAndClamp(plo6Action.type, plo6Action.amount, legalActions);
         const delayPLO6 = getActionDelay(profileId, validPLO6.type, street === 'preflop') + angleTell.extraEntropyMs;
         recordPerformanceAction(profileId, street, validPLO6.type, validPLO6.type !== 'fold' && validPLO6.type !== 'check');
         return { action: validPLO6, delayMs: delayPLO6 };
@@ -359,7 +380,16 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             isRITRefuser: primaryOppId ? isRITRefuser(primaryOppId).isRITRefuser : false, // Module 31
             chipLeakBoosts: getChipLeakBoosts(profileId, tableId || 'default'), // Module 32
         }, legalActions);
-        const validPLO = validateAndClamp(ploDecision.type, ploDecision.amount, legalActions);
+        let ploAction = { type: ploDecision.type, amount: ploDecision.amount || 0 };
+        if (engineState.tourneyState || engineState.tournament) {
+            ploAction = applyTournamentAdjustments(ploAction, {
+                tourneyState: engineState.tourneyState || engineState.tournament,
+                stackBB, street, potSize, toCall, bb, numPlayers,
+                position: mapPosition(heroPlayer.position || 'mp'),
+                _handStrength: ploDecision._handStrength || 50,
+            }, legalActions);
+        }
+        const validPLO = validateAndClamp(ploAction.type, ploAction.amount, legalActions);
         const delayPLO = getActionDelay(profileId, validPLO.type, street === 'preflop') + angleTell.extraEntropyMs;
         recordPerformanceAction(profileId, street, validPLO.type, validPLO.type !== 'fold' && validPLO.type !== 'check');
         return { action: validPLO, delayMs: delayPLO };
@@ -1400,6 +1430,23 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 finalAction = 'call';
             }
         }
+    }
+
+    // --- 5b. TOURNAMENT ADJUSTMENTS (Hold'em) ---
+    // Apply ICM, stage, pay-jump, stack dynamics to the Hold'em decision
+    if (engineState.tourneyState || engineState.tournament) {
+        const tourneyAdj = applyTournamentAdjustments(
+            { type: finalAction, amount: finalAmount || 0 },
+            {
+                tourneyState: engineState.tourneyState || engineState.tournament,
+                stackBB, street, potSize, toCall, bb, numPlayers,
+                position: mapPosition(heroPlayer.position || 'mp'),
+                _handStrength: 50, // Will be refined by the tournament brain internally
+            },
+            legalActions
+        );
+        finalAction = tourneyAdj.type || finalAction;
+        finalAmount = tourneyAdj.amount || finalAmount;
     }
 
     // --- 6. VALIDATE AGAINST LEGAL ACTIONS ---

@@ -38,7 +38,19 @@ const {
     getAdaptivePLOBetSize,
     calcPLOBetSize,
 } = require('./plo-core');
-const { RANK_ORDER } = require('./core');
+const { RANK_ORDER, parseCard, parseCards } = require('./core');
+
+/**
+ * Ensure cards are in object format { rank, suit } for plo-core functions.
+ * Accepts strings ('Ah') or objects, returns objects.
+ */
+function _ensureCardObjects(cards) {
+    if (!cards || !cards.length) return [];
+    if (typeof cards[0] === 'string') {
+        return cards.map(c => parseCard(c));
+    }
+    return cards;
+}
 
 // ======================================================================
 // PLO6 PREFLOP HAND SCORING
@@ -762,10 +774,14 @@ function getPLO6DrawEquity(holeCards, boardCards, street, potSize, toCall) {
         return { totalOuts: 0, equity: 0, potOddsNeeded: 0, isProfitableCall: false, drawTier: 'none', nutDrawCount: 0 };
     }
 
-    const flushOuts = countFlushOuts(holeCards, boardCards);
-    const straightOuts = countStraightOuts(holeCards, boardCards);
-    const wrapInfo = detectPLOWrapDraw(holeCards, boardCards);
-    const backdoorOuts = street === 'flop' ? countBackdoorOuts(holeCards, boardCards) : 0;
+    // plo-core functions need card objects, not strings
+    const holeObjs = _ensureCardObjects(holeCards);
+    const boardObjs = _ensureCardObjects(boardCards);
+
+    const flushOuts = countFlushOuts(holeObjs, boardObjs);
+    const straightOuts = countStraightOuts(holeObjs, boardObjs);
+    const wrapInfo = detectPLOWrapDraw(holeObjs, boardObjs);
+    const backdoorOuts = street === 'flop' ? countBackdoorOuts(holeObjs, boardObjs) : 0;
 
     // PLO6 adjustment: +20% more draw combos hit (even more than PLO5's +15%)
     const plo6DrawMultiplier = 1.20;
@@ -937,10 +953,14 @@ function classifyPLO6Draws(holeCards, boardCards, street) {
         };
     }
 
-    const flushInfo = countFlushOuts(holeCards, boardCards);
-    const straightInfo = countStraightOuts(holeCards, boardCards);
-    const wrapInfo = detectPLOWrapDraw(holeCards, boardCards);
-    const backdoorInfo = street === 'flop' ? countBackdoorOuts(holeCards, boardCards) : 0;
+    // plo-core functions need card objects, not strings
+    const holeObjs = _ensureCardObjects(holeCards);
+    const boardObjs = _ensureCardObjects(boardCards);
+
+    const flushInfo = countFlushOuts(holeObjs, boardObjs);
+    const straightInfo = countStraightOuts(holeObjs, boardObjs);
+    const wrapInfo = detectPLOWrapDraw(holeObjs, boardObjs);
+    const backdoorInfo = street === 'flop' ? countBackdoorOuts(holeObjs, boardObjs) : 0;
 
     // PLO6 adjustment: 20% more combos hit than PLO4
     const plo6Multi = 1.20;
@@ -958,8 +978,9 @@ function classifyPLO6Draws(holeCards, boardCards, street) {
     const isNutStraightDraw = straightOuts >= 10;
 
     // Total outs (deduplicated)
-    const rawTotal = flushOuts + straightOuts;
-    const totalOuts = Math.min(30, Math.round(deduplicatePLOComboOuts(flushOuts, straightOuts) * plo6Multi));
+    const deduped = deduplicatePLOComboOuts(flushOuts, straightOuts);
+    const dedupedOuts = typeof deduped === 'number' ? deduped : (deduped?.exactOuts || (flushOuts + straightOuts));
+    const totalOuts = Math.min(30, Math.round((isNaN(dedupedOuts) ? (flushOuts + straightOuts) : dedupedOuts) * plo6Multi));
 
     // Backdoor potential
     const hasBackdoorFlush = backdoorInfo >= 3;
@@ -1761,7 +1782,6 @@ function makePLO6Decision(profileId, gameState, legalActions) {
         if (['raise', '3bet', '4bet'].includes(preflopAction.action)) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
             if (raiseAction) {
-                // PLO6 open sizing is 2.5x (smaller -- ranges are strong, big opens get called anyway)
                 let raiseSize;
                 if (preflopAction.sizing === 'allin') {
                     raiseSize = raiseAction.maxAmount || gameState.stackBB * (gameState.bb || 1);
@@ -1777,34 +1797,71 @@ function makePLO6Decision(profileId, gameState, legalActions) {
         }
     }
 
-    // ---- POSTFLOP: Nut-or-nothing + blocker bluffing ----
+    // ---- POSTFLOP: DRAW-FIRST strategy (PLO6 is a drawing game) ----
     if (gameState.street !== 'preflop' && gameState.holeCards?.length === 6 && gameState.board?.length >= 3) {
-        const nutInfo = evaluatePLO6NutDistance(gameState.holeCards, gameState.board);
-        const drawInfo = getPLO6DrawEquity(
-            gameState.holeCards, gameState.board, gameState.street,
-            gameState.potSize || 0, gameState.toCall || 0
-        );
-
-        // Combine made hand + draw strength
-        const madeHand = getBestPLO5or6MadeHand(gameState.holeCards, gameState.board);
-        const adjusted = adjustPLO6PostflopStrength(
-            madeHand, { flushOuts: drawInfo.totalOuts, straightOuts: 0, totalOuts: drawInfo.totalOuts },
-            gameState.street, gameState.holeCards, gameState.board
-        );
-
-        const strength = adjusted.adjustedStrength;
         const toCall = gameState.toCall || 0;
         const potSize = gameState.potSize || 1;
+        const numPlayers = gameState.numPlayers || 2;
+        const isIP = gameState.position === 'BTN' || gameState.position === 'CO';
+        const street = gameState.street;
 
-        // NUT HAND: Commit aggressively
+        // Step 1: Full draw classification (THE primary PLO6 evaluation)
+        const drawClass = classifyPLO6Draws(gameState.holeCards, gameState.board, street);
+
+        // Step 2: Made hand evaluation
+        const madeHand = getBestPLO5or6MadeHand(gameState.holeCards, gameState.board);
+        const nutInfo = evaluatePLO6NutDistance(gameState.holeCards, gameState.board);
+        const adjusted = adjustPLO6PostflopStrength(
+            madeHand,
+            { flushOuts: drawClass.totalOuts, straightOuts: 0, totalOuts: drawClass.totalOuts },
+            street, gameState.holeCards, gameState.board
+        );
+        const strength = adjusted.adjustedStrength;
+
+        // Step 3: Freeroll detection (nuts + redraw = ALWAYS raise)
+        if (street !== 'river') {
+            const freeroll = detectPLO6Freeroll(gameState.holeCards, gameState.board, street);
+            if (freeroll.isFreerolling) {
+                const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                if (raiseAction) {
+                    const betSize = Math.round(potSize * 0.85);
+                    const amount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+                    return { type: raiseAction.type, amount };
+                }
+                return { type: 'call', amount: 0 };
+            }
+        }
+
+        // Step 4: Multiway pot logic (3+ players = completely different game)
+        if (numPlayers > 2) {
+            const mwStrategy = getPLO6MultiwayStrategy(
+                strength, drawClass, numPlayers, isIP, potSize, toCall, street
+            );
+            if (mwStrategy.action !== 'standard') {
+                if (mwStrategy.action === 'bet-value' || mwStrategy.action === 'bet-semi-bluff' || mwStrategy.action === 'bet-protect') {
+                    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                    if (raiseAction && toCall === 0) {
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(mwStrategy.sizing, raiseAction.maxAmount || mwStrategy.sizing));
+                        return { type: raiseAction.type, amount };
+                    }
+                    if (toCall > 0) return { type: 'call', amount: 0 };
+                }
+                if (mwStrategy.action === 'call') return { type: 'call', amount: 0 };
+                if (mwStrategy.action === 'fold') return { type: 'fold', amount: 0 };
+                if (mwStrategy.action === 'check') {
+                    const canCheck = legalActions.some(a => a.type === 'check');
+                    return { type: canCheck ? 'check' : 'fold', amount: 0 };
+                }
+            }
+        }
+
+        // Step 5: NUT HAND — Commit aggressively
         if (nutInfo.isNutHand || strength >= 88) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
             if (raiseAction) {
                 const nutStatus = strength >= 90 ? 'nut' : 'near-nut';
-                const betSize = getPLO6BetSize(gameState.street, 'value', potSize, strength, {
-                    numPlayers: gameState.numPlayers || 2,
-                    isIP: gameState.position === 'BTN' || gameState.position === 'CO',
-                    nutStatus,
+                const betSize = getPLO6BetSize(street, 'value', potSize, strength, {
+                    numPlayers, isIP, nutStatus,
                 });
                 const amount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
                 return { type: raiseAction.type, amount };
@@ -1812,50 +1869,127 @@ function makePLO6Decision(profileId, gameState, legalActions) {
             return { type: 'call', amount: 0 };
         }
 
-        // STRONG DRAW: Semi-bluff with nut draws
-        if (drawInfo.nutDrawCount >= 1 && drawInfo.totalOuts >= 14 && gameState.street !== 'river') {
-            const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
-            if (raiseAction && toCall === 0) {
-                // Bet with nut draws
-                const betSize = getPLO6BetSize(gameState.street, 'bluff', potSize, strength, {
-                    numPlayers: gameState.numPlayers || 2,
-                });
-                const amount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
-                return { type: raiseAction.type, amount };
+        // Step 6: DRAW-FIRST LOGIC (the heart of PLO6 — draws ARE the hand)
+        if (street !== 'river') {
+            // Monster/strong draws (Tier 1-2): play like made hands
+            if (drawClass.drawTier <= 2) {
+                const drawVsDraw = evaluatePLO6DrawVsDraw(
+                    drawClass, toCall > 0, isIP, potSize, toCall, numPlayers
+                );
+                if (drawVsDraw.action === 'raise' || drawVsDraw.action === 'bet') {
+                    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                    if (raiseAction) {
+                        const betSize = getPLO6BetSize(street, 'bluff', potSize, strength, { numPlayers, isIP });
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+                        return { type: raiseAction.type, amount };
+                    }
+                }
+                if (drawVsDraw.action === 'call' && toCall > 0) return { type: 'call', amount: 0 };
+                if (drawVsDraw.action === 'check') {
+                    const canCheck = legalActions.some(a => a.type === 'check');
+                    if (canCheck) return { type: 'check', amount: 0 };
+                }
             }
-            // Call with profitable draws
-            if (drawInfo.isProfitableCall && toCall > 0) {
-                return { type: 'call', amount: 0 };
-            }
-        }
 
-        // MARGINAL HAND: Check/call or fold
-        if (strength >= 50 && strength < 88) {
-            if (toCall === 0) {
-                // Check when marginal and not facing bet
-                const canCheck = legalActions.some(a => a.type === 'check');
-                if (canCheck) return { type: 'check', amount: 0 };
+            // Protection betting: strong made hand on wet board
+            if (strength >= 55 && strength < 88 && drawClass.protectionNeeded) {
+                const boardTexture = analyzePLOBoardTexture(gameState.board);
+                const protection = getPLO6ProtectionBet(strength, boardTexture, numPlayers, potSize, street);
+                if (protection.shouldProtect && toCall === 0) {
+                    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                    if (raiseAction) {
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(protection.protectSize, raiseAction.maxAmount || protection.protectSize));
+                        return { type: raiseAction.type, amount };
+                    }
+                }
             }
-            // Facing a bet: only call if getting decent odds with a draw or near-nut hand
-            if (toCall > 0) {
-                const callableStrength = strength >= 65 || drawInfo.isProfitableCall;
-                if (callableStrength && toCall <= potSize * 0.7) {
+
+            // Decent draws (Tier 3): check-call, see cheap cards
+            if (drawClass.drawTier === 3) {
+                if (toCall === 0) {
+                    const canCheck = legalActions.some(a => a.type === 'check');
+                    if (canCheck) return { type: 'check', amount: 0 };
+                }
+                // Call if priced in
+                const drawEquity = getPLO6DrawEquity(
+                    gameState.holeCards, gameState.board, street, potSize, toCall
+                );
+                if (drawEquity.isProfitableCall && toCall > 0) {
                     return { type: 'call', amount: 0 };
+                }
+            }
+
+            // Weak/dominated draws (Tier 4-5): fold to bets, check if free
+            if (drawClass.drawTier >= 4) {
+                if (drawClass.isDominatedDraw && toCall > 0) {
+                    return { type: 'fold', amount: 0 };
+                }
+                if (toCall === 0) {
+                    const canCheck = legalActions.some(a => a.type === 'check');
+                    if (canCheck) return { type: 'check', amount: 0 };
                 }
             }
         }
 
-        // BLOCKER BLUFF on river (heads-up only)
-        if (gameState.street === 'river' && toCall === 0 && (gameState.numPlayers || 2) <= 2) {
-            const bluffInfo = shouldPLO6Bluff(
-                gameState.holeCards, gameState.board, gameState.numPlayers || 2,
-                gameState.street, potSize, toCall
-            );
-            if (bluffInfo.shouldBluff) {
+        // Step 7: RIVER — Missed draw handling + value betting + blocker bluffs
+        if (street === 'river') {
+            // Value bet with strong made hands
+            if (strength >= 70) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
-                if (raiseAction) {
-                    const amount = Math.max(raiseAction.minAmount || 1, Math.min(bluffInfo.bluffSize, raiseAction.maxAmount || bluffInfo.bluffSize));
+                if (raiseAction && toCall === 0) {
+                    const nutStatus = strength >= 90 ? 'nut' : (strength >= 75 ? 'near-nut' : 'non-nut');
+                    const betSize = getPLO6BetSize('river', 'value', potSize, strength, {
+                        numPlayers, isIP, nutStatus,
+                    });
+                    const amount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
                     return { type: raiseAction.type, amount };
+                }
+                if (toCall > 0 && toCall <= potSize * 0.8) return { type: 'call', amount: 0 };
+            }
+
+            // Missed draw handling (heads-up only)
+            if (strength < 45 && numPlayers <= 2) {
+                const missedDraw = handlePLO6MissedDraw(
+                    gameState.holeCards, gameState.board,
+                    drawClass, // Use current draw state as proxy for turn draws
+                    strength, isIP, potSize, numPlayers
+                );
+
+                if (missedDraw.action === 'blocker-bluff' || missedDraw.action === 'desperation-bluff') {
+                    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                    if (raiseAction && toCall === 0) {
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(missedDraw.bluffSize, raiseAction.maxAmount || missedDraw.bluffSize));
+                        return { type: raiseAction.type, amount };
+                    }
+                }
+                if (missedDraw.action === 'check-call-thin' && toCall > 0 && toCall <= potSize * 0.35) {
+                    return { type: 'call', amount: 0 };
+                }
+            }
+
+            // Blocker bluff on river (heads-up, not facing bet)
+            if (toCall === 0 && numPlayers <= 2 && strength < 50) {
+                const bluffInfo = shouldPLO6Bluff(
+                    gameState.holeCards, gameState.board, numPlayers,
+                    'river', potSize, toCall
+                );
+                if (bluffInfo.shouldBluff) {
+                    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                    if (raiseAction) {
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(bluffInfo.bluffSize, raiseAction.maxAmount || bluffInfo.bluffSize));
+                        return { type: raiseAction.type, amount };
+                    }
+                }
+            }
+
+            // Marginal showdown value: check/call small
+            if (strength >= 45 && strength < 70) {
+                if (toCall === 0) {
+                    const canCheck = legalActions.some(a => a.type === 'check');
+                    if (canCheck) return { type: 'check', amount: 0 };
+                }
+                if (toCall > 0 && strength >= 55 && toCall <= potSize * 0.5) {
+                    return { type: 'call', amount: 0 };
                 }
             }
         }
@@ -1888,8 +2022,25 @@ module.exports = {
     getPLO6BlockerValue,
     shouldPLO6Bluff,
 
-    // Draws
+    // Draw classification (THE core of PLO6)
+    classifyPLO6Draws,
     getPLO6DrawEquity,
+
+    // Multi-street draw planning
+    getPLO6MultiStreetDrawPlan,
+    reassessPLO6Turn,
+
+    // Protection & confrontation
+    getPLO6ProtectionBet,
+    evaluatePLO6DrawVsDraw,
+
+    // Freeroll & missed draws
+    detectPLO6Freeroll,
+    handlePLO6MissedDraw,
+
+    // Card removal & multiway
+    getPLO6CardRemoval,
+    getPLO6MultiwayStrategy,
 
     // Sizing
     getPLO6BetSize,

@@ -131,8 +131,8 @@ function getJsonVenues() {
         return _jsonVenueCache;
     }
     const raw = allVenuesData?.venues || [];
-    // ID 3109 = "Grand Victoria Casino" — permanent duplicate of ID 2315 (same address). Always excluded.
-    _jsonVenueCache = raw.filter(v => v.id !== 3109);
+    // Load ALL venues — visibility is controlled exclusively by is_active flag, never hardcoded IDs
+    _jsonVenueCache = raw;
     _jsonVenueCacheTime = now;
     // Build O(1) lookup Map
     _venueByIdMap = new Map();
@@ -382,7 +382,7 @@ export default async function handler(req, res) {
                       .from('poker_venues')
                       .select('*')
                       .eq('is_active', true)
-                      .neq('id', 3109); // ID 3109 = "Grand Victoria Casino" — permanent duplicate of ID 2315 "Grand Victoria", same address (250 S Grove Ave, Elgin IL). Excluded to prevent double-card in PNM feed.
+                      
 
                   if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
                   if (city) q = q.ilike('city', `%${city}%`);

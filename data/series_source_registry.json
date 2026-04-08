@@ -1,0 +1,14 @@
+{
+  "venue_morongo-poker-series_2026": {
+    "series_uid": "venue_morongo-poker-series_2026",
+    "series_name": "Morongo Poker Series",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series?search=Morongo%20Poker%20Series",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series?search=Morongo%20Poker%20Series",
+    "last_success": true,
+    "event_count": 263,
+    "last_scraped": "2026-04-08T22:54:04.109135+00:00",
+    "batch_id": "63564a41-7b91-4869-bf21-09f370fc338e",
+    "script": "scripts/scrape_poker_series_v5.py"
+  }
+}
