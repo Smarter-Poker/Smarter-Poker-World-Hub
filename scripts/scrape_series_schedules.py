@@ -526,11 +526,6 @@ def get_series_targets():
     ps_rows = sb_select('poker_series', 'source_url=not.is.null&select=series_uid,series_name,source_url,city,state,start_date', limit=500)
     log(f'  Loaded {len(ps_rows)} poker_series with source URLs')
 
-    # Build name→slug map from existing poker_series
-    name_to_ps = {}
-    for ps in ps_rows:
-        name_to_ps[ps['series_name'].lower().strip()] = ps
-
     targets = []
     no_url  = []
 
@@ -539,18 +534,33 @@ def get_series_targets():
         if vname not in CANONICAL_130:
             continue
 
-        key = vname.lower().strip()
-        ps  = name_to_ps.get(key)
+        target_words = set(re.sub(r'[^\w\s]', '', vname).lower().split())
+        matched_ps = None
+        
+        # Overlap matching against existing DB series
+        for ps in ps_rows:
+            ps_name = ps['series_name']
+            ps_words = set(re.sub(r'[^\w\s]', '', ps_name).lower().split())
+            overlap = target_words.intersection(ps_words)
+            required = min(2, len(target_words))
+            
+            # Special case for 1-word acronyms like MSPT, WSOP
+            if len(target_words) == 1 and overlap == target_words:
+                matched_ps = ps
+                break
+            elif len(overlap) >= required:
+                matched_ps = ps
+                break
 
-        if ps and ps.get('source_url'):
-            url  = ps['source_url']
+        if matched_ps and matched_ps.get('source_url'):
+            url  = matched_ps['source_url']
             slug = url.split('/poker-tournament-series/')[-1].rstrip('/')
             targets.append({
                 'canonical_name': vname,
-                'series_uid':     ps['series_uid'],
+                'series_uid':     matched_ps['series_uid'],
                 'source_url':     url,
                 'slug':           slug,
-                'has_dates':      bool(ps.get('start_date')),
+                'has_dates':      bool(matched_ps.get('start_date')),
             })
         else:
             # Need to discover slug via PokerAtlas search
@@ -693,7 +703,7 @@ def main():
                 'canonical_name':     t['canonical_name'],
                 'series_record':      meta,
                 'events_count':       len(events),
-                'events_sample':      events[:3],
+                'events':             events,
                 # Source of truth — for future re-scrape
                 'source_of_truth':    prov['scrape_url'],
                 'body_preview':       html[:300],
@@ -745,6 +755,7 @@ def main():
                     'discovered_slug':  slug,
                     'source_of_truth':  prov['scrape_url'],  # Future re-scrape URL
                     'events_count':     len(events),
+                    'events':           events,
                     'body_preview':     html[:300],
                 })
 

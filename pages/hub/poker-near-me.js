@@ -363,12 +363,12 @@ export default function PokerNearMePage() {
     const [tours, setTours] = useState([]);
     const [series, setSeries] = useState([]);
     const [dailyTournaments, setDailyTournaments] = useState([]);
-    const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
+    const [dbStats, setDbStats] = useState({ total: 507, tournaments: 679, states: 50 });
 
 
 
     // Live table count for map stats (fetched from live-tables API)
-    const [liveTableCount, setLiveTableCount] = useState(0);
+    const [liveTableCount, setLiveTableCount] = useState(316);
 
     // UI states
     const [loading, setLoading] = useState(true);
@@ -1158,22 +1158,20 @@ export default function PokerNearMePage() {
             });
     }, []);
 
-    const fetchLiveCount = useCallback(() => {
-        fetch('/api/poker/live-tables')
-            .then(r => r.json())
-            .then(json => {
-                if (json.metadata && typeof json.metadata.total_tables_running === 'number') {
-                    setLiveTableCount(json.metadata.total_tables_running);
-                }
-            })
-            .catch(() => { /* silent fail */ });
-    }, []);
+    const fetchLiveCount = useCallback(async () => {
+        try {
+            const json = await cachedFetch('/api/poker/live-tables');
+            if (json && json.metadata && typeof json.metadata.total_tables_running === 'number') {
+                setLiveTableCount(json.metadata.total_tables_running);
+            }
+        } catch (e) {
+            /* silent fail */
+        }
+    }, [cachedFetch]);
 
     // Fetch live table count for map stats header
     useEffect(() => {
         fetchLiveCount();
-        const interval = setInterval(fetchLiveCount, 120000); // refresh every 2 min
-        return () => clearInterval(interval);
     }, [fetchLiveCount]);
 
     // Fetch non-venue data on mount (tours, series, daily tournaments)
@@ -2750,11 +2748,11 @@ export default function PokerNearMePage() {
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
                     <p className="pnm-subtitle">
-                        {allVenuesForMap.filter(v => !['series', 'tour'].includes(v.venue_type)).length > 0 ? allVenuesForMap.filter(v => !['series', 'tour'].includes(v.venue_type)).length.toLocaleString() : '507'} Venues
+                        {dbStats.total.toLocaleString()} Venues
                         &nbsp;&bull;&nbsp;
-                        {liveTableCount > 0 ? liveTableCount.toLocaleString() : '316'} Live Tables
+                        {liveTableCount.toLocaleString()} Live Tables
                         &nbsp;&bull;&nbsp;
-                        {dbStats.tournaments > 0 ? dbStats.tournaments.toLocaleString() : '679'} Today&apos;s Tournaments
+                        {dbStats.tournaments.toLocaleString()} Today&apos;s Tournaments
                     </p>
                 </div>
 
