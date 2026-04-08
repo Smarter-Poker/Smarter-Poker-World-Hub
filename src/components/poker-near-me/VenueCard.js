@@ -525,7 +525,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     )}
                                 </div>
                                 {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
-                                    <div className="vc3-list-scrollable" style={{ maxHeight: '145px' }}>
+                                    <div className="vc3-list-scrollable vc3-list-scrollable-games" style={{ maxHeight: '112px' }}>
                                         {venue.live_data.games.map((g, idx) => {
                                             const gameName = g?.game || 'Unknown Game';
                                             const buyin = g?.buyin ? ` · ${g.buyin}` : '';
@@ -627,7 +627,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <div className="vc3-col-title">Today's Tournaments</div>
                         
                         {venue.venue_type === 'charity' && venue.is_today && venue.today_event ? (
-                            <div className="vc3-list-scrollable">
+                            <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                 <div className="vc3-list-item vc3-tourney-item">
                                     <div className="vc3-tourney-name">{venue.name || 'Charity'} Event</div>
                                     <div className="vc3-tourney-meta">
@@ -637,7 +637,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 </div>
                             </div>
                         ) : venue.has_tournaments && Array.isArray(venue.daily_tournaments) && venue.daily_tournaments.length > 0 ? (
-                            <div className="vc3-list-scrollable">
+                            <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                 {venue.daily_tournaments.map((t, idx) => {
                                     const tName = t?.tournament_name || t?.name || 'Tournament';
                                     return (
@@ -937,11 +937,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
-                    max-height: 145px;
                     overflow-y: auto;
                     padding-right: 4px;
                     flex: 1;
                 }
+                /* Cash games: show 4 rows (~28px each) before scrolling */
+                .vc3-list-scrollable-games { max-height: 112px; }
+                /* Tournaments: show 3 rows (~40px each — 2-line items) before scrolling */
+                .vc3-list-scrollable-tourneys { max-height: 120px; }
                 .vc3-list-scrollable::-webkit-scrollbar { width: 3px; }
                 .vc3-list-scrollable::-webkit-scrollbar-track { background: transparent; }
                 .vc3-list-scrollable::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
