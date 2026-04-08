@@ -1597,7 +1597,7 @@
 .vc3-badge-checkin { background: rgba(230,81,0,0.10); color: #fb923c; border-color: rgba(230,81,0,0.2); cursor: pointer; }
 
 /* Data zone */
-.vc3-data-zone {
+.vc3-data-zone { flex: 1; display: flex; flex-direction: column;
     margin-bottom: 4px;
 }
 

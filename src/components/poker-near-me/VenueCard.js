@@ -100,10 +100,10 @@ const VENUE_TYPE_COLORS = {
 // Game type color mapping for enhanced chips
 const GAME_TYPE_COLORS = {
     'NLH': { bg: 'rgba(255,255,255,0.12)', color: '#ffffff', border: 'rgba(255,255,255,0.22)' },
-    'PLO': { bg: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.22)' },
+    'PLO': { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' },
     'Limit': { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' },
     'Mixed': { bg: 'rgba(6,182,212,0.12)', color: '#22d3ee', border: 'rgba(6,182,212,0.22)' },
-    'Stud': { bg: 'rgba(236,72,153,0.12)', color: '#f472b6', border: 'rgba(236,72,153,0.22)' },
+    'Stud': { bg: 'rgba(239,68,68,0.12)', color: '#f87171', border: 'rgba(239,68,68,0.22)' },
     'Big O': { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'rgba(245,158,11,0.22)' },
 };
 
@@ -847,7 +847,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 }
                 .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
                 .vc3-badge-checkin:hover { background: rgba(230,81,0,0.25); }
-                .vc3-data-zone { margin-top: 4px; }
+                .vc3-data-zone { margin-top: 4px; flex: 1; display: flex; flex-direction: column; }
                 .vc3-live-info {
                     display: flex; gap: 16px; margin-bottom: 8px; padding: 8px 10px;
                     background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);

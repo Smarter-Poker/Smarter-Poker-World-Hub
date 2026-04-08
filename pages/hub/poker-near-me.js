@@ -1121,6 +1121,18 @@ export default function PokerNearMePage() {
         if (typeof window === 'undefined') return;
         const CACHE_KEY = 'sp-offline-venues';
         let hadCacheHit = false;
+
+        const setGlobalVenues = (activeArr) => {
+            setAllVenuesForMap(activeArr);
+            const realPlayableVenues = activeArr.filter(v => !['series', 'tour'].includes(v.venue_type));
+            if (realPlayableVenues.length > 0) {
+                setDbStats(prev => {
+                    if (prev.total === realPlayableVenues.length) return prev;
+                    return { ...prev, total: realPlayableVenues.length };
+                });
+            }
+        };
+
         // Try offline cache first
         try {
             const cached = localStorage.getItem(CACHE_KEY);
@@ -1129,7 +1141,7 @@ export default function PokerNearMePage() {
                 if (parsed.venues && parsed.time && (Date.now() - parsed.time) < 3600000) { // 1hr TTL
                     // Filter inactive venues — e.g. Ameristar East Chicago (no permanent cash games)
                     const activeFromCache = parsed.venues.filter(v => v.is_active !== false && v.id !== 3109);
-                    setAllVenuesForMap(activeFromCache);
+                    setGlobalVenues(activeFromCache);
                     hadCacheHit = true;
                 }
             }
@@ -1144,7 +1156,7 @@ export default function PokerNearMePage() {
                 // that no longer operate permanent cash games (e.g. Ameristar East Chicago, which only
                 // activates during MSPT tour stops). Also exclude Grand Victoria duplicate (ID 3109).
                 var activeArr = arr.filter(function(venue) { return venue.is_active !== false && venue.id !== 3109; });
-                setAllVenuesForMap(activeArr);
+                setGlobalVenues(activeArr);
                 // Cache for offline use (cache the filtered list)
                 try {
                     localStorage.setItem(CACHE_KEY, JSON.stringify({ venues: activeArr, time: Date.now() }));
@@ -1893,13 +1905,13 @@ export default function PokerNearMePage() {
             let filteredData = data || [];
 
             setVenues(filteredData);
-            // Update stats from response
+            // Update stats from response (only update states, leave global total alone)
             if (json.total) {
                 const stateSet = new Set(filteredData.map(v => v.state).filter(Boolean));
                 setDbStats(prev => {
                     const newStates = stateSet.size || prev.states;
-                    if (prev.total === json.total && prev.states === newStates) return prev;
-                    return { ...prev, total: json.total, states: newStates };
+                    if (prev.states === newStates) return prev;
+                    return { ...prev, states: newStates };
                 });
             }
             if (filteredData.length > 0 && filteredData[0].distance_mi) {

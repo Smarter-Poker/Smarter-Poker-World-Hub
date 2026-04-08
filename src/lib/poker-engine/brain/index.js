@@ -163,6 +163,7 @@ module.exports = {
     getPLOEquityRealization: ploCore.getPLOEquityRealization,
     getPLOPositionRanges: ploCore.getPLOPositionRanges,
     calcPLOPotRaise: ploCore.calcPLOPotRaise,
+    _calcPLOPotRaiseSimple: ploCore._calcPLOPotRaiseSimple,
     calcPLOBetSize: ploCore.calcPLOBetSize,
     getAdaptivePLOBetSize: ploCore.getAdaptivePLOBetSize,
     getPLOCBetStrategy: ploCore.getPLOCBetStrategy,
@@ -278,6 +279,7 @@ module.exports = {
     applyExploitIntensifier: holdemBrain.applyExploitIntensifier,
     handleDonkBet: holdemBrain.handleDonkBet,
     applyTiltDegradation: holdemBrain.applyTiltDegradation,
+    setLiveReadFn: holdemBrain.setLiveReadFn,
 
     // ═══════════════════════════════════════════════════════════════════════
     // tournament-brain.js — Tournament-specific strategy adjustments

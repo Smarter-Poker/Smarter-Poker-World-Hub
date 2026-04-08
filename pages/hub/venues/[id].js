@@ -853,14 +853,19 @@ export default function VenueDetailPage() {
       const spFavs = JSON.parse(spFavoritesStr);
       if (newState) {
         spFavs['venue-' + venueId] = Date.now();
-        try { bus?.emit?.('venue:favorite', { venueId, name: venue?.name }); } catch {}
+        try { busEmit.venueSaved(venueId, venue?.name); } catch {}
       } else {
         delete spFavs['venue-' + venueId];
-        try { bus?.emit?.('venue:unfavorite', { venueId }); } catch {}
+        try { busEmit.venueUnsaved(venueId); } catch {}
       }
       localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
-      // Cross-tab trigger native event (for the current tab, EventBus handles it)
-      window.dispatchEvent(new Event('storage')); 
+      // Cross-tab trigger native event (for the current tab, EventBus handles it, but just in case, emit a full StorageEvent)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'sp-favorites',
+          newValue: JSON.stringify(spFavs)
+        }));
+      }
 
       // Sync to Supabase
       const authUser = getAuthUser();
