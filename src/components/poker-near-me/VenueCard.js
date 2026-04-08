@@ -313,6 +313,21 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     {/* Name + Type — stacked beside logo */}
                     <div className="vc3-identity">
                         <h4 className="vc3-name">{venue.name || 'Unknown Venue'}</h4>
+                        <a
+                            href="#"
+                            onClick={e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openNativeMaps({ address: [venue.address, venue.city, venue.state].filter(Boolean).join(', '), mode: 'search' });
+                            }}
+                            className="vc3-city-state"
+                            title="Open In Maps"
+                        >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.7 }}>
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                            </svg>
+                            <span>{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}</span>
+                        </a>
                         <span className="vc3-type-label" style={{ color: typeColor.color }}>
                             {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
                         </span>
@@ -357,23 +372,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </div>
             </div>
 
-            {/* === ADDRESS === */}
-            <a
-                className="vc3-address"
-                href="#"
-                onClick={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openNativeMaps({ address: [venue.address, venue.city, venue.state].filter(Boolean).join(', '), mode: 'search' });
-                }}
-                title="Open In Maps"
-                style={{ justifyContent: 'flex-start' }}
-            >
-                <span>{venue.address ? (venue.address + ' - ') : ''}{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                </svg>
-            </a>
+            {/* Address removed from here, now in header */}
 
             {/* Home Game Host Info — Avatar + Name + Profile Link */}
             {venue.venue_type === 'home_game' && venue.host_display_name && (
@@ -523,15 +522,20 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     )}
                                 </div>
                                 {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
-                                    <div className="vc3-list-scrollable" style={{ maxHeight: '180px' }}>
+                                    <div className="vc3-list-scrollable" style={{ maxHeight: '145px' }}>
                                         {venue.live_data.games.map((g, idx) => {
                                             const gameName = g?.game || 'Unknown Game';
+                                            const buyin = g?.buyin ? ` · ${g.buyin}` : '';
+                                            const displayName = `${gameName}${buyin}`;
                                             return (
                                                 <div key={idx} className="vc3-list-item vc3-game-item">
-                                                    <span className="vc3-game-name" title={gameName}>{gameName.length > 25 ? gameName.substring(0, 22) + '...' : gameName}</span>
-                                                    <span className="vc3-game-tables">
-                                                        {g?.tables_running > 0 ? `${g.tables_running}T` : 'WAIT'}
-                                                    </span>
+                                                    <span className="vc3-game-name" title={displayName}>{displayName.length > 28 ? displayName.substring(0, 25) + '...' : displayName}</span>
+                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                        {g?.players_waiting > 0 && <span style={{ color: '#ffffff', fontSize: '9px', opacity: 0.8 }}>{g.players_waiting} WT</span>}
+                                                        <span className="vc3-game-tables">
+                                                            {g?.tables_running > 0 ? `${g.tables_running}T` : 'WAIT'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
@@ -737,7 +741,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             {/* === TRUST SCORE / PLAYER RATING — not shown for tour cards === */}
             {!['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
-            <div className="vc3-trust" style={{ marginTop: '0px' }}>
+            <div className="vc3-trust" style={{ marginTop: 'auto' }}>
                 {reviewStats && reviewStats.total_reviews > 0 ? (
                     <>
                         <div className="vc3-trust-header">
@@ -778,6 +782,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
                 .vc3-identity .vc3-name { font-size: 16px; font-weight: 700; color: #fff; margin: 0; padding: 0; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
                 .vc3-type-label { font-size: 12px; font-weight: 500; letter-spacing: 0.2px; }
+                .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; margin: 1px 0; }
+                .vc3-city-state:hover { color: #ffffff; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.9); }
                 .vc3-logo-img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
@@ -932,7 +938,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
-                    max-height: 125px;
+                    max-height: 145px;
                     overflow-y: auto;
                     padding-right: 4px;
                     flex: 1;
