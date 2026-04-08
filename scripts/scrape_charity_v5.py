@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# scrape_charity_v5.py — upgraded with slug detection + multi-source from targeted scraper
 """
 CHARITY SCHEDULE SCRAPER v5.0 — Full 34-Field Engine
 =====================================================
@@ -32,6 +33,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from datetime import datetime, date, timedelta, timezone
+import urllib.parse
 from pathlib import Path
 
 # ── Paths & Config ──────────────────────────────────────────────────────────
@@ -269,15 +271,208 @@ def send_sms_alert(msg):
 # ══════════════════════════════════════════════════════════
 
 def network_ok():
-    for host in ['https://www.google.com', 'https://www.pokeratlas.com']:
+    for host in ['https://1.1.1.1', 'https://www.google.com', 'https://supabase.com']:
         try:
-            req = urllib.request.Request(host, method='HEAD',
-                headers={'User-Agent': 'Mozilla/5.0'})
-            urllib.request.urlopen(req, timeout=8)
+            urllib.request.urlopen(host, timeout=6)
             return True
         except Exception:
             continue
     return False
+
+
+# ══════════════════════════════════════════════════════════
+# SLUG & URL INTELLIGENCE (ported from scrape_targeted_202)
+# ══════════════════════════════════════════════════════════
+
+# Expanded path list — tries all common charity/poker site structures
+WEBSITE_PATHS = [
+    '/poker/tournaments', '/poker-room/tournaments', '/gaming/poker/tournaments',
+    '/tournaments', '/tournament-schedule', '/tournament-list',
+    '/events/poker', '/events', '/schedule', '/poker-schedule',
+    '/calendar', '/weekly-schedule', '/agenda',
+    '/poker', '/poker-room', '/find-a-game', '/games', '/',
+]
+
+TOURN_KW = re.compile(
+    r'tournament|tourney|buy.?in|\$\d{2,}.*?(?:buy|entry)|bounty|freeroll|'
+    r'freezeout|rebuy|deep.?stack|daily poker|poker schedule|nlh|no.limit|'
+    r'holdem|poker event|weekly poker|schedule|event list',
+    re.I
+)
+
+def has_tourn(html):
+    """Quick keyword guard — only parse pages that contain tournament signals."""
+    return bool(TOURN_KW.search(html[:60000]))
+
+def slugify(s):
+    """URL-safe slug from a name string."""
+    s = re.sub(r"[''`]", '', s)
+    s = re.sub(r'&', 'and', s)
+    s = re.sub(r'[^a-z0-9\s]', '', s.lower())
+    return re.sub(r'\s+', '-', s.strip())
+
+def slug_candidates(name):
+    """Generate candidate slugs: full name, short name (strip trailing words)."""
+    base = slugify(name)
+    candidates = [base]
+    # Drop trailing suffix words common in venue names
+    for suffix in ['poker-club', 'poker-room', 'casino', 'card-room', 'gaming',
+                   'poker', 'club', 'games', 'charitable-games', 'charity-poker']:
+        short = re.sub(rf'-{suffix}$', '', base).strip('-')
+        if short and short != base:
+            candidates.append(short)
+    return list(dict.fromkeys(candidates))
+
+def url_to_origin(url):
+    """Extract scheme+host from a URL."""
+    try:
+        p = urllib.parse.urlparse(url)
+        if p.scheme and p.netloc:
+            return f'{p.scheme}://{p.netloc}'
+    except Exception:
+        pass
+    return None
+
+def find_nav_schedule_links(html, base_url):
+    """
+    Parse homepage nav links looking for schedule/tournament pages.
+    Returns list of candidate full URLs to try.
+    """
+    origin = url_to_origin(base_url) or ''
+    candidates = []
+    # Extract all hrefs
+    for m in re.finditer(r'href=["\']([^"\']+)["\']', html, re.I):
+        href = m.group(1)
+        if not href or href.startswith('#') or href.startswith('mailto:'):
+            continue
+        # Only keep links that look like schedule/tournament pages
+        if not re.search(r'schedule|tournament|event|poker|calendar|game|agenda', href, re.I):
+            continue
+        if href.startswith('http'):
+            candidates.append(href)
+        elif href.startswith('/'):
+            candidates.append(origin + href)
+        else:
+            candidates.append(base_url.rstrip('/') + '/' + href)
+    return list(dict.fromkeys(candidates))[:8]  # dedupe, cap at 8
+
+def fast_fetch(url):
+    """
+    Fast static fetch using Scrapling Fetcher with stealthy_headers.
+    Much faster than StealthySession browser — use first before launching Playwright.
+    Falls back to urllib with SSL verification disabled for self-signed cert sites.
+    Returns (html_str, body_bytes) or (None, None).
+    """
+    try:
+        from scrapling.fetchers import Fetcher
+        resp = Fetcher.get(url, stealthy_headers=True, timeout=12)
+        if resp and resp.status == 200:
+            body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode('utf-8')
+            return body.decode('utf-8', errors='ignore'), body
+    except Exception:
+        pass
+    # SSL fallback — for self-signed / invalid cert sites
+    try:
+        import ssl
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; SmartPokerBot/1.0)',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        })
+        with urllib.request.urlopen(req, timeout=12, context=ctx) as resp:
+            if 200 <= resp.status < 300:
+                body = resp.read()
+                return body.decode('utf-8', errors='ignore'), body
+    except Exception:
+        pass
+    return None, None
+
+def try_pokeratlas(name, city, state, batch_id):
+    """
+    Try PokerAtlas for a charity venue — many are listed there.
+    Returns list of schedule dicts (may be empty).
+    """
+    slugs = slug_candidates(name)
+    if city:
+        slugs.insert(0, slugify(f'{name} {city}'))
+    
+    STOP_WORDS = {'the', 'and', 'casino', 'poker', 'room', 'card', 'at', 'in', 'of', 'a'}
+    name_tokens = {w for w in re.sub(r'[^a-z0-9 ]', ' ', name.lower()).split()
+                   if len(w) >= 4} - STOP_WORDS
+
+    for slug in slugs[:4]:
+        pa_url = f'https://www.pokeratlas.com/poker-room/{slug}/tournaments'
+        html, body = fast_fetch(pa_url)
+        if not html:
+            continue
+        # Scope-check: page title must match venue name tokens
+        title_m = re.search(r'<title[^>]*>(.*?)</title>', html, re.I | re.DOTALL)
+        title = (title_m.group(1) if title_m else '').lower()
+        if name_tokens and not any(t in title for t in name_tokens):
+            continue
+        if not has_tourn(html):
+            continue
+        # Try __NEXT_DATA__ first
+        schedules = extract_next_data_schedules(html, pa_url)
+        if not schedules:
+            schedules = extract_rich_fields_from_html(html, pa_url)
+        if schedules:
+            print(f'    🎯 PokerAtlas hit: {pa_url} → {len(schedules)} schedules')
+            return schedules, pa_url, body
+        time.sleep(0.3)
+    return [], None, None
+
+def extract_next_data_schedules(html, source_url):
+    """
+    Extract tournament schedules from Next.js __NEXT_DATA__ JSON blob.
+    Ported from scrape_targeted_202.py extract_pa_next_data().
+    """
+    schedules = []
+    m = re.search(r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
+    if not m:
+        m = re.search(r'__NEXT_DATA__\s*=\s*(\{.*?\})\s*;?\s*</script>', html, re.DOTALL)
+    if not m:
+        return schedules
+    try:
+        nd = json.loads(m.group(1))
+    except Exception:
+        return schedules
+    
+    # Walk the full tree looking for tournament arrays
+    def walk(obj, depth=0):
+        if depth > 12 or not obj:
+            return
+        if isinstance(obj, list):
+            for item in obj:
+                walk(item, depth + 1)
+        elif isinstance(obj, dict):
+            # Look for tournament-like keys
+            for key in ('tournaments', 'events', 'schedule', 'games', 'tournamentList'):
+                if key in obj and isinstance(obj[key], list):
+                    for t in obj[key]:
+                        if not isinstance(t, dict): continue
+                        bi = t.get('buyIn') or t.get('buy_in') or t.get('entryFee') or 0
+                        if isinstance(bi, str):
+                            bim = re.search(r'(\d+)', bi.replace(',', ''))
+                            bi = int(bim.group(1)) if bim else 0
+                        day = t.get('dayOfWeek') or t.get('day') or t.get('recurringDay') or 'Daily'
+                        start = t.get('startTime') or t.get('time') or ''
+                        gtd = t.get('guaranteed') or t.get('prizePool') or None
+                        if isinstance(gtd, str):
+                            gm = re.search(r'([\d,]+)', gtd.replace(',', ''))
+                            gtd = int(gm.group(1)) if gm else None
+                        schedules.append(_extract_context_fields(
+                            normalize_day(str(day)) or 'Daily',
+                            parse_time_24h(str(start)) or str(start),
+                            json.dumps(t)[:400],
+                            source_url
+                        ))
+            for v in obj.values():
+                walk(v, depth + 1)
+    walk(nd)
+    return schedules
 
 
 # ══════════════════════════════════════════════════════════
@@ -754,19 +949,25 @@ def expand_to_dated_records(schedule, state, pdf_data=None):
 
 def scrape_target(target):
     """
-    Full scrape of one charity venue:
-    1. StealthySession fetch (Cloudflare bypass)
-    2. JS-rendered HTML extraction
-    3. PDF detection + parsing
-    4. 34-field extraction
-    5. Anti-hallucination check
-    6. 10-week date expansion
-    Returns list of fully-enriched dated records, or None.
-    """
-    from scrapling.fetchers import StealthySession
+    Upgraded 3-phase scraper for one charity venue.
 
+    PHASE 1 — Fast static fetches (no browser overhead):
+      1a. PokerAtlas slug lookup (many charity venues are listed there)
+      1b. Bravo Poker Live slug lookup
+      1c. Venue's own URLs via fast_fetch() + Fetcher(stealthy_headers=True)
+      1d. Homepage nav-link discovery → finds actual schedule URLs
+
+    PHASE 2 — WEBSITE_PATHS crawl on confirmed origin:
+      Tries 18 common path patterns on the venue's domain
+
+    PHASE 3 — StealthySession JS browser (Playwright + camoufox):
+      Full Cloudflare bypass only if Phases 1-2 both fail
+
+    Returns fully-enriched result dict or None.
+    """
     name = target['name']
     state = target['state']
+    city = target.get('city', '')
     print(f'\n{"─"*60}')
     print(f'  🎯 {name} ({state})')
     print(f'{"─"*60}')
@@ -778,133 +979,180 @@ def scrape_target(target):
     best_html = ''
     best_url = ''
     best_body = b''
-    consecutive_failures = 0
     pdf_data = {}
 
-    for url in target['schedule_urls']:
-        if consecutive_failures >= 3:
-            print(f'  🛑 Abort guard: 3 failures — stopping URL loop')
-            break
+    # ── PHASE 1a: PokerAtlas slug lookup ──────────────────────────────────
+    print(f'  [Phase 1a] PokerAtlas slug lookup...')
+    pa_schedules, pa_url, pa_body = try_pokeratlas(name, city, state, BATCH_ID)
+    if pa_schedules:
+        best_html = pa_body.decode('utf-8', errors='ignore') if pa_body else ''
+        best_url = pa_url
+        best_body = pa_body or b''
 
-        print(f'  🌐 {url}')
-        session = None
+    # ── PHASE 1b: Bravo Poker Live slug lookup ─────────────────────────────
+    if not best_html:
+        print(f'  [Phase 1b] Bravo slug lookup...')
+        bravo_slug = slugify(name)
+        bravo_short = re.sub(r'-(casino|poker|room|club|house|gaming|resort)$', '', bravo_slug)
+        for bslug in list(dict.fromkeys([bravo_slug, bravo_short]))[:2]:
+            bravo_url = f'https://www.bravopokerlive.com/poker-rooms/{bslug}/'
+            html, body = fast_fetch(bravo_url)
+            if html and has_tourn(html):
+                print(f'    🎯 Bravo hit: {bravo_url}')
+                best_html = html
+                best_url = bravo_url
+                best_body = body or b''
+                break
+            time.sleep(0.2)
+
+    # ── PHASE 1c: Direct venue URL fast_fetch ─────────────────────────────
+    if not best_html:
+        print(f'  [Phase 1c] Direct venue URLs (fast fetch)...')
+        for url in target['schedule_urls']:
+            html, body = fast_fetch(url)
+            if not html:
+                time.sleep(0.3)
+                continue
+            # PDF discovery even on fast fetch
+            pdf_links = find_pdf_links(html, url)
+            for purl in pdf_links[:2]:
+                pbytes = download_pdf(purl)
+                if pbytes:
+                    pd = parse_pdf_for_tournament_data(pbytes, purl)
+                    for k, v in pd.items():
+                        if v is not None and not pdf_data.get(k):
+                            pdf_data[k] = v
+            if has_tourn(html):
+                print(f'    ✅ Fast fetch hit: {url}')
+                best_html = html
+                best_url = url
+                best_body = body or b''
+                break
+            # Phase 1d: nav-link discovery from this page
+            print(f'    🔗 Nav-link scan on {url}...')
+            nav_links = find_nav_schedule_links(html, url)
+            for nav_url in nav_links:
+                nav_html, nav_body = fast_fetch(nav_url)
+                if nav_html and has_tourn(nav_html):
+                    print(f'    ✅ Nav-link hit: {nav_url}')
+                    best_html = nav_html
+                    best_url = nav_url
+                    best_body = nav_body or b''
+                    break
+            if best_html:
+                break
+            time.sleep(0.3)
+
+    # ── PHASE 2: WEBSITE_PATHS crawl ─────────────────────────────────────
+    if not best_html:
+        print(f'  [Phase 2] WEBSITE_PATHS crawl...')
+        origin = url_to_origin(target['schedule_urls'][-1]) or url_to_origin(target['schedule_urls'][0])
+        if origin:
+            for path in WEBSITE_PATHS:
+                wurl = origin + path
+                html, body = fast_fetch(wurl)
+                if html and has_tourn(html):
+                    print(f'    ✅ Path hit: {wurl}')
+                    best_html = html
+                    best_url = wurl
+                    best_body = body or b''
+                    break
+                time.sleep(0.2)
+
+    # ── PHASE 3: StealthySession JS browser (fallback only) ───────────────
+    if not best_html:
+        print(f'  [Phase 3] StealthySession JS browser (Playwright fallback)...')
         try:
+            from scrapling.fetchers import StealthySession
             session = StealthySession(headless=True, solve_cloudflare=True)
             session.start()
-
-            resp = None
-            rendered_html = ''
-            for attempt in range(3):
-                try:
-                    resp = session.fetch(url, google_search=False)
-                    if resp and resp.status == 200:
+            try:
+                for url in target['schedule_urls'][:2]:  # only top 2 — already tried others
+                    try:
+                        resp = session.fetch(url, google_search=False)
+                        if not resp or resp.status != 200:
+                            continue
+                        body = resp.body if isinstance(resp.body, bytes) else b''
+                        # Try JS-rendered content
                         try:
                             ctx = session.context
                             page = ctx.new_page()
-                            page.goto(url, timeout=15000, wait_until='domcontentloaded')
-                            for sel in ['.tribe-events-calendar', '.schedule-table',
-                                        'table', '.event-list', '.schedule', '.tournament']:
+                            page.goto(url, timeout=20000, wait_until='domcontentloaded')
+                            for sel in ['.schedule-table', 'table', '.event-list', '.schedule',
+                                        '.tournament', '.tribe-events-calendar']:
                                 try:
                                     page.wait_for_selector(sel, timeout=3000)
                                     break
                                 except Exception:
                                     pass
-                            page.wait_for_timeout(2000)
-                            rendered_html = page.content()
+                            page.wait_for_timeout(2500)
+                            rendered = page.content()
                             page.close()
+                            html_to_use = rendered if len(rendered) > len(body) else body.decode('utf-8', errors='ignore')
                         except Exception as je:
-                            print(f'    ⚠️  JS render failed: {je}')
-                        break
-                except Exception as e:
-                    if attempt < 2:
-                        print(f'    ⚠️  Attempt {attempt+1}: {e} — retrying')
-                        time.sleep(2 ** attempt)
-                        session.close()
-                        session = StealthySession(headless=True, solve_cloudflare=True)
-                        session.start()
-                    else:
-                        raise
+                            print(f'    ⚠️  JS render: {je}')
+                            html_to_use = body.decode('utf-8', errors='ignore')
 
-            if not resp or resp.status != 200:
-                print(f'    ❌ HTTP {resp.status if resp else "none"}')
-                consecutive_failures += 1
-                continue
+                        if html_to_use and has_tourn(html_to_use):
+                            # PDF on JS page
+                            for purl in find_pdf_links(html_to_use, url)[:2]:
+                                pbytes = download_pdf(purl)
+                                if pbytes:
+                                    pd = parse_pdf_for_tournament_data(pbytes, purl)
+                                    for k, v in pd.items():
+                                        if v is not None and not pdf_data.get(k):
+                                            pdf_data[k] = v
+                            best_html = html_to_use
+                            best_url = url
+                            best_body = body
+                            print(f'    ✅ JS render hit: {url}')
+                            break
+                        time.sleep(1.5)
+                    except Exception as e:
+                        print(f'    ⚠️  Browser error on {url}: {str(e)[:60]}')
+                        time.sleep(1)
+            finally:
+                try:
+                    session.close()
+                except Exception:
+                    pass
+        except ImportError:
+            print('    ❌ StealthySession not available')
 
-            body = resp.body or b''
-            if len(body) < 500:
-                print(f'    ⚠️  Too thin ({len(body)}b)')
-                consecutive_failures += 1
-                continue
-
-            html_to_use = rendered_html if len(rendered_html) > len(body) else body.decode('utf-8', errors='ignore')
-
-            # ── PDF Detection ──────────────────────────────────────
-            pdf_links = find_pdf_links(html_to_use, url)
-            if pdf_links:
-                print(f'    📎 Found {len(pdf_links)} PDF(s)')
-                for pdf_url in pdf_links[:3]:  # try up to 3 PDFs
-                    print(f'    📄 Downloading PDF: {pdf_url}')
-                    pdf_bytes = download_pdf(pdf_url)
-                    if pdf_bytes:
-                        parsed = parse_pdf_for_tournament_data(pdf_bytes, pdf_url)
-                        # Merge: keep first non-None value found
-                        for k, v in parsed.items():
-                            if v is not None and not pdf_data.get(k):
-                                pdf_data[k] = v
-
-            # ── Schedule Extraction ────────────────────────────────
-            schedules = extract_rich_fields_from_html(html_to_use, url)
-            print(f'    📅 Schedules found: {len(schedules)}')
-
-            if schedules:
-                consecutive_failures = 0
-                if len(html_to_use) > len(best_html):
-                    best_html = html_to_use
-                    best_url = url
-                    best_body = body
-                break
-            else:
-                consecutive_failures += 1
-                print(f'    ⚠️  No schedule patterns — trying next URL')
-
-        except Exception as e:
-            print(f'    ❌ Error: {e}')
-            consecutive_failures += 1
-        finally:
-            try:
-                if session: session.close()
-            except Exception:
-                pass
-        time.sleep(2)
-
+    # ── No data from any phase ─────────────────────────────────────────────
     if not best_html:
-        print(f'  💤 No data for {name}')
+        print(f'  💤 No data found for {name} across all 3 phases')
         update_source_registry(target, target['schedule_urls'][0], 0, 0)
         return None
 
-    # Final extraction from best page
-    schedules = extract_rich_fields_from_html(best_html, best_url)
+    # ── Extract schedules from best page ──────────────────────────────────
+    # Try __NEXT_DATA__ first (structured), then HTML fallback
+    schedules = extract_next_data_schedules(best_html, best_url)
+    if not schedules:
+        schedules = extract_rich_fields_from_html(best_html, best_url)
+    print(f'  📅 Schedules extracted: {len(schedules)}')
 
-    # Anti-hallucination
+    if not schedules:
+        print(f'  💤 No schedule patterns in best page')
+        update_source_registry(target, best_url, 200, 0)
+        return None
+
+    # Anti-hallucination guard
     ok, reason = passes_anti_hallucination(schedules, name)
     if not ok:
         print(f'  🚫 REJECTED — {reason}')
         return None
 
-    # Build provenance
+    # Provenance + evidence
     provenance = make_provenance(best_url, best_body, 200)
-
-    # Save evidence
     ev_path = save_evidence(name, best_url, provenance, schedules, best_html[:300])
     print(f'  💾 Evidence: {ev_path.name}')
-
-    # Update source registry
     update_source_registry(target, best_url, 200, len(schedules))
 
-    # Expand to dated records
+    # 10-week date expansion
     all_dated_records = []
     for sched in schedules:
-        dated = expand_to_dated_records(sched, state, pdf_data if pdf_data else None)
+        dated = expand_to_dated_records(sched, state, pdf_data or None)
         for rec in dated:
             rec['scrape_html_hash'] = provenance['scrape_html_hash']
             rec['scrape_timestamp'] = provenance['scrape_timestamp']

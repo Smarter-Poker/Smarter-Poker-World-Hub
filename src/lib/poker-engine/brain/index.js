@@ -6,13 +6,12 @@
  *
  * Architecture:
  *   core.js          → Shared utilities (cards, position, hash, timing, Supabase)
- *   plo8-brain.js    → PLO8 Hi-Lo decision engine
- *   plo-core.js      → Shared PLO hand evaluation, outs, blockers (used by all PLO variants)
- *   holdem-brain.js  → Holdem decision engine
- *   tournament.js    → Tournament-specific adjustments (ICM, bubble, etc.)
- *   cash.js          → Cash game session management
- *   anti-exploit.js  → Anti-exploit modules 1-32
- *   router.js        → getDecision() master router
+ *   anti-exploit.js  → Anti-exploit modules 1-32 (tracking Maps, threat intel, opponent modeling)
+ *   session-analytics.js → Session management, performance, bankroll, opponent journals
+ *   plo8-brain.js    → PLO8 Hi-Lo low hand evaluator
+ *   plo-core.js      → Shared PLO hand evaluation, outs, blockers, decision engine
+ *   holdem-brain.js  → Hold'em decision engine (fallback, flop, turn/river heuristics)
+ *   router.js        → getDecision() master router (variant routing, GTO, guardrails)
  *
  * During migration, functions not yet extracted are still served from the
  * legacy monolith (../HorsePokerBrain.js). As modules are completed,
@@ -24,16 +23,25 @@ const core = require('./core');
 const antiExploit = require('./anti-exploit');
 const sessionAnalytics = require('./session-analytics');
 const plo8Brain = require('./plo8-brain');
+const ploCore = require('./plo-core');
+const holdemBrain = require('./holdem-brain');
+const router = require('./router');
 
-// Phase 2: Legacy monolith (still serves most functions during migration)
+// Phase 2: Legacy monolith (still serves live observer + processHandResult during migration)
 const legacy = require('../HorsePokerBrain');
+
+// Wire the live observer from legacy into the new router + holdem modules
+if (typeof legacy.getLiveRead === 'function') {
+    router.setRouterLiveReadFn(legacy.getLiveRead);
+}
 
 // Merge: new modules take precedence over legacy for extracted functions
 module.exports = {
     ...legacy,
 
-    // Explicitly re-export from new modules (these override legacy versions)
-    // core.js
+    // ═══════════════════════════════════════════════════════════════════════
+    // core.js — Card utilities, position, hash, timing, Supabase
+    // ═══════════════════════════════════════════════════════════════════════
     cardIntToString: core.cardIntToString,
     cardsToStrings: core.cardsToStrings,
     mapPosition: core.mapPosition,
@@ -43,7 +51,9 @@ module.exports = {
     parseCard: core.parseCard,
     parseCards: core.parseCards,
 
-    // anti-exploit.js (Modules 1-32)
+    // ═══════════════════════════════════════════════════════════════════════
+    // anti-exploit.js — Modules 1-32 (tracking, threat intel, opponent reads)
+    // ═══════════════════════════════════════════════════════════════════════
     selectCounterStrategy: antiExploit.selectCounterStrategy,
     _loadThreatIntel: antiExploit._loadThreatIntel,
     _persistThreatIntel: antiExploit._persistThreatIntel,
@@ -85,7 +95,9 @@ module.exports = {
     recordOpponentShowdown: antiExploit.recordOpponentShowdown,
     getOpponentSessionRead: antiExploit.getOpponentSessionRead,
 
-    // session-analytics.js
+    // ═══════════════════════════════════════════════════════════════════════
+    // session-analytics.js — Session management, performance, bankroll
+    // ═══════════════════════════════════════════════════════════════════════
     recordPerformanceAction: sessionAnalytics.recordPerformanceAction,
     getPerformanceStats: sessionAnalytics.getPerformanceStats,
     recordPerformanceResult: sessionAnalytics.recordPerformanceResult,
@@ -114,6 +126,129 @@ module.exports = {
     loadTableJournals: sessionAnalytics.loadTableJournals,
     _applyJournalToProfile: sessionAnalytics._applyJournalToProfile,
 
-    // plo8-brain.js (PLO8 Hi-Lo)
+    // ═══════════════════════════════════════════════════════════════════════
+    // plo8-brain.js — PLO8 Hi-Lo low hand evaluator
+    // ═══════════════════════════════════════════════════════════════════════
     evaluatePLO8Low: plo8Brain.evaluatePLO8Low,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // plo-core.js — PLO hand evaluation, decision engine (88 functions)
+    // ═══════════════════════════════════════════════════════════════════════
+    classifyPLOPreflop: ploCore.classifyPLOPreflop,
+    enhancePLOPreflopScore: ploCore.enhancePLOPreflopScore,
+    getPLOPreflopAction: ploCore.getPLOPreflopAction,
+    getBestPLO5or6PreflopStrength: ploCore.getBestPLO5or6PreflopStrength,
+    getBestPLO5or6MadeHand: ploCore.getBestPLO5or6MadeHand,
+    evaluatePLOMadeHand: ploCore.evaluatePLOMadeHand,
+    countStraightOuts: ploCore.countStraightOuts,
+    countFlushOuts: ploCore.countFlushOuts,
+    countBackdoorOuts: ploCore.countBackdoorOuts,
+    detectPLOWrapDraw: ploCore.detectPLOWrapDraw,
+    calculatePLODirtyOuts: ploCore.calculatePLODirtyOuts,
+    deduplicatePLOComboOuts: ploCore.deduplicatePLOComboOuts,
+    analyzePLOBoardTexture: ploCore.analyzePLOBoardTexture,
+    detectScareCard: ploCore.detectScareCard,
+    analyzePLORunoutDistribution: ploCore.analyzePLORunoutDistribution,
+    projectPLOBoardScenarios: ploCore.projectPLOBoardScenarios,
+    getPLOSPRZone: ploCore.getPLOSPRZone,
+    getPLOEquityRealization: ploCore.getPLOEquityRealization,
+    getPLOPositionRanges: ploCore.getPLOPositionRanges,
+    calcPLOPotRaise: ploCore.calcPLOPotRaise,
+    calcPLOBetSize: ploCore.calcPLOBetSize,
+    getAdaptivePLOBetSize: ploCore.getAdaptivePLOBetSize,
+    getPLOCBetStrategy: ploCore.getPLOCBetStrategy,
+    getPLOTurnBarrel: ploCore.getPLOTurnBarrel,
+    getPLOShowdownValue: ploCore.getPLOShowdownValue,
+    getPLORangeBalance: ploCore.getPLORangeBalance,
+    getPLOImpliedOdds: ploCore.getPLOImpliedOdds,
+    getPLOMultiStreetPlan: ploCore.getPLOMultiStreetPlan,
+    getPLONutRangeAdvantage: ploCore.getPLONutRangeAdvantage,
+    getPLORiverOverbet: ploCore.getPLORiverOverbet,
+    getPLOAllInEquity: ploCore.getPLOAllInEquity,
+    getPLOReverseImpliedOdds: ploCore.getPLOReverseImpliedOdds,
+    getPLOFlopContinuance: ploCore.getPLOFlopContinuance,
+    getPLOCheckBehindCalibration: ploCore.getPLOCheckBehindCalibration,
+    optimizePLORiverDecision: ploCore.optimizePLORiverDecision,
+    getPLORiverFloat: ploCore.getPLORiverFloat,
+    getPLORiverCheckRaise: ploCore.getPLORiverCheckRaise,
+    getPLOOpponentAdjustments: ploCore.getPLOOpponentAdjustments,
+    getPLOBlockers: ploCore.getPLOBlockers,
+    getPLOCardRemovalEffects: ploCore.getPLOCardRemovalEffects,
+    buildPLOExploitationProfile: ploCore.buildPLOExploitationProfile,
+    getPLOPotManipulation: ploCore.getPLOPotManipulation,
+    getPLOTableImage: ploCore.getPLOTableImage,
+    approximatePLOHvR: ploCore.approximatePLOHvR,
+    detectPLOBetSizingTell: ploCore.detectPLOBetSizingTell,
+    readPLOTimingTell: ploCore.readPLOTimingTell,
+    getPLOPerStreetBluffCalibration: ploCore.getPLOPerStreetBluffCalibration,
+    calibratePLOProbeBet: ploCore.calibratePLOProbeBet,
+    updatePLOBayesianModel: ploCore.updatePLOBayesianModel,
+    getPLOEquityConfidence: ploCore.getPLOEquityConfidence,
+    auditPLODecision: ploCore.auditPLODecision,
+    getPLOHandHistoryCorrection: ploCore.getPLOHandHistoryCorrection,
+    getPLOGameTypeAdjustments: ploCore.getPLOGameTypeAdjustments,
+    getPLOLimpedPotStrategy: ploCore.getPLOLimpedPotStrategy,
+    governPLOMultiWayAggression: ploCore.governPLOMultiWayAggression,
+    getPLO3BetDefense: ploCore.getPLO3BetDefense,
+    getPLOLimperIsolation: ploCore.getPLOLimperIsolation,
+    getPLOSidePotAwareness: ploCore.getPLOSidePotAwareness,
+    getPLOLateSessionAdjustment: ploCore.getPLOLateSessionAdjustment,
+    getPLOBlindDefense: ploCore.getPLOBlindDefense,
+    getPLODeepStackAdjustments: ploCore.getPLODeepStackAdjustments,
+    getPLOSqueezePlay: ploCore.getPLOSqueezePlay,
+    getPLOColdCallDecision: ploCore.getPLOColdCallDecision,
+    getPLOBlindBattleStrategy: ploCore.getPLOBlindBattleStrategy,
+    getPLOVarianceProtection: ploCore.getPLOVarianceProtection,
+    getPLOICMBubblePressure: ploCore.getPLOICMBubblePressure,
+    getPLOChipAccumulationMode: ploCore.getPLOChipAccumulationMode,
+    getPLOStackPreservation: ploCore.getPLOStackPreservation,
+    handlePLODonkBet: ploCore.handlePLODonkBet,
+    getPLO4BetPotDecision: ploCore.getPLO4BetPotDecision,
+    getPLODonkBetOpportunity: ploCore.getPLODonkBetOpportunity,
+    getPLOProbeBet: ploCore.getPLOProbeBet,
+    getPLOCheckRaise: ploCore.getPLOCheckRaise,
+    getPLOGifTrigger: ploCore.getPLOGifTrigger,
+    getPLOGifStateMachine: ploCore.getPLOGifStateMachine,
+    getPLOChatResponse: ploCore.getPLOChatResponse,
+    obfuscatePLOFrequency: ploCore.obfuscatePLOFrequency,
+    injectPLOBetSizeNoise: ploCore.injectPLOBetSizeNoise,
+    trackPLOShowdownExposure: ploCore.trackPLOShowdownExposure,
+    detectPLOPatternExploit: ploCore.detectPLOPatternExploit,
+    detectPLOStackSandwich: ploCore.detectPLOStackSandwich,
+    injectPLOGTOChaos: ploCore.injectPLOGTOChaos,
+    detectPLOBotOpponent: ploCore.detectPLOBotOpponent,
+    buildPLOCounterExploitProfile: ploCore.buildPLOCounterExploitProfile,
+    createPLODecisionCache: ploCore.createPLODecisionCache,
+    makePLOFallbackDecision: ploCore.makePLOFallbackDecision,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // holdem-brain.js — Hold'em decision engine (20 functions)
+    // ═══════════════════════════════════════════════════════════════════════
+    makeFallbackDecision: holdemBrain.makeFallbackDecision,
+    evaluatePostflopHand: holdemBrain.evaluatePostflopHand,
+    makeFlopHeuristicDecision: holdemBrain.makeFlopHeuristicDecision,
+    makeTurnRiverHeuristicDecision: holdemBrain.makeTurnRiverHeuristicDecision,
+    evaluateBoardWetness: holdemBrain.evaluateBoardWetness,
+    analyzeBoardEvolution: holdemBrain.analyzeBoardEvolution,
+    getSPRStrategy: holdemBrain.getSPRStrategy,
+    getMultiwayAdjustment: holdemBrain.getMultiwayAdjustment,
+    getCheckRaiseStrategy: holdemBrain.getCheckRaiseStrategy,
+    getOOPDecisionMatrix: holdemBrain.getOOPDecisionMatrix,
+    getCBetStrategy: holdemBrain.getCBetStrategy,
+    get3BetStrategy: holdemBrain.get3BetStrategy,
+    getDrawEquity: holdemBrain.getDrawEquity,
+    getRiverStrategy: holdemBrain.getRiverStrategy,
+    getDeepStackAdjustment: holdemBrain.getDeepStackAdjustment,
+    getOptimalBetSize: holdemBrain.getOptimalBetSize,
+    getGeometricSizing: holdemBrain.getGeometricSizing,
+    applyExploitIntensifier: holdemBrain.applyExploitIntensifier,
+    handleDonkBet: holdemBrain.handleDonkBet,
+    applyTiltDegradation: holdemBrain.applyTiltDegradation,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // router.js — Master decision function
+    // ═══════════════════════════════════════════════════════════════════════
+    getDecision: router.getDecision,
+    validateAndClamp: router.validateAndClamp,
+    shouldAutoSeat: router.shouldAutoSeat,
 };
