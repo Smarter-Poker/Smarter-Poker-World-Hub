@@ -271,6 +271,8 @@ function parseScheduleTextFallback(rawText) {
                 const dateMatch = context.match(/((?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})/);
                 const timeMatch = context.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
                 const gtdMatch = context.match(/\$?([0-9,]+(?:K|M)?)\s*(?:GTD|Guaranteed)/i);
+                const chipsMatch = context.match(/\b([1-9][0-9]{0,2},[0-9]{3})\b/);
+                const levelsMatch = context.match(/(?:Levels?|Blinds?)\D*(\d{2,3})/i) || context.match(/(\d{2})\s*min/i);
 
                 let guaranteed = null;
                 if (gtdMatch) {
@@ -280,6 +282,12 @@ function parseScheduleTextFallback(rawText) {
                     else guaranteed = parseInt(g);
                 }
 
+                let startingChips = null;
+                if (chipsMatch) {
+                    const c = parseInt(chipsMatch[1].replace(/,/g, ''));
+                    if (c >= 5000 && c <= 1000000) startingChips = c;
+                }
+
                 events.push({
                     event_number: eventNum,
                     event_name: eventName,
@@ -287,6 +295,8 @@ function parseScheduleTextFallback(rawText) {
                     date: dateMatch?.[1] || null,
                     start_time: timeMatch?.[1] || null,
                     guaranteed: guaranteed,
+                    starting_chips: startingChips,
+                    levels: levelsMatch?.[1] ? parseInt(levelsMatch[1]) : null,
                     game_type: detectGameType(eventName),
                     event_type: detectEventType(eventName),
                     source: 'pdf_fallback_extraction'
@@ -404,6 +414,7 @@ export async function extractPdfSchedule(pdfUrl, options = {}) {
         return {
             events,
             pages: numPages,
+            raw_text: rawText,
             rawTextLength: rawText.length,
             error: null
         };

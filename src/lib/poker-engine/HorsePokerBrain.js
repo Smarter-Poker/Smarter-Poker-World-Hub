@@ -1356,11 +1356,52 @@ function evaluatePLO8Low(holeCards, boardCards) {
         if (hLowQualify.length < 2) {
             return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false };
         }
-        // Count potential low outs (how many board cards can still come low)
-        const baseLowOuts = boardCards.length < 5 ? 4 * Math.max(0, 3 - bLowQualify.length) : 0;
+        // Bug #196: Proper low out calculation — count remaining cards that add a NEW
+        // qualifying low rank to the board. Old formula (4 × cardsNeeded) drastically
+        // undercounted: A-2 with 2 board lows had only 4 outs instead of ~16-20.
+        if (boardCards.length >= 5) {
+            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false };
+        }
+        const boardLowRankSet = new Set(bLowQualify);
+        const neededBoardLows = 3 - boardLowRankSet.size;
+        let lowOuts = 0;
+        if (neededBoardLows === 1) {
+            // Count remaining deck cards of NEW low ranks (not already on board)
+            const allLowRanks = [-1, 0, 1, 2, 3, 4, 5, 6]; // A,2,3,4,5,6,7,8
+            for (const r of allLowRanks) {
+                if (boardLowRankSet.has(r)) continue; // Already on board
+                let cardsOfRank = 4;
+                // Subtract any of this rank in our hole cards (can't come on board)
+                for (const h of hLow) { if (h === r) cardsOfRank--; }
+                // Subtract any of this rank already on board (different suit counted above)
+                for (const b of bLow) { if (b === r) cardsOfRank--; }
+                lowOuts += Math.max(0, cardsOfRank);
+            }
+            // Discount: not every new board low rank guarantees WE make a qualifying low
+            // (we need 2 unique hole low ranks + 3 unique board low ranks = 5 unique ranks).
+            // Premium draws (A-2, A-3) work with almost any 3rd board low → ~90% discount.
+            // Weaker draws (e.g., 6-7) are pickier → ~60% discount.
+            const bestHoleLow = Math.min(...hLowQualify);
+            const discountFactor = bestHoleLow <= 0 ? 0.90 : bestHoleLow <= 2 ? 0.80 : 0.65;
+            lowOuts = Math.round(lowOuts * discountFactor);
+        } else if (neededBoardLows === 2) {
+            // Need 2 more low board cards — fewer outs, harder to get there
+            // Approximate: (remaining low cards in deck) / 2 as a rough runner-runner estimate
+            const allLowRanks = [-1, 0, 1, 2, 3, 4, 5, 6];
+            let totalLowCardsLeft = 0;
+            for (const r of allLowRanks) {
+                if (boardLowRankSet.has(r)) continue;
+                let cardsOfRank = 4;
+                for (const h of hLow) { if (h === r) cardsOfRank--; }
+                for (const b of bLow) { if (b === r) cardsOfRank--; }
+                totalLowCardsLeft += Math.max(0, cardsOfRank);
+            }
+            // Runner-runner is roughly (outs1 × outs2) / remaining_cards ≈ divide by ~3
+            lowOuts = Math.round(totalLowCardsLeft / 3);
+        }
         // More qualifying hole cards = more combos to make low = effective out boost
-        const holeLowBonus = hLowQualify.length >= 3 ? 2 : 0;
-        const lowOuts = Math.min(baseLowOuts + holeLowBonus, 16);
+        const holeLowBonus = hLowQualify.length >= 3 ? 3 : hLowQualify.length >= 4 ? 5 : 0;
+        lowOuts = Math.min(lowOuts + holeLowBonus, 20);
         return { hasNutLow: false, hasLow: false, lowOuts, scoopable: false };
     }
 
@@ -6250,7 +6291,17 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ─── MODULE 27: RIO GUARD — veto draw calls when RIO > forward implied odds ───
     // Bug #122: Exempt NUT draws from RIO block — nut flush draws and nut straight draws
     // have minimal reverse implied odds because you have the best possible hand when you hit.
+    // Bug #195: PLO8 nut low override — nut low guarantees half the pot, NEVER fold.
+    // Also exempt any PLO8 hand with a made low (hasLow) — still has equity for half the pot.
     if (rioGuard.shouldBlock && toCall > 0 && !madeHand.isMade && !isNutDraw) {
+        if (isHiLo && lo8?.hasNutLow && canCall) {
+            console.log('[HorseBrain] 🎯 PLO8 NUT LOW RIO-OVERRIDE: calling with nut low (guaranteed half pot)');
+            return { type: 'call' };
+        }
+        if (isHiLo && lo8?.hasLow && canCall) {
+            console.log('[HorseBrain] 🎯 PLO8 LOW RIO-OVERRIDE: calling with made low (likely half pot)');
+            return { type: 'call' };
+        }
         console.log(`[HorseBrain] 🚫 MODULE 27 RIO VETO: folding draw — ${rioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
@@ -15182,7 +15233,11 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // instead of blindly trying to use 2-card Holdem rankings on a 4-card hand.
     const variant = engineState.variant || tableConfig.variant || 'holdem';
     const isPLO = ['omaha4', 'omaha5', 'omaha6', 'omaha_hilo', 'plo', 'plo4', 'plo5', 'plo6', 'plo8'].includes(variant.toLowerCase());
-    const isHiLo = variant.toLowerCase().includes('hilo') || variant.toLowerCase().includes('hi_lo') || variant.toLowerCase().includes('hi-lo');
+    // Bug #194: 'plo8' is the standard abbreviation for PLO8-or-better (Hi-Lo).
+    // Old check only matched hilo/hi_lo/hi-lo substrings — plo8 was silently treated as
+    // non-Hi-Lo, skipping ALL lo8 evaluation (nut low overrides, scoop bonuses, low outs).
+    const vLower = variant.toLowerCase();
+    const isHiLo = vLower.includes('hilo') || vLower.includes('hi_lo') || vLower.includes('hi-lo') || vLower === 'plo8' || vLower === 'omaha8' || vLower.includes('8_or_better');
 
     // ─── MODULE 21: PLO LIMP-TRAP DETECTOR (preflop only) ───
     const numLimpers = engineState.numLimpers || 0;

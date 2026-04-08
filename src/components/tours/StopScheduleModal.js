@@ -379,7 +379,7 @@ export default function StopScheduleModal({ stop, tourCode, tourName, tourColor,
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx global>{`
         .ssm-backdrop {
           position: fixed; inset: 0; z-index: 9999;
           background: rgba(0, 0, 0, 0.85);
