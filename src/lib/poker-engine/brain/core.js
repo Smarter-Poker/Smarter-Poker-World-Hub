@@ -218,7 +218,7 @@ function resolveESM(mod) {
 async function getGTOModule() {
     if (!_gtoModule) {
         try {
-            const raw = await import('../../content-engine/services/HorsePokerGTO.js');
+            const raw = await import('../../../content-engine/services/HorsePokerGTO.js');
             _gtoModule = resolveESM(raw);
         } catch (err) {
             console.error('[HorseBrain] Failed to load HorsePokerGTO:', err.message);
@@ -230,7 +230,7 @@ async function getGTOModule() {
 async function getPersonalityModule() {
     if (!_personalityModule) {
         try {
-            const raw = await import('../../content-engine/services/HorsePokerPersonality.js');
+            const raw = await import('../../../content-engine/services/HorsePokerPersonality.js');
             _personalityModule = resolveESM(raw);
         } catch (err) {
             console.error('[HorseBrain] Failed to load HorsePokerPersonality:', err.message);
@@ -242,7 +242,7 @@ async function getPersonalityModule() {
 async function getAdvancedModule() {
     if (!_advancedModule) {
         try {
-            const raw = await import('../../content-engine/services/HorsePokerAdvanced.js');
+            const raw = await import('../../../content-engine/services/HorsePokerAdvanced.js');
             _advancedModule = resolveESM(raw);
         } catch (err) {
             console.error('[HorseBrain] Failed to load HorsePokerAdvanced:', err.message);

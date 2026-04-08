@@ -524,14 +524,17 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 </div>
                                 {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
                                     <div className="vc3-list-scrollable" style={{ maxHeight: '180px' }}>
-                                        {venue.live_data.games.map((g, idx) => (
-                                            <div key={idx} className="vc3-list-item vc3-game-item">
-                                                <span className="vc3-game-name" title={g.game}>{g.game.length > 25 ? g.game.substring(0, 22) + '...' : g.game}</span>
-                                                <span className="vc3-game-tables">
-                                                    {g.tables_running > 0 ? `${g.tables_running}T` : 'WAIT'}
-                                                </span>
-                                            </div>
-                                        ))}
+                                        {venue.live_data.games.map((g, idx) => {
+                                            const gameName = g?.game || 'Unknown Game';
+                                            return (
+                                                <div key={idx} className="vc3-list-item vc3-game-item">
+                                                    <span className="vc3-game-name" title={gameName}>{gameName.length > 25 ? gameName.substring(0, 22) + '...' : gameName}</span>
+                                                    <span className="vc3-game-tables">
+                                                        {g?.tables_running > 0 ? `${g.tables_running}T` : 'WAIT'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="vc3-live-info-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
@@ -619,26 +622,29 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         {venue.venue_type === 'charity' && venue.is_today && venue.today_event ? (
                             <div className="vc3-list-scrollable">
                                 <div className="vc3-list-item vc3-tourney-item">
-                                    <div className="vc3-tourney-name">{venue.name} Event</div>
+                                    <div className="vc3-tourney-name">{venue.name || 'Charity'} Event</div>
                                     <div className="vc3-tourney-meta">
-                                        <span>{formatTime(venue.today_event.start_time)}</span>
-                                        {venue.today_event.buy_in ? <span> · ${venue.today_event.buy_in}</span> : null}
+                                        <span>{formatTime(venue.today_event.start_time) || 'TBD'}</span>
+                                        {venue.today_event.buy_in != null ? <span> · ${venue.today_event.buy_in}</span> : null}
                                     </div>
                                 </div>
                             </div>
                         ) : venue.has_tournaments && Array.isArray(venue.daily_tournaments) && venue.daily_tournaments.length > 0 ? (
                             <div className="vc3-list-scrollable">
-                                {venue.daily_tournaments.slice(0, 10).map((t, idx) => (
-                                    <div key={idx} className="vc3-list-item vc3-tourney-item">
-                                        <div className="vc3-tourney-name" title={t.tournament_name || t.name || 'Tournament'}>{t.tournament_name || t.name || 'Tournament'}</div>
-                                        <div className="vc3-tourney-meta">
-                                            <span>{formatTime(t.start_time) || 'TBD'}</span>
-                                            {t.buy_in && String(t.buy_in) !== 'N/A' && String(t.buy_in) !== '0' ? <span> · ${t.buy_in}</span> : null}
-                                            {t.guaranteed && String(t.guaranteed) !== '0' && String(t.guaranteed) !== 'N/A' ? <span> · <span style={{color: '#4ade80'}}>{t.guaranteed}</span> GTD</span> : null}
-                                            {t.starting_stack && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' ? <span> · {t.starting_stack}</span> : null}
+                                {venue.daily_tournaments.slice(0, 10).map((t, idx) => {
+                                    const tName = t?.tournament_name || t?.name || 'Tournament';
+                                    return (
+                                        <div key={idx} className="vc3-list-item vc3-tourney-item">
+                                            <div className="vc3-tourney-name" title={tName}>{tName}</div>
+                                            <div className="vc3-tourney-meta">
+                                                <span>{formatTime(t?.start_time) || 'TBD'}</span>
+                                                {t?.buy_in != null && String(t.buy_in) !== 'N/A' && String(t.buy_in) !== '0' ? <span> · ${t.buy_in}</span> : null}
+                                                {t?.guaranteed != null && String(t.guaranteed) !== '0' && String(t.guaranteed) !== 'N/A' ? <span> · <span style={{color: '#4ade80'}}>{t.guaranteed}</span> GTD</span> : null}
+                                                {t?.starting_stack != null && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' ? <span> · {t.starting_stack}</span> : null}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {venue.daily_tournaments.length > 10 && (
                                     <div className="vc3-list-item vc3-tourney-item" style={{justifyContent: 'center', opacity: 0.6}}>
                                         +{venue.daily_tournaments.length - 10} More
@@ -651,10 +657,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 {/* If Charity but next event is NOT today, show next event */}
                                 {venue.venue_type === 'charity' && !venue.is_today && venue.next_event && (
                                     <div className="vc3-list-item vc3-tourney-item-special" style={{marginTop: 'auto'}}>
-                                        <div className="vc3-tourney-name">Next: {venue.next_event.day}</div>
+                                        <div className="vc3-tourney-name">Next: {venue.next_event.day || 'Event'}</div>
                                         <div className="vc3-tourney-meta">
-                                            <span>{formatTime(venue.next_event.start_time)}</span>
-                                            {venue.next_event.buy_in ? <span> · ${venue.next_event.buy_in}</span> : null}
+                                            <span>{formatTime(venue.next_event.start_time) || 'TBD'}</span>
+                                            {venue.next_event.buy_in != null ? <span> · ${venue.next_event.buy_in}</span> : null}
                                         </div>
                                     </div>
                                 )}

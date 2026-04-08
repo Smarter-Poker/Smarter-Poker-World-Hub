@@ -504,7 +504,7 @@ async function evaluateSessions(gameController, tableManager) {
                 if (rebuyInfo.shouldRebuy && await canRebuy(tableId, playerId, minBuyIn, tableManager.clubId)) {
                     console.log(`[HorseBrain] Dynamic rebuy for ${playerId.substring(0, 8)}: ${rebuyInfo.reason}, amount: ${rebuyInfo.amount}`);
                     if (tableManager.clubId) {
-                        const ChipBridge = require('./ChipBridge');
+                        const ChipBridge = require('../ChipBridge');
                         const lockResult = await ChipBridge.rebuyChips(tableManager.clubId, playerId, tableId, rebuyInfo.amount);
                         if (!lockResult.success) {
                             console.warn(`[HorseBrain] Failed to physically lock rebuy chips for ${playerId}:`, lockResult.error);
