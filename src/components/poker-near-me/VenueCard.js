@@ -635,7 +635,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             </div>
                         ) : venue.has_tournaments && Array.isArray(venue.daily_tournaments) && venue.daily_tournaments.length > 0 ? (
                             <div className="vc3-list-scrollable">
-                                {venue.daily_tournaments.slice(0, 10).map((t, idx) => {
+                                {venue.daily_tournaments.map((t, idx) => {
                                     const tName = t?.tournament_name || t?.name || 'Tournament';
                                     return (
                                         <div key={idx} className="vc3-list-item vc3-tourney-item">
@@ -649,11 +649,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         </div>
                                     );
                                 })}
-                                {venue.daily_tournaments.length > 10 && (
-                                    <div className="vc3-list-item vc3-tourney-item" style={{justifyContent: 'center', opacity: 0.6}}>
-                                        +{venue.daily_tournaments.length - 10} More
-                                    </div>
-                                )}
                             </div>
                         ) : (
                             <>
