@@ -36,7 +36,7 @@ TOTAL_VENUES=$($PYTHON -c "
 import urllib.request, json, os
 KEY=os.environ.get('SUPABASE_SERVICE_ROLE_KEY','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzczMDg0NCwiZXhwIjoyMDgzMzA2ODQ0fQ.bbDqj-me78PID99npWCZ5qUuINSC1-eCBb1BVhgiSRs')
 try:
-    req=urllib.request.Request('https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/poker_venues?select=count&has_tournaments=eq.true&is_active=eq.true',headers={'apikey':KEY,'Authorization':'Bearer '+KEY,'Prefer':'count=exact','Range':'0-0'})
+    req=urllib.request.Request('https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/poker_venues?select=count&is_active=eq.true',headers={'apikey':KEY,'Authorization':'Bearer '+KEY,'Prefer':'count=exact','Range':'0-0'})
     with urllib.request.urlopen(req,timeout=10) as r:
         cr=r.headers.get('Content-Range','0-0/0')
         print(cr.split('/')[-1].strip())
