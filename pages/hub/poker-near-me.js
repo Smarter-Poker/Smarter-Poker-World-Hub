@@ -18,6 +18,7 @@ import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearch
 import { eventBus, busEmit, EventType } from '../../src/engine/EventBus';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+const GlobalSearchOverlay = dynamic(() => import('../../src/components/poker-near-me/GlobalSearchOverlay'), { ssr: false });
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
@@ -384,6 +385,7 @@ export default function PokerNearMePage() {
     const [geofenceAlert, setGeofenceAlert] = useState(null);
     const geofenceRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [showGlobalSearch, setShowGlobalSearch] = useState(false);
 
     // Map fullscreen modal state
     const [mapFullscreen, setMapFullscreen] = useState(false);
@@ -1780,6 +1782,7 @@ export default function PokerNearMePage() {
         setLocationEnabled: (val) => updatePreference('locationEnabled', val),
         setShowNewcomerFriendly: (val) => updatePreference('showNewcomerFriendly', val),
         replayTutorial,
+        openGlobalSearch: () => { setMenuOpen(false); setTimeout(() => setShowGlobalSearch(true), 50); },
     });
 
     const fetchAllData = async ({ includeVenues = false, silent = false, overrideLocation = null } = {}) => {
@@ -2645,6 +2648,18 @@ export default function PokerNearMePage() {
                     showProfile={false}
                     menuItems={menuConfig.menuItems}
                     bottomLinks={menuConfig.bottomLinks}
+                />
+
+                {/* Global Search Overlay — opened from hamburger menu */}
+                <GlobalSearchOverlay
+                    isOpen={showGlobalSearch}
+                    onClose={() => setShowGlobalSearch(false)}
+                    searchQuery=""
+                    onSearchChange={() => {}}
+                    allTours={tours || []}
+                    allSeries={series || []}
+                    searchHistory={[]}
+                    cachedFetch={cachedFetch}
                 />
 
                 {/* ═══ PAGE TITLE ═══ */}

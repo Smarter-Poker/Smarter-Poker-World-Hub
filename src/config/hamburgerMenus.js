@@ -441,6 +441,8 @@ export const MENU_CONFIGS = {
 
     'poker-near-me': (user, state, handlers) => ({
         menuItems: [
+            createMenuItem.action('Search Poker Near Me', () => handlers?.openGlobalSearch?.(), null, true, true),
+            createMenuItem.divider(),
             createMenuItem.section('Browse'),
             createMenuItem.navigation('Venues', '/hub/poker-near-me-lobby?pod=search'),
             createMenuItem.navigation('Events', '/hub/poker-near-me-lobby?pod=tours'),

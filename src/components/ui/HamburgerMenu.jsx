@@ -382,7 +382,7 @@ export default function HamburgerMenu({
                         position: 'fixed',
                         inset: 0,
                         background: 'rgba(0, 0, 0, 0.5)',
-                        zIndex: 999,
+                        zIndex: 10099,
                         animation: 'fadeIn 0.2s ease'
                     }}
                 />
@@ -401,7 +401,7 @@ export default function HamburgerMenu({
                     maxWidth: width,
                     background: theme === 'light' ? colors.bg : colors.bg,
                     boxShadow: direction === 'left' ? '2px 0 10px rgba(0,0,0,0.2)' : '-4px 0 20px rgba(0, 0, 0, 0.5)',
-                    zIndex: 1000,
+                    zIndex: 10100,
                     transform: isOpen
                         ? 'translateX(0)'
                         : direction === 'left' ? 'translateX(-100%)' : 'translateX(100%)',
