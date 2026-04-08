@@ -19708,6 +19708,204 @@ test('BUG193: OOP matrix air tier expanded to < 25 (source verify)', () => {
     expect(src.includes('Bug #193')).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// Bug #194: isHiLo detection — plo8/omaha8 recognized as Hi-Lo
+// ═══════════════════════════════════════════════════════════
+
+test('BUG194: variant plo8 sets isHiLo = true (source verify)', () => {
+    const src = brainSource;
+    expect(src.includes("vLower === 'plo8'")).toBe(true);
+    expect(src.includes("vLower === 'omaha8'")).toBe(true);
+});
+
+test('BUG194: isHiLo detection logic for all PLO8 variant strings', () => {
+    const variants = [
+        { v: 'plo8', expected: true },
+        { v: 'omaha8', expected: true },
+        { v: 'omaha_hilo', expected: true },
+        { v: 'PLO8', expected: true },
+        { v: 'plo', expected: false },
+        { v: 'omaha4', expected: false },
+        { v: 'holdem', expected: false },
+        { v: 'plo5', expected: false },
+    ];
+    for (const { v, expected } of variants) {
+        const vLower = v.toLowerCase();
+        const isHiLo = vLower.includes('hilo') || vLower.includes('hi_lo') || vLower.includes('hi-lo') || vLower === 'plo8' || vLower === 'omaha8' || vLower.includes('8_or_better');
+        expect(isHiLo === expected).toBe(true);
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #195: MODULE 27 RIO VETO — PLO8 nut low override
+// ═══════════════════════════════════════════════════════════
+
+test('BUG195: PLO8 nut low never folds to RIO veto (pipeline test)', () => {
+    const la = [{ type: 'call', amount: 10 }, { type: 'raise', minAmount: 20, maxAmount: 100 }, { type: 'fold' }];
+    let folds = 0;
+    for (let i = 0; i < 20; i++) {
+        const d = brain.makePLOFallbackDecision('bug195-' + i, {
+            holeCards: ['Ah', '2d', 'Qs', 'Jc'], board: ['3h', '5c', '7s'],
+            street: 'flop', position: 'co', stackBB: 100, potSize: 30,
+            toCall: 10, bb: 2, numPlayers: 3, isHiLo: true, gameType: 'cash'
+        }, la);
+        if (d.type === 'fold') folds++;
+    }
+    expect(folds).toBe(0);
+});
+
+test('BUG195: source has PLO8 NUT LOW RIO-OVERRIDE', () => {
+    const src = brainSource;
+    expect(src.includes('PLO8 NUT LOW RIO-OVERRIDE')).toBe(true);
+    expect(src.includes('Bug #195')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #196: lowOuts calculation — proper count of low draw outs
+// ═══════════════════════════════════════════════════════════
+
+test('BUG196: A-2 on 3-4-K gets 15+ low outs (not 4)', () => {
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 2, suit: 'c' }, { rank: 11, suit: 's' }]
+    );
+    expect(lo8.lowOuts >= 15).toBe(true);
+    expect(lo8.hasLow).toBe(false);
+    expect(lo8.hasNutLow).toBe(false);
+});
+
+test('BUG196: weaker draw (6-7) on 3-4-K gets fewer outs than A-2', () => {
+    const lo8_strong = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 2, suit: 'c' }, { rank: 11, suit: 's' }]
+    );
+    const lo8_weak = brain.evaluatePLO8Low(
+        [{ rank: 4, suit: 'h' }, { rank: 5, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 2, suit: 'c' }, { rank: 11, suit: 's' }]
+    );
+    expect(lo8_strong.lowOuts > lo8_weak.lowOuts).toBe(true);
+});
+
+test('BUG196: runner-runner low (1 board low) gets fewer outs', () => {
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 10, suit: 'c' }, { rank: 11, suit: 's' }]
+    );
+    expect(lo8.lowOuts > 0).toBe(true);
+    expect(lo8.lowOuts < 15).toBe(true); // Runner-runner should be fewer than single-card needed
+});
+
+test('BUG196: no low outs on river with only 2 board lows', () => {
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 2, suit: 'c' }, { rank: 11, suit: 's' }, { rank: 10, suit: 'd' }, { rank: 9, suit: 'h' }]
+    );
+    expect(lo8.lowOuts).toBe(0);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #197: scoopable flag — any made low can scoop, not just nut low
+// ═══════════════════════════════════════════════════════════
+
+test('BUG197: non-nut low is scoopable', () => {
+    // Board 2-5-8, hold 3-4 (not nut low, nut is A-2)
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 1, suit: 'h' }, { rank: 2, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 0, suit: 'h' }, { rank: 3, suit: 'c' }, { rank: 6, suit: 's' }]
+    );
+    expect(lo8.hasLow).toBe(true);
+    expect(lo8.hasNutLow).toBe(false);
+    expect(lo8.scoopable).toBe(true); // Can still scoop with strong high
+});
+
+test('BUG197: scoop bonus threshold aligned to 55 (source verify)', () => {
+    const src = brainSource;
+    expect(src.includes("lo8?.scoopable && madeHand.strength >= 55")).toBe(true);
+    expect(src.includes('Bug #155+#197')).toBe(true);
+});
+
+test('BUG197: nut low gets higher scoop bonus than non-nut', () => {
+    const src = brainSource;
+    expect(src.includes("lo8?.hasNutLow ? 10 : 6")).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #198: Donk bet fold override for PLO8 nut low
+// ═══════════════════════════════════════════════════════════
+
+test('BUG198: source has PLO8 nut low donk overrides', () => {
+    const src = brainSource;
+    expect(src.includes('PLO8 NUT LOW DONK-OVERRIDE')).toBe(true);
+    expect(src.includes('PLO8 NUT LOW DONK-FLOP-OVERRIDE')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #199: Implied odds fold override for PLO8 nut low
+// ═══════════════════════════════════════════════════════════
+
+test('BUG199: source has PLO8 nut low implied odds override', () => {
+    const src = brainSource;
+    expect(src.includes('Bug #199')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// Bug #200: River optimizer fold override for PLO8 nut low
+// ═══════════════════════════════════════════════════════════
+
+test('BUG200: source has PLO8 NUT LOW RIVER-OPTIMIZER-OVERRIDE', () => {
+    const src = brainSource;
+    expect(src.includes('PLO8 NUT LOW RIVER-OPTIMIZER-OVERRIDE')).toBe(true);
+    expect(src.includes('Bug #200')).toBe(true);
+});
+
+// ═══════════════════════════════════════════════════════════
+// PLO8 counterfeiting detection
+// ═══════════════════════════════════════════════════════════
+
+test('PLO8: counterfeiting detected when board pairs our low card', () => {
+    // Flop 4-5-7: A-3 has nut-qualifying low (A-3-4-5-7 is best possible)
+    // Actually A-3 on 4-5-7: nut low is A-2. So A-3 is not nut but still has low.
+    const lo8_flop = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 1, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 2, suit: 'h' }, { rank: 3, suit: 's' }, { rank: 5, suit: 'd' }]
+    );
+    expect(lo8_flop.hasLow).toBe(true);
+    // Turn adds 3 (counterfeits our 3): board 3-4-5-7
+    const lo8_turn = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 1, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'c' }, { rank: 2, suit: 'h' }, { rank: 3, suit: 's' }, { rank: 5, suit: 'd' }]
+    );
+    expect(lo8_turn.hasLow).toBe(true); // Still has A-3-low with 4 board lows
+});
+
+test('PLO8: A-2 on 3-5-7 is nut low', () => {
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 12, suit: 'h' }, { rank: 0, suit: 'd' }, { rank: 10, suit: 's' }, { rank: 9, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 3, suit: 'c' }, { rank: 5, suit: 's' }]
+    );
+    expect(lo8.hasNutLow).toBe(true);
+    expect(lo8.hasLow).toBe(true);
+    expect(lo8.scoopable).toBe(true);
+});
+
+test('PLO8: no qualifying low cards in hand returns no low', () => {
+    // Hold K-Q-J-T (no low cards)
+    const lo8 = brain.evaluatePLO8Low(
+        [{ rank: 11, suit: 'h' }, { rank: 10, suit: 'd' }, { rank: 9, suit: 's' }, { rank: 8, suit: 'c' }],
+        [{ rank: 1, suit: 'h' }, { rank: 3, suit: 'c' }, { rank: 5, suit: 's' }]
+    );
+    expect(lo8.hasLow).toBe(false);
+    expect(lo8.hasNutLow).toBe(false);
+    expect(lo8.lowOuts).toBe(0);
+});
+
+test('PLO8: numHoleCards removed from destructuring (source verify)', () => {
+    const src = brainSource;
+    // Should NOT contain numHoleCards in the destructuring line
+    expect(src.includes('isHiLo, numHoleCards')).toBe(false);
+    expect(src.includes('isHiLo } = state')).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 

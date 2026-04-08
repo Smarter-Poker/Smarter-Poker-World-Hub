@@ -1458,8 +1458,10 @@ function evaluatePLO8Low(holeCards, boardCards) {
             bestLow[3] === nutLow[3] && bestLow[4] === nutLow[4];
     }
 
-    // Scoopable: if we have the nut low AND a strong high hand
-    const scoopable = hasNutLow;
+    // Bug #197: Scoopable should be ANY made low, not just nut low.
+    // Non-nut low + monster high (e.g. second-nut low + top set) can absolutely scoop.
+    // The pipeline adds its own high-hand strength check (madeHand.strength >= 55).
+    const scoopable = hasLow;
 
     return { hasNutLow, hasLow, lowOuts: 0, scoopable };
 }
@@ -5196,7 +5198,7 @@ function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
  */
 function makePLOFallbackDecision(profileId, state, legalActions) {
     const { holeCards: holeCardStrings, board: boardStrings, street, position, stackBB,
-        potSize, toCall, bb, numPlayers, isHiLo, numHoleCards } = state;
+        potSize, toCall, bb, numPlayers, isHiLo } = state;
     const hash = getHash(profileId);
 
     const canCheck = legalActions.some(a => a.type === 'check');
@@ -5555,8 +5557,12 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Commitment thresholds: multiway = tighter, nut bonus, PLO8 bonus
     const multiwayPenalty = Math.max(0, (numPlayers - 2) * 5);
     const nutBonus = madeHand.isNut ? 15 : 0;
-    // Bug #155: Scoop bonus — nut low + strong high is worth much more than just nut low
-    const lo8ScoopBonus = lo8?.scoopable && madeHand.strength >= 60 ? 8 : 0;
+    // Bug #155+#197: Scoop bonus — low + strong high is worth much more than just low.
+    // Bug #197: scoopable now true for ANY made low (not just nut). Nut low gets bigger bonus.
+    // Aligned threshold to 55 to match scoop bet trigger at line 6061.
+    const lo8ScoopBonus = lo8?.scoopable && madeHand.strength >= 55
+        ? (lo8?.hasNutLow ? 10 : 6)  // Nut low scoop > non-nut low scoop
+        : 0;
     const lo8Bonus = (lo8?.hasNutLow ? 10 : lo8?.hasLow ? 5 : 0) + lo8ScoopBonus;
     // Bug #146: Board danger penalty should account for wet boards too, not just monotone.
     // Wet two-tone boards are dangerous for non-nut hands (flush draws + straight draws everywhere).
@@ -5958,6 +5964,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 return { type: raiseAction?.type || 'raise', amount: raiseAmt };
             }
             if (donkBlock.action === 'fold') {
+                // Bug #198: PLO8 nut low override — never fold nut low, even to donk bets
+                if (isHiLo && lo8?.hasNutLow && canCall) {
+                    console.log('[HorseBrain] 🎯 PLO8 NUT LOW DONK-OVERRIDE: calling river donk with nut low');
+                    return { type: 'call' };
+                }
                 console.log(`[HorseBrain] 🛡️ MODULE 24 DONK FOLD: ${donkBlock.reason}`);
                 return { type: 'fold' };
             }
@@ -5989,6 +6000,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             multiwayPenalty,
         });
 
+        // Bug #200: PLO8 nut low override — if river optimizer says fold, override with call.
+        // Nut low guarantees half the pot. NEVER fold it on any street.
+        if (optimizedRiver.type === 'fold' && isHiLo && lo8?.hasNutLow && canCall) {
+            console.log('[HorseBrain] 🎯 PLO8 NUT LOW RIVER-OPTIMIZER-OVERRIDE: calling (guaranteed half pot)');
+            return { type: 'call' };
+        }
+
         // GIF state machine: fire on river call (going to showdown)
         if (optimizedRiver.type === 'call' && toCall > 0) {
             const handPhase = 'river_call';
@@ -6006,7 +6024,14 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     if (isDonkSituation) {
         const donkResponse = handlePLODonkBet(donkBetFraction, equityFinal, madeHand, totalOuts, isIP, raiseAction, canCall, potSize, toCall);
-        if (donkResponse) return { type: donkResponse.action, amount: donkResponse.amount };
+        if (donkResponse) {
+            // Bug #198: PLO8 nut low override — never fold nut low, even facing donk bets
+            if (donkResponse.action === 'fold' && isHiLo && lo8?.hasNutLow && canCall) {
+                console.log('[HorseBrain] 🎯 PLO8 NUT LOW DONK-FLOP-OVERRIDE: calling donk with nut low');
+                return { type: 'call' };
+            }
+            return { type: donkResponse.action, amount: donkResponse.amount };
+        }
     }
 
     // Phase 4: 4-bet pot — pot-raise or fold quickly (Bug #121: PLO is pot-limit)
@@ -6283,8 +6308,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
     // Phase 3: Implied odds — reject calls on draws without sufficient implied odds
     // Bug #125: Exempt nut draws — nut draws always have sufficient implied odds
-    if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35 && !isNutDraw)
+    // Bug #199: PLO8 nut low override — nut low has guaranteed equity (half pot)
+    if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35 && !isNutDraw) {
+        if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
         return { type: 'fold' };
+    }
     if (exactOuts >= 9 && impliedOddsInfo.isProfitableCall && canCall)
         return { type: 'call' };
 
