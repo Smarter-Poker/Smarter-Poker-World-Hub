@@ -123,7 +123,7 @@ export function HandHistoryParser({ onHandParsed, onClose }: HandHistoryParserPr
         setRawText(text);
         // ═══ Phase GTO-CLONE: Use multi-site engine first, fall back to legacy parser ═══
         try {
-            const engineResult = engineParseHandHistory(text);
+            const engineResult: any = engineParseHandHistory(text);
             if (engineResult && engineResult.heroCards && engineResult.heroCards.length > 0) {
                 const detectedSite = detectSite(text);
                 setParsedHand({

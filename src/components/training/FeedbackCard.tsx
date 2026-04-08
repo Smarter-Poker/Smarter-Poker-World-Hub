@@ -69,13 +69,16 @@ interface FeedbackCardProps {
         scenario?: {
             heroPosition?: string;
             heroHand?: string;
-            board?: string;
+            board?: string | string[];
             pot?: number;
             villainPosition?: string;
             action?: string;
             heroStack?: number;
+            spotType?: string;
+            is3BetPot?: boolean;
         };
         explanation?: string;
+        gtoFrequencies?: Record<string, number>;
     };
     gameId?: string;
     level?: number;
@@ -172,12 +175,12 @@ export function FeedbackCard({
                 action: result.userAction.action?.toLowerCase(),
                 gtoAction: result.gtoLine.action?.toLowerCase(),
                 classification: result.isCorrect ? 'correct' : (Math.abs(result.evDiff) > 1.0 ? 'blunder' : 'mistake'),
-                boardTexture: scenario.board ? _describeBoardTexture(scenario.board) : undefined,
+                boardTexture: scenario.board ? _describeBoardTexture(String(scenario.board)) : undefined,
                 madeHand: scenario.heroHand || undefined,
                 madeHandStrength: result.isCorrect ? 0.7 : 0.3,
                 draws: undefined,
                 evLoss: Math.abs(result.evDiff || 0),
-                street: _detectStreet(scenario.board),
+                street: _detectStreet(typeof scenario.board === 'string' ? scenario.board : undefined),
                 gtoReason: question.explanation || '',
             };
 
@@ -186,7 +189,7 @@ export function FeedbackCard({
             // Build deep dive from scenario data
             const deepDive: EngineExplanation['deepDive'] = {};
             if (scenario.board) {
-                deepDive.boardTexture = `Board: ${scenario.board}. ${_describeBoardTexture(scenario.board)}`;
+                deepDive.boardTexture = `Board: ${scenario.board}. ${_describeBoardTexture(String(scenario.board))}`;
             }
             if (result.gtoLine && result.altLines?.length > 0) {
                 const evLines = [result.gtoLine, ...result.altLines]
@@ -211,12 +214,12 @@ export function FeedbackCard({
 
                 if (holeCards && board.length >= 3) {
                     strategyInsight = explainStrategy({
-                        holeCards,
+                        holeCards: holeCards as string[],
                         board,
                         correctAction: result.gtoLine?.action || '',
                         userAction: result.userAction?.action || '',
                         position: (scenario.heroPosition === 'BB' || scenario.heroPosition === 'SB') ? 'OOP' : 'IP',
-                        street: _detectStreet(scenario.board),
+                        street: _detectStreet(typeof scenario.board === 'string' ? scenario.board : undefined),
                         spotType: scenario.spotType || 'cbet',
                         betFrequency: result.gtoLine?.frequency,
                         frequencies: question.gtoFrequencies || {},

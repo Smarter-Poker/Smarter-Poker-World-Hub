@@ -365,7 +365,7 @@ function MatchView({ match, userId, onComplete }: any) {
                     const finalP2 = p2Score + (Math.random() > 0.5 ? 3 : -1);
                     const isWinner = finalP1 >= finalP2;
                     const ratingChange = calculateRatingChange(
-                        match.player1.rating, match.player2.rating, isWinner
+                        match.player1.rating, match.player2.rating
                     );
                     const format = match.format;
                     onComplete({

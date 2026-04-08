@@ -272,10 +272,10 @@ const RoundSummary: React.FC<RoundSummaryProps> = ({
                     description: `Chose ${m.userAnswer} instead of ${m.correctAnswer}`,
                     severity: 'major',
                 })));
-                if (studyPlan && studyPlan.days && studyPlan.days.length > 0) {
+                if (studyPlan && studyPlan.plan && studyPlan.plan.length > 0) {
                     localCoaching.recommendedDrill = {
-                        name: studyPlan.days[0].focus || 'Review Mistakes',
-                        reason: studyPlan.days[0].description || 'Practice your weakest spots',
+                        name: (studyPlan.plan[0] as any).focus || 'Review Mistakes',
+                        reason: (studyPlan.plan[0] as any).tip || 'Practice your weakest spots',
                     };
                 }
             }
