@@ -368,11 +368,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-04-08T18:50:15.809584+00:00",
-    "last_batch_id": "9300d6b3-14df-4aef-bf3c-a0b767a465c3",
+    "last_scraped": "2026-04-08T19:12:39.682603+00:00",
+    "last_batch_id": "84d30b4f-6edd-474c-8fed-ba2e059d96cf",
     "last_http_status": 200,
     "last_schedules_found": 7,
-    "scrape_count": 9,
+    "scrape_count": 10,
     "script": "scripts/scrape_charity_v5.py"
   },
   "Westfield Lions Club Poker": {
@@ -387,11 +387,11 @@
     ],
     "source_type": "venue_website",
     "source_priority": 1,
-    "last_scraped": "2026-04-08T18:50:39.768524+00:00",
-    "last_batch_id": "9300d6b3-14df-4aef-bf3c-a0b767a465c3",
+    "last_scraped": "2026-04-08T19:12:49.916642+00:00",
+    "last_batch_id": "84d30b4f-6edd-474c-8fed-ba2e059d96cf",
     "last_http_status": 200,
     "last_schedules_found": 4,
-    "scrape_count": 8,
+    "scrape_count": 9,
     "script": "scripts/scrape_charity_v5.py"
   },
   "OP Social Club / Outlaw Poker": {
