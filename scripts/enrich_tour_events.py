@@ -571,31 +571,37 @@ def enrich_generic(tour_code: str, events: list) -> int:
         late_r = db.get("late_registration") or "Through level 6"
 
         event_struct_url = db.get("structure_sheet_url") or struct_url
-        if event_struct_url and event_struct_url.lower().endswith(".pdf"):
-            print(f"  📄 Found PDF for {ev_name}: {event_struct_url}")
-            pdf_events = extract_events_from_pdf(event_struct_url, tour_code, ev_name, db.get("start_date"))
-            if pdf_events:
-                # Insert the extracted events into tour_event_details
-                for p_ev in pdf_events:
-                    p_db_row = {
-                        "tour_code": tour_code,
-                        "series_name": series,
-                        "event_name": p_ev.get("event_name"),
-                        "event_number": p_ev.get("event_number"),
-                        "buy_in": p_ev.get("buy_in") or 0,
-                        "guaranteed": p_ev.get("guaranteed") or 0,
-                        "starting_stack": p_ev.get("starting_chips") or 0,
-                        "start_date": p_ev.get("start_date"),
-                        "start_time": p_ev.get("start_time"),
-                        "levels": p_ev.get("blind_levels_min"), # Using levels for blind min
-                        "is_special_event": infer_is_special(p_ev.get("event_name")),
-                        "timezone": ev_tz,
-                        "age_requirement": age,
-                        "pdf_source_url": event_struct_url, # To differentiate these derived records
-                        "data_quality": "pdf_extracted",
-                    }
-                    if not DRY:
-                        SB.table("tour_event_details").insert(p_db_row).execute()
+        is_pdf = event_struct_url and (event_struct_url.lower().endswith(".pdf") or "showpdf.aspx" in event_struct_url.lower())
+        if is_pdf:
+            already_extracted = any(e.get("pdf_source_url") == event_struct_url for e in events)
+            if already_extracted:
+                print(f"  ⏭️ Already extracted events for this PDF: {event_struct_url}")
+            else:
+                print(f"  📄 Found PDF for {ev_name}: {event_struct_url}")
+                pdf_events = extract_events_from_pdf(event_struct_url, tour_code, ev_name, db.get("start_date"))
+                if pdf_events:
+                    # Insert the extracted events into tour_event_details
+                    for p_ev in pdf_events:
+                        p_db_row = {
+                            "tour_code": tour_code,
+                            "series_name": series,
+                            "event_name": p_ev.get("event_name"),
+                            "event_number": p_ev.get("event_number"),
+                            "buy_in": p_ev.get("buy_in") or 0,
+                            "guaranteed": p_ev.get("guaranteed") or 0,
+                            "starting_stack": p_ev.get("starting_chips") or 0,
+                            "start_date": p_ev.get("start_date"),
+                            "start_time": p_ev.get("start_time"),
+                            "levels": p_ev.get("blind_levels_min"), # Using levels for blind min
+                            "is_special_event": infer_is_special(p_ev.get("event_name")),
+                            "timezone": ev_tz,
+                            "age_requirement": age,
+                            "pdf_source_url": event_struct_url, # To differentiate these derived records
+                            "data_quality": "pdf_extracted",
+                        }
+                        if not DRY:
+                            SB.table("tour_event_details").insert(p_db_row).execute()
+                            events.append({"pdf_source_url": event_struct_url}) # prevent duplicate inserts during the same run
         
         enriched = {
             "tournament_name":     ev_name or None,
