@@ -373,41 +373,129 @@ def extract_pdf(pdf_url:str) -> str:
 # ── PokerAtlas structured HTML parser ────────────────────────────────────────
 _PA_DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
 
+def extract_pa_next_data(html:str, venue_name:str, vid, batch_id:str, url:str) -> list:
+    """Primary path: extract tournament data from __NEXT_DATA__ JSON (Next.js SPA)."""
+    m = re.search(r'<script[^>]*id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
+    if not m:
+        # Also try window.__APOLLO_STATE__ or inline JSON
+        m = re.search(r'__NEXT_DATA__\s*=\s*(\{.*?\})\s*;?\s*</script>', html, re.DOTALL)
+    if not m: return []
+    h = sha256h(html.encode("utf-8","ignore"))
+    try: nd = json.loads(m.group(1))
+    except: return []
+
+    results, seen = [], set()
+
+    def walk(obj):
+        if isinstance(obj, list):
+            for item in obj: walk(item)
+        elif isinstance(obj, dict):
+            # Look for tournament objects — PokerAtlas uses these field names
+            if obj.get("buyIn") and obj.get("startTime"):
+                try:
+                    buyin_raw = obj.get("buyIn") or obj.get("buy_in") or 0
+                    if isinstance(buyin_raw, str):
+                        buyin_raw = re.sub(r"[^0-9]","",buyin_raw)
+                    buyin = int(buyin_raw)
+                    if not 10 <= buyin <= 50000:
+                        for v in obj.values(): walk(v)
+                        return
+                    st = normalize_time(str(obj.get("startTime") or ""))
+                    tname = (obj.get("name") or obj.get("title") or "")[:100]
+                    game = game_from(tname or (obj.get("type") or ""))
+                    fmt = fmt_from(tname)
+                    gtd = obj.get("guarantee") or obj.get("guaranteed")
+                    if isinstance(gtd, str): gtd = int(re.sub(r"[^0-9]","",gtd)) if gtd else None
+                    # Days
+                    days_raw = obj.get("scheduledDays") or obj.get("days") or []
+                    active_days = []
+                    if isinstance(days_raw, list):
+                        for d in days_raw:
+                            day_str = str(d).capitalize() if isinstance(d, str) else ""
+                            if day_str in _PA_DAYS: active_days.append(day_str)
+                    # One-time event date
+                    ev_date = obj.get("eventDate") or obj.get("date") or obj.get("startDate")
+                    if isinstance(ev_date, str) and len(ev_date) > 7:
+                        ev_date = ev_date[:10]
+                    else:
+                        ev_date = None
+                    if not active_days and not ev_date:
+                        active_days = ["Daily"]
+                    for day in (active_days or ["Daily"]):
+                        dk = f"{ev_date or day}-{st}-{buyin}-{game}"
+                        if dk in seen: continue
+                        seen.add(dk)
+                        results.append(make_rec(venue_name, vid, batch_id, day, ev_date,
+                            st, buyin, game, fmt, gtd, tname, url, "pokeratlas", h))
+                except Exception:
+                    pass
+            for v in obj.values(): walk(v)
+
+    walk(nd)
+    return results
+
 def parse_pa_html(html:str, venue_name:str, vid, batch_id:str, url:str) -> list:
-    if "tournament-schedule" not in html: return []
-    if "no-tournaments" in html or "no tournaments listed" in html.lower(): return []
-    h=sha256h(html.encode("utf-8","ignore"))
-    results,seen=[],set()
-    sched=re.search(r'<section[^>]*class="tournament-schedule"[^>]*>(.*?)</section>',html,re.DOTALL)
+    """Fallback HTML parser — used when __NEXT_DATA__ yields nothing."""
+    if "tournament-schedule" not in html and "buy-in" not in html.lower(): return []
+    if re.search(r'class=["\']no-tournaments["\']', html): return []  # explicit empty
+    h = sha256h(html.encode("utf-8","ignore"))
+    results, seen = [], set()
+
+    sched = re.search(r'<section[^>]*class="tournament-schedule"[^>]*>(.*?)</section>', html, re.DOTALL)
     if not sched: return []
-    for entry in re.finditer(r'<div[^>]*class="tournament"[^>]*>(.*?)</div>',sched.group(1),re.DOTALL):
-        e=entry.group(1)
-        nm=re.search(r'class="name"[^>]*>\s*<span>(.*?)</span>',e,re.DOTALL)
-        tname=re.sub(r"<[^>]+>","",nm.group(1)).strip()[:100] if nm else None
-        hm=re.search(r'class="hour">(.*?)</span>',e,re.DOTALL)
-        st=re.sub(r"<[^>]+>","",hm.group(1)).strip().upper() if hm else ""
-        bm=re.search(r'class="buy-in">\$?([\d,]+)',e)
-        buyin=int(bm.group(1).replace(",","")) if bm else None
-        if buyin is None or not 10<=buyin<=50000: continue
-        gm=re.search(r'class="type">(.*?)</span>',e,re.DOTALL)
-        game=game_from(re.sub(r"<[^>]+>","",gm.group(1)).strip() if gm else "NLH")
-        dm=re.search(r'<div class="days">(.*?)</div>',e,re.DOTALL)
-        active=_PA_DAYS[:]
+    section_html = sched.group(1)
+
+    # Split section into per-tournament blocks by splitting on class="tournament" divs
+    # Use positive lookahead so we keep the markers
+    raw_blocks = re.split(r'(?=<div[^>]*class="[^"]*\btournament\b[^"]*")', section_html)
+    blocks = [b for b in raw_blocks if '<div' in b]
+    if not blocks:
+        return []
+
+    for block in blocks:
+        # Time — spans like <span class="hour">7:15pm</span> or 11:15a
+        hm = re.search(r'class="hour"[^>]*>([^<]{1,20})', block)
+        if not hm: continue
+        st = normalize_time(hm.group(1).strip())
+        if not st: continue
+
+        # Name
+        nm = re.search(r'class="name"[^>]*>\s*<span>([^<]{2,80})', block)
+        tname = nm.group(1).strip()[:100] if nm else None
+
+        # Buy-in — look for $ amount inside a buy-in span or any $ in the block
+        bm = re.search(r'class=["\']buy-in[^>]*>\$?([\d,]+)', block)
+        if not bm:
+            # Broader: first $ amount of reasonable size in the block
+            bm = re.search(r'\$([\d,]{2,7})', block)
+        buyin = int(bm.group(1).replace(",","")) if bm else None
+        if buyin is None or not 10 <= buyin <= 50000: continue
+
+        # Game type
+        gm = re.search(r'class="type"[^>]*>([^<]{1,40})', block)
+        game = game_from(gm.group(1).strip() if gm else (tname or "NLH"))
+
+        # Days — <li class="active">Mon</li> etc
+        active = _PA_DAYS[:]
+        dm = re.search(r'class="days"[^>]*>(.*?)(?:</ul>|</div>)', block, re.DOTALL)
         if dm:
-            items=re.findall(r'<li[^>]*class="([^"]*)"[^>]*>\s*(\w+)\s*</li>',dm.group(1))
-            a=[_PA_DAYS[i] for i,(cls,_) in enumerate(items) if i<7 and "active" in cls]
-            if a: active=a
-        gtd=None
-        gm2=re.search(r"(?:guaranteed|gtd)[^$]*\$?([\d,]+)",e,re.I)
+            items = re.findall(r'<li[^>]*class="([^"]*)"[^>]*>\s*(\w+)\s*</li>', dm.group(1))
+            a = [_PA_DAYS[i] for i,(cls,_) in enumerate(items) if i<7 and "active" in cls]
+            if a: active = a
+
+        # Guaranteed prize
+        gtd = None
+        gm2 = re.search(r'(?:guaranteed|gtd)[^$]*\$?([\d,]+)', block, re.I)
         if gm2:
-            try: gtd=int(gm2.group(1).replace(",",""))
+            try: gtd = int(gm2.group(1).replace(",",""))
             except: pass
+
         for day in active:
-            dk=f"{day}-{st}-{buyin}-{game}"
+            dk = f"{day}-{st}-{buyin}-{game}"
             if dk in seen: continue
             seen.add(dk)
-            results.append(make_rec(venue_name,vid,batch_id,day,None,st,buyin,game,
-                fmt_from(tname or ""),gtd,tname,url,"pokeratlas",h))
+            results.append(make_rec(venue_name, vid, batch_id, day, None, st, buyin, game,
+                fmt_from(tname or ""), gtd, tname, url, "pokeratlas", h))
     return results
 
 # ── Global source fetchers ───────────────────────────────────────────────────
@@ -420,17 +508,19 @@ def fetch_hendonmob(session) -> dict:
            f"&location=country&c=USA&city_distance=0&city=")
     log(f"  [HendonMob] {url}")
     try:
-        resp = session.fetch(url, google_search=True, timeout=30000, wait_until="networkidle")
+        resp = session.fetch(url, google_search=True, timeout=45000, wait_until="networkidle")
         if not resp or resp.status != 200:
             log(f"  [HendonMob] HTTP {getattr(resp,'status',0)} — skipped"); return {}
         body = resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
         html = body.decode("utf-8","ignore")
         h    = sha256h(body)
-        ev   = EVIDENCE_DIR / f"hm_global_{int(time.time())}.json"
+        # Save evidence
+        ev = EVIDENCE_DIR / f"hm_global_{int(time.time())}.json"
         with open(ev,"w") as f:
             json.dump({"url":url,"hash":h,"bytes":len(body),
-                       "ts":now.isoformat(),"preview":html[:600]},f,indent=2)
+                       "ts":now.isoformat(),"preview":html[:800]},f,indent=2)
         result = {}
+        # Try structured table rows first
         rows = re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.DOTALL|re.I)
         for row in rows:
             cells=[re.sub(r"<[^>]+>"," ",c).strip()
@@ -453,6 +543,25 @@ def fetch_hendonmob(session) -> dict:
                 "buy_in":buyin,"game_type":game_from(text),"format":fmt_from(text),
                 "guaranteed":None,"tournament_name":tname,"source_url":url,"html_hash":h,
             })
+        # If table parse yields nothing, try generic block parsing
+        if not result:
+            for block in re.split(r'(?=\$\d)', re.sub(r'<[^>]+>',' ',html)):
+                ed=parse_date(block)
+                if not ed: continue
+                bi=re.search(r'\$(\d{1,3}(?:,\d{3})*)',block)
+                if not bi: continue
+                buyin=int(bi.group(1).replace(',',''))
+                if not 10<=buyin<=250000: continue
+                # venue name heuristic: longest text chunk without $
+                parts=[p.strip() for p in block.split() if '$' not in p and len(p)>4]
+                if not parts: continue
+                vname=' '.join(parts[:4])
+                vkey=vname.lower()
+                result.setdefault(vkey,[]).append({
+                    "event_date":ed,"start_time":"12:00 PM",
+                    "buy_in":buyin,"game_type":game_from(block),"format":fmt_from(block),
+                    "guaranteed":None,"tournament_name":None,"source_url":url,"html_hash":h,
+                })
         log(f"  [HendonMob] {len(result)} venues, {sum(len(v) for v in result.values())} events")
         return result
     except Exception as e:
@@ -463,7 +572,7 @@ def fetch_cardplayer(session) -> dict:
     url = "https://www.cardplayer.com/poker-tournaments"
     log(f"  [CardPlayer] {url}")
     try:
-        resp = session.fetch(url, google_search=False, timeout=30000, wait_until="networkidle")
+        resp = session.fetch(url, google_search=False, timeout=45000, wait_until="networkidle")
         if not resp or resp.status != 200:
             log(f"  [CardPlayer] HTTP {getattr(resp,'status',0)} — skipped"); return {}
         body = resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
@@ -472,7 +581,7 @@ def fetch_cardplayer(session) -> dict:
         ev   = EVIDENCE_DIR / f"cp_global_{int(time.time())}.json"
         with open(ev,"w") as f:
             json.dump({"url":url,"hash":h,"bytes":len(body),
-                       "ts":datetime.now(timezone.utc).isoformat(),"preview":html[:600]},f,indent=2)
+                       "ts":datetime.now(timezone.utc).isoformat(),"preview":html[:800]},f,indent=2)
         result = {}
         rows = re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.DOTALL|re.I)
         for row in rows:
@@ -554,7 +663,8 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
         if pa_url in seen_pa: continue
         seen_pa.add(pa_url)
         try:
-            resp=session.fetch(pa_url,timeout=15000,wait_until="domcontentloaded")
+            # networkidle ensures Next.js SPA fully renders tournament data
+            resp=session.fetch(pa_url, timeout=25000, wait_until="networkidle")
             if not resp or resp.status!=200: continue
             body=resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
             html=body.decode("utf-8","ignore")
@@ -564,20 +674,26 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
             STOP2={"the","and","casino","poker","room","card","at","in","of","a"}
             tokens={w for w in re.sub(r"[^a-z0-9 ]"," ",name.lower()).split() if len(w)>=4} - STOP2
             if tokens and not any(t in title for t in tokens): continue
-            recs=parse_pa_html(html,name,vid,batch_id,pa_url)
+            # PRIMARY PATH: extract from __NEXT_DATA__ JSON (Next.js SPA)
+            recs = extract_pa_next_data(html, name, vid, batch_id, pa_url)
+            if recs:
+                log(f"      [PA:NEXT_DATA] {len(recs)} records")
+            # FALLBACK: old HTML structure parser
+            if not recs:
+                recs = parse_pa_html(html, name, vid, batch_id, pa_url)
+            # FALLBACK: generic extractor
             if not recs and has_tourn(html):
-                recs=extract_html(html,name,vid,batch_id,pa_url,"pokeratlas")
-            add(recs,"pokeratlas",pa_url)
+                recs = extract_html(html, name, vid, batch_id, pa_url, "pokeratlas")
+            add(recs, "pokeratlas", pa_url)
             # JSON-LD canonical venue website discovery — extract ORIGIN only
             for jld_raw in re.findall(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>',html,re.DOTALL|re.I):
                 try:
                     jld=json.loads(jld_raw)
                     canonical=jld.get("url") or jld.get("@id") or ""
                     if canonical and canonical.startswith("http") and "pokeratlas" not in canonical:
-                        # Extract ONLY origin (scheme+host) — no path
                         parts=canonical.split("//",1)
                         if len(parts)==2:
-                            origin=parts[0]+"//"+parts[1].split("/")[0]  # https://example.com
+                            origin=parts[0]+"//"+parts[1].split("/")[0]
                             venue.setdefault("_extra_origins",[]).append(origin)
                 except: pass
             # PDF discovery on PA page

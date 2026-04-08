@@ -119,24 +119,42 @@
       "scrape_priority": 2,
       "sources": {
         "primary": {
-          "url": "https://msptpoker.com/schedule/",
+          "url": "https://msptpoker.com/",
           "method": "scrapling",
-          "notes": "Official MSPT schedule page. Also crawled for PDF links per stop."
+          "notes": "MSPT homepage where all stop announcements and PDF schedule links live. /schedule/ returns 404."
         },
         "pdf_schedule": {
-          "url": "https://msptpoker.com/schedule/",
+          "url": "https://msptpoker.com/",
           "method": "pdf_crawl",
           "pdf_base": "https://msptpoker.com/showpdf.aspx?eventID=",
-          "notes": "Each MSPT stop publishes a full PDF schedule at showpdf.aspx?eventID=NNN. The main schedule page is crawled for all eventID values.",
+          "notes": "FIXED: Crawl homepage (not /schedule/ which 404s). Each MSPT stop has a showpdf.aspx?eventID=NNN link on the homepage.",
           "known_event_ids": {
+            "stop_494": 494,
+            "stop_495": 495,
+            "stop_510": 510,
+            "stop_511": 511,
+            "stop_516": 516,
+            "stop_517": 517,
+            "stop_518": 518,
+            "stop_520": 520,
+            "stop_521": 521,
+            "stop_523": 523,
             "minnesota_state_2026": 588,
             "east_chicago_2026": 589,
-            "potawatomi_spring_2026": 590,
-            "michigan_state_2026": 591,
-            "sycuan_showdown_2026": 592,
-            "riverside_2026": 593,
-            "black_hawk_2026": 594,
-            "deadwood_2026": 595
+            "stop_646": 646,
+            "stop_647": 647,
+            "stop_665": 665,
+            "stop_667": 667,
+            "stop_715": 715,
+            "stop_723": 723,
+            "stop_724": 724,
+            "stop_725": 725,
+            "stop_726": 726,
+            "stop_729": 729,
+            "stop_730": 730,
+            "stop_731": 731,
+            "stop_733": 733,
+            "stop_734": 734
           }
         },
         "pokeratlas": {
