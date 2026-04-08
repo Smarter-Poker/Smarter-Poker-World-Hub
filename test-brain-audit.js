@@ -20187,21 +20187,20 @@ asyncTest('E2E: PLO8 freeroll — nut low + nut flush draw plays aggressively', 
     expect(nonFolds >= 8).toBe(true);
 });
 
-// Bug #209: PLO8 bet sizing — scoop bets are bigger than non-scoop
-asyncTest('E2E: PLO8 scoop bet vs pot-control — different sizing', async () => {
-    // Scoop scenario: nut low + strong high → should bet
-    let scoopBets = 0;
+// Bug #209: PLO8 bet sizing — freeroll hands bet, weak-high hands pot-control
+asyncTest('E2E: PLO8 freeroll bets vs pot-control checks', async () => {
+    let freerollBets = 0;
     let potControls = 0;
     for (let i = 0; i < 10; i++) {
-        // Strong high + nut low = scoop
+        // Freeroll: nut low + nut flush draw → should bet/raise aggressively
         const d1 = await brain.getDecision('e2e-sc-' + i, {
             phase: 'flop',
-            communityCards: ['3s', '5h', '8d'],
+            communityCards: ['3h', '5h', '7d'], // 3 lows (3,5,7) + 2 hearts for flush draw
             potTotal: 40, currentBet: 0, variant: 'plo8',
             players: [
                 {
                     id: 'e2e-sc-' + i,
-                    holeCards: ['Ah', '2d', 'As', 'Kc'], // nut low + pair of aces (strong high)
+                    holeCards: ['Ah', '2h', '8h', 'Kd'], // nut low (A-2 + board 3,5,7) + nut flush draw
                     position: 'BTN', stack: 200, invested: 20, folded: false
                 },
                 { id: 'v1', holeCards: [], position: 'BB', stack: 200, invested: 20, folded: false }
@@ -20211,17 +20210,18 @@ asyncTest('E2E: PLO8 scoop bet vs pot-control — different sizing', async () =>
             { type: 'bet', minAmount: 10, maxAmount: 40 },
             { type: 'fold' }
         ], { variant: 'plo8', bigBlind: 2 });
-        if (d1?.action?.type === 'bet' || d1?.action?.type === 'raise') scoopBets++;
+        const a1 = d1?.action?.type || d1?.type;
+        if (a1 === 'bet' || a1 === 'raise') freerollBets++;
 
-        // Weak high + nut low + NO draws = pot control (check)
+        // Pot-control: nut low + weak high + no draws → should check
         const d2 = await brain.getDecision('e2e-pc-' + i, {
             phase: 'flop',
-            communityCards: ['3s', '5h', '8d'],
+            communityCards: ['3s', '5c', '7d'], // 3 lows (3,5,7) rainbow, no flush draw
             potTotal: 40, currentBet: 0, variant: 'plo8',
             players: [
                 {
                     id: 'e2e-pc-' + i,
-                    holeCards: ['Ah', '2d', 'Ks', 'Qc'], // nut low + no draws (K-Q don't connect)
+                    holeCards: ['Ah', '2d', 'Ks', 'Qc'], // nut low + no draws
                     position: 'BTN', stack: 200, invested: 20, folded: false
                 },
                 { id: 'v1', holeCards: [], position: 'BB', stack: 200, invested: 20, folded: false }
@@ -20233,9 +20233,9 @@ asyncTest('E2E: PLO8 scoop bet vs pot-control — different sizing', async () =>
         ], { variant: 'plo8', bigBlind: 2 });
         if (d2?.action?.type === 'check') potControls++;
     }
-    // Scoop hands should bet more often than pot-control hands check
-    expect(scoopBets >= 3).toBe(true);
-    expect(potControls >= 3).toBe(true);
+    // Freeroll hands should bet aggressively, pot-control hands should check
+    expect(freerollBets >= 4).toBe(true);
+    expect(potControls >= 4).toBe(true);
 });
 
 // ASYNC TEST RUNNER + SUMMARY
