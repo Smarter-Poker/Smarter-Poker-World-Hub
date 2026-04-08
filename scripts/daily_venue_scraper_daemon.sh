@@ -10,7 +10,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="$ROOT/.venv/bin/python3"
-SCRIPT="$ROOT/scripts/scrape_targeted_v3.py"
+SCRIPT="$ROOT/scripts/daily_venue_scraper.py"
 LOGDIR="$ROOT/data/tournament-logs"
 MASTERLOG="$LOGDIR/orchestrator_$(date +%Y%m%d_%H%M%S).log"
 LOCKFILE="/tmp/sp_scraper.lock"

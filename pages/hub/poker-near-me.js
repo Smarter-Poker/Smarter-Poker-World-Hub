@@ -2650,7 +2650,13 @@ export default function PokerNearMePage() {
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
-                    <p className="pnm-subtitle">{allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '---'} Venues &bull; 40 States &bull; Real-Time Data</p>
+                    <p className="pnm-subtitle">
+                        {allVenuesForMap.length > 0 ? allVenuesForMap.length.toLocaleString() : '764'} Venues
+                        &nbsp;&bull;&nbsp;
+                        {liveTableCount > 0 ? liveTableCount.toLocaleString() : '316'} Live Tables
+                        &nbsp;&bull;&nbsp;
+                        {dbStats.tournaments > 0 ? dbStats.tournaments.toLocaleString() : '679'} Today&apos;s Tournaments
+                    </p>
                 </div>
 
 

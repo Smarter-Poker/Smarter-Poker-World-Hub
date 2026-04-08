@@ -74,6 +74,8 @@ export default function LobbyOverlay({
   showTutorial = false,
   onTutorialDismiss,
   venueCount = 0,
+  // ─── Global Search Overlay trigger ───
+  onSearchBarClick,
 }) {
   const searchRef = useRef(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -163,13 +165,20 @@ export default function LobbyOverlay({
               ref={searchRef}
               type="text"
               className="lobby-search-input"
-              placeholder="Search City, Venue, or Zip..."
+              placeholder="Search City, Venue, Tour, Series..."
               value={searchQuery}
+              readOnly
               onChange={(e) => onSearchChange?.(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+              onFocus={(e) => {
+                e.preventDefault();
+                e.target.blur();
+                // Immediately open the full-screen global search overlay
+                onSearchBarClick?.();
+              }}
+              onClick={() => onSearchBarClick?.()}
               autoComplete="off"
-              aria-label="Search for poker venues by city, venue name, or zip code"
+              aria-label="Search for poker venues, tours, and series"
+              style={{ cursor: 'text' }}
             />
 
             {/* Voice Search Button */}

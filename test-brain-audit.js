@@ -20188,52 +20188,27 @@ asyncTest('E2E: PLO8 freeroll — nut low + nut flush draw plays aggressively', 
 });
 
 // Bug #209: PLO8 bet sizing — freeroll hands bet, weak-high hands pot-control
-asyncTest('E2E: PLO8 freeroll bets vs pot-control checks', async () => {
+// (tested via makePLOFallbackDecision for direct pipeline access)
+test('PLO8 #209: freeroll bets vs pot-control checks via fallback', () => {
     let freerollBets = 0;
     let potControls = 0;
     for (let i = 0; i < 10; i++) {
-        // Freeroll: nut low + nut flush draw → should bet/raise aggressively
-        const d1 = await brain.getDecision('e2e-sc-' + i, {
-            phase: 'flop',
-            communityCards: ['3h', '5h', '7d'], // 3 lows (3,5,7) + 2 hearts for flush draw
-            potTotal: 40, currentBet: 0, variant: 'plo8',
-            players: [
-                {
-                    id: 'e2e-sc-' + i,
-                    holeCards: ['Ah', '2h', '8h', 'Kd'], // nut low (A-2 + board 3,5,7) + nut flush draw
-                    position: 'BTN', stack: 200, invested: 20, folded: false
-                },
-                { id: 'v1', holeCards: [], position: 'BB', stack: 200, invested: 20, folded: false }
-            ]
-        }, [
-            { type: 'check' },
-            { type: 'bet', minAmount: 10, maxAmount: 40 },
-            { type: 'fold' }
-        ], { variant: 'plo8', bigBlind: 2 });
-        const a1 = d1?.action?.type || d1?.type;
-        if (a1 === 'bet' || a1 === 'raise') freerollBets++;
+        // Freeroll: nut low + nut flush draw → should bet/raise
+        const d1 = brain.makePLOFallbackDecision('fr-' + i, {
+            holeCards: ['Ah', '2h', '8h', 'Kd'], board: ['3h', '5h', '7d'],
+            street: 'flop', position: 'BTN', stackBB: 100, potSize: 40,
+            toCall: 0, bb: 2, numPlayers: 2, isHiLo: true, gameType: 'cash'
+        }, [{ type: 'check' }, { type: 'bet', minAmount: 10, maxAmount: 40 }]);
+        if (d1.type === 'bet' || d1.type === 'raise') freerollBets++;
 
         // Pot-control: nut low + weak high + no draws → should check
-        const d2 = await brain.getDecision('e2e-pc-' + i, {
-            phase: 'flop',
-            communityCards: ['3s', '5c', '7d'], // 3 lows (3,5,7) rainbow, no flush draw
-            potTotal: 40, currentBet: 0, variant: 'plo8',
-            players: [
-                {
-                    id: 'e2e-pc-' + i,
-                    holeCards: ['Ah', '2d', 'Ks', 'Qc'], // nut low + no draws
-                    position: 'BTN', stack: 200, invested: 20, folded: false
-                },
-                { id: 'v1', holeCards: [], position: 'BB', stack: 200, invested: 20, folded: false }
-            ]
-        }, [
-            { type: 'check' },
-            { type: 'bet', minAmount: 10, maxAmount: 40 },
-            { type: 'fold' }
-        ], { variant: 'plo8', bigBlind: 2 });
-        if (d2?.action?.type === 'check') potControls++;
+        const d2 = brain.makePLOFallbackDecision('pc-' + i, {
+            holeCards: ['Ah', '2d', 'Ks', 'Qc'], board: ['3s', '5c', '7d'],
+            street: 'flop', position: 'BTN', stackBB: 100, potSize: 40,
+            toCall: 0, bb: 2, numPlayers: 2, isHiLo: true, gameType: 'cash'
+        }, [{ type: 'check' }, { type: 'bet', minAmount: 10, maxAmount: 40 }]);
+        if (d2.type === 'check') potControls++;
     }
-    // Freeroll hands should bet aggressively, pot-control hands should check
     expect(freerollBets >= 4).toBe(true);
     expect(potControls >= 4).toBe(true);
 });

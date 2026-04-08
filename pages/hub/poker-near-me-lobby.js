@@ -72,6 +72,7 @@ const DailyTournamentsPanel = dynamic(() => import('../../src/components/poker-n
 const VenueGameAlerts = dynamic(() => import('../../src/components/poker-near-me/VenueGameAlerts'), { ssr: false });
 const CreateHomeGame = dynamic(() => import('../../src/components/poker-near-me/CreateHomeGame'), { ssr: false });
 const GeofenceAlertBanner = dynamic(() => import('../../src/components/poker-near-me/GeofenceAlertBanner'), { ssr: false });
+const GlobalSearchOverlay = dynamic(() => import('../../src/components/poker-near-me/GlobalSearchOverlay'), { ssr: false });
 
 // ─── Error Boundary for Pod Content ───
 class PodErrorBoundary extends React.Component {
@@ -239,6 +240,8 @@ export default function PokerNearMeLobby() {
   const [showPanel, setShowPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  // ═══ GLOBAL SEARCH OVERLAY ═══
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [sortBy, setSortBy] = useState('distance');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({});
@@ -2714,6 +2717,7 @@ export default function PokerNearMeLobby() {
             }
           }}
           venueCount={totalVenueCount}
+          onSearchBarClick={() => setShowGlobalSearch(true)}
         />
 
 
@@ -3338,6 +3342,40 @@ export default function PokerNearMeLobby() {
             </div>
           </div>
         )}
+
+      {/* ═══ GLOBAL SEARCH OVERLAY ═══
+           Full-screen Google-style search: city, state, venue, tour, series, tournament.
+           Location = null. Fuzzy match across all content types. */}
+      <GlobalSearchOverlay
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        allTours={tours}
+        allSeries={series}
+        searchHistory={searchHistory}
+        onHistorySelect={(q) => {
+          setSearchQuery(q);
+          if (typeof addSearchHistoryToDb === 'function' && userId) {
+            addSearchHistoryToDb(userId, q).catch(() => {});
+          }
+        }}
+        cachedFetch={cachedFetch}
+        onVenueClick={(venue) => {
+          setShowGlobalSearch(false);
+          // Open the venue detail panel/page
+          const url = '/hub/venues/' + venue.id;
+          router.push(url);
+        }}
+        onTourClick={(tour) => {
+          setShowGlobalSearch(false);
+          router.push('/hub/poker-near-me?tab=events&sub=tours');
+        }}
+        onSeriesClick={(s) => {
+          setShowGlobalSearch(false);
+          router.push('/hub/poker-near-me?tab=events&sub=series');
+        }}
+      />
 
       {/* Geofence Alert Banner */}
       {geofenceAlert && (
