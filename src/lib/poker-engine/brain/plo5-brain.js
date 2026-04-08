@@ -947,58 +947,347 @@ function getPLO5EquityRealization(baseEquity, position, numPlayers) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Main PLO5 decision entry point.
+ * Main PLO5 decision entry point — FULL PLO5-SPECIFIC LOGIC.
  *
- * This wraps the shared PLO engine with PLO5-specific adjustments:
- *   - Tighter preflop via scorePLO5Hand thresholds
- *   - Devalued two-pair and non-nut flushes postflop
- *   - Boosted combo draw valuations
- *   - Smaller c-bet sizing (ranges connect more)
- *   - Higher equity realization assumptions
+ * PLO5 sits between PLO4 and PLO6 in complexity:
+ *   - 10 two-card combos per player (vs 6 in PLO4, 15 in PLO6)
+ *   - Draws are 15% more common than PLO4
+ *   - Equities run closer — nut hands are mandatory for big pots
+ *   - Two-pair is near worthless; non-nut flushes are marginal
+ *   - 5th card advantage is the key differentiator from PLO4
+ *
+ * Decision flow:
+ *   1. PREFLOP: PLO5-specific scoring + 5th card evaluation
+ *   2. POSTFLOP: Full draw classification → nut distance → multiway check →
+ *      protection → 5th card advantage → street-specific logic → sizing
  *
  * @param {string} profileId - Horse profile UUID
  * @param {Object} gameState - Standard game state with holeCards, board, etc.
  * @param {Array} legalActions - Legal actions from engine
- * @returns {Object} Decision { type, amount }
+ * @returns {Object} Decision { type, amount, _handStrength, _reasoning }
  */
 function makePLO5Decision(profileId, gameState, legalActions) {
-    // For preflop, apply PLO5-specific scoring
-    if (gameState.street === 'preflop' && gameState.holeCards?.length === 5) {
-        const handScore = scorePLO5Hand(gameState.holeCards);
+    const holeCards = gameState.holeCards || [];
+    const boardCards = gameState.board || gameState.boardCards || [];
+    const street = gameState.street || 'preflop';
+    const potSize = gameState.potSize || 0;
+    const toCall = gameState.toCall || 0;
+    const bb = gameState.bb || 1;
+    const numPlayers = gameState.numPlayers || 2;
+    const isIP = gameState.isIP !== undefined ? gameState.isIP : true;
+    const stackBB = gameState.stackBB || (gameState.stack ? gameState.stack / bb : 100);
 
-        // Determine facing action
-        let facing = 'unopened';
-        if (gameState.toCall > gameState.bb * 5) facing = '3bet';
-        else if (gameState.toCall > 0) facing = 'raise';
+    // ── HELPER: Clamp to legal actions ──
+    function _clamp(type, amount) {
+        const canCheck = legalActions.some(a => a.type === 'check');
+        const canCall = legalActions.some(a => a.type === 'call');
+        const canRaise = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
 
-        const preflopAction = getPLO5PreflopAction(
-            handScore.score, gameState.position, facing,
-            gameState.numPlayers, gameState.stackBB
-        );
-
-        // Map to engine action format
-        if (preflopAction.action === 'fold') {
-            const canCheck = legalActions.some(a => a.type === 'check');
+        if (type === 'fold') {
             return { type: canCheck ? 'check' : 'fold', amount: 0 };
         }
+        if (type === 'check') {
+            return { type: canCheck ? 'check' : 'fold', amount: 0 };
+        }
+        if (type === 'call') {
+            return { type: canCall ? 'call' : (canCheck ? 'check' : 'fold'), amount: 0 };
+        }
+        if (type === 'raise' || type === 'bet') {
+            if (canRaise) {
+                const min = canRaise.minAmount || 1;
+                const max = canRaise.maxAmount || amount || potSize;
+                const clamped = Math.max(min, Math.min(amount || min, max));
+                return { type: canRaise.type, amount: clamped };
+            }
+            return { type: canCall ? 'call' : (canCheck ? 'check' : 'fold'), amount: 0 };
+        }
+        return { type: canCheck ? 'check' : 'fold', amount: 0 };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PREFLOP — PLO5-specific hand scoring + position ranges
+    // ═══════════════════════════════════════════════════════════════════
+    if (street === 'preflop' && holeCards.length === 5) {
+        const handScore = scorePLO5Hand(holeCards);
+
+        let facing = 'unopened';
+        if (toCall > bb * 5) facing = '3bet';
+        else if (toCall > 0) facing = 'raise';
+
+        const preflopAction = getPLO5PreflopAction(
+            handScore.score, gameState.position, facing, numPlayers, stackBB
+        );
+
+        if (preflopAction.action === 'fold') {
+            return { ..._clamp('fold', 0), _handStrength: handScore.score, _reasoning: 'plo5-preflop-fold' };
+        }
         if (preflopAction.action === 'call') {
-            const canCall = legalActions.some(a => a.type === 'call');
-            return { type: canCall ? 'call' : 'fold', amount: 0 };
+            return { ..._clamp('call', 0), _handStrength: handScore.score, _reasoning: 'plo5-preflop-call' };
         }
         if (preflopAction.action === 'raise' || preflopAction.action === '3bet' || preflopAction.action === '4bet') {
-            const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
-            if (raiseAction) {
-                const raiseSize = Math.round((gameState.potSize || gameState.bb * 3) * 1.0); // Pot-sized
-                const amount = Math.max(raiseAction.minAmount || 1, Math.min(raiseSize, raiseAction.maxAmount || raiseSize));
-                return { type: raiseAction.type, amount };
-            }
-            return { type: 'call', amount: 0 };
+            const raiseSize = Math.round((potSize || bb * 3) * 1.0);
+            return { ..._clamp('raise', raiseSize), _handStrength: handScore.score, _reasoning: 'plo5-preflop-raise' };
         }
     }
 
-    // For postflop, delegate to shared PLO engine (it handles 5-card via holeCards.length)
-    // The shared engine already calls getBestPLO5or6MadeHand for 5-card hands
-    return makePLOFallbackDecision(profileId, gameState, legalActions);
+    // ═══════════════════════════════════════════════════════════════════
+    // POSTFLOP — Full PLO5 decision engine
+    // ═══════════════════════════════════════════════════════════════════
+
+    // Step 1: Made hand evaluation
+    const madeHand = getBestPLO5or6MadeHand(holeCards, boardCards);
+    const madeStrength = madeHand?.strength || 0;
+    const madeCategory = madeHand?.category || 'high_card';
+
+    // Step 2: Draw classification (flop & turn only)
+    const drawInfo = (street !== 'river')
+        ? classifyPLO5Draws(holeCards, boardCards, street)
+        : { drawTier: 5, drawLabel: 'none', totalOuts: 0, nutFlushDraw: false, nutWrapDraw: false, isComboNutDraw: false, isDominatedDraw: false, freerollDraw: false, drawCount: 0, nutDrawCount: 0 };
+
+    // Step 3: Board texture
+    const holeObjs = _ensureCardObjects(holeCards);
+    const boardObjs = _ensureCardObjects(boardCards);
+    const boardTexture = analyzePLOBoardTexture(boardObjs);
+
+    // Step 4: PLO5 postflop strength adjustment
+    const adjusted = adjustPLO5PostflopStrength(madeHand, {
+        flushOuts: drawInfo.nutFlushDraw ? 9 : (drawInfo.totalOuts > 6 ? 6 : 0),
+        straightOuts: drawInfo.totalOuts - (drawInfo.nutFlushDraw ? 9 : 0),
+        totalOuts: drawInfo.totalOuts,
+    }, street, holeCards, boardCards);
+    const adjStrength = adjusted.adjustedStrength;
+
+    // Step 5: Nut distance (critical for commit decisions)
+    const nutDist = evaluatePLO5NutDistance(holeCards, boardCards);
+
+    // Step 6: 5th card advantage
+    const fifthCard = evaluatePLO5FifthCardAdvantage(holeCards, boardCards);
+
+    // Step 7: Equity realization
+    const eqRealization = getPLO5EquityRealization(adjStrength, gameState.position || 'MP', numPlayers);
+
+    // ── MULTIWAY POT OVERRIDE (3+ players) ──
+    if (numPlayers >= 3) {
+        const mwStrategy = getPLO5MultiwayStrategy(adjStrength, drawInfo, numPlayers, isIP, potSize, toCall, street);
+        if (mwStrategy.action !== 'standard') {
+            const mwType = mwStrategy.action.startsWith('bet') ? 'raise' : mwStrategy.action;
+            const mwAmount = mwStrategy.sizing || 0;
+            return { ..._clamp(mwType, mwAmount), _handStrength: adjStrength, _reasoning: mwStrategy.reasoning };
+        }
+    }
+
+    // ── RIVER DECISIONS ──
+    if (street === 'river') {
+        // Nut hand: value bet
+        if (nutDist.isNutHand || adjStrength >= 82) {
+            const valueSize = getPLO5BetSize('river', 'value', potSize, adjStrength, { numPlayers, isIP, stackBB });
+            return { ..._clamp('raise', valueSize), _handStrength: adjStrength, _reasoning: 'plo5-river-nut-value' };
+        }
+
+        // Near-nut: thinner value
+        if (nutDist.nutDistance <= 1 && adjStrength >= 68) {
+            const thinSize = getPLO5BetSize('river', 'value', potSize, adjStrength, { numPlayers, isIP, stackBB });
+            if (toCall === 0) {
+                return { ..._clamp('raise', thinSize), _handStrength: adjStrength, _reasoning: 'plo5-river-thin-value' };
+            }
+            return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-river-near-nut-call' };
+        }
+
+        // Flush hierarchy on flush boards
+        const flushH = evaluatePLO5FlushHierarchy(holeCards, boardCards);
+        if (flushH.flushRank !== 'none' && flushH.flushRank !== 'low') {
+            if (flushH.commitLevel === 'commit') {
+                const flushSize = getPLO5BetSize('river', 'value', potSize, flushH.flushStrength, { numPlayers, isIP, stackBB });
+                return { ..._clamp('raise', flushSize), _handStrength: flushH.flushStrength, _reasoning: 'plo5-river-nut-flush-value' };
+            }
+            if (flushH.commitLevel === 'two-streets' && toCall <= potSize * 0.55) {
+                return { ..._clamp('call', 0), _handStrength: flushH.flushStrength, _reasoning: 'plo5-river-king-flush-call' };
+            }
+            if (flushH.commitLevel === 'one-street' && toCall <= potSize * 0.30) {
+                return { ..._clamp('call', 0), _handStrength: flushH.flushStrength, _reasoning: 'plo5-river-queen-flush-call' };
+            }
+        }
+
+        // Missed draw: blocker bluff or give up
+        const missedDraw = handlePLO5MissedDraw(holeCards, boardCards, madeStrength, isIP, potSize, numPlayers);
+        if (missedDraw.action === 'blocker-bluff') {
+            return { ..._clamp('raise', missedDraw.bluffSize), _handStrength: madeStrength, _reasoning: missedDraw.reasoning };
+        }
+        if (missedDraw.action === 'check-call-thin' && toCall <= potSize * 0.35) {
+            return { ..._clamp('call', 0), _handStrength: madeStrength, _reasoning: 'plo5-river-thin-showdown' };
+        }
+
+        // Default river: check facing action, or fold to bet
+        if (toCall === 0) {
+            return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-river-check-back' };
+        }
+        if (adjStrength >= 48 && toCall <= potSize * 0.40) {
+            return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-river-marginal-call' };
+        }
+        return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-river-fold' };
+    }
+
+    // ── TURN-SPECIFIC LOGIC ──
+    if (street === 'turn') {
+        // Turn reassessment: check if draws improved or bricked
+        const flopDraws = classifyPLO5Draws(holeCards, boardCards.slice(0, 3), 'flop');
+        const turnReassess = reassessPLO5Turn(flopDraws, drawInfo, madeStrength * 0.9, madeStrength);
+
+        // Draw completed: value bet
+        if (turnReassess.drawCompleted) {
+            const valueSize = getPLO5BetSize('turn', 'value', potSize, adjStrength, { numPlayers, isIP, stackBB });
+            return { ..._clamp('raise', valueSize), _handStrength: adjStrength, _reasoning: 'plo5-turn-draw-completed-value' };
+        }
+
+        // Nut hand: keep building the pot
+        if (nutDist.isNutHand || adjStrength >= 80) {
+            const valueSize = getPLO5BetSize('turn', 'value', potSize, adjStrength, { numPlayers, isIP, stackBB });
+            return { ..._clamp('raise', valueSize), _handStrength: adjStrength, _reasoning: 'plo5-turn-nut-value' };
+        }
+
+        // Freeroll draw (strong made + draws): aggressive semi-bluff
+        if (drawInfo.freerollDraw && adjStrength >= 55) {
+            const semiSize = getPLO5BetSize('turn', 'value', potSize, adjStrength, { numPlayers, isIP, stackBB });
+            return { ..._clamp('raise', semiSize), _handStrength: adjStrength, _reasoning: 'plo5-turn-freeroll' };
+        }
+
+        // Monster draws (Tier 1-2): semi-bluff
+        if (drawInfo.drawTier <= 2) {
+            const semiSize = getPLO5BetSize('turn', 'bluff', potSize, adjStrength, { numPlayers, isIP, stackBB });
+            return { ..._clamp('raise', semiSize), _handStrength: adjStrength, _reasoning: 'plo5-turn-nut-draw-semi-bluff' };
+        }
+
+        // Protection bet for vulnerable made hands
+        const protection = getPLO5ProtectionBet(adjStrength, boardTexture, numPlayers, potSize, 'turn');
+        if (protection.shouldProtect && toCall === 0) {
+            return { ..._clamp('raise', protection.protectSize), _handStrength: adjStrength, _reasoning: protection.protectReason };
+        }
+
+        // Draw bricked: give up
+        if (turnReassess.drawBricked && turnReassess.turnStrategy === 'give-up') {
+            if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-bricked-check' };
+            return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-bricked-fold' };
+        }
+
+        // Decent draws (Tier 3): check-call if cheap
+        if (drawInfo.drawTier === 3) {
+            if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-decent-draw-check' };
+            if (toCall <= potSize * 0.40) {
+                return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-decent-draw-call' };
+            }
+            return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-decent-draw-too-expensive' };
+        }
+
+        // Marginal made hands: pot control
+        if (adjStrength >= 42 && toCall === 0) {
+            return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-marginal-pot-control' };
+        }
+        if (adjStrength >= 42 && toCall <= potSize * 0.30) {
+            return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-marginal-cheap-call' };
+        }
+
+        // Default turn: check or fold
+        if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-default-check' };
+        return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-turn-default-fold' };
+    }
+
+    // ── FLOP DECISIONS ──
+
+    // Nut hand: value bet (build the pot immediately)
+    if (nutDist.isNutHand || adjStrength >= 82) {
+        const valueSize = getPLO5BetSize('flop', 'value', potSize, adjStrength, { numPlayers, isIP, stackBB });
+        return { ..._clamp('raise', valueSize), _handStrength: adjStrength, _reasoning: 'plo5-flop-nut-value' };
+    }
+
+    // Monster draw (Tier 1): play it like the nuts — raise or semi-bluff
+    if (drawInfo.drawTier === 1) {
+        if (toCall > 0) {
+            // Facing a bet with a monster draw: raise (semi-bluff)
+            const semiSize = Math.round(potSize * 0.75);
+            return { ..._clamp('raise', semiSize), _handStrength: adjStrength + 20, _reasoning: 'plo5-flop-monster-draw-raise' };
+        }
+        const semiSize = getPLO5BetSize('flop', 'bluff', potSize, adjStrength, { numPlayers, isIP, stackBB });
+        return { ..._clamp('raise', semiSize), _handStrength: adjStrength + 20, _reasoning: 'plo5-flop-monster-draw-bet' };
+    }
+
+    // Strong draw (Tier 2): semi-bluff in position, check-call OOP
+    if (drawInfo.drawTier === 2) {
+        if (isIP) {
+            if (toCall === 0) {
+                const semiSize = getPLO5BetSize('flop', 'bluff', potSize, adjStrength, { numPlayers, isIP, stackBB });
+                return { ..._clamp('raise', semiSize), _handStrength: adjStrength + 12, _reasoning: 'plo5-flop-strong-draw-IP-bet' };
+            }
+            // Facing bet: call (set up turn semi-bluff) or raise if nut draw
+            if (drawInfo.nutDrawCount >= 1) {
+                const raiseSize = Math.round(potSize * 0.65);
+                return { ..._clamp('raise', raiseSize), _handStrength: adjStrength + 15, _reasoning: 'plo5-flop-nut-draw-raise' };
+            }
+            return { ..._clamp('call', 0), _handStrength: adjStrength + 10, _reasoning: 'plo5-flop-strong-draw-IP-call' };
+        }
+        // OOP with strong draw
+        if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength + 10, _reasoning: 'plo5-flop-strong-draw-OOP-check' };
+        if (toCall <= potSize * 0.55) return { ..._clamp('call', 0), _handStrength: adjStrength + 10, _reasoning: 'plo5-flop-strong-draw-OOP-call' };
+        return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-strong-draw-OOP-fold-expensive' };
+    }
+
+    // Freeroll draw (strong made hand + draws): bet for value + protection
+    if (drawInfo.freerollDraw) {
+        const freerollSize = getPLO5BetSize('flop', 'value', potSize, adjStrength, { numPlayers, isIP, stackBB });
+        return { ..._clamp('raise', freerollSize), _handStrength: adjStrength + 8, _reasoning: 'plo5-flop-freeroll' };
+    }
+
+    // Protection bet (vulnerable made hand on wet board)
+    const protection = getPLO5ProtectionBet(adjStrength, boardTexture, numPlayers, potSize, 'flop');
+    if (protection.shouldProtect && toCall === 0) {
+        return { ..._clamp('raise', protection.protectSize), _handStrength: adjStrength, _reasoning: protection.protectReason };
+    }
+
+    // 5th card advantage: if the 5th card is helping significantly, be more aggressive
+    if (fifthCard.fifthCardHelps && fifthCard.additionalOuts >= 3 && drawInfo.drawTier <= 3) {
+        if (toCall === 0) {
+            const advantageSize = getPLO5BetSize('flop', 'bluff', potSize, adjStrength, { numPlayers, isIP, stackBB });
+            return { ..._clamp('raise', advantageSize), _handStrength: adjStrength + 5, _reasoning: 'plo5-flop-5th-card-advantage-bet' };
+        }
+    }
+
+    // Decent draws (Tier 3): check-call cheaply
+    if (drawInfo.drawTier === 3) {
+        if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-decent-draw-check' };
+        const drawEq = getPLO5DrawEquity(holeCards, boardCards, 'flop', potSize, toCall);
+        if (drawEq.isProfitableCall) {
+            return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-decent-draw-profitable-call' };
+        }
+        if (toCall <= potSize * 0.35) {
+            return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-decent-draw-cheap-call' };
+        }
+        return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-decent-draw-fold' };
+    }
+
+    // Weak draws (Tier 4) with dominated draw indicator: fold to any aggression
+    if (drawInfo.drawTier === 4 && drawInfo.isDominatedDraw) {
+        if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-dominated-draw-check' };
+        return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-dominated-draw-fold' };
+    }
+
+    // Marginal made hand (42-65 strength): pot control
+    if (adjStrength >= 42 && adjStrength < 65) {
+        if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-marginal-pot-control' };
+        if (toCall <= potSize * 0.35) return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-marginal-cheap-call' };
+        return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-marginal-too-expensive' };
+    }
+
+    // C-bet opportunity (IP, checked to, any reasonable hand)
+    if (toCall === 0 && isIP && adjStrength >= 25) {
+        const cbetSize = getPLO5BetSize('flop', 'cbet', potSize, adjStrength, { numPlayers, isIP, stackBB });
+        return { ..._clamp('raise', cbetSize), _handStrength: adjStrength, _reasoning: 'plo5-flop-cbet' };
+    }
+
+    // Default flop: check or fold
+    if (toCall === 0) return { ..._clamp('check', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-default-check' };
+    if (adjStrength >= 30 && toCall <= potSize * 0.25) {
+        return { ..._clamp('call', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-default-cheap-call' };
+    }
+    return { ..._clamp('fold', 0), _handStrength: adjStrength, _reasoning: 'plo5-flop-default-fold' };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1016,6 +1305,23 @@ module.exports = {
 
     // Sizing
     getPLO5BetSize,
+
+    // Flush & nut evaluation
+    evaluatePLO5FlushHierarchy,
+    evaluatePLO5NutDistance,
+
+    // Draw classification & equity
+    classifyPLO5Draws,
+    getPLO5EquityRealization,
+
+    // Protection & multiway
+    getPLO5ProtectionBet,
+    getPLO5MultiwayStrategy,
+
+    // 5th card & street-specific
+    evaluatePLO5FifthCardAdvantage,
+    reassessPLO5Turn,
+    handlePLO5MissedDraw,
 
     // Main decision engine
     makePLO5Decision,

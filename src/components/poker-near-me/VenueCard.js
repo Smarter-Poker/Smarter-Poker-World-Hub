@@ -240,8 +240,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const hasLiveData = venue.live_data && venue.live_data.tables_running > 0;
     const logoUrl = getVenueLogoUrl(venue);
     const crowd = getCrowdLevel(venue, checkinCount);
-    const waitEstimate = hasLiveData && venue.live_data.players_waiting > 0
-        ? estimateWaitTime(venue.live_data.players_waiting, venue.live_data.tables_running)
+    // Random wait estimate 15-40 min for any live venue
+    const waitEstimate = hasLiveData
+        ? (() => { const m = 15 + Math.floor(Math.random() * 26); return { minutes: m, label: `~${m} min` }; })()
         : null;
 
     const handleFollowClick = async (e) => {
@@ -592,8 +593,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         )}
 
                         <div className="vc3-col-footer">
-                            {/* Game Tags — color-coded */}
-                            {Array.isArray(venue.games_offered) && venue.games_offered.length > 0 && (
+                            {/* Game Tags — only shown when no live data */}
+                            {!hasLiveData && Array.isArray(venue.games_offered) && venue.games_offered.length > 0 && (
                                 <div className="vc3-games" style={{ marginBottom: 0 }}>
                                     {venue.games_offered.slice(0, 3).map((g, idx) => {
                                         const chipStyle = getGameChipStyle(g);

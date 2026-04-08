@@ -262,6 +262,15 @@ module.exports = {
     adjustPLO5PostflopStrength: plo5Brain.adjustPLO5PostflopStrength,
     getPLO5DrawEquity: plo5Brain.getPLO5DrawEquity,
     getPLO5BetSize: plo5Brain.getPLO5BetSize,
+    evaluatePLO5FlushHierarchy: plo5Brain.evaluatePLO5FlushHierarchy,
+    evaluatePLO5NutDistance: plo5Brain.evaluatePLO5NutDistance,
+    classifyPLO5Draws: plo5Brain.classifyPLO5Draws,
+    getPLO5EquityRealization: plo5Brain.getPLO5EquityRealization,
+    getPLO5ProtectionBet: plo5Brain.getPLO5ProtectionBet,
+    getPLO5MultiwayStrategy: plo5Brain.getPLO5MultiwayStrategy,
+    evaluatePLO5FifthCardAdvantage: plo5Brain.evaluatePLO5FifthCardAdvantage,
+    reassessPLO5Turn: plo5Brain.reassessPLO5Turn,
+    handlePLO5MissedDraw: plo5Brain.handlePLO5MissedDraw,
     makePLO5Decision: plo5Brain.makePLO5Decision,
 
     // ═══════════════════════════════════════════════════════════════════════
