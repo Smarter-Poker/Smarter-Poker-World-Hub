@@ -12,6 +12,8 @@
  *   plo-core.js      → Shared PLO hand evaluation, outs, blockers, decision engine
  *   holdem-brain.js  → Hold'em decision engine (fallback, flop, turn/river heuristics)
  *   router.js        → getDecision() master router (variant routing, GTO, guardrails)
+ *   live-observer.js → Always-on opponent tracking (observeAction, getLiveRead, etc.)
+ *   hand-result.js   → Post-hand processing pipeline (processHandResult)
  *
  * During migration, functions not yet extracted are still served from the
  * legacy monolith (../HorsePokerBrain.js). As modules are completed,
@@ -26,14 +28,15 @@ const plo8Brain = require('./plo8-brain');
 const ploCore = require('./plo-core');
 const holdemBrain = require('./holdem-brain');
 const router = require('./router');
+const liveObserver = require('./live-observer');
+const handResult = require('./hand-result');
 
-// Phase 2: Legacy monolith (still serves live observer + processHandResult during migration)
+// Phase 2: Legacy monolith (remaining unextracted functions during migration)
 const legacy = require('../HorsePokerBrain');
 
-// Wire the live observer from legacy into the new router + holdem modules
-if (typeof legacy.getLiveRead === 'function') {
-    router.setRouterLiveReadFn(legacy.getLiveRead);
-}
+// Wire the live observer into the router + holdem modules
+// Now using the NEW extracted module instead of legacy
+router.setRouterLiveReadFn(liveObserver.getLiveRead);
 
 // Merge: new modules take precedence over legacy for extracted functions
 module.exports = {
@@ -251,4 +254,20 @@ module.exports = {
     getDecision: router.getDecision,
     validateAndClamp: router.validateAndClamp,
     shouldAutoSeat: router.shouldAutoSeat,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // live-observer.js — Always-on opponent tracking
+    // ═══════════════════════════════════════════════════════════════════════
+    observeNewHand: liveObserver.observeNewHand,
+    observeAction: liveObserver.observeAction,
+    observeShowdown: liveObserver.observeShowdown,
+    getLiveRead: liveObserver.getLiveRead,
+    clearLiveObserver: liveObserver.clearLiveObserver,
+    clearTableLiveObservers: liveObserver.clearTableLiveObservers,
+    cleanupLiveObservers: liveObserver.cleanupLiveObservers,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // hand-result.js — Post-hand processing pipeline
+    // ═══════════════════════════════════════════════════════════════════════
+    processHandResult: handResult.processHandResult,
 };
