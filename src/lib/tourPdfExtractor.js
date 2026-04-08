@@ -217,6 +217,10 @@ function parseScheduleText(rawText) {
         });
     }
     
+    if (events.length === 0) {
+        return parseScheduleTextFallback(rawText);
+    }
+    
     return events;
 }
 

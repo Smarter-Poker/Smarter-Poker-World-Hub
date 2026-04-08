@@ -1792,7 +1792,7 @@ export default function PokerNearMeLobby() {
             {/* Search parameters */}
             <div style={{ background: 'rgba(13,17,23,0.95)', border: '1px solid rgba(48,54,61,0.8)', borderRadius: 14, padding: 14, marginBottom: 14 }}>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input type="text" placeholder="Search Home Games..." value={hgSearch}
+                <input type="text" placeholder="Search Home Games..." value={hgSearch} autoComplete="off"
                   onChange={(e) => setFilters(prev => ({ ...prev, hgSearch: e.target.value }))}
                   style={{ flex: 1, minWidth: 120, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(48,54,61,0.6)', background: '#161b22', color: '#c9d1d9', fontSize: 13, fontFamily: 'inherit' }} />
                 <select value={hgState}
@@ -2296,7 +2296,7 @@ export default function PokerNearMeLobby() {
         component = (
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input type="text" placeholder="Search Tours..." value={tourSearch}
+              <input type="text" placeholder="Search Tours..." value={tourSearch} autoComplete="off"
                 onChange={(e) => setFilters(prev => ({ ...prev, tourSearch: e.target.value }))}
                 style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1.5px solid rgba(148,163,184,0.15)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={tourState}
@@ -2344,7 +2344,7 @@ export default function PokerNearMeLobby() {
         component = (
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input type="text" placeholder="Search Series..." value={seriesSearch}
+              <input type="text" placeholder="Search Series..." value={seriesSearch} autoComplete="off"
                 onChange={(e) => setFilters(prev => ({ ...prev, seriesSearch: e.target.value }))}
                 style={{ flex: 1, minWidth: 120, padding: '8px 14px', borderRadius: 8, border: '1.5px solid rgba(148,163,184,0.15)', background: 'rgba(13,17,23,0.7)', color: '#e0e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }} />
               <select value={seriesState}
@@ -3293,6 +3293,7 @@ export default function PokerNearMeLobby() {
                     onChange={(e) => setManualCity(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleManualLocationSet(); }}
                     autoFocus
+                    autoComplete="off"
                     style={{
                       width: '100%', padding: '10px 14px', borderRadius: 10,
                       border: '1px solid rgba(48,54,61,0.6)', background: '#0d1117',
