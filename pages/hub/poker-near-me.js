@@ -409,8 +409,57 @@ export default function PokerNearMePage() {
             .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
             .catch(() => { /* silent */ });
     }, [venues]);
-    
-    // ─── Live Check-in Counts ───
+
+    // ─── Live Cash Game Data Merger ───
+    // Fetches /api/poker/live-tables once, builds a name-normalized lookup,
+    // then injects live_data into venue objects so VenueCard can display it.
+    const [liveDataMap, setLiveDataMap] = useState({}); // bravo_slug/normalized_name → live_data
+    useEffect(() => {
+        fetch('/api/poker/live-tables')
+            .then(r => r.json())
+            .then(json => {
+                if (!json.venues) return;
+                const map = {};
+                json.venues.forEach(v => {
+                    const normName = (v.venue_name || '').toLowerCase()
+                        .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
+                        .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+                    const totalTables = v.games.reduce((s, g) => s + (g.tables_running || 0), 0);
+                    const totalWaiting = v.games.reduce((s, g) => s + (g.players_waiting || 0), 0);
+                    const liveEntry = {
+                        tables_running: totalTables,
+                        players_waiting: totalWaiting,
+                        games: v.games || [],
+                        last_updated: v.last_updated,
+                        bravo_slug: v.bravo_slug,
+                    };
+                    if (v.bravo_slug) map[v.bravo_slug] = liveEntry;
+                    if (normName) map[normName] = liveEntry;
+                });
+                setLiveDataMap(map);
+            })
+            .catch(() => { /* silent — live data is best-effort */ });
+    }, []);
+
+    // Merge live_data into venues whenever either venues or liveDataMap changes
+    useEffect(() => {
+        if (venues.length === 0 || Object.keys(liveDataMap).length === 0) return;
+        const hasNew = venues.some(v => !v.live_data);
+        if (!hasNew) return; // already merged
+        setVenues(prev => prev.map(venue => {
+            if (venue.live_data) return venue; // already has live data
+            const normName = (venue.name || '').toLowerCase()
+                .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
+                .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+            const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug])
+                || liveDataMap[normName]
+                || null;
+            if (!liveEntry || liveEntry.tables_running === 0) return venue;
+            return { ...venue, live_data: liveEntry };
+        }));
+    }, [venues, liveDataMap]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
     const [checkinCounts, setCheckinCounts] = useState({});
     useEffect(() => {
         fetch('/api/poker/checkins?today=true')

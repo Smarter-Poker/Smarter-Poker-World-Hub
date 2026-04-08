@@ -846,7 +846,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 }
                 .vc3-badge-checkin { background: rgba(230,81,0,0.15); color: #E65100; border: 1px solid rgba(230,81,0,0.3); cursor: pointer; }
                 .vc3-badge-checkin:hover { background: rgba(230,81,0,0.25); }
-                .vc3-data-zone { margin-top: 2px; flex: 1; display: flex; flex-direction: column; }
+                .vc3-data-zone { margin-top: 2px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
                 .vc3-live-info {
                     display: flex; gap: 16px; margin-bottom: 8px; padding: 8px 10px;
                     background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04);
@@ -908,6 +908,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     border-radius: 8px;
                     padding: 10px;
                     position: relative;
+                    flex: 1;
+                    min-height: 140px;
                 }
                 .vc3-columns-grid::after {
                     content: '';
@@ -922,6 +924,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     display: flex;
                     flex-direction: column;
                     min-width: 0;
+                    height: 100%;
                 }
                 .vc3-col-left { padding-right: 4px; }
                 .vc3-col-right { padding-left: 4px; }
@@ -998,7 +1001,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     font-style: italic;
                     padding: 10px 0;
                     text-align: center;
-                    margin: auto 0;
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 }
                 .vc3-col-footer {
                     display: flex;

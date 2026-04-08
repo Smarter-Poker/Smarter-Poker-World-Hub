@@ -707,7 +707,8 @@ export default function PokerNearMeLobby() {
       .catch(() => {});
   }, []);
 
-  // ─── Fetch live game count from scraper data (venue_live_tables) ───
+  // ─── Fetch live game count + build live data map for VenueCards ───
+  const [liveDataMap, setLiveDataMap] = useState({});
   useEffect(() => {
     fetch('/api/poker/live-tables')
       .then(r => r.json())
@@ -715,13 +716,44 @@ export default function PokerNearMeLobby() {
         if (j.metadata?.total_tables_running != null) {
           setLiveGameCount(j.metadata.total_tables_running);
         } else if (j.venues) {
-          // Fallback: count total tables from venue data
           const total = j.venues.reduce((sum, v) => sum + v.games.reduce((s, g) => s + (g.tables_running || 0), 0), 0);
           setLiveGameCount(total);
+        }
+        // Build name-keyed map for card injection
+        if (Array.isArray(j.venues)) {
+          const map = {};
+          j.venues.forEach(v => {
+            const normName = (v.venue_name || '').toLowerCase()
+              .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
+              .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+            const totalTables = v.games.reduce((s, g) => s + (g.tables_running || 0), 0);
+            const totalWaiting = v.games.reduce((s, g) => s + (g.players_waiting || 0), 0);
+            const liveEntry = { tables_running: totalTables, players_waiting: totalWaiting, games: v.games || [], last_updated: v.last_updated, bravo_slug: v.bravo_slug };
+            if (v.bravo_slug) map[v.bravo_slug] = liveEntry;
+            if (normName) map[normName] = liveEntry;
+          });
+          setLiveDataMap(map);
         }
       })
       .catch(() => { /* live game count unavailable */ });
   }, []);
+
+  // Merge live_data into venue objects whenever venues or liveDataMap changes
+  useEffect(() => {
+    if (venues.length === 0 || Object.keys(liveDataMap).length === 0) return;
+    const hasNew = venues.some(v => !v.live_data);
+    if (!hasNew) return;
+    setVenues(prev => prev.map(venue => {
+      if (venue.live_data) return venue;
+      const normName = (venue.name || '').toLowerCase()
+        .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
+        .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+      const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
+      if (!liveEntry || liveEntry.tables_running === 0) return venue;
+      return { ...venue, live_data: liveEntry };
+    }));
+  }, [venues, liveDataMap]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // ─── Fetch total venue count (platform-wide) ───
   useEffect(() => {
