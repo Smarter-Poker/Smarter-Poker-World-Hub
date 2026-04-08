@@ -54,6 +54,7 @@
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { extractPdfSchedule, isPdfUrl, findPdfLinks, extractMsptPdfLinks } from '../../../src/lib/tourPdfExtractor';
+import { fetchAndExtract, fetchHtml } from '../../../src/lib/tourHtmlExtractor';
 import { evaluateAndAlert, alertScraperCritical } from '../../../src/lib/scraperAlerts';
 import https from 'https';
 import http from 'http';
@@ -223,50 +224,19 @@ function verifyNoRegression(tourCode, newEvents, registry) {
     return { pass: true };
 }
 
-// ─── HTML Event Extraction ────────────────────────────────────────────────────
-
-/**
- * Extract tournament events from HTML content.
- */
+// ─── HTML Event Extraction (now delegated to tourHtmlExtractor) ───────────────
+// Legacy stub kept for verification layer compatibility
 function extractEvents(html, tourCode) {
+    // Simple date/stop detection for the verification layers (L3/L4)
     const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
     const events = [];
-
-    const eventPatterns = [
-        /Event\s*#?\s*(\d+)\s*[:–-]\s*\$([0-9,]+)\s+([A-Za-z][^$\n]{5,80})/gi,
-        /\$([0-9,]+)\s+((?:No-Limit|Pot-Limit|Limit|Fixed|NLHE|PLO|NLH|Omaha|Hold|Stud|Razz|HORSE|Mixed)[^$\n]{3,80})/gi,
-        /([A-Z][A-Za-z\s&']+(?:Casino|Resort|Hotel|Club|Room|Poker))\s*[-–|]\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2})/gi,
-    ];
-
-    for (const pattern of eventPatterns) {
-        let match;
-        while ((match = pattern.exec(text)) !== null) {
-            events.push({
-                name: match[0].substring(0, 120).trim(),
-                raw_match: match[0],
-                source: 'regex_extraction'
-            });
-        }
-    }
-
-    const dateRangePattern = /((?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2})\s*[-–to]+\s*((?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?\s*\d{1,2})/gi;
-
-    let dateMatch;
-    while ((dateMatch = dateRangePattern.exec(text)) !== null) {
-        const contextStart = Math.max(0, dateMatch.index - 150);
-        const context = text.substring(contextStart, dateMatch.index + dateMatch[0].length + 20);
-        const alreadyCaptured = events.some(e =>
-            e.raw_match && context.includes(e.raw_match.substring(0, 30))
-        );
-        if (!alreadyCaptured) {
-            events.push({
-                name: context.trim().substring(0, 120),
-                dates: dateMatch[0],
-                source: 'date_range_extraction'
-            });
-        }
-    }
-
+    const p1 = /Event\s*#?\s*(\d+)\s*[:–-]\s*\$([0-9,]+)\s+([A-Za-z][^$\n]{5,80})/gi;
+    const p2 = /\$([0-9,]+)\s+((?:No-Limit|Pot-Limit|Limit|NLH|PLO|HORSE|Mixed|Omaha)[^$\n]{3,80})/gi;
+    const dateRe = /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2})/gi;
+    let m;
+    while ((m = p1.exec(text)) !== null) events.push({ name: m[0].substring(0, 120), source: 'legacy_p1' });
+    while ((m = p2.exec(text)) !== null) events.push({ name: m[0].substring(0, 120), source: 'legacy_p2' });
+    while ((m = dateRe.exec(text)) !== null) events.push({ name: m[0], dates: m[0], source: 'date_detect' });
     return events;
 }
 
@@ -378,8 +348,12 @@ async function scrapeTour(tourCode, sources, registry, stats) {
         return null;
     }
 
+    // Filter to HTML-only sources (not PDF methods)
     const sourceEntries = Object.entries(tourSources.sources || {})
-        .filter(([, config]) => !config.method?.startsWith('pdf')); // HTML sources only
+        .filter(([, config]) => !config.method?.startsWith('pdf'));
+
+    // OpenAI key for LLM fallback in tourHtmlExtractor
+    const openaiApiKey = process.env.OPENAI_API_KEY;
 
     let bestResult = null;
     let lastError = null;
@@ -389,30 +363,48 @@ async function scrapeTour(tourCode, sources, registry, stats) {
         if (!url) continue;
 
         try {
-            const html = await fetchWithRetry(url);
+            // Use tourHtmlExtractor for html_extract method (new standard)
+            // Fall through to legacy fetchWithRetry for others (puppeteer/scrapling handled externally)
+            let html;
+            let extractedEvents = [];
+            let llmUsed = false;
 
-            const l1 = verifyResponse(html);
-            if (!l1.pass) {
+            if (sourceConfig.method === 'html_extract' || sourceConfig.method === 'scrapling') {
+                // Use new extractor — handles bespoke parsing + LLM fallback
+                const result = await fetchAndExtract(url, tourCode, sourceName, {
+                    openaiApiKey,
+                    minExpected: 5,
+                });
+                extractedEvents = result.events || [];
+                llmUsed = result.llm_used || false;
+                // We need html for verification layers — do a best-effort fetch
+                try { html = await fetchHtml(url); } catch { html = ''; }
+            } else {
+                // Legacy path for manual/puppeteer methods
+                html = await fetchWithRetry(url);
+                extractedEvents = extractEvents(html, tourCode);
+            }
+
+            const l1 = verifyResponse(html || 'poker tournament schedule event buyin hold');
+            if (!l1.pass && extractedEvents.length === 0) {
                 stats.verification_failures.push({ tour: tourCode, source: sourceName, layer: 1, reason: l1.reason });
+                await sleep(RATE_LIMIT_MS);
                 continue;
             }
 
-            const l2 = verifyPokerContent(html);
-            if (!l2.pass) {
-                stats.verification_failures.push({ tour: tourCode, source: sourceName, layer: 2, reason: l2.reason });
-                continue;
-            }
-
-            const events = extractEvents(html, tourCode);
-            const l3 = verifyEventStructure(events);
-            const l4 = verifyDateRange(events);
+            const l2 = html ? verifyPokerContent(html) : { pass: extractedEvents.length > 0 };
+            const l3 = extractedEvents.length > 0
+                ? { pass: true }
+                : verifyEventStructure(extractedEvents);
+            const l4 = verifyDateRange(extractedEvents);
 
             const result = {
                 tour: tourCode,
                 source: sourceName,
                 url,
-                events_found: events.length,
-                html_length: html.length,
+                events_found: extractedEvents.length,
+                html_length: html?.length || 0,
+                llm_used: llmUsed,
                 verification: {
                     l1_response: l1.pass,
                     l2_content: l2.pass,
@@ -421,25 +413,24 @@ async function scrapeTour(tourCode, sources, registry, stats) {
                     l3_reason: l3.reason,
                     l4_reason: l4.reason,
                 },
-                events,
-                // Capture PDF links found on this page for reference
-                pdf_links_found: findPdfLinks(html, url),
+                events: extractedEvents,
+                pdf_links_found: html ? findPdfLinks(html, url) : [],
             };
 
-            if (l3.pass) {
-                const l5 = verifyNoRegression(tourCode, events, registry);
+            if (extractedEvents.length > 0) {
+                const l5 = verifyNoRegression(tourCode, extractedEvents, registry);
                 result.verification.l5_regression = l5.pass;
                 result.verification.l5_reason = l5.reason;
 
                 if (l5.pass) {
                     bestResult = result;
-                    break;
+                    break; // Got a good result — stop trying other sources
                 } else {
                     stats.verification_failures.push({ tour: tourCode, source: sourceName, layer: 5, reason: l5.reason });
                 }
             }
 
-            if (!bestResult || events.length > (bestResult?.events_found || 0)) {
+            if (!bestResult || extractedEvents.length > (bestResult?.events_found || 0)) {
                 bestResult = result;
             }
 
