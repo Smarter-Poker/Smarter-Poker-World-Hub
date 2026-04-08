@@ -272,12 +272,15 @@ function adjustPLO5PostflopStrength(madeHand, drawInfo, street, holeCards, board
     }
 
     // ── NON-NUT FLUSH DEVALUATION ──
-    if (category === 'flush') {
-        // Check if we have the nut flush (Ace-high)
-        const hasAceFlush = holeCards && holeCards.some(c => c[0] === 'A');
-        if (!hasAceFlush) {
-            strength = Math.round(strength * 0.75); // 25% devaluation for non-nut
+    if (category === 'flush' || category === 'nut_flush') {
+        if (category !== 'nut_flush') {
+            // Check if we have the nut flush (Ace-high)
+            const hasAceFlush = holeCards && holeCards.some(c => c[0] === 'A');
+            if (!hasAceFlush) {
+                strength = Math.round(strength * 0.75); // 25% devaluation for non-nut
+            }
         }
+        // Nut flush keeps full strength
     }
 
     // ── SET WITHOUT REDRAW DEVALUATION ──
@@ -528,14 +531,19 @@ function evaluatePLO5NutDistance(holeCards, boardCards) {
         if (strength >= 85) { isNutHand = true; nutDistance = 0; commitWorthy = true; }
         else if (strength >= 72) { nutDistance = 1; commitWorthy = true; }
         else { nutDistance = 2; commitWorthy = false; }
-    } else if (category === 'flush') {
-        const flushInfo = evaluatePLO5FlushHierarchy(holeCards, boardCards);
-        if (flushInfo.flushRank === 'nut') { nutDistance = 0; isNutHand = true; commitWorthy = true; }
-        else if (flushInfo.flushRank === 'king-high') { nutDistance = 1; commitWorthy = false; }
-        else { nutDistance = 2; commitWorthy = false; }
-    } else if (category === 'straight') {
-        if (strength >= 85) {
-            nutDistance = 1;
+    } else if (category === 'flush' || category === 'nut_flush') {
+        if (category === 'nut_flush') {
+            nutDistance = 0; isNutHand = true; commitWorthy = true;
+        } else {
+            const flushInfo = evaluatePLO5FlushHierarchy(holeCards, boardCards);
+            if (flushInfo.flushRank === 'nut') { nutDistance = 0; isNutHand = true; commitWorthy = true; }
+            else if (flushInfo.flushRank === 'king-high') { nutDistance = 1; commitWorthy = false; }
+            else { nutDistance = 2; commitWorthy = false; }
+        }
+    } else if (category === 'straight' || category === 'nut_straight') {
+        if (category === 'nut_straight' || strength >= 85) {
+            nutDistance = category === 'nut_straight' ? 0 : 1;
+            isNutHand = category === 'nut_straight';
             // Nut straight commits on dry boards only
             const boardSuits = {};
             boardCards.forEach(c => {

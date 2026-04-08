@@ -1272,12 +1272,18 @@ function getBestPLO5or6PreflopStrength(holeCards) {
 
 /** PLO5/PLO6 postflop: try all C(n,2) hole combos, return best made hand */
 function getBestPLO5or6MadeHand(holeCards, boardCards) {
-    if (holeCards.length <= 4) return evaluatePLOMadeHand(holeCards, boardCards);
+    // Ensure cards are {rank, suit} objects for evaluatePLOMadeHand
+    const _toObj = (c) => (typeof c === 'string') ? parseCards([c])[0] : c;
+    const hObjs = (holeCards || []).map(_toObj);
+    const bObjs = (boardCards || []).map(_toObj);
+
+    if (hObjs.length <= 4) return evaluatePLOMadeHand(hObjs, bObjs);
     let bestHand = { strength: 0, category: 'air', isNut: false, hasRedraw: false };
-    for (let i = 0; i < holeCards.length - 1; i++)
-        for (let j = i + 1; j < holeCards.length; j++) {
-            const r = evaluatePLOMadeHand([holeCards[i], holeCards[j]], boardCards);
-            if (r.strength > bestHand.strength) bestHand = r;
+    for (let i = 0; i < hObjs.length - 1; i++)
+        for (let j = i + 1; j < hObjs.length; j++) {
+            const r = evaluatePLOMadeHand([hObjs[i], hObjs[j]], bObjs);
+            const rStr = (r.strength === null || r.strength === undefined || isNaN(r.strength)) ? 0 : r.strength;
+            if (rStr > bestHand.strength) bestHand = { ...r, strength: rStr };
         }
     return bestHand;
 }

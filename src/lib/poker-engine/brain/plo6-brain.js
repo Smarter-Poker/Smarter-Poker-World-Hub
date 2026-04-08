@@ -413,25 +413,32 @@ function evaluatePLO6NutDistance(holeCards, boardCards) {
         }
     }
     // ---- FLUSH ----
-    else if (category === 'flush') {
-        const flushInfo = evaluatePLO6FlushHierarchy(holeCards, boardCards);
-        if (flushInfo.flushRank === 'nut') {
+    else if (category === 'flush' || category === 'nut_flush') {
+        if (category === 'nut_flush') {
             nutDistance = 0;
             isNutHand = true;
             commitWorthy = true;
-        } else if (flushInfo.flushRank === 'king-high') {
-            nutDistance = 1;
-            commitWorthy = false; // King-high flush = ONE street of calling max
         } else {
-            nutDistance = 2;
-            commitWorthy = false; // Queen-high and below = fold to aggression
+            const flushInfo = evaluatePLO6FlushHierarchy(holeCards, boardCards);
+            if (flushInfo.flushRank === 'nut') {
+                nutDistance = 0;
+                isNutHand = true;
+                commitWorthy = true;
+            } else if (flushInfo.flushRank === 'king-high') {
+                nutDistance = 1;
+                commitWorthy = false; // King-high flush = ONE street of calling max
+            } else {
+                nutDistance = 2;
+                commitWorthy = false; // Queen-high and below = fold to aggression
+            }
         }
     }
     // ---- STRAIGHT ----
-    else if (category === 'straight') {
-        if (strength >= 85) {
+    else if (category === 'straight' || category === 'nut_straight') {
+        if (category === 'nut_straight' || strength >= 85) {
             // Nut straight
-            nutDistance = 1; // Even nut straight = only near-nut in PLO6 (flushes everywhere)
+            nutDistance = category === 'nut_straight' ? 0 : 1; // Even nut straight = only near-nut in PLO6 (flushes everywhere)
+            isNutHand = category === 'nut_straight';
             commitWorthy = boardCards && !_boardHasFlushDraw(boardCards);
         } else {
             // Non-nut straight = very dangerous in PLO6
@@ -681,21 +688,25 @@ function adjustPLO6PostflopStrength(madeHand, drawInfo, street, holeCards, board
     }
 
     // ---- FLUSH HIERARCHY ----
-    if (category === 'flush') {
-        const flushInfo = evaluatePLO6FlushHierarchy(holeCards, boardCards);
-        if (flushInfo.flushRank === 'nut') {
-            strength = Math.max(strength, 90); // Ensure nut flush stays strong
-        } else if (flushInfo.flushRank === 'king-high') {
-            strength = Math.round(strength * 0.60); // 40% devaluation -- marginal
-        } else if (flushInfo.flushRank === 'queen-high') {
-            strength = Math.round(strength * 0.35); // 65% devaluation -- fold-worthy
+    if (category === 'flush' || category === 'nut_flush') {
+        if (category === 'nut_flush') {
+            strength = Math.max(strength, 90); // Nut flush stays strong
         } else {
-            strength = Math.round(strength * 0.20); // Below queen = pure trash
+            const flushInfo = evaluatePLO6FlushHierarchy(holeCards, boardCards);
+            if (flushInfo.flushRank === 'nut') {
+                strength = Math.max(strength, 90);
+            } else if (flushInfo.flushRank === 'king-high') {
+                strength = Math.round(strength * 0.60); // 40% devaluation -- marginal
+            } else if (flushInfo.flushRank === 'queen-high') {
+                strength = Math.round(strength * 0.35); // 65% devaluation -- fold-worthy
+            } else {
+                strength = Math.round(strength * 0.20); // Below queen = pure trash
+            }
         }
     }
 
     // ---- NON-NUT STRAIGHT DEVALUATION ----
-    if (category === 'straight') {
+    if (category === 'straight' || category === 'nut_straight') {
         // In PLO6, only nut straights have value on non-flush boards
         if (strength < 85) {
             strength = Math.round(strength * 0.55); // Non-nut straight = dangerous
@@ -1566,9 +1577,9 @@ function detectPLO6Freeroll(holeCards, boardCards, street) {
 
     // We have nuts + draw = FREEROLL
     let freerollType = 'nut-hand-with-redraw';
-    if (nutInfo.category === 'flush' && drawInfo.nutStraightDraw) {
+    if ((nutInfo.category === 'flush' || nutInfo.category === 'nut_flush') && drawInfo.nutStraightDraw) {
         freerollType = 'nut-flush-with-straight-draw';
-    } else if (nutInfo.category === 'straight' && drawInfo.nutFlushDraw) {
+    } else if ((nutInfo.category === 'straight' || nutInfo.category === 'nut_straight') && drawInfo.nutFlushDraw) {
         freerollType = 'nut-straight-with-flush-draw';
     } else if (nutInfo.category === 'full_house') {
         freerollType = 'full-house-with-quads-draw';
