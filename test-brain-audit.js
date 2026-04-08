@@ -20193,9 +20193,9 @@ test('PLO8 #209: freeroll bets vs pot-control checks via fallback', () => {
     let freerollBets = 0;
     let potControls = 0;
     for (let i = 0; i < 10; i++) {
-        // Freeroll: nut low + nut flush draw → should bet/raise
+        // Freeroll: nut low + nut flush draw (exactly 2 hearts in hand) → should bet/raise
         const d1 = brain.makePLOFallbackDecision('fr-' + i, {
-            holeCards: ['Ah', '2h', '8h', 'Kd'], board: ['3h', '5h', '7d'],
+            holeCards: ['Ah', '2h', '8d', 'Kd'], board: ['3h', '5h', '7d'],
             street: 'flop', position: 'BTN', stackBB: 100, potSize: 40,
             toCall: 0, bb: 2, numPlayers: 2, isHiLo: true, gameType: 'cash'
         }, [{ type: 'check' }, { type: 'bet', minAmount: 10, maxAmount: 40 }]);
