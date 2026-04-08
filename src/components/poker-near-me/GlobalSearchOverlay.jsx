@@ -378,12 +378,12 @@ export default function GlobalSearchOverlay({
       if (e.key === 'pnm_recent_searches') syncRecents();
       if (e.key === 'sp-user-gps') syncGPS();
     });
-    window.addEventListener('pnm_recent_recents_updated', syncRecents);
+    window.addEventListener('pnm_recent_searches_updated', syncRecents);
     window.addEventListener('sp_user_gps_updated', syncGPS);
     
     return () => {
       window.removeEventListener('storage', syncRecents);
-      window.removeEventListener('pnm_recent_recents_updated', syncRecents);
+      window.removeEventListener('pnm_recent_searches_updated', syncRecents);
       window.removeEventListener('sp_user_gps_updated', syncGPS);
     };
   }, []);
@@ -574,7 +574,7 @@ export default function GlobalSearchOverlay({
       const next = [normalized, ...prev.filter(q => q !== normalized)].slice(0, 5);
       try { 
         localStorage.setItem('pnm_recent_searches', JSON.stringify(next)); 
-        window.dispatchEvent(new Event('pnm_recent_recents_updated'));
+        window.dispatchEvent(new Event('pnm_recent_searches_updated'));
       } catch { /* ignore */ }
       return next;
     });

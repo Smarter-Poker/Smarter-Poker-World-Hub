@@ -309,18 +309,41 @@ def process_series(sm, series) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--batch-size", type=int, default=10, help="Number of series to process")
+    parser.add_argument("--batch-size", type=int, default=180, help="Number of series to process")
+    parser.add_argument("--continuous", action="store_true", help="Run indefinitely with auto-restart")
     args = parser.parse_args()
 
-    sm = SuperScraperManager()
-    
-    log(f"Fetching {args.batch_size} unscraped series...")
-    series_list = db_query(f"poker_series?select=*&events_scraped=eq.false&limit={args.batch_size}")
-    
-    if not series_list:
-        log("No pending series found.")
-    else:
-        for s in series_list:
-            process_series(sm, s)
-            time.sleep(3) # Anti-block throttle for Search Engines
-        log(f"Batch sweep completed for {len(series_list)} series.")
+    log("Initializing Super Scraper Daemon with Auto-Restart & Retry Logic", "INFO")
+
+    while True:
+        try:
+            sm = SuperScraperManager()
+            
+            while True:
+                log(f"Fetching {args.batch_size} unscraped series...")
+                series_list = db_query(f"poker_series?select=*&events_scraped=eq.false&limit={args.batch_size}")
+                
+                if not series_list:
+                    log("No pending unscraped series found.")
+                    if args.continuous:
+                        log("Sleeping for 60 minutes before next validation pass...", "INFO")
+                        time.sleep(3600)
+                        continue
+                    else:
+                        break
+                
+                for s in series_list:
+                    process_series(sm, s)
+                    time.sleep(4) # Anti-block throttle for Search Engines
+                    
+                log(f"Batch sweep completed for {len(series_list)} series.")
+                
+                if not args.continuous:
+                    break
+
+            # If inner loop finished normally (not continuous), exit entirely.
+            break
+
+        except Exception as e:
+            log(f"DAEMON CRASH DETECTED: {e}. Auto-restarting in 15 seconds to maintain uptime...", "ERROR")
+            time.sleep(15)
