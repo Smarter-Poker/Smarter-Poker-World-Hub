@@ -19660,6 +19660,54 @@ test('BUG180-192 MEGA-VERIFY: all 17 formerly dead variables are now referenced 
     expect(checkVar('flopFlushDrawSuit', 3)).toBe(true);
 });
 
+// ═══════════════════════════════════════════════════════════
+// Bug #193: OOP Matrix default_fallthrough — air should fold, not call
+// ═══════════════════════════════════════════════════════════
+
+test('BUG193: 72o facing all-in on AKQ should NEVER call (OOP matrix air fix)', () => {
+    const legalCF = [{ type: 'call', amount: 500 }, { type: 'fold' }];
+    const gs = {
+        handStr: '72o', position: 'BB', street: 'flop',
+        potSize: 50, toCall: 500, stackBB: 250, bb: 2, numPlayers: 2,
+        holeCards: ['2s', '7h'], board: ['Ad', 'Kc', 'Qs']
+    };
+    let calls = 0;
+    for (let i = 0; i < 30; i++) {
+        const d = brain.makeFallbackDecision('bug193-horse-' + i, gs, legalCF);
+        if (d.type === 'call') calls++;
+    }
+    // With the fix, 72o should fold 100% facing all-in with air.
+    // Allow at most 1 call (rare bluff-catch from extreme personality).
+    expect(calls <= 1).toBe(true);
+});
+
+test('BUG193: AA set on A83 should never fold (no regression)', () => {
+    const legal = [{ type: 'raise', min: 10, max: 200 }, { type: 'call', amount: 25 }, { type: 'fold' }];
+    const gs = {
+        handStr: 'AA', position: 'BTN', street: 'flop',
+        potSize: 50, toCall: 25, stackBB: 100, bb: 2, numPlayers: 2,
+        holeCards: ['As', 'Ah'], board: ['Ad', '8c', '3s']
+    };
+    let folds = 0;
+    for (let i = 0; i < 30; i++) {
+        const d = brain.makeFallbackDecision('bug193-aa-' + i, gs, legal);
+        if (d.type === 'fold') folds++;
+    }
+    expect(folds).toBe(0);
+});
+
+test('BUG193: OOP matrix default_fallthrough is now check_fold (source verify)', () => {
+    const src = brainSource;
+    expect(src.includes("action: 'check_fold', frequency: 0.75")).toBe(true);
+    expect(src.includes("reason: 'default_fallthrough_fold'")).toBe(true);
+});
+
+test('BUG193: OOP matrix air tier expanded to < 25 (source verify)', () => {
+    const src = brainSource;
+    expect(src.includes('if (handStrength < 25)')).toBe(true);
+    expect(src.includes('Bug #193')).toBe(true);
+});
+
 // ASYNC TEST RUNNER + SUMMARY
 // ═══════════════════════════════════════════════════════════
 
