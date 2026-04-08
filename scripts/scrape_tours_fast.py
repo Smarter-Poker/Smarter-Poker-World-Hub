@@ -6,7 +6,7 @@ Uses Scrapling's StealthySession to render JS from official tour sites and
 PokerAtlas, solving 403s and 404s natively. Then pipes the rendered DOM into
 OpenAI for high-fidelity extraction.
 """
-import json, re, sys, os, time, signal, uuid, hashlib, urllib.request
+import json, re, sys, os, time, signal, uuid, hashlib, urllib.request, urllib.parse
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -18,14 +18,41 @@ SOURCES_FILE = ROOT / 'data' / 'tour-scrape-sources.json'
 OPENAI_API_KEY = ''
 SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co'
 SERVICE_KEY = ''
+TWILIO_ACCOUNT_SID = ''
+TWILIO_AUTH_TOKEN = ''
+TWILIO_PHONE_FROM = ''
 
 for line in CRED_PATH.read_text().splitlines():
     if '=' in line and not line.strip().startswith('#'):
         k, _, v = line.partition('=')
-        if k.strip() == 'OPENAI_API_KEY': OPENAI_API_KEY = v.strip().strip('"\'')
-        if k.strip() == 'SUPABASE_SERVICE_ROLE_KEY': SERVICE_KEY = v.strip().strip('"\'')
+        v_clean = v.strip().strip('"\'')
+        if k.strip() == 'OPENAI_API_KEY': OPENAI_API_KEY = v_clean
+        if k.strip() == 'SUPABASE_SERVICE_ROLE_KEY': SERVICE_KEY = v_clean
+        if k.strip() == 'TWILIO_ACCOUNT_SID': TWILIO_ACCOUNT_SID = v_clean
+        if k.strip() == 'TWILIO_AUTH_TOKEN': TWILIO_AUTH_TOKEN = v_clean
+        if k.strip() == 'TWILIO_PHONE_NUMBER': TWILIO_PHONE_FROM = v_clean
 
 BATCH_ID = str(uuid.uuid4())
+
+def send_sms_alert(msg):
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN: return
+    import base64
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json"
+    data = urllib.parse.urlencode({
+        "To": "+17086775221",
+        "From": TWILIO_PHONE_FROM,
+        "Body": f"[Smarter.Poker FATAL] {msg}"
+    }).encode('utf-8')
+    auth = base64.b64encode(f"{TWILIO_ACCOUNT_SID}:{TWILIO_AUTH_TOKEN}".encode()).decode()
+    req = urllib.request.Request(url, data=data, method="POST", headers={
+        "Authorization": f"Basic {auth}",
+        "Content-Type": "application/x-www-form-urlencoded"
+    })
+    try:
+        urllib.request.urlopen(req, timeout=10)
+        print("    📱 SMS Alert sent successfully.")
+    except Exception as e:
+        print(f"    ❌ Failed to send SMS: {e}")
 
 def rest_post(data):
     url = SUPABASE_URL + '/rest/v1/tour_event_details'
@@ -199,6 +226,10 @@ def main():
     print(f"{'═'*55}")
     for t, c in results.items():
         print(f"✅ {t}: {c} events")
+
+    if len(results) < 3:
+        print("\n☢️ CRITICAL FAILURE EXCEPTION TRIGGERED ☢️")
+        send_sms_alert(f"Offline Scraper Daemon failed. Only {len(results)} tours completed. Action required immediately on python execution box.")
 
 if __name__ == '__main__':
     main()
