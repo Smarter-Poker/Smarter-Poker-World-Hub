@@ -2747,18 +2747,7 @@ export default function PokerNearMePage() {
                                     <option value="$5/10+">$5/10+</option>
                                 </select>
                             </div>
-                            <button
-                                className="pnm-apply-btn"
-                                onClick={() => {
-                                    setHasSearched(true);
-                                    setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
-                                    fetchVenues();
-                                }}
-                            >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                                Apply Filters
-                            </button>
-                            {/* Live Games button — right of Apply Filters */}
+                            {/* Live Games button */}
                             <button
                                 className={'pnm-top-tab live pnm-live-games-inline' + (activeTab === 'live' ? ' active' : '')}
                                 onClick={() => setActiveTab(activeTab === 'live' ? 'map' : 'live')}

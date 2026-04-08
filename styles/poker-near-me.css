@@ -321,34 +321,12 @@
     border-color: rgba(255,255,255,0.35);
     outline: none;
 }
-/* Location area and apply btn align with the bottom of filter groups */
+/* Location area and live games button align with the bottom of filter groups */
 .pnm-location-area,
-.pnm-apply-btn,
 .pnm-live-games-inline {
     align-self: flex-end;
 }
-.pnm-apply-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 18px;
-    background: linear-gradient(135deg, #475569, #1e293b);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    font-family: inherit;
-}
-.pnm-apply-btn:hover {
-    background: linear-gradient(135deg, #64748b, #334155);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-}
+
 
 /* Live Games inline button in filter bar */
 .pnm-live-games-inline {

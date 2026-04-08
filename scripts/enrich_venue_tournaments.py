@@ -784,11 +784,12 @@ def scrape_venue(venue_id: str, dry: bool = False):
 def _parse_money(s: str) -> int | None:
     if not s:
         return None
-    m = re.search(r"[\d,]+", str(s).replace(",", ""))
+    m = re.search(r'[\d,]+', str(s).replace(',', ''))
     if m:
         try:
-            v = int(m.group().replace(",", ""))
-            return v if 10 <= v <= 1000000 else None
+            v = int(m.group().replace(',', ''))
+            # Realistic venue daily buy-in range: $25 to $25,000
+            return v if 25 <= v <= 25000 else None
         except:
             pass
     return None
@@ -817,12 +818,15 @@ DAY_ABBR = {
 def _normalize_time(s: str) -> str | None:
     if not s:
         return None
-    m = re.search(r"(\d{1,2})(?::(\d{2}))?\s*([AP]M?)", str(s), re.IGNORECASE)
+    # Handle compact forms: "7pm", "7:30pm", "7PM", "7:00 PM"
+    m = re.search(r'(\d{1,2})(?::(\d{2}))?\s*([AP])M?', str(s), re.IGNORECASE)
     if m:
-        h, mins, ampm = m.group(1), m.group(2) or "00", m.group(3).upper()
-        if not ampm.endswith("M"):
-            ampm += "M"
-        return f"{h}:{mins} {ampm}"
+        hour = int(m.group(1))
+        mins = m.group(2) or "00"
+        meridian = m.group(3).upper() + "M"
+        # Sanity check
+        if 1 <= hour <= 12:
+            return f"{hour}:{mins} {meridian}"
     return None
 
 def _extract_tourney_name_from_ctx(ctx: str, buy_in: int, venue_name: str) -> str:

@@ -161,25 +161,20 @@ export default function LobbyOverlay({
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input
-              ref={searchRef}
-              type="text"
+            {/* Fake search input — div instead of input eliminates ALL browser autocomplete/autofill popups */}
+            <div
+              role="button"
+              tabIndex={0}
               className="lobby-search-input"
-              placeholder="Search City, Venue, Tour, Series..."
-              value={searchQuery}
-              readOnly
-              onChange={(e) => onSearchChange?.(e.target.value)}
-              onFocus={(e) => {
-                e.preventDefault();
-                e.target.blur();
-                // Immediately open the full-screen global search overlay
-                onSearchBarClick?.();
-              }}
               onClick={() => onSearchBarClick?.()}
-              autoComplete="off"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSearchBarClick?.(); }}
               aria-label="Search for poker venues, tours, and series"
-              style={{ cursor: 'text' }}
-            />
+              style={{ cursor: 'text', userSelect: 'none', display: 'flex', alignItems: 'center' }}
+            >
+              <span style={{ color: searchQuery ? 'inherit' : 'rgba(200,214,229,0.35)', fontWeight: searchQuery ? 500 : 400 }}>
+                {searchQuery || 'Search City, Venue, Tour, Series...'}
+              </span>
+            </div>
 
             {/* Voice Search Button */}
             {onVoiceClick && (
