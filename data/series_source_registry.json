@@ -238,5 +238,101 @@
     "last_scraped": "2026-04-08T23:04:44.410441+00:00",
     "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
     "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_tch-dallas-poker-series_2026": {
+    "series_uid": "venue_tch-dallas-poker-series_2026",
+    "series_name": "TCH Dallas Poker Series",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/wsop-circuit-austin-26-tch-social-austin-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/wsop-circuit-austin-26-tch-social-austin-2026",
+    "last_success": true,
+    "event_count": 124,
+    "last_scraped": "2026-04-08T23:05:35.775897+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_tch-houston-space-city-stacks_2026": {
+    "series_uid": "venue_tch-houston-space-city-stacks_2026",
+    "series_name": "TCH Houston Space City Stacks",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:06:13.870270+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_texas-card-house-tournament-series_2026": {
+    "series_uid": "venue_texas-card-house-tournament-series_2026",
+    "series_name": "Texas Card House Tournament Series",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/spring-classic-26-texas-card-house-spring-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/spring-classic-26-texas-card-house-spring-2026",
+    "last_success": true,
+    "event_count": 69,
+    "last_scraped": "2026-04-08T23:06:43.821524+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_texas-poker-champions_2026": {
+    "series_uid": "venue_texas-poker-champions_2026",
+    "series_name": "Texas Poker Champions",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/spring-classic-26-texas-card-house-spring-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/spring-classic-26-texas-card-house-spring-2026",
+    "last_success": true,
+    "event_count": 69,
+    "last_scraped": "2026-04-08T23:07:10.813751+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_texas-poker-open-pgt-high-rollers_2026": {
+    "series_uid": "venue_texas-poker-open-pgt-high-rollers_2026",
+    "series_name": "Texas Poker Open & PGT High Rollers",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:07:46.272466+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_potawatomi-poker-series_2026": {
+    "series_uid": "venue_potawatomi-poker-series_2026",
+    "series_name": "Potawatomi Poker Series",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:08:02.964985+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_prairie-meadows-poker-series_2026": {
+    "series_uid": "venue_prairie-meadows-poker-series_2026",
+    "series_name": "Prairie Meadows Poker Series",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:08:27.179957+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_prime-social-poker-series_2026": {
+    "series_uid": "venue_prime-social-poker-series_2026",
+    "series_name": "Prime Social Poker Series",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/wsop-circuit-austin-26-tch-social-austin-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/wsop-circuit-austin-26-tch-social-austin-2026",
+    "last_success": true,
+    "event_count": 124,
+    "last_scraped": "2026-04-08T23:08:50.504223+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
   }
 }
