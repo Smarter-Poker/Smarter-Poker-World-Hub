@@ -310,11 +310,14 @@ export default function PokerNearMePage() {
     const fetchToursSeqRef = useRef(0);
     const fetchSeriesSeqRef = useRef(0);
     const fetchDailySeqRef = useRef(0);
+    // [BUG FIX] fetchVenuesRef avoids temporal dead zone: fetchVenues is declared later
+    // as a const, so useVenueRealtime cannot reference it directly at mount time.
+    const fetchVenuesRef = useRef(null);
 
     // [HARDENING] Bind venue component to Supabase postgres_changes for global updates
     useVenueRealtime(() => {
-        if (typeof fetchVenues === 'function') {
-            fetchVenues({ silent: true });
+        if (fetchVenuesRef.current) {
+            fetchVenuesRef.current({ silent: true });
         }
     });
 
@@ -1423,8 +1426,8 @@ export default function PokerNearMePage() {
         const handleBusDataMutated = (event) => {
             const { entity } = event.payload || {};
             if (entity === 'live_tables' || entity === 'venues') {
-                // Instantly re-fetch the venue lists to grab the latest live tables/stats
-                if (typeof fetchVenues === 'function') fetchVenues({ silent: true });
+                // Use ref so we always call the current fetchVenues closure (avoids stale reference)
+                if (fetchVenuesRef.current) fetchVenuesRef.current({ silent: true });
                 if (typeof fetchLiveCount === 'function') fetchLiveCount();
             }
         };
@@ -1796,6 +1799,8 @@ export default function PokerNearMePage() {
     };
 
     const fetchVenues = async ({ silent = false, radiusOverride = null, searchOverride = null, globalSearch = false } = {}) => {
+        // Always keep ref current so realtime/bus callbacks see the latest closure
+        fetchVenuesRef.current = fetchVenues; // eslint-disable-line no-use-before-define
         if (!silent) setVenueLoading(true);
         setFetchError(null);
         try {

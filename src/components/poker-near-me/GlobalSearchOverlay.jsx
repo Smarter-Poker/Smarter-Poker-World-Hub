@@ -345,8 +345,10 @@ export default function GlobalSearchOverlay({
   const [detailItem, setDetailItem] = useState(null);
   const [nlIntent, setNlIntent] = useState(null); // parsed natural language intent
   const debounceRef = useRef(null);
+  // [BUG FIX] AbortController ref — cancels stale in-flight venue suggestion fetches
+  const abortControllerRef = useRef(null);
 
-  // Reset & focus when opened
+  // Reset & focus when opened; abort in-flight fetches when closed
   useEffect(() => {
     if (isOpen) {
       setPhase('input');
@@ -355,6 +357,10 @@ export default function GlobalSearchOverlay({
       setCitySuggestions([]);
       setDetailItem(null);
       setTimeout(() => inputRef.current?.focus(), 120);
+    } else {
+      // [BUG FIX] Cancel any pending debounce + in-flight fetch when overlay closes
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (abortControllerRef.current) { abortControllerRef.current.abort(); abortControllerRef.current = null; }
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -425,12 +431,25 @@ export default function GlobalSearchOverlay({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (val.trim().length >= 2) {
       debounceRef.current = setTimeout(async () => {
+        // Cancel any previous in-flight request to prevent stale results
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
         try {
           const url = `/api/poker/venues?limit=5&offset=0&search=${encodeURIComponent(val.trim())}&sort=trust`;
-          const data = await (cachedFetch ? cachedFetch(url) : fetch(url).then(r => r.json()));
+          let data;
+          if (cachedFetch) {
+            data = await cachedFetch(url);
+          } else {
+            const r = await fetch(url, { signal });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            data = await r.json();
+          }
           const venues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
           setVenueResults(venues.slice(0, 5));
-        } catch { /* silently ignore */ }
+        } catch (err) {
+          if (err?.name !== 'AbortError') console.warn('[GlobalSearch] Venue suggestion fetch failed:', err);
+        }
       }, 280);
     }
   }, [onSearchChange, matchTours, matchSeries, cachedFetch]);

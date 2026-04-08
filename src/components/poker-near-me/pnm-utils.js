@@ -122,7 +122,9 @@ export function getOpenStatus(venue) {
     
     const now = new Date();
     const dayOfWeek = now.getDay(); // 0=Sun, 6=Sat
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6;
+    // [BUG FIX] dayOfWeek === 5 is FRIDAY, not a weekend day.
+    // Saturday = 6, Sunday = 0. Friday erroneously used weekend_hours.
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     
     // Pick the right hours string
     let hoursStr = null;

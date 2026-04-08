@@ -401,8 +401,12 @@ export default async function handler(req, res) {
                   if (tournaments === 'true') q = q.eq('has_tournaments', true);
                   if (featured === 'true') q = q.eq('is_featured', true);
                   if (search) {
-                      const searchStateAbbrev = resolveStateAbbrev(search.trim());
-                      const cityStateMatch = search.match(/^([^,]+),\s*(.+)$/);
+                      // [BUG FIX] Sanitize search: strip PostgREST special chars that could
+                      // break out of ilike syntax and inject unintended filter clauses.
+                      // Caps at 200 chars to prevent DoS via oversized inputs.
+                      const sanitizedSearch = search.trim().slice(0, 200).replace(/[()'",.;]/g, '');
+                      const searchStateAbbrev = resolveStateAbbrev(sanitizedSearch);
+                      const cityStateMatch = sanitizedSearch.match(/^([^,]+),\s*(.+)$/);
                       if (cityStateMatch) {
                           const cityPart = cityStateMatch[1].trim();
                           const statePart = cityStateMatch[2].trim();
@@ -413,7 +417,7 @@ export default async function handler(req, res) {
                       } else if (searchStateAbbrev) {
                           q = q.ilike('state', searchStateAbbrev);
                       } else {
-                          q = q.or(`name.ilike.%${search}%,city.ilike.%${search}%,address.ilike.%${search}%,state.ilike.%${search}%`);
+                          q = q.or(`name.ilike.%${sanitizedSearch}%,city.ilike.%${sanitizedSearch}%,address.ilike.%${sanitizedSearch}%,state.ilike.%${sanitizedSearch}%`);
                       }
                   }
 
