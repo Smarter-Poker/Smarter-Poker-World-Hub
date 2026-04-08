@@ -682,5 +682,29 @@
     "last_scraped": "2026-04-08T23:22:25.952499+00:00",
     "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
     "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_cherokee-poker-classic_2026": {
+    "series_uid": "venue_cherokee-poker-classic_2026",
+    "series_name": "Cherokee Poker Classic",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:22:40.056118+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_chickasaw-poker-series_2026": {
+    "series_uid": "venue_chickasaw-poker-series_2026",
+    "series_name": "Chickasaw Poker Series",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:23:04.031090+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
   }
 }
