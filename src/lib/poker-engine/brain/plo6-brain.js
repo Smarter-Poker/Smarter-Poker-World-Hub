@@ -888,6 +888,835 @@ function getPLO6EquityRealization(baseEquity, position, numPlayers) {
 }
 
 // ======================================================================
+// PLO6 DRAW HIERARCHY — THE CORE OF PLO6 STRATEGY
+// ======================================================================
+
+/**
+ * PLO6 is fundamentally a DRAWING GAME. On the flop, almost nobody has a
+ * "made hand" in the traditional sense. With 15 two-card combos per player,
+ * nearly everyone has a piece of the board + a draw to something better.
+ *
+ * The PLO6 draw hierarchy determines who "has the hand" on each street:
+ *
+ *   Tier 1 (MONSTER):  Nut flush draw + nut wrap (20+ outs)
+ *   Tier 2 (STRONG):   Nut flush draw alone, or nut wrap alone (13-19 outs)
+ *   Tier 3 (DECENT):   Non-nut flush draw + straight draw combo (10-12 outs)
+ *   Tier 4 (WEAK):     Single non-nut draw (5-9 outs)
+ *   Tier 5 (TRASH):    No draws, or dominated draws (0-4 outs)
+ *
+ * In PLO6, Tier 1-2 draws ARE the "made hands" pre-river. You play them
+ * with the same aggression you'd use with the nuts. Tier 3 is a call.
+ * Tier 4-5 is a fold unless getting exceptional odds.
+ */
+
+/**
+ * Classify the FULL draw picture for a PLO6 hand.
+ *
+ * Unlike PLO4 where you check "do I have a draw?", PLO6 asks
+ * "WHICH draws do I have, how many, and are they to the nuts?"
+ *
+ * With 6 hole cards creating 15 two-card combos:
+ *   - 4+ flush cards in one suit is COMMON (happens ~35% of the time)
+ *   - Multi-wrap draws (16+ straight outs) are ROUTINE
+ *   - Having ZERO draws is the exception, not the rule
+ *
+ * @param {string[]} holeCards - 6 hole cards
+ * @param {string[]} boardCards - Community cards (3-5)
+ * @param {string} street - 'flop' or 'turn'
+ * @returns {Object} Full draw classification
+ */
+function classifyPLO6Draws(holeCards, boardCards, street) {
+    if (!holeCards || !boardCards || boardCards.length < 3 || street === 'river') {
+        return {
+            drawTier: 5, drawLabel: 'none', totalOuts: 0,
+            nutFlushDraw: false, nutWrapDraw: false, nutStraightDraw: false,
+            hasBackdoorFlush: false, hasBackdoorStraight: false,
+            isComboNutDraw: false, isDominatedDraw: false,
+            freerollDraw: false, protectionNeeded: false,
+            drawCount: 0, nutDrawCount: 0,
+        };
+    }
+
+    const flushInfo = countFlushOuts(holeCards, boardCards);
+    const straightInfo = countStraightOuts(holeCards, boardCards);
+    const wrapInfo = detectPLOWrapDraw(holeCards, boardCards);
+    const backdoorInfo = street === 'flop' ? countBackdoorOuts(holeCards, boardCards) : 0;
+
+    // PLO6 adjustment: 20% more combos hit than PLO4
+    const plo6Multi = 1.20;
+
+    // Flush draw analysis
+    const rawFlushOuts = typeof flushInfo === 'number' ? flushInfo : (flushInfo?.outs || 0);
+    const isNutFlushDraw = flushInfo?.isNutFlushDraw || false;
+    const flushOuts = Math.round(rawFlushOuts * plo6Multi);
+
+    // Straight / wrap draw analysis
+    const rawStraightOuts = typeof straightInfo === 'number' ? straightInfo : (straightInfo?.outs || 0);
+    const wrapOuts = wrapInfo?.isWrap ? Math.round(wrapInfo.outs * plo6Multi) : 0;
+    const straightOuts = Math.max(Math.round(rawStraightOuts * plo6Multi), wrapOuts);
+    const isNutWrap = wrapInfo?.isWrap && wrapInfo.outs >= 16;
+    const isNutStraightDraw = straightOuts >= 10;
+
+    // Total outs (deduplicated)
+    const rawTotal = flushOuts + straightOuts;
+    const totalOuts = Math.min(30, Math.round(deduplicatePLOComboOuts(flushOuts, straightOuts) * plo6Multi));
+
+    // Backdoor potential
+    const hasBackdoorFlush = backdoorInfo >= 3;
+    const hasBackdoorStraight = backdoorInfo >= 2;
+
+    // Count discrete draws
+    let drawCount = 0;
+    let nutDrawCount = 0;
+    if (flushOuts >= 7) { drawCount++; if (isNutFlushDraw) nutDrawCount++; }
+    if (straightOuts >= 6) { drawCount++; if (isNutStraightDraw || isNutWrap) nutDrawCount++; }
+    if (hasBackdoorFlush) drawCount++;
+    if (hasBackdoorStraight) drawCount++;
+
+    // Is this a combo nut draw? (multiple nut draws at once)
+    const isComboNutDraw = nutDrawCount >= 2;
+
+    // Is this a dominated draw? (drawing dead to a better draw)
+    const isDominatedDraw = drawCount >= 1 && nutDrawCount === 0 && totalOuts < 12;
+
+    // Freeroll: made hand + draw to something even better
+    const madeHand = getBestPLO5or6MadeHand(holeCards, boardCards);
+    const madeStrength = madeHand?.strength || 0;
+    const freerollDraw = madeStrength >= 60 && totalOuts >= 8;
+
+    // Protection needed: we have a strong made hand but the board is draw-heavy
+    const protectionNeeded = madeStrength >= 65 && totalOuts < 10 &&
+        (flushOuts >= 7 || straightOuts >= 8); // Board has draws AGAINST us
+
+    // Assign tier
+    let drawTier = 5;
+    let drawLabel = 'none';
+
+    if (isComboNutDraw && totalOuts >= 20) {
+        drawTier = 1;
+        drawLabel = 'monster-combo-nut';
+    } else if ((isNutFlushDraw && totalOuts >= 13) || (isNutWrap && totalOuts >= 16)) {
+        drawTier = 1;
+        drawLabel = isNutFlushDraw ? 'monster-nut-flush' : 'monster-nut-wrap';
+    } else if (isNutFlushDraw || isNutWrap || (nutDrawCount >= 1 && totalOuts >= 13)) {
+        drawTier = 2;
+        drawLabel = 'strong-nut-draw';
+    } else if (drawCount >= 2 && totalOuts >= 10) {
+        drawTier = 3;
+        drawLabel = 'decent-combo';
+    } else if (totalOuts >= 5) {
+        drawTier = 4;
+        drawLabel = isDominatedDraw ? 'weak-dominated' : 'weak';
+    } else if (totalOuts > 0) {
+        drawTier = 5;
+        drawLabel = 'trash-draw';
+    }
+
+    return {
+        drawTier, drawLabel, totalOuts,
+        nutFlushDraw: isNutFlushDraw, nutWrapDraw: isNutWrap, nutStraightDraw: isNutStraightDraw,
+        hasBackdoorFlush, hasBackdoorStraight,
+        isComboNutDraw, isDominatedDraw,
+        freerollDraw, protectionNeeded,
+        drawCount, nutDrawCount,
+    };
+}
+
+// ======================================================================
+// PLO6 MULTI-STREET DRAW PLAN
+// ======================================================================
+
+/**
+ * Plan the multi-street strategy for a PLO6 draw.
+ *
+ * PLO6 is a PLANNING game. On the flop you need to know:
+ *   1. What draws do I have?
+ *   2. Can I build a pot now and ship the turn if I hit?
+ *   3. Should I check-call to see a cheap turn?
+ *   4. Am I drawing dead to a better draw?
+ *
+ * The plan dictates aggression on EACH remaining street.
+ *
+ * @param {Object} drawClassification - From classifyPLO6Draws
+ * @param {number} madeStrength - Current made hand strength (0-100)
+ * @param {string} street - 'flop' or 'turn'
+ * @param {boolean} isIP - In position?
+ * @param {number} potSize - Current pot
+ * @param {number} stackBB - Effective stack in BBs
+ * @param {number} numPlayers - Active players
+ * @returns {Object} Multi-street plan
+ */
+function getPLO6MultiStreetDrawPlan(drawClassification, madeStrength, street, isIP, potSize, stackBB, numPlayers) {
+    const d = drawClassification;
+    const multiway = numPlayers > 2;
+
+    // Default: passive check/fold
+    let plan = {
+        flopAction: 'check-fold',
+        turnAction: 'check-fold',
+        riverAction: 'check-fold',
+        aggression: 'passive',
+        commitPlan: 'never',
+        reasoning: 'no viable draws',
+    };
+
+    if (!d || d.drawTier >= 5) return plan;
+
+    // ---- TIER 1: MONSTER DRAW — Play like the nuts ----
+    if (d.drawTier === 1) {
+        plan.aggression = 'maximum';
+        plan.commitPlan = 'stack-off-now';
+        plan.reasoning = d.drawLabel;
+
+        if (street === 'flop') {
+            plan.flopAction = multiway ? 'bet-large' : 'raise-pot';
+            plan.turnAction = 'ship-if-hit-or-barrel';
+            plan.riverAction = 'value-or-blocker-bluff';
+        } else {
+            // Turn with monster draw: get it in
+            plan.turnAction = 'raise-pot';
+            plan.riverAction = 'value-if-hit';
+        }
+
+        // With monster draws, we want to BUILD the pot even multiway
+        // because our equity is often 55%+ against the field
+        return plan;
+    }
+
+    // ---- TIER 2: STRONG NUT DRAW — Semi-bluff aggressively ----
+    if (d.drawTier === 2) {
+        plan.aggression = 'aggressive';
+        plan.commitPlan = 'commit-if-good-spr';
+        plan.reasoning = d.drawLabel;
+
+        if (street === 'flop') {
+            if (isIP) {
+                plan.flopAction = multiway ? 'call-or-small-bet' : 'bet-60pct';
+                plan.turnAction = 'barrel-if-good-card';
+                plan.riverAction = 'value-or-give-up';
+            } else {
+                // OOP with strong nut draw: check-raise is powerful
+                plan.flopAction = multiway ? 'check-call' : 'check-raise';
+                plan.turnAction = 'bet-if-hit-check-if-miss';
+                plan.riverAction = 'value-or-give-up';
+            }
+        } else {
+            // Turn: semi-bluff or check-raise
+            plan.turnAction = isIP ? 'bet-60pct' : 'check-raise-or-call';
+            plan.riverAction = 'value-if-hit';
+        }
+        return plan;
+    }
+
+    // ---- TIER 3: DECENT COMBO — Pot control, see cheap cards ----
+    if (d.drawTier === 3) {
+        plan.aggression = 'moderate';
+        plan.commitPlan = 'only-if-hit';
+        plan.reasoning = d.drawLabel;
+
+        if (street === 'flop') {
+            plan.flopAction = isIP ? 'call-or-check' : 'check-call';
+            plan.turnAction = 'evaluate-improvement';
+            plan.riverAction = 'value-if-hit-else-fold';
+        } else {
+            plan.turnAction = 'call-if-priced-in';
+            plan.riverAction = 'value-if-hit-else-fold';
+        }
+        return plan;
+    }
+
+    // ---- TIER 4: WEAK — Only continue with great pot odds ----
+    if (d.drawTier === 4) {
+        plan.aggression = 'passive';
+        plan.commitPlan = 'never';
+        plan.reasoning = d.isDominatedDraw ? 'dominated-draw-caution' : 'weak-draw';
+
+        if (d.isDominatedDraw) {
+            // Dominated draws: fold even to small bets
+            plan.flopAction = 'check-fold';
+            plan.turnAction = 'fold';
+            plan.reasoning = 'dominated-draw-fold';
+        } else {
+            const potOdds = potSize > 0 ? 1 / (1 + potSize) : 0;
+            if (d.totalOuts >= 7 && potOdds < 0.25) {
+                plan.flopAction = 'check-call-small';
+                plan.turnAction = 'fold-to-bet';
+            } else {
+                plan.flopAction = 'check-fold';
+                plan.turnAction = 'fold';
+            }
+        }
+        return plan;
+    }
+
+    return plan;
+}
+
+// ======================================================================
+// PLO6 PROTECTION BETTING — DENY EQUITY TO INFERIOR DRAWS
+// ======================================================================
+
+/**
+ * Calculate protection bet size for PLO6.
+ *
+ * In PLO6, you often MUST bet with strong made hands to charge draws.
+ * With 6 cards everyone has draws, so checking is disastrous:
+ *   - Free cards in PLO6 are 3x as dangerous as in Hold'em
+ *   - If you have top set, there are 15 combos per opponent drawing
+ *   - You MUST make them pay to see the turn
+ *
+ * Protection sizing principle:
+ *   - Enough to deny correct odds to 12-out draws (the most common draw)
+ *   - Small enough to not overcommit with vulnerable hands
+ *
+ * @param {number} madeStrength - Current made hand strength (0-100)
+ * @param {Object} boardTexture - From analyzePLOBoardTexture
+ * @param {number} numPlayers - Active players
+ * @param {number} potSize - Current pot
+ * @param {string} street - 'flop' or 'turn'
+ * @returns {{ shouldProtect: boolean, protectSize: number, protectReason: string }}
+ */
+function getPLO6ProtectionBet(madeStrength, boardTexture, numPlayers, potSize, street) {
+    // Only protect with hands worth protecting (strength 60-88)
+    // Below 60: not strong enough to protect. Above 88: betting for value, not protection
+    if (madeStrength < 55 || madeStrength > 90) {
+        return { shouldProtect: false, protectSize: 0, protectReason: 'not-protectable' };
+    }
+
+    const wetness = boardTexture?.wetness || 50;
+
+    // On dry boards, less protection needed (fewer draws out there)
+    if (wetness < 30) {
+        // Dry board: small protection or check IP for deception
+        if (madeStrength >= 70) {
+            return {
+                shouldProtect: true,
+                protectSize: Math.round(potSize * 0.35),
+                protectReason: 'dry-board-thin-protection',
+            };
+        }
+        return { shouldProtect: false, protectSize: 0, protectReason: 'dry-board-no-need' };
+    }
+
+    // Wet board protection — this is where PLO6 protection is CRITICAL
+    let sizeFraction = 0.55; // Default: 55% pot
+
+    // Very wet board (3-flush, 3-straight): bet bigger to deny odds
+    if (wetness >= 70) {
+        sizeFraction = 0.70;
+    }
+
+    // Multiway: size UP because more players = more draws = less fold equity
+    if (numPlayers > 2) {
+        sizeFraction += 0.10 * (numPlayers - 2);
+        sizeFraction = Math.min(1.0, sizeFraction);
+    }
+
+    // Turn protection is LARGER than flop (draws get desperate, one card to hit)
+    if (street === 'turn') {
+        sizeFraction += 0.10;
+        sizeFraction = Math.min(1.0, sizeFraction);
+    }
+
+    // Top set+ can bet bigger (more equity to protect)
+    if (madeStrength >= 80) {
+        sizeFraction += 0.05;
+    }
+
+    return {
+        shouldProtect: true,
+        protectSize: Math.round(potSize * sizeFraction),
+        protectReason: wetness >= 70 ? 'wet-board-deny-draws' : 'standard-protection',
+    };
+}
+
+// ======================================================================
+// PLO6 DRAW-VS-DRAW CONFRONTATION
+// ======================================================================
+
+/**
+ * Evaluate a draw-vs-draw confrontation.
+ *
+ * In PLO6, the most common flop/turn confrontation is NOT made-vs-draw.
+ * It's DRAW vs DRAW. When both sides are drawing, the key questions are:
+ *   1. Who has more outs?
+ *   2. Who has the NUT draw? (nut draw dominates non-nut draw)
+ *   3. Are the draws overlapping? (same outs = lower equity for both)
+ *
+ * Decision rules for draw-vs-draw:
+ *   - Nut draw vs non-nut draw: the NUT draw should RAISE (they freeroll)
+ *   - Non-nut draw vs unknown: CALL at best (you're often dominated)
+ *   - Same tier draws: whoever is IP has the advantage (can check back)
+ *
+ * @param {Object} ourDraws - From classifyPLO6Draws
+ * @param {boolean} facingAggression - Is opponent betting/raising?
+ * @param {boolean} isIP - Are we in position?
+ * @param {number} potSize - Current pot
+ * @param {number} toCall - Amount to call
+ * @param {number} numPlayers - Active players
+ * @returns {{ action: string, reasoning: string, confidence: number }}
+ */
+function evaluatePLO6DrawVsDraw(ourDraws, facingAggression, isIP, potSize, toCall, numPlayers) {
+    if (!ourDraws || ourDraws.drawTier >= 5) {
+        return { action: 'fold', reasoning: 'no-draws-vs-aggression', confidence: 0.85 };
+    }
+
+    // Opponent is aggressing = they likely have a strong draw OR made hand
+    // In PLO6, aggression on wet boards usually means draw, not made hand
+
+    // ---- NUT DRAWS: Re-raise to charge inferior draws ----
+    if (ourDraws.drawTier <= 2 && ourDraws.nutDrawCount >= 1) {
+        if (facingAggression) {
+            // We have nut draw, they're betting: RAISE to build pot
+            // We either hit and win, or they fold their inferior draw
+            if (ourDraws.isComboNutDraw) {
+                return { action: 'raise', reasoning: 'combo-nut-draw-vs-aggression', confidence: 0.85 };
+            }
+            return { action: 'raise', reasoning: 'nut-draw-raise-for-equity', confidence: 0.70 };
+        }
+        // Not facing aggression: bet to build pot with our equity advantage
+        return { action: 'bet', reasoning: 'nut-draw-build-pot', confidence: 0.75 };
+    }
+
+    // ---- NON-NUT DRAWS: Proceed with caution ----
+    if (ourDraws.drawTier === 3) {
+        if (facingAggression) {
+            // Decent draw facing a bet: check pot odds
+            const potOdds = toCall / (potSize + toCall);
+            const equity = Math.min(0.85, ourDraws.totalOuts * (numPlayers > 2 ? 3.5 : 4.0) / 100);
+            if (equity >= potOdds + 0.05) {
+                return { action: 'call', reasoning: 'decent-draw-priced-in', confidence: 0.55 };
+            }
+            return { action: 'fold', reasoning: 'decent-draw-not-priced-in', confidence: 0.60 };
+        }
+        // Not facing aggression, IP: check back for free card
+        if (isIP) {
+            return { action: 'check', reasoning: 'decent-draw-free-card-ip', confidence: 0.65 };
+        }
+        return { action: 'check', reasoning: 'decent-draw-check-oop', confidence: 0.65 };
+    }
+
+    // ---- WEAK/DOMINATED DRAWS ----
+    if (ourDraws.isDominatedDraw && facingAggression) {
+        return { action: 'fold', reasoning: 'dominated-draw-fold', confidence: 0.90 };
+    }
+
+    if (ourDraws.drawTier === 4) {
+        if (facingAggression) {
+            // Weak draw facing aggression: fold unless incredible pot odds
+            const potOdds = toCall / (potSize + toCall);
+            if (potOdds < 0.15 && ourDraws.totalOuts >= 7) {
+                return { action: 'call', reasoning: 'weak-draw-amazing-odds', confidence: 0.40 };
+            }
+            return { action: 'fold', reasoning: 'weak-draw-fold-to-aggression', confidence: 0.80 };
+        }
+        if (isIP) {
+            return { action: 'check', reasoning: 'weak-draw-check-ip', confidence: 0.70 };
+        }
+        return { action: 'check', reasoning: 'weak-draw-check-oop', confidence: 0.70 };
+    }
+
+    return { action: 'fold', reasoning: 'default-fold', confidence: 0.75 };
+}
+
+// ======================================================================
+// PLO6 TURN REASSESSMENT — DID OUR DRAW IMPROVE?
+// ======================================================================
+
+/**
+ * Reassess the hand on the turn after a new card arrives.
+ *
+ * Critical PLO6 turn decisions:
+ *   - Draw COMPLETED: Switch to value mode (bet for value, not as semi-bluff)
+ *   - Draw IMPROVED: More outs now, increase aggression
+ *   - Draw BRICKED: Lost outs, likely need to give up
+ *   - Draw COUNTERFEITED: Board paired, flush draw killed, etc.
+ *   - BACKDOOR HIT: Backdoor draw upgraded to front-door draw
+ *
+ * @param {Object} flopDraws - classifyPLO6Draws result from FLOP
+ * @param {Object} turnDraws - classifyPLO6Draws result from TURN
+ * @param {number} flopMadeStrength - Made hand strength on flop
+ * @param {number} turnMadeStrength - Made hand strength on turn
+ * @param {string[]} holeCards - 6 hole cards
+ * @param {string[]} boardCards - 4 board cards (flop + turn)
+ * @returns {Object} Turn reassessment
+ */
+function reassessPLO6Turn(flopDraws, turnDraws, flopMadeStrength, turnMadeStrength, holeCards, boardCards) {
+    const result = {
+        drawCompleted: false,
+        drawImproved: false,
+        drawBricked: false,
+        drawCounterfeited: false,
+        backdoorUpgraded: false,
+        newMadeHand: false,
+        turnStrategy: 'check-fold',
+        strengthDelta: turnMadeStrength - flopMadeStrength,
+    };
+
+    // Draw COMPLETED: made hand significantly improved
+    if (turnMadeStrength >= 75 && flopMadeStrength < 60) {
+        result.drawCompleted = true;
+        result.newMadeHand = true;
+        // Now switch to VALUE mode
+        result.turnStrategy = turnMadeStrength >= 88 ? 'value-bet-large' : 'value-bet-medium';
+        return result;
+    }
+
+    // Draw IMPROVED: gained outs
+    if (turnDraws && flopDraws && turnDraws.totalOuts > flopDraws.totalOuts + 2) {
+        result.drawImproved = true;
+        if (turnDraws.drawTier <= 2) {
+            result.turnStrategy = 'semi-bluff-aggressive';
+        } else {
+            result.turnStrategy = 'check-call-improved';
+        }
+        return result;
+    }
+
+    // Backdoor UPGRADED: went from backdoor to front-door
+    if (flopDraws && turnDraws) {
+        if (flopDraws.hasBackdoorFlush && turnDraws.nutFlushDraw) {
+            result.backdoorUpgraded = true;
+            result.turnStrategy = 'semi-bluff-new-draw';
+            return result;
+        }
+        if (flopDraws.hasBackdoorStraight && turnDraws.nutStraightDraw) {
+            result.backdoorUpgraded = true;
+            result.turnStrategy = 'semi-bluff-new-draw';
+            return result;
+        }
+    }
+
+    // Draw COUNTERFEITED: board paired (kills flush draws) or flush completed on board
+    if (boardCards && boardCards.length >= 4) {
+        const suits = {};
+        boardCards.forEach(c => { suits[c[c.length - 1]] = (suits[c[c.length - 1]] || 0) + 1; });
+        const boardFlush = Object.values(suits).some(v => v >= 4);
+        if (boardFlush && flopDraws && flopDraws.nutFlushDraw && turnMadeStrength < 80) {
+            result.drawCounterfeited = true;
+            result.turnStrategy = 'check-fold-counterfeited';
+            return result;
+        }
+    }
+
+    // Draw BRICKED: lost outs, no improvement
+    if (turnDraws && flopDraws && turnDraws.totalOuts < flopDraws.totalOuts - 3) {
+        result.drawBricked = true;
+        if (turnDraws.drawTier >= 4) {
+            result.turnStrategy = 'give-up';
+        } else {
+            result.turnStrategy = 'check-call-last-chance';
+        }
+        return result;
+    }
+
+    // No significant change: maintain the same line
+    if (turnDraws && turnDraws.drawTier <= 2) {
+        result.turnStrategy = 'continue-semi-bluff';
+    } else if (turnDraws && turnDraws.drawTier === 3) {
+        result.turnStrategy = 'check-call';
+    } else {
+        result.turnStrategy = 'check-fold';
+    }
+
+    return result;
+}
+
+// ======================================================================
+// PLO6 RIVER — UNIMPROVED DRAW HANDLING
+// ======================================================================
+
+/**
+ * Handle river decisions when a draw MISSED.
+ *
+ * This is one of the most critical PLO6 decisions. With 6 cards you had
+ * 20+ outs on the flop, and they ALL missed. Now you have nothing.
+ *
+ * Options:
+ *   1. GIVE UP: Check-fold. Accept the loss. (Default for most spots)
+ *   2. BLOCKER BLUFF: If you block the nuts, bluff with missed draw
+ *   3. THIN VALUE: If your "nothing" is actually showdown value (rare in PLO6)
+ *   4. TURN MISSED DRAW INTO BLUFF: Use dead money in pot as incentive
+ *
+ * @param {string[]} holeCards - 6 hole cards
+ * @param {string[]} boardCards - 5 board cards
+ * @param {Object} drawsOnTurn - classifyPLO6Draws from the TURN
+ * @param {number} madeStrength - Final river made hand strength
+ * @param {boolean} isIP - In position?
+ * @param {number} potSize - Current pot
+ * @param {number} numPlayers - Active players
+ * @returns {Object} River missed-draw strategy
+ */
+function handlePLO6MissedDraw(holeCards, boardCards, drawsOnTurn, madeStrength, isIP, potSize, numPlayers) {
+    const result = {
+        action: 'check-fold',
+        bluffSize: 0,
+        reasoning: 'missed-draw-default-fold',
+        bluffCandidate: false,
+    };
+
+    // NEVER bluff missed draws multiway
+    if (numPlayers > 2) {
+        result.reasoning = 'missed-draw-multiway-fold';
+        return result;
+    }
+
+    // If we have showdown value, check-call
+    if (madeStrength >= 45) {
+        result.action = 'check-call-thin';
+        result.reasoning = 'missed-draw-but-showdown-value';
+        return result;
+    }
+
+    // Check for blocker bluff opportunity
+    if (holeCards && boardCards) {
+        const blockerInfo = getPLO6BlockerValue(holeCards, boardCards);
+        if (blockerInfo.shouldBluff && isIP) {
+            // Turn missed draw into blocker bluff — IP only
+            result.action = 'blocker-bluff';
+            result.bluffSize = Math.round(potSize * 0.75);
+            result.bluffCandidate = true;
+            if (blockerInfo.blocksNutFlush) {
+                result.reasoning = 'missed-draw-nut-flush-blocker-bluff';
+            } else if (blockerInfo.blocksNutStraight) {
+                result.reasoning = 'missed-draw-nut-straight-blocker-bluff';
+            } else {
+                result.reasoning = 'missed-draw-generic-blocker-bluff';
+            }
+            return result;
+        }
+    }
+
+    // Check if the turn draw was so strong that we've invested too much to fold
+    // (sunk cost is WRONG in poker, but pot odds on a river bluff might justify it)
+    if (drawsOnTurn && drawsOnTurn.drawTier <= 2 && isIP) {
+        // We had a monster draw and bricked. Consider a desperation bluff
+        // only if the pot is large and we can tell a credible story
+        if (potSize >= 20) {
+            result.action = 'desperation-bluff';
+            result.bluffSize = Math.round(potSize * 0.65);
+            result.bluffCandidate = true;
+            result.reasoning = 'large-pot-credible-story-bluff';
+            return result;
+        }
+    }
+
+    return result;
+}
+
+// ======================================================================
+// PLO6 FREEROLL DETECTION
+// ======================================================================
+
+/**
+ * Detect freerolling situations in PLO6.
+ *
+ * A freeroll occurs when you have a made hand + a draw to something better.
+ * In PLO6, freerolling is COMMON because of the extra hole cards:
+ *   - Nut flush + straight draw (drawing to straight flush)
+ *   - Top full house + draw to quads
+ *   - Nut straight + flush draw (can't lose, might win more)
+ *
+ * When freerolling: ALWAYS raise. You can't lose (you have the current nuts)
+ * and you might improve to an even bigger hand.
+ *
+ * @param {string[]} holeCards - 6 hole cards
+ * @param {string[]} boardCards - Community cards
+ * @param {string} street - 'flop' or 'turn'
+ * @returns {{ isFreerolling: boolean, freerollType: string, minEquity: number, action: string }}
+ */
+function detectPLO6Freeroll(holeCards, boardCards, street) {
+    if (!holeCards || !boardCards || boardCards.length < 3 || street === 'river') {
+        return { isFreerolling: false, freerollType: 'none', minEquity: 0, action: 'standard' };
+    }
+
+    const nutInfo = evaluatePLO6NutDistance(holeCards, boardCards);
+    const drawInfo = classifyPLO6Draws(holeCards, boardCards, street);
+
+    // Must have the nuts or near-nuts to be freerolling
+    if (!nutInfo.isNutHand && nutInfo.nutDistance > 1) {
+        return { isFreerolling: false, freerollType: 'none', minEquity: 0, action: 'standard' };
+    }
+
+    // Must also have a draw to something better
+    if (drawInfo.totalOuts < 4) {
+        return { isFreerolling: false, freerollType: 'none', minEquity: 0, action: 'standard' };
+    }
+
+    // We have nuts + draw = FREEROLL
+    let freerollType = 'nut-hand-with-redraw';
+    if (nutInfo.category === 'flush' && drawInfo.nutStraightDraw) {
+        freerollType = 'nut-flush-with-straight-draw';
+    } else if (nutInfo.category === 'straight' && drawInfo.nutFlushDraw) {
+        freerollType = 'nut-straight-with-flush-draw';
+    } else if (nutInfo.category === 'full_house') {
+        freerollType = 'full-house-with-quads-draw';
+    }
+
+    return {
+        isFreerolling: true,
+        freerollType,
+        minEquity: 0.90, // Can't lose (have nuts), might win more
+        action: 'raise-maximum', // ALWAYS raise when freerolling
+    };
+}
+
+// ======================================================================
+// PLO6 CARD REMOVAL AMPLIFICATION
+// ======================================================================
+
+/**
+ * Calculate amplified card removal effects for PLO6.
+ *
+ * With 6 hole cards, card removal effects are MASSIVE:
+ *   - 6 cards removed from the deck = 11.5% of remaining cards
+ *   - PLO4 removes 7.7%, PLO5 removes 9.6%, PLO6 removes 11.5%
+ *   - This means your draws remove MORE opponent outs
+ *   - Your blockers are MORE effective
+ *   - Ranges are MORE polarized (fewer combos of everything)
+ *
+ * @param {string[]} holeCards - 6 hole cards
+ * @param {string[]} boardCards - Community cards
+ * @returns {{ removalFactor: number, opponentOutsReduction: number, rangeNarrowingPct: number, blockerAmplification: number }}
+ */
+function getPLO6CardRemoval(holeCards, boardCards) {
+    if (!holeCards || holeCards.length < 6) {
+        return { removalFactor: 1.0, opponentOutsReduction: 0, rangeNarrowingPct: 0, blockerAmplification: 1.0 };
+    }
+
+    // 6 hole cards + N board cards removed from 52-card deck
+    const boardCount = boardCards ? boardCards.length : 0;
+    const totalRemoved = 6 + boardCount;
+    const remainingCards = 52 - totalRemoved;
+
+    // Base removal factor (how much of the deck is removed)
+    const removalFactor = totalRemoved / 52;
+
+    // For each suit, count how many of our cards are in it
+    const parsed = holeCards.map(_parseCard6);
+    const suitCounts = {};
+    parsed.forEach(c => { suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1; });
+
+    // Opponent outs reduction: each of our cards in a suit reduces opponent flush outs
+    let opponentOutsReduction = 0;
+    for (const [suit, count] of Object.entries(suitCounts)) {
+        if (count >= 3) {
+            // We hold 3+ cards in this suit: opponent flush draws are significantly weaker
+            opponentOutsReduction += count - 1;
+        } else if (count >= 2) {
+            opponentOutsReduction += 1;
+        }
+    }
+
+    // Rank-based removal: count how many of our ranks overlap
+    const rankCounts = {};
+    parsed.forEach(c => { rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1; });
+    for (const [rank, count] of Object.entries(rankCounts)) {
+        if (count >= 2) {
+            // Holding pairs: reduces opponent set/trips combos
+            opponentOutsReduction += 1;
+        }
+    }
+
+    // Range narrowing: with 6 cards removed, opponent ranges are ~15% narrower
+    const rangeNarrowingPct = Math.round(removalFactor * 130); // ~15% for 6 cards
+
+    // Blocker amplification: PLO6 blockers are ~20% more effective than PLO4
+    const blockerAmplification = 1.0 + (removalFactor * 0.75);
+
+    return {
+        removalFactor: Math.round(removalFactor * 100) / 100,
+        opponentOutsReduction,
+        rangeNarrowingPct,
+        blockerAmplification: Math.round(blockerAmplification * 100) / 100,
+    };
+}
+
+// ======================================================================
+// PLO6 MULTIWAY DRAW POT DYNAMICS
+// ======================================================================
+
+/**
+ * Adjust strategy for multiway pots in PLO6.
+ *
+ * Multiway PLO6 pots are CHAOS. Key differences from heads-up:
+ *   - Made hands go DOWN in value (more opponents = more draws out there)
+ *   - Nut draws go UP in value (guaranteed to get paid when you hit)
+ *   - Bluffing is SUICIDE (someone always has something)
+ *   - Position is EVERYTHING (last to act sees all the action)
+ *   - Pot control is paramount (let draws kill each other)
+ *
+ * @param {number} madeStrength - Made hand strength (0-100)
+ * @param {Object} drawInfo - From classifyPLO6Draws
+ * @param {number} numPlayers - Active players (3+)
+ * @param {boolean} isIP - In position?
+ * @param {number} potSize - Current pot
+ * @param {number} toCall - Amount to call
+ * @param {string} street - 'flop', 'turn', 'river'
+ * @returns {{ action: string, sizing: number, reasoning: string }}
+ */
+function getPLO6MultiwayStrategy(madeStrength, drawInfo, numPlayers, isIP, potSize, toCall, street) {
+    if (numPlayers <= 2) {
+        // Not multiway — use standard heads-up logic
+        return { action: 'standard', sizing: 0, reasoning: 'heads-up-use-standard' };
+    }
+
+    const nutDraws = drawInfo ? drawInfo.nutDrawCount || 0 : 0;
+    const totalOuts = drawInfo ? drawInfo.totalOuts || 0 : 0;
+    const drawTier = drawInfo ? drawInfo.drawTier || 5 : 5;
+
+    // ---- NUTS / NEAR-NUTS: Bet to build pot (someone will call) ----
+    if (madeStrength >= 85) {
+        const sizing = Math.round(potSize * 0.70);
+        return { action: 'bet-value', sizing, reasoning: 'multiway-nut-value' };
+    }
+
+    // ---- NUT DRAWS: Bet to build pot for when you hit ----
+    if (drawTier <= 2 && nutDraws >= 1 && street !== 'river') {
+        // In multiway, nut draws are worth betting because you'll get paid
+        const sizing = Math.round(potSize * 0.50);
+        return { action: 'bet-semi-bluff', sizing, reasoning: 'multiway-nut-draw-build-pot' };
+    }
+
+    // ---- STRONG MADE + NO DRAWS: Protect by betting ----
+    if (madeStrength >= 65 && totalOuts < 5 && street !== 'river') {
+        const sizing = Math.round(potSize * 0.65);
+        return { action: 'bet-protect', sizing, reasoning: 'multiway-protect-made-hand' };
+    }
+
+    // ---- MARGINAL MADE: Check and pot-control ----
+    if (madeStrength >= 45) {
+        if (toCall === 0) {
+            return { action: 'check', sizing: 0, reasoning: 'multiway-marginal-pot-control' };
+        }
+        // Facing a bet: only call if hand is decent and price is right
+        if (madeStrength >= 55 && toCall <= potSize * 0.40) {
+            return { action: 'call', sizing: 0, reasoning: 'multiway-marginal-cheap-call' };
+        }
+        return { action: 'fold', sizing: 0, reasoning: 'multiway-marginal-too-expensive' };
+    }
+
+    // ---- NON-NUT DRAWS MULTIWAY: Very cautious ----
+    if (drawTier >= 3 && street !== 'river') {
+        if (toCall === 0) {
+            return { action: 'check', sizing: 0, reasoning: 'multiway-non-nut-draw-check' };
+        }
+        // Only call with massive odds
+        const potOdds = toCall / (potSize + toCall);
+        if (potOdds < 0.20 && totalOuts >= 10) {
+            return { action: 'call', sizing: 0, reasoning: 'multiway-draw-great-odds' };
+        }
+        return { action: 'fold', sizing: 0, reasoning: 'multiway-non-nut-draw-fold' };
+    }
+
+    // ---- TRASH: Fold ----
+    if (toCall > 0) {
+        return { action: 'fold', sizing: 0, reasoning: 'multiway-trash-fold' };
+    }
+    return { action: 'check', sizing: 0, reasoning: 'multiway-trash-check' };
+}
+
+// ======================================================================
 // PLO6 MAIN DECISION ENGINE
 // ======================================================================
 

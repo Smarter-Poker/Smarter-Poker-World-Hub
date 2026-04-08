@@ -741,18 +741,22 @@ export default function PokerNearMeLobby() {
   // Merge live_data into venue objects whenever venues or liveDataMap changes
   useEffect(() => {
     if (venues.length === 0 || Object.keys(liveDataMap).length === 0) return;
-    const hasNew = venues.some(v => !v.live_data);
-    if (!hasNew) return;
+    const hasNew = venues.some(v => !v._liveMerged);
+    if (!hasNew) return; // all venues already processed, stop
     setVenues(prev => prev.map(venue => {
-      if (venue.live_data) return venue;
+      if (venue._liveMerged) return venue; // already processed
       const normName = (venue.name || '').toLowerCase()
         .replace(/&/g, 'and').replace(/'/g, '').replace(/-/g, ' ')
         .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
       const liveEntry = (venue.bravo_slug && liveDataMap[venue.bravo_slug]) || liveDataMap[normName] || null;
-      if (!liveEntry || liveEntry.tables_running === 0) return venue;
-      return { ...venue, live_data: liveEntry };
+      // Always mark as merged — only inject live_data if tables are actually running
+      if (liveEntry && liveEntry.tables_running > 0) {
+        return { ...venue, _liveMerged: true, live_data: liveEntry };
+      }
+      return { ...venue, _liveMerged: true };
     }));
   }, [venues, liveDataMap]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
 
   // ─── Fetch total venue count (platform-wide) ───

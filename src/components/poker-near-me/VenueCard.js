@@ -1010,7 +1010,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    margin-top: 8px;
+                    margin-top: auto;
                     padding-top: 8px;
                     border-top: 1px dashed rgba(255,255,255,0.1);
                 }
