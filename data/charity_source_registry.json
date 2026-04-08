@@ -49,16 +49,6 @@
     "last_http_status": 422,
     "scrape_count": 2
   },
-  "https://chicagopokerclub.net": {
-    "org_name": "Chicagoland Poker",
-    "state": "IL",
-    "type": "operator",
-    "url": "https://chicagopokerclub.net",
-    "last_scraped": "2026-04-06T20:59:14.085723+00:00",
-    "last_batch_id": "f016ac82-35ca-4eb2-a1c8-c7ce5e1910b6",
-    "last_http_status": 200,
-    "scrape_count": 2
-  },
   "https://e3games.org": {
     "org_name": "E3 Gaming \u2014 Westgate Poker Room",
     "state": "",
@@ -621,25 +611,6 @@
     "last_schedules_found": 1,
     "scrape_count": 8,
     "script": "scripts/scrape_charity_v5.py"
-  },
-  "Chicagoland Poker": {
-    "venue_name": "Chicagoland Poker",
-    "state": "IL",
-    "venue_uuid": "2824",
-    "source_of_truth_url": "https://chicagopokerclub.net",
-    "all_urls_tried": [
-      "https://chicagopokerclub.net/tournaments",
-      "https://chicagopokerclub.net/schedule",
-      "https://chicagopokerclub.net"
-    ],
-    "source_type": "venue_website",
-    "source_priority": 1,
-    "last_scraped": "2026-04-07T02:56:48.936483+00:00",
-    "last_batch_id": "b84a404d-bc0f-4b9b-96d8-57ba13f82ca9",
-    "last_http_status": 200,
-    "last_schedules_found": 3,
-    "scrape_count": 1,
-    "script": "scripts/scrape_charity_remaining.py"
   },
   "Monroe Boat Club (MBC-A Charity Poker)": {
     "venue_name": "Monroe Boat Club (MBC-A Charity Poker)",

@@ -412,7 +412,7 @@ export default function GlobalSearchOverlay({
         );
         return { item: t, score };
       })
-      .filter(t => t.score < 2) // Threshold
+      .filter(t => t.score <= 2) // Threshold
       .sort((a, b) => a.score - b.score)
       .map(t => t.item)
       .slice(0, 8);
@@ -431,7 +431,7 @@ export default function GlobalSearchOverlay({
         );
         return { item: s, score };
       })
-      .filter(s => s.score < 2) // Threshold
+      .filter(s => s.score <= 2) // Threshold
       .sort((a, b) => a.score - b.score)
       .map(s => s.item)
       .slice(0, 8);
@@ -800,7 +800,7 @@ export default function GlobalSearchOverlay({
               )}
 
               {/* Empty state */}
-              {!localQuery && searchHistory.length === 0 && (
+              {!localQuery && searchHistory.length === 0 && recentSearches.length === 0 && (
                 <div style={{ textAlign: 'center', paddingTop: 60, color: 'rgba(200,214,229,0.25)' }}>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" style={{ marginBottom: 16, opacity: 0.4 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                   <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Search Anything</div>

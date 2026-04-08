@@ -103,11 +103,7 @@ const CHARITY_SOURCE_REGISTRY = {
   },
   '2823': { // Play Poker Chicago
     name: 'Play Poker Chicago',
-    urls: ['https://playpokerchicago.com', 'https://chicagopokerclub.net'],
-  },
-  '2824': { // Chicagoland Poker
-    name: 'Chicagoland Poker',
-    urls: ['https://chicagopokerclub.net', 'https://chicagopokerclub.net/schedule'],
+    urls: ['https://playpokerchicago.com'],
   },
   '2826': { // Westfield Lions Club Poker
     name: 'Westfield Lions Club Poker',
