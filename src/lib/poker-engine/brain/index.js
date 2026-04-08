@@ -27,6 +27,9 @@ const sessionAnalytics = require('./session-analytics');
 const plo8Brain = require('./plo8-brain');
 const ploCore = require('./plo-core');
 const holdemBrain = require('./holdem-brain');
+const plo5Brain = require('./plo5-brain');
+const plo6Brain = require('./plo6-brain');
+const tournamentBrain = require('./tournament-brain');
 const router = require('./router');
 const liveObserver = require('./live-observer');
 const handResult = require('./hand-result');
@@ -225,6 +228,31 @@ module.exports = {
     makePLOFallbackDecision: ploCore.makePLOFallbackDecision,
 
     // ═══════════════════════════════════════════════════════════════════════
+    // plo5-brain.js — PLO5 (5-Card Omaha) variant-specific strategy
+    // ═══════════════════════════════════════════════════════════════════════
+    scorePLO5Hand: plo5Brain.scorePLO5Hand,
+    getPLO5PreflopAction: plo5Brain.getPLO5PreflopAction,
+    adjustPLO5PostflopStrength: plo5Brain.adjustPLO5PostflopStrength,
+    getPLO5DrawEquity: plo5Brain.getPLO5DrawEquity,
+    getPLO5BetSize: plo5Brain.getPLO5BetSize,
+    makePLO5Decision: plo5Brain.makePLO5Decision,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // plo6-brain.js — PLO6 (6-Card Omaha) nut-or-nothing strategy
+    // ═══════════════════════════════════════════════════════════════════════
+    scorePLO6Hand: plo6Brain.scorePLO6Hand,
+    getPLO6PreflopAction: plo6Brain.getPLO6PreflopAction,
+    evaluatePLO6FlushHierarchy: plo6Brain.evaluatePLO6FlushHierarchy,
+    evaluatePLO6NutDistance: plo6Brain.evaluatePLO6NutDistance,
+    adjustPLO6PostflopStrength: plo6Brain.adjustPLO6PostflopStrength,
+    getPLO6BlockerValue: plo6Brain.getPLO6BlockerValue,
+    shouldPLO6Bluff: plo6Brain.shouldPLO6Bluff,
+    getPLO6DrawEquity: plo6Brain.getPLO6DrawEquity,
+    getPLO6BetSize: plo6Brain.getPLO6BetSize,
+    getPLO6EquityRealization: plo6Brain.getPLO6EquityRealization,
+    makePLO6Decision: plo6Brain.makePLO6Decision,
+
+    // ═══════════════════════════════════════════════════════════════════════
     // holdem-brain.js — Hold'em decision engine (20 functions)
     // ═══════════════════════════════════════════════════════════════════════
     makeFallbackDecision: holdemBrain.makeFallbackDecision,
@@ -247,6 +275,19 @@ module.exports = {
     applyExploitIntensifier: holdemBrain.applyExploitIntensifier,
     handleDonkBet: holdemBrain.handleDonkBet,
     applyTiltDegradation: holdemBrain.applyTiltDegradation,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // tournament-brain.js — Tournament-specific strategy adjustments
+    // ═══════════════════════════════════════════════════════════════════════
+    detectTournamentStage: tournamentBrain.detectTournamentStage,
+    getICMRangeAdjustment: tournamentBrain.getICMRangeAdjustment,
+    adjustTournamentPostflop: tournamentBrain.adjustTournamentPostflop,
+    adjustTournamentBetSize: tournamentBrain.adjustTournamentBetSize,
+    evaluateVarianceSpot: tournamentBrain.evaluateVarianceSpot,
+    getTournamentStealAdjustment: tournamentBrain.getTournamentStealAdjustment,
+    getAnteAdjustment: tournamentBrain.getAnteAdjustment,
+    getPLOTournamentOverride: tournamentBrain.getPLOTournamentOverride,
+    applyTournamentAdjustments: tournamentBrain.applyTournamentAdjustments,
 
     // ═══════════════════════════════════════════════════════════════════════
     // router.js — Master decision function

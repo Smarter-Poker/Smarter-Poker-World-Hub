@@ -32,6 +32,10 @@ const { makeFallbackDecision, evaluatePostflopHand, makeFlopHeuristicDecision,
 
 const { makePLOFallbackDecision } = require('./plo-core');
 
+const { makePLO5Decision } = require('./plo5-brain');
+
+const { makePLO6Decision } = require('./plo6-brain');
+
 const { evaluatePLO8Low } = require('./plo8-brain');
 
 // Live observer is not yet extracted — stub with safe fallback
@@ -275,6 +279,54 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     const angleTell = primaryOppId ? detectAngleShoot(primaryOppId) : { isAngleShooting: false, extraEntropyMs: 0 };
     if (angleTell.isAngleShooting) {
         console.log(`[HorseBrain] 🎭 MODULE 30 ANGLE-SHOOT: ${primaryOppId?.substring(0, 8)} pre-selecting actions — adding ${angleTell.extraEntropyMs}ms entropy to this decision.`);
+    }
+
+    // ─── PLO5 / PLO6 VARIANT-SPECIFIC ROUTING ───
+    // PLO5 and PLO6 play FUNDAMENTALLY differently from PLO4.
+    // Route to dedicated brain modules before the generic PLO fallback.
+    const isPLO5 = vLower === 'plo5' || vLower === 'omaha5';
+    const isPLO6 = vLower === 'plo6' || vLower === 'omaha6';
+
+    if (isPLO5 && !isHiLo) {
+        const plo5Decision = makePLO5Decision(profileId, {
+            holeCards: holeCardStrings,
+            board: boardStrings,
+            street,
+            position: mapPosition(heroPlayer.position || 'mp'),
+            stackBB,
+            potSize,
+            toCall,
+            bb,
+            numPlayers,
+            gameType: tableConfig.gameType || engineState.gameType || (engineState.tourneyState ? 'tournament' : 'cash'),
+            tableId: tableId || 'unknown',
+            primaryOppId: primaryOppId || null,
+        }, legalActions);
+        const validPLO5 = validateAndClamp(plo5Decision.type, plo5Decision.amount, legalActions);
+        const delayPLO5 = getActionDelay(profileId, validPLO5.type, street === 'preflop') + angleTell.extraEntropyMs;
+        recordPerformanceAction(profileId, street, validPLO5.type, validPLO5.type !== 'fold' && validPLO5.type !== 'check');
+        return { action: validPLO5, delayMs: delayPLO5 };
+    }
+
+    if (isPLO6 && !isHiLo) {
+        const plo6Decision = makePLO6Decision(profileId, {
+            holeCards: holeCardStrings,
+            board: boardStrings,
+            street,
+            position: mapPosition(heroPlayer.position || 'mp'),
+            stackBB,
+            potSize,
+            toCall,
+            bb,
+            numPlayers,
+            gameType: tableConfig.gameType || engineState.gameType || (engineState.tourneyState ? 'tournament' : 'cash'),
+            tableId: tableId || 'unknown',
+            primaryOppId: primaryOppId || null,
+        }, legalActions);
+        const validPLO6 = validateAndClamp(plo6Decision.type, plo6Decision.amount, legalActions);
+        const delayPLO6 = getActionDelay(profileId, validPLO6.type, street === 'preflop') + angleTell.extraEntropyMs;
+        recordPerformanceAction(profileId, street, validPLO6.type, validPLO6.type !== 'fold' && validPLO6.type !== 'check');
+        return { action: validPLO6, delayMs: delayPLO6 };
     }
 
     if (isPLO) {
