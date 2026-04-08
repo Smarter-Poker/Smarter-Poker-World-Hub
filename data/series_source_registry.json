@@ -622,5 +622,65 @@
     "last_scraped": "2026-04-08T23:20:03.705429+00:00",
     "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
     "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_borgata-poker-open_2026": {
+    "series_uid": "venue_borgata-poker-open_2026",
+    "series_name": "Borgata Poker Open",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/the-pure-grind-series-true-triple-stack-april-26-borgata-atlantic-city-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/the-pure-grind-series-true-triple-stack-april-26-borgata-atlantic-city-2026",
+    "last_success": true,
+    "event_count": 15,
+    "last_scraped": "2026-04-08T23:20:24.879765+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_caesars-ac-poker-classic_2026": {
+    "series_uid": "venue_caesars-ac-poker-classic_2026",
+    "series_name": "Caesars AC Poker Classic",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/2025-26-wsop-circuit-lake-tahoe-spring-caesars-tahoe-stateline-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/2025-26-wsop-circuit-lake-tahoe-spring-caesars-tahoe-stateline-2026",
+    "last_success": true,
+    "event_count": 98,
+    "last_scraped": "2026-04-08T23:20:57.111620+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_caesars-palace-poker-classic_2026": {
+    "series_uid": "venue_caesars-palace-poker-classic_2026",
+    "series_name": "Caesars Palace Poker Classic",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/2025-26-wsop-circuit-lake-tahoe-spring-caesars-tahoe-stateline-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/2025-26-wsop-circuit-lake-tahoe-spring-caesars-tahoe-stateline-2026",
+    "last_success": true,
+    "event_count": 98,
+    "last_scraped": "2026-04-08T23:21:38.617363+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_canterbury-park-poker-classic_2026": {
+    "series_uid": "venue_canterbury-park-poker-classic_2026",
+    "series_name": "Canterbury Park Poker Classic",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:22:00.841568+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_cherokee-nation-poker-series_2026": {
+    "series_uid": "venue_cherokee-nation-poker-series_2026",
+    "series_name": "Cherokee Nation Poker Series",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:22:25.952499+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
   }
 }

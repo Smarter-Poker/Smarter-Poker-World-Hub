@@ -789,17 +789,24 @@ function getPLO6DrawEquity(holeCards, boardCards, street, potSize, toCall) {
     const holeObjs = _ensureCardObjects(holeCards);
     const boardObjs = _ensureCardObjects(boardCards);
 
-    const flushOuts = countFlushOuts(holeObjs, boardObjs);
-    const straightOuts = countStraightOuts(holeObjs, boardObjs);
+    const flushInfo = countFlushOuts(holeObjs, boardObjs);
+    const straightInfo = countStraightOuts(holeObjs, boardObjs);
     const wrapInfo = detectPLOWrapDraw(holeObjs, boardObjs);
-    const backdoorOuts = street === 'flop' ? countBackdoorOuts(holeObjs, boardObjs) : 0;
+    const backdoorInfo = street === 'flop' ? countBackdoorOuts(holeObjs, boardObjs) : 0;
+
+    // Extract numeric outs from objects returned by plo-core
+    const flushOutCount = typeof flushInfo === 'number' ? flushInfo : (flushInfo?.outs || 0);
+    const isNutFlushDraw = flushInfo?.isNutFlushDraw || false;
+    const straightOutCount = typeof straightInfo === 'number' ? straightInfo : (straightInfo?.outs || 0);
+    const wrapOutCount = wrapInfo?.isWrap ? (wrapInfo.outs || wrapInfo.wrapOuts || 0) : 0;
+    const backdoorOutCount = typeof backdoorInfo === 'number' ? backdoorInfo : (backdoorInfo?.outs || 0);
 
     // PLO6 adjustment: +20% more draw combos hit (even more than PLO5's +15%)
     const plo6DrawMultiplier = 1.20;
-    let rawOuts = flushOuts + straightOuts + (wrapInfo.isWrap ? Math.max(0, wrapInfo.outs - straightOuts) : 0);
+    let rawOuts = flushOutCount + straightOutCount + Math.max(0, wrapOutCount - straightOutCount);
     rawOuts = Math.min(30, Math.round(rawOuts * plo6DrawMultiplier));
 
-    const totalOuts = rawOuts + Math.round(backdoorOuts * 0.5);
+    const totalOuts = rawOuts + Math.round(backdoorOutCount * 0.5);
 
     // Convert outs to equity
     const cardsToComeFactor = street === 'flop' ? 4 : 2;
@@ -818,10 +825,9 @@ function getPLO6DrawEquity(holeCards, boardCards, street, potSize, toCall) {
 
     // Count NUT draws (only nut draws matter in PLO6)
     let nutDrawCount = 0;
-    const hasAce = holeCards.some(c => c[0] === 'A');
-    if (flushOuts >= 9 && hasAce) nutDrawCount++; // Nut flush draw
-    if (wrapInfo.isWrap && wrapInfo.outs >= 15) nutDrawCount++; // Big wrap
-    if (straightOuts >= 10) nutDrawCount++; // Strong straight draw
+    if (isNutFlushDraw) nutDrawCount++; // Nut flush draw
+    if (wrapInfo?.isWrap && wrapOutCount >= 15) nutDrawCount++; // Big wrap
+    if (straightOutCount >= 10) nutDrawCount++; // Strong straight draw
 
     return { totalOuts, equity, potOddsNeeded, isProfitableCall, drawTier, nutDrawCount };
 }

@@ -995,13 +995,18 @@ export default function PokerNearMePage() {
             // Radius filter + distance computation
             // Only enforce the radius when the user has a REAL location (GPS or city).
             // Skip enforcement when no real location is known or during global text searches.
-            if (centerLat !== null && centerLng !== null && v.latitude && v.longitude) {
-                const vDlat = (v.latitude - centerLat) * 69;
-                const vDlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
-                const vDist = Math.sqrt(vDlat * vDlat + vDlng * vDlng);
-                v.distance_mi = vDist;
-                const hasRealLoc = !!(userLocation || selectedCity);
-                if (hasRealLoc && !globalSearchModeRef.current && vDist > effRad) return false;
+            const hasRealLoc = !!(userLocation || selectedCity);
+            if (centerLat !== null && centerLng !== null) {
+                if (v.latitude && v.longitude) {
+                    const vDlat = (v.latitude - centerLat) * 69;
+                    const vDlng = (v.longitude - centerLng) * 69 * Math.cos(centerLat * Math.PI / 180);
+                    const vDist = Math.sqrt(vDlat * vDlat + vDlng * vDlng);
+                    v.distance_mi = vDist;
+                    if (hasRealLoc && !globalSearchModeRef.current && vDist > effRad) return false;
+                } else if (hasRealLoc && !globalSearchModeRef.current) {
+                    // No coordinates — can't verify distance, exclude from location-based results
+                    return false;
+                }
             }
             return true;
         });
@@ -2555,10 +2560,21 @@ export default function PokerNearMePage() {
 
     // Render content based on active tab
 
+    // ─── CARD LIST: Use API-filtered `venues` (server-side GPS+radius filtered) ───
+    // Tour stops come from allVenuesWithTours since the venues API doesn't serve them.
+    // This prevents Las Vegas venues from appearing in an Oak Lawn 50mi search.
+    const venueCardList = React.useMemo(() => {
+        const tourStops = allVenuesWithTours.filter(v => v.venue_type === 'tour_stop');
+        // Dedupe: don't add a tour stop if a matching venue is already in `venues`
+        const venueIds = new Set(venues.map(v => String(v.id)));
+        const uniqueTourStops = tourStops.filter(t => !venueIds.has(String(t.id)));
+        return [...venues, ...uniqueTourStops];
+    }, [venues, allVenuesWithTours]);
+
     // Shared VenuesTabPanel JSX — single definition for 3 render paths
     const venuesTabJsx = (
         <VenuesTabPanel
-            venues={allVenuesWithTours}
+            venues={venueCardList}
             venueLoading={venueLoading}
             loading={loading}
             sortBy={sortBy}
