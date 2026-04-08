@@ -149,122 +149,74 @@ async function downloadBinary(url, redirects = 0) {
 
 /**
  * Parse tournament schedule events from raw PDF text.
- * Handles MSPT-style schedule format shown in screenshot:
- *   DATE | EVENT # | START TIME | EVENT NAME | GTD | CHIPS | LEVELS
  */
 function parseScheduleText(rawText) {
     const events = [];
-    const lines = rawText
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.length > 3);
-
-    // MSPT-style column header detection
-    // Example lines from MSPT PDF:
-    // "Tuesday"  "April 7"  "1" "4:00 PM" "$400 Tag Team Kickoff NLH ($200/player)" "7:00 PM"
-    // "Wednesday" "April 8" "3" "12:00 PM" "$300 Epic Stack NLH" "4:20 PM" "50,000" "30"
-
-    const dayNames = /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/i;
-    const monthDate = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}$/i;
-    const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM))$/i;
-    const buyinPattern = /\$[\d,]+/;
-    const numberPattern = /^\d{1,3}[A-C]?$/;
-    const gtdPattern = /\$[\d,]+(?:K|M)?/gi;
-
-    let currentDate = '';
-    let currentDay = '';
-    let i = 0;
-
-    while (i < lines.length) {
+    const seen = new Set();
+    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+    
+    // Each valid event line looks like:
+    // "1 4:00 PM $400 Tag Team Kickoff NLH ($200/player) 7:00 PM 20,000 20 ..."
+    // OR: "16A 2:00 PM $1,110 Main Event NLH Day 1A (2-Day)"
+    
+    const eventLineRe = /^(\d{1,3}[A-C]?)\s+(\d{1,2}:\d{2}\s*[AP]M)\s+(\$[\d,]+)\s+(.{5,100}?)(?:\s+\d{1,2}:\d{2}\s*[AP]M|\s+\$[\d,]+,\d{3}|\s*$)/i;
+    
+    for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-
-        // Capture day names
-        if (dayNames.test(line)) {
-            currentDay = line;
-            i++;
-            continue;
+        const m = eventLineRe.exec(line);
+        if (!m) continue;
+        
+        const evNumRaw = m[1];
+        const startTime = m[2].trim();
+        const buyInStr = m[3].replace(/[,$]/g, '');
+        const buyIn = parseInt(buyInStr);
+        const rawDesc = m[4].trim();
+        
+        if (!buyIn || buyIn < 50 || buyIn > 500000) continue;
+        if (rawDesc.length < 4) continue;
+        
+        const eventName = `$${buyIn.toLocaleString()} ${rawDesc}`.substring(0, 120);
+        const lookAhead = [line, i+1 < lines.length ? lines[i+1] : '', i+2 < lines.length ? lines[i+2] : ''].join(' ');
+        
+        let gtd = null;
+        const gtdMatch = lookAhead.match(/\$([\d,]{5,})\s+(?:guaranteed|GTD)?/i) || lookAhead.match(/\$([1-9][\d,]{3,})\s*\d{2,3},\d{3}/);
+        if (gtdMatch) {
+            gtd = parseInt(gtdMatch[1].replace(/,/g, ''));
+            if (gtd < 5000 || gtd > 50000000) gtd = null;
         }
-
-        // Capture month + date
-        if (monthDate.test(line)) {
-            currentDate = line;
-            i++;
-            continue;
-        }
-
-        // Look for event number followed by time + event name
-        if (numberPattern.test(line)) {
-            const nextLines = lines.slice(i + 1, i + 8);
-            let startTime = '', regOpenTime = '', eventName = '', buyIn = null, guaranteed = null, chips = null, levels = null;
-
-            for (let j = 0; j < nextLines.length; j++) {
-                const nl = nextLines[j];
-
-                if (!startTime && timePattern.test(nl)) {
-                    startTime = nl;
-                    continue;
-                }
-
-                if (startTime && !eventName && buyinPattern.test(nl) && nl.length > 8) {
-                    eventName = nl;
-                    // Extract buy-in from event name
-                    const bm = nl.match(/\$([0-9,]+)/);
-                    buyIn = bm ? parseInt(bm[1].replace(/,/g, '')) : null;
-                    continue;
-                }
-
-                if (eventName && !regOpenTime && timePattern.test(nl)) {
-                    regOpenTime = nl;
-                    continue;
-                }
-
-                if (eventName && !guaranteed && /^\$[\d,]+(,\d{3})*$/.test(nl)) {
-                    const gm = nl.match(/\$?([\d,]+)/);
-                    guaranteed = gm ? parseInt(gm[1].replace(/,/g, '')) : null;
-                    continue;
-                }
-
-                if (eventName && !chips && /^[\d,]+$/.test(nl) && parseInt(nl.replace(/,/g, '')) > 1000) {
-                    chips = parseInt(nl.replace(/,/g, ''));
-                    continue;
-                }
-
-                if (eventName && !levels && /^\d{1,2}$/.test(nl)) {
-                    levels = parseInt(nl);
-                    break;
-                }
-            }
-
-            if (eventName && startTime) {
-                events.push({
-                    event_number: isNaN(parseInt(line)) ? null : parseInt(line),
-                    event_number_raw: line,
-                    date: currentDate || null,
-                    day_of_week: currentDay || null,
-                    start_time: startTime || null,
-                    reg_open_time: regOpenTime || null,
-                    event_name: eventName,
-                    buy_in: buyIn,
-                    guaranteed: guaranteed,
-                    starting_chips: chips,
-                    levels: levels,
-                    game_type: detectGameType(eventName),
-                    event_type: detectEventType(eventName),
-                    source: 'pdf_extraction'
-                });
-                i += 2; // Skip processed lines
-                continue;
+        
+        let chips = null;
+        const chipsMatch = lookAhead.match(/\b([\d]{2,3},\d{3})\b/g);
+        if (chipsMatch) {
+            for (const cm of chipsMatch) {
+                const n = parseInt(cm.replace(/,/g, ''));
+                if (n >= 5000 && n <= 500000 && n % 1000 === 0) { chips = n; break; }
             }
         }
-
-        i++;
+        
+        let levels = null;
+        const levMatch = lookAhead.match(/\b(\d{2})\s+(?:🏆|POY|🃏|$)/);
+        if (levMatch) levels = parseInt(levMatch[1]);
+        
+        const dedupKey = `${buyIn}:${rawDesc.substring(0, 25).toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        if (seen.has(dedupKey)) continue;
+        seen.add(dedupKey);
+        
+        events.push({
+            event_number: parseInt(evNumRaw) || null,
+            event_number_raw: evNumRaw,
+            start_time: startTime,
+            event_name: eventName,
+            buy_in: buyIn,
+            guaranteed: gtd,
+            starting_chips: chips,
+            levels: levels,
+            game_type: detectGameType(rawDesc),
+            event_type: detectEventType(rawDesc),
+            source: 'pdf_extraction'
+        });
     }
-
-    // Also do a sweep for events we might have missed — look for buy-in lines
-    if (events.length < 3) {
-        return parseScheduleTextFallback(rawText);
-    }
-
+    
     return events;
 }
 
@@ -402,16 +354,18 @@ export async function extractPdfSchedule(pdfUrl, options = {}) {
 
         console.log(`  [PDF] Downloaded ${(buffer.length / 1024).toFixed(1)}KB — parsing...`);
 
-        // Parse with pdf-parse
         let pdfData;
         try {
-            const pdfParse = (await import('pdf-parse')).default;
-            pdfData = await pdfParse(buffer, {
-                // Don't render, just extract text
-                max: 0
-            });
+            // pdf-parse v2 requires instantiation with URL
+            const { PDFParse } = await import('pdf-parse');
+            const parser = new PDFParse({ url: pdfUrl });
+            const result = await parser.getText();
+            pdfData = {
+                text: result.text || '',
+                numpages: result.pages ? result.pages.length : (result.numpages || 1)
+            };
         } catch (parseErr) {
-            console.log(`  [PDF] pdf-parse failed: ${parseErr.message}, trying fallback`);
+            console.log(`  [PDF] pdf-parse v2 failed: ${parseErr.message}, trying fallback`);
             // Fallback: extract embedded text directly from buffer
             const rawStr = buffer.toString('latin1');
             const textBlocks = rawStr.match(/\(([^)]{2,200})\)/g) || [];

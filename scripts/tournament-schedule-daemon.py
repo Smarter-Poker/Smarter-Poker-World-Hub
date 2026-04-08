@@ -74,6 +74,8 @@ SB_HDRS = {
     "Content-Type": "application/json",
     "Prefer": "resolution=merge-duplicates,return=minimal",
 }
+# Conflict key columns matching venue_daily_tournaments_upsert_key constraint
+ON_CONFLICT = "venue_id,venue_name,day_of_week,event_date,start_time,buy_in,game_type"
 
 CHUNK_SIZE   = 25      # ← PUBLISH TO DB every 25 venues (matches Bravo)
 CYCLE_SLEEP  = 86400   # 24h between full daemon cycles
@@ -246,12 +248,15 @@ def sb_get(path: str, params: str = "") -> list:
 def sb_upsert(table: str, records: list) -> int:
     if not records: return 0
     try:
+        url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict={urllib.parse.quote(ON_CONFLICT)}"
         req = urllib.request.Request(
-            f"{SUPABASE_URL}/rest/v1/{table}",
-            data=json.dumps(records).encode(), method="POST", headers=SB_HDRS
+            url, data=json.dumps(records).encode(), method="POST", headers=SB_HDRS
         )
         with urllib.request.urlopen(req, timeout=40) as r:
             return len(records) if r.status in (200,201) else 0
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8","ignore")[:200]
+        log(f"  [UPSERT ERR] HTTP {e.code}: {body}"); return 0
     except Exception as e:
         log(f"  [UPSERT ERR] {e}"); return 0
 
@@ -861,7 +866,7 @@ def load_venues(batch_num: int = 0) -> list:
         "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
         "pokeratlas_url,pokeratlas_slug,"
         "scrape_url,schedule_scrape_url,schedule_last_scraped_at,has_tournaments"
-        "&has_tournaments=eq.true&is_active=eq.true"
+        "&is_active=eq.true"
         "&order=schedule_last_scraped_at.asc.nullsfirst&limit=2000"
     )
     rows=sb_get("poker_venues",params)
