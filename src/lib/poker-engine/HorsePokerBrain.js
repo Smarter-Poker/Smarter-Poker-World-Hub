@@ -1354,13 +1354,13 @@ function evaluatePLO8Low(holeCards, boardCards) {
         // Bug #184: Wire hLowQualify into low out calculation
         // Need 2+ qualifying hole cards to even make a low; 3-4 gives more combos = better odds
         if (hLowQualify.length < 2) {
-            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0 };
+            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0, isCounterfeited: false, counterfeitOuts: 0, counterfeitVulnerability: 0 };
         }
         // Bug #196: Proper low out calculation — count remaining cards that add a NEW
         // qualifying low rank to the board. Old formula (4 × cardsNeeded) drastically
         // undercounted: A-2 with 2 board lows had only 4 outs instead of ~16-20.
         if (boardCards.length >= 5) {
-            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0 };
+            return { hasNutLow: false, hasLow: false, lowOuts: 0, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0, isCounterfeited: false, counterfeitOuts: 0, counterfeitVulnerability: 0 };
         }
         const boardLowRankSet = new Set(bLowQualify);
         const neededBoardLows = 3 - boardLowRankSet.size;
@@ -1402,7 +1402,22 @@ function evaluatePLO8Low(holeCards, boardCards) {
         // More qualifying hole cards = more combos to make low = effective out boost
         const holeLowBonus = hLowQualify.length >= 3 ? 3 : hLowQualify.length >= 4 ? 5 : 0;
         lowOuts = Math.min(lowOuts + holeLowBonus, 20);
-        return { hasNutLow: false, hasLow: false, lowOuts, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0 };
+        // Bug #213: Compute counterfeit vulnerability even for low DRAWS
+        let earlyCFOuts = 0;
+        if (boardCards.length < 5 && hLowQualify.length >= 2) {
+            const bestTwoHoleLows = [...hLowQualify].sort((a, b) => a - b).slice(0, 2);
+            for (const hlr of bestTwoHoleLows) {
+                let copies = 4;
+                for (const h of hLow) { if (h === hlr) copies--; }
+                for (const b of bLow) { if (b === hlr) copies--; }
+                earlyCFOuts += Math.max(0, copies);
+            }
+        }
+        const earlyCFVuln = boardCards.length >= 5 ? 0
+            : earlyCFOuts >= 6 ? 0.6
+            : earlyCFOuts >= 3 ? 0.35
+            : hLowQualify.length >= 2 ? 0.1 : 0;
+        return { hasNutLow: false, hasLow: false, lowOuts, scoopable: false, quarteringRisk: 'low', lowValueDiscount: 1.0, isCounterfeited: false, counterfeitOuts: earlyCFOuts, counterfeitVulnerability: earlyCFVuln };
     }
 
     // Check if we can make a qualifying low using 2 hole cards
@@ -1475,7 +1490,59 @@ function evaluatePLO8Low(holeCards, boardCards) {
         : quarteringRisk === 'medium' ? 0.75
         : 1.0;
 
-    return { hasNutLow, hasLow, lowOuts: 0, scoopable, quarteringRisk, lowValueDiscount };
+    // Bug #207: Counterfeit detection — when a board card pairs one of hero's low hole cards,
+    // the low hand is degraded because that hole card is now duplicated on the board.
+    // E.g., hero has A-2, board is A-3-7-2 — the 2 is counterfeited (board paired it).
+    let isCounterfeited = false;
+    let counterfeitedCards = 0;
+    if (hasLow && bestLow) {
+        const heroLowCards = hLowQualify.filter(r => r <= 6);
+        const boardLowSet = new Set(bLowQualify);
+        for (const hc of heroLowCards) {
+            if (boardLowSet.has(hc)) {
+                isCounterfeited = true;
+                counterfeitedCards++;
+            }
+        }
+    }
+
+    // Bug #213: Counterfeit vulnerability on flop/turn — how many remaining deck cards
+    // can pair one of hero's low hole cards (counterfeiting the low on future streets).
+    // Only relevant when boardCards.length < 5 (not river yet).
+    // Applies to both made lows AND low draws (hLowQualify >= 2).
+    let counterfeitOuts = 0;
+    if (boardCards.length < 5 && hLowQualify.length >= 2) {
+        // For made lows: count cards that can pair hero's contributing low cards
+        // For low draws: count cards that can pair hero's best low hole cards
+        const heroLowUsed = hasLow && bestLow
+            ? bestLow.filter(r => hLowQualify.includes(r))
+            : hLowQualify.slice(0, 2); // Best 2 low hole cards for draws
+        for (const hlr of heroLowUsed) {
+            let copies = 4;
+            for (const h of hLow) { if (h === hlr) copies--; }
+            for (const b of bLow) { if (b === hlr) copies--; }
+            counterfeitOuts += Math.max(0, copies);
+        }
+    }
+    // counterfeitVulnerability: 0.0 (safe) to 1.0 (very vulnerable)
+    // Applies to made lows AND low draws with 2+ qualifying hole cards
+    const hasLowRelevance = hasLow || (hLowQualify.length >= 2 && bLowQualify.length >= 2);
+    const counterfeitVulnerability = boardCards.length >= 5 ? 0
+        : !hasLowRelevance ? 0
+        : isCounterfeited ? 0.8
+        : counterfeitOuts >= 6 ? 0.6
+        : counterfeitOuts >= 3 ? 0.35
+        : 0.1;
+
+    // Apply counterfeit penalty to lowValueDiscount
+    const counterfeitPenalty = isCounterfeited ? 0.5 : (1.0 - counterfeitVulnerability * 0.3);
+    const finalLowValueDiscount = Math.max(0.25, lowValueDiscount * counterfeitPenalty);
+
+    return {
+        hasNutLow, hasLow, lowOuts: 0, scoopable,
+        quarteringRisk, lowValueDiscount: finalLowValueDiscount,
+        isCounterfeited, counterfeitOuts, counterfeitVulnerability
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5461,6 +5528,22 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ── PLO8 Hi-Lo evaluation ──
     const lo8 = isHiLo ? evaluatePLO8Low(holeCards, boardCards) : null;
 
+    // Bug #210: Multiway quartering amplification — in multiway pots (3+ players),
+    // quartering is far more likely even with moderate board low counts. Upgrade risk.
+    if (lo8 && numPlayers >= 3) {
+        if (lo8.quarteringRisk === 'low' && numPlayers >= 4) {
+            lo8.quarteringRisk = 'medium';
+            lo8.lowValueDiscount = Math.min(lo8.lowValueDiscount, 0.75);
+        } else if (lo8.quarteringRisk === 'medium') {
+            lo8.quarteringRisk = 'high';
+            lo8.lowValueDiscount = Math.min(lo8.lowValueDiscount, 0.50);
+        }
+        // 3-way with existing medium → bump discount down slightly
+        if (numPlayers === 3 && lo8.quarteringRisk === 'low') {
+            lo8.lowValueDiscount = Math.min(lo8.lowValueDiscount, 0.85);
+        }
+    }
+
     // ── SPR zone ──
     const sprZone = getPLOSPRZone(effectiveStack, potSize + toCall);
 
@@ -5629,6 +5712,20 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (boardTexture.isWet && !boardTexture.isMonotone) boardDangerPenalty += 5; // Wet but not mono
     }
     const scareCardPenalty = (scareInfo.isScareTurn || scareInfo.isScareRiver) && !madeHand.isNut ? 12 : 0;
+
+    // Bug #211: PLO8 bluff suppression — on boards with 3+ low cards, opponents with nut low
+    // will ALWAYS call (guaranteed half pot). Bluffing is burning money. Suppress all bluffs.
+    const lo8BluffSuppressed = isHiLo && lo8 && boardCards.length >= 3
+        && (new Set(boardCards.map(c => c.rank).filter(r => r <= 6 || r === 12))).size >= 3;
+
+    // Bug #212: Split-pot pot odds adjustment — when we only have a low (no high),
+    // we're only winning HALF the pot. Effective pot odds are twice as bad.
+    // potOdds = toCall / (pot + toCall). For split pot, effective = toCall / ((pot/2) + toCall).
+    const lo8OnlyLow = isHiLo && lo8?.hasLow && madeHand.strength < 45;
+    const splitPotOddsMultiplier = lo8OnlyLow ? 1.7 : 1.0; // Need ~70% better odds when only winning half
+    // Bug #212: effectivePotOdds — adjusted for split-pot scenarios
+    const effectivePotOdds = potOdds * splitPotOddsMultiplier;
+
     const tightnessOp = 1 / gameAdj.tightnessFactor;
 
     // Composite equity score (0-100)
@@ -5969,7 +6066,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 return { type: raiseAction.type, amount: overbet.overbetAmount };
 
             // Phase 3: Range balance — force check or bluff occasionally
-            if (rangeBalance.forceBluff && blockers.canBluffRiver && canRaise)
+            // Bug #211: Suppress bluffs on lo8 boards with 3+ lows
+            if (rangeBalance.forceBluff && blockers.canBluffRiver && canRaise && !lo8BluffSuppressed)
                 return { type: raiseAction?.type || 'bet', amount: clamp(halfPotBetSize) };
             if (rangeBalance.forceCheck && madeHand.strength >= 80) return { type: 'check' };
         }
@@ -6179,13 +6277,31 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (msp.shouldPlayFastNow && canRaise && equityFinal >= 55)
             return { type: raiseAction.type, amount: adaptiveBetSize };
 
+        // Bug #208: PLO8 freeroll detection — nut low + PREMIUM high draw = guaranteed half,
+        // freerolling for the whole pot. This is the dream scenario in PLO8.
+        // Only triggers for NUT draws (flush/straight) or genuinely strong made high hands.
+        // Regular middling draws (8-9 outs from non-nut sources) are NOT true freerolls.
+        if (isHiLo && lo8?.hasNutLow && !lo8.isCounterfeited && canRaise) {
+            const hasNutHighDraw = flushDraw.isNutFlushDraw || straightDraw.hasNutStraightDraw;
+            const hasBigCombo = exactOuts >= 15; // huge combo draw
+            const hasStrongHigh = madeHand.strength >= 65;
+            if (hasNutHighDraw || hasBigCombo || hasStrongHigh) {
+                console.log(`[HorseBrain] PLO8 FREEROLL: nut low + ${hasStrongHigh ? 'strong high' : 'nut high draw'} — raising aggressively (guaranteed half)`);
+                return { type: raiseAction.type, amount: clampedPotRaise };
+            }
+        }
+
         // Bug #155: PLO8 scoop opportunity — nut low + decent high = build the pot aggressively
         // Scooping (winning both halves) is the #1 way to make money in PLO8.
         if (isHiLo && lo8?.scoopable && madeHand.strength >= 55 && canRaise) {
             // Bug #202: High quartering risk → don't build pot (likely splitting low half)
             if (lo8.quarteringRisk !== 'high') {
-                console.log(`[HorseBrain] 🎯 PLO8 SCOOP: low + strong high (${madeHand.strength}) — building pot`);
-                return { type: raiseAction.type, amount: adaptiveBetSize };
+                // Bug #209: PLO8 bet sizing — when scooping, use full adaptive size.
+                // When only moderate scoop chance, use 60% pot to manage risk.
+                const scoopSize = madeHand.strength >= 70 ? adaptiveBetSize
+                    : clamp(Math.round(potSize * 0.60));
+                console.log(`[HorseBrain] PLO8 SCOOP: low + strong high (${madeHand.strength}) — building pot`);
+                return { type: raiseAction.type, amount: scoopSize };
             }
         }
 
@@ -6193,7 +6309,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Building the pot when we're only winning half is -EV (we pay rake on the full pot
         // but only win half). Only bet when we have scoop potential (strength >= 55 handled above).
         if (isHiLo && lo8?.hasNutLow && madeHand.strength < 55) {
-            console.log(`[HorseBrain] 🎯 PLO8 POT-CONTROL: nut low but weak high (${madeHand.strength}) — checking`);
+            // Bug #209: Exception — if counterfeited, we might not even have a good low anymore.
+            // Still check but for a different reason (our low is degraded).
+            console.log(`[HorseBrain] PLO8 POT-CONTROL: nut low but weak high (${madeHand.strength}) — checking`);
             return { type: 'check' };
         }
 
@@ -6236,7 +6354,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // Phase 5: River float and fire (IP, draw missed, blockers)
         // ═══ PHASE 37: LIVE-READ RIVER BLUFF GATE ═══
-        if (riverFloat.shouldFireRiver && canRaise) {
+        // Bug #211: Suppress river float bluffs on lo8 boards with 3+ lows
+        if (riverFloat.shouldFireRiver && canRaise && !lo8BluffSuppressed) {
             let fireGo = true;
             if (ploLiveConf >= 0.20 && ploLiveRead.callFreq > 0.60) {
                 fireGo = Math.random() < 0.25; // Don't fire into stations
@@ -6259,13 +6378,15 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         const blockerBluffBoost = blockers.hasFlushBlocker ? 0.12 : blockers.hasStraightBlocker ? 0.06 : 0;
         // Bug #178: Wire cardRemovalBluffBonus — high card removal score = more bluffing license
         const removalBluffFreqBoost = cardRemovalBluffBonus * 0.01; // 0/0.04/0.08
-        if (realizedOuts >= 14 && canRaise && mwAllowBluff && Math.random() < (0.65 + blockerBluffBoost + removalBluffFreqBoost))
+        // Bug #211: lo8BluffSuppressed — on boards with 3+ lows, opponents hold nut low and always call.
+        if (realizedOuts >= 14 && canRaise && mwAllowBluff && !lo8BluffSuppressed && Math.random() < (0.65 + blockerBluffBoost + removalBluffFreqBoost))
             return { type: raiseAction.type, amount: adaptiveBetSize };
-        if (realizedOuts >= 9 && canRaise && mwAllowBluff && !limpBluffSuppressed && Math.random() < (0.38 + blockerBluffBoost + removalBluffFreqBoost))
+        if (realizedOuts >= 9 && canRaise && mwAllowBluff && !limpBluffSuppressed && !lo8BluffSuppressed && Math.random() < (0.38 + blockerBluffBoost + removalBluffFreqBoost))
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.50)) };
         // Bug #87: Pure blocker bluff — no real outs but we block the nuts
         // Bug #148: Completely suppressed in multiway when governor says no
-        if (realizedOuts < 6 && blockers.canBluffRiver && canRaise && mwAllowBluff && !limpBluffSuppressed && equityFinal >= 20 && Math.random() < 0.18)
+        // Bug #211: Suppressed on lo8 boards with 3+ lows
+        if (realizedOuts < 6 && blockers.canBluffRiver && canRaise && mwAllowBluff && !limpBluffSuppressed && !lo8BluffSuppressed && equityFinal >= 20 && Math.random() < 0.18)
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * 0.55)) };
 
         // Medium made hands + redraw: bet for protection
@@ -6357,7 +6478,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // High RIO risk with non-nut draw: fold even with many outs
     // Bug #125: Exempt nut draws from RIO fold — nut draws have zero reverse implied odds
     // Bug #156: PLO8 nut low overrides RIO fold — guaranteed half pot
-    if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && !isNutDraw && exactOuts < 16 && potOdds >= 0.30) {
+    // Bug #212: Use effectivePotOdds — split pot makes calls more expensive
+    if (rioInfo.rioRisk === 'very_high' && !madeHand.isNut && !isNutDraw && exactOuts < 16 && effectivePotOdds >= 0.30) {
         if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
         return { type: 'fold' };
     }
@@ -6377,7 +6499,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Phase 3: Implied odds — reject calls on draws without sufficient implied odds
     // Bug #125: Exempt nut draws — nut draws always have sufficient implied odds
     // Bug #199: PLO8 nut low override — nut low has guaranteed equity (half pot)
-    if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && potOdds >= 0.35 && !isNutDraw) {
+    // Bug #212: Use effectivePotOdds — split pot makes calls more expensive
+    if (exactOuts >= 6 && !impliedOddsInfo.isProfitableCall && effectivePotOdds >= 0.35 && !isNutDraw) {
         if (isHiLo && lo8?.hasNutLow && canCall) return { type: 'call' };
         return { type: 'fold' };
     }
@@ -6432,7 +6555,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // Bug #179: Wire multiwayCallPenalty — require higher equity to call in multiway pots
     if (equityFinal >= (callThreshold + multiwayCallPenalty) && canCall) {
         const ourEquityFraction = equityFinal / 100;
-        if (ourEquityFraction >= potOdds - 0.05) return { type: 'call' };
+        // Bug #212: Use effectivePotOdds for split-pot awareness
+        if (ourEquityFraction >= effectivePotOdds - 0.05) return { type: 'call' };
     }
 
     // Phase 7: Ante stealing mode — call preflop continuation bets wider with antes in play
