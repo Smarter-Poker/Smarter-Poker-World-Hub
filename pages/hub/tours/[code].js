@@ -10,8 +10,10 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import StopScheduleModal from '../../../src/components/tours/StopScheduleModal';
 import { busEmit } from '../../../src/engine/EventBus';
+
 
 const TOUR_COLORS = {
   'WSOP': { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000' },
