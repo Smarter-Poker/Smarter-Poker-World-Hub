@@ -502,5 +502,29 @@
     "last_scraped": "2026-04-08T23:15:13.642427+00:00",
     "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
     "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_arizona-state-poker-championship_2026": {
+    "series_uid": "venue_arizona-state-poker-championship_2026",
+    "series_name": "Arizona State Poker Championship",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/2026-sd-state-poker-championship-silverado-casino-deadwood-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/2026-sd-state-poker-championship-silverado-casino-deadwood-2026",
+    "last_success": true,
+    "event_count": 65,
+    "last_scraped": "2026-04-08T23:15:41.648006+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_battles-at-the-beach_2026": {
+    "series_uid": "venue_battles-at-the-beach_2026",
+    "series_name": "Battles at the Beach",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/april-26-monster-multi-flight-palm-beach-kc-west-palm-beach-2026",
+    "source_type": "pokeratlas_search",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/april-26-monster-multi-flight-palm-beach-kc-west-palm-beach-2026",
+    "last_success": true,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:16:01.663232+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
   }
 }
