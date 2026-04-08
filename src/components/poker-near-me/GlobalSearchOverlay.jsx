@@ -197,7 +197,7 @@ function DetailModal({ item, type, onClose }) {
             </div>
           )}
           {/* Tour stops */}
-          {isTour && item.stops_2026?.length > 0 && (
+          {isTour && Array.isArray(item.stops_2026) && item.stops_2026.length > 0 && (
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,214,229,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>2026 Stops</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

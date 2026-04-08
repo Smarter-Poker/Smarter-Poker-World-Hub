@@ -56,6 +56,10 @@ module.exports = {
     getActionDelay: core.getActionDelay,
     parseCard: core.parseCard,
     parseCards: core.parseCards,
+    loadHorseIds: core.loadHorseIds,
+    isHorse: core.isHorse,
+    isHorseSync: core.isHorseSync,
+    getHorseIdsAtTable: core.getHorseIdsAtTable,
 
     // ═══════════════════════════════════════════════════════════════════════
     // anti-exploit.js — Modules 1-32 (tracking, threat intel, opponent reads)
@@ -126,11 +130,13 @@ module.exports = {
     recordRebuy: sessionAnalytics.recordRebuy,
     evaluateSessions: sessionAnalytics.evaluateSessions,
     canRebuy: sessionAnalytics.canRebuy,
+    clearTableSessions: sessionAnalytics.clearTableSessions,
     persistOpponentJournal: sessionAnalytics.persistOpponentJournal,
     loadOpponentJournal: sessionAnalytics.loadOpponentJournal,
     persistTableJournals: sessionAnalytics.persistTableJournals,
     loadTableJournals: sessionAnalytics.loadTableJournals,
     _applyJournalToProfile: sessionAnalytics._applyJournalToProfile,
+    _journalCache: sessionAnalytics._journalCache,
 
     // ═══════════════════════════════════════════════════════════════════════
     // plo8-brain.js — PLO8 Hi-Lo low hand evaluator

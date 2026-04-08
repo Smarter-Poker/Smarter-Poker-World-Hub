@@ -20,6 +20,7 @@ const {
     getSupabase, isHorse, getAdvancedModule, getPersonalityModule, getGTOModule,
     evolutionTracker, chatMessages, multiTableTracker,
 } = require('./core');
+const { crossTableRadar, tableTimebankBlacklist } = require('./anti-exploit');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SESSION & BANKROLL TRACKING (Phase 2)
@@ -65,6 +66,16 @@ function recordRebuy(tableId, playerId, amount) {
 
 function clearTableSessions(tableId) {
     sessionTracker.delete(tableId);
+
+    // Clean up cross-table radar (Module 10)
+    for (const [oppId, tableSet] of crossTableRadar) {
+        tableSet.delete(tableId);
+        if (tableSet.size === 0) crossTableRadar.delete(oppId);
+    }
+    // Clean up timebank blacklist if expired
+    if ((tableTimebankBlacklist.get(tableId) || 0) < Date.now()) {
+        tableTimebankBlacklist.delete(tableId);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

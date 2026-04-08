@@ -514,7 +514,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         {hasLiveData ? (
                             <>
                                 <div className="vc3-col-title">Cash Games Running</div>
-                                {venue.live_data.games && venue.live_data.games.length > 0 ? (
+                                {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
                                     <div className="vc3-list-scrollable">
                                         {venue.live_data.games.map((g, idx) => (
                                             <div key={idx} className="vc3-list-item vc3-game-item">
@@ -619,7 +619,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     </div>
                                 </div>
                             </div>
-                        ) : venue.has_tournaments && venue.daily_tournaments && venue.daily_tournaments.length > 0 ? (
+                        ) : venue.has_tournaments && Array.isArray(venue.daily_tournaments) && venue.daily_tournaments.length > 0 ? (
                             <div className="vc3-list-scrollable">
                                 {venue.daily_tournaments.slice(0, 10).map((t, idx) => (
                                     <div key={idx} className="vc3-list-item vc3-tourney-item">
