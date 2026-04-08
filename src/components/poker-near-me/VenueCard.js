@@ -927,7 +927,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-col-left { padding-right: 4px; }
                 .vc3-col-right { padding-left: 4px; }
                 .vc3-col-title {
-                    font-size: 11px;
+                    font-size: 13px;
                     font-weight: 700;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -953,7 +953,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-list-scrollable::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
                 
                 .vc3-list-item {
-                    font-size: 11.5px;
+                    font-size: 13px;
                     color: #ffffff;
                     display: flex;
                     align-items: center;
@@ -964,7 +964,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 }
                 .vc3-game-item { justify-content: space-between; }
                 .vc3-game-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; }
-                .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 10px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
+                .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 11px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
                 
                 .vc3-stakes-list { display: flex; flex-direction: column; gap: 4px; }
                 .vc3-stake-item { color: rgba(255,255,255,0.85); font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); justify-content: center; }
@@ -983,7 +983,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     width: 100%;
                 }
                 .vc3-tourney-meta {
-                    font-size: 9.5px;
+                    font-size: 11px;
                     color: rgba(255,255,255,0.5);
                     display: flex;
                     white-space: nowrap;
