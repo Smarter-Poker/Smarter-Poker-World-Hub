@@ -2221,7 +2221,10 @@ export default function PokerNearMePage() {
             // Re-read current path to check if we really need to replace
             const currentUrl = router.asPath;
             if (currentUrl !== newUrl) {
-                router.replace(newUrl, undefined, { shallow: true });
+                // IMPORTANT: Use window.history.replaceState, NOT router.replace.
+                // router.replace can cause a re-render cycle that resets component state,
+                // which wipes out searchQuery and causes an empty URL to be pushed immediately after.
+                window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
             }
         }, 500);
         return () => { if (deepLinkRef.current) clearTimeout(deepLinkRef.current); };
@@ -2731,7 +2734,8 @@ export default function PokerNearMePage() {
                             setShowGlobalSearch(false);
                             // Only replace if URL currently contains ?q=
                             if (typeof window !== 'undefined' && window.location.search.includes('q=')) {
-                                router.replace('/hub/poker-near-me', undefined, { shallow: true });
+                                const cleanUrl = '/hub/poker-near-me';
+                                window.history.replaceState({ ...window.history.state, as: cleanUrl, url: cleanUrl }, '', cleanUrl);
                             }
                         }}
                         searchQuery={searchQuery}
