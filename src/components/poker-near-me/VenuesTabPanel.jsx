@@ -35,10 +35,10 @@ export default function VenuesTabPanel({
     clearFilters,
     pnmReviewStatsMap,
     router,
-    onMapVenueClick,
     iframeModal,
     setIframeModal,
     openVenueModal,
+    checkinCounts,
 }) {
     // Defensive guard — venues may be null/undefined during initial load or after a crash
     const safeVenues = Array.isArray(venues) ? venues : [];
@@ -162,6 +162,7 @@ export default function VenuesTabPanel({
                                 onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
                                 onNavigate={openVenueModal}
                                 reviewStats={pnmReviewStatsMap[String(venue.id)]}
+                                checkinCount={checkinCounts ? (checkinCounts[String(venue.id)] || 0) : 0}
                             />
                             </div>
                         );

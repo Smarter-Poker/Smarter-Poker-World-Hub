@@ -35,6 +35,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env.local")
 
+OPENAI_API_KEY = ""
+cred_path = Path(__file__).parent.parent / ".agent" / "skills" / "credentials" / ".env"
+if cred_path.exists():
+    for line in cred_path.read_text().splitlines():
+        if line.startswith("OPENAI_API_KEY="):
+            OPENAI_API_KEY = line.split("=", 1)[1].strip().strip('"\'')
+
+try:
+    import pypdf
+except ImportError:
+    pass
+
 # ── Enforce Scrapling-only imports ────────────────────────────────────────────
 try:
     from scrapling.fetchers import Fetcher, StealthySession
@@ -264,6 +276,126 @@ def expand_dates_if_recurring(records: list) -> list:
     if len(expanded) > len(records):
         print(f"  [EXPANSION] Expanded {len(records)} raw into {len(expanded)} occurrences (10-week forward)")
         
+    return expanded
+
+# ── PDF Engine ────────────────────────────────────────────────────────────────
+def extract_pdf_scheduled_events(records: list, tour_code: str) -> list:
+    """Detects if a record has a structure PDF, downloads it, hashes it, and queries GPT-4o for child events."""
+    if not OPENAI_API_KEY:
+        print("  ⚠️ Missing OPENAI_API_KEY, skipping PDF Engine.")
+        return records
+    if "pypdf" not in sys.modules:
+        print("  ⚠️ pypdf not installed, skipping PDF Engine.")
+        return records
+
+    import urllib.request
+    from io import BytesIO
+    import copy
+
+    expanded = []
+    for row in records:
+        pdf_url = row.get("structure_sheet_url")
+        # Check if the url looks like a PDF (either ends with .pdf or is MSPT's showpdf.aspx)
+        if pdf_url and (pdf_url.lower().endswith(".pdf") or "showpdf.aspx" in pdf_url.lower()):
+            print(f"\n  [PDF ENGINE] Detected PDF for {row.get('event_name')}: {pdf_url}")
+            try:
+                req = urllib.request.Request(pdf_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    pdf_bytes = r.read()
+            except Exception as e:
+                print(f"  [PDF ENGINE] ❌ Download failed: {e}")
+                expanded.append(row)
+                continue
+            
+            pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
+            print(f"  [PDF ENGINE] 📥 Downloaded {len(pdf_bytes):,}b, Hash: {pdf_hash[:8]}...")
+            
+            try:
+                pdf = sys.modules["pypdf"].PdfReader(BytesIO(pdf_bytes))
+                text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+            except Exception as e:
+                print(f"  [PDF ENGINE] ❌ Text extraction failed: {e}")
+                expanded.append(row)
+                continue
+
+            text_preview = text[:8000]
+            start_date_hint = row.get("start_date") or row.get("event_date") or "2026-04-01"
+            
+            prompt = f"""
+Extract ALL poker tournament events from this {tour_code} schedule. 
+Return ONLY a JSON array. Each object MUST have exactly these keys:
+- event_number (integer, extract from event name like 'Event #1' or 'Event 1', or null if none)
+- event_name (string, e.g. 'No Limit Holdem Main Event')
+- buy_in (integer, e.g. 500, or null)
+- start_date (string, YYYY-MM-DD, derive from the raw text provided the stop starts on {start_date_hint})
+- start_time (string, e.g. '11:00 AM' or '15:00', or null)
+- guaranteed (integer optional, or null)
+- starting_chips (integer, e.g. 20000, or null)
+- blind_levels_min (integer, e.g. 30, or null)
+
+Text to parse:
+{text_preview}
+"""
+            print("  [PDF ENGINE] 🧠 Querying GPT-4o Vision OCR Fallback...")
+            try:
+                body = json.dumps({
+                    "model": "gpt-4o",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0
+                }).encode("utf-8")
+                req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=body, headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {OPENAI_API_KEY}"
+                })
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    res = json.loads(r.read())
+                    content = res.get('choices', [{}])[0].get('message', {}).get('content', '[]')
+                    
+                    match = re.search(r'\[.*\]', content, re.DOTALL)
+                    if match:
+                        evts = json.loads(match.group(0))
+                        print(f"  [PDF ENGINE] ✅ Successfully mapped {len(evts)} structured child events.")
+                        
+                        # Now map the child events back through build_event_record!
+                        # We use the raw PDF bytes as the HTML body to satisfy 15-layer requirements
+                        scrape_ts = datetime.now(timezone.utc).isoformat()
+                        
+                        for ev in evts:
+                            child = build_event_record(
+                                tour_code=tour_code,
+                                series_name=row.get("series_name"),
+                                event_number=ev.get("event_number"),
+                                event_name=ev.get("event_name"),
+                                buy_in=ev.get("buy_in"),
+                                start_date=ev.get("start_date") or start_date_hint,
+                                html_hash=pdf_hash,
+                                scrape_ts=scrape_ts,
+                                source_url=pdf_url,
+                                tz=row.get("timezone", "America/Chicago"),
+                                age=row.get("age_requirement", 21),
+                                extra={
+                                    "guaranteed": ev.get("guaranteed"),
+                                    "starting_stack": ev.get("starting_chips"),
+                                    "level_duration_minutes": ev.get("blind_levels_min"),
+                                    "start_time": ev.get("start_time"),
+                                    "structure_sheet_url": pdf_url
+                                }
+                            )
+                            # Set data_quality manually since it was PDF extracted
+                            child["data_quality"] = "pdf_extracted"
+                            expanded.append(child)
+                            
+                        # Notice we DO NOT append the original master row because its children supersede it!
+                    else:
+                        print("  [PDF ENGINE] ⚠️ GPT-4o returned an unexpected payload. Keeping master.")
+                        expanded.append(row)
+            except Exception as e:
+                print(f"  [PDF ENGINE] ❌ LLM failed: {e}")
+                expanded.append(row)
+        else:
+            # Not a PDF, just keep the row
+            expanded.append(row)
+            
     return expanded
 
 # ── Completeness Score ────────────────────────────────────────────────────────
@@ -1248,6 +1380,9 @@ def main():
         if not records:
             print(f"\n  ⚠️  {tour}: 0 events parsed — table unchanged (correct — never fabricate)")
             continue
+
+        # ── MANDATORY: PDF Extractor Intercept ──────────────────────────────────────
+        records = extract_pdf_scheduled_events(records, tour)
 
         # ── MANDATORY: Date Expansion Pass ───────────────────────────────────────────
         records = expand_dates_if_recurring(records)

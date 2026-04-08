@@ -48,76 +48,6 @@ def extract_chips_from_html(html: str) -> dict:
         amount = int(m.group('amount'))
         chips[title] = amount
     return chips
-def extract_events_from_pdf(pdf_url: str, tour_code: str, stop_name: str, stop_start_date: str) -> list:
-    if not OPENAI_API_KEY:
-        print("  ⚠️ Missing OPENAI_API_KEY, cannot parse PDF")
-        return []
-    import urllib.request
-    from io import BytesIO
-    try:
-        import pypdf
-    except ImportError:
-        print("  ⚠️ pypdf not installed, cannot parse PDF")
-        return []
-
-    print(f"  📥 Downloading PDF: {pdf_url}")
-    try:
-        req = urllib.request.Request(pdf_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            pdf_bytes = r.read()
-    except Exception as e:
-        print(f"  ❌ Failed to download PDF: {e}")
-        return []
-
-    try:
-        pdf = pypdf.PdfReader(BytesIO(pdf_bytes))
-        text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
-    except Exception as e:
-        print(f"  ❌ Failed to extract text from PDF: {e}")
-        return []
-
-    text_preview = text[:8000]
-    prompt = f"""
-Extract ALL poker tournament events from this {tour_code} {stop_name} schedule. 
-Return ONLY a JSON array. Each object MUST have exactly these keys:
-- event_number (integer, extract from event name like 'Event #1', or null if none)
-- event_name (string, e.g. 'No Limit Holdem')
-- buy_in (integer, e.g. 500, or null)
-- start_date (string, YYYY-MM-DD, derive from the raw text provided the stop starts on {stop_start_date}, or simply '2026-04-07')
-- start_time (string, e.g. '11:00 AM' or '15:00', or null)
-- guaranteed (integer optional, or null)
-- starting_chips (integer, e.g. 20000, or null)
-- blind_levels_min (integer, e.g. 30, or null)
-
-Text to parse:
-{text_preview}
-"""
-    print("  🧠 Requesting event schema from GPT-4o...")
-    try:
-        body = json.dumps({
-            "model": "gpt-4o",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0
-        }).encode("utf-8")
-        req = urllib.request.Request("https://api.openai.com/v1/chat/completions", data=body, headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENAI_API_KEY}"
-        })
-        with urllib.request.urlopen(req, timeout=60) as r:
-            res = json.loads(r.read())
-            content = res.get('choices', [{}])[0].get('message', {}).get('content', '[]')
-            # Extract JSON block
-            import re
-            match = re.search(r'\[.*\]', content, re.DOTALL)
-            if match:
-                evts = json.loads(match.group(0))
-                print(f"  ✅ Extracted {len(evts)} events via GPT-4o")
-                return evts
-            return []
-    except Exception as e:
-        print(f"  ❌ LLM Extraction failed: {e}")
-        return []
-
 from scrapling.fetchers import Fetcher
 from supabase import create_client
 
@@ -571,37 +501,6 @@ def enrich_generic(tour_code: str, events: list) -> int:
         late_r = db.get("late_registration") or "Through level 6"
 
         event_struct_url = db.get("structure_sheet_url") or struct_url
-        is_pdf = event_struct_url and (event_struct_url.lower().endswith(".pdf") or "showpdf.aspx" in event_struct_url.lower())
-        if is_pdf:
-            already_extracted = any(e.get("pdf_source_url") == event_struct_url for e in events)
-            if already_extracted:
-                print(f"  ⏭️ Already extracted events for this PDF: {event_struct_url}")
-            else:
-                print(f"  📄 Found PDF for {ev_name}: {event_struct_url}")
-                pdf_events = extract_events_from_pdf(event_struct_url, tour_code, ev_name, db.get("start_date"))
-                if pdf_events:
-                    # Insert the extracted events into tour_event_details
-                    for p_ev in pdf_events:
-                        p_db_row = {
-                            "tour_code": tour_code,
-                            "series_name": series,
-                            "event_name": p_ev.get("event_name"),
-                            "event_number": p_ev.get("event_number"),
-                            "buy_in": p_ev.get("buy_in") or 0,
-                            "guaranteed": p_ev.get("guaranteed") or 0,
-                            "starting_stack": p_ev.get("starting_chips") or 0,
-                            "start_date": p_ev.get("start_date"),
-                            "start_time": p_ev.get("start_time"),
-                            "levels": p_ev.get("blind_levels_min"), # Using levels for blind min
-                            "is_special_event": infer_is_special(p_ev.get("event_name")),
-                            "timezone": ev_tz,
-                            "age_requirement": age,
-                            "pdf_source_url": event_struct_url, # To differentiate these derived records
-                            "data_quality": "pdf_extracted",
-                        }
-                        if not DRY:
-                            SB.table("tour_event_details").insert(p_db_row).execute()
-                            events.append({"pdf_source_url": event_struct_url}) # prevent duplicate inserts during the same run
         
         enriched = {
             "tournament_name":     ev_name or None,

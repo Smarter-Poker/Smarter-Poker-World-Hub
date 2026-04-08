@@ -219,7 +219,7 @@ function StarRating({ rating, size, interactive, onRate }) {
 
 export default function VenueDetailPage() {
   const router = useRouter();
-  const { id, action } = router.query;
+  const { id, action, tab } = router.query;
   const bus = useTrainingBus();
 
   // Global Favorite Status (Poker Near Me)
@@ -733,9 +733,9 @@ export default function VenueDetailPage() {
       .catch(function () { });
   }, [venue]);
 
-  // Handle ?action= query parameter from geofence alerts
+  // Handle ?action= and ?tab= query parameters from external navigation
   useEffect(function () {
-    if (!action || loading) return;
+    if ((!action && !tab) || loading) return;
     var sectionId = null;
     if (action === 'checkin') {
       sectionId = 'checkins-section';
@@ -743,14 +743,17 @@ export default function VenueDetailPage() {
     } else if (action === 'review') {
       sectionId = 'reviews-section';
       setShowReviewForm(true);
+    } else if (tab === 'tournaments') {
+      sectionId = 'tournaments-section';
     }
+    
     if (sectionId) {
       setTimeout(function () {
         var el = document.getElementById(sectionId);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 300);
     }
-  }, [action, loading]);
+  }, [action, tab, loading]);
 
   // Wait for Leaflet scripts
   useEffect(function () {
@@ -1888,7 +1891,7 @@ export default function VenueDetailPage() {
 
             {/* Daily Tournaments Section */}
             {groupedSchedules && Object.keys(groupedSchedules).length > 0 && (
-              <section className="tournaments-section">
+              <section id="tournaments-section" className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="schedule-container">
                   {Object.entries(groupedSchedules).map(function ([day, schedules]) {
@@ -1946,7 +1949,7 @@ export default function VenueDetailPage() {
 
             {/* No tournaments fallback */}
             {(!groupedSchedules || Object.keys(groupedSchedules).length === 0) && venue.has_tournaments && (
-              <section className="tournaments-section">
+              <section id="tournaments-section" className="tournaments-section">
                 <h2 className="section-title">Daily Tournament Schedule</h2>
                 <div className="empty-tournaments">
                   <p>Tournament Schedule Data Is Being Collected For This Venue.</p>
