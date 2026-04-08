@@ -613,11 +613,11 @@ export default function LiveGamesFeed({
     const getGameChipStyle = (gameName) => {
         if (!gameName) return {};
         const upper = gameName.toUpperCase();
-        if (upper.includes('PLO') || upper.includes('OMAHA')) return { bg: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: 'rgba(139,92,246,0.22)' };
+        if (upper.includes('PLO') || upper.includes('OMAHA')) return { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' }; // Blue for PLO
         if (upper.includes('NLH') || upper.includes('NO LIMIT') || upper.includes('HOLDEM') || upper.includes("HOLD'EM")) return { bg: 'rgba(255,255,255,0.12)', color: '#ffffff', border: 'rgba(255,255,255,0.22)' };
         if (upper.includes('LIMIT') && !upper.includes('NO LIMIT')) return { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', border: 'rgba(59,130,246,0.22)' };
         if (upper.includes('MIXED') || upper.includes('HORSE') || upper.includes('8-GAME')) return { bg: 'rgba(6,182,212,0.12)', color: '#22d3ee', border: 'rgba(6,182,212,0.22)' };
-        if (upper.includes('STUD')) return { bg: 'rgba(236,72,153,0.12)', color: '#f472b6', border: 'rgba(236,72,153,0.22)' };
+        if (upper.includes('STUD')) return { bg: 'rgba(248,113,113,0.12)', color: '#f87171', border: 'rgba(248,113,113,0.22)' }; // Red for 7-Stud
         if (upper.includes('BIG O')) return { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: 'rgba(245,158,11,0.22)' };
         return {};
     };
