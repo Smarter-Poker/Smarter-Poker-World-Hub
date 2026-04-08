@@ -409,6 +409,23 @@ export default function PokerNearMePage() {
             .then(j => { if (j.success && j.stats) setPnmReviewStatsMap(prev => ({ ...prev, ...j.stats })); })
             .catch(() => { /* silent */ });
     }, [venues]);
+    
+    // ─── Live Check-in Counts ───
+    const [checkinCounts, setCheckinCounts] = useState({});
+    useEffect(() => {
+        fetch('/api/poker/checkins?today=true')
+            .then(r => r.json())
+            .then(json => {
+                if (json.success && json.data) {
+                    const counts = {};
+                    json.data.forEach(c => {
+                        counts[String(c.venue_id)] = (counts[String(c.venue_id)] || 0) + 1;
+                    });
+                    setCheckinCounts(counts);
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     // ─── Listen for review submissions to refresh review stats for that venue ───
     useEffect(() => {
@@ -1215,6 +1232,7 @@ export default function PokerNearMePage() {
                             time: Date.now(),
                             label: city && state ? `${city}, ${state}` : null
                         }));
+                        window.dispatchEvent(new Event('sp_user_gps_updated'));
                     }
                 }
             }
@@ -1432,11 +1450,22 @@ export default function PokerNearMePage() {
             }
         };
 
-        let unsubFav, unsubUnfav, unsubMutate;
+        const handleBusCheckinCreated = (event) => {
+            const data = event.payload;
+            if (data && data.venueId) {
+                setCheckinCounts(prev => ({
+                    ...prev,
+                    [String(data.venueId)]: (prev[String(data.venueId)] || 0) + 1
+                }));
+            }
+        };
+
+        let unsubFav, unsubUnfav, unsubMutate, unsubCheckin;
         if (bus && bus.on) {
             unsubFav = bus.on(EventType.VENUE_SAVED, handleBusFavSync);
             unsubUnfav = bus.on(EventType.VENUE_UNSAVED, handleBusUnfavSync);
             unsubMutate = bus.on(EventType.DATA_MUTATED, handleBusDataMutated);
+            unsubCheckin = bus.on(EventType.VENUE_CHECKIN_CREATED, handleBusCheckinCreated);
         }
 
         return () => {
@@ -1444,6 +1473,7 @@ export default function PokerNearMePage() {
             if (unsubFav) unsubFav();
             if (unsubUnfav) unsubUnfav();
             if (unsubMutate) unsubMutate();
+            if (unsubCheckin) unsubCheckin();
         };
     }, []);
 
@@ -1675,6 +1705,7 @@ export default function PokerNearMePage() {
             localStorage.setItem('sp-user-gps', JSON.stringify({ lat: loc.lat, lng: loc.lng, time: Date.now() }));
             localStorage.setItem('pnm_last_location', JSON.stringify(loc));
             localStorage.setItem('pnm_location_enabled', '1');
+            window.dispatchEvent(new Event('sp_user_gps_updated'));
             // GPS takes priority — clear any saved city selection
             localStorage.removeItem('pnm_last_selected_city');
         } catch (e) { /* storage full */ }
@@ -1689,6 +1720,7 @@ export default function PokerNearMePage() {
                     const saved = JSON.parse(localStorage.getItem('sp-user-gps') || '{}');
                     saved.label = label;
                     localStorage.setItem('sp-user-gps', JSON.stringify(saved));
+                    window.dispatchEvent(new Event('sp_user_gps_updated'));
                     // Also write lobby-compatible keys for cross-page sync
                     const parts = label.split(', ');
                     if (parts.length >= 2) {
@@ -2413,6 +2445,7 @@ export default function PokerNearMePage() {
             onMapVenueClick={onMapVenueClick}
             iframeModal={iframeModal}
             setIframeModal={setIframeModal}
+            checkinCounts={checkinCounts}
         />
     );
     
