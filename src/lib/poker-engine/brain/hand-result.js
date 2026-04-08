@@ -53,7 +53,7 @@ async function processHandResult(handData, bb = 2) {
                     horseTracker.set(oppId, count);
 
                     if (count >= 3) {
-                        console.error(`[HorseBrain] 🚨 ANTI-COLLUSION TRIGGERED: ${pid} has been stacked 3x by ${oppId}! Fleeing table.`);
+                        console.error(`[HorseBrain]  ANTI-COLLUSION TRIGGERED: ${pid} has been stacked 3x by ${oppId}! Fleeing table.`);
                         // Spike tilt to 1.0 — evaluateSessions will immediately detect this and stand them up
                         if (!tiltMap.has(pid)) tiltMap.set(pid, {});
                         const state = tiltMap.get(pid);
@@ -187,7 +187,7 @@ async function processHandResult(handData, bb = 2) {
             if (!horseExp.has(tableIdHR)) horseExp.set(tableIdHR, { showdowns: 0, handsPlayed: 0 });
             horseExp.get(tableIdHR).showdowns++;
             const { showdowns, handsPlayed } = horseExp.get(tableIdHR);
-            console.log(`[HorseBrain] 👁️ MODULE 3 EXPOSURE: ${pid.substring(0, 8)} has shown down ${showdowns}/${handsPlayed} hands at table ${tableIdHR.substring(0, 8)}`);
+            console.log(`[HorseBrain]  MODULE 3 EXPOSURE: ${pid.substring(0, 8)} has shown down ${showdowns}/${handsPlayed} hands at table ${tableIdHR.substring(0, 8)}`);
         }
 
         // ─── MODULE 4: PATTERN EXPLOITATION DETECTOR ───
@@ -219,7 +219,7 @@ async function processHandResult(handData, bb = 2) {
                 // Alert when a human has found a pattern worth 5+ BB
                 if (pat.totalProfit >= 5) {
                     const highest = Object.entries({ cbet: pat.cbet, check_raise: pat.check_raise, float: pat.float, bluff: pat.bluff }).sort((a, b) => b[1] - a[1])[0];
-                    console.warn(`[HorseBrain] ⚠️ MODULE 4 PATTERN: ${oppId.substring(0, 8)} exploiting ${pid.substring(0, 8)} via '${highest[0]}' (+${pat.totalProfit.toFixed(1)}BB total)`);
+                    console.warn(`[HorseBrain]  MODULE 4 PATTERN: ${oppId.substring(0, 8)} exploiting ${pid.substring(0, 8)} via '${highest[0]}' (+${pat.totalProfit.toFixed(1)}BB total)`);
                 }
             }
         }
@@ -261,7 +261,7 @@ async function processHandResult(handData, bb = 2) {
             botData.suspectScore = Math.min(100, Math.round((gtoFoldRate * 50) + (gtoSizeRate * 50)));
 
             if (botData.suspectScore >= 65 && botData.handsObserved >= 10) {
-                console.warn(`[HorseBrain] 🤖 MODULE 7 BOT DETECTED: ${oppId.substring(0, 8)} suspect score = ${botData.suspectScore}/100 (${botData.handsObserved} hands)`);
+                console.warn(`[HorseBrain]  MODULE 7 BOT DETECTED: ${oppId.substring(0, 8)} suspect score = ${botData.suspectScore}/100 (${botData.handsObserved} hands)`);
             }
 
             // ─── MODULE 10: CROSS-TABLE COLLUSION RADAR ───
@@ -271,7 +271,7 @@ async function processHandResult(handData, bb = 2) {
             crossTableRadar.get(oppId).add(tableHR);
             const tablesCount = crossTableRadar.get(oppId).size;
             if (tablesCount >= 3) {
-                console.warn(`[HorseBrain] 🚫 MODULE 10 CROSS-TABLE: ${oppId.substring(0, 8)} at ${tablesCount} horse tables simultaneously!`);
+                console.warn(`[HorseBrain]  MODULE 10 CROSS-TABLE: ${oppId.substring(0, 8)} at ${tablesCount} horse tables simultaneously!`);
             }
 
             // ─── MODULE 15: TIMEBANK ABUSE DETECTOR ───
@@ -288,7 +288,7 @@ async function processHandResult(handData, bb = 2) {
                 if (avgMs > 22000) {
                     tbTrack.suspicionScore = Math.min(100, tbTrack.suspicionScore + 5);
                     if (tbTrack.suspicionScore >= 70) {
-                        console.warn(`[HorseBrain] ⏱️ MODULE 15 STALL: ${oppId.substring(0, 8)} avg=${(avgMs / 1000).toFixed(1)}s, suspicion=${tbTrack.suspicionScore}/100`);
+                        console.warn(`[HorseBrain] ⏱ MODULE 15 STALL: ${oppId.substring(0, 8)} avg=${(avgMs / 1000).toFixed(1)}s, suspicion=${tbTrack.suspicionScore}/100`);
                     }
                 } else {
                     // Decay suspicion for legitimate players

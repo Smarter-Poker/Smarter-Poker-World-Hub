@@ -50,7 +50,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     const preflopLiveRead = primaryOppId ? getLiveRead(profileId, tableId, primaryOppId) : null;
     const preflopLiveConf = preflopLiveRead?.confidence || 0;
     if (preflopLiveRead && preflopLiveConf >= 0.10 && street === 'preflop') {
-        console.log(`[HorseBrain] 👁️ PREFLOP LIVE: ${primaryOppId?.substring(0, 8)} 3bet=${preflopLiveRead.threeBetPct !== null ? Math.round(preflopLiveRead.threeBetPct * 100) + '%' : '?'} foldTo3b=${preflopLiveRead.foldToThreeBetPct !== null ? Math.round(preflopLiveRead.foldToThreeBetPct * 100) + '%' : '?'} pfr=${preflopLiveRead.pfrPct !== null ? Math.round(preflopLiveRead.pfrPct * 100) + '%' : '?'} foldSteal=${preflopLiveRead.foldToStealPct !== null ? Math.round(preflopLiveRead.foldToStealPct * 100) + '%' : '?'} type=${preflopLiveRead.playerType} conf=${Math.round(preflopLiveConf * 100)}%`);
+        console.log(`[HorseBrain]  PREFLOP LIVE: ${primaryOppId?.substring(0, 8)} 3bet=${preflopLiveRead.threeBetPct !== null ? Math.round(preflopLiveRead.threeBetPct * 100) + '%' : '?'} foldTo3b=${preflopLiveRead.foldToThreeBetPct !== null ? Math.round(preflopLiveRead.foldToThreeBetPct * 100) + '%' : '?'} pfr=${preflopLiveRead.pfrPct !== null ? Math.round(preflopLiveRead.pfrPct * 100) + '%' : '?'} foldSteal=${preflopLiveRead.foldToStealPct !== null ? Math.round(preflopLiveRead.foldToStealPct * 100) + '%' : '?'} type=${preflopLiveRead.playerType} conf=${Math.round(preflopLiveConf * 100)}%`);
     }
 
     // ═══ UPGRADED: Use real personality module for play style if available ═══
@@ -750,7 +750,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                     if (isWetBoard) donkFrac = Math.min(0.60, donkFrac + 0.08);
                     const betSize = Math.round(potSize * donkFrac);
                     const amount = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
-                    console.log(`[HorseBrain] 🏋️ FLOP DONK: str=${effectiveStrength} board=${boardIsLow ? 'low' : boardIsConnected ? 'connected' : 'other'} outs=${drawEquity.outs}`);
+                    console.log(`[HorseBrain]  FLOP DONK: str=${effectiveStrength} board=${boardIsLow ? 'low' : boardIsConnected ? 'connected' : 'other'} outs=${drawEquity.outs}`);
                     return { type: raiseAction.type, amount };
                 }
             }
@@ -949,23 +949,23 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             // Check-raise: raise the bet
             const crSize = Math.round(toCall * (oopDecision.sizeFraction || 3.0));
             const amount = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(crSize, raiseAction?.maxAmount || crSize));
-            console.log(`[HorseBrain] 🎲 OOP MATRIX: check-raise (${oopDecision.reason}) freq=${Math.round(mainCRFreq * 100)}%`);
+            console.log(`[HorseBrain]  OOP MATRIX: check-raise (${oopDecision.reason}) freq=${Math.round(mainCRFreq * 100)}%`);
             return { type: raiseAction.type, amount };
         }
         if (oopDecision.action === 'check_call' && canCall) {
-            console.log(`[HorseBrain] 🎲 OOP MATRIX: check-call (${oopDecision.reason})`);
+            console.log(`[HorseBrain]  OOP MATRIX: check-call (${oopDecision.reason})`);
             return { type: 'call' };
         }
         if (oopDecision.action === 'lead' && canRaise) {
             const leadSize = Math.round(potSize * (oopDecision.sizeFraction || 0.50));
             const amount = Math.max(raiseAction?.minAmount || 1, Math.min(leadSize, raiseAction?.maxAmount || leadSize));
-            console.log(`[HorseBrain] 🎲 OOP MATRIX: lead bet (${oopDecision.reason})`);
+            console.log(`[HorseBrain]  OOP MATRIX: lead bet (${oopDecision.reason})`);
             return { type: raiseAction.type, amount };
         }
         if (oopDecision.action === 'check_fold') {
             // RIO guard: still check if possible instead of fold
             if (canCheck) return { type: 'check' };
-            console.log(`[HorseBrain] 🎲 OOP MATRIX: fold (${oopDecision.reason})`);
+            console.log(`[HorseBrain]  OOP MATRIX: fold (${oopDecision.reason})`);
             return { type: 'fold' };
         }
         // If matrix didn't make a decision, fall through to existing logic
@@ -1012,7 +1012,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
     // draws should NOT be folded by the RIO guard. The guard is for hands RELYING on
     // draw equity (pair + gutshot, weak pair + backdoor), not strong made hands.
     if (fbRioGuard.shouldBlock && drawEquity.outs > 0 && drawEquity.outs < 12 && effectiveStrength < 40) {
-        console.log(`[HorseBrain] 🚫 MODULE 27 RIO FALLBACK: folding draw — ${fbRioGuard.reason}`);
+        console.log(`[HorseBrain]  MODULE 27 RIO FALLBACK: folding draw — ${fbRioGuard.reason}`);
         return canCheck ? { type: 'check' } : { type: 'fold' };
     }
 
@@ -1073,7 +1073,7 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                 || (effectiveStrength >= 30 && Math.random() < flopTurnMDF * 0.25);
 
             if (mdfMarginCall) {
-                console.log(`[HorseBrain] 🛡️ MDF DEFENSE: calling large bet (${Math.round(betRelPot * 100)}% pot) str=${effectiveStrength} MDF=${Math.round(flopTurnMDF * 100)}%`);
+                console.log(`[HorseBrain]  MDF DEFENSE: calling large bet (${Math.round(betRelPot * 100)}% pot) str=${effectiveStrength} MDF=${Math.round(flopTurnMDF * 100)}%`);
                 return { type: 'call' };
             }
         }
@@ -2218,7 +2218,7 @@ function makeTurnRiverHeuristicDecision(params) {
             oppBluffFreq = Math.max(oppBluffFreq, 0.30);
         }
 
-        console.log(`[HorseBrain] 👁️ LIVE READ: ${primaryOppId?.substring(0, 8)} type=${liveRead.playerType} hands=${liveRead.handsObserved} conf=${Math.round(liveRead.confidence * 100)}% exploits=[${oppExploits.join(',')}]`);
+        console.log(`[HorseBrain]  LIVE READ: ${primaryOppId?.substring(0, 8)} type=${liveRead.playerType} hands=${liveRead.handsObserved} conf=${Math.round(liveRead.confidence * 100)}% exploits=[${oppExploits.join(',')}]`);
     }
 
     // ═══ LIVE BET-SIZING TELL ANALYSIS ═══
@@ -2443,7 +2443,7 @@ function makeTurnRiverHeuristicDecision(params) {
             liveRead  // Phase 28: pass live-read to exploit intensifier
         });
         if (exploitResult.exploiting && exploitResult.action) {
-            console.log(`[HorseBrain] 🎯 EXPLOIT INTENSIFIER: ${exploitResult.exploit} → ${exploitResult.action}`);
+            console.log(`[HorseBrain]  EXPLOIT INTENSIFIER: ${exploitResult.exploit} → ${exploitResult.action}`);
             if (exploitResult.action === 'check') return canCheck ? { type: 'check' } : null;
             // BUG #29 FIX: Never fold when check is available — strict dominance
             if (exploitResult.action === 'fold') return canCheck ? { type: 'check' } : { type: 'fold' };
@@ -2593,7 +2593,7 @@ function makeTurnRiverHeuristicDecision(params) {
                         if (liveRead.foldFreq > 0.50 && handEval.strength < 35) sizeFrac = Math.max(0.38, sizeFrac - 0.08);
                         if (liveRead.callFreq > 0.55 && handEval.strength >= 45) sizeFrac = Math.min(0.70, sizeFrac + 0.06);
                     }
-                    console.log(`[HorseBrain] 🎯 DELAYED C-BET: str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                    console.log(`[HorseBrain]  DELAYED C-BET: str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * sizeFrac)) };
                 }
             }
@@ -3022,7 +3022,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                 probeFreq = Math.max(0, Math.min(0.55, probeFreq));
                 if (probeFreq > 0.05 && Math.random() < probeFreq) {
-                    console.log(`[HorseBrain] 🔍 TURN PROBE: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency} size=${Math.round(probeSizing * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                    console.log(`[HorseBrain]  TURN PROBE: str=${handEval.strength} scare=${scareLevel} opp=${oppTendency} size=${Math.round(probeSizing * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeSizing)) };
                 }
             }
@@ -3061,7 +3061,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                         oopLeadFreq = Math.max(0.20, Math.min(0.75, oopLeadFreq));
                         if (Math.random() < oopLeadFreq) {
-                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (value): str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                            console.log(`[HorseBrain]  OOP TURN LEAD (value): str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                             return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * valuLeadSize)) };
                         }
                     }
@@ -3084,7 +3084,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                         protectLeadFreq = Math.max(0, Math.min(0.45, protectLeadFreq));
                         if (Math.random() < protectLeadFreq) {
-                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (protect): str=${handEval.strength} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                            console.log(`[HorseBrain]  OOP TURN LEAD (protect): str=${handEval.strength} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                             return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * protectSize)) };
                         }
                     }
@@ -3116,7 +3116,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                         bluffLeadFreq = Math.max(0, Math.min(0.30, bluffLeadFreq));
                         if (Math.random() < bluffLeadFreq) {
-                            console.log(`[HorseBrain] 🏋 OOP TURN LEAD (bluff): str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                            console.log(`[HorseBrain]  OOP TURN LEAD (bluff): str=${handEval.strength} scare=${scareLevel} live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                             return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * bluffLeadSize)) };
                         }
                     }
@@ -3295,7 +3295,7 @@ function makeTurnRiverHeuristicDecision(params) {
                         }
                     }
 
-                    console.log(`[HorseBrain] 🎭 TURN BLUFF: ${handStr} blockers=${turnBluffBlockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(turnBluffFrac * 100)}% pot`);
+                    console.log(`[HorseBrain]  TURN BLUFF: ${handStr} blockers=${turnBluffBlockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(turnBluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * turnBluffFrac)) };
                 }
             }
@@ -3350,7 +3350,7 @@ function makeTurnRiverHeuristicDecision(params) {
             if (handEval.strength >= (60 - turnRaiseLiveAdj)) {
                 // Against weak-tight raisers: lean fold (they have the nuts)
                 if (oppTendency === 'weak-tight' && oppConfidence > 0.4 && handEval.strength < (75 - turnRaiseLiveAdj)) {
-                    console.log(`[HorseBrain] 🎯 TURN vs RAISE FOLD: opp=weak-tight raiser, str=${handEval.strength} liveAdj=${turnRaiseLiveAdj}`);
+                    console.log(`[HorseBrain]  TURN vs RAISE FOLD: opp=weak-tight raiser, str=${handEval.strength} liveAdj=${turnRaiseLiveAdj}`);
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
                 // Draws completed → be cautious
@@ -3373,7 +3373,7 @@ function makeTurnRiverHeuristicDecision(params) {
             if (handEval.strength >= 45 && betToPot <= 0.45 && canCall) {
                 return { type: 'call' }; // Min-raise → call wider
             }
-            console.log(`[HorseBrain] 🚫 TURN vs RAISE FOLD: str=${handEval.strength} outs=${drawEq.outs} betToPot=${Math.round(betToPot * 100)}%`);
+            console.log(`[HorseBrain]  TURN vs RAISE FOLD: str=${handEval.strength} outs=${drawEq.outs} betToPot=${Math.round(betToPot * 100)}%`);
             return canCheck ? { type: 'check' } : { type: 'fold' };
         }
 
@@ -3411,7 +3411,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
             if (turnOopDecision.action === 'check_raise' && canRaise && Math.random() < turnCRFreq) {
                 const crSize = Math.round(toCall * (turnOopDecision.sizeFraction || 3.0));
-                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: turn check-raise (${turnOopDecision.reason}) freq=${Math.round(turnCRFreq * 100)}%`);
+                console.log(`[HorseBrain]  TR-OOP MATRIX: turn check-raise (${turnOopDecision.reason}) freq=${Math.round(turnCRFreq * 100)}%`);
                 return { type: raiseAction.type, amount: clampAmt(crSize) };
             }
             if (turnOopDecision.action === 'check_fold') {
@@ -3492,7 +3492,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 // If live-read shows they're actually aggressive, DON'T auto-laydown
                 const liveAggroOverride = liveRead && liveRead.confidence >= 0.25 && liveRead.aggFreq > 0.35;
                 if ((oppConfidence > 0.4 || liveNitTurnLaydown) && betToPot >= 0.60 && !is3BetPot && !liveAggroOverride) {
-                    console.log(`[HorseBrain] 🎯 TURN LAYDOWN: strong hand (${handEval.strength}) but opp is weak-tight in polarized pot liveNit=${liveNitTurnLaydown}`);
+                    console.log(`[HorseBrain]  TURN LAYDOWN: strong hand (${handEval.strength}) but opp is weak-tight in polarized pot liveNit=${liveNitTurnLaydown}`);
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
             }
@@ -3506,7 +3506,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (!weHaveCompletedDraw && betToPot >= 0.60) {
                     // Big bet on draw-completing turn = fold marginal hands
                     if (handEval.strength < 60 && !blocksNutFlush) {
-                        console.log(`[HorseBrain] 🌊 TURN FOLD: draw completed, no blockers, str=${handEval.strength}`);
+                        console.log(`[HorseBrain]  TURN FOLD: draw completed, no blockers, str=${handEval.strength}`);
                         return canCheck ? { type: 'check' } : { type: 'fold' };
                     }
                 }
@@ -3527,7 +3527,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (!hasBlockers && oppTendency !== 'bluffy') {
                     // No blockers + opponent isn't known bluffer → fold marginal strong hands
                     if (betToPot >= 0.60 && oppConfidence > 0.3) {
-                        console.log(`[HorseBrain] 📖 TURN NARRATIVE FOLD: double-barrel, no blockers, str=${handEval.strength}`);
+                        console.log(`[HorseBrain]  TURN NARRATIVE FOLD: double-barrel, no blockers, str=${handEval.strength}`);
                         return canCheck ? { type: 'check' } : { type: 'fold' };
                     }
                 }
@@ -3663,7 +3663,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     if (oppCallFreq > 0.55 && oppConfidence > 0.3) crMult = Math.min(4.0, crMult * 1.10);
                     crMult *= liveCRSizeMod; // PHASE 16: Live-driven size adjustment
                     const crSize = Math.round(toCall * crMult);
-                    console.log(`[HorseBrain] 💎 TURN CHECK-RAISE VALUE: str=${handEval.strength} crMult=${crMult.toFixed(1)}x narrative=${narrative.suggestedLine}`);
+                    console.log(`[HorseBrain]  TURN CHECK-RAISE VALUE: str=${handEval.strength} crMult=${crMult.toFixed(1)}x narrative=${narrative.suggestedLine}`);
                     return { type: raiseAction.type, amount: clampAmt(crSize) };
                 }
             }
@@ -3698,7 +3698,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                 if (Math.random() < semiCRFreq) {
                     let crSize = Math.round(toCall * (2.5 + Math.random() * 0.5) * liveCRSizeMod);
-                    console.log(`[HorseBrain] 🌊 TURN SEMI-BLUFF CR: outs=${drawEq.outs} str=${handEval.strength}`);
+                    console.log(`[HorseBrain]  TURN SEMI-BLUFF CR: outs=${drawEq.outs} str=${handEval.strength}`);
                     return { type: raiseAction.type, amount: clampAmt(crSize) };
                 }
             }
@@ -3734,7 +3734,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                     if (Math.random() < bluffCRFreq) {
                         const crSize = Math.round(toCall * (2.8 + Math.random() * 0.4) * liveCRSizeMod);
-                        console.log(`[HorseBrain] 🎭 TURN BLUFF CR: blockers=${crBlockerCount} opp=${oppTendency} scare=${scareLevel}`);
+                        console.log(`[HorseBrain]  TURN BLUFF CR: blockers=${crBlockerCount} opp=${oppTendency} scare=${scareLevel}`);
                         return { type: raiseAction.type, amount: clampAmt(crSize) };
                     }
                 }
@@ -3775,7 +3775,7 @@ function makeTurnRiverHeuristicDecision(params) {
                             return canCheck ? { type: 'check' } : { type: 'fold' };
                         }
                     }
-                    console.log(`[HorseBrain] 📖 TURN MEDIUM FOLD: double-barrel, medium hand (${handEval.strength}), no blockers`);
+                    console.log(`[HorseBrain]  TURN MEDIUM FOLD: double-barrel, medium hand (${handEval.strength}), no blockers`);
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
             }
@@ -3996,7 +3996,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     }
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * nitFrac)) };
                 }
-                console.log(`[HorseBrain] 💰 RIVER OVERBET: str=${handEval.strength} max=${Math.round(overbetMax * 100)}% polar=${riverRangeType} 3bet=${is3BetPot}`);
+                console.log(`[HorseBrain]  RIVER OVERBET: str=${handEval.strength} max=${Math.round(overbetMax * 100)}% polar=${riverRangeType} 3bet=${is3BetPot}`);
                 return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * overbetFrac)) };
             }
 
@@ -4295,7 +4295,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                     probeFreq = Math.max(0, Math.min(0.55, probeFreq));
                     if (Math.random() < probeFreq) {
-                        console.log(`[HorseBrain] 🔍 RIVER PROBE: str=${handEval.strength} OOP after checked turn — ${Math.round(probeFrac * 100)}% pot live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                        console.log(`[HorseBrain]  RIVER PROBE: str=${handEval.strength} OOP after checked turn — ${Math.round(probeFrac * 100)}% pot live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                         return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * probeFrac)) };
                     }
                 }
@@ -4467,7 +4467,7 @@ function makeTurnRiverHeuristicDecision(params) {
                         }
                     }
 
-                    console.log(`[HorseBrain] 🎭 RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] count=${blockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(bluffFrac * 100)}% pot`);
+                    console.log(`[HorseBrain]  RIVER BLUFF: ${handStr} blockers=[NFD=${blocksNutFlush},TopSet=${blocksTopSet},Str=${blocksStraight}] count=${blockerCount} story=${narrative.suggestedLine} opp=${oppTendency} — ${Math.round(bluffFrac * 100)}% pot`);
                     return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * bluffFrac)) };
                 }
             }
@@ -4526,7 +4526,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
                     leadFreq = Math.max(0, Math.min(0.50, leadFreq));
                     if (Math.random() < leadFreq) {
-                        console.log(`[HorseBrain] 🎯 RIVER OOP LEAD: str=${handEval.strength} freq=${Math.round(leadFreq * 100)}% size=${Math.round(leadFrac * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                        console.log(`[HorseBrain]  RIVER OOP LEAD: str=${handEval.strength} freq=${Math.round(leadFreq * 100)}% size=${Math.round(leadFrac * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                         return { type: raiseAction.type, amount: clampAmt(Math.round(potSize * leadFrac)) };
                     }
                 }
@@ -4631,10 +4631,10 @@ function makeTurnRiverHeuristicDecision(params) {
 
                 riverRaiseCallFreq = Math.max(0.02, Math.min(0.55, riverRaiseCallFreq));
                 if (Math.random() < riverRaiseCallFreq) {
-                    console.log(`[HorseBrain] 🦸 RIVER vs RAISE CALL: str=${handEval.strength} blockers=${bcBlockerCount} freq=${Math.round(riverRaiseCallFreq * 100)}%`);
+                    console.log(`[HorseBrain]  RIVER vs RAISE CALL: str=${handEval.strength} blockers=${bcBlockerCount} freq=${Math.round(riverRaiseCallFreq * 100)}%`);
                     return canCall ? { type: 'call' } : { type: 'fold' };
                 }
-                console.log(`[HorseBrain] 🚫 RIVER vs RAISE FOLD: str=${handEval.strength} blockers=${bcBlockerCount}`);
+                console.log(`[HorseBrain]  RIVER vs RAISE FOLD: str=${handEval.strength} blockers=${bcBlockerCount}`);
                 return canCheck ? { type: 'check' } : { type: 'fold' };
             }
             // ── DRAWS / WEAK HANDS: Almost always fold to river raise ──
@@ -4688,7 +4688,7 @@ function makeTurnRiverHeuristicDecision(params) {
 
             if (riverOopDecision.action === 'check_raise' && canRaise && Math.random() < riverCRFreq) {
                 const crSize = Math.round(toCall * (riverOopDecision.sizeFraction || 3.0));
-                console.log(`[HorseBrain] 🎲 TR-OOP MATRIX: river check-raise (${riverOopDecision.reason}) freq=${Math.round(riverCRFreq * 100)}%`);
+                console.log(`[HorseBrain]  TR-OOP MATRIX: river check-raise (${riverOopDecision.reason}) freq=${Math.round(riverCRFreq * 100)}%`);
                 return { type: raiseAction.type, amount: clampAmt(crSize) };
             }
             if (riverOopDecision.action === 'check_fold' && handEval.strength < 40) {
@@ -4735,7 +4735,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 if (liveRead && liveRead.confidence >= 0.25 && liveRead.aggFreq > 0.40) {
                     // Override: aggro player, don't fold strong hands
                 } else {
-                    console.log(`[HorseBrain] 🎯 RIVER LAYDOWN: opp=weak-tight, big bet in heavy pot, strength=${handEval.strength}`);
+                    console.log(`[HorseBrain]  RIVER LAYDOWN: opp=weak-tight, big bet in heavy pot, strength=${handEval.strength}`);
                     return canCheck ? { type: 'check' } : { type: 'fold' };
                 }
             }
@@ -4743,7 +4743,7 @@ function makeTurnRiverHeuristicDecision(params) {
             // New: live data can INDEPENDENTLY trigger a laydown even without static weak-tight tag
             if (liveRead && liveRead.confidence >= 0.30 && liveRead.aggFreq < 0.15 &&
                 betToPot >= 0.80 && handEval.strength < 68 && !is3BetPot) {
-                console.log(`[HorseBrain] 🎯 RIVER LIVE LAYDOWN: opp aggFreq=${liveRead.aggFreq.toFixed(2)}, big bet, str=${handEval.strength}`);
+                console.log(`[HorseBrain]  RIVER LIVE LAYDOWN: opp aggFreq=${liveRead.aggFreq.toFixed(2)}, big bet, str=${handEval.strength}`);
                 return canCheck ? { type: 'check' } : { type: 'fold' };
             }
 
@@ -4795,7 +4795,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     // Against calling stations, go bigger
                     if (oppCallFreq > 0.55 && oppConfidence > 0.3) raiseMult = Math.min(4.0, raiseMult * 1.15);
                     const raiseSize = Math.round(toCall * raiseMult);
-                    console.log(`[HorseBrain] 💰 RIVER VALUE RAISE: str=${handEval.strength} betToPot=${Math.round(betToPot * 100)}% raise=${raiseMult.toFixed(1)}x`);
+                    console.log(`[HorseBrain]  RIVER VALUE RAISE: str=${handEval.strength} betToPot=${Math.round(betToPot * 100)}% raise=${raiseMult.toFixed(1)}x`);
                     return { type: raiseAction.type, amount: clampAmt(raiseSize) };
                 }
             }
@@ -4993,7 +4993,7 @@ function makeTurnRiverHeuristicDecision(params) {
                 // ═══ POLARIZATION: overbets confirm polarized range → call wider ═══
                 overbetCallFreq += polarCallMod;
                 if (Math.random() < overbetCallFreq) {
-                    console.log(`[HorseBrain] 🕵️ BLUFF-CATCH: overbet (${Math.round(betToPot * 100)}% pot) str=${handEval.strength} opp=${oppTendency}`);
+                    console.log(`[HorseBrain]  BLUFF-CATCH: overbet (${Math.round(betToPot * 100)}% pot) str=${handEval.strength} opp=${oppTendency}`);
                     return canCall ? { type: 'call' } : { type: 'fold' };
                 }
             }
@@ -5288,7 +5288,7 @@ function makeTurnRiverHeuristicDecision(params) {
             heroCallProb = Math.max(0, Math.min(0.65, heroCallProb));
 
             if (heroCallProb > 0.05 && Math.random() < heroCallProb) {
-                console.log(`[HorseBrain] 🦸 HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} bq=${heroCallBlockerQuality.toFixed(2)} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
+                console.log(`[HorseBrain]  HERO CALL: str=${handEval.strength} blockers=${heroBlockerCount} bq=${heroCallBlockerQuality.toFixed(2)} oppBluff=${(oppBluffFreq * 100).toFixed(0)}% bet=${Math.round(betToPot * 100)}%pot prob=${Math.round(heroCallProb * 100)}% live=${liveRead?.confidence?.toFixed(2) ?? '?'}`);
                 return canCall ? { type: 'call' } : { type: 'fold' };
             }
         }
@@ -5346,7 +5346,7 @@ function makeTurnRiverHeuristicDecision(params) {
                     crMult *= liveCRSizeMod; // Pre-computed: 1.12 vs callers, 0.92 vs folders
                     crMult = Math.max(2.0, Math.min(4.5, crMult));
                     const crSize = Math.round(toCall * crMult);
-                    console.log(`[HorseBrain] 💎 RIVER VALUE CR: str=${handEval.strength} mult=${crMult.toFixed(1)}x polar=${riverRangeType} liveCR=${liveCRBoost.toFixed(2)}`);
+                    console.log(`[HorseBrain]  RIVER VALUE CR: str=${handEval.strength} mult=${crMult.toFixed(1)}x polar=${riverRangeType} liveCR=${liveCRBoost.toFixed(2)}`);
                     return { type: raiseAction.type, amount: clampAmt(crSize) };
                 }
                 // If not check-raising, just call (we have the nuts)
@@ -5433,7 +5433,7 @@ function makeTurnRiverHeuristicDecision(params) {
                         }
                         crMult = Math.max(2.0, Math.min(4.5, crMult));
                         const crSize = Math.round(toCall * crMult);
-                        console.log(`[HorseBrain] 🎭 RIVER BLUFF CR: blockers=${crBlkCount} oppFold=${Math.round(oppFoldFreq * 100)}% freq=${Math.round(bluffCRFreq * 100)}% liveCR=${liveCRBoost.toFixed(2)}`);
+                        console.log(`[HorseBrain]  RIVER BLUFF CR: blockers=${crBlkCount} oppFold=${Math.round(oppFoldFreq * 100)}% freq=${Math.round(bluffCRFreq * 100)}% liveCR=${liveCRBoost.toFixed(2)}`);
                         return { type: raiseAction.type, amount: clampAmt(crSize) };
                     }
                 }
@@ -5635,7 +5635,7 @@ function makeFlopHeuristicDecision(params) {
             oppFoldFreq = Math.max(oppFoldFreq, 0.48);
         }
 
-        console.log(`[HorseBrain] 👁️ FLOP LIVE: ${primaryOppId?.substring(0, 8)} type=${flopLiveRead.playerType} cbet=${flopLiveRead.cBetPct !== null ? Math.round(flopLiveRead.cBetPct * 100) + '%' : '?'} foldCB=${flopLiveRead.foldToCBetPct !== null ? Math.round(flopLiveRead.foldToCBetPct * 100) + '%' : '?'} exploits=[${flopExploits.join(',')}]`);
+        console.log(`[HorseBrain]  FLOP LIVE: ${primaryOppId?.substring(0, 8)} type=${flopLiveRead.playerType} cbet=${flopLiveRead.cBetPct !== null ? Math.round(flopLiveRead.cBetPct * 100) + '%' : '?'} foldCB=${flopLiveRead.foldToCBetPct !== null ? Math.round(flopLiveRead.foldToCBetPct * 100) + '%' : '?'} exploits=[${flopExploits.join(',')}]`);
     }
 
     // ═══ IN-HAND ACTION SEQUENCE → C-BET MODIFIERS ═══
@@ -8276,7 +8276,7 @@ function applyExploitIntensifier(params) {
                 // Live-read sizing: SMALLER vs folders (save chips, same fold equity)
                 let sizeFrac = 0.50 + Math.random() * 0.15; // 50-65% pot
                 if (liveConfident && liveRead.foldFreq > 0.60) sizeFrac = 0.38 + Math.random() * 0.10; // 38-48% pot
-                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: over-folder bluff (foldFreq=${(oppFoldFreq * 100).toFixed(0)}%)`);
+                console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: over-folder bluff (foldFreq=${(oppFoldFreq * 100).toFixed(0)}%)`);
                 return {
                     action: raiseAction.type,
                     amount: Math.round(potSize * sizeFrac),
@@ -8287,7 +8287,7 @@ function applyExploitIntensifier(params) {
         // Facing a bet: opponent is betting into us but usually folds → raise to test
         if (facingBet && handStrength >= 25 && handStrength < 50 && canRaise && !multiway) {
             if (Math.random() < 0.30) {
-                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: raise vs over-folder`);
+                console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: raise vs over-folder`);
                 return {
                     action: raiseAction.type,
                     amount: Math.round(toCall * 2.5),
@@ -8309,7 +8309,7 @@ function applyExploitIntensifier(params) {
             if (Math.random() < Math.min(0.80, thinValueFreq)) {
                 // Size UP — they're calling anyway
                 const sizeFrac = 0.65 + Math.random() * 0.20; // 65-85% pot
-                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: thin value vs calling station (callFreq=${(oppCallFreq * 100).toFixed(0)}%)`);
+                console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: thin value vs calling station (callFreq=${(oppCallFreq * 100).toFixed(0)}%)`);
                 return {
                     action: raiseAction.type,
                     amount: Math.round(potSize * sizeFrac),
@@ -8320,7 +8320,7 @@ function applyExploitIntensifier(params) {
         // Strong hands: overbet for value
         if (!facingBet && handStrength >= 70 && canRaise) {
             const overbetFrac = 1.0 + Math.random() * 0.50; // 100-150% pot
-            console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: overbet value vs calling station`);
+            console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: overbet value vs calling station`);
             return {
                 action: raiseAction.type,
                 amount: Math.round(potSize * overbetFrac),
@@ -8349,7 +8349,7 @@ function applyExploitIntensifier(params) {
             // ═══ Phase 42 FIX: was using raw oppBluffFreq — use effectiveBluffFreq so live-read data intensifies the exploit ═══
             const exploitCallFreq = 0.50 + (effectiveBluffFreq - 0.40) * 2.0;
             if (Math.random() < Math.min(0.75, exploitCallFreq)) {
-                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: call down bluffer (bluffFreq=${(oppBluffFreq * 100).toFixed(0)}%)`);
+                console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: call down bluffer (bluffFreq=${(oppBluffFreq * 100).toFixed(0)}%)`);
                 return {
                     action: 'call', amount: null,
                     exploiting: true, exploit: 'bluffer_calldown'
@@ -8382,7 +8382,7 @@ function applyExploitIntensifier(params) {
                 sizeFrac = 0.40 + Math.random() * 0.10; // Cheaper steals
             }
             if (Math.random() < nitStealFreq) {
-                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: steal vs nit`);
+                console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: steal vs nit`);
                 return {
                     action: raiseAction.type,
                     amount: Math.round(potSize * sizeFrac),
@@ -8408,7 +8408,7 @@ function applyExploitIntensifier(params) {
         // On the flop facing a c-bet: always call with anything (they'll give up on turn)
         if (facingBet && street === 'flop' && handStrength >= 10 && canCall && !multiway) {
             if (Math.random() < 0.65) {
-                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: one-and-done float (cbet=${(liveRead.cBetPct * 100).toFixed(0)}% barrel=${(liveRead.secondBarrelPct * 100).toFixed(0)}%)`);
+                console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: one-and-done float (cbet=${(liveRead.cBetPct * 100).toFixed(0)}% barrel=${(liveRead.secondBarrelPct * 100).toFixed(0)}%)`);
                 return {
                     action: 'call', amount: null,
                     exploiting: true, exploit: 'one_and_done_float'
@@ -8419,7 +8419,7 @@ function applyExploitIntensifier(params) {
         if (!facingBet && street === 'turn' && canRaise && !multiway && handStrength < 40) {
             if (Math.random() < 0.55) {
                 const sizeFrac = 0.45 + Math.random() * 0.10;
-                console.log(`[HorseBrain] 🎯 EXPLOIT-INTENSIFIER: one-and-done stab (cbet=${(liveRead.cBetPct * 100).toFixed(0)}% barrel=${(liveRead.secondBarrelPct * 100).toFixed(0)}%)`);
+                console.log(`[HorseBrain]  EXPLOIT-INTENSIFIER: one-and-done stab (cbet=${(liveRead.cBetPct * 100).toFixed(0)}% barrel=${(liveRead.secondBarrelPct * 100).toFixed(0)}%)`);
                 return {
                     action: raiseAction.type,
                     amount: Math.round(potSize * sizeFrac),
@@ -8547,7 +8547,7 @@ function handleDonkBet(params) {
         if (Math.random() < raiseFreq) {
             const raiseSize = Math.round(toCall * raiseMult);
             const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
-            console.log(`[HorseBrain] 🎯 DONK BET RAISE: str=${handStrength} liveBoost=${liveRaiseBoost.toFixed(2)} timing=${donkTimingTell}`);
+            console.log(`[HorseBrain]  DONK BET RAISE: str=${handStrength} liveBoost=${liveRaiseBoost.toFixed(2)} timing=${donkTimingTell}`);
             return { type: raiseAction.type, amount: clamped };
         }
         // Slowplay some monsters by just calling
@@ -8562,7 +8562,7 @@ function handleDonkBet(params) {
         if (Math.random() < semiFreq) {
             let raiseSize = Math.round(toCall * 2.5 * liveSizeMod);
             const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
-            console.log(`[HorseBrain] 🎯 DONK BET SEMI-BLUFF RAISE: ${drawOuts} outs liveBoost=${liveRaiseBoost.toFixed(2)}`);
+            console.log(`[HorseBrain]  DONK BET SEMI-BLUFF RAISE: ${drawOuts} outs liveBoost=${liveRaiseBoost.toFixed(2)}`);
             return { type: raiseAction.type, amount: clamped };
         }
     }
@@ -8589,7 +8589,7 @@ function handleDonkBet(params) {
         if (Math.random() < bluffRaiseFreq) {
             const raiseSize = Math.round(toCall * 2.8 * liveSizeMod);
             const clamped = Math.max(raiseAction?.minAmount || toCall * 2, Math.min(raiseSize, raiseAction?.maxAmount || raiseSize));
-            console.log(`[HorseBrain] 🎯 DONK BET BLUFF RAISE: ${Math.round(betToPot * 100)}%pot liveFTR=${liveFoldToRaise?.toFixed(2) ?? '?'} timing=${donkTimingTell}`);
+            console.log(`[HorseBrain]  DONK BET BLUFF RAISE: ${Math.round(betToPot * 100)}%pot liveFTR=${liveFoldToRaise?.toFixed(2) ?? '?'} timing=${donkTimingTell}`);
             return { type: raiseAction.type, amount: clamped };
         }
     }
@@ -8662,7 +8662,7 @@ function applyTiltDegradation(action, amount, tiltLevel, handStrength, legalActi
     // "I'm not folding, I'm getting my money back"
     if (action === 'fold' && tiltLevel >= 3) {
         if (canCall && Math.random() < 0.50) {
-            console.log(`[HorseBrain] 🔥 TILT OVERCALL: should fold but calling (tilt=${tiltLevel.toFixed(1)})`);
+            console.log(`[HorseBrain]  TILT OVERCALL: should fold but calling (tilt=${tiltLevel.toFixed(1)})`);
             return { action: 'call', amount: null, wasTilted: true };
         }
     }
@@ -8673,7 +8673,7 @@ function applyTiltDegradation(action, amount, tiltLevel, handStrength, legalActi
         if (Math.random() < 0.35) {
             const spewSize = Math.round(potSize * (0.60 + Math.random() * 0.40)); // 60-100% pot
             const clamped = Math.max(raiseAction.minAmount || 1, Math.min(spewSize, raiseAction.maxAmount || spewSize));
-            console.log(`[HorseBrain] 🔥 TILT SPEW: raising ${clamped} instead of ${action} (tilt=${tiltLevel.toFixed(1)})`);
+            console.log(`[HorseBrain]  TILT SPEW: raising ${clamped} instead of ${action} (tilt=${tiltLevel.toFixed(1)})`);
             return { action: raiseAction.type, amount: clamped, wasTilted: true };
         }
     }
@@ -8682,7 +8682,7 @@ function applyTiltDegradation(action, amount, tiltLevel, handStrength, legalActi
     // "Screw it, all in"
     if (tiltLevel >= 7 && handStrength >= 30 && handStrength < 60 && canRaise) {
         if (Math.random() < 0.20) {
-            console.log(`[HorseBrain] 🔥 TILT JAM: all-in with str=${handStrength} (tilt=${tiltLevel.toFixed(1)})`);
+            console.log(`[HorseBrain]  TILT JAM: all-in with str=${handStrength} (tilt=${tiltLevel.toFixed(1)})`);
             return { action: 'all_in', amount: null, wasTilted: true };
         }
     }
@@ -8694,7 +8694,7 @@ function applyTiltDegradation(action, amount, tiltLevel, handStrength, legalActi
         const tiltedAmount = Math.round(amount * tiltSizeMultiplier);
         if (raiseAction) {
             const clamped = Math.min(tiltedAmount, raiseAction.maxAmount || tiltedAmount);
-            console.log(`[HorseBrain] 🔥 TILT OVERSIZE: ${amount}→${clamped} (tilt=${tiltLevel.toFixed(1)})`);
+            console.log(`[HorseBrain]  TILT OVERSIZE: ${amount}→${clamped} (tilt=${tiltLevel.toFixed(1)})`);
             return { action, amount: clamped, wasTilted: true };
         }
     }
@@ -8703,7 +8703,7 @@ function applyTiltDegradation(action, amount, tiltLevel, handStrength, legalActi
     // "I can't win anything today"
     if (action === 'call' && tiltLevel >= 5 && handStrength < 40 && aggressionBias < 0) {
         if (Math.random() < 0.25) {
-            console.log(`[HorseBrain] 🔥 TILT GIVE-UP: folding marginal (tilt=${tiltLevel.toFixed(1)})`);
+            console.log(`[HorseBrain]  TILT GIVE-UP: folding marginal (tilt=${tiltLevel.toFixed(1)})`);
             return { action: canCheck ? 'check' : 'fold', amount: null, wasTilted: true };
         }
     }

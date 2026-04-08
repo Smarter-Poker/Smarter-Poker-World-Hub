@@ -160,13 +160,13 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             sandwichedFoldMod = isOOPSandwich ? 14 : 10;   // OOP sandwich = tighter (+14 vs +10)
             sandwichedDrawThreshold = isOOPSandwich ? 18 : 15; // OOP needs more outs to continue
             if (counterStrategy.mode === 'standard') counterStrategy.mode = 'sandwich_survival';
-            console.log(`[HorseBrain] 🥊 SANDWICH DETECTED: ${profileId.substring(0, 8)} — tightening ranges (+10 fold threshold)`);
+            console.log(`[HorseBrain]  SANDWICH DETECTED: ${profileId.substring(0, 8)} — tightening ranges (+10 fold threshold)`);
         }
     }
 
     // Log counter-strategy mode if non-standard
     if (counterStrategy.mode !== 'standard') {
-        console.log(`[HorseBrain] 🛡️  Counter-mode: ${counterStrategy.mode} vs ${primaryOppId?.substring(0, 8) || 'N/A'}`);
+        console.log(`[HorseBrain]   Counter-mode: ${counterStrategy.mode} vs ${primaryOppId?.substring(0, 8) || 'N/A'}`);
     }
 
     // ─── MODULE 9: THREAT INTEL LAZY-LOAD (Module 16: Threat Score Leaderboard) ───
@@ -181,13 +181,13 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             const intel = await Promise.race([intelPromise, timeoutPromise]);
             if (intel && intel.totalScore >= 65 && counterStrategy.mode === 'standard') {
                 counterStrategy.mode = intel.totalScore >= 80 ? 'anti_bot_stealth' : 'anti_bot';
-                console.warn(`[HorseBrain] 📥 MODULE 9 PRE-ARM: ${primaryOppId.substring(0, 8)} known threat=${intel.totalScore} → mode=${counterStrategy.mode}`);
+                console.warn(`[HorseBrain]  MODULE 9 PRE-ARM: ${primaryOppId.substring(0, 8)} known threat=${intel.totalScore} → mode=${counterStrategy.mode}`);
             }
         } catch (err) { console.error('[HorseBrain] Threat intel load failed:', err); }
 
         // Module 14: If opponent is actively blacklisted, spike horse tilt to escape table ASAP
         if (isBlacklisted(primaryOppId)) {
-            console.error(`[HorseBrain] 🛑 MODULE 14 BLACKLIST: ${primaryOppId.substring(0, 8)} is blacklisted! Spiking tilt to escape.`);
+            console.error(`[HorseBrain]  MODULE 14 BLACKLIST: ${primaryOppId.substring(0, 8)} is blacklisted! Spiking tilt to escape.`);
             if (!tiltMap.has(profileId)) tiltMap.set(profileId, {});
             const ts = tiltMap.get(profileId);
             ts.multiplier = 1.0;
@@ -203,7 +203,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             const tableBlacklistedUntil = tableTimebankBlacklist.get(tableId) || 0;
             if (Date.now() > tableBlacklistedUntil) {
                 tableTimebankBlacklist.set(tableId, Date.now() + 60 * 60 * 1000); // 60 min table ban
-                console.warn(`[HorseBrain] ⏱️ MODULE 15 STALL: ${primaryOppId.substring(0, 8)} stall score=${tbData.suspicionScore} — blacklisting table ${tableId.substring(0, 8)} for 60min`);
+                console.warn(`[HorseBrain] ⏱ MODULE 15 STALL: ${primaryOppId.substring(0, 8)} stall score=${tbData.suspicionScore} — blacklisting table ${tableId.substring(0, 8)} for 60min`);
                 // Spike tilt to 1.0 so evaluateSessions triggers a stand-up
                 if (!tiltMap.has(profileId)) tiltMap.set(profileId, {});
                 tiltMap.get(profileId).multiplier = 1.0;
@@ -224,14 +224,14 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
     // If horse has been showing cards too much (>25% showdown rate), tighten up.
     const imageExposed = isImageExposed(profileId, tableId);
     if (imageExposed) {
-        console.log(`[HorseBrain] 📸 MODULE 20 IMAGE EXPOSED: ${profileId.substring(0, 8)} — humans floating lighter, tightening thresholds.`);
+        console.log(`[HorseBrain]  MODULE 20 IMAGE EXPOSED: ${profileId.substring(0, 8)} — humans floating lighter, tightening thresholds.`);
     }
 
     // ─── MODULE 22: ISOLATION SIZING TELL ───
     // If primary opponent has mechanical iso sizing → widen 3-bet range vs them
     const isoTell = primaryOppId ? isMechanicalIsolator(primaryOppId) : { isMechanical: false };
     if (isoTell.isMechanical) {
-        console.log(`[HorseBrain] 📐 MODULE 22 ISO TELL: ${primaryOppId?.substring(0, 8)} mechanical isolator (avg=${isoTell.avgSize.toFixed(1)}bb, σ=${isoTell.stdDev.toFixed(2)}) — widening 3-bet range.`);
+        console.log(`[HorseBrain]  MODULE 22 ISO TELL: ${primaryOppId?.substring(0, 8)} mechanical isolator (avg=${isoTell.avgSize.toFixed(1)}bb, σ=${isoTell.stdDev.toFixed(2)}) — widening 3-bet range.`);
     }
 
     // ─── PLO / VARIANT-AWARE ROUTING ───
@@ -253,32 +253,32 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         ? detectLimpTrap(numLimpers, mapPosition(heroPlayer.position || 'mp'), ploSPR, false)
         : { isLimpTrap: false };
     if (limpTrap.isLimpTrap) {
-        console.log(`[HorseBrain] 🪤 MODULE 21 LIMP TRAP: ${numLimpers} limpers, SPR=${ploSPR.toFixed(1)} — reducing raise freq.`);
+        console.log(`[HorseBrain]  MODULE 21 LIMP TRAP: ${numLimpers} limpers, SPR=${ploSPR.toFixed(1)} — reducing raise freq.`);
     }
 
     // ─── MODULE 25: MIN-RAISE HARASSMENT DETECTOR ───
     const minRaiseTell = primaryOppId ? isMinRaiser(primaryOppId) : { isMinRaiser: false, rate: 0 };
     if (minRaiseTell.isMinRaiser) {
-        console.log(`[HorseBrain] 🔩 MODULE 25 MIN-RAISE: ${primaryOppId?.substring(0, 8)} min-raises ${(minRaiseTell.rate * 100).toFixed(0)}% — 3-betting wider, not folding to min-raises.`);
+        console.log(`[HorseBrain]  MODULE 25 MIN-RAISE: ${primaryOppId?.substring(0, 8)} min-raises ${(minRaiseTell.rate * 100).toFixed(0)}% — 3-betting wider, not folding to min-raises.`);
     }
 
     // ─── MODULE 26: SQUEEZE OVERKILL DETECTOR ───
     const squeezeTell = primaryOppId ? isSqueezeOverkill(primaryOppId) : { isOverkill: false, avgMult: 0 };
     if (squeezeTell.isOverkill) {
-        console.log(`[HorseBrain] 💥 MODULE 26 SQUEEZE: ${primaryOppId?.substring(0, 8)} over-squeezes (avg ${squeezeTell.avgMult.toFixed(1)}×pot) — folding wider vs 3rd-player squeeze.`);
+        console.log(`[HorseBrain]  MODULE 26 SQUEEZE: ${primaryOppId?.substring(0, 8)} over-squeezes (avg ${squeezeTell.avgMult.toFixed(1)}×pot) — folding wider vs 3rd-player squeeze.`);
     }
 
     // ─── MODULE 29: STRADDLE / BOMB-POT EQUITY ADJUSTER ───
     const hasStraddle = engineState.hasStraddle || false;
     const bombPotInfo = detectBombPotOrStraddle(potSize, bb, hasStraddle);
     if (bombPotInfo.equityThresholdBoost > 0) {
-        console.log(`[HorseBrain] 💣 MODULE 29 ${bombPotInfo.label.toUpperCase()}: equity threshold +${bombPotInfo.equityThresholdBoost}% — tightening commit threshold.`);
+        console.log(`[HorseBrain]  MODULE 29 ${bombPotInfo.label.toUpperCase()}: equity threshold +${bombPotInfo.equityThresholdBoost}% — tightening commit threshold.`);
     }
 
     // ─── MODULE 30: ANGLE-SHOOT TIMING DETECTOR ───
     const angleTell = primaryOppId ? detectAngleShoot(primaryOppId) : { isAngleShooting: false, extraEntropyMs: 0 };
     if (angleTell.isAngleShooting) {
-        console.log(`[HorseBrain] 🎭 MODULE 30 ANGLE-SHOOT: ${primaryOppId?.substring(0, 8)} pre-selecting actions — adding ${angleTell.extraEntropyMs}ms entropy to this decision.`);
+        console.log(`[HorseBrain]  MODULE 30 ANGLE-SHOOT: ${primaryOppId?.substring(0, 8)} pre-selecting actions — adding ${angleTell.extraEntropyMs}ms entropy to this decision.`);
     }
 
     // ─── PLO5 / PLO6 VARIANT-SPECIFIC ROUTING ───
@@ -471,7 +471,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
             // MODULE 5: Sandwich — tighten calling range when sandwiched multiway
             if (finalAction === 'call' && sandwichedFoldMod > 0 && preflopStr < (55 + sandwichedFoldMod)) {
-                console.log(`[HorseBrain] 🥊 MODULE 5 PREFLOP SANDWICH: folding ${handStr} (strength=${preflopStr} < ${55 + sandwichedFoldMod})`);
+                console.log(`[HorseBrain]  MODULE 5 PREFLOP SANDWICH: folding ${handStr} (strength=${preflopStr} < ${55 + sandwichedFoldMod})`);
                 finalAction = 'fold';
                 finalAmount = null;
             }
@@ -480,7 +480,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             if (finalAction === 'call' && isoTell.isMechanical && preflopStr >= 45 && toCall > bb * 2) {
                 const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                 if (raiseAction && Math.random() < 0.40) {
-                    console.log(`[HorseBrain] 📐 MODULE 22 ISO EXPLOIT: 3-betting ${handStr} vs mechanical isolator`);
+                    console.log(`[HorseBrain]  MODULE 22 ISO EXPLOIT: 3-betting ${handStr} vs mechanical isolator`);
                     finalAction = raiseAction.type;
                     finalAmount = Math.round(toCall * 3);
                     finalAmount = Math.max(raiseAction.minAmount || finalAmount, Math.min(finalAmount, raiseAction.maxAmount || finalAmount));
@@ -489,21 +489,21 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
             // MODULE 25: Min-Raise Defense — don't fold to min-raises, re-raise wider
             if (finalAction === 'fold' && minRaiseTell.isMinRaiser && preflopStr >= 35 && toCall <= bb * 3) {
-                console.log(`[HorseBrain] 🔩 MODULE 25 PREFLOP MIN-RAISE DEFENSE: calling with ${handStr} instead of folding`);
+                console.log(`[HorseBrain]  MODULE 25 PREFLOP MIN-RAISE DEFENSE: calling with ${handStr} instead of folding`);
                 finalAction = 'call';
                 finalAmount = null;
             }
 
             // MODULE 29: Bomb Pot awareness — tighten commit threshold preflop
             if ((finalAction === 'raise' || finalAction === 'bet') && bombPotInfo.equityThresholdBoost > 0 && preflopStr < 60) {
-                console.log(`[HorseBrain] 💣 MODULE 29 PREFLOP: suppressing raise in bomb-pot format (strength=${preflopStr})`);
+                console.log(`[HorseBrain]  MODULE 29 PREFLOP: suppressing raise in bomb-pot format (strength=${preflopStr})`);
                 finalAction = toCall > 0 ? 'call' : 'check';
                 finalAmount = null;
             }
 
             // MODULE 20: Image Exposed — tighten open range when opponents have reads
             if (imageExposed && (finalAction === 'raise' || finalAction === 'bet') && preflopStr < 55) {
-                console.log(`[HorseBrain] 📸 MODULE 20 PREFLOP: tightening opens while image exposed (strength=${preflopStr})`);
+                console.log(`[HorseBrain]  MODULE 20 PREFLOP: tightening opens while image exposed (strength=${preflopStr})`);
                 finalAction = toCall > 0 ? 'call' : 'check';
                 finalAmount = null;
             }
@@ -616,7 +616,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 }
                 const adjusted = adv.getImageAdjustedAction(profileId, finalAction, imageHandStrength);
                 if (adjusted && adjusted !== finalAction) {
-                    console.log(`[HorseBrain] 📸 Image overlay: ${finalAction} → ${adjusted} (str=${(imageHandStrength * 100).toFixed(0)})`);
+                    console.log(`[HorseBrain]  Image overlay: ${finalAction} → ${adjusted} (str=${(imageHandStrength * 100).toFixed(0)})`);
                     finalAction = adjusted;
                 }
             }
@@ -641,7 +641,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                             profileId, String(opp.id), finalAction, skill.level
                         );
                         if (result.exploiting) {
-                            console.log(`[HorseBrain] 🎯 Exploit: ${finalAction} → ${result.action} (vs ${String(opp.id).substring(0, 8)}, leak: ${result.leak})`);
+                            console.log(`[HorseBrain]  Exploit: ${finalAction} → ${result.action} (vs ${String(opp.id).substring(0, 8)}, leak: ${result.leak})`);
                             finalAction = result.action;
                             break; // Only exploit one opponent per decision
                         }
@@ -807,7 +807,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             // ═══ Phase 38B FIX: wrap evaluatePostflopHand in try-catch to prevent crash in log ═══
             let flopLogStr = '?';
             try { flopLogStr = evaluatePostflopHand(holeCardStrings, boardStrings).strength; } catch (_) { }
-            console.log(`[HorseBrain] 🎴 Flop heuristic: ${finalAction}${finalAmount ? ` (${finalAmount})` : ''} [str=${flopLogStr}]`);
+            console.log(`[HorseBrain]  Flop heuristic: ${finalAction}${finalAmount ? ` (${finalAmount})` : ''} [str=${flopLogStr}]`);
         }
     }
 
@@ -869,7 +869,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     confidence: jl.confidence,
                     _source: 'journal_fallback',
                 };
-                console.log(`[HorseBrain] 📓 JOURNAL→ENRICHED FALLBACK: ${primaryOppId.substring(0, 8)} type=${jl.playerType} tendency=${tendency} conf=${Math.round(jl.confidence * 100)}%`);
+                console.log(`[HorseBrain]  JOURNAL→ENRICHED FALLBACK: ${primaryOppId.substring(0, 8)} type=${jl.playerType} tendency=${tendency} conf=${Math.round(jl.confidence * 100)}%`);
             }
         }
 
@@ -1006,7 +1006,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             if (donkResult) {
                 finalAction = donkResult.type;
                 finalAmount = donkResult.amount || null;
-                console.log(`[HorseBrain] 🎯 DONK BET response: ${street} → ${finalAction}${finalAmount ? ` (${finalAmount})` : ''}`);
+                console.log(`[HorseBrain]  DONK BET response: ${street} → ${finalAction}${finalAmount ? ` (${finalAmount})` : ''}`);
             }
         }
     }
@@ -1026,7 +1026,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         if (sprTrap.isTrap) {
             const handEvalTrap = evaluatePostflopHand(holeCardStrings, boardStrings);
             if (handEvalTrap.strength < 55) {
-                console.log(`[HorseBrain] 🪤 MODULE 18 SPR TRAP: ${sprTrap.reason} — folding marginal hand (strength=${handEvalTrap.strength})`);
+                console.log(`[HorseBrain]  MODULE 18 SPR TRAP: ${sprTrap.reason} — folding marginal hand (strength=${handEvalTrap.strength})`);
                 finalAction = 'fold';
                 finalAmount = null;
             }
@@ -1066,7 +1066,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         // ═══ GUARDRAIL: NEVER FOLD THE NUTS ═══
         // Safety check: if we have a very strong hand (set+, flush+, straight+) never fold
         if (finalAction === 'fold' && handEval.strength >= 75) {
-            console.log(`[HorseBrain] 🛡️ GUARDRAIL: Preventing fold with strength=${handEval.strength} (${handEval.category})`);
+            console.log(`[HorseBrain]  GUARDRAIL: Preventing fold with strength=${handEval.strength} (${handEval.category})`);
             finalAction = 'call';
             finalAmount = null;
         }
@@ -1098,7 +1098,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         // ═══ MODULE 5: SANDWICH DRAW THRESHOLD ═══
         // When sandwiched multiway, fold draws with fewer outs than the threshold
         if (finalAction === 'call' && facingBet && sandwichedDrawThreshold > 0 && drawEq.outs > 0 && drawEq.outs < sandwichedDrawThreshold) {
-            console.log(`[HorseBrain] 🥊 MODULE 5 SANDWICH: folding weak draw (${drawEq.outs} outs < ${sandwichedDrawThreshold} threshold)`);
+            console.log(`[HorseBrain]  MODULE 5 SANDWICH: folding weak draw (${drawEq.outs} outs < ${sandwichedDrawThreshold} threshold)`);
             finalAction = 'fold';
             finalAmount = null;
         }
@@ -1131,7 +1131,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
 
         // ═══ MODULE 26: SQUEEZE DEFENSE — fold more marginal calls facing squeeze ═══
         if (finalAction === 'call' && facingBet && squeezeFoldMod > 0 && handEval.strength < (foldThreshold + squeezeFoldMod)) {
-            console.log(`[HorseBrain] 💥 MODULE 26 SQUEEZE FOLD: folding marginal (strength=${handEval.strength} < ${foldThreshold + squeezeFoldMod})`);
+            console.log(`[HorseBrain]  MODULE 26 SQUEEZE FOLD: folding marginal (strength=${handEval.strength} < ${foldThreshold + squeezeFoldMod})`);
             finalAction = 'fold';
             finalAmount = null;
         }
@@ -1161,7 +1161,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         if (finalAction === 'call' && minRaiseTell.isMinRaiser && handEval.strength >= 40) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
             if (raiseAction && Math.random() < 0.45) {
-                console.log(`[HorseBrain] 🔩 MODULE 25 MIN-RAISE DEFENSE: re-raising vs min-raiser (strength=${handEval.strength})`);
+                console.log(`[HorseBrain]  MODULE 25 MIN-RAISE DEFENSE: re-raising vs min-raiser (strength=${handEval.strength})`);
                 const reraiseSize = Math.round(potSize * 0.75);
                 finalAction = raiseAction.type;
                 finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(reraiseSize, raiseAction.maxAmount || reraiseSize));
@@ -1177,7 +1177,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 const canCheck = legalActions.some(a => a.type === 'check');
                 const fatigued = adv.getFatigueAdjustedAction(profileId, finalAction, canCheck);
                 if (fatigued !== finalAction) {
-                    console.log(`[HorseBrain] 😴 Fatigue: ${finalAction} → ${fatigued} (fatigue=${(adv.getFatigueLevel?.(profileId) || 0).toFixed(2)})`);
+                    console.log(`[HorseBrain]  Fatigue: ${finalAction} → ${fatigued} (fatigue=${(adv.getFatigueLevel?.(profileId) || 0).toFixed(2)})`);
                     finalAction = fatigued;
                 }
             }
@@ -1218,7 +1218,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     const raiseAction = legalActions.find(a => a.type === finalAction);
                     if (raiseAction) {
                         finalAmount = Math.max(raiseAction.minAmount || finalAmount, Math.min(boostedAmount, raiseAction.maxAmount || boostedAmount));
-                        console.log(`[HorseBrain] 😤 Grudge sizing boost ×${grudgeAggrMod.toFixed(2)} vs ${grudgeTarget.substring(0, 8)}`);
+                        console.log(`[HorseBrain]  Grudge sizing boost ×${grudgeAggrMod.toFixed(2)} vs ${grudgeTarget.substring(0, 8)}`);
                     }
                 }
                 // Grudge can also convert call→raise (revenge play)
@@ -1229,7 +1229,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                         // Grudge-fueled raise: pot-sized
                         const grudgeSize = Math.round(potSize * grudgeAggrMod * 0.75);
                         finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(grudgeSize, raiseAction.maxAmount || grudgeSize));
-                        console.log(`[HorseBrain] 😤 Grudge revenge raise vs ${grudgeTarget.substring(0, 8)}`);
+                        console.log(`[HorseBrain]  Grudge revenge raise vs ${grudgeTarget.substring(0, 8)}`);
                     }
                 }
 
@@ -1250,7 +1250,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                                 finalAction = raiseAction.type;
                                 const rivalSize = Math.round((potSize * 0.75) * rivalryMod);
                                 finalAmount = Math.max(raiseAction.minAmount || 1, Math.min(rivalSize, raiseAction.maxAmount || rivalSize));
-                                console.log(`[HorseBrain] ⚔️ Rivalry aggression ×${rivalryMod.toFixed(2)} vs ${oppId.substring(0, 8)}`);
+                                console.log(`[HorseBrain]  Rivalry aggression ×${rivalryMod.toFixed(2)} vs ${oppId.substring(0, 8)}`);
                             }
                         }
                         // Also boost existing raise sizing against rivals
@@ -1294,7 +1294,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                                             finalAmount = null;
                                         }
                                         recordSoftPlay(profileId, oppId);
-                                        console.log(`[HorseBrain] 🤝 Softplay: bluff suppressed vs friend ${oppId.substring(0, 8)}`);
+                                        console.log(`[HorseBrain]  Softplay: bluff suppressed vs friend ${oppId.substring(0, 8)}`);
                                     }
                                 } else {
                                     // Value territory: reduce sizing slightly
@@ -1304,7 +1304,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                                         if (raiseAction && finalAmount < (raiseAction.minAmount || 0)) {
                                             finalAmount = raiseAction.minAmount;
                                         }
-                                        console.log(`[HorseBrain] 🤝 Softplay: value bet reduced ×${softMod.valueReduction} vs friend ${oppId.substring(0, 8)}`);
+                                        console.log(`[HorseBrain]  Softplay: value bet reduced ×${softMod.valueReduction} vs friend ${oppId.substring(0, 8)}`);
                                     }
                                 }
                             }
@@ -1376,7 +1376,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
         const effectiveChaosRate = counterStrategy.mode === 'anti_bot' ? 0.18 : streetChaosRate;
 
         if (legalActions.length > 0 && !chaosOnCooldown && Math.random() < effectiveChaosRate) {
-            console.log(`[HorseBrain] 🌪️ MODULE 6 CHAOS TRIGGERED! Street: ${street}, Mode: ${counterStrategy.mode}, Rate: ${(effectiveChaosRate * 100).toFixed(0)}%`);
+            console.log(`[HorseBrain]  MODULE 6 CHAOS TRIGGERED! Street: ${street}, Mode: ${counterStrategy.mode}, Rate: ${(effectiveChaosRate * 100).toFixed(0)}%`);
             handsSchaosState.lastChaosHand = handsSchaosState.handCounter;
             chaosSuppressionMap.set(profileId, handsSchaosState);
 
@@ -1438,7 +1438,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
             }
 
             if (obfType !== validAction.type) {
-                console.log(`[HorseBrain] 🎠 MODULE 1 OBFUSCATE: ${validAction.type}→${obfType} (mode=${counterStrategy.mode}, callFreq=${(callFreqPct * 100).toFixed(0)}%)`);
+                console.log(`[HorseBrain]  MODULE 1 OBFUSCATE: ${validAction.type}→${obfType} (mode=${counterStrategy.mode}, callFreq=${(callFreqPct * 100).toFixed(0)}%)`);
                 const newValid = validateAndClamp(obfType, null, legalActions);
                 validAction.type = newValid.type;
                 if (newValid.amount != null) validAction.amount = newValid.amount;
@@ -1522,7 +1522,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 type: 'gif' // GameController will broadcast this as a `table_gif` event
             });
         }
-        console.log(`[HorseBrain] 💬 All-In emote triggered for ${profileId.substring(0, 8)}: "${chatMsg}"`);
+        console.log(`[HorseBrain]  All-In emote triggered for ${profileId.substring(0, 8)}: "${chatMsg}"`);
     }
 
     // --- Record performance stats (#34) ---
