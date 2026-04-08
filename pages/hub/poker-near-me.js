@@ -1364,7 +1364,7 @@ export default function PokerNearMePage() {
     }, [userLocation, allVenuesForMap]);
 
     useEffect(() => {
-        if (router.isReady && router.query.q && !hasSearched) {
+        if (router.isReady && router.query.q) {
             setShowGlobalSearch(true);
         }
     }, [router.isReady, router.query.q]);

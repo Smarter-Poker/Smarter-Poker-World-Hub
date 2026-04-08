@@ -22,6 +22,16 @@ const {
 } = require('./core');
 const { crossTableRadar, tableTimebankBlacklist } = require('./anti-exploit');
 
+// Lazy-load live-observer to avoid circular dependency
+let _liveObserver = null;
+function _getLO() {
+    if (!_liveObserver) {
+        try { _liveObserver = require('./live-observer'); }
+        catch (_) { _liveObserver = {}; }
+    }
+    return _liveObserver;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SESSION & BANKROLL TRACKING (Phase 2)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -652,10 +662,20 @@ async function loadOpponentJournal(horseId, tableId, opponentId) {
             _journalCache.set(cacheKey, { loaded: false, timestamp: Date.now() });
             return false;
         }
-        // NOTE: This function needs access to _getTableObserver and _createLiveProfile
-        // from the anti-exploit/live-observer module. During migration, this cross-reference
-        // is handled through the legacy monolith. After full extraction, this will need
-        // to import from the live-observer module.
+        // Seed the live observer profile with journal data
+        const lo = _getLO();
+        if (lo._getTableObserver && lo._createLiveProfile) {
+            const observer = lo._getTableObserver(horseId, tableId);
+            if (!observer.opponents.has(opponentId)) {
+                observer.opponents.set(opponentId, lo._createLiveProfile());
+            }
+            const profile = observer.opponents.get(opponentId);
+            // Only seed if live profile has fewer observations than the journal
+            // (don't overwrite fresh live data with stale historical data)
+            if (profile.handsObserved < data.hands_observed) {
+                _applyJournalToProfile(profile, data);
+            }
+        }
         _journalCache.set(cacheKey, { loaded: true, timestamp: Date.now() });
         return true;
     } catch (err) {
@@ -682,8 +702,28 @@ async function loadTableJournals(tableId, playerIds, horseIds) {
         if (opponents.length === 0) return;
         const sb = getSupabase();
         if (!sb) return;
-        // NOTE: Full implementation requires liveObserver access
-        // During migration, served from legacy monolith
+        const lo = _getLO();
+        if (!lo._getTableObserver || !lo._createLiveProfile) return;
+        for (const horseId of horseIds) {
+            const { data: rows } = await sb
+                .from('horse_opponent_journals')
+                .select('*')
+                .eq('horse_id', horseId)
+                .in('opponent_id', opponents);
+            if (!rows || rows.length === 0) continue;
+            const observer = lo._getTableObserver(horseId, tableId);
+            for (const data of rows) {
+                const oppId = data.opponent_id;
+                if (!observer.opponents.has(oppId)) {
+                    observer.opponents.set(oppId, lo._createLiveProfile());
+                }
+                const profile = observer.opponents.get(oppId);
+                // Only seed if live profile has fewer observations
+                if (profile.handsObserved < data.hands_observed) {
+                    _applyJournalToProfile(profile, data);
+                }
+            }
+        }
     } catch (err) {
         console.warn(`[HorseBrain] Table journal load error: ${err.message}`);
     }

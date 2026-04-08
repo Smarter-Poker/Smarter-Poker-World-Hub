@@ -391,10 +391,15 @@ export default function GlobalSearchOverlay({
   // Reset & focus when opened; abort in-flight fetches when closed
   useEffect(() => {
     if (isOpen) {
-      setPhase('input');
       setLocalQuery(searchQuery || '');
-      setVenueResults([]); setTourResults([]); setSeriesResults([]);
-      setCitySuggestions([]);
+      if (searchQuery) {
+        setPhase('results');
+        setTimeout(() => handleSubmit(null, searchQuery), 10);
+      } else {
+        setPhase('input');
+        setVenueResults([]); setTourResults([]); setSeriesResults([]);
+        setCitySuggestions([]);
+      }
       setDetailItem(null);
       setTimeout(() => inputRef.current?.focus(), 120);
     } else {
