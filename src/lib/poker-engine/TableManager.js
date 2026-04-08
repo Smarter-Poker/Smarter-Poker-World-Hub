@@ -1143,7 +1143,7 @@ class TableManager {
 
           // (Phase 2) AI Bankroll Preservation / Stop-Loss check
           // TableManager must invoke this asynchronously to prevent horses from infinite rebuying
-          const HorsePokerBrain = require('./HorsePokerBrain');
+          const HorsePokerBrain = require('./brain');
 
           Promise.all([
             HorsePokerBrain.isHorse(String(playerId)),

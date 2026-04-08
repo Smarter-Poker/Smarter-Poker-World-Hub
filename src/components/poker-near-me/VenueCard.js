@@ -21,11 +21,12 @@ const formatMoney = (amount) => {
 // Formats "13:00:00" or "1:00 PM" → "1:00 PM"
 const formatTime = (t) => {
     if (!t) return null;
+    const str = String(t);
     // Already 12h format
-    if (/am|pm/i.test(t)) return t.trim();
+    if (/am|pm/i.test(str)) return str.trim();
     // 24h HH:MM[:SS]
-    const m = t.match(/^(\d{1,2}):(\d{2})/);
-    if (!m) return t;
+    const m = str.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return str;
     let h = parseInt(m[1], 10);
     const min = m[2];
     const period = h >= 12 ? 'PM' : 'AM';
@@ -513,15 +514,21 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <div className="vc3-col vc3-col-left">
                         {hasLiveData ? (
                             <>
-                                <div className="vc3-col-title">Cash Games Running</div>
+                                <div className="vc3-col-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>Cash Games</span>
+                                    {venue.live_data.tables_running > 0 && (
+                                        <span style={{ color: '#4ade80', fontSize: '10px', backgroundColor: 'rgba(74,222,128,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                            {venue.live_data.tables_running} TABLES
+                                        </span>
+                                    )}
+                                </div>
                                 {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
-                                    <div className="vc3-list-scrollable">
+                                    <div className="vc3-list-scrollable" style={{ maxHeight: '180px' }}>
                                         {venue.live_data.games.map((g, idx) => (
                                             <div key={idx} className="vc3-list-item vc3-game-item">
-                                                <span className="vc3-game-name">{g.game}</span>
+                                                <span className="vc3-game-name" title={g.game}>{g.game.length > 25 ? g.game.substring(0, 22) + '...' : g.game}</span>
                                                 <span className="vc3-game-tables">
-                                                    {g.tables_running > 0 ? `${g.tables_running}T` : 'Waitlist'}
-                                                    {g.players_waiting > 0 ? ` (${g.players_waiting}w)` : ''}
+                                                    {g.tables_running > 0 ? `${g.tables_running}T` : 'WAIT'}
                                                 </span>
                                             </div>
                                         ))}

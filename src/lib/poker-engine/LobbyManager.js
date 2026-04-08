@@ -18,7 +18,7 @@ const { HandHistoryRecorder } = require('./HandHistory');
 const { StateSerializer } = require('./StateSerializer');
 const { GAME_VARIANT } = require('./GameStateMachine');
 const { BETTING_STRUCTURES } = require('./ActionValidator');
-const HorsePokerBrain = require('./HorsePokerBrain');
+const HorsePokerBrain = require('./brain');
 const { resilientMutation, resilientQuery } = require('./SupabaseResilience');
 
 // ── Phase mapping: engine phases → display phases ──

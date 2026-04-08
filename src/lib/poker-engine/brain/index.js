@@ -15,9 +15,8 @@
  *   live-observer.js → Always-on opponent tracking (observeAction, getLiveRead, etc.)
  *   hand-result.js   → Post-hand processing pipeline (processHandResult)
  *
- * During migration, functions not yet extracted are still served from the
- * legacy monolith (../HorsePokerBrain.js). As modules are completed,
- * their exports shift from legacy → new module.
+ * Phase 3 COMPLETE: The 20,482-line HorsePokerBrain.js monolith is no longer
+ * loaded. All 246+ exports are served entirely from the 12 modular brain files.
  */
 
 // Phase 1: New modular exports
@@ -34,19 +33,17 @@ const router = require('./router');
 const liveObserver = require('./live-observer');
 const handResult = require('./hand-result');
 
-// Phase 2: Legacy monolith (remaining unextracted functions during migration)
-const legacy = require('../HorsePokerBrain');
+// Phase 3: Legacy monolith REMOVED — all functions now served from modular brain/
+// The 20,482-line HorsePokerBrain.js monolith is no longer loaded.
+// All 246 exports come from the 12 extracted modules below.
 
 // Wire the live observer into the router + holdem modules
-// Now using the NEW extracted module instead of legacy
 router.setRouterLiveReadFn(liveObserver.getLiveRead);
 
-// Merge: new modules take precedence over legacy for extracted functions
+// All exports from modular brain — zero legacy dependency
 module.exports = {
-    ...legacy,
-
     // ═══════════════════════════════════════════════════════════════════════
-    // core.js — Card utilities, position, hash, timing, Supabase
+    // core.js — Card utilities, position, hash, timing, Supabase, horse identity
     // ═══════════════════════════════════════════════════════════════════════
     cardIntToString: core.cardIntToString,
     cardsToStrings: core.cardsToStrings,

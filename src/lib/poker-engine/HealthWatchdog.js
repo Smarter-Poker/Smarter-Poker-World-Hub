@@ -466,7 +466,7 @@ class HealthWatchdog {
   _clearNonCriticalCaches() {
     // Try to clear the brain's journal cache if accessible
     try {
-      const HorsePokerBrain = require('./HorsePokerBrain');
+      const HorsePokerBrain = require('./brain');
       if (HorsePokerBrain._journalCache) {
         const size = HorsePokerBrain._journalCache.size;
         HorsePokerBrain._journalCache.clear();
