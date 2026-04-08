@@ -336,7 +336,7 @@ export default function GlobalSearchOverlay({
   searchQuery, onSearchChange,
   allTours = [], allSeries = [],
   searchHistory = [], onHistorySelect,
-  cachedFetch,
+  cachedFetch, trackSearchEvent,
 }) {
   const inputRef = useRef(null);
   const [phase, setPhase] = useState('input'); // 'input' | 'results'
@@ -401,6 +401,11 @@ export default function GlobalSearchOverlay({
       // [BUG FIX] Cancel any pending debounce + in-flight fetch when overlay closes
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (abortControllerRef.current) { abortControllerRef.current.abort(); abortControllerRef.current = null; }
+
+      // --- NEW: Search Analytics Telemetry for abandoned searches
+      if (trackSearchEvent && localQuery && localQuery.trim().length > 2 && venueResults.length === 0 && tourResults.length === 0 && seriesResults.length === 0) {
+          trackSearchEvent('abandoned_search_query', { query: localQuery, timestamp: Date.now() });
+      }
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 

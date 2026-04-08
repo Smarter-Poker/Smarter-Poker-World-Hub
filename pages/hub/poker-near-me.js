@@ -1363,6 +1363,12 @@ export default function PokerNearMePage() {
         };
     }, [userLocation, allVenuesForMap]);
 
+    useEffect(() => {
+        if (router.isReady && router.query.q && !hasSearched) {
+            setShowGlobalSearch(true);
+        }
+    }, [router.isReady, router.query.q]);
+
     // --- Merge real-time venue updates and social pages into map feed ---
     useEffect(() => {
         if (!venues || venues.length === 0) return;
@@ -2689,16 +2695,25 @@ export default function PokerNearMePage() {
                 />
 
                 {/* Global Search Overlay — opened from hamburger menu */}
-                <GlobalSearchOverlay
-                    isOpen={showGlobalSearch}
-                    onClose={() => setShowGlobalSearch(false)}
-                    searchQuery=""
-                    onSearchChange={() => {}}
-                    allTours={tours || []}
-                    allSeries={series || []}
-                    searchHistory={[]}
-                    cachedFetch={cachedFetch}
-                />
+                {showGlobalSearch && (
+                    <GlobalSearchOverlay
+                        isOpen={showGlobalSearch}
+                        onClose={() => {
+                            setShowGlobalSearch(false);
+                            if (router.query.q) {
+                                // Strip ?q= so it doesn't re-trigger on refresh if they closed it
+                                router.replace('/hub/poker-near-me', undefined, { shallow: true });
+                            }
+                        }}
+                        searchQuery={router.query.q || ""}
+                        onSearchChange={() => {}}
+                        trackSearchEvent={trackSearchEvent}
+                        allTours={tours || []}
+                        allSeries={series || []}
+                        searchHistory={[]}
+                        cachedFetch={cachedFetch}
+                    />
+                )}
 
                 {/* ═══ PAGE TITLE ═══ */}
                 <div className="pnm-title-bar">

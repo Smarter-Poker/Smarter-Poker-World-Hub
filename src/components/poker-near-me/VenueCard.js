@@ -507,83 +507,154 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
             {/* === DATA ZONE === */}
             <div className="vc3-data-zone">
-                {/* Live Info Row — tables and waitlist */}
-                {hasLiveData && (
-                    <div className="vc3-live-info-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div className="vc3-live-info">
-                            <div className="vc3-live-stat">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2">
-                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2" /><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" />
-                                </svg>
-                                <span className="vc3-live-stat-val">{venue.live_data.tables_running}</span>
-                                <span className="vc3-live-stat-label">Tables</span>
-                            </div>
-                            {venue.live_data.players_waiting > 0 && (
-                                <div className="vc3-live-stat">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                                    </svg>
-                                    <span className="vc3-live-stat-val">{venue.live_data.players_waiting}</span>
-                                    <span className="vc3-live-stat-label">Waiting</span>
+                {/* --- TWO COLUMN LAYOUT --- */}
+                <div className="vc3-columns-grid">
+                    {/* LEFT COLUMN: Cash Games */}
+                    <div className="vc3-col vc3-col-left">
+                        {hasLiveData ? (
+                            <>
+                                <div className="vc3-col-title">Cash Games Running</div>
+                                {venue.live_data.games && venue.live_data.games.length > 0 ? (
+                                    <div className="vc3-list-scrollable">
+                                        {venue.live_data.games.map((g, idx) => (
+                                            <div key={idx} className="vc3-list-item vc3-game-item">
+                                                <span className="vc3-game-name">{g.game}</span>
+                                                <span className="vc3-game-tables">
+                                                    {g.tables_running > 0 ? `${g.tables_running}T` : 'Waitlist'}
+                                                    {g.players_waiting > 0 ? ` (${g.players_waiting}w)` : ''}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="vc3-live-info-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                                        <div className="vc3-live-info" style={{ marginBottom: 0, padding: '4px 8px' }}>
+                                            <div className="vc3-live-stat">
+                                                <span className="vc3-live-stat-val">{venue.live_data.tables_running}</span>
+                                                <span className="vc3-live-stat-label">Tables</span>
+                                            </div>
+                                            {venue.live_data.players_waiting > 0 && (
+                                                <div className="vc3-live-stat">
+                                                    <span className="vc3-live-stat-val">{venue.live_data.players_waiting}</span>
+                                                    <span className="vc3-live-stat-label">Wait</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {venue.live_data.last_updated && (() => {
+                                    const staleInfo = isStaleData(venue.live_data.last_updated);
+                                    return (
+                                        <div style={{ fontSize: 9, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                            </svg>
+                                            {staleInfo.stale ? `Stale Data` : `Updated ${staleInfo.age}`}
+                                        </div>
+                                    );
+                                })()}
+                            </>
+                        ) : (
+                            <>
+                                {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && !['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) ? (
+                                    <>
+                                        <div className="vc3-col-title">Stakes Played</div>
+                                        <div className="vc3-stakes-list">
+                                            {venue.stakes_cash.slice(0, 5).map((stake, idx) => (
+                                                <div key={idx} className="vc3-list-item vc3-stake-item">
+                                                    {stake}
+                                                </div>
+                                            ))}
+                                            {venue.stakes_cash.length > 5 && <div className="vc3-list-item vc3-stake-item">Etc...</div>}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="vc3-empty-state">No Live Games</div>
+                                )}
+                            </>
+                        )}
+
+                        <div className="vc3-col-footer">
+                            {/* Game Tags — color-coded */}
+                            {Array.isArray(venue.games_offered) && venue.games_offered.length > 0 && (
+                                <div className="vc3-games" style={{ marginBottom: 0 }}>
+                                    {venue.games_offered.slice(0, 3).map((g, idx) => {
+                                        const chipStyle = getGameChipStyle(g);
+                                        return (
+                                            <span key={g || idx} className="vc3-game-chip" style={{
+                                                background: chipStyle.bg || 'rgba(255,255,255,0.06)',
+                                                color: chipStyle.color || 'rgba(255,255,255,0.65)',
+                                                borderColor: chipStyle.border || 'rgba(255,255,255,0.1)',
+                                                padding: '2px 6px',
+                                                fontSize: '10px'
+                                            }}>
+                                                {g}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Hours — non-charity venues */}
+                            {((venue.hours || venue.hours_weekday) && venue.venue_type !== 'charity') && (
+                                <div className="vc3-hours-small">
+                                    {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) ? 'Open 24/7' : (venue.hours_weekday || venue.hours)}
                                 </div>
                             )}
                         </div>
-                        {venue.live_data.last_updated && (() => {
-                            const staleInfo = isStaleData(venue.live_data.last_updated);
-                            return (
-                                <div style={{ fontSize: 10, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                    </svg>
-                                    {staleInfo.stale ? `Stale Data (${staleInfo.age})` : `Updated ${staleInfo.age}`}
+                    </div>
+
+                    {/* RIGHT COLUMN: Tournaments */}
+                    <div className="vc3-col vc3-col-right">
+                        <div className="vc3-col-title">Today's Tournaments</div>
+                        
+                        {venue.venue_type === 'charity' && venue.is_today && venue.today_event ? (
+                            <div className="vc3-list-scrollable">
+                                <div className="vc3-list-item vc3-tourney-item">
+                                    <div className="vc3-tourney-name">{venue.name} Event</div>
+                                    <div className="vc3-tourney-meta">
+                                        <span>{formatTime(venue.today_event.start_time)}</span>
+                                        {venue.today_event.buy_in ? <span> · ${venue.today_event.buy_in}</span> : null}
+                                    </div>
                                 </div>
-                            );
-                        })()}
-                    </div>
-                )}
-
-                {/* Hours — non-charity venues */}
-                {((venue.hours || venue.hours_weekday) && venue.venue_type !== 'charity') && (
-                    <p className="vc3-hours">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.5 }}>
-                            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) ? 'Open 24/7' : (venue.hours_weekday || venue.hours)}
-                        {openStatus && openStatus.nextChange && !openStatus.always && (
-                            <span className="vc3-hours-next"> ({openStatus.nextChange})</span>
+                            </div>
+                        ) : venue.has_tournaments && venue.daily_tournaments && venue.daily_tournaments.length > 0 ? (
+                            <div className="vc3-list-scrollable">
+                                {venue.daily_tournaments.slice(0, 10).map((t, idx) => (
+                                    <div key={idx} className="vc3-list-item vc3-tourney-item">
+                                        <div className="vc3-tourney-name" title={t.tournament_name || t.name || 'Tournament'}>{t.tournament_name || t.name || 'Tournament'}</div>
+                                        <div className="vc3-tourney-meta">
+                                            <span>{formatTime(t.start_time) || 'TBD'}</span>
+                                            {t.buy_in && String(t.buy_in) !== 'N/A' && String(t.buy_in) !== '0' ? <span> · ${t.buy_in}</span> : null}
+                                            {t.guaranteed && String(t.guaranteed) !== '0' && String(t.guaranteed) !== 'N/A' ? <span> · <span style={{color: '#4ade80'}}>{t.guaranteed}</span> GTD</span> : null}
+                                            {t.starting_stack && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' ? <span> · {t.starting_stack}</span> : null}
+                                        </div>
+                                    </div>
+                                ))}
+                                {venue.daily_tournaments.length > 10 && (
+                                    <div className="vc3-list-item vc3-tourney-item" style={{justifyContent: 'center', opacity: 0.6}}>
+                                        +{venue.daily_tournaments.length - 10} More
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                <div className="vc3-empty-state">No Tournaments Today</div>
+                                {/* If Charity but next event is NOT today, show next event */}
+                                {venue.venue_type === 'charity' && !venue.is_today && venue.next_event && (
+                                    <div className="vc3-list-item vc3-tourney-item-special" style={{marginTop: 'auto'}}>
+                                        <div className="vc3-tourney-name">Next: {venue.next_event.day}</div>
+                                        <div className="vc3-tourney-meta">
+                                            <span>{formatTime(venue.next_event.start_time)}</span>
+                                            {venue.next_event.buy_in ? <span> · ${venue.next_event.buy_in}</span> : null}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
-                    </p>
-                )}
-
-                {/* Charity — Big Date Block */}
-                {buildCharityEventBlock(venue)}
-
-                {/* Game Tags — color-coded */}
-                {Array.isArray(venue.games_offered) && venue.games_offered.length > 0 && (
-                    <div className="vc3-games">
-                        {venue.games_offered.slice(0, 5).map((g, idx) => {
-                            const chipStyle = getGameChipStyle(g);
-                            return (
-                                <span key={g || idx} className="vc3-game-chip" style={{
-                                    background: chipStyle.bg || 'rgba(255,255,255,0.06)',
-                                    color: chipStyle.color || 'rgba(255,255,255,0.65)',
-                                    borderColor: chipStyle.border || 'rgba(255,255,255,0.1)',
-                                }}>
-                                    {g}
-                                </span>
-                            );
-                        })}
                     </div>
-                )}
-
-                {/* Stakes — only show when real data exists, never for tour cards */}
-                {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && !['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) && (
-                    <div className="vc3-stakes" style={{ flexWrap: 'wrap' }}>
-                        <span>STAKES PLAYED {venue.stakes_cash.slice(0, 4).join(' ')}{venue.stakes_cash.length > 4 ? ' ETC' : ''}</span>
-                    </div>
-                )}
-
-                {/* Tournaments Button moved to action bar */}
+                </div>
             </div>
 
             {/* === ACTION BAR === */}
@@ -806,8 +877,133 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     background: rgba(74,222,128,0.18);
                     border-color: rgba(74,222,128,0.5);
                     box-shadow: 0 0 16px rgba(74,222,128,0.25);
+                }                /* ── Two Column Redesign ─────────────────────────── */
+                .vc3-columns-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                    margin-top: 8px;
+                    background: rgba(0,0,0,0.15);
+                    border: 1px solid rgba(255,255,255,0.04);
+                    border-radius: 8px;
+                    padding: 10px;
+                    position: relative;
                 }
-
+                .vc3-columns-grid::after {
+                    content: '';
+                    position: absolute;
+                    top: 10%;
+                    bottom: 10%;
+                    left: 50%;
+                    width: 1px;
+                    background: rgba(255,255,255,0.08);
+                }
+                .vc3-col {
+                    display: flex;
+                    flex-direction: column;
+                    min-width: 0;
+                }
+                .vc3-col-left { padding-right: 4px; }
+                .vc3-col-right { padding-left: 4px; }
+                .vc3-col-title {
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: rgba(255,255,255,0.6);
+                    margin-bottom: 6px;
+                    padding-bottom: 4px;
+                    border-bottom: 1px dashed rgba(255,255,255,0.1);
+                }
+                .vc3-list-scrollable {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    max-height: 125px;
+                    overflow-y: auto;
+                    padding-right: 4px;
+                    flex: 1;
+                }
+                .vc3-list-scrollable::-webkit-scrollbar { width: 3px; }
+                .vc3-list-scrollable::-webkit-scrollbar-track { background: transparent; }
+                .vc3-list-scrollable::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+                
+                .vc3-list-item {
+                    font-size: 11.5px;
+                    color: #ffffff;
+                    display: flex;
+                    align-items: center;
+                    background: rgba(255,255,255,0.03);
+                    padding: 4px 6px;
+                    border-radius: 4px;
+                    border: 1px solid rgba(255,255,255,0.02);
+                }
+                .vc3-game-item { justify-content: space-between; }
+                .vc3-game-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; }
+                .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 10px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
+                
+                .vc3-stakes-list { display: flex; flex-direction: column; gap: 4px; }
+                .vc3-stake-item { color: rgba(255,255,255,0.85); font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); justify-content: center; }
+                
+                .vc3-tourney-item, .vc3-tourney-item-special {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 2px;
+                }
+                .vc3-tourney-item-special { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); }
+                .vc3-tourney-name {
+                    font-weight: 600;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    width: 100%;
+                }
+                .vc3-tourney-meta {
+                    font-size: 9.5px;
+                    color: rgba(255,255,255,0.5);
+                    display: flex;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    width: 100%;
+                    font-weight: 500;
+                }
+                
+                .vc3-empty-state {
+                    font-size: 11px;
+                    color: rgba(255,255,255,0.3);
+                    font-style: italic;
+                    padding: 10px 0;
+                    text-align: center;
+                    margin: auto 0;
+                }
+                .vc3-col-footer {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-top: 8px;
+                    padding-top: 8px;
+                    border-top: 1px dashed rgba(255,255,255,0.1);
+                }
+                .vc3-hours-small {
+                    font-size: 10px;
+                    color: rgba(255,255,255,0.4);
+                    font-weight: 500;
+                    white-space: nowrap;
+                }
+                
+                @media (max-width: 480px) {
+                    .vc3-columns-grid {
+                        grid-template-columns: 1fr;
+                        gap: 16px;
+                    }
+                    .vc3-columns-grid::after {
+                        top: 50%; left: 10%; right: 10%;
+                        width: auto; height: 1px;
+                    }
+                    .vc3-col-left { padding-right: 0; padding-bottom: 8px; }
+                    .vc3-col-right { padding-left: 0; padding-top: 8px; }
+                }
 
 
                 /* ── Charity Event Big Date Block ──────────────────────── */
