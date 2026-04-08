@@ -18973,7 +18973,9 @@ test('BUG155-E2E: PLO8 nut low facing bet NEVER folds', () => {
 test('BUG157-UNIT: angleTell.extraEntropyMs wired into Hold\'em delay path', () => {
     // The fix adds angleTell.extraEntropyMs before the clamp at line ~16076.
     // Verify by checking the source code contains the wiring.
-    const src = readBrainSource();
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/brain/plo-core.js'), 'utf8'
+    );
     // The fix: "delayMs += angleTell.extraEntropyMs;" appears BEFORE the clamp
     const hasWiring = src.includes('delayMs += angleTell.extraEntropyMs');
     expect(hasWiring).toBe(true);
@@ -18983,7 +18985,9 @@ test('BUG157-UNIT: angleTell.extraEntropyMs wired into Hold\'em delay path', () 
 // BUG #158: counterStrategyMode wired into flop heuristic
 // ═══════════════════════════════════════════════════════════════════
 test('BUG158-UNIT: counterStrategyMode produces flopInStealthMode / antiBotCBetBoost in flop heuristic', () => {
-    const src = readBrainSource();
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/brain/plo-core.js'), 'utf8'
+    );
     expect(src.includes('flopInStealthMode')).toBe(true);
     expect(src.includes('antiBotCBetBoost')).toBe(true);
     // Verify they're used in the c-bet frequency formula
@@ -18995,7 +18999,9 @@ test('BUG158-UNIT: counterStrategyMode produces flopInStealthMode / antiBotCBetB
 // BUG #159: Dead board variables (boardIsTrips, boardIsMedium, boardHasStraightDraw)
 // ═══════════════════════════════════════════════════════════════════
 test('BUG159-UNIT: boardIsTrips triggers check-through in flop c-bet', () => {
-    const src = readBrainSource();
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/brain/plo-core.js'), 'utf8'
+    );
     // Trips board handling must exist in the c-bet strategy
     expect(src.includes('if (boardIsTrips)')).toBe(true);
     expect(src.includes('mediumBoardSizeMod')).toBe(true);
@@ -19018,7 +19024,9 @@ test('BUG159-E2E: makeFlopHeuristicDecision on trips board returns check', () =>
 // BUG #160: inAntiBot and isTight wired in turn/river heuristic
 // ═══════════════════════════════════════════════════════════════════
 test('BUG160-UNIT: inAntiBot and isTight produce narrative adjustments', () => {
-    const src = readBrainSource();
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/brain/plo-core.js'), 'utf8'
+    );
     // inAntiBot must be used (not just declared)
     expect(src.includes('if (inAntiBot) {')).toBe(true);
     expect(src.includes('if (inAntiBot) sizeFrac')).toBe(true);
@@ -19030,7 +19038,9 @@ test('BUG160-UNIT: inAntiBot and isTight produce narrative adjustments', () => {
 // BUG #161: mdf (Minimum Defense Frequency) wired in Hold'em fallback + T/R heuristic
 // ═══════════════════════════════════════════════════════════════════
 test('BUG161-UNIT: mdf is used in bluff-catch and hero call decisions', () => {
-    const src = readBrainSource();
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/brain/plo-core.js'), 'utf8'
+    );
     // Hold'em fallback: mdfCallBoost in bluff-catch section
     expect(src.includes('mdfCallBoost')).toBe(true);
     // Turn/river heuristic: mdf in hero call base probability
@@ -19041,7 +19051,9 @@ test('BUG161-UNIT: mdf is used in bluff-catch and hero call decisions', () => {
 // BUG #162: MDF defense vs all-in on flop/turn
 // ═══════════════════════════════════════════════════════════════════
 test('BUG162-UNIT: MDF defense code exists in Hold\'em fallback', () => {
-    const src = readBrainSource();
+    const src = require('fs').readFileSync(
+        require('path').join(__dirname, 'src/lib/poker-engine/brain/plo-core.js'), 'utf8'
+    );
     // The fix adds flopTurnMDF and MDF DEFENSE logic
     expect(src.includes('flopTurnMDF')).toBe(true);
     expect(src.includes('MDF DEFENSE')).toBe(true);
@@ -19072,7 +19084,9 @@ test('BUG162-E2E: Top pair calls all-in on flop (Hold\'em fallback)', () => {
 // ═══════════════════════════════════════════════════════════
 // Bugs #164-#171: PLO ANTI-EXPLOIT SYSTEM — 8 DEAD FUNCTIONS WIRED
 // ═══════════════════════════════════════════════════════════
-const brainSource = readBrainSource();
+const brainSource = require('fs').readFileSync(
+    require('path').join(__dirname, 'src/lib/poker-engine/brain/plo-core.js'), 'utf8'
+);
 
 test('BUG164: trackPLOShowdownExposure is called in makePLOFallbackDecision', () => {
     const src = brainSource;

@@ -15,7 +15,7 @@
 
 const path = require('path');
 require('dotenv').config({ path: path.join(process.cwd(), '.env.local') });
-const Brain = require('../HorsePokerBrain');
+const Brain = require('../brain');
 
 let passed = 0;
 let failed = 0;

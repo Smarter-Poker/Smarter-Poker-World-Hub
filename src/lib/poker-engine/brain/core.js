@@ -56,7 +56,7 @@ const POSITION_MAP = {
 function mapPosition(enginePosition) {
     if (!enginePosition) return 'MP';
     const lower = String(enginePosition).toLowerCase();
-    return POSITION_MAP[lower] || enginePosition.toUpperCase() || 'MP';
+    return POSITION_MAP[lower] || 'MP';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

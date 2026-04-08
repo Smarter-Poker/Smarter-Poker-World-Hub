@@ -184,7 +184,8 @@ export default function NearMeNowFeed({ userLocation, venues = [], onRequestGPS,
 
     useEffect(() => {
         fetchFeed();
-        refreshRef.current = setInterval(fetchFeed, FEED_REFRESH_MS);
+        // Disabled auto-refresh per user request!
+        // refreshRef.current = setInterval(fetchFeed, FEED_REFRESH_MS);
         return () => { if (refreshRef.current) clearInterval(refreshRef.current); };
     }, [fetchFeed]);
 

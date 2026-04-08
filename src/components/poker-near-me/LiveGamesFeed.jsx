@@ -291,16 +291,17 @@ export default function LiveGamesFeed({
 
     // Countdown timer acting as visual indicator AND unified polling mechanic
     useEffect(() => {
-        countdownRef.current = setInterval(() => {
-            setRefreshCountdown(prev => {
-                if (prev <= 1) {
-                    // Fire underlying data fetch, which will synchronously reset this counter upon success
-                    fetchGlobalLiveData(true);
-                    return LIVE_REFRESH_MS / 1000;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+        // Disabled auto-refresh per user request!
+        // countdownRef.current = setInterval(() => {
+        //     setRefreshCountdown(prev => {
+        //         if (prev <= 1) {
+        //             // Fire underlying data fetch, which will synchronously reset this counter upon success
+        //             fetchGlobalLiveData(true);
+        //             return LIVE_REFRESH_MS / 1000;
+        //         }
+        //         return prev - 1;
+        //     });
+        // }, 1000);
         return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
     }, [fetchGlobalLiveData]);
 

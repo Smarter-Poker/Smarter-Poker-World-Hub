@@ -19,7 +19,9 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const Brain = require('../HorsePokerBrain');
+const Brain = require('../brain');
+
+const Brain = require('../brain');
 
 let passed = 0;
 let failed = 0;

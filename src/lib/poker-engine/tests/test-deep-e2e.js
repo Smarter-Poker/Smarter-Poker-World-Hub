@@ -27,7 +27,7 @@ function assert(condition, label) {
     console.log('  🔬 DEEP END-TO-END HORSE AI VERIFICATION');
     console.log('═══════════════════════════════════════════════════\n');
 
-    const Brain = require('../HorsePokerBrain');
+    const Brain = require('../brain');
     const Adv = require('../../../content-engine/services/HorsePokerAdvanced');
 
     // ═══════════════════════════════════════════

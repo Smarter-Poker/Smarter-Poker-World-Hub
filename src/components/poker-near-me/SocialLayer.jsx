@@ -144,7 +144,8 @@ export default function SocialLayer({ userId, userLocation, venues = [], authTok
     useEffect(() => {
         if (friendsList.length > 0) {
             fetchFriendCheckins();
-            refreshRef.current = setInterval(fetchFriendCheckins, REFRESH_INTERVAL);
+            // Disabled auto-refresh per user request!
+            // refreshRef.current = setInterval(fetchFriendCheckins, REFRESH_INTERVAL);
         }
         return () => { if (refreshRef.current) clearInterval(refreshRef.current); };
     }, [friendsList, fetchFriendCheckins]);

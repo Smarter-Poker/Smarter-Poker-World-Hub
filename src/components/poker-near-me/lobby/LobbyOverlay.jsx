@@ -82,35 +82,13 @@ export default function LobbyOverlay({
   const [showSuggestions, setShowSuggestions] = useState(false);
   // tutorialStep state removed — managed by InteractiveTutorial
 
-  // ═══ RATCHET COUNTER — venue count only goes UP, never down ═══
-  // Uses localStorage to persist the high-water mark across sessions.
-  // Starts with the real total and only increments if new data is higher.
-  const highWaterRef = useRef(
-    typeof window !== 'undefined'
-      ? (() => { try { const s = parseInt(localStorage.getItem('pnm_venue_hwm'), 10); return isNaN(s) ? 0 : s; } catch { return 0; } })()
-      : 0
-  );
-  const [displayVenueCount, setDisplayVenueCount] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = parseInt(localStorage.getItem('pnm_venue_hwm'), 10);
-        return isNaN(saved) ? 0 : saved;
-      } catch { return 0; }
-    }
-    return 0;
-  });
+  const [displayVenueCount, setDisplayVenueCount] = useState(venueCount);
 
   useEffect(() => {
-    if (venueCount > 0) {
-      const currentHWM = highWaterRef.current;
-      const newHWM = Math.max(currentHWM, venueCount);
-      highWaterRef.current = newHWM;
-      setDisplayVenueCount(newHWM);
-      try { localStorage.setItem('pnm_venue_hwm', String(newHWM)); } catch {}
-    }
+    setDisplayVenueCount(venueCount);
   }, [venueCount]);
 
-  // Format venue count: exact number, ratcheted (only goes up, never down)
+  // Format venue count
   const formattedVenueCount = useMemo(() => {
     if (displayVenueCount <= 0) return '0';
     return displayVenueCount.toLocaleString();

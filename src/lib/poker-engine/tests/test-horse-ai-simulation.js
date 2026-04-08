@@ -1,7 +1,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(process.cwd(), '.env.local') });
 const { getController } = require('../GameController');
-const HorsePokerBrain = require('../HorsePokerBrain');
+const HorsePokerBrain = require('../brain');
 
 async function runSimulation() {
     console.log('--- HORSE AI GTO SIMULATION START ---');

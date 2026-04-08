@@ -17,6 +17,11 @@
  *   - session-analytics.js: loadTableJournals (lazy-loaded to avoid circular deps)
  */
 
+// How often (in hands) to persist opponent journal data to Supabase.
+// Mirrors the value in session-analytics.js. Defined here to avoid
+// circular-dependency issues with the lazy-load pattern.
+const JOURNAL_PERSIST_INTERVAL = 15;
+
 // Lazy-load session-analytics to avoid circular dependency
 let _sessionAnalytics = null;
 function _getSA() {

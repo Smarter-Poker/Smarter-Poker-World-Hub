@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(process.cwd(), '.env.local') });
-const Brain = require('../HorsePokerBrain');
+const Brain = require('../brain');
 
 const BOARDS = {
     preflop: [],

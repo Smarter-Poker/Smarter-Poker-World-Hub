@@ -309,9 +309,41 @@ module.exports = {
     clearLiveObserver: liveObserver.clearLiveObserver,
     clearTableLiveObservers: liveObserver.clearTableLiveObservers,
     cleanupLiveObservers: liveObserver.cleanupLiveObservers,
+    liveObserver: liveObserver.liveObserver,
 
     // ═══════════════════════════════════════════════════════════════════════
     // hand-result.js — Post-hand processing pipeline
     // ═══════════════════════════════════════════════════════════════════════
     processHandResult: handResult.processHandResult,
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Internal state Maps (exposed for testing and HealthWatchdog)
+    // ═══════════════════════════════════════════════════════════════════════
+    collusionTracker: antiExploit.collusionTracker,
+    tiltMap: antiExploit.tiltMap,
+    frequencyObfuscatorMap: antiExploit.frequencyObfuscatorMap,
+    showdownExposureMap: antiExploit.showdownExposureMap,
+    patternProfitMap: antiExploit.patternProfitMap,
+    chaosSuppressionMap: antiExploit.chaosSuppressionMap,
+    suspectBotMap: antiExploit.suspectBotMap,
+    threatIntelCache: antiExploit.threatIntelCache,
+    threatPersistTimers: antiExploit.threatPersistTimers,
+    crossTableRadar: antiExploit.crossTableRadar,
+    rangeRotationMap: antiExploit.rangeRotationMap,
+    timeAbuseSuspicion: antiExploit.timeAbuseSuspicion,
+    tableTimebankBlacklist: antiExploit.tableTimebankBlacklist,
+    probeBetMap: antiExploit.probeBetMap,
+    imageExposureMap: antiExploit.imageExposureMap,
+    isoSizingMap: antiExploit.isoSizingMap,
+    minRaiseMap: antiExploit.minRaiseMap,
+    squeezeMap: antiExploit.squeezeMap,
+    coldCallMap: antiExploit.coldCallMap,
+    angleShootMap: antiExploit.angleShootMap,
+    ritRefusalMap: antiExploit.ritRefusalMap,
+    chipLeakMap: antiExploit.chipLeakMap,
+    streetMemoryMap: antiExploit.streetMemoryMap,
+    opponentSessionModel: antiExploit.opponentSessionModel,
+    RANGE_GEARS: antiExploit.RANGE_GEARS,
+    GEAR_ADJUSTMENTS: antiExploit.GEAR_ADJUSTMENTS,
+    sessionTracker: sessionAnalytics.sessionTracker,
 };
