@@ -867,7 +867,7 @@ def load_venues(batch_num: int = 0) -> list:
         "pokeratlas_url,pokeratlas_slug,"
         "scrape_url,schedule_scrape_url,schedule_last_scraped_at,has_tournaments"
         "&is_active=eq.true"
-        "&order=schedule_last_scraped_at.asc.nullsfirst&limit=2000"
+        "&order=id.asc&limit=2000"
     )
     rows=sb_get("poker_venues",params)
     before=len(rows)
