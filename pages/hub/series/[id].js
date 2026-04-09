@@ -255,8 +255,8 @@ export default function SeriesDetailPage() {
     }
   };
 
-  // Loading state
-  if (loading) {
+  // Loading state (also show while router hasn't provided id yet)
+  if (loading || !id) {
     return (
       <>
         <SEOHead
