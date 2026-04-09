@@ -76,11 +76,13 @@ export function getBridgedDecision(input) {
     potSize = 0,
     betToCall = 0,
     stackSize = 0,
+    bigBlind = 0,
     position = 'middle',
     numPlayers = 6,
     blindLevel = 1,
     isTournament = false,
     tournamentStage = 'early',
+    preflopAction = null, // optional override: rfi/vs_limp/vs_raise/vs_3bet/vs_4bet
     confidenceFloor = DEFAULT_CONFIDENCE_FLOOR,
   } = input;
 
@@ -137,10 +139,12 @@ export function getBridgedDecision(input) {
       potSize,
       betToCall,
       stackSize,
+      bigBlind,
       position,
       numPlayers,
       street,
       blindLevel,
+      preflopAction,
       istournament: isTournament,
       tournamentStage,
     });
@@ -162,12 +166,17 @@ export function getBridgedDecision(input) {
 
   // Hand strength label (for UI, computed from current made hand)
   let handStrength = null;
+  let texture = null;
   if (effectiveBoard.length >= 3) {
     try {
       const best = PokerBrainEngine.getBestFiveCardFromCards([...hole, ...effectiveBoard]);
       if (best) handStrength = best.name || best.rank;
     } catch (err) { /* swallow */ }
+    try {
+      texture = PokerBrainEngine.classifyTexture(effectiveBoard);
+    } catch (err) { /* swallow */ }
   }
+  const spr = PokerBrainEngine.calculateStackToPot(stackSize, potSize);
 
   return {
     ready: true,
@@ -180,6 +189,8 @@ export function getBridgedDecision(input) {
     potOdds: engineResult.potOdds,
     street,
     handStrength,
+    texture,
+    spr: Number.isFinite(spr) ? Math.round(spr * 10) / 10 : null,
     holeCards: hole,
     boardCards: effectiveBoard,
     detection: {

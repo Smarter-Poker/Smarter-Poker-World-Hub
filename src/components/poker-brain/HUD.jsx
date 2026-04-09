@@ -474,47 +474,64 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
 
   // ============================================================================
   // DECISION COMPUTATION (reruns when state or game inputs change)
+  // Rate-limited: min 200ms between recomputes to avoid thrashing Monte Carlo
   // ============================================================================
+  const decisionTimerRef = useRef(null);
+  const lastDecisionKeyRef = useRef('');
   useEffect(() => {
     if (handState.holeCards.length < 2) {
       setDecision(null);
       setValidator(null);
       return;
     }
-    const bridged = getBridgedDecision({
-      rawHoleCards: handState.holeCards,
-      rawBoardCards: handState.boardCards,
-      gameType: 'nlhe',
-      potSize,
-      betToCall: bigBlind,
-      stackSize: heroStack,
-      position,
-      numPlayers: players,
-      blindLevel: bigBlind || 1,
-    });
-    setDecision(bridged);
+    // Build a stable key so we skip redundant recomputes
+    const holeKey = handState.holeCards.map(c => `${c.rank}${c.suit}`).sort().join('');
+    const boardKey = handState.boardCards.map(c => `${c.rank}${c.suit}`).sort().join('');
+    const key = `${holeKey}|${boardKey}|${potSize}|${heroStack}|${bigBlind}|${position}|${players}`;
+    if (key === lastDecisionKeyRef.current) return;
 
-    // Record the decision on the current street of the current hand
-    if (bridged.ready && stateMachineRef.current) {
-      stateMachineRef.current.recordDecision({
-        action: bridged.action,
-        raiseAmount: bridged.raiseAmount,
-        equity: bridged.equity,
-        potOdds: bridged.potOdds,
-        confidence: bridged.confidence,
-        reasoning: bridged.reasoning,
+    if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
+    decisionTimerRef.current = setTimeout(() => {
+      lastDecisionKeyRef.current = key;
+      const bridged = getBridgedDecision({
+        rawHoleCards: handState.holeCards,
+        rawBoardCards: handState.boardCards,
+        gameType: 'nlhe',
+        potSize,
+        betToCall: bigBlind,
+        bigBlind,
+        stackSize: heroStack,
+        position,
+        numPlayers: players,
+        blindLevel: bigBlind || 1,
       });
-    }
+      setDecision(bridged);
 
-    // Validator: compare engine hand name against PokerBros OCR label
-    try {
-      if (bridged.ready && bridged.handStrength && pokerBrosHandLabel) {
-        const v = compareHandStrength(bridged.handStrength, pokerBrosHandLabel);
-        setValidator(v);
-      } else {
-        setValidator(null);
+      // Record the decision on the current street of the current hand
+      if (bridged.ready && stateMachineRef.current) {
+        stateMachineRef.current.recordDecision({
+          action: bridged.action,
+          raiseAmount: bridged.raiseAmount,
+          equity: bridged.equity,
+          potOdds: bridged.potOdds,
+          confidence: bridged.confidence,
+          reasoning: bridged.reasoning,
+        });
       }
-    } catch (err) { /* swallow */ }
+
+      // Validator: compare engine hand name against PokerBros OCR label
+      try {
+        if (bridged.ready && bridged.handStrength && pokerBrosHandLabel) {
+          const v = compareHandStrength(bridged.handStrength, pokerBrosHandLabel);
+          setValidator(v);
+        } else {
+          setValidator(null);
+        }
+      } catch (err) { /* swallow */ }
+    }, 200);
+    return () => {
+      if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
+    };
   }, [handState, potSize, heroStack, bigBlind, position, players, pokerBrosHandLabel]);
 
   // ============================================================================
@@ -670,6 +687,26 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
                 <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
                   <div className="text-[9px] text-white/60 uppercase">Confidence</div>
                   <div className="text-sm font-bold">{Math.round(decision.confidence * 100)}%</div>
+                </div>
+              )}
+              {decision.spr !== null && decision.spr !== undefined && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">SPR</div>
+                  <div className="text-sm font-bold">{decision.spr}</div>
+                </div>
+              )}
+              {decision.texture && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">Board</div>
+                  <div className="text-sm font-bold">
+                    {decision.texture.monotone ? 'monotone'
+                      : decision.texture.paired ? 'paired'
+                      : decision.texture.flushDraw && decision.texture.straightDraw ? 'wet'
+                      : decision.texture.flushDraw ? 'flush-draw'
+                      : decision.texture.straightDraw ? 'straight-draw'
+                      : decision.texture.rainbow ? 'rainbow'
+                      : 'dynamic'}
+                  </div>
                 </div>
               )}
             </div>
