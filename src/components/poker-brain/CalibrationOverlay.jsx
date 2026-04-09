@@ -72,12 +72,14 @@ function flattenLayout(layout, overrides) {
     });
   });
   (layout.seats || []).forEach((s, i) => {
-    if (!s.region) return;
+    // Seats in layout.json are flat {id, position, x, y, w, h} — no nested region.
+    const baseRect = s.region ? s.region : { x: s.x, y: s.y, w: s.w, h: s.h };
+    if (typeof baseRect.x !== 'number' || typeof baseRect.y !== 'number') return;
     out.push({
       group: 'seats',
       key: `seats.${i}`,
       label: s.id || `Seat ${i + 1}`,
-      rect: mergeRect(s.region, overrides?.seats?.[i]),
+      rect: mergeRect(baseRect, overrides?.seats?.[i]),
       color: REGION_COLORS.seats,
     });
   });
@@ -333,7 +335,8 @@ export function mergeLayoutWithOverrides(base, overrides) {
   }
   if (overrides.seats) {
     overrides.seats.forEach((o, i) => {
-      if (o && out.seats[i]) out.seats[i] = { ...out.seats[i], region: { ...out.seats[i].region, ...o } };
+      // Seats are flat {x,y,w,h} — merge override directly into the seat object.
+      if (o && out.seats && out.seats[i]) out.seats[i] = { ...out.seats[i], ...o };
     });
   }
   return out;

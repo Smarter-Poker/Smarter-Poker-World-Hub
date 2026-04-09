@@ -129,6 +129,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   const [potSize, setPotSize] = useState(0);
   const [heroStack, setHeroStack] = useState(0);
   const [bigBlind, setBigBlind] = useState(0);
+  const [betToCall, setBetToCall] = useState(0);
   const [position, setPosition] = useState('middle');
   const [dealerSeat, setDealerSeat] = useState(null);
   const [gameType, setGameType] = useState('nlhe');
@@ -200,14 +201,30 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   const potSizeRef = useRef(potSize);
   const heroStackRef = useRef(heroStack);
   const bigBlindRef = useRef(bigBlind);
+  const betToCallRef = useRef(betToCall);
   const gameTypeRef = useRef(gameType);
   const playersRef = useRef(players);
   useEffect(() => { positionRef.current = position; }, [position]);
   useEffect(() => { potSizeRef.current = potSize; }, [potSize]);
   useEffect(() => { heroStackRef.current = heroStack; }, [heroStack]);
   useEffect(() => { bigBlindRef.current = bigBlind; }, [bigBlind]);
+  useEffect(() => { betToCallRef.current = betToCall; }, [betToCall]);
   useEffect(() => { gameTypeRef.current = gameType; }, [gameType]);
   useEffect(() => { playersRef.current = players; }, [players]);
+
+  // Effective stack = min(hero, max villain with non-zero stack). Used as
+  // the stack fed to the engine so SPR and commitment math reflect the
+  // actual money that can move in the pot, not just hero's chip count.
+  const effectiveStack = useMemo(() => {
+    const villainVals = Object.values(villainStacks || {}).filter(
+      (v) => typeof v === 'number' && v > 0,
+    );
+    if (villainVals.length === 0 || heroStack <= 0) return heroStack;
+    const maxVillain = Math.max(...villainVals);
+    return Math.min(heroStack, maxVillain);
+  }, [heroStack, villainStacks]);
+  const effectiveStackRef = useRef(effectiveStack);
+  useEffect(() => { effectiveStackRef.current = effectiveStack; }, [effectiveStack]);
 
   // Storage (Supabase + IndexedDB queue)
   const storage = usePokerBrainStorage(supabase);
@@ -247,8 +264,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             board: hand.finalBoard || [],
             gameType: gameTypeRef.current,
             potSize: potSizeRef.current,
-            betToCall: bigBlindRef.current,
-            stackSize: heroStackRef.current,
+            betToCall: betToCallRef.current > 0 ? betToCallRef.current : bigBlindRef.current,
+            stackSize: effectiveStackRef.current || heroStackRef.current,
             equity: lastDecision ? lastDecision.equity : null,
             potOdds: lastDecision ? lastDecision.potOdds : null,
             decision: lastDecision ? lastDecision.action : null,
@@ -306,8 +323,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   // ============================================================================
   // SESSION START / END
   // ============================================================================
+  const startingSessionRef = useRef(false);
   useEffect(() => {
-    if (!storage.ready || !detecting || sessionIdRef.current) return;
+    if (!storage.ready || !detecting) return;
+    if (sessionIdRef.current || startingSessionRef.current) return;
+    startingSessionRef.current = true;
     storage.startSession({
       gameType: gameTypeRef.current,
       playerCount: playersRef.current,
@@ -318,7 +338,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
       // storage.startSession returns the session id directly (string),
       // or null when offline and queued.
       if (id) sessionIdRef.current = id;
-    }).catch((err) => console.warn('[HUD] startSession failed', err));
+    }).catch((err) => console.warn('[HUD] startSession failed', err))
+      .finally(() => { startingSessionRef.current = false; });
   }, [storage, detecting, source]);
 
   useEffect(() => {
@@ -470,19 +491,21 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             full.height = srcH;
             full.getContext('2d').drawImage(video, 0, 0, srcW, srcH);
 
-            const run = async (name, method) => {
+            const run = async (name, method, opts = {}) => {
               const raw = effectiveLayout.ocrRegions[name];
               if (!raw) return null;
               const rect = scaleRect(raw, sx, sy);
               const crop = cropToCanvas(full, rect);
+              // Give each logical region its own cacheKey so debounce timers
+              // and checksum caches don't collide across regions.
               try {
-                return await ocr[method](crop);
+                return await ocr[method](crop, { cacheKey: name, ...opts });
               } catch (err) {
                 return null;
               }
             };
 
-            // Fire and forget (they debounce internally)
+            // Fire and forget (they debounce internally per-region)
             run('pot', 'readPotSize').then((r) => {
               if (r && typeof r.value === 'number') setPotSize(r.value);
             }).catch(() => {});
@@ -493,12 +516,17 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
               if (r && r.bigBlind) setBigBlind(r.bigBlind);
             }).catch(() => {});
 
+            // Current bet to call (from the betRaise action button label)
+            run('currentBet', 'readBetAmounts').then((r) => {
+              if (r && typeof r.value === 'number' && r.value >= 0) setBetToCall(r.value);
+            }).catch(() => {});
+
             // Hand strength label (plain readRegion, then stored for validator)
             const hsRaw = effectiveLayout.ocrRegions.handStrength;
             if (hsRaw && typeof ocr.readRegion === 'function') {
               const rect = scaleRect(hsRaw, sx, sy);
               const crop = cropToCanvas(full, rect);
-              ocr.readRegion(crop).then((r) => {
+              ocr.readRegion(crop, { cacheKey: 'handStrength' }).then((r) => {
                 if (r && r.text) setPokerBrosHandLabel(r.text);
               }).catch(() => {});
             }
@@ -508,8 +536,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             if (gvRaw && typeof ocr.readRegion === 'function') {
               const rect = scaleRect(gvRaw, sx, sy);
               const crop = cropToCanvas(full, rect);
-              ocr.readRegion(crop).then((r) => {
-                if (!r || !r.text) return;
+              ocr.readRegion(crop, { cacheKey: 'gameVariant' }).then((r) => {
+                if (!r || !r.text || !r.meetsThreshold) return;
                 const t = String(r.text).toUpperCase();
                 if (t.includes('PLO5') || t.includes('PLO 5') || t.includes('5-CARD')) setGameType('plo5');
                 else if (t.includes('PLO') || t.includes('OMAHA')) setGameType('plo');
@@ -522,18 +550,18 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             if (hnRaw && typeof ocr.readRegion === 'function') {
               const rect = scaleRect(hnRaw, sx, sy);
               const crop = cropToCanvas(full, rect);
-              ocr.readRegion(crop).then((r) => {
+              ocr.readRegion(crop, { cacheKey: 'heroName' }).then((r) => {
                 if (r && r.text) setHeroName(r.text);
               }).catch(() => {});
             }
 
-            // Villain stacks (for multi-villain SPR awareness / future use)
+            // Villain stacks (for multi-villain SPR awareness / effective stack)
             ['seat1Stack', 'seat2Stack', 'seat3Stack'].forEach((seatKey) => {
               const sr = effectiveLayout.ocrRegions[seatKey];
               if (!sr) return;
               const rect = scaleRect(sr, sx, sy);
               const crop = cropToCanvas(full, rect);
-              ocr.readStackSizes(crop).then((r) => {
+              ocr.readStackSizes(crop, { cacheKey: seatKey }).then((r) => {
                 if (r && typeof r.value === 'number') {
                   setVillainStacks((prev) => ({ ...prev, [seatKey]: r.value }));
                 }
@@ -567,7 +595,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     // Build a stable key so we skip redundant recomputes
     const holeKey = handState.holeCards.map(c => `${c.rank}${c.suit}`).sort().join('');
     const boardKey = handState.boardCards.map(c => `${c.rank}${c.suit}`).sort().join('');
-    const key = `${holeKey}|${boardKey}|${potSize}|${heroStack}|${bigBlind}|${position}|${players}|${gameType}`;
+    // Effective bet-to-call: if OCR has a non-zero reading, prefer it; else
+    // fall back to BB so preflop RFI logic still resolves to a sensible
+    // action before OCR converges.
+    const effBetToCall = betToCall > 0 ? betToCall : bigBlind;
+    const key = `${holeKey}|${boardKey}|${potSize}|${effectiveStack}|${effBetToCall}|${bigBlind}|${position}|${players}|${gameType}`;
     if (key === lastDecisionKeyRef.current) return;
 
     if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
@@ -578,9 +610,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
         rawBoardCards: handState.boardCards,
         gameType,
         potSize,
-        betToCall: bigBlind,
+        betToCall: effBetToCall,
         bigBlind,
-        stackSize: heroStack,
+        stackSize: effectiveStack,
         position,
         numPlayers: players,
         blindLevel: bigBlind || 1,
@@ -612,7 +644,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     return () => {
       if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
     };
-  }, [handState, potSize, heroStack, bigBlind, position, players, gameType, pokerBrosHandLabel]);
+  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, pokerBrosHandLabel]);
 
   // ============================================================================
   // UI HELPERS
@@ -782,6 +814,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
                 <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
                   <div className="text-[9px] text-white/60 uppercase">Outs</div>
                   <div className="text-sm font-bold">{decision.outs}</div>
+                  {Array.isArray(decision.outsImproves) && decision.outsImproves.length > 0 && (
+                    <div className="text-[9px] text-white/60 mt-0.5">
+                      {decision.outsImproves.slice(0, 2).join(', ')}
+                    </div>
+                  )}
                 </div>
               )}
               {decision.spr !== null && decision.spr !== undefined && (

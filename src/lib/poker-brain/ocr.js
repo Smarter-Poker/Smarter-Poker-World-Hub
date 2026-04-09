@@ -313,9 +313,16 @@ class PokerOCR {
     if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
       throw new Error('Invalid canvas element provided');
     }
-    
+
     const { language = 'eng', minConfidence = 0.7, debounce = 300 } = options;
-    const cacheKey = `region_${canvas.id || 'anon'}`;
+    // CRITICAL: the cache key must be unique per logical region, otherwise
+    // every region in the HUD clobbers the others' debounce timer and
+    // checksum cache. Callers should pass `options.cacheKey` (e.g. 'pot',
+    // 'heroStack'); fall back to a size-based key only for ad-hoc usage.
+    const cacheKey = options.cacheKey
+      || canvas.dataset?.regionKey
+      || canvas.id
+      || `anon_${canvas.width}x${canvas.height}`;
     
     // Debounce repeated calls
     if (this.debounceTimers.has(cacheKey)) {
@@ -396,8 +403,8 @@ class PokerOCR {
    * @param {Canvas} canvas - Canvas with pot size region
    * @returns {Promise<object>} {value, text, confidence}
    */
-  async readPotSize(canvas) {
-    const result = await this.readRegion(canvas);
+  async readPotSize(canvas, options = {}) {
+    const result = await this.readRegion(canvas, { cacheKey: 'pot', ...options });
     const value = parsePokerNumber(result.text);
     
     return {
@@ -414,8 +421,8 @@ class PokerOCR {
    * @param {Canvas} canvas - Canvas with bet amounts region
    * @returns {Promise<object>} {value, text, confidence}
    */
-  async readBetAmounts(canvas) {
-    const result = await this.readRegion(canvas);
+  async readBetAmounts(canvas, options = {}) {
+    const result = await this.readRegion(canvas, { cacheKey: 'betAmount', ...options });
     const value = parsePokerNumber(result.text);
     
     return {
@@ -432,8 +439,8 @@ class PokerOCR {
    * @param {Canvas} canvas - Canvas with stack sizes region
    * @returns {Promise<object>} {value, text, confidence}
    */
-  async readStackSizes(canvas) {
-    const result = await this.readRegion(canvas);
+  async readStackSizes(canvas, options = {}) {
+    const result = await this.readRegion(canvas, { cacheKey: 'stack', ...options });
     const value = parsePokerNumber(result.text);
     
     return {
@@ -450,8 +457,8 @@ class PokerOCR {
    * @param {Canvas} canvas - Canvas with blind level region
    * @returns {Promise<object>} {smallBlind, bigBlind, text, confidence}
    */
-  async readBlindLevel(canvas) {
-    const result = await this.readRegion(canvas);
+  async readBlindLevel(canvas, options = {}) {
+    const result = await this.readRegion(canvas, { cacheKey: 'blindLevel', ...options });
     const blinds = parseBlindLevel(result.text);
     
     return {

@@ -54,8 +54,10 @@ function CardRow({ cards, label }) {
 
 function DecisionRow({ street, decision }) {
   if (!decision) return null;
-  const equity = typeof decision.equity === 'number' ? Math.round(decision.equity * 100) : null;
-  const potOdds = typeof decision.potOdds === 'number' ? Math.round(decision.potOdds * 100) : null;
+  // Engine already returns equity/potOdds as percentages (0-100). Do NOT
+  // multiply again or you get 4500% readings.
+  const equity = typeof decision.equity === 'number' ? Math.round(decision.equity) : null;
+  const potOdds = typeof decision.potOdds === 'number' ? Math.round(decision.potOdds) : null;
   const actionColor =
     decision.action === 'RAISE' || decision.action === 'BET' ? 'text-emerald-300'
     : decision.action === 'CALL' ? 'text-sky-300'

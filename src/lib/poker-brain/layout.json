@@ -21,6 +21,7 @@
     "blindLevel":    { "x": 185, "y": 560, "w": 110, "h": 20, "kind": "blindlevel" },
     "handStrength":  { "x": 170, "y": 895, "w": 140, "h": 24, "kind": "text" },
     "gameVariant":   { "x": 210, "y": 518, "w": 60, "h": 24, "kind": "text" },
+    "currentBet":    { "x": 322, "y": 972, "w": 140, "h": 28, "kind": "number" },
     "seat1Stack":    { "x": 210, "y": 178, "w": 90, "h": 22, "kind": "number" },
     "seat2Stack":    { "x": 60,  "y": 238, "w": 90, "h": 22, "kind": "number" },
     "seat3Stack":    { "x": 340, "y": 238, "w": 90, "h": 22, "kind": "number" }
