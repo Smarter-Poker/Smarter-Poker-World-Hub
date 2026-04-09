@@ -142,15 +142,12 @@ export default function SeriesDetailPage() {
 
   // Load follow state from localStorage instantly
   useEffect(() => {
-
-  if (!router.isReady) return;
-
-    if (!id) return;
+    if (!router.isReady || !id) return;
     try {
       const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
       setIsFollowing(followed.includes(String(id)));
     } catch { }
-  }, [id]);
+  }, [id, router.isReady]);
 
   // SWR — parallel fetch all series data
   const swrKey = id ? `/api/poker/series?id=${id}` : null;
@@ -203,17 +200,21 @@ export default function SeriesDetailPage() {
       // ignore
     }
 
-    // Call API for server-side persistence
-    fetch('/api/poker/follow', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        page_type: 'series',
-        page_id: sid,
-        action: newState ? 'follow' : 'unfollow',
-        user_id: getAnonymousUserId(),
-      }),
-    }).catch(() => { }).catch(() => {});
+    // Call API for server-side persistence (requires auth token)
+    try {
+      const token = typeof window !== 'undefined' && window.__supabaseToken;
+      if (token) {
+        fetch('/api/poker/follow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({
+            page_type: 'series',
+            page_id: sid,
+            action: newState ? 'follow' : 'unfollow',
+          }),
+        }).catch(() => { });
+      }
+    } catch { }
   };
 
   function getAnonymousUserId() {
@@ -268,6 +269,7 @@ export default function SeriesDetailPage() {
           onMenuClick={() => setMenuOpen(true)}
           onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
         />
+        <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
           <div className="loading-container">
             <div className="loading-spinner" />
@@ -289,10 +291,11 @@ export default function SeriesDetailPage() {
           onMenuClick={() => setMenuOpen(true)}
           onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
         />
+        <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
           <div className="error-container">
             <h2 className="error-title">Series Not Found</h2>
-            <p className="error-text">{error || 'This tournament series could not be found.'}</p>
+            <p className="error-text">{(error && error.message) || 'This tournament series could not be found.'}</p>
           </div>
         </div>
         <style jsx>{styles}</style>
