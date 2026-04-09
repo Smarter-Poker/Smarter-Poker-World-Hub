@@ -224,7 +224,7 @@ class PokerBrainMatcher {
    * @param {number} sourceH — actual source height
    * @returns {{ rank: string|null, suit: string|null, confidence: number, distance: number, key: string|null }}
    */
-  matchRegion(source, region, sourceW, sourceH) {
+  matchRegion(source, region, sourceW, sourceH, options = {}) {
     this._ensureCanvases();
 
     // Crop the region from the source
@@ -238,9 +238,22 @@ class PokerBrainMatcher {
     const imageData = this._cropCtx.getImageData(0, 0, TEMPLATE_W, TEMPLATE_H);
     const regionHash = computeDHash(imageData);
 
+    const topN = Number.isFinite(options.topN) && options.topN > 0 ? options.topN : 0;
+
     // Compare against all templates
     let bestKey = null;
     let bestDistance = Infinity;
+
+    // Optional: collect top-N candidates for debug overlay
+    // Small fixed-size array, kept sorted ascending by distance
+    const candidates = topN > 0 ? [] : null;
+    const pushCandidate = (key, dist) => {
+      // Insert sorted; evict worst if exceeding topN
+      let i = 0;
+      while (i < candidates.length && candidates[i].distance <= dist) i++;
+      candidates.splice(i, 0, { key, distance: dist });
+      if (candidates.length > topN) candidates.length = topN;
+    };
 
     for (const [key, templateHash] of this.templateHashes) {
       const dist = hammingDistance(regionHash, templateHash);
@@ -248,16 +261,36 @@ class PokerBrainMatcher {
         bestDistance = dist;
         bestKey = key;
       }
+      if (candidates) pushCandidate(key, dist);
     }
+
+    const buildCandidates = () => {
+      if (!candidates) return undefined;
+      return candidates.map((c) => ({
+        key: c.key,
+        distance: c.distance,
+        confidence: 1 - (c.distance / DHASH_BITS),
+      }));
+    };
 
     // Determine match quality
     if (bestKey === null || bestDistance > MATCH_THRESHOLD) {
-      return { rank: null, suit: null, confidence: 0, distance: bestDistance, key: null };
+      return {
+        rank: null, suit: null, confidence: 0, distance: bestDistance, key: null,
+        threshold: MATCH_THRESHOLD,
+        candidates: buildCandidates(),
+      };
     }
 
     // Handle special keys
     if (bestKey === 'back' || bestKey === 'empty') {
-      return { rank: null, suit: null, confidence: 1 - (bestDistance / DHASH_BITS), distance: bestDistance, key: bestKey };
+      return {
+        rank: null, suit: null,
+        confidence: 1 - (bestDistance / DHASH_BITS),
+        distance: bestDistance, key: bestKey,
+        threshold: MATCH_THRESHOLD,
+        candidates: buildCandidates(),
+      };
     }
 
     // Parse rank and suit from key (e.g., 'Kh' -> rank='K', suit='h')
@@ -265,7 +298,11 @@ class PokerBrainMatcher {
     const suit = bestKey[1];
     const confidence = 1 - (bestDistance / DHASH_BITS);
 
-    return { rank, suit, confidence, distance: bestDistance, key: bestKey };
+    return {
+      rank, suit, confidence, distance: bestDistance, key: bestKey,
+      threshold: MATCH_THRESHOLD,
+      candidates: buildCandidates(),
+    };
   }
 
   /**
@@ -336,24 +373,33 @@ class PokerBrainMatcher {
       layoutHole = fallback.slice(0, maxHole);
     }
 
+    const debugMode = !!options.debug;
+    const topN = debugMode ? (Number.isFinite(options.topN) ? options.topN : 3) : 0;
+    const matchOpts = topN > 0 ? { topN } : undefined;
+
     // Match hole cards
     const holeCards = [];
-    const probeLog = options.probeMode ? [] : undefined;
+    // Unified debug log (hole + board). Legacy `probeLog` name kept for
+    // backwards compatibility with the wiring test.
+    const probeLog = (options.probeMode || debugMode) ? [] : undefined;
     for (let i = 0; i < layoutHole.length; i++) {
       const region = layoutHole[i];
       if (!region) continue;
       const scaled = scaleRegion(region);
-      const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH);
+      const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, matchOpts);
 
-      // Probe mode: log every region's best match + distance for debugging
       if (probeLog) {
         probeLog.push({
+          kind: 'hole',
           slot: i,
           region: { x: region.x, y: region.y, w: region.w, h: region.h },
+          scaledRegion: scaled,
           bestKey: result.key,
           distance: result.distance,
           confidence: result.confidence,
+          threshold: result.threshold,
           matched: !!(result.rank && result.suit),
+          candidates: result.candidates,
         });
       }
 
@@ -364,9 +410,26 @@ class PokerBrainMatcher {
 
     // Match board cards
     const boardCards = [];
-    for (const region of layout.boardCards) {
+    for (let i = 0; i < layout.boardCards.length; i++) {
+      const region = layout.boardCards[i];
       const scaled = scaleRegion(region);
-      const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH);
+      const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, matchOpts);
+
+      if (probeLog) {
+        probeLog.push({
+          kind: 'board',
+          slot: i,
+          region: { x: region.x, y: region.y, w: region.w, h: region.h },
+          scaledRegion: scaled,
+          bestKey: result.key,
+          distance: result.distance,
+          confidence: result.confidence,
+          threshold: result.threshold,
+          matched: !!(result.rank && result.suit),
+          candidates: result.candidates,
+        });
+      }
+
       if (result.rank && result.suit) {
         boardCards.push(result);
       }

@@ -125,6 +125,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const [lastTimingMs, setLastTimingMs] = useState(0);
   const [frameCount, setFrameCount] = useState(0);
 
+  // Debug overlay: when true, matcher emits top-3 candidates per region
+  // so we can diagnose template mismatches vs region offsets vs thresholds.
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugProbe, setDebugProbe] = useState(null);
+  const debugModeRef = useRef(false);
+  useEffect(() => { debugModeRef.current = debugMode; }, [debugMode]);
+
   // Game state inputs
   const [players, setPlayers] = useState(6);
   const [potSize, setPotSize] = useState(0);
@@ -467,9 +474,22 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             const result = matcher.matchAllRegions(video, effectiveLayout, {
               variant: currentVariant,
               maxHoleCards: PokerBrainEngine.expectedHoleCount(currentVariant),
+              debug: debugModeRef.current,
+              topN: 3,
             });
             setLastTimingMs(Math.round(result.timingMs * 10) / 10);
             setFrameCount((c) => c + 1);
+
+            if (debugModeRef.current && result.probeLog) {
+              setDebugProbe({
+                ts: Date.now(),
+                variant: currentVariant,
+                videoW: video.videoWidth || video.width,
+                videoH: video.videoHeight || video.height,
+                templates: matcher.getTemplateCount ? matcher.getTemplateCount() : null,
+                log: result.probeLog,
+              });
+            }
 
             // Suit-color verification pass (PokerBros 4-color deck sanity check)
             const srcW = video.videoWidth || video.width;

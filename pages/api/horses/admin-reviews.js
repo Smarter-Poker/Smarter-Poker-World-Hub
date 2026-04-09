@@ -149,7 +149,7 @@ export default async function handler(req, res) {
             // Apply Trust Score Punishment & Send Push Notification
             if (existing?.user_id) {
                 try {
-                    const { data: prof } = await getSupabase().from('profiles').select('deleted_reviews_count').eq('id', existing.user_id).single();
+                    const { data: prof } = await getSupabase().from('profiles').select('deleted_reviews_count').eq('id', existing.user_id).maybeSingle();
                     if (prof) {
                         const newCount = (prof.deleted_reviews_count || 0) + 1;
                         const updateObj = { deleted_reviews_count: newCount };
