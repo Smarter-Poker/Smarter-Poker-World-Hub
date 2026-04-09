@@ -2878,6 +2878,27 @@ export default function PokerNearMePage() {
                     </p>
                 </div>
 
+                {/* ═══ FAVORITE VENUE LIVE ALERT ═══ */}
+                {(() => {
+                    const favKeys = Object.keys(favorites).filter(k => k.startsWith('venue-'));
+                    if (favKeys.length === 0) return null;
+                    const favIds = new Set(favKeys.map(k => k.replace('venue-', '')));
+                    const liveFavs = allVenuesWithTours.filter(v => 
+                        favIds.has(String(v.id)) && v.live_data && v.live_data.tables_running > 0
+                    );
+                    if (liveFavs.length === 0) return null;
+                    return (
+                        <div className="pnm-fav-alert" onClick={() => { setActiveTab('saved'); }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                            <span>
+                                {liveFavs.length === 1
+                                    ? `${liveFavs[0].name} has ${liveFavs[0].live_data.tables_running} table${liveFavs[0].live_data.tables_running !== 1 ? 's' : ''} running!`
+                                    : `${liveFavs.length} of your favorites have live tables running!`
+                                }
+                            </span>
+                        </div>
+                    );
+                })()}
 
 
                 {/* ═══ TOP FILTER BAR: Location + Dropdowns + Apply + Live Games ═══ */}
