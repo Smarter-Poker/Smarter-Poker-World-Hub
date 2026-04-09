@@ -636,7 +636,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                             <>
                                 {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && !['tour_stop', 'poker_tour', 'tour', 'series'].includes(venue.venue_type) ? (
                                     <>
-                                        <div className="vc3-col-title">Stakes Played</div>
+                                        <div className="vc3-col-title" style={{ textAlign: 'center' }}>Stakes Played</div>
                                         <div className="vc3-stakes-list">
                                             {venue.stakes_cash.slice(0, 5).map((stake, idx) => (
                                                 <div key={idx} className="vc3-list-item vc3-stake-item">
@@ -1083,8 +1083,8 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-game-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px; }
                 .vc3-game-tables { font-weight: 700; color: #4ade80; font-size: 11px; flex-shrink: 0; letter-spacing: 0.2px; text-transform: uppercase; }
                 
-                .vc3-stakes-list { display: flex; flex-direction: column; gap: 4px; }
-                .vc3-stake-item { color: rgba(255,255,255,0.85); font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); justify-content: center; }
+                .vc3-stakes-list { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+                .vc3-stake-item { color: rgba(255,255,255,0.85); font-weight: 600; padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.04); justify-content: center; text-align: center; width: 100%; }
                 
                 .vc3-tourney-item, .vc3-tourney-item-special {
                     flex-direction: column;
