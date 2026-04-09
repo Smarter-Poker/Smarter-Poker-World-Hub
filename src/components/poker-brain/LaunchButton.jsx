@@ -42,6 +42,8 @@ export default function PokerBrainLaunchButton({
   const [error, setError] = useState(null);
   const [starting, setStarting] = useState(false);
   const [mode, setMode] = useState(defaultMode);
+  const [picking, setPicking] = useState(false);
+  const [gameType, setGameType] = useState('nlhe');
   const streamRef = useRef(null);
 
   // Stop any stream on unmount / close
@@ -85,6 +87,7 @@ export default function PokerBrainLaunchButton({
   }, []);
 
   const requestScreen = useCallback(async () => {
+    setPicking(false);
     setStarting(true);
     setError(null);
     try {
@@ -105,6 +108,11 @@ export default function PokerBrainLaunchButton({
     }
   }, []);
 
+  const openPicker = useCallback(() => {
+    setError(null);
+    setPicking(true);
+  }, []);
+
   const handleClose = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -118,7 +126,7 @@ export default function PokerBrainLaunchButton({
       {/* The button to drop into the horses header */}
       <div className={`relative inline-flex ${className}`}>
         <button
-          onClick={requestScreen}
+          onClick={openPicker}
           disabled={starting}
           className="group relative flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-white
                      bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500
@@ -136,6 +144,55 @@ export default function PokerBrainLaunchButton({
           </span>
         </button>
       </div>
+
+      {/* Variant picker modal */}
+      {picking && !open && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-white text-xl font-bold mb-1">Select Game Variant</h2>
+            <p className="text-slate-400 text-sm mb-5">
+              Pick the game you are playing. You can change it later from the HUD.
+            </p>
+            <div className="grid grid-cols-1 gap-2 mb-5">
+              {[
+                { value: 'nlhe',     label: "NLHE (Hold'em)",      desc: '2 hole cards' },
+                { value: 'plo',      label: 'PLO (Omaha)',         desc: '4 hole cards' },
+                { value: 'plo_hilo', label: 'PLO Hi-Lo (8 or Better)', desc: '4 hole cards, split pot' },
+                { value: 'plo5',     label: 'PLO5 (5-Card Omaha)', desc: '5 hole cards' },
+                { value: 'plo6',     label: 'PLO6 (6-Card Omaha)', desc: '6 hole cards' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setGameType(opt.value)}
+                  className={`text-left px-4 py-3 rounded-lg border transition ${
+                    gameType === opt.value
+                      ? 'bg-emerald-600/20 border-emerald-500 text-white'
+                      : 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700'
+                  }`}
+                >
+                  <div className="font-semibold">{opt.label}</div>
+                  <div className="text-xs text-slate-400">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setPicking(false)}
+                className="px-4 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={requestScreen}
+                disabled={starting}
+                className="px-5 py-2 rounded-lg font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 disabled:opacity-60 transition"
+              >
+                {starting ? 'Starting...' : 'Start Capture'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error toast */}
       {error && (
@@ -164,6 +221,7 @@ export default function PokerBrainLaunchButton({
           </button>
           <PokerBrainHUD
             initialMode={mode}
+            initialGameType={gameType}
             preAcquiredStream={streamRef.current}
             onClose={handleClose}
           />

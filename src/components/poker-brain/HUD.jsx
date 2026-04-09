@@ -110,7 +110,7 @@ function scaleRect(rect, sx, sy) {
 // ---------------------------------------------------------------------------
 // Main HUD
 // ---------------------------------------------------------------------------
-const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClose } = {}) => {
+const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initialGameType = 'nlhe', onClose } = {}) => {
   // Stream state
   const [source, setSource] = useState(preAcquiredStream ? initialMode : null);
   const [streamReady, setStreamReady] = useState(!!preAcquiredStream);
@@ -133,7 +133,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   const [betToCall, setBetToCall] = useState(0);
   const [position, setPosition] = useState('middle');
   const [dealerSeat, setDealerSeat] = useState(null);
-  const [gameType, setGameType] = useState('nlhe');
+  const [gameType, setGameType] = useState(initialGameType || 'nlhe');
   const [heroName, setHeroName] = useState('');
   const [villainStacks, setVillainStacks] = useState({});
   // Tournament / ICM context (user-set, not OCR'd)
