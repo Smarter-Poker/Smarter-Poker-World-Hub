@@ -6717,7 +6717,8 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
 
         // ADV-3: Blocker-based thin value bet on river (IP, not facing bet)
         // When we block key nut combos, a small bet targets calls from worse hands
-        if (toCall === 0 && isIP && blockerThinValue.shouldThinValue && canRaise && mwAllowValueBet) {
+        const mwAllowThinValueBet = multiWayGov.allowAggression || equityFinal >= multiWayGov.minEquityToValueBet;
+        if (toCall === 0 && isIP && blockerThinValue.shouldThinValue && canRaise && mwAllowThinValueBet) {
             const thinAmount = clamp(Math.round(potSize * blockerThinValue.thinValueSize));
             if (thinAmount > 0) {
                 return { type: raiseAction.type, amount: thinAmount };
