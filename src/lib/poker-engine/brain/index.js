@@ -372,6 +372,15 @@ module.exports = {
     getPLOTournamentAllInEquity: tournamentBrain.getPLOTournamentAllInEquity,
     calculateBlindLevelUrgency: tournamentBrain.calculateBlindLevelUrgency,
 
+    // tournament-brain.js — Advanced Tournament Strategy (ICM, ChipEV, Bubble Factor)
+    getBubbleFactor: tournamentBrain.getBubbleFactor,
+    getChipAccumulationStrategy: tournamentBrain.getChipAccumulationStrategy,
+    getFinalTableStrategy: tournamentBrain.getFinalTableStrategy,
+    getTournamentPositionPressure: tournamentBrain.getTournamentPositionPressure,
+    getMultiTableAwareness: tournamentBrain.getMultiTableAwareness,
+    getTournamentAggregatedRangeAdj: tournamentBrain.getTournamentAggregatedRangeAdj,
+    getTournamentTimingTell: tournamentBrain.getTournamentTimingTell,
+
     // ═══════════════════════════════════════════════════════════════════════
     // router.js — Master decision function
     // ═══════════════════════════════════════════════════════════════════════

@@ -545,6 +545,18 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
         // ═══ FACING A BET ON THE RIVER ═══
         if (toCall > 0) {
+            // ═══ RIVER STRATEGY MODULE: Secondary opinion on facing-bet decisions ═══
+            const betToPotR = toCall / Math.max(1, potSize);
+            const oppTendR = opponentAdjustment.bluffAware ? 'bluffy'
+                : opponentAdjustment.foldMod > 0 ? 'weak-tight'
+                : opponentAdjustment.callMod > 0 ? 'calling-station' : 'balanced';
+            const riverStratFacing = getRiverStrategy(effectiveStrength, potOddsR, false, true, aggressionBias, {
+                boardWetness, oppTendency: oppTendR,
+                oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
+                hasBlockers: blockerInfo.calldownBonus >= 10,
+                isIP, betToPot: betToPotR,
+            });
+
             // ── BLUFF-CATCHING LOGIC ──
             // We need to call at the right frequency to prevent exploitation.
             // MDF (minimum defense frequency) = 1 - bet/(pot+bet) = pot/(pot+bet)
@@ -588,10 +600,13 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
                 // ═══ ADVANCED: Blocker-boosted calldown — if we block their value combos, call more ═══
                 const blockerCallBoost = blockerInfo.calldownBonus > 0 && effectiveStrength >= foldThreshold - 3;
 
-                // Call if: equity sufficient, MDF boost, opponent bluffy, bluff-catch module says call, or blockers justify
+                // getRiverStrategy secondary opinion: if it says call, factor that in
+                const riverModuleCall = riverStratFacing.action === 'call' || riverStratFacing.action === 'raise';
+
+                // Call if: equity sufficient, MDF boost, opponent bluffy, bluff-catch module says call, blockers justify, or river module agrees
                 if (bluffCatchEq >= neededEquity || mdfCallBoost || blockerCallBoost
                     || (oppIsBluffy && effectiveStrength >= foldThreshold - 5)
-                    || bcStrat.shouldCall) {
+                    || bcStrat.shouldCall || riverModuleCall) {
                     return canCall ? { type: 'call' } : { type: 'fold' };
                 }
 
@@ -615,6 +630,18 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
 
         // ═══ NOT FACING A BET ON THE RIVER ═══
 
+        // ═══ RIVER STRATEGY MODULE: Opponent-aware sizing and action framework ═══
+        const oppTendencyRiver = opponentAdjustment.bluffAware ? 'bluffy'
+            : opponentAdjustment.foldMod > 0 ? 'weak-tight'
+            : opponentAdjustment.callMod > 0 ? 'calling-station' : 'balanced';
+        const riverStrat = getRiverStrategy(effectiveStrength, potOdds, canRaise, false, aggressionBias, {
+            boardWetness, oppTendency: oppTendencyRiver,
+            oppConfidence: Math.abs(opponentAdjustment.callMod + opponentAdjustment.foldMod) > 0 ? 0.40 : 0,
+            hasBlockers: blockerInfo.bluffCandidateScore >= 25 || blockerInfo.calldownBonus >= 10,
+            drawsCompleted: false, drawsBricked: false,
+            isIP, betToPot: 0
+        });
+
         // ═══ ADVANCED: Thin value + polarization strategy for river bet decisions ═══
         const thinVal = getThinValueStrategy(effectiveStrength, boardWetness, 'river', potSize, numPlayers, isIP, aggressionBias, oppReadRiver);
         const polarStrat = getPolarizationStrategy('river', effectiveStrength, boardWetness, rangeAdv.rangeAdvantage, potSize, isIP, oppReadRiver);
@@ -632,7 +659,10 @@ function makeFallbackDecision(profileId, gameState, legalActions, opponentAdjust
             const isPolarized = polarStrat.strategy.startsWith('polarized');
             const isMerged = polarStrat.strategy.startsWith('merged');
             const polarAdj = isPolarized ? 1.15 : (isMerged ? 0.85 : 1.0);
-            const betSize = Math.round(potSize * sizeFrac * polarAdj);
+            // Blend with getRiverStrategy sizing for opponent-aware calibration
+            const riverStratSize = riverStrat.action === 'bet' && riverStrat.sizeFraction > 0 ? riverStrat.sizeFraction : sizeFrac;
+            const blendedSize = (sizeFrac * 0.6 + riverStratSize * 0.4) * polarAdj;
+            const betSize = Math.round(potSize * blendedSize);
             const amt = Math.max(raiseAction?.minAmount || 1, Math.min(betSize, raiseAction?.maxAmount || betSize));
             return { type: raiseAction.type, amount: amt };
         }
