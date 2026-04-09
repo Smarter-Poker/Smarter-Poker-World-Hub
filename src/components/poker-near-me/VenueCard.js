@@ -167,10 +167,10 @@ function buildCharityEventBlock(venue) {
                 </div>
                 <div className="vc3-charity-date-big">Today</div>
                 {addr ? <div className="vc3-charity-addr">{addr}</div> : null}
-                {timeStr || (te.buy_in != null && Number(te.buy_in) > 0) ? (
+                {timeStr || (te.buy_in != null && !isNaN(Number(te.buy_in)) && Number(te.buy_in) > 0) ? (
                     <div className="vc3-charity-meta">
                         {timeStr}
-                        {te.buy_in != null && Number(te.buy_in) > 0 ? <><span className="vc3-charity-sep">·</span>${te.buy_in} Buy-In</> : null}
+                        {te.buy_in != null && !isNaN(Number(te.buy_in)) && Number(te.buy_in) > 0 ? <><span className="vc3-charity-sep">·</span>${te.buy_in} Buy-In</> : null}
                     </div>
                 ) : null}
             </div>
@@ -211,10 +211,10 @@ function buildCharityEventBlock(venue) {
                         {dateLabel}
                     </div>
                 ) : null}
-                {timeStr || (ne.buy_in != null && Number(ne.buy_in) > 0) ? (
+                {timeStr || (ne.buy_in != null && !isNaN(Number(ne.buy_in)) && Number(ne.buy_in) > 0) ? (
                     <div className="vc3-charity-meta">
                         {timeStr}
-                        {ne.buy_in != null && Number(ne.buy_in) > 0 ? <><span className="vc3-charity-sep">·</span>${ne.buy_in} Buy-In</> : null}
+                        {ne.buy_in != null && !isNaN(Number(ne.buy_in)) && Number(ne.buy_in) > 0 ? <><span className="vc3-charity-sep">·</span>${ne.buy_in} Buy-In</> : null}
                     </div>
                 ) : null}
             </div>
@@ -765,7 +765,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                             <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                                             <div className="vc3-tourney-details">
                                                                 <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
-                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
+                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
                                                             </div>
                                                             {evt.starting_stack != null && String(evt.starting_stack) !== '0' && String(evt.starting_stack) !== 'N/A' && (
                                                                 <div className="vc3-tourney-stack">{evt.starting_stack} Starting Stack</div>
@@ -805,7 +805,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                             <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                                             <div className="vc3-tourney-details">
                                                                 <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
-                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
+                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
                                                             </div>
                                                             {evt.starting_stack != null && String(evt.starting_stack) !== '0' && String(evt.starting_stack) !== 'N/A' && (
                                                                 <div className="vc3-tourney-stack">{evt.starting_stack} Starting Stack</div>

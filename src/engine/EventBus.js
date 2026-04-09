@@ -132,10 +132,9 @@ class GlobalEventBus {
                 this.channel = new BroadcastChannel('smarter_poker_bus');
                 this.channel.onmessage = (event) => {
                     const { type, payload, source, instanceId } = event.data || {};
-                    // Ignore our own echoes
+                    // Ignore echo
                     if (instanceId === this.instanceId) return;
                     if (type) {
-                        // Emit locally, but prevent it from bouncing back to the channel
                         this.emit(type, payload, source, true);
                     }
                 };
