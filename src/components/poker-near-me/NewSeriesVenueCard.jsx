@@ -8,11 +8,11 @@ import { TourBadge, formatDate, formatMoney } from './TourCard';
 export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFavorite, onNavigate }) {
     if (!s) return null;
     
-    const isVenueEntry = !s.series_code && s.venue_type === 'series';
-    const detailUrl = s.series_code ? '/hub/series/' + s.series_code : '/hub/venues/' + (s.id || (index + 1));
-    const shortCode = s.tour_code || s.short_name || (s.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'SER';
+    const isVenueEntry = s.venue_type === 'series'; // Legacy compat
+    const detailUrl = '/hub/series/' + (s.series_code || s.id || (index + 1));
+    const shortCode = s.tour_code || s.tour || s.short_name || (s.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'SER';
     const displayLocation = s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD');
-    const isNew = s.is_new || s.event_count === 0 || !s.event_count;
+    const isNew = s.is_new || s.is_featured;
 
     return (
         <div className="metal-series-card" onClick={() => onNavigate && onNavigate(detailUrl)}>
