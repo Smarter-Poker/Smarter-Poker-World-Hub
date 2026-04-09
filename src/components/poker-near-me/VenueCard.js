@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
+import { eventBus } from '../../engine/EventBus';
 import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
 
@@ -231,6 +232,38 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const [followLoading, setFollowLoading] = useState(false);
     const cardRef = useRef(null);
 
+    // New: Fetch follow status on mount for home games
+    useEffect(() => {
+        let mounted = true;
+        const checkFollowState = async () => {
+            if (venue && venue.venue_type === 'home_game' && venue.host_social_page_slug) {
+                try {
+                    const token = getAccessToken();
+                    if (!token) return;
+                    const res = await fetch('/api/social/pages/follow?slug=' + venue.host_social_page_slug, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (mounted && data.is_following) setIsFollowing(true);
+                    }
+                } catch { }
+            }
+        };
+        checkFollowState();
+        
+        const unsub = eventBus.on('page:follow', (e) => {
+            if (e.payload && e.payload.slug === venue.host_social_page_slug) {
+                if (mounted) setIsFollowing(true);
+            }
+        });
+        
+        return () => { 
+            mounted = false; 
+            unsub();
+        };
+    }, [venue]);
+
     useEffect(() => {
         const delay = Math.min(index * 40, 400);
         const timer = setTimeout(() => setMounted(true), delay);
@@ -278,7 +311,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ slug: venue.host_social_page_slug, action: 'follow' })
             });
-            if (res.ok) setIsFollowing(true);
+            if (res.ok) {
+                setIsFollowing(true);
+                try { eventBus.emit('page:follow', { slug: venue.host_social_page_slug }, 'VenueCard'); } catch {}
+            }
         } catch (err) {
             console.error('Follow error:', err);
         } finally {
@@ -525,6 +561,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             <div className="vc3-badges">
                 {venue.is_featured && <span className="vc3-badge vc3-badge-featured">Featured</span>}
                 {hasPromo && <span className="vc3-badge vc3-badge-promo">Active Promo</span>}
+                {isNewcomer && <span className="vc3-badge vc3-badge-new" style={{color:'#fff', background:'#6366f1', borderColor:'#4f46e5'}}>New Addition</span>}
                 {hasLiveData && (
                     <span className="vc3-badge vc3-badge-live">
                         <span className="vc3-live-dot" />
