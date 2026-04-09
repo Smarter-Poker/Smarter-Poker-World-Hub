@@ -140,18 +140,25 @@ export default function SeriesDetailPage() {
   const [shareMessage, setShareMessage] = useState('');
   const [expandedEvent, setExpandedEvent] = useState(null);
 
-  // Load follow state from localStorage instantly
+  // Load follow state from localStorage instantly and sync across tabs
   useEffect(() => {
     if (!router.isReady || !id) return;
-    try {
-      const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
-      setIsFollowing(followed.includes(String(id)));
-    } catch { }
+    const updateFollowState = () => {
+      try {
+        const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
+        setIsFollowing(followed.includes(String(id)));
+      } catch { }
+    };
+    updateFollowState();
+    
+    // Cross-tab propagation
+    window.addEventListener('storage', updateFollowState);
+    return () => window.removeEventListener('storage', updateFollowState);
   }, [id, router.isReady]);
 
   // SWR — parallel fetch all series data
   const swrKey = id ? `/api/poker/series?id=${id}` : null;
-  const { data: swrData, isLoading: loading, error } = useSWR(swrKey, async () => {
+  const { data: swrData, isLoading: loading, error, mutate } = useSWR(swrKey, async () => {
     const [seriesRes, resultsRes, followRes, activityRes] = await Promise.all([
       fetch('/api/poker/series?id=' + id).catch(() => ({ ok: false })),
       fetch('/api/poker/results?series_id=' + id).catch(() => ({ ok: false })),
@@ -176,15 +183,18 @@ export default function SeriesDetailPage() {
   const series = swrData?.series || null;
   const results = swrData?.results || [];
   const leaderboard = swrData?.leaderboard || [];
-  const [localFollowerCount, setFollowerCount] = useState(null);
-  const followerCount = localFollowerCount !== null ? localFollowerCount : (swrData?.followerCount || 0);
+  const followerCount = swrData?.followerCount || 0;
   const activities = swrData?.activities || [];
 
   const toggleFollow = () => {
     const sid = String(id);
     const newState = !isFollowing;
     setIsFollowing(newState);
-    setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
+    const newCount = newState ? followerCount + 1 : Math.max(0, followerCount - 1);
+    
+    if (swrData) {
+      mutate({ ...swrData, followerCount: newCount }, false);
+    }
 
     // Update localStorage for instant persistence
     try {
@@ -212,7 +222,25 @@ export default function SeriesDetailPage() {
             page_id: sid,
             action: newState ? 'follow' : 'unfollow',
           }),
-        }).catch(() => { });
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) throw new Error(data.error || 'Failed to update follow status');
+        })
+        .catch(() => {
+          // Rollback UI to previous state on failure
+          setIsFollowing(!newState);
+          if (swrData) {
+            mutate({ ...swrData, followerCount: followerCount }, false);
+          }
+          try {
+            const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
+            const updated = !newState 
+              ? (followed.includes(sid) ? followed : [...followed, sid])
+              : followed.filter(x => x !== sid);
+            localStorage.setItem('followed-series', JSON.stringify(updated));
+          } catch { }
+        });
       }
     } catch { }
   };
