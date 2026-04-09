@@ -203,8 +203,20 @@ TOURN_KW = re.compile(
 def has_tourn(html: str) -> bool:
     return bool(TOURN_KW.search(html[:60000]))
 
+
 def anti_hallucination_ok(records: list) -> bool:
     if len(records) < 3: return True
+    buyins = [r["buy_in"] for r in records if r.get("buy_in")]
+    if len(buyins) >= 5 and sum(1 for b in buyins if b%100==0)/len(buyins) > 0.95:
+        return False
+    slots = [f"{r.get('day_of_week')}-{r.get('event_date')}-{r.get('start_time')}" for r in records]
+    if len(slots) > 5 and len(set(slots)) == 1: return False
+    
+    # Layer 5: Detect fake casino phones leaking into names
+    for r in records:
+        text = str(r.get('tournament_name', '')).strip()
+        if text.endswith('5555') or text.endswith('0000'): return False
+    return True
     buyins = [r["buy_in"] for r in records if r.get("buy_in")]
     if len(buyins) >= 5 and sum(1 for b in buyins if b%100==0)/len(buyins) > 0.95:
         return False
@@ -314,7 +326,7 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
         "satellite_to": str(sat_to)[:200] if sat_to else None,
         "payout_levels": str(payout)[:200] if payout else None,
         "structure_sheet_url": struct_url,
-        "age_requirement": int(age) if age else (infer_age((tournament_name or ""), state)),
+        "age_requirement": None,
         "timezone": tz or STATE_TZ.get(state, "America/New_York"),
         "tournament_name": tournament_name[:200] if tournament_name else f"${buy_in} {game_type}",
         "source_url": source_url,
@@ -376,7 +388,7 @@ def sb_audit(batch_id:str, venues:int, records:int, notes:str=""):
             f"{SUPABASE_URL}/rest/v1/data_audit_log",
             data=json.dumps({"table_name":"venue_daily_tournaments",
                 "action":"tournament_daemon_scrape","batch_id":batch_id,
-                "records_affected":records,"agent_id":"tournament-schedule-daemon.py",
+                "records_affected":records,"agent_id":"DAILY VENUE TOURNAMENT SCRAPER",
                 "notes":f"Venues:{venues}. {notes}",
                 "created_at":datetime.now(timezone.utc).isoformat()}).encode(),
             method="POST", headers={**SB_HDRS,"Prefer":"return=minimal"}
@@ -637,13 +649,12 @@ def fetch_hendonmob(session) -> dict:
            f"&weeks=10&l=&t=&buyin_cur=USD&buyin_crit=l&buyin_l="
            f"&location=country&c=USA&city_distance=0&city=")
     log(f"  [HendonMob] {url}")
+
     try:
-        resp = session.fetch(url, google_search=True, timeout=45000, wait_until="networkidle")
-        if not resp or resp.status != 200:
-            log(f"  [HendonMob] HTTP {getattr(resp,'status',0)} — skipped"); return {}
-        body = resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
-        html = body.decode("utf-8","ignore")
-        h    = sha256h(body)
+        html = getattr(session, 'fetch_page', lambda u,**kw: session.fetch(u,**kw).html_content)(url, google_search=True, timeout=45000, wait_until="networkidle")
+        if not html: return {}
+        h = sha256h(html.encode('utf-8', 'ignore'))
+
         # Save evidence
         ev = EVIDENCE_DIR / f"hm_global_{int(time.time())}.json"
         with open(ev,"w") as f:
@@ -701,13 +712,12 @@ def fetch_cardplayer(session) -> dict:
     """Fetch CardPlayer tournament listing. Returns {venue_key: [event_dicts]}."""
     url = "https://www.cardplayer.com/poker-tournaments"
     log(f"  [CardPlayer] {url}")
+
     try:
-        resp = session.fetch(url, google_search=False, timeout=45000, wait_until="networkidle")
-        if not resp or resp.status != 200:
-            log(f"  [CardPlayer] HTTP {getattr(resp,'status',0)} — skipped"); return {}
-        body = resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
-        html = body.decode("utf-8","ignore")
-        h    = sha256h(body)
+        html = getattr(session, 'fetch_page', lambda u: session.fetch(u).html_content)(url)
+        if not html: return {}
+        h = sha256h(html.encode('utf-8', 'ignore'))
+
         ev   = EVIDENCE_DIR / f"cp_global_{int(time.time())}.json"
         with open(ev,"w") as f:
             json.dump({"url":url,"hash":h,"bytes":len(body),
@@ -792,12 +802,11 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
     for pa_url in pa_urls:
         if pa_url in seen_pa: continue
         seen_pa.add(pa_url)
+
         try:
-            # networkidle ensures Next.js SPA fully renders tournament data
-            resp=session.fetch(pa_url, timeout=25000, wait_until="networkidle")
-            if not resp or resp.status!=200: continue
-            body=resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
-            html=body.decode("utf-8","ignore")
+            html = getattr(session, 'fetch_page', lambda u,**kw: session.fetch(u,**kw).html_content)(pa_url, timeout=25000, wait_until="networkidle")
+            if not html: continue
+
             # Scope check — at least 1 significant name token in title/h1
             title_m=re.search(r"<title[^>]*>(.*?)</title>",html,re.I|re.DOTALL)
             title=(title_m.group(1) if title_m else "").lower()
@@ -815,10 +824,19 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
             if not recs and has_tourn(html):
                 recs = extract_html(html, name, vid, batch_id, pa_url, "pokeratlas")
             add(recs, "pokeratlas", pa_url)
-            # JSON-LD canonical venue website discovery — extract ORIGIN only
+
+            # JSON-LD canonical venue website discovery + STATE MATCH + EXPECT ADDRESS
+            address_found = False
             for jld_raw in re.findall(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>',html,re.DOTALL|re.I):
                 try:
                     jld=json.loads(jld_raw)
+                    addr = jld.get("address", {})
+                    if addr:
+                        address_found = True
+                        region = addr.get("addressRegion", "").strip().upper()
+                        if state and region and state.upper() not in region and region not in state.upper():
+                            log(f"      ❌ LAYER 2 REJECT: JSON-LD State '{region}' != Venue '{state}'")
+                            return result # abort venue completely
                     canonical=jld.get("url") or jld.get("@id") or ""
                     if canonical and canonical.startswith("http") and "pokeratlas" not in canonical:
                         parts=canonical.split("//",1)
@@ -826,6 +844,14 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
                             origin=parts[0]+"//"+parts[1].split("/")[0]
                             venue.setdefault("_extra_origins",[]).append(origin)
                 except: pass
+            
+            if not address_found:
+                log(f"      ❌ LAYER 2 REJECT: No address mapped in JSON-LD")
+                return result
+                
+            # evidence drop
+            save_evidence(name, "pokeratlas", {"url": pa_url, "records_found": len(recs), "html_hash": sha256h(html.encode('utf-8','ignore'))})
+
             # PDF discovery on PA page
             for pdf_url in find_pdfs(html, pa_url):
                 pdf_text=extract_pdf(pdf_url)
@@ -843,11 +869,12 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
     # ── Source 2: Bravo Poker Live ───────────────────────────────────────────
     bravo_slug=venue.get("bravo_slug") or re.sub(r"-(casino|poker|room|club|house)$","",slugify(name))
     bravo_url=venue.get("bravo_url") or f"https://www.bravopokerlive.com/poker-rooms/{bravo_slug}/"
+
     try:
-        resp=session.fetch(bravo_url,timeout=12000,wait_until="domcontentloaded")
-        if resp and resp.status==200:
-            body=resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
-            html=body.decode("utf-8","ignore")
+        html = getattr(session, 'fetch_page', lambda u,**kw: session.fetch(u,**kw).html_content)(bravo_url, timeout=12000, wait_until="domcontentloaded")
+        if html:
+            save_evidence(name, "bravo", {"url": bravo_url, "html_hash": sha256h(html.encode("utf-8","ignore"))})
+
             if has_tourn(html):
                 recs=extract_html(html,name,vid,batch_id,bravo_url,"bravo")
                 add(recs,"bravo",bravo_url)
@@ -919,10 +946,8 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
         for path in WEBSITE_PATHS:
             wurl = origin + path
             try:
-                resp = session.fetch(wurl, timeout=12000, wait_until="domcontentloaded")
-                if not resp or resp.status != 200: continue
-                body = resp.body if isinstance(resp.body,bytes) else str(resp.body).encode("utf-8")
-                html = body.decode("utf-8","ignore")
+                html = getattr(session, 'fetch_page', lambda u: session.fetch(u).html_content)(wurl)
+                if not html: continue
                 if not has_tourn(html): continue
                 recs = extract_html(html, name, vid, batch_id, wurl, "website")
                 add(recs, f"website{path or '/'}", wurl)
@@ -1005,11 +1030,104 @@ def load_venues(batch_num: int = 0) -> list:
     return rows
 
 # ── Session factory ───────────────────────────────────────────────────────────
-def new_session():
-    from scrapling.fetchers import StealthySession
-    s=StealthySession(headless=True,solve_cloudflare=True)
-    s.start()
-    return s
+
+import subprocess, threading
+
+def _network_available():
+    try:
+        req = urllib.request.Request('https://1.1.1.1', method='HEAD')
+        urllib.request.urlopen(req, timeout=5)
+        return True
+    except Exception: return False
+
+def _kill_zombie_browsers():
+    my_pid = os.getpid()
+    def _kill_tree(parent_pid):
+        try:
+            res = subprocess.run(['pgrep', '-P', str(parent_pid)], capture_output=True, text=True, timeout=5)
+            if res.stdout.strip():
+                for c in res.stdout.strip().split():
+                    _kill_tree(c)
+            subprocess.run(['kill', '-9', str(parent_pid)], capture_output=True, timeout=2)
+        except: pass
+    try:
+        res = subprocess.run(['pgrep', '-P', str(my_pid)], capture_output=True, text=True, timeout=5)
+        if res.stdout.strip():
+            for child in res.stdout.strip().split():
+                try:
+                    ps = subprocess.run(['ps', '-o', 'command=', '-p', child], capture_output=True, text=True, timeout=3)
+                    if 'chromedriver' in ps.stdout.lower() or 'chromium' in ps.stdout.lower() or 'camoufox' in ps.stdout.lower():
+                        _kill_tree(child)
+                except: pass
+    except: pass
+
+def _hard_kill_on_hang(msg):
+    os._exit(1)
+
+class DaemonSessionManager:
+    def __init__(self):
+        self.session = None
+        self._session_dead = False
+        self.consecutive_fetch_failures = 0
+        self.last_connect_time = None
+        
+    def connect(self):
+        from scrapling.fetchers import StealthySession
+        self.disconnect()
+        _kill_zombie_browsers()
+        if not _network_available(): return False
+        wd = threading.Timer(60, _hard_kill_on_hang, args=('connect() hung',))
+        wd.daemon = True; wd.start()
+        try:
+            self.session = StealthySession(headless=True, solve_cloudflare=True)
+            self.session.start()
+            self.last_connect_time = datetime.now(timezone.utc)
+            self._session_dead = False
+            self.consecutive_fetch_failures = 0
+            wd.cancel()
+            return True
+        except:
+            wd.cancel()
+            self.disconnect()
+            return False
+
+    def ensure_connected(self):
+        if not self.session or self._session_dead or self.consecutive_fetch_failures >= 3:
+            return self.connect()
+        if self.last_connect_time and (datetime.now(timezone.utc) - self.last_connect_time).total_seconds() > 3600:
+            return self.connect()
+        return True
+
+    def disconnect(self):
+        try:
+            if self.session: self.session.close()
+        except: pass
+        finally:
+            self.session = None; self._session_dead = False
+
+    def fetch_page(self, url, html_only=True, **kwargs):
+        if 'google_search' not in kwargs: kwargs['google_search'] = False
+        try:
+            resp = self.session.fetch(url, **kwargs)
+            if getattr(resp, 'status', 0) != 200:
+                html = resp.html_content or (resp.body.decode('utf-8','ignore') if getattr(resp,'body',None) else '')
+                if 'Just a moment' in str(html) or 'security verification' in str(html):
+                    kwargs['google_search'] = True
+                    if self.connect():
+                        resp = self.session.fetch(url, **kwargs)
+                        if getattr(resp, 'status', 0) != 200: return ''
+                    else: return ''
+                else: return ''
+            self.consecutive_fetch_failures = 0
+            if html_only:
+                return resp.html_content or (resp.body.decode('utf-8','ignore') if getattr(resp,'body',None) else '')
+            return resp
+        except Exception as e:
+            msg = str(e).lower()
+            self.consecutive_fetch_failures += 1
+            if 'has been closed' in msg or 'target page' in msg or ('timeout' in msg and self.consecutive_fetch_failures >= 3):
+                self._session_dead = True
+            return ''
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
@@ -1027,7 +1145,7 @@ def main():
 
 
     log("="*70)
-    log("TOURNAMENT SCHEDULE DAEMON — 5-Source Engine (PokerAtlas/Bravo/HendonMob/CardPlayer/Site+PDFs)")
+    log("DAILY VENUE TOURNAMENT SCRAPER — 5-Source Engine (PokerAtlas/Bravo/HendonMob/CardPlayer/Site+PDFs)")
     log(f"  PID:      {os.getpid()}")
     log(f"  Mode:     {'Batch ' + str(args.batch) if args.batch else 'Daemon (24h cycle)'}")
     log(f"  Chunk:    {CHUNK_SIZE} venues → flush to DB")
@@ -1046,7 +1164,8 @@ def main():
 
         log(f"\n{'='*70}\nCYCLE {cycle}  batch_id={batch_id}\n{'='*70}")
 
-        session=new_session()
+        session_mgr = DaemonSessionManager()
+        session_mgr.connect()
         session_start=time.time()
         watchdog_last=time.time()
         consecutive_fails=0
@@ -1055,9 +1174,8 @@ def main():
         chunk_buf: list=[]
 
         # Global fetches once per cycle
-        hm_map=fetch_hendonmob(session)
-        time.sleep(3)
-        cp_map=fetch_cardplayer(session)
+        hm_map=fetch_hendonmob(session_mgr)
+        cp_map=fetch_cardplayer(session_mgr)
         time.sleep(3)
 
         venues=load_venues(args.batch)
@@ -1079,31 +1197,34 @@ def main():
                 act=time.time()-wall_start
                 if act>exp*2+120:
                     log("  ⚡ Sleep/wake drift — restarting session")
-                    try: session.close()
+                    try: session_mgr.disconnect()
                     except: pass
                     time.sleep(2)
-                    session=new_session(); session_start=time.time()
+                    session_mgr.connect(); session_start=time.time()
                     consecutive_fails=0; wall_start=time.time()
 
             # Proactive session refresh (6h)
             if time.time()-session_start>SESSION_MAX:
                 log("  🔄 6h session refresh")
-                try: session.close()
+                try: session_mgr.disconnect()
                 except: pass
                 time.sleep(2)
-                session=new_session(); session_start=time.time()
+                session_mgr.connect(); session_start=time.time()
 
             # Page recycle every 50 venues
             if i>0 and i%PAGE_RECYCLE==0:
                 log(f"  ♻️  Page recycle at #{i}")
-                try: session.close()
+                try: session_mgr.disconnect()
                 except: pass
                 time.sleep(2)
-                session=new_session(); session_start=time.time()
+                session_mgr.connect(); session_start=time.time()
                 consecutive_fails=0
 
+
             try:
-                vr=scrape_venue(venue,session,batch_id,hm_map,cp_map)
+                session_mgr.ensure_connected()
+                vr=scrape_venue(venue,session_mgr,batch_id,hm_map,cp_map)
+
                 chunk_buf.append(vr)
                 if vr["found"]: consecutive_fails=0; watchdog_last=time.time()
                 else: consecutive_fails+=1
@@ -1128,10 +1249,10 @@ def main():
             # Circuit breaker
             if consecutive_fails>=CIRCUIT_MAX:
                 log(f"  ⚡ Circuit breaker ({consecutive_fails} fails) — restarting session")
-                try: session.close()
+                try: session_mgr.disconnect()
                 except: pass
                 time.sleep(4)
-                session=new_session(); session_start=time.time()
+                session_mgr.connect(); session_start=time.time()
                 consecutive_fails=0
 
             time.sleep(VENUE_RATE_S)
@@ -1146,7 +1267,7 @@ def main():
                 log(f"  [DRY RUN] Tail chunk: would upsert {n} records")
             chunk_buf=[]
 
-        try: session.close()
+        try: session_mgr.disconnect()
         except: pass
 
         if not args.dry_run:
