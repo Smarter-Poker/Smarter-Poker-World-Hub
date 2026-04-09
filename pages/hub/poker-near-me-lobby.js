@@ -195,6 +195,8 @@ export default function PokerNearMeLobby() {
           delete newState[venueId];
           return newState;
         });
+      }
+    });
 
     const unsubSeriesFav = eventBus.on('series:favorite', (event) => {
       const seriesId = event?.payload?.seriesId || event?.seriesId;
@@ -211,13 +213,12 @@ export default function PokerNearMeLobby() {
         });
       }
     });
-      }
-    });
+
     return () => {
       if (typeof unsubFav === 'function') unsubFav();
       if (typeof unsubUnfav === 'function') unsubUnfav();
-      unsubSeriesFav();
-      unsubSeriesUnfav();
+      if (typeof unsubSeriesFav === 'function') unsubSeriesFav();
+      if (typeof unsubSeriesUnfav === 'function') unsubSeriesUnfav();
       if (typeof unsubFilters === 'function') unsubFilters();
     };
   }, []);
