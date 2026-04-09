@@ -131,6 +131,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   const [bigBlind, setBigBlind] = useState(0);
   const [position, setPosition] = useState('middle');
   const [dealerSeat, setDealerSeat] = useState(null);
+  const [gameType, setGameType] = useState('nlhe');
+  const [heroName, setHeroName] = useState('');
+  const [villainStacks, setVillainStacks] = useState({});
 
   // Hand state (committed, debounced)
   const [handState, setHandState] = useState({
@@ -190,6 +193,22 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   const stateMachineRef = useRef(null);
   const sessionIdRef = useRef(null);
 
+  // Refs that mirror game-state so stale closures inside long-lived callbacks
+  // (state machine, detection loop) can read fresh values without being
+  // torn down and re-created on every input change.
+  const positionRef = useRef(position);
+  const potSizeRef = useRef(potSize);
+  const heroStackRef = useRef(heroStack);
+  const bigBlindRef = useRef(bigBlind);
+  const gameTypeRef = useRef(gameType);
+  const playersRef = useRef(players);
+  useEffect(() => { positionRef.current = position; }, [position]);
+  useEffect(() => { potSizeRef.current = potSize; }, [potSize]);
+  useEffect(() => { heroStackRef.current = heroStack; }, [heroStack]);
+  useEffect(() => { bigBlindRef.current = bigBlind; }, [bigBlind]);
+  useEffect(() => { gameTypeRef.current = gameType; }, [gameType]);
+  useEffect(() => { playersRef.current = players; }, [players]);
+
   // Storage (Supabase + IndexedDB queue)
   const storage = usePokerBrainStorage(supabase);
 
@@ -202,21 +221,41 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
       onHandStart: (hand) => {
         // Nothing - state is captured in onStateChange
       },
+      onStreetChange: (hand, prevStreet, nextStreet) => {
+        // Hook present so the state machine's street-change path fires
+        // callbacks; downstream consumers can key off street transitions
+        // via onStateChange. Reserved for future per-street side effects
+        // (sound cues, analytics events, etc.).
+      },
       onHandEnd: (hand) => {
         if (!hand) return;
         setRecentHands((prev) => [hand, ...prev].slice(0, 20));
         if (storage.ready && sessionIdRef.current) {
+          // Pick the most recent street decision as the canonical action
+          // logged against the hand (river > turn > flop > preflop).
+          const streetOrder = ['river', 'turn', 'flop', 'preflop'];
+          let lastDecision = null;
+          for (const s of streetOrder) {
+            if (hand.streetDecisions && hand.streetDecisions[s]) {
+              lastDecision = hand.streetDecisions[s];
+              break;
+            }
+          }
           storage.logHand({
-            sessionId: sessionIdRef.current,
-            handId: hand.handId,
-            startedAt: hand.startedAt,
-            endedAt: hand.endedAt,
-            holeCards: hand.holeCards,
-            flop: hand.flop,
-            turn: hand.turn,
-            river: hand.river,
-            finalBoard: hand.finalBoard,
-            decisions: hand.streetDecisions,
+            position: positionRef.current,
+            holeCards: hand.holeCards || [],
+            board: hand.finalBoard || [],
+            gameType: gameTypeRef.current,
+            potSize: potSizeRef.current,
+            betToCall: bigBlindRef.current,
+            stackSize: heroStackRef.current,
+            equity: lastDecision ? lastDecision.equity : null,
+            potOdds: lastDecision ? lastDecision.potOdds : null,
+            decision: lastDecision ? lastDecision.action : null,
+            raiseAmount: lastDecision ? lastDecision.raiseAmount : null,
+            confidence: lastDecision ? lastDecision.confidence : null,
+            reasoning: lastDecision ? lastDecision.reasoning : null,
+            detectedAuto: true,
           }).catch((err) => console.warn('[HUD] logHand failed', err));
         }
       },
@@ -270,20 +309,24 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   useEffect(() => {
     if (!storage.ready || !detecting || sessionIdRef.current) return;
     storage.startSession({
-      client: 'pokerbros',
-      gameType: 'nlhe',
-      startedAt: Date.now(),
-    }).then((res) => {
-      if (res && res.sessionId) sessionIdRef.current = res.sessionId;
+      gameType: gameTypeRef.current,
+      playerCount: playersRef.current,
+      captureMode: source || 'screen',
+      clientProfile: 'pokerbros',
+      startingStack: heroStackRef.current || null,
+    }).then((id) => {
+      // storage.startSession returns the session id directly (string),
+      // or null when offline and queued.
+      if (id) sessionIdRef.current = id;
     }).catch((err) => console.warn('[HUD] startSession failed', err));
-  }, [storage, detecting]);
+  }, [storage, detecting, source]);
 
   useEffect(() => {
     return () => {
       if (storage.ready && sessionIdRef.current) {
         storage.endSession({
-          sessionId: sessionIdRef.current,
-          endedAt: Date.now(),
+          finalStack: heroStackRef.current || null,
+          notes: null,
         }).catch(() => {});
       }
     };
@@ -459,6 +502,43 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
                 if (r && r.text) setPokerBrosHandLabel(r.text);
               }).catch(() => {});
             }
+
+            // Game variant detection (NLHE vs PLO vs PLO5)
+            const gvRaw = effectiveLayout.ocrRegions.gameVariant;
+            if (gvRaw && typeof ocr.readRegion === 'function') {
+              const rect = scaleRect(gvRaw, sx, sy);
+              const crop = cropToCanvas(full, rect);
+              ocr.readRegion(crop).then((r) => {
+                if (!r || !r.text) return;
+                const t = String(r.text).toUpperCase();
+                if (t.includes('PLO5') || t.includes('PLO 5') || t.includes('5-CARD')) setGameType('plo5');
+                else if (t.includes('PLO') || t.includes('OMAHA')) setGameType('plo');
+                else if (t.includes('NLH') || t.includes("HOLD'EM") || t.includes('HOLDEM') || t.includes('TEXAS')) setGameType('nlhe');
+              }).catch(() => {});
+            }
+
+            // Hero name (for display only)
+            const hnRaw = effectiveLayout.ocrRegions.heroName;
+            if (hnRaw && typeof ocr.readRegion === 'function') {
+              const rect = scaleRect(hnRaw, sx, sy);
+              const crop = cropToCanvas(full, rect);
+              ocr.readRegion(crop).then((r) => {
+                if (r && r.text) setHeroName(r.text);
+              }).catch(() => {});
+            }
+
+            // Villain stacks (for multi-villain SPR awareness / future use)
+            ['seat1Stack', 'seat2Stack', 'seat3Stack'].forEach((seatKey) => {
+              const sr = effectiveLayout.ocrRegions[seatKey];
+              if (!sr) return;
+              const rect = scaleRect(sr, sx, sy);
+              const crop = cropToCanvas(full, rect);
+              ocr.readStackSizes(crop).then((r) => {
+                if (r && typeof r.value === 'number') {
+                  setVillainStacks((prev) => ({ ...prev, [seatKey]: r.value }));
+                }
+              }).catch(() => {});
+            });
           }
         }
       }
@@ -487,7 +567,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     // Build a stable key so we skip redundant recomputes
     const holeKey = handState.holeCards.map(c => `${c.rank}${c.suit}`).sort().join('');
     const boardKey = handState.boardCards.map(c => `${c.rank}${c.suit}`).sort().join('');
-    const key = `${holeKey}|${boardKey}|${potSize}|${heroStack}|${bigBlind}|${position}|${players}`;
+    const key = `${holeKey}|${boardKey}|${potSize}|${heroStack}|${bigBlind}|${position}|${players}|${gameType}`;
     if (key === lastDecisionKeyRef.current) return;
 
     if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
@@ -496,7 +576,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
       const bridged = getBridgedDecision({
         rawHoleCards: handState.holeCards,
         rawBoardCards: handState.boardCards,
-        gameType: 'nlhe',
+        gameType,
         potSize,
         betToCall: bigBlind,
         bigBlind,
@@ -532,7 +612,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     return () => {
       if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
     };
-  }, [handState, potSize, heroStack, bigBlind, position, players, pokerBrosHandLabel]);
+  }, [handState, potSize, heroStack, bigBlind, position, players, gameType, pokerBrosHandLabel]);
 
   // ============================================================================
   // UI HELPERS
@@ -609,8 +689,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             Street: <span className="font-bold text-white">{handState.street}</span>
           </span>
           <span className="bg-slate-800 rounded px-2 py-1">
+            Game: <span className="font-bold text-white uppercase">{gameType}</span>
+          </span>
+          <span className="bg-slate-800 rounded px-2 py-1">
             Position: <span className="font-bold text-white">{position}</span>
           </span>
+          {dealerSeat && (
+            <span className="bg-slate-800 rounded px-2 py-1">
+              Dealer: <span className="font-bold text-white">{dealerSeat}</span>
+            </span>
+          )}
           <span className="bg-slate-800 rounded px-2 py-1">
             Players:
             <input

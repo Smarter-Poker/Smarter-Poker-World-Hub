@@ -129,24 +129,50 @@ export function detectDealer(source, layout, overrides = {}) {
 }
 
 /**
- * Convert dealer-relative seat positions to engine position strings.
+ * Convert dealer seat id to engine position string for hero.
  * Engine uses: early | middle | late | sb | bb
- * For a 6-max game:
- *   dealer seat = BTN (late)
- *   SB = hero if hero is one seat CW of dealer
- *   BB = hero if hero is two seats CW of dealer
- *   else middle/early based on distance
  *
- * Since we cannot reliably reconstruct the full seat order from color alone,
- * we use a simpler rule: map PokerBros seat positions to engine buckets.
+ * PokerBros 6-max clockwise seat order (derived from layout.json coordinates
+ * with hero at the bottom, clockwise = up-the-right-side first):
+ *
+ *   hero (bottom) -> seat5 (middleRight) -> seat3 (topRight) ->
+ *   seat1 (topCenter) -> seat2 (topLeft) -> seat4 (middleLeft) -> hero
+ *
+ * Dealer rotates clockwise. Given the dealer's seat id, hero's position is
+ * determined by the clockwise distance from dealer to hero:
+ *   n=0 (hero IS dealer)  -> BTN  -> 'late'
+ *   n=1                    -> SB   -> 'sb'
+ *   n=2                    -> BB   -> 'bb'
+ *   n=3                    -> UTG  -> 'early'
+ *   n=4                    -> MP   -> 'middle'
+ *   n=5                    -> CO   -> 'late'
  */
-export function heroPositionFromDealer(dealerSeatId, numPlayers = 6) {
-  // If hero is the dealer, we are on the button = late
-  if (dealerSeatId === 'hero') return 'late';
+const CW_ORDER_6MAX = ['hero', 'seat5', 'seat3', 'seat1', 'seat2', 'seat4'];
 
-  // PokerBros 6-max layout is fixed by seat index; dealer rotates.
-  // Without a proper seat order detector, default to "middle" which is the
-  // safest GTO-neutral bucket and won't push the engine to bad extremes.
+export function heroPositionFromDealer(dealerSeatId, numPlayers = 6) {
+  if (!dealerSeatId) return 'middle';
+  const order = CW_ORDER_6MAX;
+  const heroIdx = order.indexOf('hero');
+  const dealerIdx = order.indexOf(dealerSeatId);
+  if (dealerIdx === -1 || heroIdx === -1) return 'middle';
+  // n = clockwise distance FROM dealer TO hero
+  const n = (heroIdx - dealerIdx + order.length) % order.length;
+  if (numPlayers <= 6) {
+    switch (n) {
+      case 0: return 'late';   // BTN (hero has the button)
+      case 1: return 'sb';
+      case 2: return 'bb';
+      case 3: return 'early';  // UTG
+      case 4: return 'middle'; // MP/HJ
+      case 5: return 'late';   // CO
+      default: return 'middle';
+    }
+  }
+  // Fallback for non-6max (table sizes not yet supported explicitly)
+  if (n === 0) return 'late';
+  if (n === 1) return 'sb';
+  if (n === 2) return 'bb';
+  if (n <= Math.floor(numPlayers / 2)) return 'early';
   return 'middle';
 }
 
