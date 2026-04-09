@@ -2,24 +2,25 @@
 -- Migration: Dedup venue_daily_tournaments + Add unique index
 -- Purpose:   1) Remove duplicate rows created by repeated scraper runs
 --            2) Add UNIQUE constraint to prevent future duplicates
--- Safe:      Uses DELETE WHERE id NOT IN (keep max id per key group)
+--
+-- Note: id column is UUID — cannot use MAX(uuid).
+--       We use ctid (physical row address) to keep the LAST inserted row
+--       of each duplicate group, which is the safest strategy.
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- Step 1: Delete duplicate rows, keeping the highest (most recent) id per key group
+-- Step 1: Delete duplicates — keep the row with the largest ctid (last inserted)
 -- Key: (venue_name, day_of_week, start_time, game_type, buy_in)
--- NULLs: buy_in NULL rows are treated as a separate group (NULLS are never equal in SQL =)
---        so we handle nulls with COALESCE to group them correctly
-
+-- NULLs: COALESCE ensures NULL values group together correctly
 DELETE FROM venue_daily_tournaments
-WHERE id NOT IN (
-  SELECT MAX(id)
+WHERE ctid NOT IN (
+  SELECT MAX(ctid)
   FROM venue_daily_tournaments
   GROUP BY
     LOWER(TRIM(COALESCE(venue_name, ''))),
     LOWER(TRIM(COALESCE(day_of_week, ''))),
     LOWER(TRIM(COALESCE(start_time::text, ''))),
     LOWER(TRIM(COALESCE(game_type, 'nlh'))),
-    COALESCE(buy_in, -1)  -- -1 sentinel groups all NULLs together
+    COALESCE(buy_in, -1)
 );
 
 -- Step 2: Add a unique index to prevent future duplicate insertions
@@ -35,8 +36,8 @@ ON venue_daily_tournaments (
 )
 WHERE is_active = true;
 
--- Step 3: Add a comment to document the dedup strategy
+-- Step 3: Document the schema intent
 COMMENT ON TABLE venue_daily_tournaments IS
   'Daily recurring tournament schedules scraped from venue/charity websites. '
-  'Unique constraint on (venue_name, day_of_week, start_time, game_type, buy_in) '
+  'Unique index on (venue_name, day_of_week, start_time, game_type, buy_in) '
   'prevents duplicate scraper runs. buy_in=0 means Free Entry; buy_in IS NULL means unknown.';
