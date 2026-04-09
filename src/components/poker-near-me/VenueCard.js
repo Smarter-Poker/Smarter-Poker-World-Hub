@@ -248,9 +248,17 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const hasLiveData = venue.live_data && venue.live_data.tables_running > 0;
     const logoUrl = getVenueLogoUrl(venue);
     const crowd = getCrowdLevel(venue, checkinCount);
-    // Random wait estimate 15-40 min for any live venue
+    // Wait estimate scaled by crowd level: busier venues = longer waits
     const waitEstimate = hasLiveData
-        ? (() => { const m = 15 + Math.floor(Math.random() * 26); return { minutes: m, label: `${m} min` }; })()
+        ? (() => {
+            let minW, maxW;
+            if (crowd.label === 'Packed') { minW = 35; maxW = 45; }
+            else if (crowd.label === 'Busy') { minW = 25; maxW = 40; }
+            else if (crowd.label === 'Active') { minW = 15; maxW = 25; }
+            else { minW = 10; maxW = 20; }
+            const m = minW + Math.floor(Math.random() * (maxW - minW + 1));
+            return { minutes: m, label: `${m} Min` };
+        })()
         : null;
 
     const handleFollowClick = async (e) => {
@@ -1056,7 +1064,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 /* Cash games: show 4 rows (~28px each) before scrolling */
                 .vc3-list-scrollable-games { max-height: 112px; }
                 /* Tournaments: show 3 rows (~40px each — 2-line items) before scrolling */
-                .vc3-list-scrollable-tourneys { max-height: 120px; }
+                .vc3-list-scrollable-tourneys { max-height: 180px; }
                 .vc3-list-scrollable::-webkit-scrollbar { width: 3px; }
                 .vc3-list-scrollable::-webkit-scrollbar-track { background: transparent; }
                 .vc3-list-scrollable::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
