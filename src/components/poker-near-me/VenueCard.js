@@ -589,7 +589,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 <div key={idx} className="vc3-list-item vc3-game-item">
                                                     <span className="vc3-game-name" title={displayName}>{displayName.length > 28 ? displayName.substring(0, 25) + '...' : displayName}</span>
                                                     <span className="vc3-game-tables">
-                                                        {g?.tables_running > 0 ? `${g.tables_running}T` : 'WAIT'}
+                                                        {g?.tables_running > 0 ? `${g.tables_running} ${g.tables_running === 1 ? 'Table' : 'Tables'}` : 'WAIT'}
                                                     </span>
                                                 </div>
                                             );

@@ -1,0 +1,5256 @@
+{
+  "sparse": [
+    {
+      "id": 3089,
+      "name": "Oregon Poker Club - Rialto Pool Room",
+      "city": "Portland",
+      "state": "OR",
+      "type": "casino",
+      "issues": [
+        "NO_LOGO",
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3121,
+      "name": "Rivers Chicago",
+      "city": "Chicago",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_LOGO",
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3125,
+      "name": "Daytona Racing & Card Club",
+      "city": "Daytona Beach",
+      "state": "FL",
+      "type": "casino",
+      "issues": [
+        "NO_LOGO",
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3088,
+      "name": "Jokers of Aggieland Poker Club",
+      "city": "College Station",
+      "state": "TX",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3091,
+      "name": "Krazy Kopz @ The Ivory Room",
+      "city": "Westland",
+      "state": "MI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3102,
+      "name": "Bally's Black Hawk Casino",
+      "city": "Black Hawk",
+      "state": "CO",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3122,
+      "name": "Ho-Chunk Gaming Wisconsin Dells",
+      "city": "Baraboo",
+      "state": "WI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3123,
+      "name": "Horseshoe LV",
+      "city": "Las Vegas",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3127,
+      "name": "Sands Bethlehem",
+      "city": "Bethlehem",
+      "state": "PA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 3128,
+      "name": "Bally Twin River",
+      "city": "Lincoln",
+      "state": "RI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 1846,
+      "name": "Potawatomi Hotel & Casino",
+      "city": "Milwaukee",
+      "state": "WI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1857,
+      "name": "Casino Queen",
+      "city": "East St. Louis",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1897,
+      "name": "Resorts Casino Atlantic City",
+      "city": "Atlantic City",
+      "state": "NJ",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1905,
+      "name": "Gold Strike Casino Resort",
+      "city": "Robinsonville",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1907,
+      "name": "Horseshoe Bossier City",
+      "city": "Bossier City",
+      "state": "LA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1914,
+      "name": "Horseshoe Tunica",
+      "city": "Tunica Resorts",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1929,
+      "name": "Ameristar Casino Hotel Kansas City",
+      "city": "Kansas City",
+      "state": "MO",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1949,
+      "name": "Diamond Jo Casino",
+      "city": "Dubuque",
+      "state": "IA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1990,
+      "name": "Motor City Casino",
+      "city": "Detroit",
+      "state": "MI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2413,
+      "name": "Bicycle Hotel & Casino",
+      "city": "Bell Gardens",
+      "state": "CA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2625,
+      "name": "Black Bear Casino Resort",
+      "city": "Carlton",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2639,
+      "name": "Grand Casino Hinckley",
+      "city": "Hinckley",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2641,
+      "name": "Hollywood Casino at Penn National",
+      "city": "Grantville",
+      "state": "PA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2654,
+      "name": "Hollywood Casino Aurora",
+      "city": "Aurora",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2692,
+      "name": "Delaware Park Casino",
+      "city": "Wilmington",
+      "state": "DE",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2701,
+      "name": "Horseshoe Council Bluffs",
+      "city": "Council Bluffs",
+      "state": "IA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2730,
+      "name": "FireKeepers Casino Hotel",
+      "city": "Battle Creek",
+      "state": "MI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2759,
+      "name": "IP Casino Resort Spa",
+      "city": "Biloxi",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3109,
+      "name": "Grand Victoria Casino",
+      "city": "Elgin",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1993,
+      "name": "Peppermill Resort Spa Casino",
+      "city": "Reno",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_LOGO",
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2809,
+      "name": "River Room Players Club",
+      "city": "AKRON",
+      "state": "OH",
+      "type": "charity",
+      "issues": [
+        "NO_LOGO",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2812,
+      "name": "Kontenders Poker League",
+      "city": "Multiple Locations",
+      "state": "NC",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2820,
+      "name": "Michigan Charitable Gaming Association (MiCGA)",
+      "city": "Lansing",
+      "state": "MI",
+      "type": "charity",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2825,
+      "name": "High Stax Poker",
+      "city": "Jacksonville",
+      "state": "NC",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2827,
+      "name": "Monroe Boat Club (MBC-A Charity Poker)",
+      "city": "Westland",
+      "state": "MI",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2829,
+      "name": "Evlos Charity Poker",
+      "city": "Baltimore",
+      "state": "MD",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2834,
+      "name": "Charity Series of Poker (CSOP)",
+      "city": "Las Vegas",
+      "state": "MULTI",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2835,
+      "name": "Poker For Good",
+      "city": "National",
+      "state": "MULTI",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 1868,
+      "name": "Rivers Casino Des Plaines",
+      "city": "Des Plaines",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1878,
+      "name": "Harrah's Cherokee",
+      "city": "Cherokee",
+      "state": "NC",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1930,
+      "name": "Lucky Chances Casino",
+      "city": "Colma",
+      "state": "CA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1983,
+      "name": "Canterbury Park Card Club",
+      "city": "Shakopee",
+      "state": "MN",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1987,
+      "name": "South Point Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1996,
+      "name": "Club JAQK",
+      "city": "Louisville",
+      "state": "KY",
+      "type": "poker_club",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE",
+        "NO_PHONE"
+      ]
+    },
+    {
+      "id": 2032,
+      "name": "Horseshoe Casino Tunica",
+      "city": "Robinsonville",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2036,
+      "name": "Aria Casino",
+      "city": "Las Vegas",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2533,
+      "name": "Texas Card House Houston",
+      "city": "Spring",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2802,
+      "name": "Chicago Charitable Games (CCG Poker)",
+      "city": "Warrenville",
+      "state": "IL",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2805,
+      "name": "Central Illinois Charitable Games (CICG Poker)",
+      "city": "Springfield",
+      "state": "IL",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2811,
+      "name": "Queens Club Inc.",
+      "city": "Raleigh",
+      "state": "NC",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2813,
+      "name": "Concord Casino",
+      "city": "Concord",
+      "state": "NH",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2815,
+      "name": "Pop's Poker",
+      "city": "Richmond",
+      "state": "VA",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_PHONE",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2826,
+      "name": "Westfield Lions Club Poker",
+      "city": "Westfield",
+      "state": "IN",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2836,
+      "name": "Westgate Poker Room",
+      "city": "Comstock Park",
+      "state": "MI",
+      "type": "charity",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2845,
+      "name": "Skyline Casino",
+      "city": "Henderson",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2847,
+      "name": "The Nash Casino",
+      "city": "Nashua",
+      "state": "NH",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2850,
+      "name": "Carson Valley Inn",
+      "city": "Minden",
+      "state": "NV",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2851,
+      "name": "Fallon Nugget",
+      "city": "Fallon",
+      "state": "NV",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2852,
+      "name": "Fernley Nugget",
+      "city": "Fernley",
+      "state": "NV",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2853,
+      "name": "Harrah's Laughlin",
+      "city": "Laughlin",
+      "state": "NV",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2854,
+      "name": "Maverick Casino",
+      "city": "Elko",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2857,
+      "name": "Riverside Resort & Casino",
+      "city": "Laughlin",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2858,
+      "name": "Stagecoach Casino",
+      "city": "Beatty",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2859,
+      "name": "Wendover Nugget Casino",
+      "city": "West Wendover",
+      "state": "NV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2860,
+      "name": "19th Hole Casino",
+      "city": "Antioch",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2861,
+      "name": "500 Club Casino",
+      "city": "Clovis",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2862,
+      "name": "Ace & Vine",
+      "city": "Napa",
+      "state": "CA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2863,
+      "name": "Aviator Casino",
+      "city": "Delano",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2864,
+      "name": "Bear River Casino",
+      "city": "Loleta",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2865,
+      "name": "Blue Lake Casino",
+      "city": "Blue Lake",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2866,
+      "name": "Casino Chico",
+      "city": "Chico",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2867,
+      "name": "Casino Club Casino",
+      "city": "Redding",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2868,
+      "name": "Casino Merced Casino",
+      "city": "Merced",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2869,
+      "name": "Casino Monterey - The Marina Club Casino",
+      "city": "Marina",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2870,
+      "name": "Central Coast Casino",
+      "city": "Grover Beach",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2871,
+      "name": "Diamond Jim's Casino",
+      "city": "Rosamond",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2872,
+      "name": "El Dorado Hills Casino",
+      "city": "El Dorado Hills",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2873,
+      "name": "Golden West Casino",
+      "city": "Bakersfield",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2875,
+      "name": "Lake Elsinore Casino",
+      "city": "Lake Elsinore",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2876,
+      "name": "Larry Flynt's Lucky Lady Casino",
+      "city": "Gardena",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2877,
+      "name": "Napa Valley Casino",
+      "city": "American Canyon",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2878,
+      "name": "Ocean's 11 Casino",
+      "city": "Oceanside",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2879,
+      "name": "Oceanview Casino",
+      "city": "Santa Cruz",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2880,
+      "name": "Outlaws Card Parlour",
+      "city": "Atascadero",
+      "state": "CA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2881,
+      "name": "Palace Poker Casino",
+      "city": "Hayward",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2882,
+      "name": "Parkwest Casino",
+      "city": "Manteca",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2883,
+      "name": "Pete's 881 Club",
+      "city": "San Rafael",
+      "state": "CA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2884,
+      "name": "Players Casino",
+      "city": "Ventura",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2885,
+      "name": "Seven Mile Casino",
+      "city": "Chula Vista",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2886,
+      "name": "Stars Casino",
+      "city": "Tracy",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2887,
+      "name": "Towers Casino",
+      "city": "Grass Valley",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2888,
+      "name": "Wanaaha Casino",
+      "city": "Bishop",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2889,
+      "name": "Big Easy Casino",
+      "city": "Hallandale",
+      "state": "FL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2890,
+      "name": "Bonita Springs Poker Room",
+      "city": "Bonita Springs",
+      "state": "FL",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2891,
+      "name": "Card House Port St. Lucie",
+      "city": "Port St. Lucie",
+      "state": "FL",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2892,
+      "name": "Casino Miami Jai-Alai Casino",
+      "city": "Miami",
+      "state": "FL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2893,
+      "name": "Club 52 Melbourne Greyhound Park",
+      "city": "Melbourne",
+      "state": "FL",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2895,
+      "name": "Miccosukee Casino",
+      "city": "Miami",
+      "state": "FL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2896,
+      "name": "OcalaBetS",
+      "city": "Ocala",
+      "state": "FL",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2899,
+      "name": "The Casino",
+      "city": "Dania",
+      "state": "FL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2900,
+      "name": "52 Pick Up Social",
+      "city": "Caddo Mills",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2901,
+      "name": "9 Dragons Social Club",
+      "city": "Houston",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2902,
+      "name": "Ace Card Club",
+      "city": "San Antonio",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2903,
+      "name": "Ace High Social",
+      "city": "Burleson",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2904,
+      "name": "Alpha Social Card Club",
+      "city": "Wichita Falls",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2905,
+      "name": "Amarillo Social Club",
+      "city": "Amarillo",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2906,
+      "name": "Monte Carlo Poker Social Club",
+      "city": "Austin",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2907,
+      "name": "Bluefelt El Paso Card Club",
+      "city": "El Paso",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2908,
+      "name": "Broadway Social Club",
+      "city": "Richmond",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2909,
+      "name": "Capri Poker Room",
+      "city": "Webster",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2910,
+      "name": "Celebrity Card Club Odessa",
+      "city": "Odessa",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2911,
+      "name": "Champions Social Club Dallas",
+      "city": "Dallas",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2912,
+      "name": "Club Montmartre",
+      "city": "Paris",
+      "state": "Paris",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2913,
+      "name": "Comal Card Haus",
+      "city": "New Braunfels",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2914,
+      "name": "Crossroads Card House",
+      "city": "Victoria",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2915,
+      "name": "Fortune Poker Club",
+      "city": "Houston",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2916,
+      "name": "Gin Mill Card Club Farwell",
+      "city": "Farwell",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2917,
+      "name": "Houston Social Cardroom",
+      "city": "Houston",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2919,
+      "name": "Johny's Social Card Club",
+      "city": "Wichita Falls",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2920,
+      "name": "JokerStars Social Club",
+      "city": "Houston",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2921,
+      "name": "Katy Poker",
+      "city": "Katy",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2922,
+      "name": "Lucky J Social Club",
+      "city": "Houston",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2923,
+      "name": "Lucky Lodge Card House",
+      "city": "Bryan",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2924,
+      "name": "Matador Poker House",
+      "city": "Lubbock",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2926,
+      "name": "PH Social Club Dallas",
+      "city": "Dallas",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2927,
+      "name": "Poker 1",
+      "city": "Odessa",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2928,
+      "name": "PrymeTyme Poker House",
+      "city": "Canton",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2929,
+      "name": "River Rats Poker Club",
+      "city": "Navasota",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2930,
+      "name": "Rustlers Poker Club",
+      "city": "San Antonio",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2931,
+      "name": "South Plains Social Club",
+      "city": "Farwell",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2932,
+      "name": "Sportsbook Bishop Arts",
+      "city": "Dallas",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2933,
+      "name": "Sun City Card Club",
+      "city": "El Paso",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2934,
+      "name": "Texas Double Deuce Social Club",
+      "city": "Burleson",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2935,
+      "name": "Texline Card House",
+      "city": "Texarkana",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2936,
+      "name": "The Club EPTX",
+      "city": "El Paso",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2937,
+      "name": "The Desperado Club",
+      "city": "Ft. Worth",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2938,
+      "name": "The Fort Card Room",
+      "city": "Aledo",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2939,
+      "name": "The Office Card House",
+      "city": "San Antonio",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2940,
+      "name": "The River League",
+      "city": "San Angelo",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2941,
+      "name": "The River Poker Club",
+      "city": "Spring",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2942,
+      "name": "The Rose Social Club",
+      "city": "Wilmer",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2943,
+      "name": "The Royal Card Club",
+      "city": "Brownwood",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2944,
+      "name": "The Royal Card House of San Antonio",
+      "city": "San Antonio",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2945,
+      "name": "The Speakeasy Card Room",
+      "city": "Gordon",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2946,
+      "name": "The War Room",
+      "city": "Odessa",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2947,
+      "name": "The Wheel Social Club",
+      "city": "Houston",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2948,
+      "name": "The White Rabbit",
+      "city": "San Antonio",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2949,
+      "name": "VIP Social Club",
+      "city": "Amarillo",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2950,
+      "name": "West Texas Card House",
+      "city": "Lubbock",
+      "state": "TX",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2951,
+      "name": "Hollywood Casino",
+      "city": "Washington",
+      "state": "PA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2952,
+      "name": "Hollywood Casino",
+      "city": "Morgantown",
+      "state": "PA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2953,
+      "name": "Live! Casino",
+      "city": "Greensburg",
+      "state": "PA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2954,
+      "name": "Mohegan Pennsylvania",
+      "city": "Wilkes Barre",
+      "state": "PA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2955,
+      "name": "Rivers Casino",
+      "city": "Philadelphia",
+      "state": "PA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2956,
+      "name": "Seneca Salamanca Casino",
+      "city": "Salamanca",
+      "state": "NY",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2957,
+      "name": "Tioga Downs Casino",
+      "city": "Nichols",
+      "state": "NY",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2958,
+      "name": "American Place Casino",
+      "city": "Waukegan",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2962,
+      "name": "Hard Rock Casino",
+      "city": "Rockford",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2965,
+      "name": "Bay Mills Resort & Casino",
+      "city": "Brimley",
+      "state": "MI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2967,
+      "name": "Island Casino",
+      "city": "Harris",
+      "state": "MI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2968,
+      "name": "Krazy Kopz at Vision Lanes",
+      "city": "Westland",
+      "state": "MI",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2969,
+      "name": "Langan's All Star Poker Room",
+      "city": "Walled Lake",
+      "state": "MI",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2971,
+      "name": "Mr. B's Poker Room",
+      "city": "Utica",
+      "state": "MI",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2972,
+      "name": "Odawa Casino",
+      "city": "Petoskey",
+      "state": "MI",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2973,
+      "name": "Owosso Poker",
+      "city": "Owosso",
+      "state": "MI",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2974,
+      "name": "The Event Spot Poker Room",
+      "city": "Lansing",
+      "state": "MI",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2975,
+      "name": "Waterford Card Room at 300 Bowl",
+      "city": "Waterford",
+      "state": "MI",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2977,
+      "name": "Ace's Poker Room",
+      "city": "Medford",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2978,
+      "name": "Action's Card House",
+      "city": "Ontario",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2979,
+      "name": "Bend Poker Room",
+      "city": "Bend",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2980,
+      "name": "Grants Pass Poker Room",
+      "city": "Grants Pass",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2982,
+      "name": "Legends Poker Lounge & Social Club",
+      "city": "Medford",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2984,
+      "name": "No Look Poker Club",
+      "city": "Medford",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2986,
+      "name": "The Club House",
+      "city": "Roseburg",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2987,
+      "name": "The Diamond Poker Club",
+      "city": "Albany",
+      "state": "OR",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2988,
+      "name": "Three Rivers Casino",
+      "city": "Florence",
+      "state": "OR",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2989,
+      "name": "Wildhorse Casino",
+      "city": "Pendleton",
+      "state": "OR",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2990,
+      "name": "7 Cedars Casino",
+      "city": "Sequim",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2991,
+      "name": "Ace's Poker Lakewood",
+      "city": "Lakewood",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2992,
+      "name": "Ace's Poker Mountlake Terrace",
+      "city": "Mountlake Terrace",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2993,
+      "name": "Ace's Poker Yakima",
+      "city": "Yakima",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2994,
+      "name": "All Star Lanes & Casino",
+      "city": "Silverdale",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2995,
+      "name": "Black Pearl Casino",
+      "city": "Spokane",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2996,
+      "name": "Broadway Grill & Pizzeria",
+      "city": "Everett",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2997,
+      "name": "Buzz Inn Casino",
+      "city": "East Wenatchee",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2999,
+      "name": "Buzz Inn Steakhouse Evergreen Way",
+      "city": "Everett",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3000,
+      "name": "Buzz Inn Steakhouse Granite Falls",
+      "city": "Granite Falls",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3002,
+      "name": "Buzz Inn Steakhouse Marysville",
+      "city": "Marysville",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3003,
+      "name": "Buzz Inn Steakhouse Smokey Point",
+      "city": "Arlington",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3004,
+      "name": "Buzz Inn Steakhouse Snohomish",
+      "city": "Snohomish",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3005,
+      "name": "Casino Caribbean Kirkland Casino",
+      "city": "Kirkland",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3006,
+      "name": "Clearwater Saloon & Casino",
+      "city": "East Wenatchee",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3007,
+      "name": "Club 48 Poker Room",
+      "city": "Yakima",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3008,
+      "name": "Crazy Moose Casino",
+      "city": "Pasco",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3009,
+      "name": "Desert Bluffs Poker Room",
+      "city": "Kennewick",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3010,
+      "name": "Fortune Lacey Casino",
+      "city": "Olympia",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3011,
+      "name": "Fortune Poker Room",
+      "city": "Renton",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3012,
+      "name": "Jamestown Saloon",
+      "city": "Arlington",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3013,
+      "name": "Jokers Casino",
+      "city": "Richland",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3014,
+      "name": "Lancer Lanes",
+      "city": "Clarkston",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3015,
+      "name": "Legends Casino",
+      "city": "Toppenish",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3016,
+      "name": "Lilac Lanes & Casino",
+      "city": "Spokane",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3017,
+      "name": "Little Creek Casino",
+      "city": "Shelton",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3018,
+      "name": "Mac's Bar & Cardroom",
+      "city": "Aberdeen",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3019,
+      "name": "Oak Harbor Card Room",
+      "city": "Oak Harbor",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3020,
+      "name": "Papa's Sports Lounge & Casino",
+      "city": "Moses Lake",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3021,
+      "name": "Razzals Bar & Grill",
+      "city": "Lake Stevens",
+      "state": "WA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3022,
+      "name": "Roxbury Lanes Casino",
+      "city": "Seattle",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3023,
+      "name": "Slo Pitch Sports Grill & Casino",
+      "city": "Bellingham",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3024,
+      "name": "The Last Frontier Casino",
+      "city": "La Center",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3025,
+      "name": "Wild Goose Casino",
+      "city": "Ellensburg",
+      "state": "WA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3026,
+      "name": "Desert Diamond Casino",
+      "city": "Tucson",
+      "state": "AZ",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3027,
+      "name": "Desert Diamond Casino",
+      "city": "Glendale",
+      "state": "AZ",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3028,
+      "name": "Desert Diamond White Tanks",
+      "city": "Waddell",
+      "state": "AZ",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3029,
+      "name": "Gila River Casino",
+      "city": "Chandler",
+      "state": "AZ",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3031,
+      "name": "Horseshoe Black Hawk",
+      "city": "Black Hawk",
+      "state": "CO",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3032,
+      "name": "Midnight Rose Poker Room",
+      "city": "Cripple Creek",
+      "state": "CO",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3033,
+      "name": "Monarch Black Hawk",
+      "city": "Black Hawk",
+      "state": "CO",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3034,
+      "name": "Sky Ute Casino",
+      "city": "Ignacio",
+      "state": "CO",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3035,
+      "name": "Ute Mountain Casino",
+      "city": "Towaoc",
+      "state": "CO",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3036,
+      "name": "Cedar Lakes Casino",
+      "city": "Cass Lake",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3037,
+      "name": "Fortune Bay Casino",
+      "city": "Tower",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3038,
+      "name": "Northern Lights Casino",
+      "city": "Walker",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3039,
+      "name": "Running Aces Casino",
+      "city": "Forest Lake",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3040,
+      "name": "Seven Clans Casino",
+      "city": "Warroad",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3041,
+      "name": "Shooting Star Casino",
+      "city": "Mahnomen",
+      "state": "MN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3042,
+      "name": "Choctaw Casino Pocola",
+      "city": "Pocola",
+      "state": "OK",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3043,
+      "name": "Grand Casino Resort",
+      "city": "Shawnee",
+      "state": "OK",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3044,
+      "name": "Indigo Sky Casino",
+      "city": "Wyandotte",
+      "state": "OK",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3045,
+      "name": "Riverwind Casino",
+      "city": "Norman",
+      "state": "OK",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3046,
+      "name": "Hollywood Casino Perryville",
+      "city": "Perryville",
+      "state": "MD",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3047,
+      "name": "Hollywood Casino at Charles Town Races",
+      "city": "Charles Town",
+      "state": "WV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3048,
+      "name": "Mardi Gras Casino West Virginia",
+      "city": "Nitro",
+      "state": "WV",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3049,
+      "name": "Catfish Bend Casino",
+      "city": "Burlington",
+      "state": "IA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3052,
+      "name": "Bally's Evansville",
+      "city": "Evansville",
+      "state": "IN",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3053,
+      "name": "Caesars Southern Indiana",
+      "city": "Elizabeth",
+      "state": "IN",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3054,
+      "name": "Four Winds South Bend",
+      "city": "South Bend",
+      "state": "IN",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3055,
+      "name": "Horseshoe Indianapolis",
+      "city": "Shelbyville",
+      "state": "IN",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3056,
+      "name": "Terre Haute Casino",
+      "city": "Terre Haute",
+      "state": "IN",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3057,
+      "name": "Ameristar Casino Vicksburg",
+      "city": "Vicksburg",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3058,
+      "name": "Boomtown Casino Biloxi",
+      "city": "Biloxi",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3059,
+      "name": "Hollywood Casino Gulf Coast",
+      "city": "Bay St. Louis",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3060,
+      "name": "IP Casino Biloxi",
+      "city": "Biloxi",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3061,
+      "name": "Magnolia Bluffs Casino",
+      "city": "Natchez",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3062,
+      "name": "Pearl River Resort",
+      "city": "Philadelphia",
+      "state": "MS",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3063,
+      "name": "Bally's Shreveport",
+      "city": "Shreveport",
+      "state": "LA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3064,
+      "name": "Boomtown Casino New Orleans",
+      "city": "Harvey",
+      "state": "LA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3065,
+      "name": "Coushatta Casino Resort",
+      "city": "Kinder",
+      "state": "LA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3066,
+      "name": "Golden Nugget Lake Charles",
+      "city": "Lake Charles",
+      "state": "LA",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3068,
+      "name": "Jena Choctaw Pines Casino",
+      "city": "Dry Prong",
+      "state": "LA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3069,
+      "name": "L'Auberge Casino Baton Rouge",
+      "city": "Baton Rouge",
+      "state": "LA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3070,
+      "name": "Paragon Casino",
+      "city": "Marksville",
+      "state": "LA",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3072,
+      "name": "Isleta Casino",
+      "city": "Albuquerque",
+      "state": "NM",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3074,
+      "name": "Dakota Sioux Casino",
+      "city": "Watertown",
+      "state": "SD",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3075,
+      "name": "Grand River Casino",
+      "city": "Mobridge",
+      "state": "SD",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3076,
+      "name": "Royal River Casino",
+      "city": "Flandreau",
+      "state": "SD",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3077,
+      "name": "Saloon No. 10",
+      "city": "Deadwood",
+      "state": "SD",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3078,
+      "name": "Silverado Franklin Casino",
+      "city": "Deadwood",
+      "state": "SD",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3079,
+      "name": "Black Eagle Country Club Poker Zone",
+      "city": "Black Eagle",
+      "state": "MT",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3080,
+      "name": "Bugz's Cardroom",
+      "city": "Billings",
+      "state": "MT",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3081,
+      "name": "Butte Rats Poker",
+      "city": "Butte",
+      "state": "MT",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3082,
+      "name": "Doc & Eddy's",
+      "city": "Billings",
+      "state": "MT",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3083,
+      "name": "Ike & Susan's Lounge & Casino",
+      "city": "Great Falls",
+      "state": "MT",
+      "type": "casino",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3084,
+      "name": "Montana Nugget Kalispell",
+      "city": "Kalispell",
+      "state": "MT",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3085,
+      "name": "Nickels Gaming Parlour",
+      "city": "Helena",
+      "state": "MT",
+      "type": "poker_club",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3119,
+      "name": "TGT Poker Room",
+      "city": "Tampa",
+      "state": "FL",
+      "type": "charity",
+      "issues": [
+        "NO_GAMES",
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1865,
+      "name": "Parkwest Casino Lodi",
+      "city": "Lodi",
+      "state": "CA",
+      "type": "casino",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE"
+      ]
+    },
+    {
+      "id": 1885,
+      "name": "Seven Feathers Casino Resort",
+      "city": "Canyonville",
+      "state": "OR",
+      "type": "casino",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 1934,
+      "name": "Parkwest Casino Cordova",
+      "city": "Rancho Cordova",
+      "state": "CA",
+      "type": "poker_club",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE"
+      ]
+    },
+    {
+      "id": 1935,
+      "name": "Parkwest Casino Lotus",
+      "city": "Sacramento",
+      "state": "CA",
+      "type": "poker_club",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE"
+      ]
+    },
+    {
+      "id": 2027,
+      "name": "Harrah's Pompano Beach",
+      "city": "Pompano Beach",
+      "state": "FL",
+      "type": "casino",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2038,
+      "name": "Caesars Virginia",
+      "city": "Danville",
+      "state": "VA",
+      "type": "poker_club",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_WEBSITE"
+      ]
+    },
+    {
+      "id": 2808,
+      "name": "Big Stack Poker Club",
+      "city": "Wickliffe",
+      "state": "OH",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_PHONE",
+        "NO_ADDRESS"
+      ]
+    },
+    {
+      "id": 2810,
+      "name": "OP Social Club / Outlaw Poker",
+      "city": "Lafayette",
+      "state": "IN",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2814,
+      "name": "Gate City Casino",
+      "city": "Nashua",
+      "state": "NH",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2816,
+      "name": "RVA Charity Poker",
+      "city": "Midlothian",
+      "state": "VA",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2817,
+      "name": "ACES Charity Poker",
+      "city": "Dacula",
+      "state": "GA",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 2823,
+      "name": "Play Poker Chicago",
+      "city": "Joliet",
+      "state": "IL",
+      "type": "charity",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    },
+    {
+      "id": 3096,
+      "name": "Wind Creek Chicago Southland",
+      "city": "East Hazel Crest",
+      "state": "IL",
+      "type": "casino",
+      "issues": [
+        "NO_STAKES",
+        "NO_HOURS",
+        "NO_TABLES"
+      ]
+    }
+  ],
+  "noLogo": [
+    {
+      "id": 1827,
+      "name": "bestbet Jacksonville",
+      "city": "Jacksonville",
+      "state": "FL"
+    },
+    {
+      "id": 1889,
+      "name": "Rivers Casino Pittsburgh",
+      "city": "Pittsburgh",
+      "state": "PA"
+    },
+    {
+      "id": 1993,
+      "name": "Peppermill Resort Spa Casino",
+      "city": "Reno",
+      "state": "NV"
+    },
+    {
+      "id": 2809,
+      "name": "River Room Players Club",
+      "city": "AKRON",
+      "state": "OH"
+    },
+    {
+      "id": 3089,
+      "name": "Oregon Poker Club - Rialto Pool Room",
+      "city": "Portland",
+      "state": "OR"
+    },
+    {
+      "id": 3121,
+      "name": "Rivers Chicago",
+      "city": "Chicago",
+      "state": "IL"
+    },
+    {
+      "id": 3125,
+      "name": "Daytona Racing & Card Club",
+      "city": "Daytona Beach",
+      "state": "FL"
+    }
+  ],
+  "noGames": [
+    {
+      "id": 1846,
+      "name": "Potawatomi Hotel & Casino",
+      "city": "Milwaukee",
+      "state": "WI"
+    },
+    {
+      "id": 1857,
+      "name": "Casino Queen",
+      "city": "East St. Louis",
+      "state": "IL"
+    },
+    {
+      "id": 1868,
+      "name": "Rivers Casino Des Plaines",
+      "city": "Des Plaines",
+      "state": "IL"
+    },
+    {
+      "id": 1878,
+      "name": "Harrah's Cherokee",
+      "city": "Cherokee",
+      "state": "NC"
+    },
+    {
+      "id": 1897,
+      "name": "Resorts Casino Atlantic City",
+      "city": "Atlantic City",
+      "state": "NJ"
+    },
+    {
+      "id": 1905,
+      "name": "Gold Strike Casino Resort",
+      "city": "Robinsonville",
+      "state": "MS"
+    },
+    {
+      "id": 1907,
+      "name": "Horseshoe Bossier City",
+      "city": "Bossier City",
+      "state": "LA"
+    },
+    {
+      "id": 1914,
+      "name": "Horseshoe Tunica",
+      "city": "Tunica Resorts",
+      "state": "MS"
+    },
+    {
+      "id": 1929,
+      "name": "Ameristar Casino Hotel Kansas City",
+      "city": "Kansas City",
+      "state": "MO"
+    },
+    {
+      "id": 1930,
+      "name": "Lucky Chances Casino",
+      "city": "Colma",
+      "state": "CA"
+    },
+    {
+      "id": 1949,
+      "name": "Diamond Jo Casino",
+      "city": "Dubuque",
+      "state": "IA"
+    },
+    {
+      "id": 1983,
+      "name": "Canterbury Park Card Club",
+      "city": "Shakopee",
+      "state": "MN"
+    },
+    {
+      "id": 1987,
+      "name": "South Point Casino",
+      "city": "Las Vegas",
+      "state": "NV"
+    },
+    {
+      "id": 1990,
+      "name": "Motor City Casino",
+      "city": "Detroit",
+      "state": "MI"
+    },
+    {
+      "id": 1993,
+      "name": "Peppermill Resort Spa Casino",
+      "city": "Reno",
+      "state": "NV"
+    },
+    {
+      "id": 2032,
+      "name": "Horseshoe Casino Tunica",
+      "city": "Robinsonville",
+      "state": "MS"
+    },
+    {
+      "id": 2036,
+      "name": "Aria Casino",
+      "city": "Las Vegas",
+      "state": "NV"
+    },
+    {
+      "id": 2413,
+      "name": "Bicycle Hotel & Casino",
+      "city": "Bell Gardens",
+      "state": "CA"
+    },
+    {
+      "id": 2533,
+      "name": "Texas Card House Houston",
+      "city": "Spring",
+      "state": "TX"
+    },
+    {
+      "id": 2625,
+      "name": "Black Bear Casino Resort",
+      "city": "Carlton",
+      "state": "MN"
+    },
+    {
+      "id": 2639,
+      "name": "Grand Casino Hinckley",
+      "city": "Hinckley",
+      "state": "MN"
+    },
+    {
+      "id": 2641,
+      "name": "Hollywood Casino at Penn National",
+      "city": "Grantville",
+      "state": "PA"
+    },
+    {
+      "id": 2654,
+      "name": "Hollywood Casino Aurora",
+      "city": "Aurora",
+      "state": "IL"
+    },
+    {
+      "id": 2692,
+      "name": "Delaware Park Casino",
+      "city": "Wilmington",
+      "state": "DE"
+    },
+    {
+      "id": 2701,
+      "name": "Horseshoe Council Bluffs",
+      "city": "Council Bluffs",
+      "state": "IA"
+    },
+    {
+      "id": 2730,
+      "name": "FireKeepers Casino Hotel",
+      "city": "Battle Creek",
+      "state": "MI"
+    },
+    {
+      "id": 2759,
+      "name": "IP Casino Resort Spa",
+      "city": "Biloxi",
+      "state": "MS"
+    },
+    {
+      "id": 2820,
+      "name": "Michigan Charitable Gaming Association (MiCGA)",
+      "city": "Lansing",
+      "state": "MI"
+    },
+    {
+      "id": 2836,
+      "name": "Westgate Poker Room",
+      "city": "Comstock Park",
+      "state": "MI"
+    },
+    {
+      "id": 2845,
+      "name": "Skyline Casino",
+      "city": "Henderson",
+      "state": "NV"
+    },
+    {
+      "id": 2847,
+      "name": "The Nash Casino",
+      "city": "Nashua",
+      "state": "NH"
+    },
+    {
+      "id": 2850,
+      "name": "Carson Valley Inn",
+      "city": "Minden",
+      "state": "NV"
+    },
+    {
+      "id": 2851,
+      "name": "Fallon Nugget",
+      "city": "Fallon",
+      "state": "NV"
+    },
+    {
+      "id": 2852,
+      "name": "Fernley Nugget",
+      "city": "Fernley",
+      "state": "NV"
+    },
+    {
+      "id": 2853,
+      "name": "Harrah's Laughlin",
+      "city": "Laughlin",
+      "state": "NV"
+    },
+    {
+      "id": 2854,
+      "name": "Maverick Casino",
+      "city": "Elko",
+      "state": "NV"
+    },
+    {
+      "id": 2857,
+      "name": "Riverside Resort & Casino",
+      "city": "Laughlin",
+      "state": "NV"
+    },
+    {
+      "id": 2858,
+      "name": "Stagecoach Casino",
+      "city": "Beatty",
+      "state": "NV"
+    },
+    {
+      "id": 2859,
+      "name": "Wendover Nugget Casino",
+      "city": "West Wendover",
+      "state": "NV"
+    },
+    {
+      "id": 2860,
+      "name": "19th Hole Casino",
+      "city": "Antioch",
+      "state": "CA"
+    },
+    {
+      "id": 2861,
+      "name": "500 Club Casino",
+      "city": "Clovis",
+      "state": "CA"
+    },
+    {
+      "id": 2862,
+      "name": "Ace & Vine",
+      "city": "Napa",
+      "state": "CA"
+    },
+    {
+      "id": 2863,
+      "name": "Aviator Casino",
+      "city": "Delano",
+      "state": "CA"
+    },
+    {
+      "id": 2864,
+      "name": "Bear River Casino",
+      "city": "Loleta",
+      "state": "CA"
+    },
+    {
+      "id": 2865,
+      "name": "Blue Lake Casino",
+      "city": "Blue Lake",
+      "state": "CA"
+    },
+    {
+      "id": 2866,
+      "name": "Casino Chico",
+      "city": "Chico",
+      "state": "CA"
+    },
+    {
+      "id": 2867,
+      "name": "Casino Club Casino",
+      "city": "Redding",
+      "state": "CA"
+    },
+    {
+      "id": 2868,
+      "name": "Casino Merced Casino",
+      "city": "Merced",
+      "state": "CA"
+    },
+    {
+      "id": 2869,
+      "name": "Casino Monterey - The Marina Club Casino",
+      "city": "Marina",
+      "state": "CA"
+    },
+    {
+      "id": 2870,
+      "name": "Central Coast Casino",
+      "city": "Grover Beach",
+      "state": "CA"
+    },
+    {
+      "id": 2871,
+      "name": "Diamond Jim's Casino",
+      "city": "Rosamond",
+      "state": "CA"
+    },
+    {
+      "id": 2872,
+      "name": "El Dorado Hills Casino",
+      "city": "El Dorado Hills",
+      "state": "CA"
+    },
+    {
+      "id": 2873,
+      "name": "Golden West Casino",
+      "city": "Bakersfield",
+      "state": "CA"
+    },
+    {
+      "id": 2875,
+      "name": "Lake Elsinore Casino",
+      "city": "Lake Elsinore",
+      "state": "CA"
+    },
+    {
+      "id": 2876,
+      "name": "Larry Flynt's Lucky Lady Casino",
+      "city": "Gardena",
+      "state": "CA"
+    },
+    {
+      "id": 2877,
+      "name": "Napa Valley Casino",
+      "city": "American Canyon",
+      "state": "CA"
+    },
+    {
+      "id": 2878,
+      "name": "Ocean's 11 Casino",
+      "city": "Oceanside",
+      "state": "CA"
+    },
+    {
+      "id": 2879,
+      "name": "Oceanview Casino",
+      "city": "Santa Cruz",
+      "state": "CA"
+    },
+    {
+      "id": 2880,
+      "name": "Outlaws Card Parlour",
+      "city": "Atascadero",
+      "state": "CA"
+    },
+    {
+      "id": 2881,
+      "name": "Palace Poker Casino",
+      "city": "Hayward",
+      "state": "CA"
+    },
+    {
+      "id": 2882,
+      "name": "Parkwest Casino",
+      "city": "Manteca",
+      "state": "CA"
+    },
+    {
+      "id": 2883,
+      "name": "Pete's 881 Club",
+      "city": "San Rafael",
+      "state": "CA"
+    },
+    {
+      "id": 2884,
+      "name": "Players Casino",
+      "city": "Ventura",
+      "state": "CA"
+    },
+    {
+      "id": 2885,
+      "name": "Seven Mile Casino",
+      "city": "Chula Vista",
+      "state": "CA"
+    },
+    {
+      "id": 2886,
+      "name": "Stars Casino",
+      "city": "Tracy",
+      "state": "CA"
+    },
+    {
+      "id": 2887,
+      "name": "Towers Casino",
+      "city": "Grass Valley",
+      "state": "CA"
+    },
+    {
+      "id": 2888,
+      "name": "Wanaaha Casino",
+      "city": "Bishop",
+      "state": "CA"
+    },
+    {
+      "id": 2889,
+      "name": "Big Easy Casino",
+      "city": "Hallandale",
+      "state": "FL"
+    },
+    {
+      "id": 2890,
+      "name": "Bonita Springs Poker Room",
+      "city": "Bonita Springs",
+      "state": "FL"
+    },
+    {
+      "id": 2891,
+      "name": "Card House Port St. Lucie",
+      "city": "Port St. Lucie",
+      "state": "FL"
+    },
+    {
+      "id": 2892,
+      "name": "Casino Miami Jai-Alai Casino",
+      "city": "Miami",
+      "state": "FL"
+    },
+    {
+      "id": 2893,
+      "name": "Club 52 Melbourne Greyhound Park",
+      "city": "Melbourne",
+      "state": "FL"
+    },
+    {
+      "id": 2895,
+      "name": "Miccosukee Casino",
+      "city": "Miami",
+      "state": "FL"
+    },
+    {
+      "id": 2896,
+      "name": "OcalaBetS",
+      "city": "Ocala",
+      "state": "FL"
+    },
+    {
+      "id": 2899,
+      "name": "The Casino",
+      "city": "Dania",
+      "state": "FL"
+    },
+    {
+      "id": 2900,
+      "name": "52 Pick Up Social",
+      "city": "Caddo Mills",
+      "state": "TX"
+    },
+    {
+      "id": 2901,
+      "name": "9 Dragons Social Club",
+      "city": "Houston",
+      "state": "TX"
+    },
+    {
+      "id": 2902,
+      "name": "Ace Card Club",
+      "city": "San Antonio",
+      "state": "TX"
+    },
+    {
+      "id": 2903,
+      "name": "Ace High Social",
+      "city": "Burleson",
+      "state": "TX"
+    },
+    {
+      "id": 2904,
+      "name": "Alpha Social Card Club",
+      "city": "Wichita Falls",
+      "state": "TX"
+    },
+    {
+      "id": 2905,
+      "name": "Amarillo Social Club",
+      "city": "Amarillo",
+      "state": "TX"
+    },
+    {
+      "id": 2906,
+      "name": "Monte Carlo Poker Social Club",
+      "city": "Austin",
+      "state": "TX"
+    },
+    {
+      "id": 2907,
+      "name": "Bluefelt El Paso Card Club",
+      "city": "El Paso",
+      "state": "TX"
+    },
+    {
+      "id": 2908,
+      "name": "Broadway Social Club",
+      "city": "Richmond",
+      "state": "TX"
+    },
+    {
+      "id": 2909,
+      "name": "Capri Poker Room",
+      "city": "Webster",
+      "state": "TX"
+    },
+    {
+      "id": 2910,
+      "name": "Celebrity Card Club Odessa",
+      "city": "Odessa",
+      "state": "TX"
+    },
+    {
+      "id": 2911,
+      "name": "Champions Social Club Dallas",
+      "city": "Dallas",
+      "state": "TX"
+    },
+    {
+      "id": 2912,
+      "name": "Club Montmartre",
+      "city": "Paris",
+      "state": "Paris"
+    },
+    {
+      "id": 2913,
+      "name": "Comal Card Haus",
+      "city": "New Braunfels",
+      "state": "TX"
+    },
+    {
+      "id": 2914,
+      "name": "Crossroads Card House",
+      "city": "Victoria",
+      "state": "TX"
+    },
+    {
+      "id": 2915,
+      "name": "Fortune Poker Club",
+      "city": "Houston",
+      "state": "TX"
+    },
+    {
+      "id": 2916,
+      "name": "Gin Mill Card Club Farwell",
+      "city": "Farwell",
+      "state": "TX"
+    },
+    {
+      "id": 2917,
+      "name": "Houston Social Cardroom",
+      "city": "Houston",
+      "state": "TX"
+    },
+    {
+      "id": 2919,
+      "name": "Johny's Social Card Club",
+      "city": "Wichita Falls",
+      "state": "TX"
+    },
+    {
+      "id": 2920,
+      "name": "JokerStars Social Club",
+      "city": "Houston",
+      "state": "TX"
+    },
+    {
+      "id": 2921,
+      "name": "Katy Poker",
+      "city": "Katy",
+      "state": "TX"
+    },
+    {
+      "id": 2922,
+      "name": "Lucky J Social Club",
+      "city": "Houston",
+      "state": "TX"
+    },
+    {
+      "id": 2923,
+      "name": "Lucky Lodge Card House",
+      "city": "Bryan",
+      "state": "TX"
+    },
+    {
+      "id": 2924,
+      "name": "Matador Poker House",
+      "city": "Lubbock",
+      "state": "TX"
+    },
+    {
+      "id": 2926,
+      "name": "PH Social Club Dallas",
+      "city": "Dallas",
+      "state": "TX"
+    },
+    {
+      "id": 2927,
+      "name": "Poker 1",
+      "city": "Odessa",
+      "state": "TX"
+    },
+    {
+      "id": 2928,
+      "name": "PrymeTyme Poker House",
+      "city": "Canton",
+      "state": "TX"
+    },
+    {
+      "id": 2929,
+      "name": "River Rats Poker Club",
+      "city": "Navasota",
+      "state": "TX"
+    },
+    {
+      "id": 2930,
+      "name": "Rustlers Poker Club",
+      "city": "San Antonio",
+      "state": "TX"
+    },
+    {
+      "id": 2931,
+      "name": "South Plains Social Club",
+      "city": "Farwell",
+      "state": "TX"
+    },
+    {
+      "id": 2932,
+      "name": "Sportsbook Bishop Arts",
+      "city": "Dallas",
+      "state": "TX"
+    },
+    {
+      "id": 2933,
+      "name": "Sun City Card Club",
+      "city": "El Paso",
+      "state": "TX"
+    },
+    {
+      "id": 2934,
+      "name": "Texas Double Deuce Social Club",
+      "city": "Burleson",
+      "state": "TX"
+    },
+    {
+      "id": 2935,
+      "name": "Texline Card House",
+      "city": "Texarkana",
+      "state": "TX"
+    },
+    {
+      "id": 2936,
+      "name": "The Club EPTX",
+      "city": "El Paso",
+      "state": "TX"
+    },
+    {
+      "id": 2937,
+      "name": "The Desperado Club",
+      "city": "Ft. Worth",
+      "state": "TX"
+    },
+    {
+      "id": 2938,
+      "name": "The Fort Card Room",
+      "city": "Aledo",
+      "state": "TX"
+    },
+    {
+      "id": 2939,
+      "name": "The Office Card House",
+      "city": "San Antonio",
+      "state": "TX"
+    },
+    {
+      "id": 2940,
+      "name": "The River League",
+      "city": "San Angelo",
+      "state": "TX"
+    },
+    {
+      "id": 2941,
+      "name": "The River Poker Club",
+      "city": "Spring",
+      "state": "TX"
+    },
+    {
+      "id": 2942,
+      "name": "The Rose Social Club",
+      "city": "Wilmer",
+      "state": "TX"
+    },
+    {
+      "id": 2943,
+      "name": "The Royal Card Club",
+      "city": "Brownwood",
+      "state": "TX"
+    },
+    {
+      "id": 2944,
+      "name": "The Royal Card House of San Antonio",
+      "city": "San Antonio",
+      "state": "TX"
+    },
+    {
+      "id": 2945,
+      "name": "The Speakeasy Card Room",
+      "city": "Gordon",
+      "state": "TX"
+    },
+    {
+      "id": 2946,
+      "name": "The War Room",
+      "city": "Odessa",
+      "state": "TX"
+    },
+    {
+      "id": 2947,
+      "name": "The Wheel Social Club",
+      "city": "Houston",
+      "state": "TX"
+    },
+    {
+      "id": 2948,
+      "name": "The White Rabbit",
+      "city": "San Antonio",
+      "state": "TX"
+    },
+    {
+      "id": 2949,
+      "name": "VIP Social Club",
+      "city": "Amarillo",
+      "state": "TX"
+    },
+    {
+      "id": 2950,
+      "name": "West Texas Card House",
+      "city": "Lubbock",
+      "state": "TX"
+    },
+    {
+      "id": 2951,
+      "name": "Hollywood Casino",
+      "city": "Washington",
+      "state": "PA"
+    },
+    {
+      "id": 2952,
+      "name": "Hollywood Casino",
+      "city": "Morgantown",
+      "state": "PA"
+    },
+    {
+      "id": 2953,
+      "name": "Live! Casino",
+      "city": "Greensburg",
+      "state": "PA"
+    },
+    {
+      "id": 2954,
+      "name": "Mohegan Pennsylvania",
+      "city": "Wilkes Barre",
+      "state": "PA"
+    },
+    {
+      "id": 2955,
+      "name": "Rivers Casino",
+      "city": "Philadelphia",
+      "state": "PA"
+    },
+    {
+      "id": 2956,
+      "name": "Seneca Salamanca Casino",
+      "city": "Salamanca",
+      "state": "NY"
+    },
+    {
+      "id": 2957,
+      "name": "Tioga Downs Casino",
+      "city": "Nichols",
+      "state": "NY"
+    },
+    {
+      "id": 2958,
+      "name": "American Place Casino",
+      "city": "Waukegan",
+      "state": "IL"
+    },
+    {
+      "id": 2962,
+      "name": "Hard Rock Casino",
+      "city": "Rockford",
+      "state": "IL"
+    },
+    {
+      "id": 2965,
+      "name": "Bay Mills Resort & Casino",
+      "city": "Brimley",
+      "state": "MI"
+    },
+    {
+      "id": 2967,
+      "name": "Island Casino",
+      "city": "Harris",
+      "state": "MI"
+    },
+    {
+      "id": 2968,
+      "name": "Krazy Kopz at Vision Lanes",
+      "city": "Westland",
+      "state": "MI"
+    },
+    {
+      "id": 2969,
+      "name": "Langan's All Star Poker Room",
+      "city": "Walled Lake",
+      "state": "MI"
+    },
+    {
+      "id": 2971,
+      "name": "Mr. B's Poker Room",
+      "city": "Utica",
+      "state": "MI"
+    },
+    {
+      "id": 2972,
+      "name": "Odawa Casino",
+      "city": "Petoskey",
+      "state": "MI"
+    },
+    {
+      "id": 2973,
+      "name": "Owosso Poker",
+      "city": "Owosso",
+      "state": "MI"
+    },
+    {
+      "id": 2974,
+      "name": "The Event Spot Poker Room",
+      "city": "Lansing",
+      "state": "MI"
+    },
+    {
+      "id": 2975,
+      "name": "Waterford Card Room at 300 Bowl",
+      "city": "Waterford",
+      "state": "MI"
+    },
+    {
+      "id": 2977,
+      "name": "Ace's Poker Room",
+      "city": "Medford",
+      "state": "OR"
+    },
+    {
+      "id": 2978,
+      "name": "Action's Card House",
+      "city": "Ontario",
+      "state": "OR"
+    },
+    {
+      "id": 2979,
+      "name": "Bend Poker Room",
+      "city": "Bend",
+      "state": "OR"
+    },
+    {
+      "id": 2980,
+      "name": "Grants Pass Poker Room",
+      "city": "Grants Pass",
+      "state": "OR"
+    },
+    {
+      "id": 2982,
+      "name": "Legends Poker Lounge & Social Club",
+      "city": "Medford",
+      "state": "OR"
+    },
+    {
+      "id": 2984,
+      "name": "No Look Poker Club",
+      "city": "Medford",
+      "state": "OR"
+    },
+    {
+      "id": 2986,
+      "name": "The Club House",
+      "city": "Roseburg",
+      "state": "OR"
+    },
+    {
+      "id": 2987,
+      "name": "The Diamond Poker Club",
+      "city": "Albany",
+      "state": "OR"
+    },
+    {
+      "id": 2988,
+      "name": "Three Rivers Casino",
+      "city": "Florence",
+      "state": "OR"
+    },
+    {
+      "id": 2989,
+      "name": "Wildhorse Casino",
+      "city": "Pendleton",
+      "state": "OR"
+    },
+    {
+      "id": 2990,
+      "name": "7 Cedars Casino",
+      "city": "Sequim",
+      "state": "WA"
+    },
+    {
+      "id": 2991,
+      "name": "Ace's Poker Lakewood",
+      "city": "Lakewood",
+      "state": "WA"
+    },
+    {
+      "id": 2992,
+      "name": "Ace's Poker Mountlake Terrace",
+      "city": "Mountlake Terrace",
+      "state": "WA"
+    },
+    {
+      "id": 2993,
+      "name": "Ace's Poker Yakima",
+      "city": "Yakima",
+      "state": "WA"
+    },
+    {
+      "id": 2994,
+      "name": "All Star Lanes & Casino",
+      "city": "Silverdale",
+      "state": "WA"
+    },
+    {
+      "id": 2995,
+      "name": "Black Pearl Casino",
+      "city": "Spokane",
+      "state": "WA"
+    },
+    {
+      "id": 2996,
+      "name": "Broadway Grill & Pizzeria",
+      "city": "Everett",
+      "state": "WA"
+    },
+    {
+      "id": 2997,
+      "name": "Buzz Inn Casino",
+      "city": "East Wenatchee",
+      "state": "WA"
+    },
+    {
+      "id": 2999,
+      "name": "Buzz Inn Steakhouse Evergreen Way",
+      "city": "Everett",
+      "state": "WA"
+    },
+    {
+      "id": 3000,
+      "name": "Buzz Inn Steakhouse Granite Falls",
+      "city": "Granite Falls",
+      "state": "WA"
+    },
+    {
+      "id": 3002,
+      "name": "Buzz Inn Steakhouse Marysville",
+      "city": "Marysville",
+      "state": "WA"
+    },
+    {
+      "id": 3003,
+      "name": "Buzz Inn Steakhouse Smokey Point",
+      "city": "Arlington",
+      "state": "WA"
+    },
+    {
+      "id": 3004,
+      "name": "Buzz Inn Steakhouse Snohomish",
+      "city": "Snohomish",
+      "state": "WA"
+    },
+    {
+      "id": 3005,
+      "name": "Casino Caribbean Kirkland Casino",
+      "city": "Kirkland",
+      "state": "WA"
+    },
+    {
+      "id": 3006,
+      "name": "Clearwater Saloon & Casino",
+      "city": "East Wenatchee",
+      "state": "WA"
+    },
+    {
+      "id": 3007,
+      "name": "Club 48 Poker Room",
+      "city": "Yakima",
+      "state": "WA"
+    },
+    {
+      "id": 3008,
+      "name": "Crazy Moose Casino",
+      "city": "Pasco",
+      "state": "WA"
+    },
+    {
+      "id": 3009,
+      "name": "Desert Bluffs Poker Room",
+      "city": "Kennewick",
+      "state": "WA"
+    },
+    {
+      "id": 3010,
+      "name": "Fortune Lacey Casino",
+      "city": "Olympia",
+      "state": "WA"
+    },
+    {
+      "id": 3011,
+      "name": "Fortune Poker Room",
+      "city": "Renton",
+      "state": "WA"
+    },
+    {
+      "id": 3012,
+      "name": "Jamestown Saloon",
+      "city": "Arlington",
+      "state": "WA"
+    },
+    {
+      "id": 3013,
+      "name": "Jokers Casino",
+      "city": "Richland",
+      "state": "WA"
+    },
+    {
+      "id": 3014,
+      "name": "Lancer Lanes",
+      "city": "Clarkston",
+      "state": "WA"
+    },
+    {
+      "id": 3015,
+      "name": "Legends Casino",
+      "city": "Toppenish",
+      "state": "WA"
+    },
+    {
+      "id": 3016,
+      "name": "Lilac Lanes & Casino",
+      "city": "Spokane",
+      "state": "WA"
+    },
+    {
+      "id": 3017,
+      "name": "Little Creek Casino",
+      "city": "Shelton",
+      "state": "WA"
+    },
+    {
+      "id": 3018,
+      "name": "Mac's Bar & Cardroom",
+      "city": "Aberdeen",
+      "state": "WA"
+    },
+    {
+      "id": 3019,
+      "name": "Oak Harbor Card Room",
+      "city": "Oak Harbor",
+      "state": "WA"
+    },
+    {
+      "id": 3020,
+      "name": "Papa's Sports Lounge & Casino",
+      "city": "Moses Lake",
+      "state": "WA"
+    },
+    {
+      "id": 3021,
+      "name": "Razzals Bar & Grill",
+      "city": "Lake Stevens",
+      "state": "WA"
+    },
+    {
+      "id": 3022,
+      "name": "Roxbury Lanes Casino",
+      "city": "Seattle",
+      "state": "WA"
+    },
+    {
+      "id": 3023,
+      "name": "Slo Pitch Sports Grill & Casino",
+      "city": "Bellingham",
+      "state": "WA"
+    },
+    {
+      "id": 3024,
+      "name": "The Last Frontier Casino",
+      "city": "La Center",
+      "state": "WA"
+    },
+    {
+      "id": 3025,
+      "name": "Wild Goose Casino",
+      "city": "Ellensburg",
+      "state": "WA"
+    },
+    {
+      "id": 3026,
+      "name": "Desert Diamond Casino",
+      "city": "Tucson",
+      "state": "AZ"
+    },
+    {
+      "id": 3027,
+      "name": "Desert Diamond Casino",
+      "city": "Glendale",
+      "state": "AZ"
+    },
+    {
+      "id": 3028,
+      "name": "Desert Diamond White Tanks",
+      "city": "Waddell",
+      "state": "AZ"
+    },
+    {
+      "id": 3029,
+      "name": "Gila River Casino",
+      "city": "Chandler",
+      "state": "AZ"
+    },
+    {
+      "id": 3031,
+      "name": "Horseshoe Black Hawk",
+      "city": "Black Hawk",
+      "state": "CO"
+    },
+    {
+      "id": 3032,
+      "name": "Midnight Rose Poker Room",
+      "city": "Cripple Creek",
+      "state": "CO"
+    },
+    {
+      "id": 3033,
+      "name": "Monarch Black Hawk",
+      "city": "Black Hawk",
+      "state": "CO"
+    },
+    {
+      "id": 3034,
+      "name": "Sky Ute Casino",
+      "city": "Ignacio",
+      "state": "CO"
+    },
+    {
+      "id": 3035,
+      "name": "Ute Mountain Casino",
+      "city": "Towaoc",
+      "state": "CO"
+    },
+    {
+      "id": 3036,
+      "name": "Cedar Lakes Casino",
+      "city": "Cass Lake",
+      "state": "MN"
+    },
+    {
+      "id": 3037,
+      "name": "Fortune Bay Casino",
+      "city": "Tower",
+      "state": "MN"
+    },
+    {
+      "id": 3038,
+      "name": "Northern Lights Casino",
+      "city": "Walker",
+      "state": "MN"
+    },
+    {
+      "id": 3039,
+      "name": "Running Aces Casino",
+      "city": "Forest Lake",
+      "state": "MN"
+    },
+    {
+      "id": 3040,
+      "name": "Seven Clans Casino",
+      "city": "Warroad",
+      "state": "MN"
+    },
+    {
+      "id": 3041,
+      "name": "Shooting Star Casino",
+      "city": "Mahnomen",
+      "state": "MN"
+    },
+    {
+      "id": 3042,
+      "name": "Choctaw Casino Pocola",
+      "city": "Pocola",
+      "state": "OK"
+    },
+    {
+      "id": 3043,
+      "name": "Grand Casino Resort",
+      "city": "Shawnee",
+      "state": "OK"
+    },
+    {
+      "id": 3044,
+      "name": "Indigo Sky Casino",
+      "city": "Wyandotte",
+      "state": "OK"
+    },
+    {
+      "id": 3045,
+      "name": "Riverwind Casino",
+      "city": "Norman",
+      "state": "OK"
+    },
+    {
+      "id": 3046,
+      "name": "Hollywood Casino Perryville",
+      "city": "Perryville",
+      "state": "MD"
+    },
+    {
+      "id": 3047,
+      "name": "Hollywood Casino at Charles Town Races",
+      "city": "Charles Town",
+      "state": "WV"
+    },
+    {
+      "id": 3048,
+      "name": "Mardi Gras Casino West Virginia",
+      "city": "Nitro",
+      "state": "WV"
+    },
+    {
+      "id": 3049,
+      "name": "Catfish Bend Casino",
+      "city": "Burlington",
+      "state": "IA"
+    },
+    {
+      "id": 3052,
+      "name": "Bally's Evansville",
+      "city": "Evansville",
+      "state": "IN"
+    },
+    {
+      "id": 3053,
+      "name": "Caesars Southern Indiana",
+      "city": "Elizabeth",
+      "state": "IN"
+    },
+    {
+      "id": 3054,
+      "name": "Four Winds South Bend",
+      "city": "South Bend",
+      "state": "IN"
+    },
+    {
+      "id": 3055,
+      "name": "Horseshoe Indianapolis",
+      "city": "Shelbyville",
+      "state": "IN"
+    },
+    {
+      "id": 3056,
+      "name": "Terre Haute Casino",
+      "city": "Terre Haute",
+      "state": "IN"
+    },
+    {
+      "id": 3057,
+      "name": "Ameristar Casino Vicksburg",
+      "city": "Vicksburg",
+      "state": "MS"
+    },
+    {
+      "id": 3058,
+      "name": "Boomtown Casino Biloxi",
+      "city": "Biloxi",
+      "state": "MS"
+    },
+    {
+      "id": 3059,
+      "name": "Hollywood Casino Gulf Coast",
+      "city": "Bay St. Louis",
+      "state": "MS"
+    },
+    {
+      "id": 3060,
+      "name": "IP Casino Biloxi",
+      "city": "Biloxi",
+      "state": "MS"
+    },
+    {
+      "id": 3061,
+      "name": "Magnolia Bluffs Casino",
+      "city": "Natchez",
+      "state": "MS"
+    },
+    {
+      "id": 3062,
+      "name": "Pearl River Resort",
+      "city": "Philadelphia",
+      "state": "MS"
+    },
+    {
+      "id": 3063,
+      "name": "Bally's Shreveport",
+      "city": "Shreveport",
+      "state": "LA"
+    },
+    {
+      "id": 3064,
+      "name": "Boomtown Casino New Orleans",
+      "city": "Harvey",
+      "state": "LA"
+    },
+    {
+      "id": 3065,
+      "name": "Coushatta Casino Resort",
+      "city": "Kinder",
+      "state": "LA"
+    },
+    {
+      "id": 3066,
+      "name": "Golden Nugget Lake Charles",
+      "city": "Lake Charles",
+      "state": "LA"
+    },
+    {
+      "id": 3068,
+      "name": "Jena Choctaw Pines Casino",
+      "city": "Dry Prong",
+      "state": "LA"
+    },
+    {
+      "id": 3069,
+      "name": "L'Auberge Casino Baton Rouge",
+      "city": "Baton Rouge",
+      "state": "LA"
+    },
+    {
+      "id": 3070,
+      "name": "Paragon Casino",
+      "city": "Marksville",
+      "state": "LA"
+    },
+    {
+      "id": 3072,
+      "name": "Isleta Casino",
+      "city": "Albuquerque",
+      "state": "NM"
+    },
+    {
+      "id": 3074,
+      "name": "Dakota Sioux Casino",
+      "city": "Watertown",
+      "state": "SD"
+    },
+    {
+      "id": 3075,
+      "name": "Grand River Casino",
+      "city": "Mobridge",
+      "state": "SD"
+    },
+    {
+      "id": 3076,
+      "name": "Royal River Casino",
+      "city": "Flandreau",
+      "state": "SD"
+    },
+    {
+      "id": 3077,
+      "name": "Saloon No. 10",
+      "city": "Deadwood",
+      "state": "SD"
+    },
+    {
+      "id": 3078,
+      "name": "Silverado Franklin Casino",
+      "city": "Deadwood",
+      "state": "SD"
+    },
+    {
+      "id": 3079,
+      "name": "Black Eagle Country Club Poker Zone",
+      "city": "Black Eagle",
+      "state": "MT"
+    },
+    {
+      "id": 3080,
+      "name": "Bugz's Cardroom",
+      "city": "Billings",
+      "state": "MT"
+    },
+    {
+      "id": 3081,
+      "name": "Butte Rats Poker",
+      "city": "Butte",
+      "state": "MT"
+    },
+    {
+      "id": 3082,
+      "name": "Doc & Eddy's",
+      "city": "Billings",
+      "state": "MT"
+    },
+    {
+      "id": 3083,
+      "name": "Ike & Susan's Lounge & Casino",
+      "city": "Great Falls",
+      "state": "MT"
+    },
+    {
+      "id": 3084,
+      "name": "Montana Nugget Kalispell",
+      "city": "Kalispell",
+      "state": "MT"
+    },
+    {
+      "id": 3085,
+      "name": "Nickels Gaming Parlour",
+      "city": "Helena",
+      "state": "MT"
+    },
+    {
+      "id": 3088,
+      "name": "Jokers of Aggieland Poker Club",
+      "city": "College Station",
+      "state": "TX"
+    },
+    {
+      "id": 3089,
+      "name": "Oregon Poker Club - Rialto Pool Room",
+      "city": "Portland",
+      "state": "OR"
+    },
+    {
+      "id": 3091,
+      "name": "Krazy Kopz @ The Ivory Room",
+      "city": "Westland",
+      "state": "MI"
+    },
+    {
+      "id": 3102,
+      "name": "Bally's Black Hawk Casino",
+      "city": "Black Hawk",
+      "state": "CO"
+    },
+    {
+      "id": 3109,
+      "name": "Grand Victoria Casino",
+      "city": "Elgin",
+      "state": "IL"
+    },
+    {
+      "id": 3119,
+      "name": "TGT Poker Room",
+      "city": "Tampa",
+      "state": "FL"
+    },
+    {
+      "id": 3121,
+      "name": "Rivers Chicago",
+      "city": "Chicago",
+      "state": "IL"
+    },
+    {
+      "id": 3122,
+      "name": "Ho-Chunk Gaming Wisconsin Dells",
+      "city": "Baraboo",
+      "state": "WI"
+    },
+    {
+      "id": 3123,
+      "name": "Horseshoe LV",
+      "city": "Las Vegas",
+      "state": "NV"
+    },
+    {
+      "id": 3125,
+      "name": "Daytona Racing & Card Club",
+      "city": "Daytona Beach",
+      "state": "FL"
+    },
+    {
+      "id": 3127,
+      "name": "Sands Bethlehem",
+      "city": "Bethlehem",
+      "state": "PA"
+    },
+    {
+      "id": 3128,
+      "name": "Bally Twin River",
+      "city": "Lincoln",
+      "state": "RI"
+    }
+  ]
+}
