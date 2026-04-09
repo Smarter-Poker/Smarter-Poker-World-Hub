@@ -270,6 +270,18 @@ export default function HorsesAdmin() {
     voice: 'casual',
   });
 
+  // Review Moderation State
+  const [reviewsData, setReviewsData] = useState([]);
+  const [reviewsStats, setReviewsStats] = useState({ total: 0, flagged: 0, avg_rating: 0 });
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
+  const [reviewsFilter, setReviewsFilter] = useState('newest');
+  const [reviewsRatingFilter, setReviewsRatingFilter] = useState('all');
+  const [reviewsFlaggedOnly, setReviewsFlaggedOnly] = useState(false);
+  const [reviewsSearch, setReviewsSearch] = useState('');
+  const [reviewsDeleteConfirm, setReviewsDeleteConfirm] = useState(null); // review id pending confirm
+  const [reviewsProcessing, setReviewsProcessing] = useState(false);
+
   // Grinder State
   const [grinderData, setGrinderData] = useState(null);
   const [grinderLoading, setGrinderLoading] = useState(false);
@@ -1135,6 +1147,102 @@ export default function HorsesAdmin() {
     }
   }, [activeTab]);
 
+  // ── REVIEW MODERATION FUNCTIONS ──────────────────────────────────────────
+  const loadAdminReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const params = new URLSearchParams({
+        sort: reviewsFilter,
+        limit: '200',
+        ...(reviewsRatingFilter !== 'all' ? { rating: reviewsRatingFilter } : {}),
+        ...(reviewsFlaggedOnly ? { flagged: 'true' } : {}),
+      });
+      const res = await fetch(`/api/horses/admin-reviews?${params}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setReviewsData(data.reviews || []);
+          setReviewsStats(data.stats || { total: 0, flagged: 0, avg_rating: 0 });
+          setReviewsLoaded(true);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load reviews:', err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (reviewsDeleteConfirm !== reviewId) { setReviewsDeleteConfirm(reviewId); return; }
+    setReviewsProcessing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch(`/api/horses/admin-reviews?review_id=${reviewId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReviewsData(prev => prev.filter(r => r.id !== reviewId));
+        setReviewsStats(prev => ({ ...prev, total: Math.max(0, prev.total - 1) }));
+        showNotification('Review deleted', 'success');
+      } else {
+        showNotification(data.error || 'Delete failed', 'error');
+      }
+    } catch (err) {
+      showNotification('Network error', 'error');
+    } finally {
+      setReviewsProcessing(false);
+      setReviewsDeleteConfirm(null);
+    }
+  };
+
+  const handleFlagReview = async (reviewId, action) => {
+    setReviewsProcessing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch('/api/horses/admin-reviews', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ review_id: reviewId, action }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReviewsData(prev => prev.map(r =>
+          r.id === reviewId ? { ...r, is_flagged: action === 'flag', flag_reason: action === 'flag' ? 'Admin flagged' : null } : r
+        ));
+        showNotification(action === 'flag' ? 'Review flagged' : 'Flag removed', 'success');
+      } else {
+        showNotification(data.error || 'Action failed', 'error');
+      }
+    } catch (err) {
+      showNotification('Network error', 'error');
+    } finally {
+      setReviewsProcessing(false);
+    }
+  };
+
+  // Load reviews when tab is activated
+  useEffect(() => {
+    if (activeTab === 'reviews' && !reviewsLoaded) {
+      loadAdminReviews();
+    }
+  }, [activeTab]);
+
+  // Reload reviews when filters change (only if tab is active)
+  useEffect(() => {
+    if (activeTab === 'reviews') {
+      loadAdminReviews();
+    }
+  }, [reviewsFilter, reviewsRatingFilter, reviewsFlaggedOnly]);
+
   if (loading) {
     return (
       <div className={styles.loading}>
@@ -1329,6 +1437,15 @@ export default function HorsesAdmin() {
             }}
           >
             Geeves KB
+          </button>
+          <button
+            className={activeTab === 'reviews' ? styles.active : ''}
+            onClick={() => {
+              setActiveTab('reviews');
+              if (!reviewsLoaded) loadAdminReviews();
+            }}
+          >
+            ⭐ Reviews
           </button>
         </nav>
 

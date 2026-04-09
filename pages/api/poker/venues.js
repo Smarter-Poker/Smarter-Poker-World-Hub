@@ -1205,6 +1205,86 @@ export default async function handler(req, res) {
               }
           }
 
+          // --- Enrich regular venues (casino/card_room/poker_club) with next-tournament preview ---
+          // When a venue has has_tournaments=true but no events today, find the nearest upcoming day
+          // and attach next_tournament_preview so VenueCard can show "Next: Tue 7PM — $60 NLH"
+          const regularTournamentVenues = venues.filter(v =>
+              v.has_tournaments === true &&
+              !['charity', 'series', 'tour', 'tour_stop', 'poker_tour', 'home_game'].includes(v.venue_type) &&
+              // Only enrich venues that don't already have today's daily_tournaments injected (single-venue path)
+              !Array.isArray(v.daily_tournaments)
+          );
+          if (regularTournamentVenues.length > 0) {
+              try {
+                  const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+                  const todayIdx = new Date(localCurrentTime).getDay();
+                  const DAYS_LOWER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                  const todayStr = DAYS_LOWER[todayIdx];
+
+                  const regularIds = regularTournamentVenues.map(v => v.id).filter(id => typeof id === 'number');
+                  if (regularIds.length > 0) {
+                      // Fetch all active tournament rows for these venues in one query
+                      const { data: regTours } = await getSupabase()
+                          .from('venue_daily_tournaments')
+                          .select('venue_id, day_of_week, start_time, buy_in, tournament_name, game_type, guaranteed')
+                          .in('venue_id', regularIds)
+                          .eq('is_active', true)
+                          .order('start_time', { ascending: true });
+
+                      if (regTours && regTours.length > 0) {
+                          // Group by venue_id
+                          const byVenue = {};
+                          regTours.forEach(t => {
+                              if (!byVenue[t.venue_id]) byVenue[t.venue_id] = [];
+                              byVenue[t.venue_id].push(t);
+                          });
+
+                          venues.forEach(v => {
+                              if (!byVenue[v.id]) return;
+                              const tours = byVenue[v.id];
+                              // Does THIS venue have any tournament today?
+                              const hasToday = tours.some(t => t.day_of_week && t.day_of_week.toLowerCase() === todayStr);
+                              if (hasToday) {
+                                  // Already has today's data — inject today_tournaments for the card
+                                  const todayTours = tours.filter(t => t.day_of_week && t.day_of_week.toLowerCase() === todayStr);
+                                  v.daily_tournaments = todayTours.map(t => ({
+                                      start_time: t.start_time || null,
+                                      tournament_name: t.tournament_name || null,
+                                      buy_in: t.buy_in != null ? t.buy_in : null,
+                                      game_type: t.game_type || null,
+                                      guaranteed: t.guaranteed || null,
+                                  }));
+                              } else {
+                                  // No tournament today — find the next scheduled day
+                                  for (let i = 1; i <= 7; i++) {
+                                      const nextIdx = (todayIdx + i) % 7;
+                                      const nextDayStr = DAYS_LOWER[nextIdx];
+                                      const nextDayTours = tours.filter(t => t.day_of_week && t.day_of_week.toLowerCase() === nextDayStr);
+                                      if (nextDayTours.length > 0) {
+                                          const first = nextDayTours[0];
+                                          const dayLabel = nextDayStr.charAt(0).toUpperCase() + nextDayStr.slice(1);
+                                          v.next_tournament_preview = {
+                                              day: dayLabel,
+                                              days_away: i,
+                                              start_time: first.start_time || null,
+                                              tournament_name: first.tournament_name || null,
+                                              buy_in: first.buy_in != null ? first.buy_in : null,
+                                              game_type: first.game_type || null,
+                                              guaranteed: first.guaranteed || null,
+                                              total_that_day: nextDayTours.length,
+                                          };
+                                          break;
+                                      }
+                                  }
+                              }
+                          });
+                      }
+                  }
+              } catch (e) {
+                  console.warn('[venues] Regular venue next-tournament enrichment failed (non-fatal):', e.message);
+              }
+          }
+
           // --- Apply limit and return ---
           // Only count physical playable venues in the total — series and tours are NOT counted as venues
           const total = venues.filter(v => !['series', 'tour'].includes(v.venue_type)).length;
