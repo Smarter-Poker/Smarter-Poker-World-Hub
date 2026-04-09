@@ -42,6 +42,16 @@ def supabase_sql(sql):
                  'Content-Type': 'application/json'})
     urllib_req.urlopen(req)
 
+def is_venue_suppressed(venue_id):
+    """Returns True if the venue has is_suppressed=true or is_active=false."""
+    try:
+        rows = supabase_fetch(f'poker_venues?id=eq.{venue_id}&select=id,is_suppressed,is_active')
+        if rows:
+            return rows[0].get('is_suppressed', False) or not rows[0].get('is_active', True)
+    except Exception:
+        pass
+    return False
+
 
 def scrape_venue_page(url):
     """Scrape a single PokerAtlas venue page. Returns parsed data + provenance."""
@@ -138,6 +148,11 @@ def save_evidence(venue_name, url, provenance, venue_data):
 
 def process_venue(venue_id, venue_name, pokeratlas_url):
     """Process a single venue: scrape, verify, update"""
+    # ── SUPPRESSION GUARD ──────────────────────────────────────────
+    if is_venue_suppressed(venue_id):
+        print(f'  🚫 SUPPRESSED — permanently skipping: {venue_name} (ID: {venue_id})')
+        return False
+    # ──────────────────────────────────────────────────────────────
     print(f'\n  Scraping: {venue_name}')
     print(f'    URL: {pokeratlas_url}')
     
@@ -151,7 +166,7 @@ def process_venue(venue_id, venue_name, pokeratlas_url):
     evidence_path = save_evidence(venue_name, pokeratlas_url, provenance, venue_data)
     print(f'    📄 Evidence: {evidence_path}')
     
-    # Build update payload
+    # Build update payload — never include is_suppressed
     update = {
         'data_quality': 'scraped_verified',
         'scrape_html_hash': provenance['scrape_html_hash'],
@@ -213,6 +228,8 @@ def main():
         f'poker_venues?select=id,name,pokeratlas_url,data_quality'
         f'&pokeratlas_url=not.is.null'
         f'&data_quality=neq.scraped_verified'
+        f'&is_suppressed=eq.false'   # ── NEVER re-process suppressed venues
+        f'&is_active=eq.true'        # ── NEVER re-process inactive venues
         f'&limit={batch_size}'
     )
     
