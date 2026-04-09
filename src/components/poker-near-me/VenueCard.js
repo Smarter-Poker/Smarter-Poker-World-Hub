@@ -262,7 +262,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         
         return () => { 
             mounted = false; 
-            unsub();
+            if (typeof unsub === 'function') unsub();
         };
     }, [venue]);
 

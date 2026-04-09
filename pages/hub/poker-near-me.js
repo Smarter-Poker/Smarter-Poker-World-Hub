@@ -41,6 +41,7 @@ const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-m
 const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
 
 import { cachedFetch, fetchWithRetry } from '../../src/components/poker-near-me/lobby/PnmApiCache';
+import { resolveCityCoordsArray as resolveCityCoords } from '../../src/data/city-coordinates';
 import LocationEnableModal from '../../src/components/ui/LocationEnableModal';
 
 // Page configuration constants
@@ -53,127 +54,8 @@ const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
 const RADIUS_TIERS = [50, 100, 200, 500]; // Progressive radius expansion for "Load More"
 
-// ═══ CITY COORDINATES — used to place individual tour stop pins on the map ═══
-const TOUR_CITY_COORDS = {
-    'las vegas, nv': [36.1699, -115.1398],
-    'hollywood, fl': [26.0112, -80.1495],
-    'atlantic city, nj': [39.3643, -74.4229],
-    'lincoln, ca': [38.8916, -121.293],
-    'durant, ok': [33.9943, -96.3709],
-    'tampa, fl': [27.9506, -82.4572],
-    'bell gardens, ca': [33.9653, -118.1514],
-    'elgin, il': [42.0354, -88.2826],
-    'lake tahoe, nv': [39.0968, -120.0324],
-    'tunica, ms': [34.6846, -90.3829],
-    'biloxi, ms': [30.396, -88.8853],
-    'cherokee, nc': [35.4743, -83.3146],
-    'san diego, ca': [32.7157, -117.1611],
-    'el cajon, ca': [32.7948, -116.9625],
-    'portland, or': [45.5155, -122.6789],
-    'council bluffs, ia': [41.2619, -95.8608],
-    'black hawk, co': [39.7969, -105.4903],
-    'choctaw, ok': [35.4976, -97.2687],
-    'shreveport, la': [32.5252, -93.7502],
-    'new orleans, la': [29.9511, -90.0715],
-    'kinder, la': [30.4855, -92.851],
-    'gulfport, ms': [30.3674, -89.0928],
-    'marksville, la': [31.1268, -92.0632],
-    'oklahoma city, ok': [35.4676, -97.5164],
-    'minneapolis, mn': [44.9778, -93.265],
-    'kansas city, mo': [39.0997, -94.5786],
-    'st. louis, mo': [38.627, -90.1994],
-    'los angeles, ca': [34.0522, -118.2437],
-    'phoenix, az': [33.4484, -112.074],
-    'scottsdale, az': [33.4942, -111.9261],
-    'chicago, il': [41.8781, -87.6298],
-    'east chicago, in': [41.6354, -87.4473],
-    'gary, in': [41.5934, -87.3464],
-    'detroit, mi': [42.3314, -83.0458],
-    'bismarck, nd': [46.8083, -100.7837],
-    'fargo, nd': [46.8772, -96.7898],
-    'deadwood, sd': [44.3767, -103.7296],
-    'thackerville, ok': [33.7918, -97.1303],
-    'mount pleasant, mi': [43.5978, -84.7753],
-    'prior lake, mn': [44.7133, -93.4227],
-    'welch, mn': [44.5669, -92.7233],
-    'columbus, mn': [45.2448, -93.0343],
-    'charleston, wv': [38.3498, -81.6326],
-    'temecula, ca': [33.4936, -117.1484],
-    'west palm beach, fl': [26.7153, -80.0534],
-    'jacksonville, fl': [30.3322, -81.6557],
-    'austin, tx': [30.2672, -97.7431],
-    'round rock, tx': [30.5083, -97.6789],
-    'houston, tx': [29.7604, -95.3698],
-    'san jose, ca': [37.3382, -121.8863],
-    'commerce, ca': [33.9975, -118.1597],
-    'bossier city, la': [32.516, -93.7321],
-    'fort yates, nd': [46.0886, -100.6301],
-    'mandan, nd': [46.8267, -100.8891],
-    'dickinson, nd': [46.8792, -102.7896],
-    'belcourt, nd': [48.8411, -99.7457],
-    'philadelphia, pa': [39.9526, -75.1652],
-    'choctaw, ms': [32.7693, -89.117],
-    'larchwood, ia': [43.4525, -96.5378],
-    'riverside, ia': [41.4797, -91.5829],
-    'st. charles, mo': [38.7881, -90.4974],
-    'milwaukee, wi': [43.0389, -87.9065],
-    'battle creek, mi': [42.3212, -85.1797],
-    'cleveland, oh': [41.4993, -81.6944],
-    'cincinnati, oh': [39.1031, -84.512],
-    'columbus, oh': [39.9612, -82.9988],
-    'pittsburgh, pa': [40.4406, -79.9959],
-    'denver, co': [39.7392, -104.9903],
-    'salt lake city, ut': [40.7608, -111.891],
-    'reno, nv': [39.5296, -119.8138],
-    'laughlin, nv': [35.1679, -114.5716],
-    'henderson, nv': [36.0395, -114.9817],
-    'miami, fl': [25.7617, -80.1918],
-    'orlando, fl': [28.5383, -81.3792],
-    'daytona beach, fl': [29.2108, -81.0228],
-    'memphis, tn': [35.1495, -90.049],
-    'nashville, tn': [36.1627, -86.7816],
-    'atlanta, ga': [33.749, -84.388],
-    'charlotte, nc': [35.2271, -80.8431],
-    'richmond, va': [37.5407, -77.436],
-    'baltimore, md': [39.2904, -76.6122],
-    'washington, dc': [38.9072, -77.0369],
-    'boston, ma': [42.3601, -71.0589],
-    'new york, ny': [40.7128, -74.006],
-    'minnetonka, mn': [44.9211, -93.4687],
-    'burnsville, mn': [44.7677, -93.2777],
-    'isle, mn': [46.1478, -93.4694],
-    // Additional cities needed for complete tour coverage
-    'stateline, nv': [38.9627, -119.9494],
-    'robinsonville, ms': [34.7015, -90.3665],
-    'dallas, tx': [32.7767, -96.797],
-    'rohnert park, ca': [38.3396, -122.7011],
-    'pompano beach, fl': [26.2379, -80.1248],
-    'verona, ny': [43.0653, -75.5388],
-    'pine bluff, ar': [34.2284, -92.0032],
-    'north kansas city, mo': [39.1336, -94.5669],
-    'sacramento, ca': [38.5816, -121.4944],
-    'san francisco, ca': [37.7749, -122.4194],
-    'tulsa, ok': [36.154, -95.9928],
-    'council bluffs, ia': [41.2619, -95.8608],
-    'sioux city, ia': [42.4999, -96.4003],
-    'vicksburg, ms': [32.3526, -90.8779],
-    'natchez, ms': [31.5604, -91.4032],
-    'lake charles, la': [30.2266, -93.2174],
-    'baton rouge, la': [30.4515, -91.1871],
-    'hammond, in': [41.5834, -87.5001],
-    'joliet, il': [41.525, -88.0817],
-};
-
-function resolveCityCoords(location) {
-    if (!location) return null;
-    const key = location.toLowerCase().trim();
-    if (TOUR_CITY_COORDS[key]) return TOUR_CITY_COORDS[key];
-    const cityPart = key.split(',')[0].trim();
-    for (const [k, v] of Object.entries(TOUR_CITY_COORDS)) {
-        if (k.startsWith(cityPart + ',')) return v;
-    }
-    return null;
-}
+// City coordinates imported from ../../src/data/city-coordinates.js
+// resolveCityCoords is imported as resolveCityCoordsArray above
 
 // Tab order for swipe navigation
 const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
@@ -326,6 +208,29 @@ function FavLiveToast({ message, onClick }) {
     );
 }
 
+// ─── Error Boundary for Tab Panels (prevents one tab crash from killing the page) ───
+class TabErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+    static getDerivedStateFromError(error) { return { hasError: true, error }; }
+    componentDidCatch(error, info) { console.error(`[PNM] Tab crashed:`, error, info); }
+    render() {
+        if (this.state.hasError) {
+            return React.createElement('div', {
+                style: { textAlign: 'center', padding: 60, color: 'rgba(200,214,229,0.6)' }
+            },
+                React.createElement('div', { style: { fontSize: 40, marginBottom: 16, opacity: 0.3 } }, '\u26A0'),
+                React.createElement('p', { style: { fontSize: 16, fontWeight: 600, marginBottom: 8, color: '#f59e0b' } }, 'This Tab Encountered An Error'),
+                React.createElement('p', { style: { fontSize: 12, marginBottom: 20, color: 'rgba(200,214,229,0.4)', maxWidth: 300, margin: '0 auto 20px' } }, String(this.state.error?.message || 'Unknown error')),
+                React.createElement('button', {
+                    onClick: () => this.setState({ hasError: false, error: null }),
+                    style: { padding: '10px 24px', borderRadius: 8, border: '1px solid rgba(212,168,83,0.3)', background: 'rgba(212,168,83,0.1)', color: '#d4a853', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }
+                }, 'Reset Tab')
+            );
+        }
+        return this.props.children;
+    }
+}
+
 // ---- Geofence Alert Banner (bottom of screen) ----------------------------
 export default function PokerNearMePage() {
     const router = useRouter();
@@ -410,12 +315,12 @@ export default function PokerNearMePage() {
     const [tours, setTours] = useState([]);
     const [series, setSeries] = useState([]);
     const [dailyTournaments, setDailyTournaments] = useState([]);
-    const [dbStats, setDbStats] = useState({ total: 507, tournaments: 679, states: 50 });
+    const [dbStats, setDbStats] = useState({ total: 0, tournaments: 0, states: 0 });
 
 
 
     // Live table count for map stats (fetched from live-tables API)
-    const [liveTableCount, setLiveTableCount] = useState(316);
+    const [liveTableCount, setLiveTableCount] = useState(0);
 
     // UI states
     const [loading, setLoading] = useState(true);
@@ -1429,21 +1334,36 @@ export default function PokerNearMePage() {
 
     // ---------- Geofence monitoring ----------
     const [geofenceStatus, setGeofenceStatus] = useState(null); // 'active' | 'denied' | 'error'
+    const gfModulesRef = useRef(null); // Cache dynamic imports to avoid re-importing
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
         if (!userLocation) return;
         if (allVenuesForMap.length === 0) return;
 
-        var gfService = null;
+        // If geofence service already exists, just update the venue list
+        if (geofenceRef.current && gfModulesRef.current) {
+            const { pushMod } = gfModulesRef.current;
+            geofenceRef.current.stop();
+            geofenceRef.current.start(allVenuesForMap, function (venue) {
+                if (pushMod) pushMod.showVenueAlert(venue, 'checkin');
+                setGeofenceAlert(venue);
+                fetch('/api/venues/record-geofence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ venue_id: venue.id, venue_name: venue.name })
+                }).catch(console.error);
+            });
+            return;
+        }
 
-        // Dynamic import to keep SSR safe
+        // First initialization — dynamic import (SSR safe)
         import('../../src/lib/geofence').then(function (mod) {
             var GeofenceService = mod.default;
-            gfService = new GeofenceService();
+            var gfService = new GeofenceService();
 
-            // Also try requesting push permission
             import('../../src/lib/pushAlerts').then(function (pushMod) {
+                gfModulesRef.current = { pushMod };
                 pushMod.requestPermission().then(function (permission) {
                     if (permission === 'denied') {
                         setGeofenceStatus('denied');
@@ -1453,9 +1373,7 @@ export default function PokerNearMePage() {
                 });
 
                 gfService.start(allVenuesForMap, function (venue) {
-                    // Try browser notification first
                     pushMod.showVenueAlert(venue, 'checkin');
-                    // Also show in-app banner
                     setGeofenceAlert(venue);
                     
                     fetch('/api/venues/record-geofence', {
@@ -1467,7 +1385,7 @@ export default function PokerNearMePage() {
 
                 setGeofenceStatus('active');
             }).catch(function () {
-                // Fallback: just in-app alerts (push not available)
+                gfModulesRef.current = { pushMod: null };
                 gfService.start(allVenuesForMap, function (venue) {
                     setGeofenceAlert(venue);
                     fetch('/api/venues/record-geofence', {
@@ -2934,11 +2852,17 @@ export default function PokerNearMePage() {
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
                     <p className="pnm-subtitle">
-                        {dbStats.total.toLocaleString()} Venues
-                        &nbsp;&bull;&nbsp;
-                        {liveTableCount.toLocaleString()} Live Tables
-                        &nbsp;&bull;&nbsp;
-                        {dbStats.tournaments.toLocaleString()} Today&apos;s Tournaments
+                        {dbStats.total === 0 && liveTableCount === 0 ? (
+                            'Loading Venue Data...'
+                        ) : (
+                            <>
+                                {dbStats.total.toLocaleString()} Venues
+                                &nbsp;&bull;&nbsp;
+                                {liveTableCount.toLocaleString()} Live Tables
+                                &nbsp;&bull;&nbsp;
+                                {dbStats.tournaments.toLocaleString()} Today&apos;s Tournaments
+                            </>
+                        )}
                     </p>
                 </div>
 
@@ -3108,7 +3032,9 @@ export default function PokerNearMePage() {
 
                         {/* Push notification setup moved to the 'more' settings tab */}
 
-                        {renderContent()}
+                        <TabErrorBoundary>
+                            {renderContent()}
+                        </TabErrorBoundary>
 
                         {/* Venues button — below the map */}
                         {activeTab === 'map' && (
