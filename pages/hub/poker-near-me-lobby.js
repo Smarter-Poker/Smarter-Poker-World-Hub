@@ -52,7 +52,7 @@ const LobbyOverlay = dynamic(
 // Feature modules — loaded into the panel when a pod is clicked
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
-const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
+const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/NewSeriesVenueCard'), { ssr: false });
 const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
 const NearMeNowFeed = dynamic(() => import('../../src/components/poker-near-me/NearMeNowFeed'), { ssr: false });
 const VenueCompare = dynamic(() => import('../../src/components/poker-near-me/VenueCompare'), { ssr: false });

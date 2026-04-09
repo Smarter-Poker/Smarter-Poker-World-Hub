@@ -300,6 +300,32 @@ function TourBadge({ tourCode, size = 'normal' }) {
     );
 }
 
+// ═══ FAVORITE VENUE LIVE TOAST ═══
+// Appears 5s after mount, visible for 2s, then auto-hides
+function FavLiveToast({ message, onClick }) {
+    const [visible, setVisible] = useState(false);
+    const [exiting, setExiting] = useState(false);
+
+    useEffect(() => {
+        const showTimer = setTimeout(() => setVisible(true), 5000);
+        const hideTimer = setTimeout(() => setExiting(true), 7000); // 5s delay + 2s visible
+        const removeTimer = setTimeout(() => setVisible(false), 7400); // allow exit animation
+        return () => { clearTimeout(showTimer); clearTimeout(hideTimer); clearTimeout(removeTimer); };
+    }, []);
+
+    if (!visible) return null;
+
+    return (
+        <div
+            className={`pnm-fav-toast${exiting ? ' pnm-fav-toast-exit' : ''}`}
+            onClick={onClick}
+        >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            <span>{message}</span>
+        </div>
+    );
+}
+
 // ---- Geofence Alert Banner (bottom of screen) ----------------------------
 export default function PokerNearMePage() {
     const router = useRouter();
@@ -2878,7 +2904,7 @@ export default function PokerNearMePage() {
                     </p>
                 </div>
 
-                {/* ═══ FAVORITE VENUE LIVE ALERT ═══ */}
+                {/* ═══ FAVORITE VENUE LIVE TOAST (5s delay, 2s visible) ═══ */}
                 {(() => {
                     const favKeys = Object.keys(favorites).filter(k => k.startsWith('venue-'));
                     if (favKeys.length === 0) return null;
@@ -2887,17 +2913,10 @@ export default function PokerNearMePage() {
                         favIds.has(String(v.id)) && v.live_data && v.live_data.tables_running > 0
                     );
                     if (liveFavs.length === 0) return null;
-                    return (
-                        <div className="pnm-fav-alert" onClick={() => { setActiveTab('saved'); }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#ef4444" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                            <span>
-                                {liveFavs.length === 1
-                                    ? `${liveFavs[0].name} has ${liveFavs[0].live_data.tables_running} table${liveFavs[0].live_data.tables_running !== 1 ? 's' : ''} running!`
-                                    : `${liveFavs.length} of your favorites have live tables running!`
-                                }
-                            </span>
-                        </div>
-                    );
+                    const toastMsg = liveFavs.length === 1
+                        ? `${liveFavs[0].name} Has ${liveFavs[0].live_data.tables_running} Table${liveFavs[0].live_data.tables_running !== 1 ? 's' : ''} Running!`
+                        : `${liveFavs.length} Of Your Favorites Have Live Tables Running!`;
+                    return <FavLiveToast message={toastMsg} onClick={() => setActiveTab('saved')} />;
                 })()}
 
 

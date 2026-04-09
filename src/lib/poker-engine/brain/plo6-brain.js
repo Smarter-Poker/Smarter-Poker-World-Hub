@@ -2759,15 +2759,24 @@ function makePLO6Decision(profileId, gameState, legalActions) {
             }
 
             // Protection betting: strong made hand on wet board
-            // Card removal amplifies protection urgency (we block more opponent outs)
-            if (strength >= 55 && strength < 88 && drawClass.protectionNeeded) {
+            // Card removal amplifies protection urgency + board runout informs urgency
+            if (strength >= 55 && strength < 88 && (drawClass.protectionNeeded || boardRunout.dangerLevel === 'critical')) {
                 const protection = getPLO6ProtectionBet(strength, boardTexture, numPlayers, potSize, street);
-                if (protection.shouldProtect && toCall === 0) {
-                    // Card removal adjustment: if we block many opponent outs, slightly reduce sizing
-                    // (they have fewer draws, so less need to charge)
-                    let adjustedProtectSize = protection.protectSize;
+                // Board runout danger override: if critical danger, force protection even if not flagged
+                const forceProtect = boardRunout.dangerLevel === 'critical' && strength >= 65;
+                if ((protection.shouldProtect || forceProtect) && toCall === 0) {
+                    let adjustedProtectSize = protection.protectSize || Math.round(potSize * 0.55);
+                    // Card removal: if we block many opponent outs, slightly reduce sizing
                     if (cardRemoval.opponentOutsReduction >= 4) {
                         adjustedProtectSize = Math.round(adjustedProtectSize * 0.90);
+                    }
+                    // Board runout critical: size UP to deny equity
+                    if (boardRunout.dangerLevel === 'critical') {
+                        adjustedProtectSize = Math.round(adjustedProtectSize * 1.15);
+                    }
+                    // Exploit: vs calling station, bet bigger for value
+                    if (exploit.sizingMod > 0) {
+                        adjustedProtectSize = Math.round(adjustedProtectSize * (1 + exploit.sizingMod));
                     }
                     const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                     if (raiseAction) {
@@ -2775,6 +2784,16 @@ function makePLO6Decision(profileId, gameState, legalActions) {
                         return { type: raiseAction.type, amount };
                     }
                 }
+            }
+
+            // Street plan barrel suppression: if the plan says to NOT barrel, respect it
+            if (street === 'turn' && streetPlan.turnPlan === 'give-up' && toCall > 0 && strength < 60) {
+                return { type: 'fold', amount: 0 };
+            }
+            if (street === 'turn' && !streetPlan.shouldBarrelTurn && wasAggressor && strength < 70 && toCall === 0) {
+                // Plan says don't barrel turn — check instead of auto-betting
+                const canCheck = legalActions.some(a => a.type === 'check');
+                if (canCheck) return { type: 'check', amount: 0 };
             }
 
             // Draw plan suppression: if plan says fold on this street, respect it
@@ -2871,13 +2890,29 @@ function makePLO6Decision(profileId, gameState, legalActions) {
                 }
             }
 
+            // Thin value detection: can we extract value from marginal hands?
+            if (thinValue.shouldThinValue && toCall === 0 && numPlayers <= 2) {
+                const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                if (raiseAction) {
+                    let tvSize = Math.round(potSize * thinValue.thinValueSize);
+                    // Exploit vs station: bet bigger (they call too wide)
+                    if (exploit.valueFreqMod > 0) {
+                        tvSize = Math.round(tvSize * 1.15);
+                    }
+                    const amount = Math.max(raiseAction.minAmount || 1, Math.min(tvSize, raiseAction.maxAmount || tvSize));
+                    return { type: raiseAction.type, amount };
+                }
+            }
+
             // Marginal showdown value: check/call small
             if (strength >= 45 && strength < 70) {
                 if (toCall === 0) {
                     const canCheck = legalActions.some(a => a.type === 'check');
                     if (canCheck) return { type: 'check', amount: 0 };
                 }
-                if (toCall > 0 && strength >= 55 && toCall <= potSize * 0.5) {
+                // Exploit vs nit: fold more to river bets (they have it)
+                const foldThreshold = exploit.foldFreqMod > 0 ? potSize * 0.35 : potSize * 0.5;
+                if (toCall > 0 && strength >= 55 && toCall <= foldThreshold) {
                     return { type: 'call', amount: 0 };
                 }
             }
