@@ -1,7 +1,7 @@
 /**
- * Poker Brain Launch Button — drop into smarter.poker/horses
+ * Poker Brain Launch Button -- drop into smarter.poker/horses
  * -----------------------------------------------------------
- * Adds a "🧠 Poker Brain" button to the horses page that:
+ * Adds a "Poker Brain" button to the horses page that:
  *   1. Prompts camera permission
  *   2. Opens the Poker Brain HUD full-screen with the camera feed linked
  *   3. Falls back to Screen Capture on desktop if the user prefers
@@ -35,8 +35,8 @@ const PokerBrainHUD = dynamic(() => import('./HUD'), {
 
 export default function PokerBrainLaunchButton({
   className = '',
-  label = '🧠 Poker Brain',
-  defaultMode = 'camera', // 'camera' | 'screen'
+  label = 'Poker Brain',
+  defaultMode = 'screen', // 'screen' | 'camera'
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState(null);
@@ -118,14 +118,14 @@ export default function PokerBrainLaunchButton({
       {/* The button to drop into the horses header */}
       <div className={`relative inline-flex ${className}`}>
         <button
-          onClick={requestCamera}
+          onClick={requestScreen}
           disabled={starting}
           className="group relative flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-white
                      bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500
                      hover:from-green-400 hover:via-emerald-400 hover:to-teal-400
                      shadow-lg shadow-green-500/30 hover:shadow-green-500/50
                      transition-all duration-200 disabled:opacity-60"
-          title="Open Poker Brain with live camera"
+          title="Open Poker Brain with screen capture"
         >
           <span className="text-lg">{label}</span>
           {starting && (
@@ -135,29 +135,17 @@ export default function PokerBrainLaunchButton({
             LIVE
           </span>
         </button>
-
-        {/* Desktop fallback pill */}
-        <button
-          onClick={requestScreen}
-          disabled={starting}
-          className="ml-2 px-3 py-3 rounded-xl text-sm font-medium text-gray-300 bg-gray-800
-                     hover:bg-gray-700 border border-gray-700 transition"
-          title="Use screen capture instead (desktop online poker)"
-        >
-          🖥️ Screen
-        </button>
       </div>
 
       {/* Error toast */}
       {error && (
         <div className="fixed bottom-6 right-6 max-w-sm bg-red-900/95 border border-red-500 text-white p-4 rounded-lg shadow-2xl z-50">
           <div className="flex items-start gap-3">
-            <span className="text-xl">⚠️</span>
             <div className="flex-1">
               <p className="font-semibold mb-1">Poker Brain</p>
               <p className="text-sm text-red-100">{error}</p>
             </div>
-            <button onClick={() => setError(null)} className="text-red-300 hover:text-white">✕</button>
+            <button onClick={() => setError(null)} className="text-red-300 hover:text-white font-bold">X</button>
           </div>
         </div>
       )}
@@ -172,7 +160,7 @@ export default function PokerBrainLaunchButton({
                        backdrop-blur border border-gray-700 transition"
             title="Close Poker Brain"
           >
-            ✕
+            X
           </button>
           <PokerBrainHUD
             initialMode={mode}

@@ -65,3 +65,7 @@ data/pokeratlas-logs/
 
 # Background shell state
 .bg-shell/
+
+# Poker Brain dev assets (reference screenshots, debug crops)
+pokerbrain-assets/
+scripts/poker-brain/.venv/

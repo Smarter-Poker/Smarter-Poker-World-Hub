@@ -317,7 +317,7 @@ export default function PokerBrainCalibration({ onSave, initialProfile = null })
                         onClick={(e) => { e.stopPropagation(); clearRegion(t.id); }}
                         className="text-red-400 hover:text-red-300"
                       >
-                        ✕
+                        X
                       </button>
                     ) : (
                       <span className="text-gray-600">·</span>

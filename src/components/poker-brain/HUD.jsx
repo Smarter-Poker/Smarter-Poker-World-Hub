@@ -1,104 +1,272 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { getMatcher } from '../../lib/poker-brain/matcher';
+import layoutData from '../../lib/poker-brain/layout.json';
 
 /**
- * Poker Brain HUD v2
- * -------------------
+ * Poker Brain HUD v3 -- AUTO-DETECTION EDITION
+ * -----------------------------------------------
+ * Replaces the manual tap-to-pick card entry with real-time template-matching
+ * card detection from a screen-capture feed of PokerBros.
+ *
+ * How it works:
+ *   1. User starts screen capture of their PokerBros emulator window
+ *   2. Every 250ms (4 Hz), the HUD grabs a frame from the video
+ *   3. The matcher crops each card region, computes a dHash, and compares
+ *      against preloaded 64-bit template hashes
+ *   4. Detected cards feed into the decision engine (evaluatePreflopNLHE /
+ *      evaluateHoldemMade) for Fold / Call / Raise recommendations
+ *
  * Props:
- *   preAcquiredStream  — MediaStream already obtained by the launcher (camera or screen)
- *   initialMode        — 'camera' | 'screen' (source) — defaults to 'camera'
- *   onClose            — () => void, closes the HUD and stops the stream
- *   userId             — optional, for future Supabase logging
+ *   preAcquiredStream  -- MediaStream already obtained by the launcher
+ *   initialMode        -- 'camera' | 'screen'
+ *   onClose            -- () => void
  */
-const PokerBrainHUDv2 = ({ preAcquiredStream = null, initialMode = 'camera', onClose, userId } = {}) => {
-  // ============================================================================
-  // STATE
-  // ============================================================================
-  const [source, setSource] = useState(preAcquiredStream ? initialMode : null); // 'camera' | 'screen' | null
+
+const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const SUITS = ['s', 'h', 'd', 'c'];
+
+// PokerBros 4-color deck styling
+const SUIT_DISPLAY = {
+  s: { glyph: '\u2660', label: 'Spades',   color: '#1a1a2e' },
+  h: { glyph: '\u2665', label: 'Hearts',   color: '#dc2626' },
+  d: { glyph: '\u2666', label: 'Diamonds', color: '#2563eb' },
+  c: { glyph: '\u2663', label: 'Clubs',    color: '#16a34a' },
+};
+
+const GAME_TYPES = [
+  { key: 'nlhe', label: "No-Limit Hold'em", holeCount: 2, hiLo: false },
+];
+
+const cardToValue = (r) => ({
+  A: 14, K: 13, Q: 12, J: 11, T: 10,
+  9: 9, 8: 8, 7: 7, 6: 6, 5: 5, 4: 4, 3: 3, 2: 2,
+}[r] || 0);
+
+// ---------------------------------------------------------------------------
+// Hand evaluation (honest, well-known poker heuristics)
+// ---------------------------------------------------------------------------
+function evaluatePreflopNLHE(hole) {
+  if (hole.length < 2) return null;
+  const [a, b] = hole;
+  const va = cardToValue(a.rank);
+  const vb = cardToValue(b.rank);
+  const high = Math.max(va, vb);
+  const low = Math.min(va, vb);
+  const suited = a.suit === b.suit;
+  const gap = high - low;
+
+  let tier, label;
+  if (va === vb && va >= 10)          { tier = 0.95; label = 'Pocket ' + a.rank + a.rank; }
+  else if (va === vb && va >= 7)      { tier = 0.82; label = 'Pocket ' + a.rank + a.rank; }
+  else if (va === vb)                 { tier = 0.68; label = 'Pocket ' + a.rank + a.rank; }
+  else if (high === 14 && low >= 10)  { tier = suited ? 0.85 : 0.78; label = 'AK-AT' + (suited ? ' suited' : ''); }
+  else if (high === 14)              { tier = suited ? 0.60 : 0.42; label = 'Ace-' + (a.rank === 'A' ? b.rank : a.rank) + (suited ? ' suited' : ''); }
+  else if (high >= 12 && low >= 10)  { tier = suited ? 0.72 : 0.62; label = 'Broadway' + (suited ? ' suited' : ''); }
+  else if (suited && gap <= 2 && low >= 5) { tier = 0.55; label = 'Suited connector'; }
+  else if (gap === 1 && low >= 5)    { tier = 0.42; label = 'Connector'; }
+  else if (suited)                   { tier = 0.38; label = 'Suited rags'; }
+  else                               { tier = 0.22; label = 'Weak offsuit'; }
+  return { strength: tier, label, preflop: true };
+}
+
+function evaluateHoldemMade(hole, board) {
+  const all = [...hole, ...board];
+  const ranks = all.map((c) => cardToValue(c.rank)).sort((a, b) => b - a);
+  const suits = all.map((c) => c.suit);
+  const rankCounts = {};
+  for (const v of ranks) rankCounts[v] = (rankCounts[v] || 0) + 1;
+  const counts = Object.values(rankCounts).sort((a, b) => b - a);
+  const suitCounts = {};
+  for (const s of suits) suitCounts[s] = (suitCounts[s] || 0) + 1;
+  const flushSuit = Object.entries(suitCounts).find(([, n]) => n >= 5);
+  const hasStraight = (arr) => {
+    const sorted = Array.from(new Set(arr)).sort((a, b) => a - b);
+    if (sorted.includes(14)) sorted.unshift(1);
+    let run = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === sorted[i - 1] + 1) { run++; if (run >= 5) return true; }
+      else run = 1;
+    }
+    return false;
+  };
+
+  if (flushSuit) {
+    const flushRanks = all.filter((c) => c.suit === flushSuit[0]).map((c) => cardToValue(c.rank));
+    if (hasStraight(flushRanks)) return { strength: 0.99, label: 'Straight flush' };
+    return { strength: 0.93, label: 'Flush' };
+  }
+  if (counts[0] === 4) return { strength: 0.97, label: 'Four of a kind' };
+  if (counts[0] === 3 && counts[1] >= 2) return { strength: 0.9, label: 'Full house' };
+  if (hasStraight(ranks)) return { strength: 0.85, label: 'Straight' };
+  if (counts[0] === 3) return { strength: 0.74, label: 'Three of a kind' };
+  if (counts[0] === 2 && counts[1] === 2) return { strength: 0.62, label: 'Two pair' };
+  if (counts[0] === 2) {
+    const pairRank = Object.entries(rankCounts).find(([, n]) => n === 2)[0];
+    const usesHole = hole.some((c) => cardToValue(c.rank) === Number(pairRank));
+    if (!usesHole) return { strength: 0.35, label: 'Board pair' };
+    const boardMax = board.length ? Math.max(...board.map((c) => cardToValue(c.rank))) : 0;
+    if (Number(pairRank) > boardMax) return { strength: 0.56, label: 'Overpair / top pair' };
+    return { strength: 0.46, label: 'Middle / bottom pair' };
+  }
+  const holeMax = Math.max(...hole.map((c) => cardToValue(c.rank)));
+  return { strength: holeMax >= 13 ? 0.32 : 0.18, label: 'High card' };
+}
+
+function decide(holeCards, boardCards, players) {
+  if (holeCards.length < 2) {
+    return { action: 'SCANNING', reasoning: 'Waiting for hole cards to be detected', strength: null, handType: null };
+  }
+
+  let evalResult;
+  if (boardCards.length < 3) {
+    evalResult = evaluatePreflopNLHE(holeCards);
+  } else {
+    evalResult = evaluateHoldemMade(holeCards, boardCards);
+  }
+  if (!evalResult) return { action: 'WAIT', reasoning: 'Not enough data', strength: null, handType: null };
+
+  const adjusted = evalResult.strength * (1 - Math.max(0, players - 2) * 0.04);
+  let action, reasoning;
+  if (adjusted > 0.78)      { action = 'RAISE';      reasoning = 'Premium -- bet for value'; }
+  else if (adjusted > 0.60) { action = 'RAISE/CALL'; reasoning = 'Strong -- raise or call'; }
+  else if (adjusted > 0.45) { action = 'CALL';       reasoning = 'Playable -- continue carefully'; }
+  else if (adjusted > 0.30) { action = 'CHECK/FOLD'; reasoning = 'Marginal -- fold vs aggression'; }
+  else                      { action = 'FOLD';       reasoning = 'Weak -- fold and wait'; }
+  return {
+    action,
+    reasoning,
+    strength: Math.round(adjusted * 100),
+    handType: evalResult.label,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Detection state debouncer
+// ---------------------------------------------------------------------------
+function useStableDetection(rawHole, rawBoard, requiredFrames = 2) {
+  const [stableHole, setStableHole] = useState([]);
+  const [stableBoard, setStableBoard] = useState([]);
+  const prevHoleRef = useRef('');
+  const prevBoardRef = useRef('');
+  const frameCountRef = useRef(0);
+
+  useEffect(() => {
+    const holeKey = rawHole.map((c) => c.rank + c.suit).join(',');
+    const boardKey = rawBoard.map((c) => c.rank + c.suit).join(',');
+    const combined = holeKey + '|' + boardKey;
+
+    if (combined === prevHoleRef.current + '|' + prevBoardRef.current) {
+      // Same as last detection -- increment stability counter
+      frameCountRef.current++;
+      if (frameCountRef.current >= requiredFrames) {
+        setStableHole(rawHole);
+        setStableBoard(rawBoard);
+      }
+    } else {
+      // Changed -- reset counter
+      prevHoleRef.current = holeKey;
+      prevBoardRef.current = boardKey;
+      frameCountRef.current = 1;
+    }
+  }, [rawHole, rawBoard, requiredFrames]);
+
+  return { stableHole, stableBoard };
+}
+
+// ---------------------------------------------------------------------------
+// Card display component
+// ---------------------------------------------------------------------------
+const DetectedCard = ({ card }) => {
+  const suit = SUIT_DISPLAY[card.suit] || SUIT_DISPLAY.s;
+  const confidence = Math.round((card.confidence || 0) * 100);
+
+  return (
+    <div
+      className="relative flex flex-col items-center justify-center rounded-xl border-2 shadow-lg"
+      style={{
+        width: '52px',
+        height: '72px',
+        backgroundColor: '#ffffff',
+        borderColor: suit.color,
+        boxShadow: '0 2px 8px ' + suit.color + '40',
+      }}
+    >
+      <span
+        className="text-2xl font-black leading-none"
+        style={{ color: suit.color }}
+      >
+        {card.rank}
+      </span>
+      <span
+        className="text-lg leading-none"
+        style={{ color: suit.color }}
+      >
+        {suit.glyph}
+      </span>
+      {confidence > 0 && (
+        <span className="absolute -bottom-5 text-[9px] text-slate-400 font-mono">
+          {confidence}%
+        </span>
+      )}
+    </div>
+  );
+};
+
+const EmptyCardSlot = ({ label }) => (
+  <div
+    className="flex items-center justify-center rounded-xl border-2 border-dashed border-white/20"
+    style={{ width: '52px', height: '72px', backgroundColor: 'rgba(255,255,255,0.05)' }}
+  >
+    <span className="text-[10px] text-slate-500 font-semibold">{label}</span>
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// Main HUD
+// ---------------------------------------------------------------------------
+const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClose } = {}) => {
+  const [source, setSource] = useState(preAcquiredStream ? initialMode : null);
   const [streamReady, setStreamReady] = useState(!!preAcquiredStream);
   const [streamError, setStreamError] = useState(null);
-  const [detectionMode, setDetectionMode] = useState('hybrid'); // 'manual' | 'auto' | 'hybrid'
-  const [detectionActive, setDetectionActive] = useState(false);
-  const [confidence, setConfidence] = useState(0);
-  const [detectedCards, setDetectedCards] = useState([]);
-  const [decision, setDecision] = useState(null);
-  const [fps, setFps] = useState(0);
-  const [showRegions, setShowRegions] = useState(true);
-  const [selectedProfile, setSelectedProfile] = useState('pokerstars');
-  const [manualCards, setManualCards] = useState({ community: [], hero: [] });
-  const [manualPlayers, setManualPlayers] = useState(6);
-  const [gameType, setGameType] = useState('nlhe');
+  const [players, setPlayers] = useState(6);
+  const [matcherReady, setMatcherReady] = useState(false);
+  const [templateCount, setTemplateCount] = useState(0);
+  const [detecting, setDetecting] = useState(false);
+  const [lastTimingMs, setLastTimingMs] = useState(0);
+  const [frameCount, setFrameCount] = useState(0);
 
-  const frameBufferRef = useRef([]);
-  const fpsCounterRef = useRef({ frameCount: 0, lastTime: Date.now() });
-  const canvasRef = useRef(null);
+  // Raw detection (before debounce)
+  const [rawHole, setRawHole] = useState([]);
+  const [rawBoard, setRawBoard] = useState([]);
+
   const videoRef = useRef(null);
   const streamRef = useRef(preAcquiredStream);
+  const matcherRef = useRef(null);
+  const rafRef = useRef(null);
+  const lastDetectTimeRef = useRef(0);
+
+  // Debounced stable detection (2 consecutive matching frames)
+  const { stableHole, stableBoard } = useStableDetection(rawHole, rawBoard, 2);
 
   // ============================================================================
-  // POKER CLIENT PROFILES (Normalized 0-1 Coordinates)
+  // MATCHER INITIALIZATION
   // ============================================================================
-  const pokerClientProfiles = {
-    pokerstars: {
-      name: 'PokerStars',
-      regions: {
-        heroCards:      { x: 0.05, y: 0.8,  w: 0.25, h: 0.18 },
-        communityCards: { x: 0.35, y: 0.35, w: 0.30, h: 0.15 },
-        potSize:        { x: 0.40, y: 0.15, w: 0.20, h: 0.08 },
-        heroStack:      { x: 0.05, y: 0.68, w: 0.20, h: 0.08 },
-      },
-    },
-    ggpoker: {
-      name: 'GGPoker',
-      regions: {
-        heroCards:      { x: 0.08, y: 0.75, w: 0.22, h: 0.20 },
-        communityCards: { x: 0.38, y: 0.38, w: 0.24, h: 0.12 },
-        potSize:        { x: 0.35, y: 0.20, w: 0.30, h: 0.10 },
-        heroStack:      { x: 0.08, y: 0.65, w: 0.22, h: 0.08 },
-      },
-    },
-    wptonline: {
-      name: 'WPT Global',
-      regions: {
-        heroCards:      { x: 0.10, y: 0.78, w: 0.20, h: 0.18 },
-        communityCards: { x: 0.40, y: 0.36, w: 0.20, h: 0.14 },
-        potSize:        { x: 0.38, y: 0.18, w: 0.24, h: 0.09 },
-        heroStack:      { x: 0.10, y: 0.67, w: 0.20, h: 0.08 },
-      },
-    },
-    partypoker: {
-      name: 'partypoker',
-      regions: {
-        heroCards:      { x: 0.10, y: 0.78, w: 0.20, h: 0.18 },
-        communityCards: { x: 0.40, y: 0.36, w: 0.20, h: 0.14 },
-        potSize:        { x: 0.38, y: 0.18, w: 0.24, h: 0.09 },
-        heroStack:      { x: 0.10, y: 0.67, w: 0.20, h: 0.08 },
-      },
-    },
-    ignition: {
-      name: 'Ignition / Bovada',
-      regions: {
-        heroCards:      { x: 0.06, y: 0.79, w: 0.24, h: 0.19 },
-        communityCards: { x: 0.32, y: 0.33, w: 0.36, h: 0.16 },
-        potSize:        { x: 0.35, y: 0.14, w: 0.30, h: 0.09 },
-        heroStack:      { x: 0.06, y: 0.66, w: 0.24, h: 0.08 },
-      },
-    },
-    generic: {
-      name: 'Generic / Camera',
-      regions: {
-        heroCards:      { x: 0.25, y: 0.70, w: 0.50, h: 0.25 },
-        communityCards: { x: 0.20, y: 0.35, w: 0.60, h: 0.20 },
-        potSize:        { x: 0.35, y: 0.15, w: 0.30, h: 0.12 },
-        heroStack:      { x: 0.05, y: 0.85, w: 0.20, h: 0.10 },
-      },
-    },
-  };
+  useEffect(() => {
+    const matcher = getMatcher();
+    matcherRef.current = matcher;
+
+    matcher.loadTemplates('/hub/poker-brain/templates').then(() => {
+      setMatcherReady(true);
+      setTemplateCount(matcher.getTemplateCount());
+      console.log('[HUD] Matcher loaded with', matcher.getTemplateCount(), 'templates');
+    }).catch((err) => {
+      console.error('[HUD] Failed to load templates:', err);
+    });
+  }, []);
 
   // ============================================================================
   // STREAM MANAGEMENT
   // ============================================================================
-
-  // Attach pre-acquired stream on first mount
   useEffect(() => {
     if (preAcquiredStream && videoRef.current) {
       videoRef.current.srcObject = preAcquiredStream;
@@ -106,46 +274,20 @@ const PokerBrainHUDv2 = ({ preAcquiredStream = null, initialMode = 'camera', onC
       streamRef.current = preAcquiredStream;
       setStreamReady(true);
     }
-    // Cleanup on unmount
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
       }
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const startCamera = useCallback(async () => {
-    setStreamError(null);
-    try {
-      // Stop any existing stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setSource('camera');
-      setStreamReady(true);
-    } catch (err) {
-      console.error(err);
-      setStreamError(err.message || 'Camera not available');
-    }
   }, []);
 
   const startScreenCapture = useCallback(async () => {
     setStreamError(null);
     try {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: { frameRate: { ideal: 30 }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
@@ -155,19 +297,15 @@ const PokerBrainHUDv2 = ({ preAcquiredStream = null, initialMode = 'camera', onC
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      // Browser stop (user clicks "Stop sharing")
       stream.getVideoTracks()[0].addEventListener('ended', () => {
         setSource(null);
         setStreamReady(false);
-        setDetectionActive(false);
+        setDetecting(false);
       });
       setSource('screen');
       setStreamReady(true);
     } catch (err) {
-      if (err.name !== 'NotAllowedError') {
-        console.error(err);
-        setStreamError(err.message || 'Screen capture failed');
-      }
+      if (err.name !== 'NotAllowedError') setStreamError(err.message || 'Screen capture failed');
     }
   }, []);
 
@@ -177,504 +315,275 @@ const PokerBrainHUDv2 = ({ preAcquiredStream = null, initialMode = 'camera', onC
       streamRef.current = null;
     }
     if (videoRef.current) videoRef.current.srcObject = null;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
     setSource(null);
     setStreamReady(false);
-    setDetectionActive(false);
+    setDetecting(false);
   }, []);
 
   // ============================================================================
-  // CARD DETECTION (color-based fallback)
-  // ============================================================================
-  const detectCardsInRegion = useCallback((imageData, region) => {
-    if (!imageData || !region) return [];
-    const { data, width, height } = imageData;
-    const regionWidth = Math.floor(width * region.w);
-    const regionHeight = Math.floor(height * region.h);
-    const startX = Math.floor(width * region.x);
-    const startY = Math.floor(height * region.y);
-    const cards = [];
-    const cardWidth = Math.floor(regionWidth / 2);
-
-    for (let cardIndex = 0; cardIndex < 2; cardIndex++) {
-      const cardStartX = startX + cardIndex * cardWidth;
-      let redSum = 0, greenSum = 0, blueSum = 0, pixelCount = 0, brightnessSum = 0;
-      for (let y = startY; y < startY + regionHeight; y += 2) {
-        for (let x = cardStartX; x < cardStartX + cardWidth; x += 2) {
-          if (x >= 0 && x < width && y >= 0 && y < height) {
-            const idx = (y * width + x) * 4;
-            const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-            redSum += r; greenSum += g; blueSum += b;
-            brightnessSum += (r + g + b) / 3;
-            pixelCount++;
-          }
-        }
-      }
-      if (pixelCount > 0) {
-        const avgRed = Math.round(redSum / pixelCount);
-        const avgGreen = Math.round(greenSum / pixelCount);
-        const avgBlue = Math.round(blueSum / pixelCount);
-        const avgBrightness = brightnessSum / pixelCount;
-        const isCardPresent = avgBrightness > 80 && (avgRed + avgGreen + avgBlue) > 100;
-        if (isCardPresent) {
-          cards.push({
-            position: cardIndex,
-            rank: estimateRankFromBrightness(avgBrightness),
-            suit: estimateSuitFromColor(avgRed, avgGreen, avgBlue),
-            confidence: Math.min(avgBrightness / 255, 1),
-          });
-        }
-      }
-    }
-    return cards;
-  }, []);
-
-  const estimateRankFromBrightness = (brightness) => {
-    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-    const index = Math.floor((255 - brightness) / (255 / 13));
-    return ranks[Math.max(0, Math.min(12, index))];
-  };
-
-  const estimateSuitFromColor = (r, g, b) => {
-    if (r > g + 30 && r > b + 30) return '♥';
-    if (g > r && g > b) return '♣';
-    if (b > r && b > g) return '♠';
-    return '♦';
-  };
-
-  const isDetectionStable = useCallback((newDetection) => {
-    frameBufferRef.current.push(newDetection);
-    if (frameBufferRef.current.length > 5) frameBufferRef.current.shift();
-    if (frameBufferRef.current.length < 3) return false;
-    const consistent = frameBufferRef.current.filter((frame) =>
-      frame && newDetection && frame.length === newDetection.length &&
-      frame.every((c, i) => newDetection[i] && c.rank === newDetection[i].rank && c.suit === newDetection[i].suit)
-    );
-    return consistent.length >= 3;
-  }, []);
-
-  // ============================================================================
-  // FRAME CAPTURE LOOP (500ms)
+  // DETECTION LOOP (4 Hz = every 250ms)
   // ============================================================================
   useEffect(() => {
-    if (!detectionActive || detectionMode === 'manual' || !streamReady) return;
-    const captureFrame = () => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!video || !canvas || video.readyState < 2) return;
-      try {
-        if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth || 640;
-        if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight || 360;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const profile = pokerClientProfiles[selectedProfile];
-        if (profile) {
-          const heroCards = detectCardsInRegion(imageData, profile.regions.heroCards);
-          const communityCards = detectCardsInRegion(imageData, profile.regions.communityCards);
-          const allDetections = [...heroCards, ...communityCards];
-          if (allDetections.length && isDetectionStable(allDetections)) {
-            setDetectedCards(allDetections);
-            const avgConfidence =
-              allDetections.reduce((s, c) => s + c.confidence, 0) / allDetections.length;
-            setConfidence(Math.round(avgConfidence * 100));
-          }
+    if (!streamReady || !matcherReady || !detecting) return;
+
+    const DETECT_INTERVAL_MS = 250; // 4 Hz
+
+    const detectLoop = () => {
+      const now = performance.now();
+
+      if (now - lastDetectTimeRef.current >= DETECT_INTERVAL_MS) {
+        lastDetectTimeRef.current = now;
+
+        if (videoRef.current && matcherRef.current && matcherRef.current.isReady()) {
+          const result = matcherRef.current.matchAllRegions(videoRef.current, layoutData);
+          setRawHole(result.holeCards);
+          setRawBoard(result.boardCards);
+          setLastTimingMs(Math.round(result.timingMs * 10) / 10);
+          setFrameCount((c) => c + 1);
         }
-        // Draw region overlays
-        if (showRegions && profile) {
-          Object.entries(profile.regions).forEach(([name, region]) => {
-            const x = region.x * canvas.width;
-            const y = region.y * canvas.height;
-            const w = region.w * canvas.width;
-            const h = region.h * canvas.height;
-            ctx.strokeStyle = '#00ff88';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(x, y, w, h);
-            ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
-            ctx.fillRect(x, y, w, h);
-            ctx.fillStyle = '#00ff88';
-            ctx.font = 'bold 14px monospace';
-            ctx.fillText(name, x + 6, y + 18);
-          });
-        }
-        fpsCounterRef.current.frameCount++;
-        const now = Date.now();
-        if (now - fpsCounterRef.current.lastTime >= 1000) {
-          setFps(fpsCounterRef.current.frameCount);
-          fpsCounterRef.current.frameCount = 0;
-          fpsCounterRef.current.lastTime = now;
-        }
-      } catch (err) {
-        console.error('Frame capture error', err);
       }
+
+      rafRef.current = requestAnimationFrame(detectLoop);
     };
-    const interval = setInterval(captureFrame, 500);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detectionActive, detectionMode, selectedProfile, streamReady, showRegions]);
+
+    rafRef.current = requestAnimationFrame(detectLoop);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [streamReady, matcherReady, detecting]);
 
   // ============================================================================
-  // DECISION ENGINE (simplified)
+  // DECISION
   // ============================================================================
-  const cardToValue = (rank) => (
-    { A: 14, K: 13, Q: 12, J: 11, T: 10, 9: 9, 8: 8, 7: 7, 6: 6, 5: 5, 4: 4, 3: 3, 2: 2 }[rank] || 0
+  const decision = useMemo(
+    () => decide(stableHole, stableBoard, players),
+    [stableHole, stableBoard, players],
   );
 
-  const computeDecision = useCallback(() => {
-    const heroSource = detectionMode === 'manual' ? manualCards.hero : detectedCards.slice(0, 2);
-    const boardSource = detectionMode === 'manual' ? manualCards.community : detectedCards.slice(2);
-    const playerCount = manualPlayers;
+  const decisionColor =
+    decision.action === 'RAISE' ? 'from-emerald-500 to-green-600'
+    : decision.action === 'RAISE/CALL' ? 'from-green-500 to-teal-600'
+    : decision.action === 'CALL' ? 'from-sky-500 to-blue-600'
+    : decision.action === 'CHECK/FOLD' ? 'from-amber-500 to-orange-600'
+    : decision.action === 'FOLD' ? 'from-rose-500 to-red-600'
+    : 'from-slate-600 to-slate-700';
 
-    if (!heroSource || heroSource.length < 2) {
-      setDecision({ action: 'WAIT', reasoning: 'Need at least 2 hole cards' });
-      return;
-    }
+  const newHand = () => {
+    setRawHole([]);
+    setRawBoard([]);
+  };
 
-    const cards = [...heroSource, ...boardSource];
-    let strength = 0;
-    let description = '';
-
-    if (cards.length < 5) {
-      const r1 = cardToValue(heroSource[0].rank);
-      const r2 = cardToValue(heroSource[1].rank);
-      const high = Math.max(r1, r2);
-      const gap = Math.abs(r1 - r2);
-      if (r1 === r2) {
-        strength = 0.7 + ((high - 2) / 12) * 0.2;
-        description = `Pair of ${heroSource[0].rank}s`;
-      } else if (high >= 12 && gap <= 1) {
-        strength = 0.65;
-        description = 'Broadway';
-      } else if (high >= 10) {
-        strength = 0.5;
-        description = 'High cards';
-      } else if (gap <= 2) {
-        strength = 0.4;
-        description = 'Connector';
-      } else {
-        strength = 0.25;
-        description = 'Weak';
-      }
-      strength *= 1 - (playerCount - 2) * 0.05;
-    } else {
-      const values = cards.map((c) => cardToValue(c.rank)).sort((a, b) => b - a);
-      if (values[0] === values[1]) { strength = 0.72; description = 'Pair'; }
-      else if (values[1] === values[2]) { strength = 0.6; description = 'Pair'; }
-      else if (cards.filter((c) => c.suit === cards[0].suit).length >= 5) { strength = 0.85; description = 'Flush'; }
-      else { strength = 0.45; description = 'High card'; }
-    }
-
-    let action, reasoning;
-    if (strength > 0.7) { action = 'RAISE'; reasoning = 'Strong hand, bet for value'; }
-    else if (strength > 0.55) { action = 'CALL'; reasoning = 'Solid hand, continue'; }
-    else if (strength > 0.4) { action = 'CHECK/CALL'; reasoning = 'Marginal, proceed cautiously'; }
-    else { action = 'FOLD'; reasoning = 'Weak hand, fold'; }
-
-    setDecision({
-      action,
-      reasoning,
-      strength: Math.round(strength * 100),
-      handType: description,
-      equity: Math.round(strength * 100),
-    });
-  }, [detectionMode, manualCards, detectedCards, manualPlayers]);
-
-  // Auto-compute in auto/hybrid mode when detections change
-  useEffect(() => {
-    if (detectionMode !== 'manual' && detectedCards.length >= 2) {
-      computeDecision();
-    }
-  }, [detectedCards, detectionMode, computeDecision]);
-
-  // ============================================================================
-  // UI
-  // ============================================================================
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 pb-24">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-3 pb-24">
+      <div className="max-w-4xl mx-auto">
+        {/* HEADER */}
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-              Poker Brain HUD v2
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+              Poker Brain HUD
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm">Real-time AI poker coach — camera or screen capture</p>
+            <p className="text-slate-400 text-xs">
+              Auto-detection via template matching | PokerBros NLH
+            </p>
           </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="shrink-0 w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center text-lg font-bold border border-red-400"
-              title="Close"
-            >
-              ✕
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {detecting && (
+              <div className="flex items-center gap-1.5 bg-emerald-900/50 border border-emerald-500/30 rounded-full px-3 py-1">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-[10px] font-semibold text-emerald-300">DETECTING</span>
+              </div>
+            )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="shrink-0 w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white font-bold border border-red-400"
+                title="Close"
+              >
+                X
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* LIVE VIDEO VIEWPORT — always visible, top of page on mobile */}
-        <div className="relative mb-4 rounded-2xl overflow-hidden border-2 border-white/10 bg-black aspect-video">
-          <video
-            ref={videoRef}
-            className="absolute inset-0 w-full h-full object-contain bg-black"
-            playsInline
-            muted
-            autoPlay
-          />
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full pointer-events-none"
-          />
-
-          {/* No-stream overlay */}
-          {!streamReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-6 text-center">
-              <div className="text-5xl mb-3">📷</div>
-              <p className="text-lg font-semibold mb-1">No video source</p>
-              <p className="text-sm text-slate-400 mb-5">
-                Start a live camera feed (mobile) or screen capture (desktop online play)
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                <button
-                  onClick={startCamera}
-                  className="flex-1 px-5 py-3 rounded-lg font-semibold bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 shadow-lg shadow-green-500/30"
-                >
-                  Start Camera
-                </button>
-                <button
-                  onClick={startScreenCapture}
-                  className="flex-1 px-5 py-3 rounded-lg font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 shadow-lg shadow-blue-500/30"
-                >
-                  Share Screen
-                </button>
-              </div>
-              {streamError && (
-                <p className="mt-4 text-red-400 text-sm">{streamError}</p>
-              )}
-            </div>
-          )}
-
-          {/* Live status badge */}
-          {streamReady && (
-            <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full border border-white/20">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-xs font-semibold">
-                LIVE · {source === 'camera' ? 'Camera' : 'Screen'}
-              </span>
-              {detectionActive && <span className="text-xs text-emerald-400">· {fps} fps</span>}
-            </div>
-          )}
-
-          {/* Source switcher when stream is live */}
-          {streamReady && (
-            <div className="absolute top-2 right-2 flex gap-2">
-              <button
-                onClick={source === 'camera' ? startScreenCapture : startCamera}
-                className="bg-black/70 hover:bg-black/90 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full border border-white/20"
-              >
-                {source === 'camera' ? 'Switch to Screen' : 'Switch to Camera'}
-              </button>
-              <button
-                onClick={stopStream}
-                className="bg-red-600/80 hover:bg-red-600 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full border border-red-400"
-              >
-                Stop
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Action Banner — Fold/Call/Raise */}
-        {decision && (
-          <div className="mb-4 p-5 rounded-2xl border border-orange-400/40 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-orange-500/20">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <div className="text-xs text-slate-300 uppercase tracking-wider">Poker Brain says</div>
-                <div className="text-4xl sm:text-5xl font-black text-orange-400 leading-tight">{decision.action}</div>
-                <div className="text-sm text-slate-200 mt-1">{decision.reasoning}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="px-3 py-2 bg-black/30 rounded-lg">
-                  <div className="text-[10px] text-slate-400 uppercase">Strength</div>
-                  <div className="text-xl font-bold text-blue-300">{decision.strength}%</div>
-                </div>
-                <div className="px-3 py-2 bg-black/30 rounded-lg">
-                  <div className="text-[10px] text-slate-400 uppercase">Hand</div>
-                  <div className="text-sm font-bold text-emerald-300">{decision.handType}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Controls Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Detection Mode */}
-          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold mb-3 text-slate-300 uppercase tracking-wider">Detection Mode</h2>
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {['manual', 'auto', 'hybrid'].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setDetectionMode(m)}
-                  className={`py-2 rounded-lg text-sm font-medium transition ${
-                    detectionMode === m
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow shadow-blue-500/40'
-                      : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                  }`}
-                >
-                  {m.charAt(0).toUpperCase() + m.slice(1)}
-                </button>
-              ))}
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={detectionActive}
-                onChange={(e) => setDetectionActive(e.target.checked)}
-                disabled={!streamReady && detectionMode !== 'manual'}
-                className="w-5 h-5 rounded"
-              />
-              <span className="text-sm">Activate detection</span>
-            </label>
-            <div className="mt-3">
-              <div className="text-[10px] text-slate-400 uppercase mb-1">Confidence</div>
-              <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all"
-                  style={{ width: `${confidence}%` }}
-                />
-              </div>
-              <div className="text-sm font-bold text-emerald-400 mt-1">{confidence}%</div>
-            </div>
-          </div>
-
-          {/* Game Setup */}
-          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold mb-3 text-slate-300 uppercase tracking-wider">Game Setup</h2>
-            <label className="block text-xs text-slate-400 mb-1">Game Type</label>
-            <select
-              value={gameType}
-              onChange={(e) => setGameType(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white mb-3 text-sm"
-            >
-              <option value="nlhe">No-Limit Hold&apos;em</option>
-              <option value="plo">Pot-Limit Omaha</option>
-              <option value="plo_hilo">PLO Hi-Lo</option>
-              <option value="plo5">PLO5</option>
-              <option value="plo6">PLO6</option>
-              <option value="tournament">Tournament</option>
-            </select>
-            <label className="block text-xs text-slate-400 mb-1">Players at table</label>
+        {/* STATUS BAR */}
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
+          <span className="bg-slate-800 rounded px-2 py-1">
+            Templates: {templateCount}
+          </span>
+          <span className="bg-slate-800 rounded px-2 py-1">
+            Players:
             <input
               type="number"
               min="2"
               max="10"
-              value={manualPlayers}
-              onChange={(e) => setManualPlayers(parseInt(e.target.value) || 2)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm"
+              value={players}
+              onChange={(e) => setPlayers(Math.max(2, Math.min(10, parseInt(e.target.value) || 2)))}
+              className="w-8 ml-1 bg-transparent text-right font-bold text-white"
             />
+          </span>
+          {detecting && (
+            <>
+              <span className="bg-slate-800 rounded px-2 py-1">
+                {lastTimingMs}ms/frame
+              </span>
+              <span className="bg-slate-800 rounded px-2 py-1">
+                Frames: {frameCount}
+              </span>
+            </>
+          )}
+          <button
+            onClick={newHand}
+            className="bg-slate-700 hover:bg-slate-600 rounded px-2 py-1 font-semibold text-white"
+          >
+            Reset Hand
+          </button>
+        </div>
+
+        {/* DECISION BANNER */}
+        <div className={'mb-4 p-4 rounded-2xl bg-gradient-to-r ' + decisionColor + ' shadow-2xl'}>
+          <div className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Poker Brain says</div>
+          <div className="text-4xl sm:text-5xl font-black text-white leading-none mt-1">{decision.action}</div>
+          <div className="text-sm text-white/90 mt-1">{decision.reasoning}</div>
+          {decision.strength !== null && (
+            <div className="mt-3 flex items-center gap-3 text-xs">
+              <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                <div className="text-[9px] text-white/60 uppercase">Strength</div>
+                <div className="text-sm font-bold">{decision.strength}%</div>
+              </div>
+              {decision.handType && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">Hand</div>
+                  <div className="text-sm font-bold">{decision.handType}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* DETECTED CARDS */}
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Hole Cards */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-2 border-amber-400/40">
+            <h2 className="text-sm font-bold text-amber-300 uppercase tracking-wider mb-3">
+              Hole Cards
+            </h2>
+            <div className="flex gap-2">
+              {stableHole.length > 0 ? (
+                stableHole.map((card, i) => <DetectedCard key={'hole-' + i} card={card} />)
+              ) : (
+                <>
+                  <EmptyCardSlot label="?" />
+                  <EmptyCardSlot label="?" />
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Client Profile */}
-          <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold mb-3 text-slate-300 uppercase tracking-wider">Poker Client</h2>
-            <select
-              value={selectedProfile}
-              onChange={(e) => setSelectedProfile(e.target.value)}
-              className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white mb-3 text-sm"
-            >
-              {Object.entries(pokerClientProfiles).map(([key, profile]) => (
-                <option key={key} value={key}>{profile.name}</option>
-              ))}
-            </select>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showRegions}
-                onChange={(e) => setShowRegions(e.target.checked)}
-                className="w-5 h-5 rounded"
-              />
-              <span className="text-sm">Show detection regions</span>
-            </label>
+          {/* Board Cards */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border-2 border-emerald-400/30">
+            <h2 className="text-sm font-bold text-emerald-300 uppercase tracking-wider mb-3">
+              Board
+            </h2>
+            <div className="flex gap-1.5 flex-wrap">
+              {stableBoard.length > 0 ? (
+                stableBoard.map((card, i) => <DetectedCard key={'board-' + i} card={card} />)
+              ) : (
+                [0, 1, 2, 3, 4].map((i) => <EmptyCardSlot key={'empty-' + i} label={i < 3 ? 'Flop' : i === 3 ? 'Turn' : 'River'} />)
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Manual Card Entry (visible in manual + hybrid) */}
-        {detectionMode !== 'auto' && (
-          <div className="mt-4 backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold mb-3 text-slate-300 uppercase tracking-wider">Manual Card Entry</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-slate-400 mb-2">Hero Cards ({manualCards.hero.length}/4)</div>
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'].map((rank) => (
-                    ['♠', '♥', '♦', '♣'].map((suit) => (
-                      <button
-                        key={`${rank}${suit}`}
-                        onClick={() => {
-                          if (manualCards.hero.length < 4) {
-                            setManualCards((p) => ({ ...p, hero: [...p.hero, { rank, suit }] }));
-                          }
-                        }}
-                        className={`aspect-square rounded text-[10px] font-bold ${
-                          suit === '♥' || suit === '♦' ? 'bg-red-500/20 hover:bg-red-500/40' : 'bg-white/10 hover:bg-white/20'
-                        }`}
-                      >
-                        {rank}{suit}
-                      </button>
-                    ))
-                  )).flat()}
-                </div>
-                <div className="flex gap-1 flex-wrap">
-                  {manualCards.hero.map((c, i) => (
-                    <span key={i} className={`px-2 py-1 rounded bg-black/40 text-sm font-bold ${c.suit === '♥' || c.suit === '♦' ? 'text-red-400' : 'text-white'}`}>
-                      {c.rank}{c.suit}
-                    </span>
-                  ))}
-                  {manualCards.hero.length > 0 && (
-                    <button
-                      onClick={() => setManualCards((p) => ({ ...p, hero: [] }))}
-                      className="text-xs text-red-400 hover:text-red-300 px-2"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col justify-between">
+        {/* SCREEN CAPTURE */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Screen Capture Feed
+            </h2>
+            <div className="flex items-center gap-2">
+              {streamReady && !detecting && matcherReady && (
                 <button
-                  onClick={computeDecision}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 rounded-lg font-semibold transition"
+                  onClick={() => setDetecting(true)}
+                  className="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full"
                 >
-                  Compute Decision
+                  Start Detection
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Detected Cards display */}
-        {detectedCards.length > 0 && (
-          <div className="mt-4 backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h2 className="text-sm font-semibold mb-3 text-slate-300 uppercase tracking-wider">Detected Cards</h2>
-            <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-              {detectedCards.map((card, idx) => (
-                <div
-                  key={idx}
-                  className="aspect-[2/3] bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-lg p-2 text-center flex flex-col justify-between"
+              )}
+              {streamReady && detecting && (
+                <button
+                  onClick={() => setDetecting(false)}
+                  className="text-[11px] font-bold bg-amber-600 hover:bg-amber-500 text-white px-3 py-1 rounded-full"
                 >
-                  <div className={`text-2xl font-bold ${card.suit === '♥' || card.suit === '♦' ? 'text-red-400' : 'text-white'}`}>
-                    {card.rank}
-                    <div>{card.suit}</div>
-                  </div>
-                  <div className="text-[9px] text-slate-400">{Math.round(card.confidence * 100)}%</div>
-                </div>
-              ))}
+                  Pause Detection
+                </button>
+              )}
+              {streamReady && (
+                <button
+                  onClick={stopStream}
+                  className="text-[10px] bg-red-600/80 px-2 py-1 rounded-full border border-red-400 text-white"
+                >
+                  Stop
+                </button>
+              )}
             </div>
           </div>
-        )}
+
+          <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black aspect-video">
+            <video
+              ref={videoRef}
+              className="absolute inset-0 w-full h-full object-contain bg-black"
+              playsInline
+              muted
+              autoPlay
+            />
+            {!streamReady && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-4 text-center">
+                <p className="text-sm font-semibold mb-3">
+                  Capture your PokerBros emulator window
+                </p>
+                <button
+                  onClick={startScreenCapture}
+                  className="px-6 py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
+                >
+                  Share Screen
+                </button>
+                {streamError && <p className="mt-3 text-red-400 text-xs">{streamError}</p>}
+                {!matcherReady && (
+                  <p className="mt-3 text-amber-400 text-xs">Loading card templates...</p>
+                )}
+              </div>
+            )}
+            {streamReady && (
+              <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/70 px-2.5 py-1 rounded-full border border-white/20">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-semibold">LIVE</span>
+              </div>
+            )}
+          </div>
+
+          {!matcherReady && (
+            <p className="mt-2 text-[11px] text-amber-400 leading-snug">
+              Loading templates... Detection will start automatically once templates are ready.
+            </p>
+          )}
+          {matcherReady && templateCount < 10 && (
+            <p className="mt-2 text-[11px] text-amber-400 leading-snug">
+              Only {templateCount} templates loaded. Detection accuracy will improve as more card
+              templates are added. Play more hands to build the full library.
+            </p>
+          )}
+          {matcherReady && templateCount >= 10 && (
+            <p className="mt-2 text-[11px] text-slate-500 leading-snug">
+              {templateCount} templates loaded. Share your PokerBros emulator screen,
+              then click Start Detection. Cards are recognized via perceptual hashing at 4 Hz.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-export default PokerBrainHUDv2;
+export default PokerBrainHUD;

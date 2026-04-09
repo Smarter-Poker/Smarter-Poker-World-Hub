@@ -1,9 +1,9 @@
 {
   "daemon": "tournament-schedule-daemon",
   "cycle": 1,
-  "venues_done": 25,
-  "records_total": 0,
-  "batch_id": "eae9884e-f65b-4a52-be29-9b7d4f5a3998",
-  "pid": 84104,
-  "last_seen": "2026-04-09T13:28:24.918931+00:00"
+  "venues_done": 100,
+  "records_total": 1390,
+  "batch_id": "737bf5c6-ce93-41ba-8e4a-b55b5179439d",
+  "pid": 48927,
+  "last_seen": "2026-04-09T16:12:33.957925+00:00"
 }
