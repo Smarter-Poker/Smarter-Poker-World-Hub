@@ -688,6 +688,134 @@ const PokerBrainEngine = (() => {
   // DECISION ENGINE
   // ============================================================================
 
+  // ============================================================================
+  // VARIANT UTILITIES
+  // ============================================================================
+
+  /**
+   * Required hole-card count per game variant. Used by both the engine
+   * (to reject invalid inputs) and the bridge (to gate the HUD).
+   */
+  const expectedHoleCount = (gameType) => {
+    const g = String(gameType || 'nlhe').toLowerCase();
+    if (g.includes('plo6')) return 6;
+    if (g.includes('plo5')) return 5;
+    if (g.includes('plo')) return 4;  // plo, plo_hilo, plo8
+    return 2;                          // nlhe, tournament nlhe
+  };
+
+  /**
+   * True if the variant splits the pot between high and low hands.
+   */
+  const isHiLoVariant = (gameType) =>
+    String(gameType || '').toLowerCase().includes('hilo') ||
+    String(gameType || '').toLowerCase().includes('plo8');
+
+  /**
+   * Rough nut-low potential for an Omaha Hi-Lo starting hand. Returns 0..1
+   * where 1 means a guaranteed nut low draw (A-2 in hand).
+   */
+  const nutLowPotential = (holeCards) => {
+    if (!Array.isArray(holeCards) || holeCards.length < 2) return 0;
+    const lows = holeCards.filter(c => {
+      const v = RANK_VALUE[c.rank];
+      return c.rank === 'A' || (v >= 2 && v <= 8);
+    });
+    if (lows.length < 2) return 0;
+    const hasAce = holeCards.some(c => c.rank === 'A');
+    const hasDeuce = holeCards.some(c => c.rank === '2');
+    const hasThree = holeCards.some(c => c.rank === '3');
+    if (hasAce && hasDeuce) return 1.0;
+    if (hasAce && hasThree) return 0.85;
+    if (hasDeuce && hasThree) return 0.7;
+    if (hasAce && lows.length >= 3) return 0.75;
+    return Math.min(0.6, lows.length * 0.2);
+  };
+
+  // ============================================================================
+  // TOURNAMENT / ICM UTILITIES
+  // ============================================================================
+
+  /**
+   * Condensed push/fold (Nash) chart for unopened pots in tournament play.
+   * Keyed by effective stack in BBs (rounded down). Values are hand codes
+   * the ENTIRE range from any position. These are approximations for a
+   * heads-up / short-handed final-table context and err toward tight.
+   *
+   * Sources: Sage / Nash equilibrium for heads-up + conventional ITM charts.
+   */
+  const PUSH_RANGE_BY_BB = {
+    5:  set(PAIRS, [
+      'AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s',
+      'KQs','KJs','KTs','K9s','K8s','K7s','K6s','K5s',
+      'QJs','QTs','Q9s','Q8s','JTs','J9s','J8s','T9s','T8s','98s','87s',
+      'AKo','AQo','AJo','ATo','A9o','A8o','A7o','A6o','A5o','A4o','A3o','A2o',
+      'KQo','KJo','KTo','K9o','QJo','QTo','Q9o','JTo','J9o','T9o'
+    ]),
+    10: set(PAIRS.slice(1), [ // 33+
+      'AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s',
+      'KQs','KJs','KTs','K9s','QJs','QTs','JTs','T9s',
+      'AKo','AQo','AJo','ATo','KQo','KJo','QJo'
+    ]),
+    15: set(PAIRS.slice(3), [ // 55+
+      'AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','KQs','KJs','QJs','JTs',
+      'AKo','AQo','AJo','KQo'
+    ]),
+    20: set(PAIRS.slice(5), [ // 77+
+      'AKs','AQs','AJs','ATs','KQs','KJs','QJs',
+      'AKo','AQo','AJo'
+    ]),
+  };
+
+  /**
+   * Given an effective stack in BBs, return the set of hand codes that
+   * should be shoved from first-in. Uses the next higher threshold.
+   */
+  const getPushFoldRange = (bbStack) => {
+    if (bbStack <= 5) return PUSH_RANGE_BY_BB[5];
+    if (bbStack <= 10) return PUSH_RANGE_BY_BB[10];
+    if (bbStack <= 15) return PUSH_RANGE_BY_BB[15];
+    if (bbStack <= 20) return PUSH_RANGE_BY_BB[20];
+    return null; // no push-fold territory, play postflop
+  };
+
+  /**
+   * Harrington-style M ratio (stack divided by cost of one orbit).
+   * Assumes 6-handed default if numPlayers isn't supplied. antes are ignored
+   * because detection of ante is noisy in the HUD.
+   */
+  const calculateM = (stackSize, bigBlind, numPlayers = 6) => {
+    if (!bigBlind || bigBlind <= 0) return null;
+    const sbBb = bigBlind * 1.5;                 // SB + BB
+    return stackSize / (sbBb + bigBlind * 0);    // ignore antes
+  };
+
+  /**
+   * Rough bubble-factor: how much more painful a bust is vs the chip value
+   * of a call in the current tournament stage. 1.0 = no ICM pressure,
+   * 1.5 = bubble, 1.2 = in-the-money climbing, 1.1 = early.
+   */
+  const bubbleFactorForStage = (tournamentStage) => {
+    switch ((tournamentStage || 'early').toLowerCase()) {
+      case 'bubble':     return 1.5;
+      case 'itm':        return 1.25;
+      case 'ft':
+      case 'finaltable': return 1.35;
+      case 'middle':     return 1.1;
+      case 'early':
+      default:           return 1.0;
+    }
+  };
+
+  /**
+   * ICM-adjusted call EV. Raw EV is in chips; we scale the risk side by
+   * the bubble factor so marginal calls near the bubble get rejected.
+   */
+  const icmAdjustedEV = (rawEvChips, bubbleFactor) => {
+    if (rawEvChips >= 0) return rawEvChips;          // winning calls unchanged
+    return rawEvChips * bubbleFactor;                // losing calls hurt more
+  };
+
   const inferPreflopAction = (betToCall, bigBlind, potSize) => {
     if (!bigBlind || bigBlind <= 0) {
       // Fall back to pot-relative inference
@@ -723,12 +851,36 @@ const PokerBrainEngine = (() => {
     } = gameState;
 
     const isOmaha = gameType.includes('plo');
+    const isHiLo = isHiLoVariant(gameType);
+    const requiredHoleCount = expectedHoleCount(gameType);
     let equity = 0;
+    let lowEquity = 0;
+    let highEquity = 0;
     let potOdds = calculatePotOdds(betToCall, potSize);
     let action = 'FOLD';
     let raiseAmount = 0;
     let confidence = 0;
     let reasoning = '';
+    const bbStackCalc = (bigBlind > 0 ? stackSize / bigBlind : null);
+    const bubbleFactor = istournament ? bubbleFactorForStage(tournamentStage) : 1.0;
+    let variantNote = '';
+
+    // Variant hole-card validation. Reject hands that don't have the
+    // expected number of hole cards for the requested variant. Engine
+    // refuses to guess.
+    if (holeCards.length > 0 && holeCards.length !== requiredHoleCount) {
+      return {
+        action: 'WAIT',
+        raiseAmount: 0,
+        confidence: 0,
+        reasoning: `Need ${requiredHoleCount} hole cards for ${gameType.toUpperCase()}, got ${holeCards.length}`,
+        equity: 0,
+        potOdds: 0,
+        highEquity: 0,
+        lowEquity: 0,
+        bubbleFactor,
+      };
+    }
 
     // Normalize legacy position names
     const posMap = {
@@ -748,24 +900,43 @@ const PokerBrainEngine = (() => {
                  reasoning: 'Not enough hole cards', equity: 0, potOdds: 0 };
       }
 
-      // PLO preflop uses equity-based evaluation (169-hand chart is NLHE only)
+      // PLO preflop uses heuristic evaluation (169-hand chart is NLHE only)
       if (isOmaha) {
-        // Rough PLO open heuristic: high-card double-suited or connected = raise
+        // PLO starting-hand heuristic: count broadways, pairs, and suits.
+        // Hi-Lo boosts hands with nut-low potential (A-2, A-3, 2-3).
         const highCount = holeCards.filter(c => RANK_VALUE[c.rank] >= 11).length;
-        const suited = new Set(holeCards.map(c => c.suit)).size <= 2;
-        if (highCount >= 2 && suited) {
+        const suitCount = new Set(holeCards.map(c => c.suit)).size;
+        const doubleSuited = suitCount === 2 && holeCards.length >= 4;
+        const singleSuited = suitCount < holeCards.length;
+        const rankCounts = {};
+        holeCards.forEach(c => { rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1; });
+        const pairs = Object.values(rankCounts).filter(n => n >= 2).length;
+        const lowPot = isHiLo ? nutLowPotential(holeCards) : 0;
+
+        // Premium: 2+ broadways AND (double suited OR pair among broadways)
+        // Or Hi-Lo: A-2 / A-3 with any high card
+        const hasPremiumBroadway = highCount >= 2 && (doubleSuited || pairs >= 1);
+        const hasNutLowLock = isHiLo && lowPot >= 0.85;
+
+        if (hasPremiumBroadway || hasNutLowLock) {
           action = 'RAISE';
-          confidence = 75;
+          confidence = 80;
           raiseAmount = Math.max(bigBlind * 3, potSize * 1.5, betToCall * 3);
-          reasoning = `PLO premium (${highCount} broadway, ${suited ? 'suited' : 'rainbow'})`;
-        } else if (highCount >= 1) {
+          reasoning = hasNutLowLock
+            ? `${gameType.toUpperCase()} nut-low premium (${highCount} broadway, low ${(lowPot*100).toFixed(0)}%)`
+            : `${gameType.toUpperCase()} premium (${highCount} broadway, ${doubleSuited ? 'double-suited' : singleSuited ? 'suited' : 'rainbow'}${pairs ? ', pair' : ''})`;
+        } else if (highCount >= 2 || pairs >= 1 || (isHiLo && lowPot >= 0.6)) {
           action = betToCall <= bigBlind * 3 ? 'CALL' : 'FOLD';
-          confidence = 55;
-          reasoning = 'PLO speculative hand';
+          confidence = 60;
+          reasoning = `${gameType.toUpperCase()} speculative (${highCount}B, ${pairs}P${isHiLo ? `, low ${(lowPot*100).toFixed(0)}%` : ''})`;
+        } else if (highCount >= 1 && singleSuited) {
+          action = betToCall <= bigBlind * 2 ? 'CALL' : 'FOLD';
+          confidence = 50;
+          reasoning = `${gameType.toUpperCase()} marginal connector`;
         } else {
           action = 'FOLD';
-          confidence = 65;
-          reasoning = 'PLO hand too weak';
+          confidence = 70;
+          reasoning = `${gameType.toUpperCase()} hand too weak`;
         }
       } else {
         const handCode = getHandType(holeCards[0], holeCards[1]);
@@ -856,23 +1027,45 @@ const PokerBrainEngine = (() => {
         }
       }
 
-      // Tournament ICM adjustments
-      if (istournament) {
-        const bbStack = bigBlind > 0 ? stackSize / bigBlind : 100;
-        if (bbStack < 12 && (action === 'CALL' || action === 'RAISE')) {
-          action = 'RAISE';
-          raiseAmount = stackSize;
-          confidence = Math.min(92, confidence + 5);
-          reasoning += ' (short-stack shove)';
-        } else if (bbStack < 7) {
-          // Only top of range should be played
-          const handCode = holeCards.length >= 2 ? getHandType(holeCards[0], holeCards[1]) : '';
-          if (!inRange(handCode, RFI.utg)) {
+      // Tournament ICM + push/fold adjustments
+      if (istournament && !isOmaha) {
+        const bbStack = bbStackCalc != null ? bbStackCalc : 100;
+        const handCode = holeCards.length >= 2 ? getHandType(holeCards[0], holeCards[1]) : '';
+        const pushRange = getPushFoldRange(bbStack);
+
+        // Push/fold territory: stack <= 20bb and we're first-in or vs a limp
+        if (pushRange && (preflopAction === 'rfi' || preflopAction === 'vs_limp' || preflopAction == null)) {
+          if (inRange(handCode, pushRange)) {
+            action = 'RAISE';
+            raiseAmount = stackSize;
+            confidence = Math.min(92, 70 + Math.round((20 - bbStack) * 1.5));
+            reasoning = `Push-fold shove ${handCode} @ ${bbStack.toFixed(1)}bb`;
+            variantNote = ` [ICM ${bubbleFactor.toFixed(2)}x]`;
+          } else {
             action = 'FOLD';
-            confidence = 80;
-            reasoning = 'Ultra-short, fold to preserve';
+            confidence = 82;
+            reasoning = `${handCode} outside push range @ ${bbStack.toFixed(1)}bb`;
+            variantNote = ` [ICM ${bubbleFactor.toFixed(2)}x]`;
           }
+        } else if (bbStack < 25 && bubbleFactor >= 1.35 && action === 'CALL') {
+          // Bubble / FT ICM: tighten marginal calls
+          action = 'FOLD';
+          confidence = 75;
+          reasoning = `ICM fold (${tournamentStage}, ${bbStack.toFixed(1)}bb, bubble ${bubbleFactor.toFixed(2)}x)`;
+        } else if (bbStack >= 25 && bubbleFactor >= 1.35 && action === 'RAISE' && !inRange(handCode, THREEBET_RANGE)) {
+          // Big stack near bubble: avoid speculative 3bets
+          action = 'CALL';
+          confidence = Math.max(55, confidence - 10);
+          reasoning += ` (bubble discipline ${bubbleFactor.toFixed(2)}x)`;
         }
+      }
+
+      // PLO tournament: simple short-stack shove gate (no Nash chart for PLO)
+      if (istournament && isOmaha && bbStackCalc != null && bbStackCalc < 12 && action !== 'FOLD') {
+        action = 'RAISE';
+        raiseAmount = stackSize;
+        confidence = Math.max(confidence, 72);
+        reasoning += ' (PLO short-stack jam)';
       }
     }
     // ========== POSTFLOP ==========
@@ -906,6 +1099,16 @@ const PokerBrainEngine = (() => {
         );
       }
       equity = equityResult.equity;
+      highEquity = equityResult.highEquity != null ? equityResult.highEquity : equity;
+      lowEquity = equityResult.lowEquity || 0;
+
+      // Hi-Lo: rough scoop expectation = highEquity + lowEquity, capped.
+      // If we have strong low-hand potential, boost confidence slightly
+      // since even when we lose high, we can quarter or scoop the low.
+      if (isHiLo && lowEquity > 0) {
+        equity = Math.min(100, (highEquity * 0.5) + (lowEquity * 0.5) + (highEquity > 70 ? 10 : 0));
+        variantNote = ` [hi ${Math.round(highEquity)}%, lo ${Math.round(lowEquity)}%]`;
+      }
 
       const spr = calculateStackToPot(stackSize, potSize);
       const texture = classifyTexture(boardCards);
@@ -996,9 +1199,16 @@ const PokerBrainEngine = (() => {
       action,
       raiseAmount: Math.round(raiseAmount),
       confidence: Math.round(confidence),
-      reasoning,
+      reasoning: reasoning + variantNote,
       equity: Math.round(equity * 100) / 100,
       potOdds: Math.round(potOdds * 100) / 100,
+      highEquity: Math.round(highEquity * 100) / 100,
+      lowEquity: Math.round(lowEquity * 100) / 100,
+      bubbleFactor,
+      bbStack: bbStackCalc != null ? Math.round(bbStackCalc * 10) / 10 : null,
+      variant: gameType,
+      isHiLo,
+      isOmaha,
     };
   };
 
@@ -1056,6 +1266,16 @@ const PokerBrainEngine = (() => {
     // Decision making
     getDecision,
     inferPreflopAction,
+
+    // Variant + tournament utilities
+    expectedHoleCount,
+    isHiLoVariant,
+    nutLowPotential,
+    getPushFoldRange,
+    calculateM,
+    bubbleFactorForStage,
+    icmAdjustedEV,
+    PUSH_RANGE_BY_BB,
 
     // Utilities
     getHandName,

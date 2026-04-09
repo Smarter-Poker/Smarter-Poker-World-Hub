@@ -136,6 +136,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   const [gameType, setGameType] = useState('nlhe');
   const [heroName, setHeroName] = useState('');
   const [villainStacks, setVillainStacks] = useState({});
+  // Tournament / ICM context (user-set, not OCR'd)
+  const [isTournament, setIsTournament] = useState(false);
+  const [tournamentStage, setTournamentStage] = useState('early');
 
   // Hand state (committed, debounced)
   const [handState, setHandState] = useState({
@@ -211,6 +214,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   const betToCallRef = useRef(betToCall);
   const gameTypeRef = useRef(gameType);
   const playersRef = useRef(players);
+  const isTournamentRef = useRef(isTournament);
+  const tournamentStageRef = useRef(tournamentStage);
   useEffect(() => { positionRef.current = position; }, [position]);
   useEffect(() => { potSizeRef.current = potSize; }, [potSize]);
   useEffect(() => { heroStackRef.current = heroStack; }, [heroStack]);
@@ -218,6 +223,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   useEffect(() => { betToCallRef.current = betToCall; }, [betToCall]);
   useEffect(() => { gameTypeRef.current = gameType; }, [gameType]);
   useEffect(() => { playersRef.current = players; }, [players]);
+  useEffect(() => { isTournamentRef.current = isTournament; }, [isTournament]);
+  useEffect(() => { tournamentStageRef.current = tournamentStage; }, [tournamentStage]);
 
   // Effective stack = min(hero, max villain with non-zero stack). Used as
   // the stack fed to the engine so SPR and commitment math reflect the
@@ -568,7 +575,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
               ocr.readRegion(crop, { cacheKey: 'gameVariant' }).then((r) => {
                 if (!r || !r.text || !r.meetsThreshold) return;
                 const t = String(r.text).toUpperCase();
-                if (t.includes('PLO5') || t.includes('PLO 5') || t.includes('5-CARD')) setGameType('plo5');
+                if (t.includes('PLO6') || t.includes('PLO 6') || t.includes('6-CARD')) setGameType('plo6');
+                else if (t.includes('PLO5') || t.includes('PLO 5') || t.includes('5-CARD')) setGameType('plo5');
+                else if (t.includes('HI-LO') || t.includes('HI/LO') || t.includes('HILO') || t.includes('8 OR BETTER') || t.includes('PLO8')) setGameType('plo_hilo');
                 else if (t.includes('PLO') || t.includes('OMAHA')) setGameType('plo');
                 else if (t.includes('NLH') || t.includes("HOLD'EM") || t.includes('HOLDEM') || t.includes('TEXAS')) setGameType('nlhe');
               }).catch(() => {});
@@ -628,7 +637,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     // fall back to BB so preflop RFI logic still resolves to a sensible
     // action before OCR converges.
     const effBetToCall = betToCall > 0 ? betToCall : bigBlind;
-    const key = `${holeKey}|${boardKey}|${potSize}|${effectiveStack}|${effBetToCall}|${bigBlind}|${position}|${players}|${gameType}`;
+    const key = `${holeKey}|${boardKey}|${potSize}|${effectiveStack}|${effBetToCall}|${bigBlind}|${position}|${players}|${gameType}|${isTournament}|${tournamentStage}`;
     if (key === lastDecisionKeyRef.current) return;
 
     if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
@@ -645,6 +654,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
         position,
         numPlayers: players,
         blindLevel: bigBlind || 1,
+        isTournament,
+        tournamentStage,
       });
       setDecision(bridged);
 
@@ -683,7 +694,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     return () => {
       if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
     };
-  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, pokerBrosHandLabel, availableActions]);
+  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, isTournament, tournamentStage, pokerBrosHandLabel, availableActions]);
 
   // ============================================================================
   // UI HELPERS
@@ -763,7 +774,44 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             Street: <span className="font-bold text-white">{handState.street}</span>
           </span>
           <span className="bg-slate-800 rounded px-2 py-1">
-            Game: <span className="font-bold text-white uppercase">{gameType}</span>
+            Game:
+            <select
+              value={gameType}
+              onChange={(e) => setGameType(e.target.value)}
+              className="ml-1 bg-transparent font-bold text-white uppercase cursor-pointer"
+              title="Game variant"
+            >
+              <option value="nlhe" className="text-black">NLHE</option>
+              <option value="plo" className="text-black">PLO</option>
+              <option value="plo_hilo" className="text-black">PLO Hi-Lo</option>
+              <option value="plo5" className="text-black">PLO5</option>
+              <option value="plo6" className="text-black">PLO6</option>
+            </select>
+          </span>
+          <span className="bg-slate-800 rounded px-2 py-1">
+            <label className="cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isTournament}
+                onChange={(e) => setIsTournament(e.target.checked)}
+                className="mr-1 align-middle"
+              />
+              <span className={'font-bold ' + (isTournament ? 'text-amber-300' : 'text-slate-500')}>MTT</span>
+            </label>
+            {isTournament && (
+              <select
+                value={tournamentStage}
+                onChange={(e) => setTournamentStage(e.target.value)}
+                className="ml-2 bg-transparent font-bold text-white uppercase cursor-pointer"
+                title="Tournament stage"
+              >
+                <option value="early" className="text-black">EARLY</option>
+                <option value="middle" className="text-black">MIDDLE</option>
+                <option value="bubble" className="text-black">BUBBLE</option>
+                <option value="itm" className="text-black">ITM</option>
+                <option value="ft" className="text-black">FT</option>
+              </select>
+            )}
           </span>
           <span className="bg-slate-800 rounded px-2 py-1">
             Position: <span className="font-bold text-white">{position}</span>
@@ -928,6 +976,43 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
                 <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
                   <div className="text-[9px] text-white/60 uppercase">OCR Label</div>
                   <div className="text-sm font-bold">{pokerBrosHandLabel}</div>
+                </div>
+              )}
+              {/* Hi-Lo: high/low equity split */}
+              {decision.isHiLo && typeof decision.highEquity === 'number' && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">Hi / Lo</div>
+                  <div className="text-sm font-bold">
+                    {Math.round(decision.highEquity)}% / {Math.round(decision.lowEquity || 0)}%
+                  </div>
+                </div>
+              )}
+              {/* Tournament: BB stack + M ratio */}
+              {decision.isTournament && typeof decision.bbStack === 'number' && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">BB / M</div>
+                  <div className="text-sm font-bold">
+                    {decision.bbStack}bb{typeof decision.mRatio === 'number' ? ` / M${decision.mRatio}` : ''}
+                  </div>
+                </div>
+              )}
+              {/* Tournament: bubble factor */}
+              {decision.isTournament && typeof decision.bubbleFactor === 'number' && decision.bubbleFactor > 1.0 && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">ICM</div>
+                  <div className="text-sm font-bold">{decision.bubbleFactor.toFixed(2)}x</div>
+                </div>
+              )}
+              {/* Tournament: push-fold hint */}
+              {decision.pushFoldHint && (
+                <div className={
+                  'rounded-lg px-2.5 py-1.5 ' +
+                  (decision.pushFoldHint.inRange ? 'bg-emerald-900/50' : 'bg-rose-900/50')
+                }>
+                  <div className="text-[9px] text-white/60 uppercase">Push/Fold</div>
+                  <div className="text-sm font-bold">
+                    {decision.pushFoldHint.handCode} — {decision.pushFoldHint.inRange ? 'SHOVE' : 'FOLD'}
+                  </div>
                 </div>
               )}
             </div>
