@@ -1088,15 +1088,15 @@ export default async function handler(req, res) {
                       charityIds.length > 0
                           ? getSupabase()
                               .from('venue_daily_tournaments')
-                              // BUG-1 FIX: include start_time and buy_in so cards can display time + buy-in
-                              .select('venue_id, venue_name, day_of_week, start_time, buy_in')
+                              // Include all display fields: name, buy_in, starting_stack, start_time
+                              .select('venue_id, venue_name, day_of_week, start_time, buy_in, tournament_name, starting_stack')
                               .in('venue_id', charityIds)
                               .eq('is_active', true)
                           : Promise.resolve({ data: [] }),
                       charityNames.length > 0
                           ? getSupabase()
                               .from('venue_daily_tournaments')
-                              .select('venue_id, venue_name, day_of_week, start_time, buy_in')
+                              .select('venue_id, venue_name, day_of_week, start_time, buy_in, tournament_name, starting_stack')
                               .is('venue_id', null)
                               .in('venue_name', charityNames)
                               .eq('is_active', true)
@@ -1140,43 +1140,60 @@ export default async function handler(req, res) {
                           const hasTours = toursByVenue[v.id] || toursByVenue[v.name] || [];
                           if (hasTours.length === 0) return; 
                           
-                          const todayTour = hasTours.find(t => t.day_of_week.toLowerCase() === todayStr);
-                          if (todayTour) {
+                          // Collect ALL tournaments for today (not just the first)
+                          const todayTours = hasTours.filter(t => t.day_of_week.toLowerCase() === todayStr);
+                          if (todayTours.length > 0) {
                               v.is_today = true;
                               v.next_event = null;
                               v.has_tournaments = true;
-                              // Enrich is_today with schedule detail for the card
+                              // Primary today_event uses the first tournament
+                              const todayTour = todayTours[0];
                               v.today_event = {
                                   start_time: todayTour.start_time || (v.today_event?.door_open_time) || null,
                                   door_open_time: v.today_event?.door_open_time || null,
                                   tournament_name: todayTour.tournament_name || todayTour.name || null,
-                                  buy_in: todayTour.buy_in || null,
+                                  buy_in: todayTour.buy_in != null ? todayTour.buy_in : (v.today_event?.buy_in || null),
                                   location: v.today_event?.location || v.city || 'Local Area',
                                   address: v.address || null,
                                   state: v.today_event?.state || v.state || null,
                                   starting_stack: todayTour.starting_stack || null,
                               };
+                              // Expose ALL today tournaments (up to 3) for multi-event display
+                              v.today_tournaments = todayTours.slice(0, 3).map(t => ({
+                                  start_time: t.start_time || null,
+                                  tournament_name: t.tournament_name || t.name || null,
+                                  buy_in: t.buy_in != null ? t.buy_in : null,
+                                  starting_stack: t.starting_stack || null,
+                              }));
                           } else {
                               v.is_today = false;
                               v.has_tournaments = true;
-                              // Find closest next day — include schedule detail
+                              // Find closest next day — collect ALL tournaments for that day
                               for (let i = 1; i <= 7; i++) {
                                   const nextIdx = (todayIdx + i) % 7;
                                   const nextDayStr = DAYS[nextIdx];
-                                  const nextTour = hasTours.find(t => t.day_of_week.toLowerCase() === nextDayStr);
-                                  if (nextTour) {
+                                  const nextDayTours = hasTours.filter(t => t.day_of_week.toLowerCase() === nextDayStr);
+                                  if (nextDayTours.length > 0) {
+                                      const nextTour = nextDayTours[0];
                                       v.next_event = {
                                           day: nextTour.day_of_week,
                                           days_away: i,
                                           start_time: nextTour.start_time || (v.next_event?.door_open_time) || null,
                                           door_open_time: v.next_event?.door_open_time || null,
                                           tournament_name: nextTour.tournament_name || nextTour.name || null,
-                                          buy_in: nextTour.buy_in || null,
+                                          buy_in: nextTour.buy_in != null ? nextTour.buy_in : null,
                                           location: v.next_event?.location || v.city || 'Local Area',
                                           address: v.address || null,
                                           state: v.next_event?.state || v.state || null,
                                           starting_stack: nextTour.starting_stack || null,
                                       };
+                                      // Expose ALL tournaments for that day (up to 3)
+                                      v.next_tournaments = nextDayTours.slice(0, 3).map(t => ({
+                                          start_time: t.start_time || null,
+                                          tournament_name: t.tournament_name || t.name || null,
+                                          buy_in: t.buy_in != null ? t.buy_in : null,
+                                          starting_stack: t.starting_stack || null,
+                                      }));
                                       break;
                                   }
                               }

@@ -167,10 +167,10 @@ function buildCharityEventBlock(venue) {
                 </div>
                 <div className="vc3-charity-date-big">Today</div>
                 {addr ? <div className="vc3-charity-addr">{addr}</div> : null}
-                {timeStr ? (
+                {timeStr || (te.buy_in != null && Number(te.buy_in) > 0) ? (
                     <div className="vc3-charity-meta">
                         {timeStr}
-                        {te.buy_in > 0 ? <><span className="vc3-charity-sep">·</span>${te.buy_in} Buy-In</> : null}
+                        {te.buy_in != null && Number(te.buy_in) > 0 ? <><span className="vc3-charity-sep">·</span>${te.buy_in} Buy-In</> : null}
                     </div>
                 ) : null}
             </div>
@@ -211,10 +211,10 @@ function buildCharityEventBlock(venue) {
                         {dateLabel}
                     </div>
                 ) : null}
-                {timeStr ? (
+                {timeStr || (ne.buy_in != null && Number(ne.buy_in) > 0) ? (
                     <div className="vc3-charity-meta">
                         {timeStr}
-                        {ne.buy_in > 0 ? <><span className="vc3-charity-sep">·</span>${ne.buy_in} Buy-In</> : null}
+                        {ne.buy_in != null && Number(ne.buy_in) > 0 ? <><span className="vc3-charity-sep">·</span>${ne.buy_in} Buy-In</> : null}
                     </div>
                 ) : null}
             </div>
@@ -751,55 +751,62 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
 
                                 {charityToday ? (
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
-                                        <div className="vc3-list-item vc3-tourney-item">
-                                            <div className="vc3-tourney-name">{venue.today_event.tournament_name || (venue.today_event.buy_in ? `$${venue.today_event.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
-                                            <div className="vc3-tourney-details">
-                                                <span className="vc3-tourney-time">{formatTime(venue.today_event.start_time) || 'Time TBD'}</span>
-                                                <span className="vc3-tourney-buyin">{venue.today_event.buy_in != null && String(venue.today_event.buy_in) !== '0' ? `$${venue.today_event.buy_in} Buy-In` : 'Free / TBD'}</span>
-                                            </div>
-                                            {venue.today_event.starting_stack != null && String(venue.today_event.starting_stack) !== '0' && String(venue.today_event.starting_stack) !== 'N/A' && (
-                                                <div className="vc3-tourney-stack">{venue.today_event.starting_stack} Starting Stack</div>
-                                            )}
-                                            <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
-                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" style={{ flexShrink: 0 }}>
-                                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                                                </svg>
-                                                <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Today</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : charityUpcoming ? (
-                                    /* Charity with upcoming (not today) event */
-                                    <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
-                                        <div className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
-                                            <div className="vc3-tourney-name">{venue.next_event.tournament_name || (venue.next_event.buy_in ? `$${venue.next_event.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
-                                            <div className="vc3-tourney-details">
-                                                <span className="vc3-tourney-time">{formatTime(venue.next_event.start_time) || 'Time TBD'}</span>
-                                                <span className="vc3-tourney-buyin">{venue.next_event.buy_in != null && String(venue.next_event.buy_in) !== '0' ? `$${venue.next_event.buy_in} Buy-In` : 'Free / TBD'}</span>
-                                            </div>
-                                            {venue.next_event.starting_stack != null && String(venue.next_event.starting_stack) !== '0' && String(venue.next_event.starting_stack) !== 'N/A' && (
-                                                <div className="vc3-tourney-stack">{venue.next_event.starting_stack} Starting Stack</div>
-                                            )}
-                                            {/* Next event date */}
-                                            {(() => {
-                                                const ne = venue.next_event;
-                                                const daysAway = ne.days_away;
-                                                let dateStr = ne.day ? (ne.day.charAt(0).toUpperCase() + ne.day.slice(1)) : 'Upcoming';
-                                                if (daysAway != null) {
-                                                    const d = new Date();
-                                                    d.setDate(d.getDate() + daysAway);
-                                                    dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                                                }
-                                                return (
+                                        {/* Show multiple today tournaments if available, otherwise single today_event */}
+                                        {(Array.isArray(venue.today_tournaments) && venue.today_tournaments.length > 1 ? venue.today_tournaments : [venue.today_event]).map((evt, tIdx) => (
+                                            <div key={tIdx} className="vc3-list-item vc3-tourney-item">
+                                                <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
+                                                <div className="vc3-tourney-details">
+                                                    <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
+                                                    <span className="vc3-tourney-buyin">{evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
+                                                </div>
+                                                {evt.starting_stack != null && String(evt.starting_stack) !== '0' && String(evt.starting_stack) !== 'N/A' && (
+                                                    <div className="vc3-tourney-stack">{evt.starting_stack} Starting Stack</div>
+                                                )}
+                                                {tIdx === 0 && (
                                                     <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                                                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                                                         </svg>
-                                                        <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>NEXT EVENT: {dateStr}</span>
+                                                        <span style={{ color: '#4ade80', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Today</span>
                                                     </div>
-                                                );
-                                            })()}
-                                        </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : charityUpcoming ? (
+                                    /* Charity with upcoming (not today) event — show multiple if available */
+                                    <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
+                                        {(Array.isArray(venue.next_tournaments) && venue.next_tournaments.length > 1 ? venue.next_tournaments : [venue.next_event]).map((evt, tIdx) => (
+                                            <div key={tIdx} className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
+                                                <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
+                                                <div className="vc3-tourney-details">
+                                                    <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
+                                                    <span className="vc3-tourney-buyin">{evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
+                                                </div>
+                                                {evt.starting_stack != null && String(evt.starting_stack) !== '0' && String(evt.starting_stack) !== 'N/A' && (
+                                                    <div className="vc3-tourney-stack">{evt.starting_stack} Starting Stack</div>
+                                                )}
+                                                {/* Date badge only on first item */}
+                                                {tIdx === 0 && (() => {
+                                                    const ne = venue.next_event;
+                                                    const daysAway = ne.days_away;
+                                                    let dateStr = ne.day ? (ne.day.charAt(0).toUpperCase() + ne.day.slice(1)) : 'Upcoming';
+                                                    if (daysAway != null) {
+                                                        const d = new Date();
+                                                        d.setDate(d.getDate() + daysAway);
+                                                        dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                                                    }
+                                                    return (
+                                                        <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                                            </svg>
+                                                            <span style={{ color: '#60a5fa', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>NEXT EVENT: {dateStr}</span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : hasRegularToday ? (
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
@@ -810,7 +817,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                     <div className="vc3-tourney-name" title={tName}>{tName}</div>
                                                     <div className="vc3-tourney-details">
                                                         <span className="vc3-tourney-time">{formatTime(t?.start_time) || 'Time TBD'}</span>
-                                                        <span className="vc3-tourney-buyin">{t?.buy_in != null && String(t.buy_in) !== 'N/A' && String(t.buy_in) !== '0' ? `$${t.buy_in} Buy-In` : 'Free / TBD'}</span>
+                                                        <span className="vc3-tourney-buyin">{t?.buy_in != null && Number(t.buy_in) > 0 ? `$${t.buy_in} Buy-In` : (t?.buy_in != null && String(t.buy_in) !== 'N/A' && Number(t.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
                                                         {t?.guaranteed != null && String(t.guaranteed) !== '0' && String(t.guaranteed) !== 'N/A' ? <span className="vc3-tourney-gtd">{t.guaranteed} GTD</span> : null}
                                                     </div>
                                                     {t?.starting_stack != null && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' && (
