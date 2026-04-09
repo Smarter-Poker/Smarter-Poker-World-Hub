@@ -304,6 +304,16 @@ module.exports = {
     getPLO6MultiwayStrategy: plo6Brain.getPLO6MultiwayStrategy,
     getPLO6BetSize: plo6Brain.getPLO6BetSize,
     getPLO6EquityRealization: plo6Brain.getPLO6EquityRealization,
+
+    // PLO6 Advanced Strategy
+    getPLO6NutAdvantage: plo6Brain.getPLO6NutAdvantage,
+    getPLO6DeepStackNavigation: plo6Brain.getPLO6DeepStackNavigation,
+    getPLO6StreetPlanner: plo6Brain.getPLO6StreetPlanner,
+    getPLO6PotGeometry: plo6Brain.getPLO6PotGeometry,
+    analyzePLO6BoardRunout: plo6Brain.analyzePLO6BoardRunout,
+    getPLO6ThinValue: plo6Brain.getPLO6ThinValue,
+    getPLO6ExploitAdjustment: plo6Brain.getPLO6ExploitAdjustment,
+
     makePLO6Decision: plo6Brain.makePLO6Decision,
 
     // ═══════════════════════════════════════════════════════════════════════

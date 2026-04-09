@@ -914,10 +914,33 @@ function getPLO6BetSize(street, action, potSize, strength, opts = {}) {
  * @param {number} numPlayers - Active players
  * @returns {number} Adjusted equity realization factor (0-1)
  */
-function getPLO6EquityRealization(baseEquity, position, numPlayers) {
-    const baseER = getPLOEquityRealization(baseEquity, position, numPlayers);
+function getPLO6EquityRealization(baseEquity, position, numPlayers, opts = {}) {
+    // Map PLO6-friendly params to plo-core's actual signature:
+    // getPLOEquityRealization(isIP, sprZone, straightOuts, flushOuts, isNutMade, numPlayers)
+    const ipPositions = ['BTN', 'CO', 'HJ'];
+    const isIP = ipPositions.includes(position);
+    const sprZone = opts.sprZone || 'medium';
+    const straightOuts = opts.straightOuts || 0;
+    const flushOuts = opts.flushOuts || 0;
+    const isNutMade = opts.isNutMade || false;
+
+    const baseER = getPLOEquityRealization(isIP, sprZone, straightOuts, flushOuts, isNutMade, numPlayers);
+
     // PLO6 bonus: +12% equity realization (most of any variant)
-    return Math.min(1.0, baseER + 0.12);
+    // With 6 hole cards, players realize more equity because they hit more draws
+    const plo6Bonus = 0.12;
+
+    // Position penalty for early positions (more players to act behind)
+    let positionAdj = 0;
+    if (position === 'UTG' || position === 'UTG+1') positionAdj = -0.08;
+    else if (position === 'MP' || position === 'LJ') positionAdj = -0.04;
+    else if (position === 'SB') positionAdj = -0.06;
+    else if (position === 'BB') positionAdj = -0.03; // BB gets to close action
+
+    // Multiway penalty (more opponents = harder to realize equity)
+    const multiwayAdj = numPlayers > 3 ? -0.05 * (numPlayers - 3) : 0;
+
+    return Math.max(0.40, Math.min(1.0, baseER + plo6Bonus + positionAdj + multiwayAdj));
 }
 
 // ======================================================================
@@ -1755,6 +1778,719 @@ function getPLO6MultiwayStrategy(madeStrength, drawInfo, numPlayers, isIP, potSi
 }
 
 // ======================================================================
+// PLO6 ADVANCED STRATEGY: NUT ADVANTAGE ASSESSMENT
+// ======================================================================
+
+/**
+ * Assess which player has the range nut advantage on this board.
+ *
+ * In PLO6, nut advantage is even MORE polarized than PLO4:
+ *   - Pre-flop raiser has nut advantage on A-high, K-high dry boards
+ *   - Caller has nut advantage on coordinated middling boards (6-7-8-9 textures)
+ *   - PLO6 hands connect with EVERY board, so "range advantage" is more about
+ *     NUT density — who has more nut combos, not just "who connected"
+ *   - 6 cards = 15 two-card combos = MUCH higher nut density for both sides
+ *
+ * @param {boolean} wasPreAggressor - Were we the preflop raiser?
+ * @param {string[]} boardCards - Community cards
+ * @param {string} street - 'flop', 'turn', 'river'
+ * @param {Object} boardTexture - From analyzePLOBoardTexture
+ * @param {Object} madeHand - From evaluatePLOMadeHand
+ * @returns {Object} Nut advantage assessment
+ */
+function getPLO6NutAdvantage(wasPreAggressor, boardCards, street, boardTexture, madeHand) {
+    if (!boardCards || boardCards.length < 3) {
+        return { nutAdvantage: 'neutral', confidence: 0.3, advice: 'no-board', bettingFreqMod: 0, sizingMod: 0 };
+    }
+
+    const wetness = boardTexture?.wetness || 50;
+    const highCards = (boardCards || []).filter(c => {
+        const r = c.charAt(0);
+        return 'AKQJ'.includes(r) || r === 'T';
+    }).length;
+    const pairedBoard = boardTexture?.isPaired || false;
+
+    let advantage = 'neutral';
+    let confidence = 0.40;
+    let bettingFreqMod = 0;
+    let sizingMod = 0;
+    let advice = 'standard';
+
+    if (wasPreAggressor) {
+        // PFR has nut advantage on:
+        // 1. A-high and K-high DRY boards (limpers don't have premium pairs as often)
+        if (highCards >= 2 && wetness < 40) {
+            advantage = 'hero';
+            confidence = 0.65;
+            bettingFreqMod = +15; // c-bet more often
+            sizingMod = -0.05; // Smaller sizing (can use wider range)
+            advice = 'high-dry-board-cbet-wide';
+        }
+        // 2. Paired boards (limpers have fewer overpairs)
+        else if (pairedBoard && wetness < 50) {
+            advantage = 'hero';
+            confidence = 0.55;
+            bettingFreqMod = +10;
+            sizingMod = 0;
+            advice = 'paired-board-cbet-selectively';
+        }
+        // 3. Low wet boards — CALLER advantage (they have more suited connectors)
+        else if (highCards === 0 && wetness >= 60) {
+            advantage = 'villain';
+            confidence = 0.60;
+            bettingFreqMod = -20; // c-bet LESS
+            sizingMod = +0.10; // When you do bet, bet bigger (polarized)
+            advice = 'low-wet-board-check-or-polarize';
+        }
+    } else {
+        // Caller has nut advantage on:
+        // 1. Low/medium coordinated boards (this is where 6-card hands shine)
+        if (highCards <= 1 && wetness >= 50) {
+            advantage = 'hero';
+            confidence = 0.55;
+            bettingFreqMod = +10; // Can lead/raise more
+            sizingMod = 0;
+            advice = 'coordinated-board-donk-or-checkraise';
+        }
+        // 2. Monotone/two-tone low boards
+        else if (wetness >= 70 && highCards <= 1) {
+            advantage = 'hero';
+            confidence = 0.65;
+            bettingFreqMod = +15;
+            sizingMod = 0;
+            advice = 'wet-low-board-strong-advantage';
+        }
+        // 3. High dry boards — PFR advantage, be cautious
+        else if (highCards >= 2 && wetness < 40) {
+            advantage = 'villain';
+            confidence = 0.55;
+            bettingFreqMod = -15;
+            sizingMod = 0;
+            advice = 'high-dry-board-defer-to-raiser';
+        }
+    }
+
+    // Street adjustments: advantage diminishes as more cards come
+    if (street === 'turn') confidence *= 0.85;
+    if (street === 'river') confidence *= 0.70;
+
+    return { nutAdvantage: advantage, confidence, advice, bettingFreqMod, sizingMod };
+}
+
+// ======================================================================
+// PLO6 ADVANCED STRATEGY: DEEP STACK NAVIGATION
+// ======================================================================
+
+/**
+ * Navigate deep-stack play in PLO6.
+ *
+ * Deep stacks in PLO6 are TREACHEROUS because:
+ *   - With 6 cards everyone makes nutted hands, so paying off is common
+ *   - SPR > 10 means you should NEVER stack off without the absolute nuts
+ *   - Implied odds are MASSIVE (6 cards = hit more turns/rivers)
+ *   - But reverse implied odds are equally massive (opponent also has 6 cards)
+ *
+ * Strategy by SPR zone:
+ *   SPR < 3:   Committed zone — top pair+ goes in, draw equity is huge
+ *   SPR 3-6:   Decision zone — need top set+ or nut draw to stack off
+ *   SPR 6-10:  Caution zone — only nut hands commit, draws need to be massive
+ *   SPR > 10:  Deep zone — pot control everything, only nuts commit
+ *
+ * @param {number} stackBB - Effective stack in BB
+ * @param {number} spr - Stack-to-pot ratio
+ * @param {number} madeStrength - Made hand strength (0-100)
+ * @param {number} totalOuts - Total draw outs
+ * @param {boolean} isNutDraw - Is this a nut draw?
+ * @param {boolean} isIP - In position?
+ * @param {string} street - Current street
+ * @param {Object} boardTexture - Board texture info
+ * @returns {Object} Deep stack navigation advice
+ */
+function getPLO6DeepStackNavigation(stackBB, spr, madeStrength, totalOuts, isNutDraw, isIP, street, boardTexture) {
+    const wetness = boardTexture?.wetness || 50;
+
+    // SPR < 3: Committed — play fast
+    if (spr < 3) {
+        if (madeStrength >= 60 || totalOuts >= 12) {
+            return {
+                deepStackAction: 'value-max',
+                maxCommitFraction: 1.0,
+                sizingAdvice: 'go-for-stacks',
+                impliedOddsBonus: 0,
+                reasoning: 'committed-spr-get-it-in',
+            };
+        }
+        return {
+            deepStackAction: 'standard',
+            maxCommitFraction: 0.5,
+            sizingAdvice: 'standard-sizing',
+            impliedOddsBonus: 0,
+            reasoning: 'committed-spr-but-weak',
+        };
+    }
+
+    // SPR 3-6: Decision zone
+    if (spr < 6) {
+        if (madeStrength >= 82 || (isNutDraw && totalOuts >= 15)) {
+            return {
+                deepStackAction: 'value-max',
+                maxCommitFraction: 1.0,
+                sizingAdvice: 'build-pot-to-commit',
+                impliedOddsBonus: 0.05,
+                reasoning: 'decision-spr-strong-enough',
+            };
+        }
+        if (madeStrength >= 60) {
+            return {
+                deepStackAction: 'pot-control',
+                maxCommitFraction: 0.60,
+                sizingAdvice: 'medium-bets-only',
+                impliedOddsBonus: 0.03,
+                reasoning: 'decision-spr-pot-control',
+            };
+        }
+        return {
+            deepStackAction: 'fold-medium',
+            maxCommitFraction: 0.25,
+            sizingAdvice: 'fold-to-pressure',
+            impliedOddsBonus: 0,
+            reasoning: 'decision-spr-too-weak',
+        };
+    }
+
+    // SPR 6-10: Caution zone
+    if (spr < 10) {
+        if (madeStrength >= 88) {
+            return {
+                deepStackAction: 'value-max',
+                maxCommitFraction: 1.0,
+                sizingAdvice: 'build-pot-slowly',
+                impliedOddsBonus: 0.10,
+                reasoning: 'caution-spr-nut-hand-commit',
+            };
+        }
+        if (isNutDraw && totalOuts >= 18) {
+            return {
+                deepStackAction: 'draw-invest',
+                maxCommitFraction: 0.75,
+                sizingAdvice: 'invest-in-draw',
+                impliedOddsBonus: 0.15,
+                reasoning: 'caution-spr-monster-draw-invest',
+            };
+        }
+        if (madeStrength >= 70 && isIP) {
+            return {
+                deepStackAction: 'pot-control',
+                maxCommitFraction: 0.50,
+                sizingAdvice: 'control-ip',
+                impliedOddsBonus: 0.05,
+                reasoning: 'caution-spr-strong-pot-control',
+            };
+        }
+        return {
+            deepStackAction: 'fold-medium',
+            maxCommitFraction: 0.30,
+            sizingAdvice: 'small-or-fold',
+            impliedOddsBonus: 0,
+            reasoning: 'caution-spr-not-committed',
+        };
+    }
+
+    // SPR > 10: Deep zone — pot control everything
+    if (madeStrength >= 92) {
+        return {
+            deepStackAction: 'slow-play',
+            maxCommitFraction: 0.80,
+            sizingAdvice: 'trap-then-raise',
+            impliedOddsBonus: 0.20,
+            reasoning: 'deep-spr-slow-play-monster',
+        };
+    }
+    if (isNutDraw && totalOuts >= 20) {
+        return {
+            deepStackAction: 'draw-invest',
+            maxCommitFraction: 0.60,
+            sizingAdvice: 'invest-cautiously',
+            impliedOddsBonus: 0.25,
+            reasoning: 'deep-spr-massive-draw',
+        };
+    }
+    if (madeStrength >= 70 && isIP) {
+        return {
+            deepStackAction: 'pot-control',
+            maxCommitFraction: 0.35,
+            sizingAdvice: 'small-bets-position',
+            impliedOddsBonus: 0.08,
+            reasoning: 'deep-spr-pot-control-ip',
+        };
+    }
+    return {
+        deepStackAction: 'fold-medium',
+        maxCommitFraction: 0.20,
+        sizingAdvice: 'avoid-big-pots',
+        impliedOddsBonus: 0,
+        reasoning: 'deep-spr-default-caution',
+    };
+}
+
+// ======================================================================
+// PLO6 ADVANCED STRATEGY: STREET PLANNING
+// ======================================================================
+
+/**
+ * Plan multi-street strategy for PLO6.
+ *
+ * PLO6 requires thinking 2-3 streets ahead because:
+ *   - You invest on the flop knowing what turns help/hurt
+ *   - You barrel the turn knowing what river cards are good/bad
+ *   - Commitment levels cascade: a flop bet of 50% pot + turn 65% pot = committed
+ *
+ * This function generates a PLAN, not a single action.
+ *
+ * @param {number} madeStrength - Current made hand strength
+ * @param {number} totalOuts - Draw outs
+ * @param {Object} boardTexture - Board texture
+ * @param {string} street - Current street
+ * @param {boolean} isIP - In position?
+ * @param {number} stackBB - Effective stack
+ * @param {number} potSize - Current pot
+ * @param {boolean} wasAggressor - Were we the aggressor?
+ * @returns {Object} Multi-street plan
+ */
+function getPLO6StreetPlanner(madeStrength, totalOuts, boardTexture, street, isIP, stackBB, potSize, wasAggressor) {
+    const wetness = boardTexture?.wetness || 50;
+
+    // Identify good and bad turn cards based on current board texture
+    let goodTurnCards = [];
+    let badTurnCards = [];
+
+    if (madeStrength >= 70) {
+        // Strong made hand: bad turns are cards that complete draws
+        badTurnCards = ['flush-completing', 'straight-completing', 'board-pairing-below'];
+        goodTurnCards = ['brick', 'card-that-pairs-our-hand'];
+    } else if (totalOuts >= 12) {
+        // Drawing hand: good turns complete our draws
+        goodTurnCards = ['flush-completing', 'straight-completing', 'nut-improving'];
+        badTurnCards = ['brick', 'board-pairing', 'counterfeit'];
+    }
+
+    // Default plan
+    let plan = {
+        turnPlan: 'evaluate',
+        riverPlan: 'evaluate',
+        shouldBarrelTurn: false,
+        shouldFireRiver: false,
+        commitLevel: 'uncommitted',
+        goodTurnCards,
+        badTurnCards,
+        reasoning: 'default-evaluate',
+    };
+
+    // ---- NUT HANDS: Triple-barrel plan ----
+    if (madeStrength >= 88) {
+        plan.turnPlan = 'bet-value-65pct';
+        plan.riverPlan = 'bet-value-80pct';
+        plan.shouldBarrelTurn = true;
+        plan.shouldFireRiver = true;
+        plan.commitLevel = 'fully-committed';
+        plan.reasoning = 'nut-hand-triple-barrel';
+        return plan;
+    }
+
+    // ---- MONSTER DRAWS: Semi-bluff barrel plan ----
+    if (totalOuts >= 18 && street === 'flop') {
+        plan.turnPlan = 'barrel-if-good-card-check-if-bad';
+        plan.riverPlan = 'value-if-hit-bluff-if-blocker';
+        plan.shouldBarrelTurn = true;
+        plan.shouldFireRiver = false; // Only if hit or have blocker
+        plan.commitLevel = 'conditional-commit';
+        plan.reasoning = 'monster-draw-barrel-plan';
+        return plan;
+    }
+
+    // ---- STRONG MADE (70-87): Value + protection barrel ----
+    if (madeStrength >= 70 && madeStrength < 88) {
+        if (wasAggressor) {
+            plan.turnPlan = wetness >= 50 ? 'bet-protection-55pct' : 'check-ip-or-bet-small';
+            plan.riverPlan = madeStrength >= 80 ? 'thin-value-50pct' : 'check-evaluate';
+            plan.shouldBarrelTurn = wetness >= 50; // Only barrel wet boards
+            plan.shouldFireRiver = madeStrength >= 80;
+            plan.commitLevel = madeStrength >= 80 ? 'mostly-committed' : 'pot-control';
+            plan.reasoning = 'strong-made-protection-barrel';
+        } else {
+            // Not aggressor: check-raise or bet small
+            plan.turnPlan = isIP ? 'bet-small-40pct' : 'check-raise-if-bet';
+            plan.riverPlan = 'value-if-ahead-fold-if-behind';
+            plan.shouldBarrelTurn = isIP;
+            plan.shouldFireRiver = false;
+            plan.commitLevel = 'pot-control';
+            plan.reasoning = 'strong-made-not-aggressor';
+        }
+        return plan;
+    }
+
+    // ---- MEDIUM DRAWS (10-17 outs): Selective barrel ----
+    if (totalOuts >= 10 && totalOuts < 18 && street === 'flop') {
+        plan.turnPlan = 'barrel-if-improved-check-if-not';
+        plan.riverPlan = 'give-up-unless-hit';
+        plan.shouldBarrelTurn = false; // Only if improved
+        plan.shouldFireRiver = false;
+        plan.commitLevel = 'only-if-hit';
+        plan.reasoning = 'medium-draw-selective';
+        return plan;
+    }
+
+    // ---- MARGINAL HANDS: Pot control ----
+    if (madeStrength >= 45 && madeStrength < 70) {
+        plan.turnPlan = isIP ? 'check-behind' : 'check-call-small';
+        plan.riverPlan = 'showdown-or-fold';
+        plan.shouldBarrelTurn = false;
+        plan.shouldFireRiver = false;
+        plan.commitLevel = 'never-commit';
+        plan.reasoning = 'marginal-pot-control';
+        return plan;
+    }
+
+    // ---- TRASH/WEAK: Give up ----
+    plan.turnPlan = 'give-up';
+    plan.riverPlan = 'give-up';
+    plan.commitLevel = 'never';
+    plan.reasoning = 'trash-give-up';
+    return plan;
+}
+
+// ======================================================================
+// PLO6 ADVANCED STRATEGY: POT GEOMETRY CALCULATOR
+// ======================================================================
+
+/**
+ * Calculate pot geometry for PLO6 bet planning.
+ *
+ * Pot geometry answers: "If I bet X% pot on each remaining street,
+ * how much of my stack am I committing?"
+ *
+ * In PLO6 (pot-limit), this is critical because:
+ *   - Max bet = pot size (pot-limit cap)
+ *   - A 60% pot bet on flop + 65% turn = ~50% of a 100BB stack committed
+ *   - Once committed > 40% of stack, folding is mathematically incorrect
+ *   - PLO6 pots escalate FASTER because more players see flops
+ *
+ * @param {number} potSize - Current pot
+ * @param {number} heroStack - Hero's remaining stack
+ * @param {string} street - Current street
+ * @param {number} betFraction - Planned bet fraction (0-1)
+ * @returns {Object} Pot geometry analysis
+ */
+function getPLO6PotGeometry(potSize, heroStack, street, betFraction) {
+    if (!potSize || !heroStack || heroStack <= 0) {
+        return {
+            potAfterBet: potSize || 0,
+            potAfterTwoBets: potSize || 0,
+            potAfterThreeBets: potSize || 0,
+            totalCommitment: 0,
+            sprAfterBet: 999,
+            isOvercommitting: false,
+            optimalFraction: 0.45,
+            geometryAdvice: 'no-stack-info',
+        };
+    }
+
+    // Cap bet fraction at 1.0 (pot-limit)
+    const bf = Math.min(1.0, Math.max(0.1, betFraction));
+
+    // Street 1: Our bet
+    const bet1 = Math.round(potSize * bf);
+    const potAfterBet = potSize + bet1 * 2; // Assuming call
+    const stackAfter1 = heroStack - bet1;
+
+    // Street 2: Another bet at same fraction
+    const bet2 = Math.round(potAfterBet * bf);
+    const potAfterTwoBets = potAfterBet + bet2 * 2;
+    const stackAfter2 = stackAfter1 - bet2;
+
+    // Street 3: Final bet
+    const bet3 = Math.round(potAfterTwoBets * bf);
+    const potAfterThreeBets = potAfterTwoBets + bet3 * 2;
+
+    const totalCommitment = bet1 + bet2 + bet3;
+    const commitmentPct = totalCommitment / heroStack;
+    const sprAfterBet = stackAfter1 > 0 ? stackAfter1 / potAfterBet : 0;
+
+    // Overcommitting = investing > 40% of stack in a pot where we're not nutted
+    const isOvercommitting = commitmentPct > 0.40;
+
+    // Calculate optimal bet fraction to jam by river
+    // Solve: stack = pot * bf * (1 + 2bf)^(streets-1) approximately
+    const streetsLeft = street === 'flop' ? 3 : (street === 'turn' ? 2 : 1);
+    let optimalFraction = 0.45;
+    if (streetsLeft >= 2 && heroStack > 0) {
+        // Binary search for fraction that commits full stack over remaining streets
+        let lo = 0.20, hi = 1.0;
+        for (let i = 0; i < 15; i++) {
+            const mid = (lo + hi) / 2;
+            let simPot = potSize;
+            let simStack = heroStack;
+            for (let s = 0; s < streetsLeft; s++) {
+                const simBet = Math.round(simPot * mid);
+                simStack -= simBet;
+                simPot += simBet * 2;
+            }
+            if (simStack > 0) lo = mid;
+            else hi = mid;
+        }
+        optimalFraction = Math.min(1.0, Math.round((lo + hi) / 2 * 100) / 100);
+    }
+
+    let geometryAdvice = 'standard-sizing';
+    if (commitmentPct > 0.70) geometryAdvice = 'already-committed-ship-it';
+    else if (commitmentPct > 0.40) geometryAdvice = 'approaching-commitment-decide-now';
+    else if (sprAfterBet < 2) geometryAdvice = 'spr-too-low-after-bet-commit-or-fold';
+
+    return {
+        potAfterBet,
+        potAfterTwoBets,
+        potAfterThreeBets,
+        totalCommitment,
+        sprAfterBet: Math.round(sprAfterBet * 100) / 100,
+        isOvercommitting,
+        optimalFraction,
+        geometryAdvice,
+    };
+}
+
+// ======================================================================
+// PLO6 ADVANCED STRATEGY: BOARD RUNOUT PREDICTION
+// ======================================================================
+
+/**
+ * Predict how board runouts affect PLO6 hand value.
+ *
+ * In PLO6, reading the board is MORE important than reading opponent ranges
+ * because everyone has 15 two-card combos. Instead of asking "what does
+ * opponent have?", ask "what does the BOARD tell us?"
+ *
+ * Board runout categories:
+ *   SAFE:    Doesn't complete any major draws (bricks)
+ *   DANGER:  Completes flush or straight draws
+ *   PAIRED:  Changes set/full house dynamics
+ *   MONOTONE: Creates 4-flush or 4-straight boards
+ *
+ * @param {string[]} boardCards - Current board cards
+ * @param {number} madeStrength - Current made hand strength
+ * @param {boolean} hasFlushDraw - Do we have a flush draw?
+ * @param {boolean} hasStraightDraw - Do we have a straight draw?
+ * @returns {Object} Board runout analysis
+ */
+function analyzePLO6BoardRunout(boardCards, madeStrength, hasFlushDraw, hasStraightDraw) {
+    if (!boardCards || boardCards.length < 3) {
+        return { dangerLevel: 'unknown', safeRunouts: 0, dangerRunouts: 0, advice: 'no-board' };
+    }
+
+    // Count board suits
+    const suitCounts = {};
+    const rankValues = [];
+    boardCards.forEach(c => {
+        const suit = c.charAt(c.length - 1);
+        suitCounts[suit] = (suitCounts[suit] || 0) + 1;
+        const r = c.charAt(0);
+        const val = 'A' === r ? 14 : 'K' === r ? 13 : 'Q' === r ? 12 : 'J' === r ? 11 : 'T' === r ? 10 : parseInt(r);
+        rankValues.push(val);
+    });
+
+    const maxSuitCount = Math.max(...Object.values(suitCounts));
+    const ranksSorted = [...rankValues].sort((a, b) => a - b);
+    const hasGaps = ranksSorted.some((v, i) => i > 0 && v - ranksSorted[i - 1] <= 2);
+
+    // Estimate safe vs danger runouts
+    let safeRunouts = 0;
+    let dangerRunouts = 0;
+
+    // For each possible next card category:
+    // - Flush completing (3rd or 4th of a suit): DANGER if we don't have it
+    if (maxSuitCount >= 2) {
+        dangerRunouts += hasFlushDraw ? 0 : 9; // 9 cards can complete flush
+        safeRunouts += hasFlushDraw ? 9 : 0;
+    }
+
+    // - Straight completing: DANGER if connected board
+    if (hasGaps) {
+        dangerRunouts += hasStraightDraw ? 0 : 8;
+        safeRunouts += hasStraightDraw ? 8 : 0;
+    }
+
+    // - Board pairing: changes dynamics
+    dangerRunouts += 3; // ~3 cards pair the board
+
+    // - True bricks (no draws complete)
+    const totalCards = 52 - boardCards.length - 6; // Remaining cards minus our hole cards
+    safeRunouts = Math.max(0, totalCards - dangerRunouts);
+
+    const dangerPct = totalCards > 0 ? Math.round(dangerRunouts / totalCards * 100) : 0;
+
+    let dangerLevel = 'safe';
+    if (dangerPct >= 50) dangerLevel = 'critical';
+    else if (dangerPct >= 30) dangerLevel = 'high';
+    else if (dangerPct >= 15) dangerLevel = 'moderate';
+
+    let advice = 'standard-play';
+    if (dangerLevel === 'critical' && madeStrength >= 60 && madeStrength < 88) {
+        advice = 'protect-immediately-or-check-fold';
+    } else if (dangerLevel === 'high' && madeStrength >= 70) {
+        advice = 'bet-for-protection';
+    } else if (dangerLevel === 'safe' && madeStrength >= 60) {
+        advice = 'can-slow-play-safely';
+    }
+
+    return { dangerLevel, safeRunouts, dangerRunouts, dangerPct, advice };
+}
+
+// ======================================================================
+// PLO6 ADVANCED STRATEGY: THIN VALUE DETECTION
+// ======================================================================
+
+/**
+ * Determine if a PLO6 hand can extract thin value.
+ *
+ * Thin value in PLO6 is MUCH thinner than in other variants:
+ *   - Two pair: NEVER thin value (worthless in PLO6)
+ *   - Overpair: NEVER thin value (everyone has sets/straights)
+ *   - Nut straight on paired board: Maybe thin value
+ *   - Nut flush: Always value (but size down if board pairs)
+ *   - Second-nut flush: THIN (only value vs weaker flushes)
+ *
+ * @param {number} madeStrength - Made hand strength (0-100)
+ * @param {Object} nutInfo - From evaluatePLO6NutDistance
+ * @param {Object} boardTexture - Board texture
+ * @param {string} street - Current street
+ * @param {boolean} isIP - In position?
+ * @param {number} numPlayers - Active players
+ * @returns {Object} Thin value assessment
+ */
+function getPLO6ThinValue(madeStrength, nutInfo, boardTexture, street, isIP, numPlayers) {
+    // PLO6: two pair and below are NEVER thin value
+    if (madeStrength < 55) {
+        return { shouldThinValue: false, thinValueSize: 0, reasoning: 'too-weak-for-thin-value' };
+    }
+
+    // Multiway: NO thin value (always someone has better)
+    if (numPlayers > 2) {
+        return { shouldThinValue: false, thinValueSize: 0, reasoning: 'multiway-no-thin-value' };
+    }
+
+    // Non-river: thin value is a flop/turn concept only in specific spots
+    if (street !== 'river') {
+        return { shouldThinValue: false, thinValueSize: 0, reasoning: 'not-river-skip-thin-value' };
+    }
+
+    const wetness = boardTexture?.wetness || 50;
+    const pairedBoard = boardTexture?.isPaired || false;
+    const nutDistance = nutInfo?.nutDistance || 10;
+
+    // Nut distance 0 (actual nuts): this is VALUE, not thin value
+    if (nutDistance === 0 || madeStrength >= 90) {
+        return { shouldThinValue: false, thinValueSize: 0, reasoning: 'nut-hand-full-value-not-thin' };
+    }
+
+    // Nut distance 1-2 on safe board: thin value possible
+    if (nutDistance <= 2 && wetness < 50 && !pairedBoard) {
+        const size = isIP ? 0.45 : 0.35; // Small sizing for thin value
+        return {
+            shouldThinValue: true,
+            thinValueSize: size,
+            reasoning: 'near-nut-safe-board-thin-value',
+        };
+    }
+
+    // Strong hand (75-89) on dry board IP: possible thin value
+    if (madeStrength >= 75 && wetness < 40 && isIP) {
+        return {
+            shouldThinValue: true,
+            thinValueSize: 0.40,
+            reasoning: 'strong-dry-board-ip-thin-value',
+        };
+    }
+
+    // Everything else: check
+    return { shouldThinValue: false, thinValueSize: 0, reasoning: 'default-no-thin-value' };
+}
+
+// ======================================================================
+// PLO6 ADVANCED STRATEGY: OPPONENT MODELING (EXPLOITATIVE)
+// ======================================================================
+
+/**
+ * Basic PLO6-specific opponent modeling for exploitative adjustments.
+ *
+ * PLO6 players tend to fall into predictable patterns:
+ *   1. CALLING STATION: Calls with any draw, any pair, any piece of the board
+ *      → Exploit by: Value betting thin, never bluffing
+ *   2. AGGRO MANIAC: Raises every draw, every piece, every street
+ *      → Exploit by: Trapping with nut hands, letting them bet for you
+ *   3. NIT: Only plays nut hands and nut draws, folds everything else
+ *      → Exploit by: Stealing frequently, respecting their bets
+ *   4. GTO-ISH: Balanced aggression, mixes lines
+ *      → Default to standard play, small edges
+ *
+ * @param {string} opponentType - 'station', 'aggro', 'nit', 'balanced'
+ * @param {number} madeStrength - Our hand strength
+ * @param {number} totalOuts - Our draw outs
+ * @param {boolean} isIP - In position?
+ * @param {string} street - Current street
+ * @returns {Object} Exploitative adjustments
+ */
+function getPLO6ExploitAdjustment(opponentType, madeStrength, totalOuts, isIP, street) {
+    const adjustments = {
+        sizingMod: 0,       // + means bet bigger, - means bet smaller
+        bluffFreqMod: 0,    // + means bluff more, - means bluff less
+        valueFreqMod: 0,    // + means value bet thinner, - means only nut value
+        foldFreqMod: 0,     // + means fold more, - means call more
+        advice: 'standard-play',
+    };
+
+    if (!opponentType || opponentType === 'balanced') return adjustments;
+
+    if (opponentType === 'station') {
+        // Calling stations: never fold, so NEVER bluff, always value bet
+        adjustments.bluffFreqMod = -50; // Slash bluffing frequency by 50%
+        adjustments.valueFreqMod = +30; // Value bet much thinner
+        adjustments.sizingMod = +0.15; // Bet bigger for value (they call anyway)
+        adjustments.foldFreqMod = -10; // Call slightly more (they don't bluff)
+        adjustments.advice = 'station-value-wide-never-bluff';
+    }
+
+    if (opponentType === 'aggro') {
+        // Aggro maniacs: let them bet, trap with nuts
+        adjustments.bluffFreqMod = -30; // Bluff less (they re-raise)
+        adjustments.valueFreqMod = -10; // Value bet slightly less (trap instead)
+        adjustments.sizingMod = -0.10; // Size down (they raise anyway)
+        adjustments.foldFreqMod = -20; // Call/trap more
+        if (madeStrength >= 80) {
+            adjustments.advice = 'aggro-trap-nut-hand';
+        } else if (madeStrength >= 55) {
+            adjustments.advice = 'aggro-check-call-medium';
+        } else {
+            adjustments.advice = 'aggro-fold-trash-to-pressure';
+            adjustments.foldFreqMod = +15;
+        }
+    }
+
+    if (opponentType === 'nit') {
+        // Nits: steal pots, fold when they bet
+        adjustments.bluffFreqMod = +40; // Bluff significantly more
+        adjustments.valueFreqMod = -20; // Value bet less (they only call with nuts)
+        adjustments.sizingMod = -0.05; // Smaller bluffs
+        adjustments.foldFreqMod = +25; // Fold MORE when they bet (they have it)
+        if (street === 'river' && madeStrength < 80) {
+            adjustments.advice = 'nit-fold-to-river-bet';
+        } else {
+            adjustments.advice = 'nit-steal-and-respect-bets';
+        }
+    }
+
+    return adjustments;
+}
+
+// ======================================================================
 // PLO6 MAIN DECISION ENGINE
 // ======================================================================
 
@@ -1835,6 +2571,83 @@ function makePLO6Decision(profileId, gameState, legalActions) {
         );
         const strength = adjusted.adjustedStrength;
 
+        // Step 2b: Card removal amplification (PLO6 has MASSIVE removal effects)
+        const cardRemoval = getPLO6CardRemoval(gameState.holeCards, gameState.board);
+
+        // Step 2c: Equity realization adjustment
+        const eqRealization = getPLO6EquityRealization(strength, gameState.position, numPlayers, {
+            sprZone: gameState.stackBB > 100 ? 'very_deep' : (gameState.stackBB < 20 ? 'shallow' : 'medium'),
+            straightOuts: drawClass.totalOuts,
+            flushOuts: drawClass.nutFlushDraw ? 9 : 0,
+            isNutMade: nutInfo.isNutHand,
+        });
+
+        // Step 2d: Advanced strategy engines (all 7 wired)
+        const boardTexture = analyzePLOBoardTexture(gameState.board);
+        const spr = potSize > 0 ? (gameState.stackBB * (gameState.bb || 1)) / potSize : 10;
+        const wasAggressor = gameState.wasAggressor || false;
+        const opponentType = gameState.opponentType || 'balanced';
+
+        const nutAdvantage = getPLO6NutAdvantage(wasAggressor, gameState.board, street, boardTexture, madeHand);
+        const deepStack = getPLO6DeepStackNavigation(
+            gameState.stackBB, spr, strength, drawClass.totalOuts,
+            drawClass.nutFlushDraw || false, isIP, street, boardTexture
+        );
+        const streetPlan = getPLO6StreetPlanner(
+            strength, drawClass.totalOuts, boardTexture, street, isIP,
+            gameState.stackBB, potSize, wasAggressor
+        );
+        const potGeo = getPLO6PotGeometry(potSize, gameState.stackBB * (gameState.bb || 1), street, 0.55);
+        const boardRunout = analyzePLO6BoardRunout(
+            gameState.board, strength, drawClass.nutFlushDraw || false,
+            drawClass.totalOuts >= 8
+        );
+        const thinValue = getPLO6ThinValue(strength, nutInfo, boardTexture, street, isIP, numPlayers);
+        const exploit = getPLO6ExploitAdjustment(opponentType, strength, drawClass.totalOuts, isIP, street);
+
+        // Step 2e: Multi-street draw plan (guides draw play across streets)
+        const drawPlan = (street !== 'river' && drawClass.drawTier <= 4)
+            ? getPLO6MultiStreetDrawPlan(drawClass, strength, street, isIP, potSize, gameState.stackBB, numPlayers)
+            : null;
+
+        // Step 2e: Turn reassessment (detect draw completion/brick/upgrade)
+        // We store flop draw state in gameState.flopDrawState if available
+        const turnReassessment = (street === 'turn' && gameState.flopDrawState)
+            ? reassessPLO6Turn(
+                gameState.flopDrawState, drawClass,
+                gameState.flopMadeStrength || 0, strength,
+                gameState.holeCards, gameState.board
+            )
+            : null;
+
+        // If turn reassessment detects draw COMPLETED → override to value mode
+        if (turnReassessment && turnReassessment.drawCompleted) {
+            const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+            if (raiseAction && toCall === 0) {
+                const nutStatus = strength >= 90 ? 'nut' : 'near-nut';
+                const betSize = getPLO6BetSize(street, 'value', potSize, strength, {
+                    numPlayers, isIP, nutStatus,
+                });
+                const amount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+                return { type: raiseAction.type, amount };
+            }
+            if (toCall > 0 && strength >= 70) return { type: 'call', amount: 0 };
+        }
+
+        // If turn reassessment detects draw COUNTERFEITED → check-fold
+        if (turnReassessment && turnReassessment.drawCounterfeited) {
+            if (toCall > 0) return { type: 'fold', amount: 0 };
+            const canCheck = legalActions.some(a => a.type === 'check');
+            if (canCheck) return { type: 'check', amount: 0 };
+        }
+
+        // If turn reassessment says give up (draw bricked badly)
+        if (turnReassessment && turnReassessment.turnStrategy === 'give-up') {
+            if (toCall > 0) return { type: 'fold', amount: 0 };
+            const canCheck = legalActions.some(a => a.type === 'check');
+            if (canCheck) return { type: 'check', amount: 0 };
+        }
+
         // Step 3: Freeroll detection (nuts + redraw = ALWAYS raise)
         if (street !== 'river') {
             const freeroll = detectPLO6Freeroll(gameState.holeCards, gameState.board, street);
@@ -1872,15 +2685,35 @@ function makePLO6Decision(profileId, gameState, legalActions) {
             }
         }
 
+        // Step 4b: Deep stack navigation — override for deep SPR spots
+        if (deepStack.deepStackAction === 'fold-medium' && strength < 70 && toCall > 0) {
+            // Deep stack says fold medium hands — respect it
+            if (spr >= 8 && strength < 65) {
+                return { type: 'fold', amount: 0 };
+            }
+        }
+        if (deepStack.deepStackAction === 'pot-control' && strength >= 60 && strength < 85 && toCall === 0) {
+            // Deep stack pot control: check back instead of betting medium hands
+            const canCheck = legalActions.some(a => a.type === 'check');
+            if (canCheck && spr >= 8 && isIP) {
+                return { type: 'check', amount: 0 };
+            }
+        }
+
         // Step 5: NUT HAND — Commit aggressively
         if (nutInfo.isNutHand || strength >= 88) {
             const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
             if (raiseAction) {
                 const nutStatus = strength >= 90 ? 'nut' : 'near-nut';
-                const betSize = getPLO6BetSize(street, 'value', potSize, strength, {
+                // Nut advantage sizing adjustment
+                let sizingAdj = nutAdvantage.sizingMod || 0;
+                // Exploit adjustment for sizing
+                sizingAdj += exploit.sizingMod || 0;
+                const baseBetSize = getPLO6BetSize(street, 'value', potSize, strength, {
                     numPlayers, isIP, nutStatus,
                 });
-                const amount = Math.max(raiseAction.minAmount || 1, Math.min(betSize, raiseAction.maxAmount || betSize));
+                const adjustedSize = Math.round(baseBetSize * (1 + sizingAdj));
+                const amount = Math.max(raiseAction.minAmount || 1, Math.min(adjustedSize, raiseAction.maxAmount || adjustedSize));
                 return { type: raiseAction.type, amount };
             }
             return { type: 'call', amount: 0 };
@@ -1890,6 +2723,23 @@ function makePLO6Decision(profileId, gameState, legalActions) {
         if (street !== 'river') {
             // Monster/strong draws (Tier 1-2): play like made hands
             if (drawClass.drawTier <= 2) {
+                // Use multi-street draw plan if available to guide aggression
+                if (drawPlan && drawPlan.commitPlan === 'stack-off-now' && drawPlan.aggression === 'maximum') {
+                    // Monster draw plan: maximum aggression — raise pot
+                    const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
+                    if (raiseAction && toCall === 0) {
+                        const potBet = Math.round(potSize * 0.85);
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(potBet, raiseAction.maxAmount || potBet));
+                        return { type: raiseAction.type, amount };
+                    }
+                    // Facing a bet with stack-off plan: raise
+                    if (raiseAction && toCall > 0) {
+                        const raiseSize = Math.round(potSize * 1.0);
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(raiseSize, raiseAction.maxAmount || raiseSize));
+                        return { type: raiseAction.type, amount };
+                    }
+                }
+
                 const drawVsDraw = evaluatePLO6DrawVsDraw(
                     drawClass, toCall > 0, isIP, potSize, toCall, numPlayers
                 );
@@ -1909,29 +2759,47 @@ function makePLO6Decision(profileId, gameState, legalActions) {
             }
 
             // Protection betting: strong made hand on wet board
+            // Card removal amplifies protection urgency (we block more opponent outs)
             if (strength >= 55 && strength < 88 && drawClass.protectionNeeded) {
-                const boardTexture = analyzePLOBoardTexture(gameState.board);
                 const protection = getPLO6ProtectionBet(strength, boardTexture, numPlayers, potSize, street);
                 if (protection.shouldProtect && toCall === 0) {
+                    // Card removal adjustment: if we block many opponent outs, slightly reduce sizing
+                    // (they have fewer draws, so less need to charge)
+                    let adjustedProtectSize = protection.protectSize;
+                    if (cardRemoval.opponentOutsReduction >= 4) {
+                        adjustedProtectSize = Math.round(adjustedProtectSize * 0.90);
+                    }
                     const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                     if (raiseAction) {
-                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(protection.protectSize, raiseAction.maxAmount || protection.protectSize));
+                        const amount = Math.max(raiseAction.minAmount || 1, Math.min(adjustedProtectSize, raiseAction.maxAmount || adjustedProtectSize));
                         return { type: raiseAction.type, amount };
                     }
                 }
             }
 
+            // Draw plan suppression: if plan says fold on this street, respect it
+            if (drawPlan && street === 'flop' && drawPlan.flopAction === 'check-fold' && toCall > 0 && drawClass.drawTier >= 4) {
+                return { type: 'fold', amount: 0 };
+            }
+            if (drawPlan && street === 'turn' && drawPlan.turnAction === 'fold' && toCall > 0 && drawClass.drawTier >= 4) {
+                return { type: 'fold', amount: 0 };
+            }
+
             // Decent draws (Tier 3): check-call, see cheap cards
             if (drawClass.drawTier === 3) {
                 if (toCall === 0) {
+                    // Draw plan: if plan says check-call, check here
                     const canCheck = legalActions.some(a => a.type === 'check');
                     if (canCheck) return { type: 'check', amount: 0 };
                 }
-                // Call if priced in
+                // Call if priced in (apply equity realization factor for PLO6 accuracy)
                 const drawEquity = getPLO6DrawEquity(
                     gameState.holeCards, gameState.board, street, potSize, toCall
                 );
-                if (drawEquity.isProfitableCall && toCall > 0) {
+                // Adjust equity by realization factor: PLO6 realizes more equity
+                const realizedEquity = drawEquity.equity * eqRealization;
+                const realizedProfitable = realizedEquity >= drawEquity.potOddsNeeded;
+                if (realizedProfitable && toCall > 0) {
                     return { type: 'call', amount: 0 };
                 }
             }
@@ -1985,12 +2853,16 @@ function makePLO6Decision(profileId, gameState, legalActions) {
             }
 
             // Blocker bluff on river (heads-up, not facing bet)
+            // Card removal amplifies blocker effectiveness in PLO6
             if (toCall === 0 && numPlayers <= 2 && strength < 50) {
                 const bluffInfo = shouldPLO6Bluff(
                     gameState.holeCards, gameState.board, numPlayers,
                     'river', potSize, toCall
                 );
-                if (bluffInfo.shouldBluff) {
+                // Card removal bonus: if we block many opponent combos, bluff more liberally
+                const blockerAmplified = bluffInfo.shouldBluff ||
+                    (cardRemoval.blockerAmplification >= 1.10 && cardRemoval.opponentOutsReduction >= 3 && isIP && strength < 30);
+                if (blockerAmplified) {
                     const raiseAction = legalActions.find(a => a.type === 'raise' || a.type === 'bet');
                     if (raiseAction) {
                         const amount = Math.max(raiseAction.minAmount || 1, Math.min(bluffInfo.bluffSize, raiseAction.maxAmount || bluffInfo.bluffSize));
@@ -2064,6 +2936,15 @@ module.exports = {
 
     // Equity realization
     getPLO6EquityRealization,
+
+    // Advanced strategy (PLO6-specific)
+    getPLO6NutAdvantage,
+    getPLO6DeepStackNavigation,
+    getPLO6StreetPlanner,
+    getPLO6PotGeometry,
+    analyzePLO6BoardRunout,
+    getPLO6ThinValue,
+    getPLO6ExploitAdjustment,
 
     // Main decision engine
     makePLO6Decision,

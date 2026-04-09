@@ -12,6 +12,7 @@ import { useState, useEffect, Fragment } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
 
 // Tour badge color mapping
