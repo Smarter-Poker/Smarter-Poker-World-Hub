@@ -114,10 +114,10 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                     {tour.games_offered.slice(0, 4).map((g, i) => <span key={g || i} className="tag game">{g}</span>)}
                 </div>
             )}
-            {tour.upcoming_series && tour.upcoming_series.length > 0 && (
+            {Array.isArray(tour.upcoming_series) && tour.upcoming_series.length > 0 && (
                 <div className="upcoming-series">
-                    <span className="upcoming-label">Next: {tour.upcoming_series[0].short_name || tour.upcoming_series[0].name}</span>
-                    <span className="upcoming-date">{formatDate(tour.upcoming_series[0].start_date)}</span>
+                    <span className="upcoming-label">Next: {tour.upcoming_series[0]?.short_name || tour.upcoming_series[0]?.name}</span>
+                    <span className="upcoming-date">{formatDate(tour.upcoming_series[0]?.start_date)}</span>
                 </div>
             )}
             <div className="card-footer">

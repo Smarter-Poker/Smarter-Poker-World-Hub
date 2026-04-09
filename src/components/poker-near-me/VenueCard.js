@@ -16,7 +16,9 @@ import { openNativeMaps } from '../../utils/openNativeMaps';
 
 const formatMoney = (amount) => {
     if (!amount) return '$0';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+    const num = typeof amount === 'string' ? Number(amount.replace(/[^0-9.]/g, '')) : amount;
+    if (isNaN(num)) return amount; // Fallback to raw string if completely unparseable
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
 };
 
 // Formats "13:00:00" or "1:00 PM" → "1:00 PM"
@@ -453,7 +455,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         </svg>
                     </button>
                     {/* Distance pill below heart */}
-                    {venue.distance_mi && (
+                    {venue.distance_mi != null && (
                         <span className="vc3-distance">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <polygon points="3 11 22 2 13 21 11 13 3 11" />
@@ -565,7 +567,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {hasLiveData && (
                     <span className="vc3-badge vc3-badge-live">
                         <span className="vc3-live-dot" />
-                        LIVE NOW: {venue.live_data.tables_running} Table{venue.live_data.tables_running !== 1 ? 's' : ''}
+                        LIVE NOW: {venue.live_data.tables_running} Table{Number(venue.live_data.tables_running) !== 1 ? 's' : ''}
                     </span>
                 )}
                 {venue.has_tournaments && <></>}
@@ -635,7 +637,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 <div key={idx} className="vc3-list-item vc3-game-item">
                                                     <span className="vc3-game-name" title={displayName}>{displayName.length > 28 ? displayName.substring(0, 25) + '...' : displayName}</span>
                                                     <span className="vc3-game-tables">
-                                                        {g?.tables_running > 0 ? `${g.tables_running} ${g.tables_running === 1 ? 'Table' : 'Tables'}` : 'WAIT'}
+                                                        {g?.tables_running > 0 ? `${g.tables_running} ${Number(g.tables_running) === 1 ? 'Table' : 'Tables'}` : 'WAIT'}
                                                     </span>
                                                 </div>
                                             );
