@@ -1,0 +1,328 @@
+/**
+ * Poker Brain — Supabase Persistence Layer
+ * ------------------------------------------
+ * PokerBrainStorage class + usePokerBrainStorage React hook.
+ * Features: offline queue via IndexedDB, retry with exponential backoff,
+ * Realtime subscriptions for cross-device sync.
+ *
+ * Requires: @supabase/supabase-js
+ *
+ * Usage:
+ *   import { PokerBrainStorage, usePokerBrainStorage } from './poker-brain-supabase';
+ *
+ *   const storage = new PokerBrainStorage(supabase);
+ *   await storage.startSession({ gameType: 'nlhe', playerCount: 6, ... });
+ *   await storage.logHand({ ... });
+ *   await storage.endSession({ finalStack: 120 });
+ */
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+// ---------------------------------------------------------------------------
+// IndexedDB offline queue
+// ---------------------------------------------------------------------------
+const DB_NAME = 'poker-brain-db';
+const DB_VERSION = 1;
+const STORE_QUEUE = 'offline_queue';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_QUEUE)) {
+        db.createObjectStore(STORE_QUEUE, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function queuePut(item) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_QUEUE, 'readwrite');
+    tx.objectStore(STORE_QUEUE).add({ ...item, queuedAt: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function queueAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_QUEUE, 'readonly');
+    const req = tx.objectStore(STORE_QUEUE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function queueDelete(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_QUEUE, 'readwrite');
+    tx.objectStore(STORE_QUEUE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// PokerBrainStorage class
+// ---------------------------------------------------------------------------
+export class PokerBrainStorage {
+  constructor(supabase) {
+    this.supabase = supabase;
+    this.sessionId = null;
+    this.handNumber = 0;
+    this.online = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => { this.online = true; this.flushQueue(); });
+      window.addEventListener('offline', () => { this.online = false; });
+    }
+  }
+
+  async _rpcWithRetry(fn, args, attempts = 4) {
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const { data, error } = await this.supabase.rpc(fn, args);
+        if (error) throw error;
+        return data;
+      } catch (err) {
+        lastErr = err;
+        await new Promise((r) => setTimeout(r, 300 * Math.pow(2, i)));
+      }
+    }
+    throw lastErr;
+  }
+
+  // --- Sessions ---
+  async startSession({ gameType, playerCount, captureMode, clientProfile, startingStack }) {
+    if (!this.online) {
+      // Generate client-side temp id and queue
+      const tempId = `local_${Date.now()}`;
+      this.sessionId = tempId;
+      this.handNumber = 0;
+      await queuePut({ type: 'start_session', args: { gameType, playerCount, captureMode, clientProfile, startingStack }, tempId });
+      return tempId;
+    }
+    const id = await this._rpcWithRetry('pb_start_session', {
+      p_game_type: gameType,
+      p_player_count: playerCount,
+      p_capture_mode: captureMode,
+      p_client_profile: clientProfile ?? null,
+      p_starting_stack: startingStack ?? null,
+    });
+    this.sessionId = id;
+    this.handNumber = 0;
+    return id;
+  }
+
+  async logHand(hand) {
+    this.handNumber += 1;
+    const args = {
+      p_session_id: this.sessionId,
+      p_hand_number: this.handNumber,
+      p_position: hand.position ?? null,
+      p_hole_cards: hand.holeCards ?? [],
+      p_board: hand.board ?? [],
+      p_game_type: hand.gameType,
+      p_pot_size: hand.potSize ?? null,
+      p_bet_to_call: hand.betToCall ?? null,
+      p_stack_size: hand.stackSize ?? null,
+      p_equity: hand.equity ?? null,
+      p_pot_odds: hand.potOdds ?? null,
+      p_decision: hand.decision ?? null,
+      p_raise_amount: hand.raiseAmount ?? null,
+      p_confidence: hand.confidence ?? null,
+      p_reasoning: hand.reasoning ?? null,
+      p_detected_auto: !!hand.detectedAuto,
+    };
+    if (!this.online) {
+      await queuePut({ type: 'log_hand', args });
+      return null;
+    }
+    try {
+      return await this._rpcWithRetry('pb_log_hand', args);
+    } catch (err) {
+      await queuePut({ type: 'log_hand', args });
+      throw err;
+    }
+  }
+
+  async endSession({ finalStack, notes } = {}) {
+    const args = { p_session_id: this.sessionId, p_final_stack: finalStack ?? null, p_notes: notes ?? null };
+    if (!this.online) {
+      await queuePut({ type: 'end_session', args });
+      return;
+    }
+    try {
+      await this._rpcWithRetry('pb_end_session', args);
+    } catch (err) {
+      await queuePut({ type: 'end_session', args });
+      throw err;
+    } finally {
+      this.sessionId = null;
+      this.handNumber = 0;
+    }
+  }
+
+  // --- Profiles ---
+  async saveProfile({ name, slug, regions, videoSize }) {
+    return this._rpcWithRetry('pb_save_profile', {
+      p_name: name,
+      p_slug: slug,
+      p_regions: regions,
+      p_video_size: videoSize ?? null,
+    });
+  }
+
+  async listProfiles() {
+    const { data, error } = await this.supabase
+      .from('pb_profiles')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  // --- History ---
+  async listRecentSessions(limit = 20) {
+    const { data, error } = await this.supabase
+      .from('pb_sessions')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
+  }
+
+  async listHands(sessionId, limit = 100) {
+    const { data, error } = await this.supabase
+      .from('pb_hands')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('hand_number', { ascending: true })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getStats() {
+    const { data, error } = await this.supabase.from('pb_stats').select('*').maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  // --- Realtime ---
+  subscribeToHands(sessionId, onInsert) {
+    const channel = this.supabase
+      .channel(`pb_hands_${sessionId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'pb_hands', filter: `session_id=eq.${sessionId}` },
+        (payload) => onInsert(payload.new)
+      )
+      .subscribe();
+    return () => this.supabase.removeChannel(channel);
+  }
+
+  // --- Offline queue flush ---
+  async flushQueue() {
+    if (!this.online) return;
+    const items = await queueAll();
+    for (const item of items) {
+      try {
+        switch (item.type) {
+          case 'start_session': {
+            const id = await this._rpcWithRetry('pb_start_session', {
+              p_game_type: item.args.gameType,
+              p_player_count: item.args.playerCount,
+              p_capture_mode: item.args.captureMode,
+              p_client_profile: item.args.clientProfile ?? null,
+              p_starting_stack: item.args.startingStack ?? null,
+            });
+            if (item.tempId && this.sessionId === item.tempId) this.sessionId = id;
+            break;
+          }
+          case 'log_hand':
+            await this._rpcWithRetry('pb_log_hand', item.args);
+            break;
+          case 'end_session':
+            await this._rpcWithRetry('pb_end_session', item.args);
+            break;
+        }
+        await queueDelete(item.id);
+      } catch (err) {
+        console.warn('Queue flush failed for item', item.id, err);
+        break; // stop on first failure; retry next time
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// React hook
+// ---------------------------------------------------------------------------
+export function usePokerBrainStorage(supabase) {
+  const storageRef = useRef(null);
+  const [ready, setReady] = useState(false);
+  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    storageRef.current = new PokerBrainStorage(supabase);
+    setReady(true);
+    storageRef.current.flushQueue().catch(() => {});
+    storageRef.current.getStats().then(setStats).catch(() => {});
+
+    const onOn = () => setOnline(true);
+    const onOff = () => setOnline(false);
+    window.addEventListener('online', onOn);
+    window.addEventListener('offline', onOff);
+    return () => {
+      window.removeEventListener('online', onOn);
+      window.removeEventListener('offline', onOff);
+    };
+  }, [supabase]);
+
+  const startSession = useCallback(async (opts) => {
+    return storageRef.current?.startSession(opts);
+  }, []);
+
+  const logHand = useCallback(async (hand) => {
+    return storageRef.current?.logHand(hand);
+  }, []);
+
+  const endSession = useCallback(async (opts) => {
+    const r = await storageRef.current?.endSession(opts);
+    storageRef.current?.getStats().then(setStats).catch(() => {});
+    return r;
+  }, []);
+
+  const saveProfile = useCallback(async (p) => storageRef.current?.saveProfile(p), []);
+  const listProfiles = useCallback(async () => storageRef.current?.listProfiles(), []);
+  const listRecentSessions = useCallback(async (n) => storageRef.current?.listRecentSessions(n), []);
+  const listHands = useCallback(async (id, n) => storageRef.current?.listHands(id, n), []);
+
+  return {
+    ready,
+    online,
+    stats,
+    startSession,
+    logHand,
+    endSession,
+    saveProfile,
+    listProfiles,
+    listRecentSessions,
+    listHands,
+    storage: storageRef.current,
+  };
+}
+
+export default PokerBrainStorage;

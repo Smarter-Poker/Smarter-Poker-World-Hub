@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
 import { eventBus, EventType } from '../../src/engine/EventBus';
 import { broadcastSync, listenBroadcast } from '../../src/lib/broadcastSync';
+import PokerBrainLaunchButton from '../../src/components/poker-brain/LaunchButton';
 import styles from './horses.module.css';
 
 // Sync Channel Name
@@ -1487,6 +1488,7 @@ export default function HorsesAdmin() {
                     <option value="active">Active Only</option>
                     <option value="inactive">Resting Only</option>
                   </select>
+                  <PokerBrainLaunchButton />
                   <button className={styles.btnSuccess} onClick={() => toggleAllPersonas(true)}>
                     Activate All
                   </button>
@@ -3708,6 +3710,190 @@ export default function HorsesAdmin() {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ⭐ REVIEW MODERATION TAB */}
+          {activeTab === 'reviews' && (
+            <div style={{ padding: '24px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#fff' }}>Venue Review Moderation</h2>
+                  <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                    Manage all player-submitted venue reviews across the platform.
+                  </p>
+                </div>
+                <button
+                  onClick={loadAdminReviews}
+                  disabled={reviewsLoading}
+                  style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                >
+                  {reviewsLoading ? 'Loading...' : '↺ Refresh'}
+                </button>
+              </div>
+
+              {/* Stats Bar */}
+              <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+                {(() => {
+                  const visibleCount = (reviewsData || []).filter(r => {
+                    if (!reviewsSearch.trim()) return true;
+                    const q = reviewsSearch.toLowerCase();
+                    return (r.reviewer_name || '').toLowerCase().includes(q) ||
+                      (r.venue_name || '').toLowerCase().includes(q) ||
+                      (r.review_text || '').toLowerCase().includes(q);
+                  }).length;
+                  return [
+                    { label: 'Total Reviews', value: reviewsStats.total, color: '#60a5fa' },
+                    { label: 'Flagged', value: reviewsStats.flagged, color: '#f59e0b' },
+                    { label: 'Avg Rating', value: reviewsStats.avg_rating ? `${Number(reviewsStats.avg_rating).toFixed(1)} ★` : '—', color: '#22c55e' },
+                    { label: 'Showing', value: visibleCount, color: '#a78bfa' },
+                  ].map(stat => (
+                    <div key={stat.label} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '14px 18px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{stat.label}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+
+              {/* Filter Bar */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20, alignItems: 'center' }}>
+                <select
+                  value={reviewsFilter}
+                  onChange={e => setReviewsFilter(e.target.value)}
+                  style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: '#fff', fontSize: 13 }}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="highest">Highest Rated</option>
+                  <option value="lowest">Lowest Rated</option>
+                  <option value="flagged">Flagged First</option>
+                </select>
+                <select
+                  value={reviewsRatingFilter}
+                  onChange={e => setReviewsRatingFilter(e.target.value)}
+                  style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: '#fff', fontSize: 13 }}
+                >
+                  <option value="all">All Ratings</option>
+                  <option value="5">5 Stars</option>
+                  <option value="4">4 Stars</option>
+                  <option value="3">3 Stars</option>
+                  <option value="2">2 Stars</option>
+                  <option value="1">1 Star</option>
+                </select>
+                <button
+                  onClick={() => setReviewsFlaggedOnly(f => !f)}
+                  style={{ padding: '8px 14px', background: reviewsFlaggedOnly ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${reviewsFlaggedOnly ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.12)'}`, borderRadius: 8, color: reviewsFlaggedOnly ? '#f59e0b' : 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
+                >
+                  🚩 Flagged Only
+                </button>
+                <input
+                  type="text"
+                  value={reviewsSearch}
+                  onChange={e => setReviewsSearch(e.target.value)}
+                  placeholder="Search reviewer name or venue..."
+                  style={{ flex: 1, minWidth: 200, padding: '8px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, color: '#fff', fontSize: 13 }}
+                />
+              </div>
+
+              {/* Reviews Table */}
+              {reviewsLoading ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(255,255,255,0.4)' }}>
+                  <div style={{ width: 28, height: 28, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                  Loading reviews...
+                </div>
+              ) : (() => {
+                // Client-side search filter
+                const filtered = (reviewsData || []).filter(r => {
+                  if (!reviewsSearch.trim()) return true;
+                  const q = reviewsSearch.toLowerCase();
+                  return (r.reviewer_name || '').toLowerCase().includes(q) ||
+                    (r.venue_name || '').toLowerCase().includes(q) ||
+                    (r.review_text || '').toLowerCase().includes(q);
+                });
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(255,255,255,0.4)' }}>
+                      No reviews match the current filters.
+                    </div>
+                  );
+                }
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {filtered.map(review => (
+                      <div
+                        key={review.id}
+                        style={{
+                          background: review.is_flagged ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${review.is_flagged ? 'rgba(245,158,11,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                          borderRadius: 12,
+                          padding: '16px 20px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                          {/* Avatar */}
+                          <div style={{ width: 38, height: 38, borderRadius: '50%', background: `hsl(${Math.abs((review.reviewer_name || '?').charCodeAt(0) * 37) % 360}, 55%, 45%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, color: '#fff', flexShrink: 0 }}>
+                            {(review.reviewer_name || '?')[0].toUpperCase()}
+                          </div>
+
+                          {/* Content */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                              <span style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>{review.reviewer_name || 'Anonymous'}</span>
+                              {review.is_flagged && <span style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontSize: 11, padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>🚩 FLAGGED</span>}
+                              {review.metadata?.verified_player && <span style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontSize: 11, padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>✓ Verified Player</span>}
+                              <span style={{ color: '#fbbf24', fontSize: 13 }}>{'★'.repeat(review.rating || 0)}{'☆'.repeat(5 - (review.rating || 0))}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginLeft: 'auto' }}>
+                                {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>
+                              📍 {review.venue_name || review.venue_id}
+                            </div>
+                            <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                              {review.review_text}
+                            </p>
+                            {review.flag_reason && (
+                              <div style={{ marginTop: 6, fontSize: 12, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', padding: '4px 10px', borderRadius: 6 }}>
+                                Flag reason: {review.flag_reason}
+                              </div>
+                            )}
+                            <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+                              ID: {review.id} · 👍 {review.helpful_count || 0} · 👎 {review.unhelpful_count || 0}
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                            <button
+                              onClick={() => handleFlagReview(review.id, review.is_flagged ? 'unflag' : 'flag')}
+                              disabled={reviewsProcessing}
+                              style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid rgba(245,158,11,0.3)', background: review.is_flagged ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)', color: review.is_flagged ? '#f59e0b' : 'rgba(255,255,255,0.5)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
+                            >
+                              {review.is_flagged ? '✓ Unflag' : '🚩 Flag'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReview(review.id)}
+                              disabled={reviewsProcessing}
+                              style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${reviewsDeleteConfirm === review.id ? 'rgba(239,68,68,0.6)' : 'rgba(239,68,68,0.2)'}`, background: reviewsDeleteConfirm === review.id ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.03)', color: reviewsDeleteConfirm === review.id ? '#ef4444' : 'rgba(239,68,68,0.6)', fontSize: 12, cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
+                            >
+                              {reviewsDeleteConfirm === review.id ? '⚠️ Confirm' : '🗑️ Delete'}
+                            </button>
+                            {reviewsDeleteConfirm === review.id && (
+                              <button
+                                onClick={() => setReviewsDeleteConfirm(null)}
+                                style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'rgba(255,255,255,0.4)', fontSize: 11, cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </main>
