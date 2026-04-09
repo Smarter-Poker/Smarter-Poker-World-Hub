@@ -273,11 +273,15 @@ class PokerBrainMatcher {
    * @param {HTMLVideoElement} videoElement — screen capture video
    * @param {object} layout — the layout.json object
    * @param {object} [options]
-   * @param {number} [options.maxHoleCards] — cap the number of hero hole-card
-   *   regions polled. Used by the HUD to poll only the first N regions for the
-   *   active variant (2 for NLHE, 4 for PLO/PLO Hi-Lo, 5 for PLO5, 6 for PLO6).
-   *   When omitted, all regions in layout.holeCards are polled.
-   * @returns {{ holeCards: Array, boardCards: Array, timingMs: number, polledHoleCount: number }}
+   * @param {string} [options.variant] — game variant key ('nlhe', 'plo',
+   *   'plo_hilo', 'plo5', 'plo6'). When provided AND the layout has a
+   *   `holeCardsByVariant` map, the matcher uses variant-specific regions
+   *   instead of the legacy `holeCards` array. This is critical because
+   *   PokerBros re-positions the entire card fan per variant — the absolute
+   *   pixel coordinates change, not just the count.
+   * @param {number} [options.maxHoleCards] — (legacy) cap the number of hero
+   *   hole-card regions polled when per-variant regions are not available.
+   * @returns {{ holeCards: Array, boardCards: Array, timingMs: number, polledHoleCount: number, probeLog: Array|undefined }}
    */
   matchAllRegions(videoElement, layout, options = {}) {
     if (!this.loaded || this.templateHashes.size === 0) {
@@ -313,22 +317,46 @@ class PokerBrainMatcher {
       h: Math.round(r.h * scaleY),
     });
 
-    // Match hole cards. Cap the polled regions at `maxHoleCards` when supplied
-    // by the caller (the HUD uses this to poll only the first N regions for
-    // the active variant). Missing/extra layout slots are tolerated - we
-    // simply slice whatever is configured. If a region has no card yet we
-    // skip it silently, which lets the bridge enter its "waiting" state
-    // during a variant switch rather than crashing.
-    const layoutHole = Array.isArray(layout.holeCards) ? layout.holeCards : [];
-    const maxHole = Number.isFinite(options.maxHoleCards) && options.maxHoleCards > 0
-      ? Math.min(options.maxHoleCards, layoutHole.length)
-      : layoutHole.length;
+    // ---- Resolve which hole-card regions to poll ----
+    // Priority: per-variant regions > legacy slice > empty
+    let layoutHole = [];
+    const variantKey = options.variant ? String(options.variant).toLowerCase() : null;
+    const byVariant = layout.holeCardsByVariant;
+
+    if (variantKey && byVariant && Array.isArray(byVariant[variantKey])) {
+      // Use the exact region set defined for this variant.
+      // No slicing needed — the array length IS the card count.
+      layoutHole = byVariant[variantKey];
+    } else {
+      // Legacy fallback: slice the flat holeCards array
+      const fallback = Array.isArray(layout.holeCards) ? layout.holeCards : [];
+      const maxHole = Number.isFinite(options.maxHoleCards) && options.maxHoleCards > 0
+        ? Math.min(options.maxHoleCards, fallback.length)
+        : fallback.length;
+      layoutHole = fallback.slice(0, maxHole);
+    }
+
+    // Match hole cards
     const holeCards = [];
-    for (let i = 0; i < maxHole; i++) {
+    const probeLog = options.probeMode ? [] : undefined;
+    for (let i = 0; i < layoutHole.length; i++) {
       const region = layoutHole[i];
       if (!region) continue;
       const scaled = scaleRegion(region);
       const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH);
+
+      // Probe mode: log every region's best match + distance for debugging
+      if (probeLog) {
+        probeLog.push({
+          slot: i,
+          region: { x: region.x, y: region.y, w: region.w, h: region.h },
+          bestKey: result.key,
+          distance: result.distance,
+          confidence: result.confidence,
+          matched: !!(result.rank && result.suit),
+        });
+      }
+
       if (result.rank && result.suit) {
         holeCards.push(result);
       }
@@ -346,7 +374,9 @@ class PokerBrainMatcher {
 
     const timingMs = performance.now() - startTime;
 
-    return { holeCards, boardCards, timingMs, polledHoleCount: maxHole };
+    const out = { holeCards, boardCards, timingMs, polledHoleCount: layoutHole.length };
+    if (probeLog) out.probeLog = probeLog;
+    return out;
   }
 
   /**

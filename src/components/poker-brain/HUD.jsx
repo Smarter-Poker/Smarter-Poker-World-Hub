@@ -458,12 +458,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
         const video = videoRef.current;
         const matcher = matcherRef.current;
         if (video && matcher && matcher.isReady()) {
-          try {
-            // Only poll the hero hole regions the active variant needs
-            // (2 for NLHE, 4 for PLO/PLO Hi-Lo, 5 for PLO5, 6 for PLO6).
-            const variantHoleCount = PokerBrainEngine.expectedHoleCount(gameTypeRef.current);
+           try {
+            // Use per-variant hole card regions (v3 layout) so the matcher
+            // polls the correct pixel positions for the active game type.
+            // Falls back to legacy maxHoleCards slicing if the layout doesn't
+            // have holeCardsByVariant.
+            const currentVariant = gameTypeRef.current;
             const result = matcher.matchAllRegions(video, effectiveLayout, {
-              maxHoleCards: variantHoleCount,
+              variant: currentVariant,
+              maxHoleCards: PokerBrainEngine.expectedHoleCount(currentVariant),
             });
             setLastTimingMs(Math.round(result.timingMs * 10) / 10);
             setFrameCount((c) => c + 1);
@@ -475,8 +478,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             const refH = effectiveLayout.referenceSize?.h || 1054;
             const csx = srcW / refW;
             const csy = srcH / refH;
+            // Resolve the same region array the matcher used for suit verification
+            const variantRegions =
+              effectiveLayout.holeCardsByVariant?.[currentVariant]
+              || effectiveLayout.holeCards
+              || [];
             const verifiedHole = (result.holeCards || []).map((card, i) => {
-              const r = effectiveLayout.holeCards?.[i];
+              const r = variantRegions[i];
               if (!r || !card || !card.suit) return card;
               return verifyCardSuit(card, video, scaleRect(r, csx, csy));
             });
