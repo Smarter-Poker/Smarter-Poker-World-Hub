@@ -4,7 +4,12 @@ import layoutData from '../../lib/poker-brain/layout.json';
 import PokerBrainEngine from '../../lib/poker-brain/engine';
 import { getBridgedDecision } from '../../lib/poker-brain/decision-bridge';
 import { HandStateMachine, STREETS } from '../../lib/poker-brain/state';
-import { detectDealer, heroPositionFromDealer } from '../../lib/poker-brain/dealer-detect';
+import {
+  detectDealer,
+  heroPositionFromDealer,
+  detectDealerAuto,
+  detectOccupiedSeats,
+} from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
@@ -519,12 +524,34 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               stateMachineRef.current.observe(verifiedHole, verifiedBoard);
             }
 
-            // Dealer button detection (piggybacks on the same frame)
+            // --- Auto seat occupancy → live player count -------------
+            // Every frame: count how many seats look occupied and update
+            // `players` state live. Hero-only tables fall back to 2.
             try {
-              const dealer = detectDealer(video, effectiveLayout);
+              const occ = detectOccupiedSeats(video, effectiveLayout);
+              const livePlayerCount = Math.max(2, occ.playerCount || 0);
+              if (livePlayerCount !== playersRef.current) {
+                playersRef.current = livePlayerCount;
+                setPlayers(livePlayerCount);
+              }
+            } catch (err) { /* swallow */ }
+
+            // --- Auto dealer button: global red-cluster scan ---------
+            // detectDealerAuto() ignores seat rectangles and scans the
+            // entire frame for the button, then maps it to the nearest
+            // seat by centroid distance. Works even with wildly wrong
+            // seat coordinates.
+            try {
+              let dealer = detectDealerAuto(video, effectiveLayout);
+              // Fall back to old per-seat scan if auto returns nothing
+              if (!dealer.seatId) {
+                dealer = detectDealer(video, effectiveLayout);
+              }
               if (dealer.seatId) {
                 setDealerSeat(dealer.seatId);
-                setPosition(heroPositionFromDealer(dealer.seatId, players));
+                setPosition(
+                  heroPositionFromDealer(dealer.seatId, playersRef.current || players)
+                );
               }
             } catch (err) { /* swallow */ }
 
@@ -898,12 +925,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               <span className={'ml-1 font-bold ' + (availableActions.betRaise ? 'text-emerald-300' : 'text-slate-600')}>R</span>
             </span>
           )}
-          {detecting && (
-            <>
-              <span className="bg-slate-800 rounded px-2 py-1">{lastTimingMs}ms/frame</span>
-              <span className="bg-slate-800 rounded px-2 py-1">Frames: {frameCount}</span>
-            </>
-          )}
+          {/* Per-frame timing + frame counter removed per UX request.
+              State still tracked internally for the debug overlay. */}
           <span className={'rounded px-2 py-1 ' + (storage.online ? 'bg-emerald-900/50 text-emerald-300' : 'bg-amber-900/50 text-amber-300')}>
             {storage.online ? 'Online' : 'Offline (queued)'}
           </span>

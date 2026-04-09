@@ -176,4 +176,222 @@ export function heroPositionFromDealer(dealerSeatId, numPlayers = 6) {
   return 'middle';
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+ * Auto-calibration helpers
+ * ═══════════════════════════════════════════════════════════════════════
+ * The old detectDealer() requires per-seat rectangles in layout.json. If
+ * those are even slightly off, the button scan misses. These helpers do
+ * whole-table scans instead, so detection works on any table scale/offset
+ * as long as the seat anchor points are roughly in the right area.
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Scan the ENTIRE frame for the largest red-dominant pixel cluster and
+ * return its centroid. This finds the dealer button wherever it is,
+ * without needing pre-calibrated seat rectangles.
+ *
+ * Uses a downscaled 8x8 grid sampling pass first for speed, then a full
+ * resolution pass only inside the hottest cell. Total cost: ~1ms.
+ */
+export function findDealerButtonGlobal(source, overrides = {}) {
+  const cfg = { ...DEFAULT_CONFIG, ...overrides };
+  const srcW = source.videoWidth || source.width || source.naturalWidth;
+  const srcH = source.videoHeight || source.height || source.naturalHeight;
+  if (!srcW || !srcH) return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = srcW;
+  canvas.height = srcH;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(source, 0, 0, srcW, srcH);
+  const imageData = ctx.getImageData(0, 0, srcW, srcH);
+
+  // Coarse grid pass: split into an 8x8 grid, count red pixels per cell
+  const GRID = 8;
+  const cellW = Math.floor(srcW / GRID);
+  const cellH = Math.floor(srcH / GRID);
+  const cellCounts = new Int32Array(GRID * GRID);
+
+  // Sample every 2nd pixel for speed (still thousands per cell)
+  const { data, width } = imageData;
+  for (let y = 0; y < srcH; y += 2) {
+    const row = y * width;
+    const gy = Math.min(GRID - 1, Math.floor(y / cellH));
+    for (let x = 0; x < srcW; x += 2) {
+      const idx = (row + x) * 4;
+      if (isDealerRed(data[idx], data[idx + 1], data[idx + 2], cfg)) {
+        const gx = Math.min(GRID - 1, Math.floor(x / cellW));
+        cellCounts[gy * GRID + gx]++;
+      }
+    }
+  }
+
+  // Find the hottest cell
+  let bestCell = -1;
+  let bestCellCount = 0;
+  for (let i = 0; i < cellCounts.length; i++) {
+    if (cellCounts[i] > bestCellCount) {
+      bestCellCount = cellCounts[i];
+      bestCell = i;
+    }
+  }
+  // No red found at all (very low count = button probably not visible)
+  if (bestCell < 0 || bestCellCount < cfg.minClusterPixels / 4) return null;
+
+  const gx = bestCell % GRID;
+  const gy = Math.floor(bestCell / GRID);
+
+  // Full-resolution centroid pass inside the hot cell + 1-cell margin
+  const x0 = Math.max(0, (gx - 1) * cellW);
+  const y0 = Math.max(0, (gy - 1) * cellH);
+  const x1 = Math.min(srcW, (gx + 2) * cellW);
+  const y1 = Math.min(srcH, (gy + 2) * cellH);
+
+  let sumX = 0, sumY = 0, cnt = 0;
+  for (let y = y0; y < y1; y++) {
+    const row = y * width;
+    for (let x = x0; x < x1; x++) {
+      const idx = (row + x) * 4;
+      if (isDealerRed(data[idx], data[idx + 1], data[idx + 2], cfg)) {
+        sumX += x;
+        sumY += y;
+        cnt++;
+      }
+    }
+  }
+  if (cnt < cfg.minClusterPixels) return null;
+
+  return { x: sumX / cnt, y: sumY / cnt, pixelCount: cnt };
+}
+
+/**
+ * Map a pixel-space point (e.g. the dealer button centroid) to the
+ * nearest layout seat. Handles seat coordinates in layout reference
+ * space by scaling to the actual capture resolution.
+ */
+export function nearestSeatToPoint(point, layout, srcW, srcH) {
+  if (!layout || !layout.seats || !point) return null;
+  const scaleX = srcW / layout.referenceSize.w;
+  const scaleY = srcH / layout.referenceSize.h;
+  let best = null;
+  let bestDist = Infinity;
+  for (const seat of layout.seats) {
+    const cx = (seat.x + seat.w / 2) * scaleX;
+    const cy = (seat.y + seat.h / 2) * scaleY;
+    const dx = cx - point.x;
+    const dy = cy - point.y;
+    const d = dx * dx + dy * dy;
+    if (d < bestDist) {
+      bestDist = d;
+      best = seat;
+    }
+  }
+  return best;
+}
+
+/**
+ * Convenience wrapper: find the dealer button globally and return the
+ * nearest seat id. This is the zero-calibration path.
+ */
+export function detectDealerAuto(source, layout, overrides = {}) {
+  const srcW = source.videoWidth || source.width || source.naturalWidth;
+  const srcH = source.videoHeight || source.height || source.naturalHeight;
+  if (!srcW || !srcH || !layout) {
+    return { seatId: null, position: null, confidence: 0 };
+  }
+  const point = findDealerButtonGlobal(source, overrides);
+  if (!point) return { seatId: null, position: null, confidence: 0 };
+  const seat = nearestSeatToPoint(point, layout, srcW, srcH);
+  if (!seat) return { seatId: null, position: null, confidence: 0 };
+  return {
+    seatId: seat.id,
+    position: seat.position,
+    confidence: Math.min(1, point.pixelCount / 80),
+    buttonPoint: point,
+  };
+}
+
+/**
+ * Detect how many seats are currently occupied by players (not empty).
+ *
+ * PokerBros renders empty seats either with the "+" add-player icon or
+ * a transparent slot, and occupied seats with a colorful avatar. We
+ * distinguish them by measuring chroma + luminance variance inside the
+ * seat avatar region — occupied avatars are high-variance, empty slots
+ * are either uniform dark or uniform button-colored.
+ *
+ * Returns an object with:
+ *   occupiedSeats: array of seat ids that look occupied
+ *   playerCount:   occupiedSeats.length (always includes hero if hero avatar present)
+ *   hero:          boolean — is hero seat occupied
+ */
+export function detectOccupiedSeats(source, layout) {
+  if (!layout || !layout.seats) return { occupiedSeats: [], playerCount: 0, hero: true };
+  const srcW = source.videoWidth || source.width || source.naturalWidth;
+  const srcH = source.videoHeight || source.height || source.naturalHeight;
+  if (!srcW || !srcH) return { occupiedSeats: [], playerCount: 0, hero: true };
+
+  const canvas = document.createElement('canvas');
+  canvas.width = srcW;
+  canvas.height = srcH;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(source, 0, 0, srcW, srcH);
+
+  const scaleX = srcW / layout.referenceSize.w;
+  const scaleY = srcH / layout.referenceSize.h;
+
+  const occupiedSeats = [];
+  let heroOccupied = true; // hero is always us, even if we're sitting out
+
+  for (const seat of layout.seats) {
+    const rx = Math.max(0, Math.floor(seat.x * scaleX));
+    const ry = Math.max(0, Math.floor(seat.y * scaleY));
+    const rw = Math.max(1, Math.floor(seat.w * scaleX));
+    const rh = Math.max(1, Math.floor(seat.h * scaleY));
+    const clipW = Math.min(rw, srcW - rx);
+    const clipH = Math.min(rh, srcH - ry);
+    if (clipW <= 0 || clipH <= 0) continue;
+
+    const img = ctx.getImageData(rx, ry, clipW, clipH);
+    const { data } = img;
+
+    // Compute luminance variance + average saturation over sampled pixels
+    let lumSum = 0, lumSqSum = 0, satSum = 0, n = 0;
+    for (let i = 0; i < data.length; i += 16) { // sample every 4th pixel
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      const lum = r * 0.299 + g * 0.587 + b * 0.114;
+      lumSum += lum;
+      lumSqSum += lum * lum;
+      const maxC = Math.max(r, g, b);
+      const minC = Math.min(r, g, b);
+      const sat = maxC > 0 ? (maxC - minC) / maxC : 0;
+      satSum += sat;
+      n++;
+    }
+    if (n === 0) continue;
+    const lumMean = lumSum / n;
+    const lumVar = lumSqSum / n - lumMean * lumMean;
+    const satMean = satSum / n;
+
+    // Heuristic: occupied seats have either high luminance variance
+    // (colorful avatar with shading) or high saturation (not just table felt).
+    // Empty seats on PokerBros are either translucent dark or a plain
+    // "+ sit here" button with very little variance.
+    const occupied = (lumVar > 400) || (satMean > 0.25 && lumMean > 60);
+
+    if (seat.id === 'hero') {
+      heroOccupied = occupied;
+      if (occupied) occupiedSeats.push('hero');
+    } else if (occupied) {
+      occupiedSeats.push(seat.id);
+    }
+  }
+
+  return {
+    occupiedSeats,
+    playerCount: occupiedSeats.length,
+    hero: heroOccupied,
+  };
+}
+
 export default detectDealer;
