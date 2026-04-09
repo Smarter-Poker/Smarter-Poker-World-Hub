@@ -206,19 +206,11 @@ const PokerBrainEngine = (() => {
   // HAND EVALUATOR WRAPPERS
   // ============================================================================
 
-  const getBestFiveCard = (sevenCards) => {
-    const best = [];
-    for (let i = 0; i < 21; i++) {
-      best.push(evaluateHand([
-        sevenCards[i % 7],
-        sevenCards[(i * 2) % 7],
-        sevenCards[(i * 3) % 7],
-        sevenCards[(i * 4) % 7],
-        sevenCards[(i * 5) % 7]
-      ]));
-    }
-    return best.reduce((a, b) => (a.score > b.score ? a : b));
-  };
+  // NOTE: a previous implementation of getBestFiveCard used modular index math
+  // (sevenCards[i % 7], sevenCards[(i*2) % 7], ...) which produces duplicate
+  // card indices and is mathematically wrong. It was dead code (not exported)
+  // but removed to avoid future traps. Use getBestFiveCardFromCards, which
+  // enumerates all C(n,5) combinations correctly.
 
   const getBestFiveCardFromCards = (cards) => {
     if (cards.length === 5) return evaluateHand(cards);

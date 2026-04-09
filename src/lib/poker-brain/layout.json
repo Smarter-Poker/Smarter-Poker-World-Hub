@@ -1,4 +1,7 @@
 {
+  "version": 2,
+  "client": "pokerbros",
+  "orientation": "portrait",
   "referenceSize": { "w": 480, "h": 1054 },
   "holeCards": [
     { "x": 295, "y": 710, "w": 47, "h": 70 },
@@ -10,5 +13,34 @@
     { "x": 214, "y": 404, "w": 53, "h": 69 },
     { "x": 271, "y": 404, "w": 56, "h": 69 },
     { "x": 327, "y": 404, "w": 60, "h": 69 }
-  ]
+  ],
+  "ocrRegions": {
+    "pot":           { "x": 195, "y": 298, "w": 90, "h": 28, "kind": "number" },
+    "heroStack":     { "x": 190, "y": 854, "w": 100, "h": 26, "kind": "number" },
+    "heroName":      { "x": 185, "y": 828, "w": 110, "h": 22, "kind": "text" },
+    "blindLevel":    { "x": 185, "y": 560, "w": 110, "h": 20, "kind": "blindlevel" },
+    "handStrength":  { "x": 170, "y": 895, "w": 140, "h": 24, "kind": "text" },
+    "gameVariant":   { "x": 210, "y": 518, "w": 60, "h": 24, "kind": "text" },
+    "seat1Stack":    { "x": 210, "y": 178, "w": 90, "h": 22, "kind": "number" },
+    "seat2Stack":    { "x": 60,  "y": 238, "w": 90, "h": 22, "kind": "number" },
+    "seat3Stack":    { "x": 340, "y": 238, "w": 90, "h": 22, "kind": "number" }
+  },
+  "actionButtons": {
+    "fold":       { "x": 18,  "y": 954, "w": 140, "h": 46, "color": "#cc2237" },
+    "checkCall":  { "x": 170, "y": 954, "w": 140, "h": 46, "color": "#2466c6" },
+    "betRaise":   { "x": 322, "y": 954, "w": 140, "h": 46, "color": "#e18a1b" }
+  },
+  "seats": [
+    { "id": "hero",  "position": "bottom",      "x": 190, "y": 760, "w": 100, "h": 110 },
+    { "id": "seat1", "position": "topCenter",   "x": 200, "y": 104, "w": 100, "h": 110 },
+    { "id": "seat2", "position": "topLeft",     "x": 52,  "y": 170, "w": 100, "h": 110 },
+    { "id": "seat3", "position": "topRight",    "x": 340, "y": 170, "w": 100, "h": 110 },
+    { "id": "seat4", "position": "middleLeft",  "x": 20,  "y": 570, "w": 80,  "h": 100 },
+    { "id": "seat5", "position": "middleRight", "x": 400, "y": 570, "w": 80,  "h": 100 }
+  ],
+  "dealerButton": {
+    "color": { "r": 200, "g": 40, "b": 55, "tolerance": 50 },
+    "searchRadius": 60,
+    "size": { "min": 18, "max": 34 }
+  }
 }
