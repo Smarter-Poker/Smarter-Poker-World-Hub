@@ -39,7 +39,7 @@ const UNION_ID      = 'fade0000-0000-0000-0000-000000000001';
 const OWNER_ID      = '47965354-0e56-43ef-931c-ddaab82af765'; // Dan
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CASH TABLE CONFIGS (35 tables)
+// CASH TABLE CONFIGS (39 tables)
 // ═══════════════════════════════════════════════════════════════════════════════
 const CASH_TABLES = [
   // NLH Full Ladder
@@ -69,6 +69,11 @@ const CASH_TABLES = [
   { name: 'PLO5 0.50/1.00',          sb: 0.50, bb: 1.00, max: 6, variant: 'plo5' },
   { name: 'PLO5 1/2',                sb: 1.00, bb: 2.00, max: 6, variant: 'plo5' },
   { name: 'PLO5 2/5',                sb: 2.00, bb: 5.00, max: 6, variant: 'plo5' },
+  // PLO6
+  { name: 'PLO6 0.25/0.50',          sb: 0.25, bb: 0.50, max: 6, variant: 'plo6' },
+  { name: 'PLO6 0.50/1.00',          sb: 0.50, bb: 1.00, max: 6, variant: 'plo6' },
+  { name: 'PLO6 1/2',                sb: 1.00, bb: 2.00, max: 6, variant: 'plo6' },
+  { name: 'PLO6 2/5',                sb: 2.00, bb: 5.00, max: 6, variant: 'plo6' },
   // PLO8
   { name: 'PLO8 0.25/0.50',          sb: 0.25, bb: 0.50, max: 9, variant: 'plo8' },
   { name: 'PLO8 0.50/1.00',          sb: 0.50, bb: 1.00, max: 9, variant: 'plo8' },
