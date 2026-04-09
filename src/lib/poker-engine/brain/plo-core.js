@@ -4454,6 +4454,106 @@ function getAdaptivePLOBetSize(equity, sprZone, boardTexture, exploitProfile, ma
     return { optimalFraction: fraction, betSize, reasoning };
 }
 
+// ── 8b2. PLO GEOMETRIC SIZING (Pot-Limit Aware) ──
+/**
+ * Calculate optimal geometric bet sizing for PLO across remaining streets.
+ * KEY DIFFERENCE FROM NLHE: PLO is pot-limit, so bet fractions are capped at 1.0x pot.
+ * In PLO, geometric sizing determines how to get stacks in over multiple streets
+ * while never exceeding the pot-limit constraint on any single street.
+ *
+ * The algorithm:
+ * 1. Calculate SPR (Stack-to-Pot Ratio)
+ * 2. If SPR < 2, we're pot-committed — pot-raise to jam
+ * 3. If targetAllIn, binary search for the bet fraction f such that
+ *    betting f*pot on each street (villain calls each time) gets us approximately all-in
+ *    BUT f is capped at 1.0 (pot-limit constraint)
+ * 4. If the computed fraction exceeds 1.0, we CANNOT get all-in via geometric sizing alone —
+ *    we need to pot every street and hope it's enough, or rely on raises
+ *
+ * @param {number} potSize - Current pot
+ * @param {number} heroStack - Our remaining stack
+ * @param {number} streetsRemaining - 1 (river), 2 (turn+river), 3 (flop+turn+river)
+ * @param {boolean} targetAllIn - true = try to get stacks in, false = pot control
+ * @returns {{ sizeFraction: number, projectedPotByStreet: number[], isJammable: boolean, isPotLimitCapped: boolean }}
+ */
+function getPLOGeometricSizing(potSize, heroStack, streetsRemaining, targetAllIn = true) {
+    if (streetsRemaining <= 0 || potSize <= 0) {
+        return { sizeFraction: 0.65, projectedPotByStreet: [], isJammable: false, isPotLimitCapped: false };
+    }
+
+    const spr = heroStack / Math.max(1, potSize);
+
+    // SPR < 2: pot-committed in PLO — pot-raise to jam
+    if (spr < 2) {
+        return { sizeFraction: 1.0, projectedPotByStreet: [heroStack + potSize], isJammable: true, isPotLimitCapped: false };
+    }
+
+    // Pot control mode: don't try to get all-in
+    if (!targetAllIn) {
+        // PLO pot control: smaller sizing to keep pot manageable
+        // Deep stacks (SPR > 8): very small to avoid building huge pot OOP
+        // Medium SPR (4-8): standard 50-60%
+        // Shallow SPR (2-4): slightly larger since we're somewhat committed
+        let controlFrac;
+        if (spr > 8) controlFrac = 0.40;
+        else if (spr > 4) controlFrac = streetsRemaining === 1 ? 0.55 : 0.45;
+        else controlFrac = 0.60;
+        return { sizeFraction: controlFrac, projectedPotByStreet: [], isJammable: false, isPotLimitCapped: false };
+    }
+
+    // ═══ PLO GEOMETRIC SIZING: Binary search for optimal fraction ═══
+    // Key constraint: fraction capped at 1.0 (pot-limit)
+    let lo = 0.20, hi = 1.00; // PLO cap: hi = 1.0 (pot-limit)
+    for (let iter = 0; iter < 20; iter++) {
+        const mid = (lo + hi) / 2;
+        let totalBet = 0;
+        let currentPot = potSize;
+        for (let s = 0; s < streetsRemaining; s++) {
+            const betAmt = currentPot * mid;
+            totalBet += betAmt;
+            currentPot = currentPot + betAmt * 2; // both players put in betAmt
+        }
+        if (totalBet < heroStack) lo = mid;
+        else hi = mid;
+    }
+
+    let optimalFrac = (lo + hi) / 2;
+
+    // Check if pot-limit cap is binding (we want to bet more than pot but can't)
+    let isPotLimitCapped = false;
+    if (optimalFrac >= 0.98) {
+        // Even at pot-size bets we can't get all-in in streetsRemaining streets
+        // This is common in deep-stack PLO (SPR > 6 with 2 streets left)
+        isPotLimitCapped = true;
+        optimalFrac = 1.0;
+    }
+
+    // Project pot sizes per street
+    const projectedPotByStreet = [];
+    let currentPot = potSize;
+    for (let s = 0; s < streetsRemaining; s++) {
+        const betAmt = currentPot * optimalFrac;
+        currentPot = currentPot + betAmt * 2;
+        projectedPotByStreet.push(Math.round(currentPot));
+    }
+
+    // Check if we actually get close to all-in
+    let totalBet = 0;
+    let cp = potSize;
+    for (let s = 0; s < streetsRemaining; s++) {
+        totalBet += cp * optimalFrac;
+        cp = cp + cp * optimalFrac * 2;
+    }
+    const isJammable = totalBet >= heroStack * 0.85;
+
+    return {
+        sizeFraction: Math.max(0.25, Math.min(1.0, optimalFrac)), // PLO cap at 1.0
+        projectedPotByStreet,
+        isJammable,
+        isPotLimitCapped
+    };
+}
+
 // ── 8c. BAYESIAN OPPONENT MODEL UPDATER ──
 /**
  * Update our live opponent model using Bayesian principles during the session.
@@ -6239,7 +6339,7 @@ module.exports = {
     calcPLOPotRaise,
     calcPLOBetSize,
     getAdaptivePLOBetSize,
-    getGeometricSizing: undefined, // In holdem-brain, aliased if needed
+    getPLOGeometricSizing,
 
     // Strategy functions
     getPLOCBetStrategy,
