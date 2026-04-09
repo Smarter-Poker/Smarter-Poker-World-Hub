@@ -34,6 +34,12 @@
 # Using set -e would cause premature script termination on expected outcomes.
 set -u  # Only catch unset variables
 
+# ── Ensure PATH includes homebrew and nvm for agent environments ──
+# AI agents may invoke this script from minimal shell contexts where
+# /opt/homebrew/bin, nvm, and node aren't on PATH.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+[ -s "$HOME/.nvm/nvm.sh" ] && source "$HOME/.nvm/nvm.sh" 2>/dev/null || true
+
 # ── Parse flags ──
 DRY_RUN=false
 BUILD_CHECK=true  # DEFAULT ON — prevents broken imports from blocking CI for days
@@ -519,9 +525,19 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       --duration "$(( TOTAL_END - TOTAL_START ))" \
       --msg "${MSG}" 2>/dev/null || true
 
-    if which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
-      echo "🚀 Triggering Vercel production deploy (webhook bypass)..."
-      npx -y vercel deploy --prod --yes || echo "⚠️ Vercel deployment failed, but git push succeeded."
+    # ── Vercel production deploy ──
+    VERCEL_DEPLOY_TOKEN=""
+    if [ -f "${REPO_ROOT}/.env.local" ]; then
+      VERCEL_DEPLOY_TOKEN=$(grep '^VERCEL_TOKEN=' "${REPO_ROOT}/.env.local" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    fi
+    if [ -n "$VERCEL_DEPLOY_TOKEN" ]; then
+      echo "🚀 Triggering Vercel production deploy..."
+      npx -y vercel deploy --prod --yes --token="$VERCEL_DEPLOY_TOKEN" 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
+    elif which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
+      echo "🚀 Triggering Vercel production deploy (no explicit token)..."
+      npx -y vercel deploy --prod --yes 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
+    else
+      echo "⚠️ Vercel CLI not found and no VERCEL_TOKEN in .env.local — skipping deploy."
     fi
     exit 0
    else
@@ -542,9 +558,19 @@ while [ $attempt -lt $MAX_RETRIES ]; do
       echo "✅ Push successful!"
       echo "═══════════════════════════════════════════════════"
 
-      if which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
-        echo "🚀 Triggering Vercel production deploy (webhook bypass)..."
-        npx -y vercel deploy --prod --yes || echo "⚠️ Vercel deployment failed, but git push succeeded."
+      # ── Vercel production deploy (fallback path) ──
+      VERCEL_DEPLOY_TOKEN=""
+      if [ -f "${REPO_ROOT}/.env.local" ]; then
+        VERCEL_DEPLOY_TOKEN=$(grep '^VERCEL_TOKEN=' "${REPO_ROOT}/.env.local" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+      fi
+      if [ -n "$VERCEL_DEPLOY_TOKEN" ]; then
+        echo "🚀 Triggering Vercel production deploy..."
+        npx -y vercel deploy --prod --yes --token="$VERCEL_DEPLOY_TOKEN" 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
+      elif which vercel >/dev/null 2>&1 || npx -y vercel --version >/dev/null 2>&1; then
+        echo "🚀 Triggering Vercel production deploy (no explicit token)..."
+        npx -y vercel deploy --prod --yes 2>&1 || echo "⚠️ Vercel deployment failed, but git push succeeded."
+      else
+        echo "⚠️ Vercel CLI not found and no VERCEL_TOKEN in .env.local — skipping deploy."
       fi
       exit 0
     else
