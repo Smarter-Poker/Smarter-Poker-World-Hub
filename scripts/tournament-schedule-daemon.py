@@ -221,6 +221,7 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
              starting_stack=None, blind_levels=None, rebuy_addon=None, late_reg=None) -> dict:
     ts = datetime.now(timezone.utc).isoformat()
     r = {
+        "venue_id": venue_id,
         "venue_name":venue_name,"day_of_week":day or "Daily","event_date":event_date,
         "start_time":start_time,"buy_in":buy_in,"game_type":game_type,"format":fmt,
         "guaranteed":guaranteed,"starting_stack":starting_stack,"blind_levels":blind_levels,
@@ -230,7 +231,6 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
         "scrape_timestamp":ts,"scrape_batch_id":batch_id,
         "scrape_confidence":"high","is_active":True,"last_scraped":ts,
     }
-    if venue_id: r["venue_id"] = venue_id
     return r
 
 # ── Supabase ─────────────────────────────────────────────────────────────────

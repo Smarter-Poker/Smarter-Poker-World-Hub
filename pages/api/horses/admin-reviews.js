@@ -56,13 +56,11 @@ export default async function handler(req, res) {
                     reviewer_name,
                     rating,
                     review_text,
-                    photos,
                     helpful_count,
                     unhelpful_count,
                     is_flagged,
                     flag_reason,
                     created_at,
-                    updated_at,
                     metadata
                 `)
                 .limit(parseInt(limit, 10) || 100)
