@@ -154,6 +154,13 @@ export class HandStateMachine {
         river: null,
         finalBoard: [],
         streetDecisions: {},  // street -> {action, equity, potOdds, ...}
+        // Optional context captured by the caller via setHandContext().
+        // These stay null until the HUD hydrates them on hand start.
+        position: null,
+        potAtStart: null,
+        stackAtStart: null,
+        gameType: null,
+        bigBlind: null,
         ended: false,
       };
       this.state.handStartedAt = now;
@@ -218,6 +225,22 @@ export class HandStateMachine {
       ...decision,
       at: Date.now(),
     };
+  }
+
+  /**
+   * Attach game-state context (position, pot, stack, etc.) to the currently
+   * tracked hand. Usually called by the caller on hand start so the completed
+   * hand object carries enough data for the history view and storage log.
+   * Only fields present in `ctx` are set; existing fields stay intact unless
+   * overwritten.
+   */
+  setHandContext(ctx) {
+    if (!this._currentHand || !ctx) return;
+    if (ctx.position != null) this._currentHand.position = ctx.position;
+    if (ctx.potAtStart != null) this._currentHand.potAtStart = ctx.potAtStart;
+    if (ctx.stackAtStart != null) this._currentHand.stackAtStart = ctx.stackAtStart;
+    if (ctx.gameType != null) this._currentHand.gameType = ctx.gameType;
+    if (ctx.bigBlind != null) this._currentHand.bigBlind = ctx.bigBlind;
   }
 
   /**

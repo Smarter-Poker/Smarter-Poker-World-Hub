@@ -147,7 +147,8 @@ const PokerBrainEngine = (() => {
       score = 7000000 + ranked[0].rank * 1000 + ranked[1].rank;
       name = 'Full House';
     } else if (flush) {
-      score = 6000000 + getRanks().reduce((a, b, i) => a + b * Math.pow(1000, 4 - i), 0);
+      const r = getRanks();
+      score = 6000000 + r[0] * 10000 + r[1] * 1000 + r[2] * 100 + r[3] * 10 + r[4];
       name = 'Flush';
     } else if (straight) {
       score = 5000000 + straight.high * 1000; name = 'Straight';
@@ -163,7 +164,8 @@ const PokerBrainEngine = (() => {
               ranked[1].rank * 100 + ranked[2].rank * 10 + ranked[3].rank;
       name = 'One Pair';
     } else {
-      score = 1000000 + getRanks().reduce((a, b, i) => a + b * Math.pow(1000, 4 - i), 0);
+      const r = getRanks();
+      score = 1000000 + r[0] * 10000 + r[1] * 1000 + r[2] * 100 + r[3] * 10 + r[4];
       name = 'High Card';
     }
 

@@ -5,6 +5,7 @@ import PokerBrainEngine from '../../lib/poker-brain/engine';
 import { getBridgedDecision } from '../../lib/poker-brain/decision-bridge';
 import { HandStateMachine, STREETS } from '../../lib/poker-brain/state';
 import { detectDealer, heroPositionFromDealer } from '../../lib/poker-brain/dealer-detect';
+import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { verifyCardSuit } from '../../lib/poker-brain/suit-color';
@@ -161,6 +162,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
   // Hand strength OCR label (from PokerBros UI)
   const [pokerBrosHandLabel, setPokerBrosHandLabel] = useState('');
 
+  // Detected action button availability (hero-turn sanity check)
+  const [availableActions, setAvailableActions] = useState(null);
+
+  // Engine-vs-button consistency gate
+  const [actionValidation, setActionValidation] = useState(null);
+
   // Load layout overrides from localStorage on mount
   useEffect(() => {
     const ov = loadLayoutOverrides();
@@ -236,7 +243,18 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     stateMachineRef.current = new HandStateMachine({
       requiredFrames: 2,
       onHandStart: (hand) => {
-        // Nothing - state is captured in onStateChange
+        // Hydrate the hand with the game-state snapshot at the moment cards
+        // appeared. These refs always hold the freshest value because they're
+        // synced via useEffect above.
+        if (stateMachineRef.current && stateMachineRef.current.setHandContext) {
+          stateMachineRef.current.setHandContext({
+            position: positionRef.current,
+            potAtStart: potSizeRef.current,
+            stackAtStart: effectiveStackRef.current || heroStackRef.current,
+            gameType: gameTypeRef.current,
+            bigBlind: bigBlindRef.current,
+          });
+        }
       },
       onStreetChange: (hand, prevStreet, nextStreet) => {
         // Hook present so the state machine's street-change path fires
@@ -259,13 +277,17 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             }
           }
           storage.logHand({
-            position: positionRef.current,
+            // Prefer the snapshot captured at hand start; fall back to the
+            // current ref value if the hand-start hydration was missed.
+            position: hand.position || positionRef.current,
             holeCards: hand.holeCards || [],
             board: hand.finalBoard || [],
-            gameType: gameTypeRef.current,
-            potSize: potSizeRef.current,
+            gameType: hand.gameType || gameTypeRef.current,
+            potSize: hand.potAtStart != null ? hand.potAtStart : potSizeRef.current,
             betToCall: betToCallRef.current > 0 ? betToCallRef.current : bigBlindRef.current,
-            stackSize: effectiveStackRef.current || heroStackRef.current,
+            stackSize: hand.stackAtStart != null
+              ? hand.stackAtStart
+              : (effectiveStackRef.current || heroStackRef.current),
             equity: lastDecision ? lastDecision.equity : null,
             potOdds: lastDecision ? lastDecision.potOdds : null,
             decision: lastDecision ? lastDecision.action : null,
@@ -465,6 +487,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
                 setPosition(heroPositionFromDealer(dealer.seatId, players));
               }
             } catch (err) { /* swallow */ }
+
+            // Available action detection (color-cluster on fold/call/raise
+            // button regions). Tells us whether it's actually hero's turn.
+            try {
+              const actions = detectAvailableActions(video, effectiveLayout);
+              setAvailableActions(actions);
+            } catch (err) { /* swallow */ }
           } catch (err) {
             console.warn('[HUD] matchAllRegions failed', err);
           }
@@ -640,11 +669,21 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
           setValidator(null);
         }
       } catch (err) { /* swallow */ }
+
+      // Action-button consistency: does the recommendation actually
+      // correspond to a button that is visible right now?
+      if (bridged.ready) {
+        try {
+          setActionValidation(validateAction(availableActions, bridged.action));
+        } catch (err) { setActionValidation(null); }
+      } else {
+        setActionValidation(null);
+      }
     }, 200);
     return () => {
       if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
     };
-  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, pokerBrosHandLabel]);
+  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, pokerBrosHandLabel, availableActions]);
 
   // ============================================================================
   // UI HELPERS
@@ -691,6 +730,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
             </h1>
             <p className="text-slate-400 text-xs">
               Full engine | Template matching | Monte Carlo equity | PokerBros NLH
+              {heroName ? (
+                <span className="ml-2 text-amber-300">&middot; {heroName}</span>
+              ) : null}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -752,9 +794,27 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
               Stack: <span className="font-bold text-white">{heroStack}</span>
             </span>
           )}
+          {effectiveStack > 0 && effectiveStack !== heroStack && (
+            <span className="bg-slate-800 rounded px-2 py-1">
+              Eff: <span className="font-bold text-white">{effectiveStack}</span>
+            </span>
+          )}
           {bigBlind > 0 && (
             <span className="bg-slate-800 rounded px-2 py-1">
               BB: <span className="font-bold text-white">{bigBlind}</span>
+            </span>
+          )}
+          {betToCall > 0 && (
+            <span className="bg-slate-800 rounded px-2 py-1">
+              To call: <span className="font-bold text-white">{betToCall}</span>
+            </span>
+          )}
+          {availableActions && availableActions.any && (
+            <span className="bg-slate-800 rounded px-2 py-1">
+              Buttons:
+              <span className={'ml-1 font-bold ' + (availableActions.fold ? 'text-rose-300' : 'text-slate-600')}>F</span>
+              <span className={'ml-1 font-bold ' + (availableActions.checkCall ? 'text-sky-300' : 'text-slate-600')}>C</span>
+              <span className={'ml-1 font-bold ' + (availableActions.betRaise ? 'text-emerald-300' : 'text-slate-600')}>R</span>
             </span>
           )}
           {detecting && (
@@ -841,14 +901,55 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
                   </div>
                 </div>
               )}
+              {decision.detection && (
+                (() => {
+                  const hc = decision.detection.holeConfidence;
+                  const bc = decision.detection.boardConfidence;
+                  const minConf = Math.min(
+                    typeof hc === 'number' ? hc : 1,
+                    typeof bc === 'number' ? bc : 1,
+                  );
+                  const pct = Math.round(minConf * 100);
+                  const lowColor = pct < 90 ? 'text-amber-300' : 'text-white';
+                  return (
+                    <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                      <div className="text-[9px] text-white/60 uppercase">Detection</div>
+                      <div className={'text-sm font-bold ' + lowColor}>{pct}%</div>
+                      {decision.detection.unknownCount > 0 && (
+                        <div className="text-[9px] text-amber-300 mt-0.5">
+                          {decision.detection.unknownCount} unknown
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
+              {pokerBrosHandLabel && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">OCR Label</div>
+                  <div className="text-sm font-bold">{pokerBrosHandLabel}</div>
+                </div>
+              )}
+            </div>
+          )}
+          {actionValidation && !actionValidation.consistent && (
+            <div className="mt-2 text-[11px] text-amber-200 bg-amber-900/30 border border-amber-500/40 rounded px-2 py-1">
+              Heads up: {actionValidation.reason}
             </div>
           )}
         </div>
 
         {/* VALIDATOR WARNING */}
-        {validator && validator.severity === 'critical' && (
-          <div className="mb-3 p-3 rounded-xl bg-rose-900/60 border-2 border-rose-500/60 text-rose-100">
-            <div className="text-xs font-bold uppercase tracking-wider">Detection warning</div>
+        {validator && validator.severity && validator.severity !== 'ok' && (
+          <div className={
+            'mb-3 p-3 rounded-xl border-2 ' +
+            (validator.severity === 'critical'
+              ? 'bg-rose-900/60 border-rose-500/60 text-rose-100'
+              : 'bg-amber-900/40 border-amber-500/50 text-amber-100')
+          }>
+            <div className="text-xs font-bold uppercase tracking-wider">
+              {validator.severity === 'critical' ? 'Detection error' : 'Detection warning'}
+            </div>
             <div className="text-sm mt-1">{validator.reason}</div>
           </div>
         )}

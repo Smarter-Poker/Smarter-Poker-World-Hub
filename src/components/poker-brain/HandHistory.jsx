@@ -84,6 +84,17 @@ function HandCard({ hand, index }) {
   const decisions = hand.streetDecisions || {};
   const streetsWithDecisions = Object.keys(decisions);
 
+  // Board fallback: if the state machine skipped straight from flop to river
+  // (fast detection stream, missed turn transition), the per-street fields may
+  // be null but `finalBoard` will still hold the 5 cards. Fill the gaps from
+  // finalBoard so the history view is not missing cards the user saw.
+  const fb = Array.isArray(hand.finalBoard) ? hand.finalBoard : [];
+  const flop = hand.flop && hand.flop.length === 3
+    ? hand.flop
+    : (fb.length >= 3 ? fb.slice(0, 3) : null);
+  const turn = hand.turn || (fb.length >= 4 ? fb[3] : null);
+  const river = hand.river || (fb.length >= 5 ? fb[4] : null);
+
   return (
     <div className="rounded-lg bg-slate-800/70 border border-white/5 p-2.5">
       <button
@@ -95,6 +106,11 @@ function HandCard({ hand, index }) {
           {hand.holeCards && hand.holeCards.map((c, i) => (
             <MiniCard key={'hh' + i} card={c} />
           ))}
+          {hand.position && (
+            <span className="text-[9px] text-slate-500 uppercase tracking-wider font-semibold">
+              {hand.position}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-[10px] text-slate-400">
           {duration !== null && <span>{duration}s</span>}
@@ -110,10 +126,26 @@ function HandCard({ hand, index }) {
 
       {open && (
         <div className="mt-2 pt-2 border-t border-white/5 space-y-1.5">
+          {(hand.potAtStart != null || hand.stackAtStart != null || hand.bigBlind != null) && (
+            <div className="flex items-center gap-3 text-[10px] text-slate-400">
+              {hand.potAtStart != null && (
+                <span>Pot <span className="text-white font-bold">{hand.potAtStart}</span></span>
+              )}
+              {hand.stackAtStart != null && (
+                <span>Stack <span className="text-white font-bold">{hand.stackAtStart}</span></span>
+              )}
+              {hand.bigBlind != null && hand.bigBlind > 0 && (
+                <span>BB <span className="text-white font-bold">{hand.bigBlind}</span></span>
+              )}
+              {hand.gameType && (
+                <span className="uppercase">{hand.gameType}</span>
+              )}
+            </div>
+          )}
           <CardRow cards={hand.holeCards} label="Hole" />
-          <CardRow cards={hand.flop} label="Flop" />
-          {hand.turn && <CardRow cards={[hand.turn]} label="Turn" />}
-          {hand.river && <CardRow cards={[hand.river]} label="River" />}
+          <CardRow cards={flop} label="Flop" />
+          {turn && <CardRow cards={[turn]} label="Turn" />}
+          {river && <CardRow cards={[river]} label="River" />}
           {streetsWithDecisions.length > 0 && (
             <div className="pt-1 mt-1 border-t border-white/5 space-y-0.5">
               {streetsWithDecisions.map((s) => (
