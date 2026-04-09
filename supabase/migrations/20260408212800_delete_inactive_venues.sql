@@ -1,84 +1,38 @@
 -- Migration: Delete all 39 inactive venues from poker_venues
 -- These venues have is_active=false and should not appear on smarter.poker
--- Handles FK cascade order: dependent tables deleted first
+-- Uses dynamic execution to handle all dependent fkeys
 -- Date: 2026-04-08
 
--- Step 1: Clear dependent tournament data
-DELETE FROM venue_daily_tournaments WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
+DO $$ 
+DECLARE
+  v_table_name text;
+  v_column_name text;
+  sql text;
+  v_venue_ids text := '1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,1910,2639,1914,1915,1916,2716,2759,1898,1897';
+BEGIN
+  -- First delete multi-layer dependent commander objects
+  EXECUTE format('DELETE FROM commander_league_standings WHERE league_id IN (SELECT id FROM commander_leagues WHERE venue_id IN (%s))', v_venue_ids);
+  
+  -- Clear all foreign key relations referencing poker_venues
+  FOR v_table_name, v_column_name IN 
+    SELECT tc.table_name, kcu.column_name 
+    FROM information_schema.table_constraints AS tc 
+    JOIN information_schema.key_column_usage AS kcu ON tc.constraint_name = kcu.constraint_name 
+    JOIN information_schema.constraint_column_usage AS ccu ON ccu.constraint_name = tc.constraint_name 
+    WHERE tc.constraint_type = 'FOREIGN KEY' AND ccu.table_name='poker_venues'
+    AND tc.table_name NOT IN ('poker_venues', 'commander_league_standings')
+  LOOP
+    BEGIN
+      -- Try setting NULL first to preserve historical data
+      sql := format('UPDATE %I SET %I = NULL WHERE %I IN (%s)', v_table_name, v_column_name, v_column_name, v_venue_ids);
+      EXECUTE sql;
+    EXCEPTION WHEN not_null_violation THEN
+      -- If NOT NULL constraint exists, delete the dependent row
+      sql := format('DELETE FROM %I WHERE %I IN (%s)', v_table_name, v_column_name, v_venue_ids);
+      EXECUTE sql;
+    END;
+  END LOOP;
 
--- Step 2: Clear commander notifications
-DELETE FROM commander_notifications WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 3: Clear commander wait time predictions
-DELETE FROM commander_wait_time_predictions WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 4: Clear commander player preferences
-DELETE FROM commander_player_preferences WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 5: Clear commander player sessions
-DELETE FROM commander_player_sessions WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 6: Clear commander player stats
-DELETE FROM commander_player_stats WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 7: Clear commander dealers
-DELETE FROM commander_dealers WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 8: Clear commander tournaments
-DELETE FROM commander_tournaments WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 9: Null FK in commander_games (historical game data preserved without venue ref)
-UPDATE commander_games SET venue_id = NULL WHERE venue_id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
-
--- Step 10: Delete all 39 inactive venues
-DELETE FROM poker_venues WHERE is_active = false AND id IN (
-  1929,1857,1866,1864,2498,2625,1949,2320,2654,2730,
-  2653,2701,1873,2641,1874,2646,3118,2616,2692,1990,
-  1989,2652,1846,2764,2729,2636,1900,1905,2413,1907,
-  1910,2639,1914,1915,1916,2716,2759,1898,1897
-);
+  -- Delete the venues
+  EXECUTE format('DELETE FROM poker_venues WHERE is_active = false AND id IN (%s)', v_venue_ids);
+END $$;
