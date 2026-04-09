@@ -557,11 +557,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
     if (stateMachineRef.current) stateMachineRef.current.reset();
   };
 
+  // Engine returns equity/potOdds already as percentages (0-100), not 0-1.
   const equityPct = decision && decision.ready && typeof decision.equity === 'number'
-    ? Math.round(decision.equity * 100)
+    ? Math.round(decision.equity)
     : null;
   const potOddsPct = decision && decision.ready && typeof decision.potOdds === 'number'
-    ? Math.round(decision.potOdds * 100)
+    ? Math.round(decision.potOdds)
     : null;
 
   // ============================================================================
@@ -686,7 +687,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
               {typeof decision.confidence === 'number' && (
                 <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
                   <div className="text-[9px] text-white/60 uppercase">Confidence</div>
-                  <div className="text-sm font-bold">{Math.round(decision.confidence * 100)}%</div>
+                  <div className="text-sm font-bold">{Math.round(decision.confidence)}%</div>
+                </div>
+              )}
+              {decision.outs > 0 && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">Outs</div>
+                  <div className="text-sm font-bold">{decision.outs}</div>
                 </div>
               )}
               {decision.spr !== null && decision.spr !== undefined && (

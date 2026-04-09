@@ -390,6 +390,155 @@ const PokerBrainEngine = (() => {
   const clearEquityCache = () => { equityCache.clear(); };
 
   // ============================================================================
+  // RANGE EXPANSION + RANGE-VS-RANGE EQUITY
+  // ============================================================================
+
+  // Turn a hand code ("AKs", "QQ", "T9o") into an array of 2-card combos,
+  // filtered to avoid cards already in the dead deck.
+  const expandHandCode = (code, deadCards) => {
+    const inDead = (rank, suit) =>
+      deadCards.some(c => c.rank === rank && c.suit === suit);
+    const combos = [];
+    if (code.length === 2) {
+      // Pair
+      const r = code[0];
+      for (let i = 0; i < SUITS.length; i++) {
+        for (let j = i + 1; j < SUITS.length; j++) {
+          if (!inDead(r, SUITS[i]) && !inDead(r, SUITS[j])) {
+            combos.push([{ rank: r, suit: SUITS[i] }, { rank: r, suit: SUITS[j] }]);
+          }
+        }
+      }
+    } else if (code.length === 3) {
+      const [r1, r2, tag] = code;
+      if (tag === 's') {
+        for (const s of SUITS) {
+          if (!inDead(r1, s) && !inDead(r2, s)) {
+            combos.push([{ rank: r1, suit: s }, { rank: r2, suit: s }]);
+          }
+        }
+      } else {
+        for (const s1 of SUITS) {
+          for (const s2 of SUITS) {
+            if (s1 === s2) continue;
+            if (!inDead(r1, s1) && !inDead(r2, s2)) {
+              combos.push([{ rank: r1, suit: s1 }, { rank: r2, suit: s2 }]);
+            }
+          }
+        }
+      }
+    }
+    return combos;
+  };
+
+  // Expand an entire hand-code Set to a flat pool of combos given dead cards.
+  const expandRange = (rangeSet, deadCards) => {
+    const pool = [];
+    for (const code of rangeSet) {
+      for (const combo of expandHandCode(code, deadCards)) {
+        pool.push(combo);
+      }
+    }
+    return pool;
+  };
+
+  // Equity of holeCards vs a single villain sampled from rangeSet.
+  // Uses seeded RNG for determinism and shares the equity cache.
+  const calculateEquityVsRange = (holeCards, boardCards, rangeSet, gameType = 'nlhe', iterations = 1200) => {
+    if (!rangeSet || rangeSet.size === 0) {
+      return calculateEquity(holeCards, boardCards, 1, gameType, iterations);
+    }
+    const rangeId = Array.from(rangeSet).sort().join(',');
+    const key = makeCacheKey(holeCards, boardCards, 1, gameType + ':' + rangeId, iterations);
+    if (equityCache.has(key)) {
+      const hit = equityCache.get(key);
+      equityCache.delete(key);
+      equityCache.set(key, hit);
+      return hit;
+    }
+
+    const rng = makeRng(keyToSeed(key));
+    const dead = [...holeCards, ...boardCards];
+    const villainPool = expandRange(rangeSet, dead);
+    if (villainPool.length === 0) {
+      return calculateEquity(holeCards, boardCards, 1, gameType, iterations);
+    }
+
+    let wins = 0;
+    let ties = 0;
+    const cardsNeeded = 5 - boardCards.length;
+
+    for (let iter = 0; iter < iterations; iter++) {
+      const villain = villainPool[Math.floor(rng() * villainPool.length)];
+      // Dead = hero + board + villain
+      const iterDead = [...dead, ...villain];
+      const freshDeck = createDeck().filter(c =>
+        !iterDead.some(d => cardsEqual(d, c))
+      );
+      const shuffled = shuffleDeck(freshDeck, rng);
+      const runout = shuffled.slice(0, cardsNeeded);
+      const fullBoard = [...boardCards, ...runout];
+
+      const heroHand = getBestFiveCardFromCards([...holeCards, ...fullBoard]);
+      const vilHand = getBestFiveCardFromCards([...villain, ...fullBoard]);
+      if (!heroHand || !vilHand) continue;
+      if (heroHand.score > vilHand.score) wins++;
+      else if (heroHand.score === vilHand.score) ties++;
+    }
+
+    const equity = (wins + ties * 0.5) / iterations * 100;
+    const result = {
+      equity: Math.round(equity * 100) / 100,
+      wins,
+      ties,
+      iterations,
+      vsRange: true,
+      poolSize: villainPool.length,
+    };
+    equityCache.set(key, result);
+    if (equityCache.size > EQUITY_CACHE_LIMIT) {
+      const firstKey = equityCache.keys().next().value;
+      equityCache.delete(firstKey);
+    }
+    return result;
+  };
+
+  // ============================================================================
+  // OUTS COUNTER (flop/turn drawing analysis)
+  // ============================================================================
+
+  // Count cards that improve hero's hand rank on the next street.
+  // Returns { outs, improves, fromRank, toRank }.
+  const countOuts = (holeCards, boardCards) => {
+    if (boardCards.length < 3 || boardCards.length > 4) {
+      return { outs: 0, improves: [], fromRank: null, toRank: null };
+    }
+    const current = getBestFiveCardFromCards([...holeCards, ...boardCards]);
+    if (!current) return { outs: 0, improves: [], fromRank: null, toRank: null };
+
+    const dead = [...holeCards, ...boardCards];
+    const deck = createDeck().filter(c => !dead.some(d => cardsEqual(d, c)));
+    const improves = new Set();
+    let outs = 0;
+
+    for (const next of deck) {
+      const nextBoard = [...boardCards, next];
+      const nextBest = getBestFiveCardFromCards([...holeCards, ...nextBoard]);
+      if (nextBest && nextBest.score > current.score) {
+        outs++;
+        improves.add(nextBest.name);
+      }
+    }
+    return {
+      outs,
+      improves: Array.from(improves),
+      fromRank: current.name,
+      // Rough "rule of 2 & 4" equity estimate from outs
+      approxEquity: boardCards.length === 3 ? outs * 4 : outs * 2,
+    };
+  };
+
+  // ============================================================================
   // 169-HAND PREFLOP RANGE SYSTEM
   // ============================================================================
 
@@ -733,13 +882,27 @@ const PokerBrainEngine = (() => {
 
       // Cheaper iteration count on flop/turn to keep HUD responsive
       const iterBudget = street === 'river' ? 2000 : street === 'turn' ? 1500 : 1200;
-      const equityResult = calculateEquity(
-        holeCards,
-        boardCards,
-        Math.max(1, numPlayers - 1),
-        gameType,
-        iterBudget
-      );
+
+      // If we had a preflop action signal, estimate villain's range and run
+      // range-vs-range equity (much more accurate than "random hand").
+      // Heads-up only (numPlayers - 1 === 1); multiway falls back to random.
+      let equityResult;
+      const villainCount = Math.max(1, numPlayers - 1);
+      const effectiveRange = !isOmaha && villainCount === 1
+        ? (preflopAction === 'vs_3bet' ? FOURBET_RANGE
+            : preflopAction === 'vs_raise' ? THREEBET_RANGE
+            : preflopAction === 'rfi' ? (RFI[pos] || RFI.mp)
+            : null)
+        : null;
+      if (effectiveRange) {
+        equityResult = calculateEquityVsRange(
+          holeCards, boardCards, effectiveRange, gameType, iterBudget
+        );
+      } else {
+        equityResult = calculateEquity(
+          holeCards, boardCards, villainCount, gameType, iterBudget
+        );
+      }
       equity = equityResult.equity;
 
       const spr = calculateStackToPot(stackSize, potSize);
@@ -880,6 +1043,13 @@ const PokerBrainEngine = (() => {
 
     // Texture analysis
     classifyTexture,
+
+    // Range-based analysis
+    calculateEquityVsRange,
+    expandRange,
+    expandHandCode,
+    countOuts,
+    RANGES: { RFI, BB_DEFEND, THREEBET_RANGE, FOURBET_RANGE },
 
     // Decision making
     getDecision,

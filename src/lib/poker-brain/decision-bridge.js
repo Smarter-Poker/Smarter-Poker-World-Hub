@@ -176,6 +176,16 @@ export function getBridgedDecision(input) {
       texture = PokerBrainEngine.classifyTexture(effectiveBoard);
     } catch (err) { /* swallow */ }
   }
+  // Outs counter only meaningful on flop/turn with full hole + board
+  let outs = 0;
+  let outsImproves = [];
+  if (effectiveBoard.length === 3 || effectiveBoard.length === 4) {
+    try {
+      const o = PokerBrainEngine.countOuts(hole, effectiveBoard);
+      outs = o.outs;
+      outsImproves = o.improves || [];
+    } catch (err) { /* swallow */ }
+  }
   const spr = PokerBrainEngine.calculateStackToPot(stackSize, potSize);
 
   return {
@@ -190,6 +200,8 @@ export function getBridgedDecision(input) {
     street,
     handStrength,
     texture,
+    outs,
+    outsImproves,
     spr: Number.isFinite(spr) ? Math.round(spr * 10) / 10 : null,
     holeCards: hole,
     boardCards: effectiveBoard,
