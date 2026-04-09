@@ -380,23 +380,18 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 d.setDate(d.getDate() + daysAway);
                                 dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                             }
-                            const timeStr = formatTime(ne.start_time);
                             return (
                                 <div className="vc3-next-event-header">
-                                    <span className="vc3-next-event-label">NEXT EVENT: {dateStr}{timeStr ? ` @ ${timeStr}` : ''}</span>
+                                    <span className="vc3-next-event-label">NEXT EVENT: {dateStr}</span>
                                 </div>
                             );
                         })()}
                         {/* Bold TODAY label for charity venues running today */}
-                        {venue.venue_type === 'charity' && venue.is_today && (() => {
-                            const te = venue.today_event || {};
-                            const timeStr = formatTime(te.start_time);
-                            return (
-                                <div className="vc3-next-event-header vc3-next-event-today">
-                                    <span className="vc3-next-event-label">EVENT TODAY{timeStr ? ` @ ${timeStr}` : ''}</span>
-                                </div>
-                            );
-                        })()}
+                        {venue.venue_type === 'charity' && venue.is_today && (
+                            <div className="vc3-next-event-header vc3-next-event-today">
+                                <span className="vc3-next-event-label">EVENT TODAY</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
