@@ -164,7 +164,7 @@ export default function PokerBrainLaunchButton({
 
       {/* Full-screen HUD modal */}
       {open && (
-        <div className="fixed inset-0 z-50 bg-black">
+        <div className="fixed inset-0 z-50 bg-black overflow-y-auto">
           <button
             onClick={handleClose}
             className="absolute top-4 right-4 z-[60] bg-gray-900/80 hover:bg-red-600
