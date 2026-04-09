@@ -13,6 +13,41 @@ import urllib.error
 import urllib.parse
 
 
+# ── SUPPRESSION HELPERS ─────────────────────────────────────────────────────
+
+# In-process cache: {venue_id: True/False} so we don't re-check the same venue
+# repeatedly during a single scraper run.
+_SUPPRESSION_CACHE: dict = {}
+
+def is_venue_suppressed(supabase_url: str, service_key: str, venue_id: int) -> bool:
+    """
+    Returns True if the venue has is_suppressed=true OR is_active=false.
+    Results are cached per process run to avoid N+1 DB calls.
+    """
+    if venue_id in _SUPPRESSION_CACHE:
+        return _SUPPRESSION_CACHE[venue_id]
+
+    headers = {
+        'apikey': service_key,
+        'Authorization': f'Bearer {service_key}',
+        'Content-Type': 'application/json',
+    }
+    url = f"{supabase_url}/rest/v1/poker_venues?id=eq.{venue_id}&select=id,is_suppressed,is_active"
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        resp = urllib.request.urlopen(req, timeout=10)
+        rows = json.loads(resp.read().decode())
+        if rows:
+            suppressed = rows[0].get('is_suppressed', False) or not rows[0].get('is_active', True)
+            _SUPPRESSION_CACHE[venue_id] = suppressed
+            return suppressed
+    except Exception:
+        pass
+    _SUPPRESSION_CACHE[venue_id] = False
+    return False
+
+# ── MAIN UPSERT ─────────────────────────────────────────────────────────────
+
 def upsert_tournament_python(supabase_url, service_key, tournament):
     """
     Insert or update a venue_daily_tournaments record via REST API.
@@ -25,7 +60,7 @@ def upsert_tournament_python(supabase_url, service_key, tournament):
         - scrape_html_hash (str: SHA-256 of source HTML)
         - scrape_timestamp (str: ISO 8601 UTC)
 
-    Returns: 'inserted', 'updated', 'skipped', or 'error'
+    Returns: 'inserted', 'updated', 'skipped', 'suppressed', or 'error'
     """
     headers = {
         'apikey': service_key,
@@ -41,6 +76,12 @@ def upsert_tournament_python(supabase_url, service_key, tournament):
     if not venue_id or not day:
         print(f"  ⚠️  Missing venue_id or day_of_week — skipped")
         return "error"
+
+    # ── SUPPRESSION GUARD ────────────────────────────────────────────────────
+    if is_venue_suppressed(supabase_url, service_key, venue_id):
+        print(f"  🚫 SUPPRESSED — skipping tournament for venue_id={venue_id} ({day} {start_time})")
+        return "suppressed"
+    # ─────────────────────────────────────────────────────────────────────────
 
     # Mandatory provenance check (Layer 4)
     if not tournament.get('scrape_html_hash') or not tournament.get('scrape_timestamp'):
@@ -70,8 +111,9 @@ def upsert_tournament_python(supabase_url, service_key, tournament):
         print(f"  ❌ Search error: {e}")
         existing = []
 
-    # Clean out None/empty values
+    # Clean out None/empty values — never pass is_suppressed from scrapers
     clean = {k: v for k, v in tournament.items() if v is not None and v != ''}
+    clean.pop('is_suppressed', None)  # scrapers cannot set this field
 
     # Force required fields
     clean.setdefault('is_active', True)
@@ -123,6 +165,7 @@ def lookup_venue_id(supabase_url, service_key, venue_name, venue_state=None):
     """
     Find a poker_venues record by name (ilike) to get the venue_id FK.
     Returns int venue_id or None.
+    Automatically returns None for suppressed / inactive venues.
     """
     headers = {
         'apikey': service_key,
@@ -131,7 +174,7 @@ def lookup_venue_id(supabase_url, service_key, venue_name, venue_state=None):
     }
 
     encoded_name = urllib.parse.quote(f"%{venue_name}%")
-    url = f"{supabase_url}/rest/v1/poker_venues?name=ilike.{encoded_name}&select=id,name,state&limit=5"
+    url = f"{supabase_url}/rest/v1/poker_venues?name=ilike.{encoded_name}&select=id,name,state,is_suppressed,is_active&limit=5"
     if venue_state:
         url += f"&state=ilike.{urllib.parse.quote(venue_state)}"
 
@@ -140,11 +183,19 @@ def lookup_venue_id(supabase_url, service_key, venue_name, venue_state=None):
         resp = urllib.request.urlopen(req)
         results = json.loads(resp.read().decode())
         if results:
-            # Prefer exact name match, else first result
-            for r in results:
+            # Filter out suppressed / inactive venues before returning an ID
+            active_results = [
+                r for r in results
+                if not r.get('is_suppressed') and r.get('is_active', True)
+            ]
+            if not active_results:
+                print(f"  🚫 All matches for '{venue_name}' are suppressed or inactive — skipping.")
+                return None
+            # Prefer exact name match, else first active result
+            for r in active_results:
                 if r['name'].lower() == venue_name.lower():
                     return r['id']
-            return results[0]['id']
+            return active_results[0]['id']
     except Exception as e:
         print(f"  ⚠️  Venue lookup failed for '{venue_name}': {e}")
 

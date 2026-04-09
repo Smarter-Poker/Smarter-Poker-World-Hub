@@ -56,10 +56,34 @@ RATE_LIMIT = 2.5  # seconds between requests
 PA_BASE = 'https://www.pokeratlas.com'
 
 # ============================================================
+# SUPPRESSION GUARD — loaded once at startup
+# ============================================================
+_SUPPRESSED_SERIES_UIDS: set = set()
+
+def load_suppressed_series():
+    """Fetch all suppressed series UIDs from Supabase at startup."""
+    global _SUPPRESSED_SERIES_UIDS
+    try:
+        url = f'{SUPABASE_URL}/rest/v1/poker_series?is_suppressed=eq.true&select=series_uid&limit=5000'
+        req = urllib.request.Request(url, headers={
+            'apikey': SUPABASE_KEY,
+            'Authorization': f'Bearer {SUPABASE_KEY}',
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        rows = json.loads(resp.read().decode())
+        _SUPPRESSED_SERIES_UIDS = {r['series_uid'] for r in rows if r.get('series_uid')}
+        print(f'  [SUPPRESSION] Loaded {len(_SUPPRESSED_SERIES_UIDS)} suppressed series UIDs.')
+    except Exception as e:
+        print(f'  [SUPPRESSION] Warning — could not load suppressed series: {e}')
+
+def is_series_suppressed(series_uid: str) -> bool:
+    return series_uid in _SUPPRESSED_SERIES_UIDS
+
+# ============================================================
 # SUPABASE HELPERS
 # ============================================================
 def sb_upsert(table, records, on_conflict=None):
-    """Upsert via REST API in chunks — triggers fire."""
+    """Upsert via REST API in chunks — triggers fire. Strips is_suppressed to protect manual flags."""
     CHUNK = 50
     total = 0
     headers = dict(SB_HEADERS)
@@ -67,7 +91,9 @@ def sb_upsert(table, records, on_conflict=None):
         headers['Prefer'] = f'resolution=merge-duplicates,return=minimal'
     for i in range(0, len(records), CHUNK):
         chunk = records[i:i + CHUNK]
-        body = json.dumps(chunk, default=str).encode()
+        # Never allow a scraper to write is_suppressed — strip it from every record
+        safe_chunk = [{k: v for k, v in r.items() if k != 'is_suppressed'} for r in chunk]
+        body = json.dumps(safe_chunk, default=str).encode()
         url = f'{SUPABASE_URL}/rest/v1/{table}'
         if on_conflict:
             url += f'?on_conflict={on_conflict}'
@@ -617,6 +643,9 @@ def main():
     print('=' * 70)
     print()
 
+    # Load suppression list before any scraping
+    load_suppressed_series()
+
     # Step 1: Scrape the series listing page
     print('[STEP 1] Scraping series listing from PokerAtlas...')
     listing_url = f'{PA_BASE}/poker-tournament-series'
@@ -662,6 +691,12 @@ def main():
         events = result.get('events', [])
         
         if series_rec:
+            # ── SUPPRESSION GUARD ──────────────────────────────────────────
+            series_uid = series_rec.get('series_uid', '')
+            if is_series_suppressed(series_uid):
+                print(f"    🚫 SUPPRESSED — permanently skipping: {series_rec.get('series_name')} ({series_uid})")
+                continue
+            # ──────────────────────────────────────────────────────────────
             all_series.append(series_rec)
             
             # Also create tournament_series record (different table, different schema)

@@ -69,15 +69,41 @@ SB_HEADERS = {
 # ============================================================
 # DATABASE HELPERS
 # ============================================================
+
+# In-process suppression cache for series UIDs {series_uid: True}
+_SUPPRESSED_SERIES: set = set()
+
+def load_suppressed_series():
+    """Fetch all suppressed series UIDs from Supabase at startup."""
+    global _SUPPRESSED_SERIES
+    try:
+        url = f'{SUPA["url"]}/rest/v1/poker_series?is_suppressed=eq.true&select=series_uid&limit=5000'
+        req = urllib.request.Request(url, headers={
+            'apikey': SUPA['key'],
+            'Authorization': f'Bearer {SUPA["key"]}',
+        })
+        resp = urllib.request.urlopen(req, timeout=15)
+        rows = json.loads(resp.read().decode())
+        _SUPPRESSED_SERIES = {r['series_uid'] for r in rows if r.get('series_uid')}
+        print(f'  [SUPPRESSION] Loaded {len(_SUPPRESSED_SERIES)} suppressed series UIDs.')
+    except Exception as e:
+        print(f'  [SUPPRESSION] Warning — could not load suppressed series: {e}')
+
+def is_series_suppressed(series_uid: str) -> bool:
+    """Returns True if this series_uid has been suppressed."""
+    return series_uid in _SUPPRESSED_SERIES
+
 def sb_upsert(table, records, on_conflict):
-    """Batched upsert to Supabase."""
+    """Batched upsert to Supabase. Strips is_suppressed so scrapers never overwrite it."""
     CHUNK = 50
     total = 0
     url = f'{SUPA["url"]}/rest/v1/{table}?on_conflict={on_conflict}'
     
     for i in range(0, len(records), CHUNK):
         chunk = records[i:i + CHUNK]
-        body = json.dumps(chunk, default=str).encode('utf-8')
+        # Never allow scrapers to write is_suppressed — strip it from every record
+        safe_chunk = [{k: v for k, v in r.items() if k != 'is_suppressed'} for r in chunk]
+        body = json.dumps(safe_chunk, default=str).encode('utf-8')
         req = urllib.request.Request(url, data=body, method='POST', headers=SB_HEADERS)
         for attempt in range(3):
             try:
@@ -331,6 +357,10 @@ def main():
         limit = int(args[args.index('--limit')+1])
         
     print(f"Poker Series Scraper V6 executing... Batch: {BATCH_ID[:8]}")
+    
+    # Load suppression list BEFORE any scraping so we can skip early
+    load_suppressed_series()
+    
     slugs = discover_pokeratlas_series()
     
     if not slugs:
@@ -351,26 +381,25 @@ def main():
             
         series_rec, events_recs = parse_series_details(slug, html, prov)
         if series_rec:
+            # ── SUPPRESSION GUARD ─────────────────────────────────────────
+            series_uid = series_rec.get('series_uid', '')
+            if is_series_suppressed(series_uid):
+                print(f"    🚫 SUPPRESSED — permanently skipping: {series_rec.get('series_name')} ({series_uid})")
+                continue
+            # ──────────────────────────────────────────────────────────────
             all_series.append(series_rec)
             all_events.extend(events_recs)
             print(f"    -> Extracted {len(events_recs)} events.")
             save_evidence(slug, {'series': series_rec, 'events': events_recs, 'prov': prov})
+            
+            if not dry_run:
+                print(f"    -> Upserting {series_rec['series_name']}...")
+                sb_upsert('poker_series', [series_rec], on_conflict='series_uid')
+                if events_recs:
+                    sb_upsert('poker_events', events_recs, on_conflict='event_uid')
 
     print(f"\n[SUMMARY] Total Series: {len(all_series)}, Total Events: {len(all_events)}")
-    
-    if dry_run:
-        print("[DRY-RUN] Aborting DB Upsert.")
-        return
-        
-    # Execution
-    if all_series:
-        print("Upserting Series...")
-        res_s = sb_upsert('poker_series', all_series, on_conflict='series_uid')
-        print(f" -> Upserted {res_s} Series")
-    if all_events:
-        print("Upserting Events...")
-        res_e = sb_upsert('poker_events', all_events, on_conflict='event_uid')
-        print(f" -> Upserted {res_e} Events")
+
 
 if __name__ == '__main__':
     main()

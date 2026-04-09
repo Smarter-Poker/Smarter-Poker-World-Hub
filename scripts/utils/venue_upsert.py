@@ -15,6 +15,27 @@ def get_base_name(name):
         return 'Lodge'
     return name.strip()
 
+def is_venue_suppressed(supabase_url, service_key, venue_id):
+    """
+    Check if a venue is suppressed (permanently blocked from scraper re-insertion).
+    Returns True if is_suppressed = true or is_active = false.
+    """
+    headers = {
+        'apikey': service_key,
+        'Authorization': f'Bearer {service_key}',
+        'Content-Type': 'application/json',
+    }
+    check_url = f"{supabase_url}/rest/v1/poker_venues?id=eq.{venue_id}&select=id,is_suppressed,is_active"
+    try:
+        req = urllib.request.Request(check_url, headers=headers)
+        resp = urllib.request.urlopen(req)
+        rows = json.loads(resp.read().decode())
+        if rows:
+            return rows[0].get('is_suppressed', False) or not rows[0].get('is_active', True)
+    except Exception:
+        pass
+    return False
+
 def upsert_venue_python(supabase_url, service_key, venue):
     headers = {
         'apikey': service_key,
@@ -29,7 +50,7 @@ def upsert_venue_python(supabase_url, service_key, venue):
     # 1. Search for existing venue by base name
     # We use ilike to find venues that start with the base name
     query_name = urllib.parse.quote(f"{base_name}%")
-    search_url = f"{supabase_url}/rest/v1/poker_venues?name=ilike.{query_name}&select=id,name"
+    search_url = f"{supabase_url}/rest/v1/poker_venues?name=ilike.{query_name}&select=id,name,is_suppressed,is_active"
     
     try:
         req = urllib.request.Request(search_url, headers=headers)
@@ -39,13 +60,25 @@ def upsert_venue_python(supabase_url, service_key, venue):
         print(f"  ❌ Error searching for existing venue: {e}")
         existing_venues = []
 
+    # ── SUPPRESSION GUARD ──────────────────────────────────────────────────
+    # If a matching venue exists and is suppressed, NEVER re-insert or update it.
+    if existing_venues:
+        target_venue = existing_venues[0]
+        if target_venue.get('is_suppressed') or not target_venue.get('is_active', True):
+            print(f"  🚫 SUPPRESSED — permanently skipping: {venue_name} (ID: {target_venue['id']})")
+            return "suppressed"
+    # ──────────────────────────────────────────────────────────────────────
+
     clean = {k: v for k, v in venue.items() if v is not None and v != ''}
     # Force canonical base name to prevent flip-flopping between location-specific names
     if 'name' in clean:
         clean['name'] = base_name
-            
+
+    # CRITICAL: Never allow a scraper to change is_suppressed or override is_active to True
+    # if the record has been suppressed.
+    clean.pop('is_suppressed', None)   # never let scraper set suppression
     if 'is_active' in clean:
-        clean['is_active'] = True
+        clean['is_active'] = True      # only set active on NEW inserts (suppressed ones are blocked above)
 
     if len(existing_venues) > 0:
         # Match found: Update the most recent or the first matching venue

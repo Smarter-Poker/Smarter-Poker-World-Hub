@@ -542,28 +542,38 @@ export default function PokerNearMeLobby() {
 
   // ─── Fetch favorites ───
   const fetchFavorites = useCallback(async () => {
-    if (!userId) return;
+    const favMap = {};
+    const favVenueList = [];
+
+    // 1. Sync Series/Tours from LocalStorage
     try {
-      const favs = await getVenueFavorites(userId);
-      const favMap = {};
-      const favVenueList = [];
-      (favs || []).forEach(f => {
-        if (!f || !f.venue_id) return; // skip malformed entries
-        favMap[f.venue_id] = true;
-        favVenueList.push({
-          id: f.venue_id,
-          name: f.venue_name || 'Unknown Venue',
-          address: f.venue_address || '',
-          city: f.venue_city || '',
-          state: f.venue_state || '',
-          _fromFavorites: true,
+      const followedSeries = JSON.parse(localStorage.getItem('followed-series') || '[]');
+      followedSeries.forEach(id => { favMap[`series-${id}`] = true; });
+    } catch { }
+
+    // 2. Fetch Venues from DB if logged in
+    if (userId) {
+      try {
+        const favs = await getVenueFavorites(userId);
+        (favs || []).forEach(f => {
+          if (!f || !f.venue_id) return; // skip malformed entries
+          favMap['venue-' + f.venue_id] = true;
+          favVenueList.push({
+            id: f.venue_id,
+            name: f.venue_name || 'Unknown Venue',
+            address: f.venue_address || '',
+            city: f.venue_city || '',
+            state: f.venue_state || '',
+            _fromFavorites: true,
+          });
         });
-      });
-      setFavorites(favMap);
-      setFavoritedVenues(favVenueList);
-    } catch (err) {
-      console.error('Failed to fetch favorites:', err);
+      } catch (err) {
+        console.error('Failed to fetch venue favorites:', err);
+      }
     }
+    
+    setFavorites(favMap);
+    setFavoritedVenues(favVenueList);
   }, [userId]);
 
   // ─── Fetch series (from actual tournament_series table via /api/poker/series) ───
@@ -1507,8 +1517,9 @@ export default function PokerNearMeLobby() {
     
     // For venues we use favorites map, for series/tours we will use the same local map for now 
     // to keep UI synchronous, though technically they store in page_followers on backend.
-    const wasFavorited = !!favorites[id];
-    setFavorites(prev => ({ ...prev, [id]: !wasFavorited }));
+    const favKey = type + '-' + id;
+    const wasFavorited = !!favorites[favKey];
+    setFavorites(prev => ({ ...prev, [favKey]: !wasFavorited }));
     
     const entry = { id, name: dataObj?.name || 'Unknown', address: dataObj?.address || '', city: dataObj?.city || '', state: dataObj?.state || '', _fromFavorites: true, _type: type };
     if (wasFavorited) {
@@ -1563,7 +1574,7 @@ export default function PokerNearMeLobby() {
     } catch (err) {
       console.error(`Failed to toggle favorite for ${type} ${id}:`, err);
       // Full rollback on error — both state maps
-      setFavorites(prev => ({ ...prev, [id]: wasFavorited }));
+      setFavorites(prev => ({ ...prev, [favKey]: wasFavorited }));
       if (wasFavorited) {
         setFavoritedVenues(prev => [...prev, entry]);
       } else {
@@ -1766,7 +1777,7 @@ export default function PokerNearMeLobby() {
                                 {dist < 1 ? `${(dist * 5280).toFixed(0)} ft` : `${dist.toFixed(1)} mi`}
                               </div>
                             )}
-                            <VenueCard venue={v} isFavorited={!!favorites[v.id]}
+                            <VenueCard venue={v} isFavorited={!!favorites['venue-' + v.id]}
                               onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
                               onNavigate={(url) => handleVenueNavigate(url, v)}
                               userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} reviewStats={reviewStatsMap[String(v.id)]} />
@@ -1808,7 +1819,7 @@ export default function PokerNearMeLobby() {
                                 {td < 1 ? `${(td * 5280).toFixed(0)} ft` : `${td.toFixed(1)} mi`}
                               </div>
                             )}
-                            <TourCard tour={t} isFavorited={!!favorites[t.id || t.tour_code]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />
+                            <TourCard tour={t} isFavorited={!!favorites['tour-' + (t.id || t.tour_code)]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -1821,7 +1832,7 @@ export default function PokerNearMeLobby() {
                                 {sd < 1 ? `${(sd * 5280).toFixed(0)} ft` : `${sd.toFixed(1)} mi`}
                               </div>
                             )}
-                            <SeriesCard series={s} index={i} isFavorited={!!favorites[s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s, 'series'); }} onNavigate={(path) => router.push(path)} />
+                            <SeriesCard series={s} index={i} isFavorited={!!favorites['series-' + s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s, 'series'); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -1916,7 +1927,7 @@ export default function PokerNearMeLobby() {
                     <VenueCard
                       key={v.id}
                       venue={v}
-                      isFavorited={!!favorites[v.id]}
+                      isFavorited={!!favorites['venue-' + v.id]}
                       onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
                       onNavigate={(url) => handleVenueNavigate(url, v)}
                       userLocation={userLocation}
@@ -2174,7 +2185,7 @@ export default function PokerNearMeLobby() {
                                 {d < 1 ? `${(d * 5280).toFixed(0)} ft` : `${d.toFixed(1)} mi`}
                               </div>
                             )}
-                            <VenueCard venue={v} isFavorited={!!favorites[v.id]}
+                            <VenueCard venue={v} isFavorited={!!favorites['venue-' + v.id]}
                               onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
                               onNavigate={(url) => handleVenueNavigate(url, v)}
                               userLocation={userLocation} checkinCount={checkinCounts[String(v.id)] || 0} reviewStats={reviewStatsMap[String(v.id)]} />
@@ -2216,7 +2227,7 @@ export default function PokerNearMeLobby() {
                                 {td < 1 ? `${(td * 5280).toFixed(0)} ft` : `${td.toFixed(1)} mi`}
                               </div>
                             )}
-                            <TourCard tour={t} isFavorited={!!favorites[t.id || t.tour_code]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />
+                            <TourCard tour={t} isFavorited={!!favorites['tour-' + (t.id || t.tour_code)]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -2229,7 +2240,7 @@ export default function PokerNearMeLobby() {
                                 {sd < 1 ? `${(sd * 5280).toFixed(0)} ft` : `${sd.toFixed(1)} mi`}
                               </div>
                             )}
-                            <SeriesCard series={s} index={i} isFavorited={!!favorites[s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s, 'series'); }} onNavigate={(path) => router.push(path)} />
+                            <SeriesCard series={s} index={i} isFavorited={!!favorites['series-' + s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s, 'series'); }} onNavigate={(path) => router.push(path)} />
                           </div>
                         );
                       })}
@@ -2384,7 +2395,7 @@ export default function PokerNearMeLobby() {
               </span>
             </div>
             <div style={{ display: 'grid', gap: 12 }}>
-              {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} isFavorited={!!favorites[t.id || t.tour_code]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />)}
+              {filteredTours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} isFavorited={!!favorites['tour-' + (t.id || t.tour_code)]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(t.id || t.tour_code, t, 'tour'); }} onNavigate={(path) => router.push(path)} />)}
             </div>
             {!toursLoaded && tours.length === 0 && (
               <div style={{ display: 'grid', gap: 12 }}>
@@ -2432,7 +2443,7 @@ export default function PokerNearMeLobby() {
               </span>
             </div>
             <div style={{ display: 'grid', gap: 12 }}>
-              {filteredSeries.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} isFavorited={!!favorites[s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s, 'series'); }} onNavigate={(path) => router.push(path)} />)}
+              {filteredSeries.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} isFavorited={!!favorites['series-' + s.id]} onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(s.id, s, 'series'); }} onNavigate={(path) => router.push(path)} />)}
             </div>
             {!seriesLoaded && series.length === 0 && (
               <div style={{ display: 'grid', gap: 12 }}>

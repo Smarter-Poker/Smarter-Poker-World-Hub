@@ -302,6 +302,7 @@ export default async function handler(req, res) {
             start_date: ps.start_date,
             end_date: ps.end_date,
             total_events: ps.event_count,
+            is_new: ps.event_count === 0 || !ps.event_count,
             series_type: (ps.tier === 'A' ? 'major' : ps.tier === 'B' ? 'circuit' : 'regional'),
             source_url: ps.source_url,
           };

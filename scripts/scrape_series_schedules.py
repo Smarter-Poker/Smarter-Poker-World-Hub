@@ -161,7 +161,9 @@ def sb_upsert(table, records, on_conflict):
     total = 0
     for i in range(0, len(records), CHUNK):
         chunk = records[i:i + CHUNK]
-        body = json.dumps(chunk, default=str).encode()
+        # Never allow a scraper to write is_suppressed — strip it to protect manual flags
+        safe_chunk = [{k: v for k, v in r.items() if k != 'is_suppressed'} for r in chunk]
+        body = json.dumps(safe_chunk, default=str).encode()
         url  = f'{SUPABASE_URL}/rest/v1/{table}?on_conflict={on_conflict}'
         req  = urllib.request.Request(url, data=body, method='POST', headers=SB_HEADERS)
         for attempt in range(3):
@@ -198,6 +200,26 @@ def log_audit(series_scraped, events_inserted, failed):
         'records_found':    series_scraped,
         'scrape_timestamp': STARTED,
     }], on_conflict=None)
+
+
+# ── SUPPRESSION — loaded once at startup ────────────────────────────────────
+_SUPPRESSED_SERIES_UIDS: set = set()
+
+def load_suppressed_series():
+    """Fetch all suppressed series UIDs at startup so we can skip them fast."""
+    global _SUPPRESSED_SERIES_UIDS
+    try:
+        url = f'{SUPABASE_URL}/rest/v1/poker_series?is_suppressed=eq.true&select=series_uid&limit=5000'
+        req = urllib.request.Request(url, headers=SB_SELECT)
+        with urllib.request.urlopen(req, timeout=15) as r:
+            rows = json.loads(r.read())
+        _SUPPRESSED_SERIES_UIDS = {row['series_uid'] for row in rows if row.get('series_uid')}
+        log(f'  [SUPPRESSION] Loaded {len(_SUPPRESSED_SERIES_UIDS)} suppressed series UIDs.')
+    except Exception as e:
+        log(f'  [SUPPRESSION] Warning — could not load suppressed series: {e}')
+
+def is_series_suppressed(series_uid: str) -> bool:
+    return series_uid in _SUPPRESSED_SERIES_UIDS
 
 
 # ── SESSION MANAGER (Skill Pattern 2: StealthySession + CF bypass) ──────────
@@ -646,6 +668,9 @@ def main():
     network_available()
     log('  ✅ Network OK')
 
+    # Load suppression list before any scraping
+    load_suppressed_series()
+
     # Build target list
     log('\n📡 Building series target list...')
     targets, no_url = get_series_targets()
@@ -676,6 +701,12 @@ def main():
                 log(f'    ✗ SKIP: fetch failed')
                 stats['failed'] += 1
                 continue
+
+            # ── SUPPRESSION GUARD ──────────────────────────────────────────
+            if is_series_suppressed(t['series_uid']):
+                log(f"    🚫 SUPPRESSED — permanently skipping: {t['canonical_name']} ({t['series_uid']})")
+                continue
+            # ──────────────────────────────────────────────────────────────
 
             # Parse series meta + events
             meta   = parse_series_meta(html, t['slug'], prov)
@@ -741,6 +772,12 @@ def main():
                 events = parse_events(html, series_uid, meta.get('series_name', sname),
                                       meta.get('venue_name', ''), meta.get('city', ''),
                                       meta.get('state', ''), prov)
+
+                # ── SUPPRESSION GUARD (discovered slugs) ──────────────────────
+                if is_series_suppressed(series_uid):
+                    log(f"    🚫 SUPPRESSED — skip discovered slug: {series_uid}")
+                    continue
+                # ──────────────────────────────────────────────────────────────
 
                 log(f'    ✅ {meta.get("series_name","?")[:50]}: {len(events)} events')
 
