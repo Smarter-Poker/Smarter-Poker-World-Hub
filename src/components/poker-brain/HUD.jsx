@@ -11,6 +11,7 @@ import {
   detectOccupiedSeats,
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
+import { localizeCards } from '../../lib/poker-brain/card-localizer';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { verifyCardSuit } from '../../lib/poker-brain/suit-color';
@@ -476,12 +477,63 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // Falls back to legacy maxHoleCards slicing if the layout doesn't
             // have holeCardsByVariant.
             const currentVariant = gameTypeRef.current;
-            const result = matcher.matchAllRegions(video, effectiveLayout, {
+            const expectedHole = PokerBrainEngine.expectedHoleCount(currentVariant);
+
+            // ── AUTO CARD LOCALIZATION ─────────────────────────────────
+            // Before polling the matcher with layout.json rectangles, try to
+            // auto-locate the hero hole cards + community board cards from
+            // the raw frame. If the localizer finds enough regions for the
+            // active variant (2/4/5/6 for holdem/plo/plo5/plo6), we build a
+            // synthetic layout in source-pixel coordinates and feed THAT to
+            // the matcher instead. If it finds nothing, we fall through to
+            // the calibrated layout as a safety net.
+            let matcherLayout = effectiveLayout;
+            let usedAutoLayout = false;
+            try {
+              const loc = localizeCards(video, { expectedHoleCount: expectedHole });
+              const hasHole = (loc.holeRegions || []).length >= expectedHole;
+              const hasBoard = (loc.boardRegions || []).length >= 3; // at minimum a flop
+              // Pre-flop we won't have a board yet, so accept hole-only too
+              if (hasHole) {
+                const srcW = video.videoWidth || video.width;
+                const srcH = video.videoHeight || video.height;
+                // Build a variant-specific hole region bucket so matcher's
+                // holeCardsByVariant lookup still works for holdem/plo/plo5/plo6
+                const holeRegions = loc.holeRegions.slice(0, expectedHole);
+                const boardRegions = (loc.boardRegions || []).slice(0, 5);
+                matcherLayout = {
+                  ...effectiveLayout,
+                  referenceSize: { w: srcW, h: srcH },
+                  holeCards: holeRegions,
+                  holeCardsByVariant: {
+                    ...(effectiveLayout.holeCardsByVariant || {}),
+                    nlhe: holeRegions.slice(0, 2),
+                    plo: holeRegions.slice(0, 4),
+                    plo_hi_lo: holeRegions.slice(0, 4),
+                    plo5: holeRegions.slice(0, 5),
+                    plo6: holeRegions.slice(0, 6),
+                    [currentVariant]: holeRegions,
+                  },
+                  boardCards: boardRegions.length >= 3
+                    ? boardRegions
+                    : (effectiveLayout.boardCards || []),
+                };
+                usedAutoLayout = true;
+              }
+            } catch (locErr) { /* swallow — fall back to effectiveLayout */ }
+
+            const result = matcher.matchAllRegions(video, matcherLayout, {
               variant: currentVariant,
-              maxHoleCards: PokerBrainEngine.expectedHoleCount(currentVariant),
+              maxHoleCards: expectedHole,
               debug: debugModeRef.current,
               topN: 3,
             });
+            if (usedAutoLayout && debugModeRef.current) {
+              result.probeLog = [
+                { note: 'using auto-localized regions', variant: currentVariant },
+                ...(result.probeLog || []),
+              ];
+            }
             setLastTimingMs(Math.round(result.timingMs * 10) / 10);
             setFrameCount((c) => c + 1);
 
@@ -499,14 +551,14 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // Suit-color verification pass (PokerBros 4-color deck sanity check)
             const srcW = video.videoWidth || video.width;
             const srcH = video.videoHeight || video.height;
-            const refW = effectiveLayout.referenceSize?.w || 480;
-            const refH = effectiveLayout.referenceSize?.h || 1054;
+            const refW = matcherLayout.referenceSize?.w || 480;
+            const refH = matcherLayout.referenceSize?.h || 1054;
             const csx = srcW / refW;
             const csy = srcH / refH;
             // Resolve the same region array the matcher used for suit verification
             const variantRegions =
-              effectiveLayout.holeCardsByVariant?.[currentVariant]
-              || effectiveLayout.holeCards
+              matcherLayout.holeCardsByVariant?.[currentVariant]
+              || matcherLayout.holeCards
               || [];
             const verifiedHole = (result.holeCards || []).map((card, i) => {
               const r = variantRegions[i];
@@ -514,7 +566,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               return verifyCardSuit(card, video, scaleRect(r, csx, csy));
             });
             const verifiedBoard = (result.boardCards || []).map((card, i) => {
-              const r = effectiveLayout.boardCards?.[i];
+              const r = matcherLayout.boardCards?.[i];
               if (!r || !card || !card.suit) return card;
               return verifyCardSuit(card, video, scaleRect(r, csx, csy));
             });
