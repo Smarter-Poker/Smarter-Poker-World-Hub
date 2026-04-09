@@ -125,6 +125,24 @@ class GlobalEventBus {
     constructor() {
         this.listeners = new Map();
         this.history = [];
+        this.instanceId = _isClient ? Math.random().toString(36).substring(2, 9) : 'server';
+        
+        if (_isClient) {
+            try {
+                this.channel = new BroadcastChannel('smarter_poker_bus');
+                this.channel.onmessage = (event) => {
+                    const { type, payload, source, instanceId } = event.data || {};
+                    // Ignore our own echoes
+                    if (instanceId === this.instanceId) return;
+                    if (type) {
+                        // Emit locally, but prevent it from bouncing back to the channel
+                        this.emit(type, payload, source, true);
+                    }
+                };
+            } catch (err) {
+                console.warn('BroadcastChannel not supported or failed to initialize:', err);
+            }
+        }
     }
 
     on(eventType, callback) {
@@ -151,8 +169,12 @@ class GlobalEventBus {
     /**
      * Emit an event. SSR-safe: silently no-ops on the server so pages
      * that emit during useMemo/render never crash during SSR.
+     * @param {string} eventType 
+     * @param {object} payload 
+     * @param {string} source 
+     * @param {boolean} fromBroadcast - INTERNAL: Prevents infinite broadcast bouncing
      */
-    emit(eventType, payload = {}, source = 'system') {
+    emit(eventType, payload = {}, source = 'system', fromBroadcast = false) {
         // [HARDENING] SSR guard — emit is a no-op on the server.
         // Events only matter in the browser where listeners exist.
         if (!_isClient) return;
@@ -170,6 +192,15 @@ class GlobalEventBus {
                 this.history.pop();
             }
 
+            // Sync to other tabs via BroadcastChannel
+            if (!fromBroadcast && this.channel) {
+                try {
+                    this.channel.postMessage({ type: eventType, payload, source, instanceId: this.instanceId });
+                } catch (bcError) {
+                    // Fail silently, data cloning limits might fail on complex payloads
+                }
+            }
+
             const callbacks = this.listeners.get(eventType);
             if (callbacks) {
                 callbacks.forEach(callback => {
@@ -181,7 +212,7 @@ class GlobalEventBus {
                 });
             }
 
-            if (window.location?.hostname === 'localhost') {
+            if (window.location?.hostname === 'localhost' && !fromBroadcast) {
                 console.log(`🚌 [BUS] ${eventType}`, payload);
             }
         } catch (err) {

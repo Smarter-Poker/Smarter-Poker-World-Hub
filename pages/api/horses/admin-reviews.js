@@ -122,10 +122,10 @@ export default async function handler(req, res) {
             const { review_id } = req.query;
             if (!review_id) return res.status(400).json({ success: false, error: 'review_id required' });
 
-            // Grab venue_id before delete for trust score recalc
+            // Grab venue_id and user_id before delete for trust score recalc and punishments
             const { data: existing } = await getSupabase()
                 .from('venue_reviews')
-                .select('venue_id, reviewer_name')
+                .select('venue_id, user_id, reviewer_name')
                 .eq('id', review_id)
                 .maybeSingle();
 
@@ -144,6 +144,44 @@ export default async function handler(req, res) {
                 try {
                     await getSupabase().rpc('recalculate_venue_trust_score', { p_venue_id: String(existing.venue_id) });
                 } catch (_) { /* non-fatal */ }
+            }
+
+            // Apply Trust Score Punishment & Send Push Notification
+            if (existing?.user_id) {
+                try {
+                    const { data: prof } = await getSupabase().from('profiles').select('deleted_reviews_count').eq('id', existing.user_id).single();
+                    if (prof) {
+                        const newCount = (prof.deleted_reviews_count || 0) + 1;
+                        const updateObj = { deleted_reviews_count: newCount };
+                        
+                        if (newCount >= 3) {
+                            updateObj.can_review = false;
+                        }
+                        
+                        await getSupabase().from('profiles').update(updateObj).eq('id', existing.user_id);
+                        
+                        // Push Notification Dispatch via internal API
+                        const pushMessage = updateObj.can_review === false 
+                           ? 'Your review was removed. Due to repeated violations of Community Guidelines, you can no longer leave reviews.'
+                           : 'Your recent poker venue review was removed for violating Community Guidelines.';
+                           
+                        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://smarter.poker'}/api/notifications/send`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+                            },
+                            body: JSON.stringify({
+                                userId: existing.user_id,
+                                title: 'Community Guidelines Update',
+                                message: pushMessage, // /api/notifications/send uses 'message' or 'body', typically 'message'
+                                type: 'moderation_alert'
+                            })
+                        }).catch(e => console.error("Push Dispatch Warning:", e));
+                    }
+                } catch (punishErr) {
+                    console.warn('[Admin Reviews DELETE] Trust Score Error:', punishErr);
+                }
             }
 
             // Audit log

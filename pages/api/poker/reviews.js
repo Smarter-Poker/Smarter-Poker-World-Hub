@@ -44,8 +44,15 @@ export default async function handler(req, res) {
         const { data: { user: authUser }, error: authErr } = await getSupabase().auth.getUser(token);
         if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        const { venue_id, rating, review_text, reviewer_name, category_ratings } = req.body;
         const user_id = authUser.id;
+
+        // Enforce moderation blocks
+        const { data: profileCheck } = await getSupabase().from('profiles').select('can_review').eq('id', user_id).maybeSingle();
+        if (profileCheck && profileCheck.can_review === false) {
+           return res.status(403).json({ success: false, error: 'Your account has been restricted from leaving reviews due to community guideline violations.' });
+        }
+
+        const { venue_id, rating, review_text, reviewer_name, category_ratings } = req.body;
 
         if (!venue_id || !rating) {
           return res.status(400).json({ success: false, error: 'Missing required fields: venue_id, rating' });
@@ -55,6 +62,44 @@ export default async function handler(req, res) {
         const ratingNum = parseInt(rating, 10);
         if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
           return res.status(400).json({ success: false, error: 'Rating must be an integer between 1 and 5' });
+        }
+
+        // OpenAI Auto-Triage Moderation
+        let is_flagged = false;
+        let flag_reason = null;
+
+        if (review_text && review_text.trim() && process.env.OPENAI_API_KEY) {
+           try {
+             const aiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+               method: 'POST',
+               headers: {
+                 'Content-Type': 'application/json',
+                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+               },
+               body: JSON.stringify({
+                 model: 'gpt-4o',
+                 messages: [{
+                   role: 'system',
+                   content: 'You are an automated moderation system. Analyze this poker venue user review. If it contains hate speech, extreme profanity, discrimination, or spam, respond with ONLY the word "FLAG". If acceptable, respond with ONLY "PASS".'
+                 }, {
+                   role: 'user',
+                   content: review_text
+                 }],
+                 temperature: 0,
+                 max_tokens: 10
+               })
+             });
+             if (aiResp.ok) {
+                const aiData = await aiResp.json();
+                const decision = aiData.choices?.[0]?.message?.content?.trim();
+                if (decision === 'FLAG') {
+                   is_flagged = true;
+                   flag_reason = 'AI auto-flagged for toxicity';
+                }
+             }
+           } catch (aiErr) {
+             console.error("[Moderation AI] error:", aiErr);
+           }
         }
 
         // Check if user is a verified player — bankroll_sessions OR user_venue_checkins
@@ -105,6 +150,8 @@ export default async function handler(req, res) {
           is_verified_player,
           helpful_count: 0,
           unhelpful_count: 0,
+          is_flagged,
+          flag_reason,
           created_at: new Date().toISOString(),
         };
 

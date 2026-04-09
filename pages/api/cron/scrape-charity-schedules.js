@@ -269,7 +269,7 @@ function extractSchedules(html, sourceUrl) {
     schedules.push({
       day_of_week: day,
       start_time: st,
-      buy_in: bi ? parseInt(bi[1]) : 0,
+      buy_in: bi ? parseInt(bi[1]) : null,
       game_type: gt,
       format: fmt,
       guaranteed: gtd ? parseInt(gtd[1].replace(/,/g, '')) : null,
@@ -288,7 +288,7 @@ function extractSchedules(html, sourceUrl) {
     if (seen.has(key)) continue;
     seen.add(key);
     schedules.push({
-      day_of_week: day, start_time: st, buy_in: 0,
+      day_of_week: day, start_time: st, buy_in: null,
       game_type: 'NLH', format: null, guaranteed: null, source_url: sourceUrl,
     });
   }
@@ -438,7 +438,7 @@ export default async function handler(req, res) {
             venue_name: venue.name,
             day_of_week: sched.day_of_week,
             start_time: sched.start_time || 'TBA',
-            buy_in: sched.buy_in || 0,
+            buy_in: sched.buy_in != null ? sched.buy_in : null,
             game_type: sched.game_type || 'NLH',
             format: sched.format || null,
             guaranteed: sched.guaranteed || null,
