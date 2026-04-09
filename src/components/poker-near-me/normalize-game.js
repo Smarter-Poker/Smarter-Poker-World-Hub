@@ -35,7 +35,7 @@ const GAME_TYPE_PATTERNS = [
 export function normalizeGameName(rawName) {
   if (!rawName) return { type: 'Unknown', label: 'Unknown', stakes: null, smallBlind: null, bigBlind: null, players: null, canonical: 'Unknown', raw: '' };
 
-  const raw = rawName.trim();
+  const raw = typeof rawName === 'string' ? rawName.trim() : String(rawName).trim();
 
   // Extract stakes: "1-3", "1/3", "2/5", "10-25", "$1/$2"
   const stakesMatch = raw.match(/\$?(\d+)\s*[\/\-]\s*\$?(\d+)/);

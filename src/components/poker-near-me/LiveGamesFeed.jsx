@@ -134,7 +134,7 @@ const STAKES_FILTERS = [
 function venueHasStakes(games, minStake) {
     if (minStake === 'any' || !minStake) return true;
     const threshold = parseInt(minStake);
-    return games.some(g => parseMinStake(g.game) >= threshold);
+    return (games || []).some(g => parseMinStake(g.game) >= threshold);
 }
 
 
