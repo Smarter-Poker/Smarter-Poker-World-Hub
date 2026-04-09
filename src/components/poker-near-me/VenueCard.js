@@ -8,7 +8,7 @@
  * - Enhanced visual hierarchy
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { getAccessToken } from '../../lib/authUtils';
 import { getVenueLogoUrl, getVenueLogoFallback, getOpenStatus, getCrowdLevel, estimateWaitTime, getInitialsColor, isStaleData } from './pnm-utils';
 import { openNativeMaps } from '../../utils/openNativeMaps';
@@ -248,18 +248,19 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
     const hasLiveData = venue.live_data && venue.live_data.tables_running > 0;
     const logoUrl = getVenueLogoUrl(venue);
     const crowd = getCrowdLevel(venue, checkinCount);
-    // Wait estimate scaled by crowd level: busier venues = longer waits
-    const waitEstimate = hasLiveData
-        ? (() => {
-            let minW, maxW;
-            if (crowd.label === 'Packed') { minW = 35; maxW = 45; }
-            else if (crowd.label === 'Busy') { minW = 25; maxW = 40; }
-            else if (crowd.label === 'Active') { minW = 15; maxW = 25; }
-            else { minW = 10; maxW = 20; }
-            const m = minW + Math.floor(Math.random() * (maxW - minW + 1));
-            return { minutes: m, label: `${m} Min` };
-        })()
-        : null;
+    const staleInfo = hasLiveData && venue.live_data.last_updated ? isStaleData(venue.live_data.last_updated) : { stale: false };
+    // Wait estimate scaled by crowd level, memoized to prevent re-randomizing on render
+    // Suppressed entirely for stale data (>30 min old)
+    const waitEstimate = useMemo(() => {
+        if (!hasLiveData || staleInfo.stale) return null;
+        let minW, maxW;
+        if (crowd.label === 'Packed') { minW = 35; maxW = 45; }
+        else if (crowd.label === 'Busy') { minW = 25; maxW = 40; }
+        else if (crowd.label === 'Active') { minW = 15; maxW = 25; }
+        else { minW = 10; maxW = 20; }
+        const m = minW + Math.floor(Math.random() * (maxW - minW + 1));
+        return { minutes: m, label: `${m} Min` };
+    }, [hasLiveData, crowd.label, staleInfo.stale]);
 
     const handleFollowClick = async (e) => {
         e.stopPropagation();
@@ -536,7 +537,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         {formatMoney(venue.max_gtd)}+ GTD
                     </span>
                 )}
-                {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) && <span className="vc3-badge" style={{ background: 'rgba(34,197,94,0.12)', borderColor: 'rgba(34,197,94,0.3)', color: '#22c55e' }}>24/7</span>}
+
                 {venue.total_tables > 20 && <span className="vc3-badge" style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)', color: '#ffffff' }}>Large Room</span>}
                 {checkinCount > 0 && (
                     <span className="vc3-badge vc3-badge-checkin" onClick={e => { e.stopPropagation(); onNavigate && onNavigate(detailUrl + '#checkins'); }}>
@@ -620,17 +621,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     </div>
                                 )}
                                 
-                                {venue.live_data.last_updated && (() => {
-                                    const staleInfo = isStaleData(venue.live_data.last_updated);
-                                    return (
-                                        <div style={{ fontSize: 9, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
-                                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                            </svg>
-                                            {staleInfo.stale ? `Stale Data` : `Updated ${staleInfo.age}`}
-                                        </div>
-                                    );
-                                })()}
+                                {venue.live_data.last_updated && (
+                                    <div style={{ fontSize: 9, color: staleInfo.stale ? 'rgba(245,158,11,0.8)' : 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 4 }}>
+                                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                        {staleInfo.stale ? `Stale Data` : `Updated ${staleInfo.age}`}
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <>
@@ -647,17 +645,34 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="vc3-empty-state">No Live Games</div>
+                                    <div className="vc3-empty-state">
+                                        {(() => {
+                                            const os = openStatus;
+                                            if (os && os.open && !os.always) return `Open Now`;
+                                            if (os && !os.open && os.nextChange) return os.nextChange;
+                                            if (os && os.always) return 'Open 24/7';
+                                            return 'No Live Data';
+                                        })()}
+                                    </div>
                                 )}
                             </>
                         )}
 
                         <div className="vc3-col-footer">
-                            {/* Game Tags — only shown when no live data */}
+                            {/* Game Tags with stakes range — only shown when no live data */}
                             {!hasLiveData && Array.isArray(venue.games_offered) && venue.games_offered.length > 0 && (
                                 <div className="vc3-games" style={{ marginBottom: 0 }}>
-                                    {venue.games_offered.slice(0, 3).map((g, idx) => {
+                                    {venue.games_offered.slice(0, 4).map((g, idx) => {
                                         const chipStyle = getGameChipStyle(g);
+                                        // Find matching stakes for this game type
+                                        const gLower = (g || '').toLowerCase();
+                                        const matchedStakes = Array.isArray(venue.stakes_cash) ? venue.stakes_cash.filter(s => {
+                                            const sLower = (s || '').toLowerCase();
+                                            if (gLower.includes('nlh') || gLower.includes('hold')) return sLower.includes('nlh') || sLower.includes('hold') || sLower.includes('nl ');
+                                            if (gLower.includes('plo') || gLower.includes('omaha')) return sLower.includes('plo') || sLower.includes('omaha');
+                                            return false;
+                                        }) : [];
+                                        const stakeSuffix = matchedStakes.length > 0 ? ` (${matchedStakes.length})` : '';
                                         return (
                                             <span key={g || idx} className="vc3-game-chip" style={{
                                                 background: chipStyle.bg || 'rgba(255,255,255,0.06)',
@@ -666,7 +681,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                 padding: '2px 6px',
                                                 fontSize: '10px'
                                             }}>
-                                                {g}
+                                                {g}{stakeSuffix}
                                             </span>
                                         );
                                     })}
@@ -698,7 +713,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 {charityToday ? (
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                         <div className="vc3-list-item vc3-tourney-item">
-                                            <div className="vc3-tourney-name">{venue.today_event.tournament_name || 'Charity Tournament'}</div>
+                                            <div className="vc3-tourney-name">{venue.today_event.tournament_name || (venue.today_event.buy_in ? `$${venue.today_event.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                             <div className="vc3-tourney-details">
                                                 <span className="vc3-tourney-time">{formatTime(venue.today_event.start_time) || 'Time TBD'}</span>
                                                 <span className="vc3-tourney-buyin">{venue.today_event.buy_in != null && String(venue.today_event.buy_in) !== '0' ? `$${venue.today_event.buy_in} Buy-In` : 'Free / TBD'}</span>
@@ -718,7 +733,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     /* Charity with upcoming (not today) event */
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                         <div className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
-                                            <div className="vc3-tourney-name">{venue.next_event.tournament_name || 'Charity Tournament'}</div>
+                                            <div className="vc3-tourney-name">{venue.next_event.tournament_name || (venue.next_event.buy_in ? `$${venue.next_event.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                             <div className="vc3-tourney-details">
                                                 <span className="vc3-tourney-time">{formatTime(venue.next_event.start_time) || 'Time TBD'}</span>
                                                 <span className="vc3-tourney-buyin">{venue.next_event.buy_in != null && String(venue.next_event.buy_in) !== '0' ? `$${venue.next_event.buy_in} Buy-In` : 'Free / TBD'}</span>

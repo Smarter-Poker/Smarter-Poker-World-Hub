@@ -599,6 +599,7 @@ export default async function handler(req, res) {
                                           jsonVenue.today_event = {
                                               location: schedule[todayKey].location.trim(),
                                               start_time: schedule[todayKey].start_time || null,
+                                              door_open_time: schedule[todayKey].start_time || null,
                                               buy_in: schedule[todayKey].buy_in || null,
                                               state: jsonVenue.state || null,
                                           };
@@ -614,6 +615,7 @@ export default async function handler(req, res) {
                                                       days_away: i,
                                                       location: nextDayData.location.trim(),
                                                       start_time: nextDayData.start_time || null,
+                                                      door_open_time: nextDayData.start_time || null,
                                                       buy_in: nextDayData.buy_in || null,
                                                   };
                                                   break;
@@ -1140,11 +1142,14 @@ export default async function handler(req, res) {
                               v.has_tournaments = true;
                               // Enrich is_today with schedule detail for the card
                               v.today_event = {
-                                  start_time: todayTour.start_time || null,
+                                  start_time: todayTour.start_time || (v.today_event?.door_open_time) || null,
+                                  door_open_time: v.today_event?.door_open_time || null,
+                                  tournament_name: todayTour.tournament_name || todayTour.name || null,
                                   buy_in: todayTour.buy_in || null,
-                                  location: v.city || 'Local Area',
+                                  location: v.today_event?.location || v.city || 'Local Area',
                                   address: v.address || null,
-                                  state: v.state || null,
+                                  state: v.today_event?.state || v.state || null,
+                                  starting_stack: todayTour.starting_stack || null,
                               };
                           } else {
                               v.is_today = false;
@@ -1158,11 +1163,14 @@ export default async function handler(req, res) {
                                       v.next_event = {
                                           day: nextTour.day_of_week,
                                           days_away: i,
-                                          start_time: nextTour.start_time || null,
+                                          start_time: nextTour.start_time || (v.next_event?.door_open_time) || null,
+                                          door_open_time: v.next_event?.door_open_time || null,
+                                          tournament_name: nextTour.tournament_name || nextTour.name || null,
                                           buy_in: nextTour.buy_in || null,
-                                          location: v.city || 'Local Area',
+                                          location: v.next_event?.location || v.city || 'Local Area',
                                           address: v.address || null,
-                                          state: v.state || null,
+                                          state: v.next_event?.state || v.state || null,
+                                          starting_stack: nextTour.starting_stack || null,
                                       };
                                       break;
                                   }
