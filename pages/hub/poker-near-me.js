@@ -1638,8 +1638,6 @@ export default function PokerNearMePage() {
             window.removeEventListener('storage', handleStorageSync);
             if (unsubFav) unsubFav();
             if (unsubUnfav) unsubUnfav();
-            if (unsubSeriesFav) unsubSeriesFav();
-            if (unsubSeriesUnfav) unsubSeriesUnfav();
             if (unsubMutate) unsubMutate();
             if (unsubCheckin) unsubCheckin();
         };
