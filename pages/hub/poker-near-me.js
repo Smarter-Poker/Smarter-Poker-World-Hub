@@ -1121,7 +1121,14 @@ export default function PokerNearMePage() {
     const liveSearchInputRef = useRef(null);
     const [favorites, setFavorites] = useState(() => {
         if (typeof window !== 'undefined') {
-            try { return JSON.parse(localStorage.getItem('sp-favorites') || '{}'); } catch { return {}; }
+            try {
+                const favs = JSON.parse(localStorage.getItem('sp-favorites') || '{}');
+                try {
+                    const seriesIds = JSON.parse(localStorage.getItem('followed-series') || '[]');
+                    seriesIds.forEach(id => { favs['series-' + id] = true; });
+                } catch {}
+                return favs;
+            } catch { return {}; }
         }
         return {};
     });
@@ -1538,10 +1545,34 @@ export default function PokerNearMePage() {
             if (e.key === 'sp-favorites' && e.newValue) {
                 try {
                     const newFavs = JSON.parse(e.newValue);
-                    const currentStr = JSON.stringify(favoritesRef.current);
-                    if (currentStr !== e.newValue) {
-                        setFavorites(newFavs);
-                    }
+                    setFavorites(prev => {
+                        const next = { ...prev };
+                        let changed = false;
+                        const newFavIds = Object.keys(newFavs);
+                        Object.keys(next).forEach(k => {
+                            if (k.startsWith('venue-') && !newFavIds.includes(k)) { delete next[k]; changed = true; }
+                        });
+                        newFavIds.forEach(k => {
+                            if (!next[k]) { next[k] = newFavs[k]; changed = true; }
+                        });
+                        return changed ? next : prev;
+                    });
+                } catch { }
+            }
+            if (e.key === 'followed-series' && e.newValue) {
+                try {
+                    const rawSeriesIds = JSON.parse(e.newValue);
+                    setFavorites(prev => {
+                        const next = { ...prev };
+                        let changed = false;
+                        Object.keys(next).forEach(k => {
+                            if (k.startsWith('series-') && !rawSeriesIds.includes(k.split('-')[1])) { delete next[k]; changed = true; }
+                        });
+                        rawSeriesIds.forEach(id => {
+                            if (!next[`series-${id}`]) { next[`series-${id}`] = true; changed = true; }
+                        });
+                        return changed ? next : prev;
+                    });
                 } catch { }
             }
         };
@@ -1600,6 +1631,8 @@ export default function PokerNearMePage() {
             window.removeEventListener('storage', handleStorageSync);
             if (unsubFav) unsubFav();
             if (unsubUnfav) unsubUnfav();
+            if (unsubSeriesFav) unsubSeriesFav();
+            if (unsubSeriesUnfav) unsubSeriesUnfav();
             if (unsubMutate) unsubMutate();
             if (unsubCheckin) unsubCheckin();
         };

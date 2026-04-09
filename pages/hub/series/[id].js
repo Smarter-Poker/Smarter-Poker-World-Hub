@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useState, useEffect, Fragment } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
+import { eventBus } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { formatGameType, decodeHtml } from '../../../src/utils/pokerFormatters';
@@ -206,6 +207,11 @@ export default function SeriesDetailPage() {
         updated = followed.filter(x => x !== sid);
       }
       localStorage.setItem('followed-series', JSON.stringify(updated));
+      
+      // Emit universal bus event for multi-tab synchronization within identical process memory
+      try { 
+        eventBus.emit(newState ? 'series:favorite' : 'series:unfavorite', { seriesId: sid, name: series?.name }, 'SeriesDetail'); 
+      } catch {}
     } catch {
       // ignore
     }

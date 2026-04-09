@@ -237,20 +237,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         return () => clearTimeout(timer);
     }, [index]);
 
-    // Guard — AFTER all hooks
-    if (!venue) return null;
-
-    const trust = getTrustLevel(venue.trust_score || 0);
-    const detailUrl = getVenueUrl(venue);
-    const typeColor = VENUE_TYPE_COLORS[venue.venue_type] || VENUE_TYPE_COLORS.casino;
-    const typeIcon = VENUE_TYPE_ICONS[venue.venue_type] || VENUE_TYPE_ICONS.casino;
-    const openStatus = getOpenStatus(venue);
-    const hasLiveData = venue.live_data && venue.live_data.tables_running > 0;
-    const logoUrl = getVenueLogoUrl(venue);
-    const crowd = getCrowdLevel(venue, checkinCount);
-    const staleInfo = hasLiveData && venue.live_data.last_updated ? isStaleData(venue.live_data.last_updated) : { stale: false };
-    // Wait estimate scaled by crowd level, memoized to prevent re-randomizing on render
-    // Suppressed entirely for stale data (>30 min old)
+    // Memoize wait estimate BEFORE the guard (React hooks must be unconditional)
+    const hasLiveData = venue && venue.live_data && venue.live_data.tables_running > 0;
+    const crowd = hasLiveData ? getCrowdLevel(venue, checkinCount) : { label: 'Empty', score: 0, color: '#64748b' };
+    const staleInfo = hasLiveData && venue.live_data.last_updated ? isStaleData(venue.live_data.last_updated) : { stale: false, age: '' };
     const waitEstimate = useMemo(() => {
         if (!hasLiveData || staleInfo.stale) return null;
         let minW, maxW;
@@ -261,6 +251,16 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
         const m = minW + Math.floor(Math.random() * (maxW - minW + 1));
         return { minutes: m, label: `${m} Min` };
     }, [hasLiveData, crowd.label, staleInfo.stale]);
+
+    // Guard — AFTER all hooks
+    if (!venue) return null;
+
+    const trust = getTrustLevel(venue.trust_score || 0);
+    const detailUrl = getVenueUrl(venue);
+    const typeColor = VENUE_TYPE_COLORS[venue.venue_type] || VENUE_TYPE_COLORS.casino;
+    const typeIcon = VENUE_TYPE_ICONS[venue.venue_type] || VENUE_TYPE_ICONS.casino;
+    const openStatus = getOpenStatus(venue);
+    const logoUrl = getVenueLogoUrl(venue);
 
     const handleFollowClick = async (e) => {
         e.stopPropagation();

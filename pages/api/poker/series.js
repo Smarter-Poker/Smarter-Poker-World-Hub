@@ -165,6 +165,10 @@ export default async function handler(req, res) {
             .maybeSingle();
 
           if (!error && data) {
+            // Bug #6-equivalent Fix: reject suppressed series on direct ID lookup
+            if (data.is_suppressed) {
+              return res.status(404).json({ success: false, error: 'Series not found' });
+            }
             singleSeries = data;
           }
         } catch (dbErr) {
@@ -203,6 +207,7 @@ export default async function handler(req, res) {
         let query = getSupabase()
           .from('tournament_series')
           .select('*')
+          .eq('is_suppressed', false) // Bug #2 Fix: never serve suppressed series
           .order('start_date', { ascending: true })
           .limit(Math.min(parsedLimit, 999));
 
@@ -246,6 +251,7 @@ export default async function handler(req, res) {
           let psQuery = getSupabase()
             .from('poker_series')
             .select('*')
+            .eq('is_suppressed', false) // Bug #3 Fix: never serve suppressed series
             .order('start_date', { ascending: true })
             .limit(999);
 

@@ -195,11 +195,29 @@ export default function PokerNearMeLobby() {
           delete newState[venueId];
           return newState;
         });
+
+    const unsubSeriesFav = eventBus.on('series:favorite', (event) => {
+      const seriesId = event?.payload?.seriesId || event?.seriesId;
+      if (seriesId) setFavorites(prev => ({ ...prev, ['series-' + seriesId]: true }));
+    });
+
+    const unsubSeriesUnfav = eventBus.on('series:unfavorite', (event) => {
+      const seriesId = event?.payload?.seriesId || event?.seriesId;
+      if (seriesId) {
+        setFavorites(prev => {
+          const next = { ...prev };
+          delete next['series-' + seriesId];
+          return next;
+        });
+      }
+    });
       }
     });
     return () => {
       if (typeof unsubFav === 'function') unsubFav();
       if (typeof unsubUnfav === 'function') unsubUnfav();
+      unsubSeriesFav();
+      unsubSeriesUnfav();
       if (typeof unsubFilters === 'function') unsubFilters();
     };
   }, []);
@@ -923,37 +941,61 @@ export default function PokerNearMeLobby() {
   // ─── Cross-page favorites sync (Native Storage Event) ───
   useEffect(() => {
     const handleStorageSync = (e) => {
-      // Listen to cross-tab updates from localStorage 'sp-favorites'
+      // Listen to cross-tab updates from localStorage 'sp-favorites' (venues)
       if (e.key === 'sp-favorites' && e.newValue) {
         try {
           const rawFavs = JSON.parse(e.newValue);
           setFavorites(prev => {
             const next = { ...prev };
             let changed = false;
-            // Map venue-* back to lobby venueIds
+            // Map venue-* back to lobby namespace
             const newFavIds = Object.keys(rawFavs)
               .filter(k => k.startsWith('venue-'))
-              .map(k => k.replace('venue-', ''));
-
-            // Check for additions
-            newFavIds.forEach(vid => {
-              if (!next[vid]) {
-                next[vid] = true;
-                changed = true;
-              }
+              .map(k => k.split('-')[1]);
+            
+            // Clean old venues
+            Object.keys(next).forEach(k => {
+               if (k.startsWith('venue-')) {
+                 const id = k.split('-')[1];
+                 if (!newFavIds.includes(id)) { delete next[k]; changed = true; }
+               }
             });
-            // Check for removals
-            Object.keys(next).forEach(vid => {
-              if (!newFavIds.includes(String(vid))) {
-                delete next[vid];
-                changed = true;
-              }
+            
+            // Add new venues
+            newFavIds.forEach(id => {
+              if (!next[`venue-${id}`]) { next[`venue-${id}`] = true; changed = true; }
+            });
+            return changed ? next : prev;
+          });
+        } catch { }
+      }
+      
+      // Listen to cross-tab updates from localStorage 'followed-series'
+      if (e.key === 'followed-series' && e.newValue) {
+        try {
+          const rawSeriesIds = JSON.parse(e.newValue); // Array of string IDs
+          setFavorites(prev => {
+            const next = { ...prev };
+            let changed = false;
+            
+            // Clean old series
+            Object.keys(next).forEach(k => {
+               if (k.startsWith('series-')) {
+                 const id = k.split('-')[1];
+                 if (!rawSeriesIds.includes(id)) { delete next[k]; changed = true; }
+               }
+            });
+            
+            // Add new series
+            rawSeriesIds.forEach(id => {
+              if (!next[`series-${id}`]) { next[`series-${id}`] = true; changed = true; }
             });
             return changed ? next : prev;
           });
         } catch { }
       }
     };
+
     window.addEventListener('storage', handleStorageSync);
 
     return () => {

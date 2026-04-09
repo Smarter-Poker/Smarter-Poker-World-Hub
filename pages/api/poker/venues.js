@@ -154,11 +154,12 @@ function getVenueById(venueId) {
 function applyFilters(venues, { id, state, city, type, tournaments, search, featured }) {
     let filtered = [...venues];
 
-    // Mirror Supabase's is_active=true filter — inactive venues (e.g. tournament-only venues
-    // like Ameristar East Chicago that have no permanent cash games) must not appear in results.
+    // Mirror Supabase's is_active + is_suppressed filters.
     // Exception: single-venue lookup by ID always returns the venue regardless of active status.
     if (!id) {
-        filtered = filtered.filter(v => v.is_active !== false);
+        // Bug #7 Fix: also gate on is_suppressed — suppressed venues must NEVER appear
+        // in JSON fallback results, even when Supabase is down.
+        filtered = filtered.filter(v => v.is_active !== false && v.is_suppressed !== true);
     }
 
     if (id) {
@@ -275,6 +276,10 @@ export default async function handler(req, res) {
                           .maybeSingle();
 
                       if (!error && data) {
+                          // Bug #6 Fix: reject suppressed venues even on direct ID lookup
+                          if (data.is_suppressed) {
+                              return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Venue not found' } });
+                          }
                           venues = [data];
                       } else {
                           throw new Error(error?.message || 'Not found in Supabase');
@@ -382,7 +387,7 @@ export default async function handler(req, res) {
                       .from('poker_venues')
                       .select('*')
                       .eq('is_active', true)
-                      
+                      .eq('is_suppressed', false) // Bug #1 Fix: never serve suppressed venues
 
                   if (state) q = q.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
                   if (city) q = q.ilike('city', `%${city}%`);
