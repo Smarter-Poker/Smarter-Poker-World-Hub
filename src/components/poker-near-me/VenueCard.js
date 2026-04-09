@@ -342,6 +342,47 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
                             </span>
                         </div>
+                        {/* Bold NEXT EVENT line for charity venues below city/state */}
+                        {venue.venue_type === 'charity' && !venue.is_today && venue.next_event && (() => {
+                            const ne = venue.next_event;
+                            const daysAway = ne.days_away;
+                            let dateStr = ne.day ? (ne.day.charAt(0).toUpperCase() + ne.day.slice(1)) : 'Upcoming';
+                            if (daysAway === 1) {
+                                dateStr = 'Tomorrow';
+                            } else if (daysAway != null) {
+                                const d = new Date();
+                                d.setDate(d.getDate() + daysAway);
+                                dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                            }
+                            const timeStr = formatTime(ne.start_time);
+                            const buyInStr = ne.buy_in != null && String(ne.buy_in) !== '0' ? `$${ne.buy_in}` : null;
+                            return (
+                                <div className="vc3-next-event-header">
+                                    <span className="vc3-next-event-label">NEXT EVENT: {dateStr}</span>
+                                    {(timeStr || buyInStr) && (
+                                        <span className="vc3-next-event-detail">
+                                            {timeStr || ''}{timeStr && buyInStr ? ' · ' : ''}{buyInStr || ''}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                        {/* Bold TODAY label for charity venues running today */}
+                        {venue.venue_type === 'charity' && venue.is_today && (() => {
+                            const te = venue.today_event || {};
+                            const timeStr = formatTime(te.start_time);
+                            const buyInStr = te.buy_in != null && String(te.buy_in) !== '0' ? `$${te.buy_in}` : null;
+                            return (
+                                <div className="vc3-next-event-header vc3-next-event-today">
+                                    <span className="vc3-next-event-label">EVENT TODAY</span>
+                                    {(timeStr || buyInStr) && (
+                                        <span className="vc3-next-event-detail">
+                                            {timeStr || ''}{timeStr && buyInStr ? ' · ' : ''}{buyInStr || ''}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 
@@ -353,7 +394,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}
                         title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
                     >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
+                        <svg width="21" height="21" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.45)'} strokeWidth="2">
                             <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                         </svg>
                     </button>
@@ -499,9 +540,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         <span className="vc3-crowd-label" style={{ color: crowd.color }}>{crowd.label}</span>
                         {waitEstimate && (
                             <span className="vc3-wait-estimate">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5">
-                                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                                </svg>
                                 Est. Wait: {waitEstimate.label}
                             </span>
                         )}
@@ -852,6 +890,10 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-city-type-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 1px 0; }
                 .vc3-city-state { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: rgba(255,255,255,0.7); text-decoration: none; }
                 .vc3-city-state:hover { color: #ffffff; }
+                .vc3-next-event-header { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
+                .vc3-next-event-label { font-size: 12px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px; }
+                .vc3-next-event-detail { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); }
+                .vc3-next-event-today .vc3-next-event-label { color: #4ade80; }
                 .vc3-logo { width: 54px; height: 54px; border-radius: 10px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.9); }
                 .vc3-logo-img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
                 .vc3-logo-initials { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
@@ -867,7 +909,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 .vc3-crowd-meter { margin: 8px 0; padding: 8px 10px; background: rgba(0,0,0,0.15); border-radius: 8px; border: 1px solid rgba(255,255,255,0.04); }
                 .vc3-crowd-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
                 .vc3-crowd-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
-                .vc3-wait-estimate { margin-left: auto; font-size: 16px; color: #ffffff; display: flex; align-items: center; gap: 4px; font-weight: 800; letter-spacing: 0.3px; }
+                .vc3-wait-estimate { margin-left: auto; font-size: 13px; color: #ffffff; display: flex; align-items: center; gap: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
                 .vc3-crowd-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
                 .vc3-crowd-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease-out 0.3s; }
                 .vc3-rating-row { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; padding: 0 2px; cursor: pointer; transition: opacity 0.2s; }

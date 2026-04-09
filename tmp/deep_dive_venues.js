@@ -41,7 +41,7 @@ async function deepDive() {
     if (vlist.length > 1) {
       console.log(`\nDuplicate group [${key}]:`);
       for (const v of vlist) {
-        console.log(`  [${v.id}] ${v.name} | type: ${v.venue_type} | logo: ${!!v.logo_url} | source: ${v.data_source || 'unknown'} | created: ${v.created_at}`);
+        console.log(`  [${v.id}] ${v.name} | type: ${v.venue_type} | logo: ${!!v.logo_url}`);
       }
       trueDupes.push(vlist);
     }
@@ -65,7 +65,7 @@ async function deepDive() {
   if (genericVenues.length) {
     console.log(`Found ${genericVenues.length} generic venues:`);
     for (const v of genericVenues) {
-      console.log(`  [${v.id}] "${v.name}" | ${v.city}, ${v.state} | type: ${v.venue_type} | source: ${v.data_source || 'unknown'}`);
+      console.log(`  [${v.id}] "${v.name}" | ${v.city}, ${v.state} | type: ${v.venue_type}`);
     }
   } else {
     console.log('  None found.');

@@ -1592,6 +1592,7 @@ export default function PokerNearMePage() {
     }, []);
 
     // --- Auto-refresh live games when venue is selected ---
+    // NOTE: This only refreshes live table data for the selected venue, NOT the entire page.
     useEffect(() => {
         if (showLiveTab) {
             // Pre-fetch venue list for search autocomplete

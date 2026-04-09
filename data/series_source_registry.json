@@ -1510,5 +1510,77 @@
     "last_scraped": "2026-04-08T23:54:45.525966+00:00",
     "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
     "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_wind-creek-bethlehem-poker-series_2026": {
+    "series_uid": "venue_wind-creek-bethlehem-poker-series_2026",
+    "series_name": "Wind Creek Bethlehem Poker Series",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:55:08.647205+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_winstar-poker-series_2026": {
+    "series_uid": "venue_winstar-poker-series_2026",
+    "series_name": "WinStar Poker Series",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:55:25.463099+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_wisconsin-state-poker-championship_2026": {
+    "series_uid": "venue_wisconsin-state-poker-championship_2026",
+    "series_name": "Wisconsin State Poker Championship",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/2026-sd-state-poker-championship-silverado-casino-deadwood-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/2026-sd-state-poker-championship-silverado-casino-deadwood-2026",
+    "last_success": true,
+    "event_count": 65,
+    "last_scraped": "2026-04-08T23:55:55.441780+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_world-series-of-poker_2026": {
+    "series_uid": "venue_world-series-of-poker_2026",
+    "series_name": "World Series of Poker",
+    "source_url": "",
+    "source_type": "none",
+    "source_of_truth": "",
+    "last_success": false,
+    "event_count": 0,
+    "last_scraped": "2026-04-08T23:56:11.344163+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_wpt-voyage_2026": {
+    "series_uid": "venue_wpt-voyage_2026",
+    "series_name": "WPT Voyage",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/wpt-seminole-hard-rock-poker-showdown-26-hard-rock-hollywood-ft-lauderdale-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/wpt-seminole-hard-rock-poker-showdown-26-hard-rock-hollywood-ft-lauderdale-2026",
+    "last_success": true,
+    "event_count": 307,
+    "last_scraped": "2026-04-08T23:56:38.971606+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
+  },
+  "venue_wynn-poker-series_2026": {
+    "series_uid": "venue_wynn-poker-series_2026",
+    "series_name": "Wynn Poker Series",
+    "source_url": "https://www.pokeratlas.com/poker-tournament-series/2026-wynn-april-signature-series-wynn-las-vegas-2026",
+    "source_type": "pokeratlas",
+    "source_of_truth": "https://www.pokeratlas.com/poker-tournament-series/2026-wynn-april-signature-series-wynn-las-vegas-2026",
+    "last_success": true,
+    "event_count": 72,
+    "last_scraped": "2026-04-08T23:58:07.361022+00:00",
+    "batch_id": "7bc8800e-535f-495b-a021-7d99c1ea9792",
+    "script": "scripts/scrape_poker_series_v5.py"
   }
 }
