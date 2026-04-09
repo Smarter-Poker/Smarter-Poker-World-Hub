@@ -269,14 +269,19 @@ class PokerBrainMatcher {
   }
 
   /**
-   * Match all 7 card regions (2 hole + 5 board) from a video element.
+   * Match all card regions (N hole + 5 board) from a video element.
    * @param {HTMLVideoElement} videoElement — screen capture video
    * @param {object} layout — the layout.json object
-   * @returns {{ holeCards: Array, boardCards: Array, timingMs: number }}
+   * @param {object} [options]
+   * @param {number} [options.maxHoleCards] — cap the number of hero hole-card
+   *   regions polled. Used by the HUD to poll only the first N regions for the
+   *   active variant (2 for NLHE, 4 for PLO/PLO Hi-Lo, 5 for PLO5, 6 for PLO6).
+   *   When omitted, all regions in layout.holeCards are polled.
+   * @returns {{ holeCards: Array, boardCards: Array, timingMs: number, polledHoleCount: number }}
    */
-  matchAllRegions(videoElement, layout) {
+  matchAllRegions(videoElement, layout, options = {}) {
     if (!this.loaded || this.templateHashes.size === 0) {
-      return { holeCards: [], boardCards: [], timingMs: 0 };
+      return { holeCards: [], boardCards: [], timingMs: 0, polledHoleCount: 0 };
     }
 
     const startTime = performance.now();
@@ -287,7 +292,7 @@ class PokerBrainMatcher {
     const videoH = videoElement.videoHeight || videoElement.height;
 
     if (!videoW || !videoH) {
-      return { holeCards: [], boardCards: [], timingMs: 0 };
+      return { holeCards: [], boardCards: [], timingMs: 0, polledHoleCount: 0 };
     }
 
     // Draw video to offscreen canvas at native resolution
@@ -308,9 +313,20 @@ class PokerBrainMatcher {
       h: Math.round(r.h * scaleY),
     });
 
-    // Match hole cards
+    // Match hole cards. Cap the polled regions at `maxHoleCards` when supplied
+    // by the caller (the HUD uses this to poll only the first N regions for
+    // the active variant). Missing/extra layout slots are tolerated - we
+    // simply slice whatever is configured. If a region has no card yet we
+    // skip it silently, which lets the bridge enter its "waiting" state
+    // during a variant switch rather than crashing.
+    const layoutHole = Array.isArray(layout.holeCards) ? layout.holeCards : [];
+    const maxHole = Number.isFinite(options.maxHoleCards) && options.maxHoleCards > 0
+      ? Math.min(options.maxHoleCards, layoutHole.length)
+      : layoutHole.length;
     const holeCards = [];
-    for (const region of layout.holeCards) {
+    for (let i = 0; i < maxHole; i++) {
+      const region = layoutHole[i];
+      if (!region) continue;
       const scaled = scaleRegion(region);
       const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH);
       if (result.rank && result.suit) {
@@ -330,7 +346,7 @@ class PokerBrainMatcher {
 
     const timingMs = performance.now() - startTime;
 
-    return { holeCards, boardCards, timingMs };
+    return { holeCards, boardCards, timingMs, polledHoleCount: maxHole };
   }
 
   /**

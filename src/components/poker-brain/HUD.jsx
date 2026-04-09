@@ -459,7 +459,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', onClo
         const matcher = matcherRef.current;
         if (video && matcher && matcher.isReady()) {
           try {
-            const result = matcher.matchAllRegions(video, effectiveLayout);
+            // Only poll the hero hole regions the active variant needs
+            // (2 for NLHE, 4 for PLO/PLO Hi-Lo, 5 for PLO5, 6 for PLO6).
+            const variantHoleCount = PokerBrainEngine.expectedHoleCount(gameTypeRef.current);
+            const result = matcher.matchAllRegions(video, effectiveLayout, {
+              maxHoleCards: variantHoleCount,
+            });
             setLastTimingMs(Math.round(result.timingMs * 10) / 10);
             setFrameCount((c) => c + 1);
 
