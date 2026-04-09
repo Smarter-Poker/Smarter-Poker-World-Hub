@@ -310,6 +310,41 @@ const PokerBrainEngine = (() => {
         return top;
       };
 
+      // Omaha Hi-Lo: best qualifying low using 2-from-hole + 3-from-board.
+      // Returns null if no qualifying low exists for these hole cards
+      // against this runout.
+      const getOmahaLowBest = (holes) => {
+        // Fast reject: must have at least 2 hole cards <= 8 and at least
+        // 3 board cards <= 8, otherwise a qualifying low is impossible.
+        const lowHoles = holes.filter(c => {
+          const v = RANK_VALUE[c.rank];
+          return c.rank === 'A' || (v >= 2 && v <= 8);
+        });
+        if (lowHoles.length < 2) return null;
+        const lowBoard = runoutBoard.filter(c => {
+          const v = RANK_VALUE[c.rank];
+          return c.rank === 'A' || (v >= 2 && v <= 8);
+        });
+        if (lowBoard.length < 3) return null;
+
+        let best = null;
+        // Enumerate 2-hole / 3-board combos restricted to the low pool
+        for (let a = 0; a < lowHoles.length; a++) {
+          for (let b = a + 1; b < lowHoles.length; b++) {
+            for (let i = 0; i < lowBoard.length; i++) {
+              for (let j = i + 1; j < lowBoard.length; j++) {
+                for (let k = j + 1; k < lowBoard.length; k++) {
+                  const candidate = [lowHoles[a], lowHoles[b], lowBoard[i], lowBoard[j], lowBoard[k]];
+                  const result = evaluateLow(candidate);
+                  if (result && (!best || result.score < best.score)) best = result;
+                }
+              }
+            }
+          }
+        }
+        return best;
+      };
+
       let playerHand;
       const oppHands = [];
       const omahaHoleSize = gameType.includes('plo5') ? 5 : gameType.includes('plo6') ? 6 : 4;
@@ -356,17 +391,53 @@ const PokerBrainEngine = (() => {
       }
 
       if (isHiLo) {
-        const lowCards = isOmaha
-          ? null // Omaha Hi-Lo low logic needs 2-from-hole constraint; keep simple for now
-          : [...holeCards, ...runoutBoard];
-        if (lowCards) {
-          const playerLow = getBestLowFromCards(lowCards);
-          if (playerLow) {
-            lowsCounted++;
-            lowWins++;
-          }
-        }
+        // Track high-side wins separately so callers can distinguish
+        // a scoop (win high + low) from a quartered pot.
         if (beats === oppHands.length) highWins++;
+
+        // Player's best qualifying low. Omaha uses the 2-from-hole /
+        // 3-from-board constraint; non-Omaha Hi-Lo variants (rare) use
+        // the plain 5-of-7 combo selector.
+        const playerLow = isOmaha
+          ? getOmahaLowBest(holeCards)
+          : getBestLowFromCards([...holeCards, ...runoutBoard]);
+
+        // Semantic: lowEquity = P(hero claims the low half of the pot).
+        // If hero has no qualifying low, they claim 0 of the low half.
+        // If hero has a low and no opponent has one, hero takes the
+        // entire low half (+1). If both have lows, compare scores;
+        // ties add 0.5.
+        if (playerLow) {
+          let oppBestLowScore = null;
+          let oppLowTies = 0;
+          for (let o = 0; o < numOpponents; o++) {
+            const oppStartIdx = cardsNeeded + (o * (isOmaha ? omahaHoleSize : 2));
+            if (oppStartIdx + (isOmaha ? omahaHoleSize : 2) > shuffled.length) continue;
+            const oppHoles = isOmaha
+              ? shuffled.slice(oppStartIdx, oppStartIdx + omahaHoleSize)
+              : shuffled.slice(oppStartIdx, oppStartIdx + 2);
+            const oppLow = isOmaha
+              ? getOmahaLowBest(oppHoles)
+              : getBestLowFromCards([...oppHoles, ...runoutBoard]);
+            if (oppLow) {
+              if (oppBestLowScore == null || oppLow.score < oppBestLowScore) {
+                oppBestLowScore = oppLow.score;
+                oppLowTies = (oppLow.score === playerLow.score) ? 1 : 0;
+              } else if (oppLow.score === oppBestLowScore) {
+                if (oppLow.score === playerLow.score) oppLowTies++;
+              }
+            }
+          }
+          lowsCounted++;
+          if (oppBestLowScore == null || playerLow.score < oppBestLowScore) {
+            // Hero has the best low (or is the only one with a low).
+            lowWins++;
+          } else if (playerLow.score === oppBestLowScore) {
+            // Tie with one or more opponents - quarter/sixth/etc.
+            lowWins += 1 / (oppLowTies + 1);
+          }
+          // else: an opponent has a better low - zero.
+        }
       }
     }
 

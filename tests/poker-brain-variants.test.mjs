@@ -11,6 +11,11 @@
 
 import Engine from '../src/lib/poker-brain/engine.js';
 import { getBridgedDecision } from '../src/lib/poker-brain/decision-bridge.js';
+import {
+  recomputeHandEquity,
+  recomputeHandsBatch,
+  summarizeRecompute,
+} from '../src/lib/poker-brain/recompute.js';
 
 let pass = 0;
 let fail = 0;
@@ -419,6 +424,250 @@ for (const v of variants) {
   assert(typeof b.confidence === 'number', `${v.gt}: confidence is a number`);
   assertIn(b.action, ['FOLD', 'CALL', 'RAISE'], `${v.gt}: action is valid`);
   assertEq(b.variant, v.gt, `${v.gt}: variant tag parity`);
+}
+
+// ============================================================================
+// Hi-Lo equity correctness — verify getOmahaLowBest is actually firing
+// ============================================================================
+section('PLO Hi-Lo low-side equity math');
+
+// Nut-low draw: A-2-Q-J double-suited on a 3-4-5 board. The hero has
+// the nut low (A-2-3-4-5 wheel) plus open-ended to the straight. lowEquity
+// must be very high (>80%), and the scoop equity should dominate.
+{
+  const hand = Engine.getDecision({
+    street: 'flop',
+    position: 'btn',
+    holeCards: [
+      { rank: 'A', suit: 's' },
+      { rank: '2', suit: 's' },
+      { rank: 'Q', suit: 'h' },
+      { rank: 'J', suit: 'h' },
+    ],
+    boardCards: [
+      { rank: '3', suit: 'c' },
+      { rank: '4', suit: 'd' },
+      { rank: 'K', suit: 'd' },
+    ],
+    potSize: 20,
+    betToCall: 0,
+    stackSize: 200,
+    bigBlind: 2,
+    numPlayers: 2,
+    gameType: 'plo_hilo',
+  });
+  assert(hand.lowEquity > 50, `A2-wheel nut low: lowEquity high (got ${hand.lowEquity})`);
+  assert(hand.highEquity >= 0 && hand.highEquity <= 100, `highEquity bounded (got ${hand.highEquity})`);
+  assertEq(hand.isHiLo, true, 'plo_hilo flagged isHiLo');
+}
+
+// No-low-possible board: K-K-Q (no wheel cards) — qualifying low is
+// impossible on any runout that keeps this board, so lowEquity must
+// be zero when the board has 3 high cards.
+{
+  const hand = Engine.getDecision({
+    street: 'river',
+    position: 'btn',
+    holeCards: [
+      { rank: 'A', suit: 's' },
+      { rank: '2', suit: 'h' },
+      { rank: 'Q', suit: 'c' },
+      { rank: 'J', suit: 'd' },
+    ],
+    boardCards: [
+      { rank: 'K', suit: 's' },
+      { rank: 'K', suit: 'h' },
+      { rank: 'Q', suit: 'h' },
+      { rank: 'J', suit: 's' },
+      { rank: 'T', suit: 'c' },
+    ],
+    potSize: 40,
+    betToCall: 0,
+    stackSize: 200,
+    bigBlind: 2,
+    numPlayers: 2,
+    gameType: 'plo_hilo',
+  });
+  assertEq(hand.lowEquity, 0, 'no-low board: lowEquity = 0');
+}
+
+// High-only PLO (not Hi-Lo) should always have lowEquity = 0 regardless
+// of hole cards — no low pot exists.
+{
+  const hand = Engine.getDecision({
+    street: 'flop',
+    position: 'btn',
+    holeCards: [
+      { rank: 'A', suit: 's' },
+      { rank: '2', suit: 's' },
+      { rank: 'Q', suit: 'h' },
+      { rank: 'J', suit: 'h' },
+    ],
+    boardCards: [
+      { rank: '3', suit: 'c' },
+      { rank: '4', suit: 'd' },
+      { rank: 'K', suit: 'd' },
+    ],
+    potSize: 20,
+    betToCall: 0,
+    stackSize: 200,
+    bigBlind: 2,
+    numPlayers: 2,
+    gameType: 'plo',
+  });
+  assertEq(hand.lowEquity, 0, 'plain PLO (not Hi-Lo): lowEquity = 0');
+  assertEq(hand.isHiLo, false, 'plain PLO flagged isHiLo = false');
+}
+
+// Low evaluation must honor the 2-from-hole / 3-from-board constraint.
+// Hole = Q-Q-J-T (no low cards). Even if the board runs out 2-3-4-5-7
+// (enough low cards on board), the player cannot claim a low because
+// they can't contribute 2 low hole cards. lowEquity must be 0.
+{
+  const hand = Engine.getDecision({
+    street: 'river',
+    position: 'btn',
+    holeCards: [
+      { rank: 'Q', suit: 's' },
+      { rank: 'Q', suit: 'h' },
+      { rank: 'J', suit: 'c' },
+      { rank: 'T', suit: 'd' },
+    ],
+    boardCards: [
+      { rank: '2', suit: 's' },
+      { rank: '3', suit: 'h' },
+      { rank: '4', suit: 'c' },
+      { rank: '5', suit: 'd' },
+      { rank: '7', suit: 's' },
+    ],
+    potSize: 40,
+    betToCall: 0,
+    stackSize: 200,
+    bigBlind: 2,
+    numPlayers: 2,
+    gameType: 'plo_hilo',
+  });
+  assertEq(hand.lowEquity, 0, 'QQJT in hole cannot claim low (2-from-hole rule)');
+}
+
+// ============================================================================
+// Historical hand recomputer
+// ============================================================================
+section('Recompute utility');
+
+// Single hand: AA set on A-7-2 rainbow flop. Under the evaluator-fix
+// commit this should compute ~97% equity. We simulate an "old stored"
+// hand with a stale equity value and verify recomputeHandEquity produces
+// a new answer that differs.
+{
+  const stale = {
+    holeCards: [{ rank: 'A', suit: 's' }, { rank: 'A', suit: 'h' }],
+    board: [
+      { rank: 'A', suit: 'c' },
+      { rank: '7', suit: 'd' },
+      { rank: '2', suit: 's' },
+    ],
+    gameType: 'nlhe',
+    players: 2,
+    equity: 23.4, // bogus pre-bug-fix value
+  };
+  const rec = recomputeHandEquity(stale);
+  assert(rec != null, 'recomputeHandEquity returns a result');
+  assert(rec.equity > 90 && rec.equity <= 100, `recomputed equity high (got ${rec.equity})`);
+  assert(rec.lowEquity === 0, 'nlhe lowEquity = 0');
+  assertEq(rec.schemaVersion, 4, 'schemaVersion = 4');
+}
+
+// Accepts 2-char string cards too
+{
+  const rec = recomputeHandEquity({
+    holeCards: ['As', 'Ah'],
+    board: ['Ac', '7d', '2s'],
+    gameType: 'nlhe',
+    players: 2,
+  });
+  assert(rec != null, 'string-card shape accepted');
+  assert(rec.equity > 90, `string-card equity high (got ${rec && rec.equity})`);
+}
+
+// Wrong hole-card count for variant -> null (can't re-evaluate)
+{
+  const rec = recomputeHandEquity({
+    holeCards: [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 'h' }],
+    board: [{ rank: '2', suit: 'c' }, { rank: '3', suit: 'd' }, { rank: '4', suit: 's' }],
+    gameType: 'plo',
+    players: 2,
+  });
+  assertEq(rec, null, 'PLO with 2 hole cards -> null');
+}
+
+// Preflop hand -> skipped with reason (engine uses charts, not MC)
+{
+  const rec = recomputeHandEquity({
+    holeCards: [{ rank: 'A', suit: 's' }, { rank: 'A', suit: 'h' }],
+    board: [],
+    gameType: 'nlhe',
+    players: 2,
+  });
+  assert(rec != null && rec.skipped === true, 'preflop skipped');
+  assertEq(rec.equity, null, 'preflop equity = null');
+}
+
+// Batch + summarize: 3 hands, 2 recomputable, 1 insufficient data
+{
+  const old = [
+    {
+      holeCards: ['As', 'Ah'],
+      board: ['Ac', '7d', '2s'],
+      gameType: 'nlhe',
+      players: 2,
+      equity: 22.1,   // stale bogus
+      lowEquity: 0,
+    },
+    {
+      holeCards: ['Ks', 'Kh'],
+      board: ['Qc', 'Jd', 'Ts'],
+      gameType: 'nlhe',
+      players: 2,
+      equity: 80,     // stale plausible but different
+      lowEquity: 0,
+    },
+    {
+      holeCards: ['As'],        // insufficient - only 1 card
+      board: ['Ac', '7d', '2s'],
+      gameType: 'nlhe',
+      players: 2,
+      equity: null,
+    },
+  ];
+  const fixed = recomputeHandsBatch(old);
+  assertEq(fixed.length, 3, 'batch returns same length');
+  assert(fixed[0].equity > 90, 'batch hand 0 recomputed');
+  assert(fixed[0].equityOriginal === 22.1, 'batch hand 0 preserved original');
+  assert(fixed[1].equity != null && fixed[1].equity !== 80, 'batch hand 1 recomputed');
+  assertEq(fixed[2].recomputeError, 'insufficient-data', 'batch hand 2 flagged as error');
+
+  const summary = summarizeRecompute(old, fixed);
+  assertEq(summary.total, 3, 'summary.total = 3');
+  assert(summary.changedEquity >= 1, 'summary.changedEquity >= 1');
+  assertEq(summary.errored, 1, 'summary.errored = 1');
+  assert(summary.maxEquityDelta > 50, `summary.maxEquityDelta > 50 (got ${summary.maxEquityDelta})`);
+}
+
+// PLO Hi-Lo recompute: old hand had lowEquity=0 baked in; new evaluator
+// must produce a non-zero lowEquity when hero has nut-low potential.
+{
+  const stale = {
+    holeCards: ['As', '2s', 'Qh', 'Jh'],
+    board: ['3c', '4d', 'Kd'],
+    gameType: 'plo_hilo',
+    players: 2,
+    equity: 40,
+    lowEquity: 0,    // pre-phase-4 was always 0 for Omaha Hi-Lo
+  };
+  const rec = recomputeHandEquity(stale);
+  assert(rec != null, 'plo_hilo recomputed');
+  assert(rec.lowEquity > 20, `plo_hilo lowEquity > 20 (got ${rec && rec.lowEquity})`);
 }
 
 // ============================================================================
