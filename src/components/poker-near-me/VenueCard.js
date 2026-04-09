@@ -588,7 +588,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     )}
                                 </div>
                                 {Array.isArray(venue.live_data.games) && venue.live_data.games.length > 0 ? (
-                                    <div className="vc3-list-scrollable vc3-list-scrollable-games" style={{ maxHeight: '112px' }}>
+                                    <div className="vc3-list-scrollable vc3-list-scrollable-games" style={{ maxHeight: '160px' }}>
                                         {venue.live_data.games.map((g, idx) => {
                                             const gameName = g?.game || 'Unknown Game';
                                             const buyin = g?.buyin ? ` · ${g.buyin}` : '';
@@ -673,12 +673,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 </div>
                             )}
 
-                            {/* Hours — non-charity venues */}
-                            {((venue.hours || venue.hours_weekday) && venue.venue_type !== 'charity') && (
-                                <div className="vc3-hours-small">
-                                    {(venue.hours === '24/7' || venue.hours_weekday === '24/7') && !['charity', 'home_game'].includes(venue.venue_type) ? 'Open 24/7' : (venue.hours_weekday || venue.hours)}
-                                </div>
-                            )}
+
                         </div>
                     </div>
 
