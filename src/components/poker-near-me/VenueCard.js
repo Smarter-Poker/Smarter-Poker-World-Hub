@@ -322,26 +322,52 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     {/* Name + Type — stacked beside logo */}
                     <div className="vc3-identity">
                         <h4 className="vc3-name">{venue.name || 'Unknown Venue'}</h4>
-                        <div className="vc3-city-type-row">
-                            <a
-                                href="#"
-                                onClick={e => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    openNativeMaps({ address: [venue.address, venue.city, venue.state].filter(Boolean).join(', '), mode: 'search' });
-                                }}
-                                className="vc3-city-state"
-                                title="Open In Maps"
-                            >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.7 }}>
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                                </svg>
-                                <span>{venue.city || ''}{venue.city && venue.state ? ', ' : ''}{venue.state || ''}</span>
-                            </a>
-                            <span className="vc3-type-label" style={{ color: typeColor.color }}>
-                                {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
-                            </span>
-                        </div>
+                        {/* City/State row — for charity venues, show EVENT location, not home location */}
+                        {(() => {
+                            const isCharity = venue.venue_type === 'charity';
+                            // Resolve event location for charities
+                            let displayCity = venue.city || '';
+                            let displayState = venue.state || '';
+                            let mapsAddress = [venue.address, venue.city, venue.state].filter(Boolean).join(', ');
+
+                            if (isCharity && venue.is_today && venue.today_event) {
+                                const te = venue.today_event;
+                                // today_event.location could be "City, State" or just "City"
+                                const locParts = (te.location || '').split(',').map(s => s.trim());
+                                displayCity = locParts[0] || venue.city || '';
+                                displayState = te.state || locParts[1] || venue.state || '';
+                                mapsAddress = [te.location, te.state].filter(Boolean).join(', ');
+                            } else if (isCharity && !venue.is_today && venue.next_event) {
+                                const ne = venue.next_event;
+                                const locParts = (ne.location || '').split(',').map(s => s.trim());
+                                displayCity = locParts[0] || venue.city || '';
+                                displayState = ne.state || locParts[1] || venue.state || '';
+                                mapsAddress = [ne.location, ne.state].filter(Boolean).join(', ');
+                            }
+
+                            return (
+                                <div className="vc3-city-type-row">
+                                    <a
+                                        href="#"
+                                        onClick={e => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            openNativeMaps({ address: mapsAddress, mode: 'search' });
+                                        }}
+                                        className="vc3-city-state"
+                                        title="Open In Maps"
+                                    >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, opacity: 0.7 }}>
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                                        </svg>
+                                        <span>{displayCity}{displayCity && displayState ? ', ' : ''}{displayState}</span>
+                                    </a>
+                                    <span className="vc3-type-label" style={{ color: typeColor.color }}>
+                                        {VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}
+                                    </span>
+                                </div>
+                            );
+                        })()}
                         {/* Bold NEXT EVENT line for charity venues below city/state */}
                         {venue.venue_type === 'charity' && !venue.is_today && venue.next_event && (() => {
                             const ne = venue.next_event;
@@ -355,15 +381,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                             }
                             const timeStr = formatTime(ne.start_time);
-                            const buyInStr = ne.buy_in != null && String(ne.buy_in) !== '0' ? `$${ne.buy_in}` : null;
                             return (
                                 <div className="vc3-next-event-header">
-                                    <span className="vc3-next-event-label">NEXT EVENT: {dateStr}</span>
-                                    {(timeStr || buyInStr) && (
-                                        <span className="vc3-next-event-detail">
-                                            {timeStr || ''}{timeStr && buyInStr ? ' · ' : ''}{buyInStr || ''}
-                                        </span>
-                                    )}
+                                    <span className="vc3-next-event-label">NEXT EVENT: {dateStr}{timeStr ? ` @ ${timeStr}` : ''}</span>
                                 </div>
                             );
                         })()}
@@ -371,15 +391,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                         {venue.venue_type === 'charity' && venue.is_today && (() => {
                             const te = venue.today_event || {};
                             const timeStr = formatTime(te.start_time);
-                            const buyInStr = te.buy_in != null && String(te.buy_in) !== '0' ? `$${te.buy_in}` : null;
                             return (
                                 <div className="vc3-next-event-header vc3-next-event-today">
-                                    <span className="vc3-next-event-label">EVENT TODAY</span>
-                                    {(timeStr || buyInStr) && (
-                                        <span className="vc3-next-event-detail">
-                                            {timeStr || ''}{timeStr && buyInStr ? ' · ' : ''}{buyInStr || ''}
-                                        </span>
-                                    )}
+                                    <span className="vc3-next-event-label">EVENT TODAY{timeStr ? ` @ ${timeStr}` : ''}</span>
                                 </div>
                             );
                         })()}

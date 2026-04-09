@@ -5320,6 +5320,28 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ── Phase 5: Exploitation profile — declared early (used by calibratePLOProbeBet below) ──
     const exploitProfile = buildPLOExploitationProfile(state.opponentRead || null);
 
+    // ── Phase 5b: Bayesian opponent model update ──
+    // If we observed the opponent's last action, update our live model.
+    // This runs every decision so the model incrementally improves throughout the session.
+    // The updated model feeds back into future exploitation decisions.
+    const lastObservedAction = state.lastOpponentAction || null;
+    const currentOpponentModel = state.opponentModel || state.opponentRead || null;
+    let bayesianUpdate = { updatedModel: null, profileShift: 'unknown' };
+    if (lastObservedAction && currentOpponentModel) {
+        bayesianUpdate = updatePLOBayesianModel(currentOpponentModel, lastObservedAction, 0.10);
+        // If the model shifted, adjust exploitation accordingly
+        if (bayesianUpdate.profileShift === 'maniac' && exploitProfile?.strategy) {
+            exploitProfile.strategy.bluffMore = false;    // Don't bluff maniacs
+            exploitProfile.strategy.valueWider = true;    // Value bet wider vs maniacs
+        } else if (bayesianUpdate.profileShift === 'nit' && exploitProfile?.strategy) {
+            exploitProfile.strategy.stealBlinds = true;   // Steal from nits
+            exploitProfile.strategy.bluffMore = true;     // Bluff nits more
+        } else if (bayesianUpdate.profileShift === 'station' && exploitProfile?.strategy) {
+            exploitProfile.strategy.bluffMore = false;    // Never bluff stations
+            exploitProfile.strategy.valueWider = true;    // Thin value vs stations
+        }
+    }
+
     // ── Phase 7: Position ranges (used as gate for preflop and as reference) ──
     const positionRanges = getPLOPositionRanges(position, numPlayers, stackBB);
 
@@ -5459,6 +5481,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     // ── Phase 3: Multi-street planning ──
     // Bug #131: Use correctedStraightOuts (wrap-adjusted), NOT raw straightDraw.outs
     const msp = getPLOMultiStreetPlan(madeHand, correctedStraightOuts, flushDraw.outs, street, boardTexture, isIP);
+
+    // ── Phase 3b: Geometric sizing — plan multi-street bet sizes to get stacks in (pot-limit aware) ──
+    const streetsLeft = street === 'flop' ? 3 : street === 'turn' ? 2 : 1;
+    const targetJam = madeHand.isNut || (madeHand.strength >= 80 && msp.shouldPlayFastNow) || totalOuts >= 14;
+    const geoSizing = getPLOGeometricSizing(potSize, stackBB * bb, streetsLeft, targetJam);
 
     // ── Phase 3: Showdown value detection ──
     const sdvInfo = getPLOShowdownValue(madeHand, boardTexture, numPlayers, street);
@@ -5997,8 +6024,15 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
             return { type: raiseAction.type, amount: potManip.chargeDrawSize };
 
         // Phase 3: MSP — play fast NOW if multi-street plan says protect the hand
-        if (msp.shouldPlayFastNow && canRaise && equityFinal >= 55)
-            return { type: raiseAction.type, amount: adaptiveBetSize };
+        // Use geometric sizing when we're trying to get stacks in across streets
+        if (msp.shouldPlayFastNow && canRaise && equityFinal >= 55) {
+            // If geometric sizing says we can jam over remaining streets, use that fraction
+            // Otherwise fall back to adaptive sizing
+            const geoAmount = geoSizing.isJammable
+                ? clamp(Math.round(potSize * geoSizing.sizeFraction))
+                : adaptiveBetSize;
+            return { type: raiseAction.type, amount: geoAmount };
+        }
 
         // Bug #208: PLO8 freeroll detection — nut low + PREMIUM high draw = guaranteed half,
         // freerolling for the whole pot. This is the dream scenario in PLO8.
@@ -6046,7 +6080,11 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         if (equityFinal >= monsterThreshold && canRaise && mwAllowValueBet) {
             if ((sprZone.zone === 'very_deep' || msp.shouldSlowPlay) && isIP && !madeHand.isNut && Math.random() < 0.35)
                 return { type: 'check' }; // Slow-play
-            return { type: raiseAction.type, amount: adaptiveBetSize }; // Phase 8: adaptive sizing
+            // Use geometric sizing for nut hands to plan stack-off across streets
+            const monsterAmount = (madeHand.isNut && geoSizing.isJammable)
+                ? clamp(Math.round(potSize * geoSizing.sizeFraction))
+                : adaptiveBetSize;
+            return { type: raiseAction.type, amount: monsterAmount }; // Phase 8: geo + adaptive sizing
         }
 
         // Phase 3: C-bet engine
@@ -6091,6 +6129,13 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Bug #147+#148: Suppress probes in limped multiway pots and when multiway gov blocks
         if (calibratedProbe.shouldProbe && canRaise && mwAllowBluff && !limpBluffSuppressed)
             return { type: raiseAction.type, amount: clamp(Math.round(potSize * calibratedProbe.probeSizing)) };
+
+        // Phase 7b: Basic probe bet fallback — fires when calibrated probe didn't trigger
+        // getPLOProbeBet is a simpler heuristic: IP only, medium equity, dry/paired boards
+        // This catches spots where the advanced calibrator says no but a basic probe is still +EV
+        const basicProbe = getPLOProbeBet(isIP, equityFinal, boardTexture, numPlayers);
+        if (basicProbe.shouldProbe && !calibratedProbe.shouldProbe && canRaise && mwAllowBluff && !limpBluffSuppressed)
+            return { type: raiseAction.type, amount: clamp(Math.round(potSize * basicProbe.probeSize)) };
 
         // Strong draws: semi-bluff (ERC-adjusted + runout quality + wrap outs)
         // Bug #87: Blocker-aware semi-bluffing — having nut flush blockers or straight
@@ -6297,9 +6342,21 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     }
 
     // Generic call if continuance score passed threshold (final fallback before fold)
-    if (canCall) return { type: 'call' };
+    if (canCall) {
+        const fallbackCall = { type: 'call' };
+        return auditPLODecision(fallbackCall, {
+            canCheck, canCall, canRaise, stackBB, toCall, potSize,
+            equityFinal, madeHand, legalActions, raiseAction, potOdds
+        });
+    }
 
-    return { type: 'fold' };
+    // ── FINAL AUDIT: every path that reaches here means fold ──
+    // auditPLODecision catches: folding when we can check free, folding with good equity, etc.
+    const fallbackFold = { type: 'fold' };
+    return auditPLODecision(fallbackFold, {
+        canCheck, canCall, canRaise, stackBB, toCall, potSize,
+        equityFinal, madeHand, legalActions, raiseAction, potOdds
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

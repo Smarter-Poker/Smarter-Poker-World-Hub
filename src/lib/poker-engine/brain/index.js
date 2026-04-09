@@ -189,6 +189,7 @@ module.exports = {
     _calcPLOPotRaiseSimple: ploCore._calcPLOPotRaiseSimple,
     calcPLOBetSize: ploCore.calcPLOBetSize,
     getAdaptivePLOBetSize: ploCore.getAdaptivePLOBetSize,
+    getPLOGeometricSizing: ploCore.getPLOGeometricSizing,
     getPLOCBetStrategy: ploCore.getPLOCBetStrategy,
     getPLOTurnBarrel: ploCore.getPLOTurnBarrel,
     getPLOShowdownValue: ploCore.getPLOShowdownValue,
