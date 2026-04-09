@@ -4554,6 +4554,869 @@ function getPLOGeometricSizing(potSize, heroStack, streetsRemaining, targetAllIn
     };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ADVANCED PLO4 STRATEGY ENGINE (Phase 5+ Expansion)
+// ═══════════════════════════════════════════════════════════════════════════
+// These functions bring PLO4 decision-making to maximum depth, covering
+// the advanced concepts that separate recreational PLO players from elite
+// PLO specialists: nut advantage assessment, protection betting theory,
+// blocker-based thin value, multiway dynamics, deep-stack navigation,
+// turn/river planning, and pot geometry awareness.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── ADV-1. PLO NUT ADVANTAGE ASSESSMENT ──
+/**
+ * Determine who has the "nut advantage" on a given board.
+ * In PLO, nut advantage is MORE important than in NLHE because:
+ * 1. With 4 hole cards, someone almost always has a strong hand
+ * 2. The nuts shift more often between streets (board pairs, flush completes, etc.)
+ * 3. Ranges are wider → harder to know who holds the nuts
+ *
+ * This function evaluates board texture + hero's position in the hand
+ * (aggressor/caller) to determine if hero's range likely contains more
+ * nut combos than villain's range.
+ *
+ * @param {string} wasPreAggressor - 'raiser' or 'caller'
+ * @param {Object[]} boardCards - Array of card objects on the board
+ * @param {string} street - 'flop', 'turn', 'river'
+ * @param {Object} boardTexture - Board texture analysis
+ * @param {Object} madeHand - Hero's current made hand evaluation
+ * @returns {{
+ *   nutAdvantage: 'hero'|'villain'|'neutral',
+ *   confidence: number,
+ *   advice: string,
+ *   bettingFreqMod: number,
+ *   sizingMod: number
+ * }}
+ */
+function getPLONutAdvantage(wasPreAggressor, boardCards, street, boardTexture, madeHand) {
+    const isAggressor = wasPreAggressor === 'raiser';
+    let heroScore = 50; // Start neutral
+    let advice = '';
+
+    // ── Board texture analysis for nut advantage ──
+
+    // HIGH BOARDS (A-K-Q heavy): Favor the pre-flop raiser
+    // PLO raisers have more AAxx, KKxx, AKxx combos that connect with high boards
+    // PLO cards use {rank: number, suit: string} where A=14, K=13, Q=12, J=11
+    const highCards = (boardCards || []).filter(c => {
+        const r = typeof c === 'number' ? c : (c.rank || 0);
+        return r >= 11; // J(11), Q(12), K(13), A(14)
+    }).length;
+    if (highCards >= 2) {
+        heroScore += isAggressor ? 12 : -8;
+    }
+
+    // LOW/CONNECTED BOARDS (5-6-7-8 type): Favor the caller
+    // Callers have more suited connectors, rundown hands like 5678, 4567
+    const lowCards = (boardCards || []).filter(c => {
+        const r = typeof c === 'number' ? c : (c.rank || 0);
+        return r >= 2 && r <= 9;
+    }).length;
+    if (lowCards >= 2 && highCards === 0) {
+        heroScore += isAggressor ? -10 : 10;
+    }
+
+    // MONOTONE BOARD: Slight advantage to caller (wider flush combos)
+    if (boardTexture.isMonotone) {
+        heroScore += isAggressor ? -6 : 4;
+    }
+
+    // PAIRED BOARD: Advantage to raiser (more big pairs that make trips/boats)
+    if (boardTexture.isPaired) {
+        heroScore += isAggressor ? 8 : -5;
+    }
+
+    // VERY WET BOARD (many draws): Favors callers (wider draw combos)
+    if (boardTexture.isWet && !boardTexture.isPaired) {
+        heroScore += isAggressor ? -5 : 5;
+    }
+
+    // STREET-BASED ADJUSTMENTS
+    // Turn: nut advantage shifts — new card often changes who's ahead
+    // River: crystallized — nut advantage is concrete, not theoretical
+    if (street === 'turn') {
+        // On the turn, ranges are more defined. Nut advantage narrows.
+        heroScore = Math.round(heroScore * 0.85 + 50 * 0.15); // Regress toward neutral
+    } else if (street === 'river') {
+        // River: hero's actual hand matters more than range advantage
+        if (madeHand.isNut) heroScore = 90;
+        else if (madeHand.strength >= 80) heroScore = 70;
+        else if (madeHand.strength >= 60) heroScore = 50;
+        else heroScore = 30;
+    }
+
+    // Hero's actual hand quality boost
+    if (madeHand.isNut) heroScore += 15;
+    else if (madeHand.strength >= 85) heroScore += 8;
+
+    heroScore = Math.max(0, Math.min(100, heroScore));
+
+    // Classify
+    let nutAdvantage, bettingFreqMod, sizingMod;
+    if (heroScore >= 65) {
+        nutAdvantage = 'hero';
+        bettingFreqMod = 0.12; // Bet more often with nut advantage
+        sizingMod = -0.10; // Smaller sizing (can use high frequency)
+        advice = 'Hero has nut advantage — bet frequently with smaller sizing. ' +
+            'Range contains more nut combos than villain. Use high-frequency small bets ' +
+            'to deny equity and build the pot with all strong hands.';
+    } else if (heroScore <= 35) {
+        nutAdvantage = 'villain';
+        bettingFreqMod = -0.15; // Bet less often
+        sizingMod = 0.10; // When we do bet, go bigger (polarized)
+        advice = 'Villain has nut advantage — check more often. ' +
+            'Villain range connects better with this board. When betting, use ' +
+            'polarized sizing (bigger bets with strong hands and bluffs, check medium).';
+    } else {
+        nutAdvantage = 'neutral';
+        bettingFreqMod = 0;
+        sizingMod = 0;
+        advice = 'Neutral nut advantage — standard approach. ' +
+            'Neither range has a clear nut edge on this board texture.';
+    }
+
+    return {
+        nutAdvantage,
+        confidence: Math.abs(heroScore - 50) / 50, // 0.0 = neutral, 1.0 = decisive
+        advice,
+        bettingFreqMod,
+        sizingMod
+    };
+}
+
+// ── ADV-2. PLO PROTECTION BETTING ENGINE ──
+/**
+ * Determine whether to bet for PROTECTION in PLO.
+ * This is one of the most critical concepts in PLO because:
+ *
+ * 1. With 4 hole cards each, opponents have MORE draws than in NLHE
+ * 2. A hand that's 80% favorite on the flop can be 55% by the river
+ * 3. Equity realization in PLO is much lower than NLHE — the best hand
+ *    on the flop loses at showdown far more often
+ * 4. The decision to bet for protection vs. pot-control is hand-specific:
+ *    - Vulnerable hands (top pair, overpairs, two pair on wet boards) MUST protect
+ *    - Invulnerable hands (nut flush, top full house) can slow-play
+ *    - Draws with equity > 50% should often bet as semi-bluffs
+ *
+ * Key insight: In PLO, "bet for protection" means "make opponents pay the
+ * maximum price to draw against us." The goal is NOT to fold them out
+ * (they rarely fold big draws in PLO) but to CHARGE them for seeing cards.
+ *
+ * @param {Object} madeHand - { strength, category, isNut, hasRedraw, isMade }
+ * @param {number} totalOuts - Total draw outs we face (estimated)
+ * @param {Object} boardTexture - { isWet, isDangerous, isMonotone, isPaired, texture }
+ * @param {string} street - 'flop', 'turn', 'river'
+ * @param {number} numPlayers - Players in the hand
+ * @param {boolean} isIP - In position?
+ * @param {number} sprZone - SPR zone value
+ * @returns {{
+ *   shouldProtect: boolean,
+ *   protectionUrgency: 'critical'|'high'|'moderate'|'low'|'none',
+ *   protectionSize: number,
+ *   shouldPotIt: boolean,
+ *   reasoning: string,
+ *   vulnerabilityScore: number
+ * }}
+ */
+function getPLOProtectionBet(madeHand, totalOuts, boardTexture, street, numPlayers, isIP, sprZone) {
+    if (street === 'river') {
+        // River: no more cards to come, protection is irrelevant
+        return { shouldProtect: false, protectionUrgency: 'none', protectionSize: 0.0,
+            shouldPotIt: false, reasoning: 'river_no_protection_needed', vulnerabilityScore: 0 };
+    }
+
+    // ── Calculate vulnerability score (0-100) ──
+    // Higher = more vulnerable = more reason to protect
+    let vuln = 0;
+
+    // Board wetness: wet boards = more draws against us
+    if (boardTexture.isMonotone) vuln += 25;
+    else if (boardTexture.isWet) vuln += 18;
+    else if (boardTexture.isDangerous) vuln += 15;
+
+    // Made hand vulnerability: top pair is more vulnerable than nut full house
+    const cat = madeHand.category || '';
+    if (cat === 'top_pair' || cat === 'overpair') vuln += 30; // Very vulnerable
+    else if (cat === 'two_pair') vuln += boardTexture.isWet ? 28 : 18;
+    else if (cat === 'set') vuln += boardTexture.isMonotone ? 20 : 12;
+    else if (cat === 'straight') vuln += 15; // Can be outdrawn by flush or higher straight
+    else if (cat === 'flush' || cat === 'nut_flush') vuln += 5; // Hard to outdraw
+    else if (cat === 'full_house' || cat === 'quads') vuln += 0; // Invulnerable
+
+    // Nut status: non-nut hands are more vulnerable (someone can have better)
+    if (!madeHand.isNut && madeHand.isMade) vuln += 12;
+
+    // No redraw: if we can't improve, we need to protect NOW
+    if (!madeHand.hasRedraw && madeHand.isMade) vuln += 8;
+
+    // Multiway: more opponents = more draws against us = more vulnerable
+    if (numPlayers >= 4) vuln += 15;
+    else if (numPlayers >= 3) vuln += 8;
+
+    // Street: flop has 2 cards to come (more vulnerable), turn has 1
+    if (street === 'flop') vuln += 10;
+
+    // OOP: out of position can't realize equity well, protect harder
+    if (!isIP) vuln += 5;
+
+    vuln = Math.min(100, vuln);
+
+    // ── Classify protection urgency ──
+    let protectionUrgency, protectionSize, shouldPotIt, shouldProtect, reasoning;
+
+    if (vuln >= 70) {
+        protectionUrgency = 'critical';
+        protectionSize = 0.90; // Near pot-size bet
+        shouldPotIt = true;
+        shouldProtect = true;
+        reasoning = 'CRITICAL protection needed: highly vulnerable made hand on dangerous board. ' +
+            'Must charge draws the maximum price. In PLO, opponents have 4 cards and will ' +
+            'have 8-20 outs against your hand. Pot-size bet is correct here.';
+    } else if (vuln >= 55) {
+        protectionUrgency = 'high';
+        protectionSize = 0.75;
+        shouldPotIt = false;
+        shouldProtect = true;
+        reasoning = 'High protection urgency: vulnerable hand but not catastrophically so. ' +
+            '70-80% pot bet charges draws while building the pot for value.';
+    } else if (vuln >= 35) {
+        protectionUrgency = 'moderate';
+        protectionSize = 0.55;
+        shouldPotIt = false;
+        shouldProtect = madeHand.strength >= 60; // Only protect decent hands
+        reasoning = 'Moderate protection: some draw vulnerability but hand has decent equity. ' +
+            'Standard 55% pot bet balances value and protection.';
+    } else if (vuln >= 15) {
+        protectionUrgency = 'low';
+        protectionSize = 0.40;
+        shouldPotIt = false;
+        shouldProtect = false; // Low urgency = optional
+        reasoning = 'Low protection urgency: hand is relatively safe. ' +
+            'Can pot-control or bet small for thin value.';
+    } else {
+        protectionUrgency = 'none';
+        protectionSize = 0.0;
+        shouldPotIt = false;
+        shouldProtect = false;
+        reasoning = 'No protection needed: invulnerable hand (nut flush, full house+). ' +
+            'Can slow-play or trap — opponents cannot outdraw us.';
+    }
+
+    // SPR override: at very low SPR, just pot-commit regardless
+    if (sprZone === 'shallow' && madeHand.strength >= 70 && madeHand.isMade) {
+        shouldProtect = true;
+        shouldPotIt = true;
+        protectionUrgency = 'critical';
+        reasoning += ' [SPR OVERRIDE: Shallow SPR — commit with any strong made hand.]';
+    }
+
+    return {
+        shouldProtect, protectionUrgency, protectionSize,
+        shouldPotIt, reasoning, vulnerabilityScore: vuln
+    };
+}
+
+// ── ADV-3. PLO BLOCKER-BASED THIN VALUE ──
+/**
+ * Determine if we can make a thin value bet based on our hole card blockers.
+ * In PLO, blockers are MUCH more important than NLHE because:
+ *
+ * 1. With 4 hole cards, blocker effects are stronger (more combos removed)
+ * 2. If we hold Ah, we block ALL nut flush combos on heart boards
+ * 3. If we hold both top pair cards, we block top set combos
+ * 4. Blocker-based thin value = betting a medium hand because we KNOW
+ *    villain is less likely to have the nuts (we block them)
+ *
+ * Example: We have Ad-Kh-Jc-9s on a board of Qh-Th-5d-2h
+ * - We hold the Ah (block nut flush)
+ * - We have a straight draw (K-J needs a 9 or A)
+ * - Without blockers: medium hand, probably check
+ * - WITH blockers: we block the nut flush, so betting thin is +EV
+ *
+ * @param {Object} madeHand - Hero's made hand
+ * @param {Object} blockers - Blocker analysis from getPLOBlockers
+ * @param {Object} boardTexture - Board texture
+ * @param {string} street - Current street
+ * @param {number} potSize - Current pot
+ * @param {boolean} isIP - In position?
+ * @param {number} numPlayers - Number of players
+ * @param {number} equityFinal - Our estimated equity
+ * @returns {{
+ *   shouldThinValue: boolean,
+ *   thinValueSize: number,
+ *   blockerScore: number,
+ *   reasoning: string,
+ *   calldownBonus: number
+ * }}
+ */
+function getPLOBlockerThinValue(madeHand, blockers, boardTexture, street, potSize, isIP, numPlayers, equityFinal) {
+    if (!blockers) {
+        return { shouldThinValue: false, thinValueSize: 0, blockerScore: 0,
+            reasoning: 'no_blocker_data', calldownBonus: 0 };
+    }
+
+    let blockerScore = 0;
+
+    // ── Score our blockers ──
+
+    // Nut flush blocker: strongest single blocker in PLO
+    if (blockers.hasFlushBlocker) blockerScore += 30;
+
+    // Straight blocker: blocks nut or second-nut straight
+    if (blockers.hasStraightBlocker) blockerScore += 18;
+
+    // Set blocker: we hold a card that blocks villain's set combos
+    if (blockers.hasSetBlocker) blockerScore += 15;
+
+    // Two-pair blocker: we hold cards that block villain's two-pair combos
+    if (blockers.hasTwoPairBlocker) blockerScore += 10;
+
+    // Card removal score from the engine (0-100)
+    const removalBonus = (blockers.cardRemovalScore || 0) * 0.15;
+    blockerScore += removalBonus;
+
+    // Board texture modifier: blockers matter MORE on draw-heavy boards
+    if (boardTexture.isMonotone) blockerScore *= 1.25; // Flush blockers are critical on monotone
+    else if (boardTexture.isWet) blockerScore *= 1.10;
+    else if (!boardTexture.isWet) blockerScore *= 0.85; // Dry: blockers matter less
+
+    // Position modifier: IP can thin value more safely (see action before deciding)
+    if (isIP) blockerScore *= 1.15;
+
+    // Multiway penalty: thin value bets get called more often multiway
+    if (numPlayers >= 3) blockerScore *= 0.70;
+    if (numPlayers >= 4) blockerScore *= 0.60;
+
+    // Street modifier: river thin value with blockers is most common
+    if (street === 'river') blockerScore *= 1.20;
+    else if (street === 'turn') blockerScore *= 1.0;
+    else blockerScore *= 0.80; // Flop: early for thin value
+
+    blockerScore = Math.min(100, Math.max(0, blockerScore));
+
+    // ── Decision ──
+    let shouldThinValue = false;
+    let thinValueSize = 0;
+    let reasoning = '';
+    let calldownBonus = 0;
+
+    if (blockerScore >= 55 && equityFinal >= 40 && madeHand.isMade) {
+        shouldThinValue = true;
+        // Thin value sizing: smaller than normal (30-50% pot)
+        // We're not trying to build a huge pot; we want a call from worse
+        thinValueSize = blockerScore >= 75 ? 0.50 : 0.33;
+        reasoning = `Strong blocker thin value: score=${Math.round(blockerScore)}. ` +
+            `We block key nut combos, making it safe to bet medium hands for thin value. ` +
+            `Sizing ${Math.round(thinValueSize * 100)}% pot targets calls from worse hands.`;
+    } else if (blockerScore >= 40 && equityFinal >= 50) {
+        shouldThinValue = true;
+        thinValueSize = 0.30; // Minimum thin value
+        reasoning = `Moderate blocker thin value: score=${Math.round(blockerScore)}. ` +
+            `Decent blockers + adequate equity support a small value bet.`;
+    } else {
+        reasoning = `Blockers insufficient for thin value: score=${Math.round(blockerScore)}. ` +
+            `Check and showdown or give up.`;
+    }
+
+    // Calldown bonus: even if we don't bet, good blockers make calling easier
+    if (blockerScore >= 40) {
+        calldownBonus = Math.round(blockerScore * 0.08); // 0-8 equity points bonus for calldown
+    }
+
+    return { shouldThinValue, thinValueSize, blockerScore, reasoning, calldownBonus };
+}
+
+// ── ADV-4. PLO MULTIWAY POT DYNAMICS ──
+/**
+ * Advanced multiway pot adjustments for PLO.
+ * PLO multiway pots are FUNDAMENTALLY different from heads-up:
+ *
+ * 1. You need the NUTS or near-nuts to continue in multiway PLO
+ * 2. Bluffing is almost always -EV multiway (too many opponents to fold out)
+ * 3. Position is even more critical (last to act with more information)
+ * 4. Drawing hands gain MORE value (implied odds from multiple callers)
+ * 5. Medium made hands DECREASE in value (someone likely has better)
+ *
+ * The key equation: In a 4-way pot, a hand needs roughly 25% equity to
+ * break even on a call. But realized equity is much lower because:
+ * - Opponents block each other's outs
+ * - Nut draws dominate medium draws
+ * - Position allows later players to squeeze
+ *
+ * @param {number} numPlayers - Players remaining in the hand
+ * @param {Object} madeHand - Hero's made hand evaluation
+ * @param {number} totalOuts - Total draw outs
+ * @param {boolean} isNutDraw - Is our draw to the nuts?
+ * @param {boolean} isIP - In position?
+ * @param {string} street - Current street
+ * @param {number} potSize - Current pot
+ * @param {number} toCall - Amount to call
+ * @param {number} equityFinal - Estimated equity
+ * @returns {{
+ *   adjustedEquity: number,
+ *   shouldContinue: boolean,
+ *   multiwayAction: 'value-bet'|'check-call'|'check-fold'|'semi-bluff'|'check',
+ *   equityPenalty: number,
+ *   nutRequirement: number,
+ *   reasoning: string
+ * }}
+ */
+function getPLOMultiwayDynamics(numPlayers, madeHand, totalOuts, isNutDraw, isIP, street, potSize, toCall, equityFinal) {
+    if (numPlayers <= 2) {
+        // Heads-up: no multiway penalty
+        return {
+            adjustedEquity: equityFinal, shouldContinue: true,
+            multiwayAction: 'value-bet', equityPenalty: 0, nutRequirement: 50,
+            reasoning: 'Heads-up pot — no multiway adjustments needed.'
+        };
+    }
+
+    // ── Equity penalty: more players = lower realized equity ──
+    // In a 3-way pot: ~7% penalty. In a 4-way: ~15%. In a 5-way: ~22%.
+    const equityPenalty = Math.round((numPlayers - 2) * 7.5);
+    const adjustedEquity = Math.max(0, equityFinal - equityPenalty);
+
+    // ── Nut requirement: minimum hand strength to continue ──
+    // In heads-up PLO: top pair can be fine
+    // In 3-way: need two pair or better, or nut draw
+    // In 4-way: need a set, nut draw, or better
+    // In 5-way+: basically need the nuts or a monster draw
+    let nutRequirement;
+    if (numPlayers >= 5) nutRequirement = 80;
+    else if (numPlayers >= 4) nutRequirement = 70;
+    else nutRequirement = 60;
+
+    // Nut draws get a pass even in multiway
+    if (isNutDraw && totalOuts >= 10) nutRequirement -= 20;
+
+    // Position bonus: IP can navigate multiway pots better
+    if (isIP) nutRequirement -= 5;
+
+    // ── Determine action ──
+    let shouldContinue, multiwayAction, reasoning;
+
+    if (madeHand.isNut || madeHand.strength >= 85) {
+        shouldContinue = true;
+        multiwayAction = 'value-bet';
+        reasoning = `Nut/premium hand in ${numPlayers}-way pot: bet for value. ` +
+            `In multiway PLO, value bet your monsters aggressively — someone likely has a draw ` +
+            `or second-best hand that will call. Pot-size bets are correct here.`;
+    } else if (isNutDraw && totalOuts >= 12) {
+        shouldContinue = true;
+        multiwayAction = 'semi-bluff';
+        reasoning = `Nut draw (${totalOuts} outs) in ${numPlayers}-way: semi-bluff is +EV. ` +
+            `Even if called by multiple opponents, our draw equity + fold equity is massive. ` +
+            `Pot-raise for maximum fold equity and to build the pot when we hit.`;
+    } else if (adjustedEquity >= nutRequirement) {
+        shouldContinue = true;
+        multiwayAction = isIP ? 'check-call' : 'check-call';
+        reasoning = `Adequate equity (${adjustedEquity}%) in ${numPlayers}-way: check-call. ` +
+            `Hand meets the multiway threshold but isn't strong enough to lead for value. ` +
+            `Control pot size and realize equity.`;
+    } else if (toCall === 0) {
+        shouldContinue = true;
+        multiwayAction = 'check';
+        reasoning = `Below threshold (${adjustedEquity}% < ${nutRequirement}%) in ${numPlayers}-way: free check. ` +
+            `Not strong enough to bet, but no cost to see the next card.`;
+    } else {
+        // Facing a bet with subpar equity
+        const potOdds = toCall / (potSize + toCall);
+        const neededEquity = potOdds * 100;
+        shouldContinue = adjustedEquity >= neededEquity * 1.1; // Need 10% cushion in multiway
+
+        if (shouldContinue) {
+            multiwayAction = 'check-call';
+            reasoning = `Marginal call in ${numPlayers}-way: pot odds ${Math.round(potOdds * 100)}% vs adjusted equity ${adjustedEquity}%. ` +
+                `Barely profitable call, but be ready to fold on bad turn cards.`;
+        } else {
+            multiwayAction = 'check-fold';
+            reasoning = `Fold in ${numPlayers}-way: equity ${adjustedEquity}% doesn't justify calling ${toCall} into ${potSize}. ` +
+                `In multiway PLO, folding medium hands is crucial to long-term winrate.`;
+        }
+    }
+
+    return { adjustedEquity, shouldContinue, multiwayAction, equityPenalty, nutRequirement, reasoning };
+}
+
+// ── ADV-5. PLO DEEP STACK NAVIGATION ──
+/**
+ * Navigate deep-stack PLO (SPR > 6) — fundamentally different from short-stack.
+ * Deep-stack PLO principles:
+ *
+ * 1. POSITION is king: IP can navigate huge pots; OOP is at severe disadvantage
+ * 2. DRAWS gain massive implied odds: hitting a flush with 200BB effective stacks
+ *    means huge payoffs, so draws become much more valuable
+ * 3. TOP PAIR is almost worthless: deep-stacked, top pair cannot stack anyone;
+ *    it can only lose big to sets, straights, flushes
+ * 4. SETS are the money hands: set over set, set vs draw = massive pots
+ * 5. NUT ADVANTAGE matters more: when stacks are deep, you can't bluff often
+ *    because the money at risk is too large
+ * 6. 3-BETTING changes: only 3-bet hands that flop NUTTED (AAxx double-suited,
+ *    connected rundowns with suits). Speculative 3-bets are suicide deep-stacked.
+ * 7. POT CONTROL is essential with medium hands: check-check-small bet lines
+ *    preserve stack when we're not sure where we stand
+ *
+ * @param {number} stackBB - Stack in big blinds
+ * @param {number} spr - Stack-to-Pot Ratio
+ * @param {Object} madeHand - Made hand evaluation
+ * @param {number} totalOuts - Draw outs
+ * @param {boolean} isNutDraw - Is our draw to the nuts?
+ * @param {boolean} isIP - In position?
+ * @param {string} street - Current street
+ * @param {Object} boardTexture - Board texture analysis
+ * @returns {{
+ *   deepStackAction: 'value-max'|'pot-control'|'draw-invest'|'fold-medium'|'slow-play'|'standard',
+ *   maxCommitFraction: number,
+ *   sizingAdvice: string,
+ *   impliedOddsBonus: number,
+ *   reasoning: string
+ * }}
+ */
+function getPLODeepStackNavigation(stackBB, spr, madeHand, totalOuts, isNutDraw, isIP, street, boardTexture) {
+    // Only activates for deep stacks (SPR > 6 or stack > 100BB)
+    if (spr <= 6 && stackBB <= 100) {
+        return {
+            deepStackAction: 'standard', maxCommitFraction: 1.0,
+            sizingAdvice: 'Standard SPR — normal play.',
+            impliedOddsBonus: 0,
+            reasoning: 'SPR <= 6 or stack <= 100BB: standard PLO decisions apply.'
+        };
+    }
+
+    const cat = madeHand.category || '';
+    const strength = madeHand.strength || 0;
+
+    // ── Nut hands (set+, nut flush, nut straight): VALUE MAXIMUM ──
+    if (madeHand.isNut || cat === 'set' || cat === 'full_house' || cat === 'quads' ||
+        cat === 'nut_flush' || cat === 'nut_straight') {
+        return {
+            deepStackAction: 'value-max',
+            maxCommitFraction: 1.0, // Willing to commit entire stack
+            sizingAdvice: 'Deep-stack nut hand: build the pot relentlessly. ' +
+                'Pot-size bet on flop, pot-size bet on turn, shove river. ' +
+                'With nuts and deep stacks, every chip you put in the pot is +EV.',
+            impliedOddsBonus: 0,
+            reasoning: 'Nut hand deep-stacked: maximum extraction opportunity. ' +
+                'Opponents will call with draws and second-best hands.'
+        };
+    }
+
+    // ── Big nut draws (13+ outs to the nuts): INVEST IN THE DRAW ──
+    if (isNutDraw && totalOuts >= 13) {
+        const impliedOddsBonus = Math.min(20, Math.round(spr * 2.5));
+        return {
+            deepStackAction: 'draw-invest',
+            maxCommitFraction: 0.60, // Willing to put in 60% of stack drawing
+            sizingAdvice: 'Deep-stack nut draw: invest aggressively. ' +
+                `Implied odds bonus: +${impliedOddsBonus}% equity adjustment. ` +
+                'With deep stacks, hitting the nut flush or nut straight = huge pot. ' +
+                'Semi-bluff 75-100% pot to build the pot and represent a made hand.',
+            impliedOddsBonus,
+            reasoning: `${totalOuts}-out nut draw at SPR ${spr.toFixed(1)}: massive implied odds. ` +
+                'Even if behind now, the payoff when we hit justifies large investment.'
+        };
+    }
+
+    // ── Medium draws (8-12 outs, not to nuts): CAUTIOUS INVESTMENT ──
+    if (totalOuts >= 8 && !isNutDraw) {
+        const impliedOddsBonus = Math.min(10, Math.round(spr * 1.5));
+        return {
+            deepStackAction: 'draw-invest',
+            maxCommitFraction: 0.30, // Only 30% of stack — non-nut draws are risky deep
+            sizingAdvice: 'Deep-stack non-nut draw: be cautious. ' +
+                'Non-nut draws deep-stacked can cost you your entire stack when you hit but ' +
+                'lose to the nut version. Call reasonable bets but avoid bloating the pot.',
+            impliedOddsBonus,
+            reasoning: `Non-nut draw (${totalOuts} outs) deep-stacked: reverse implied odds are real. ` +
+                'Hitting a non-nut flush against the nut flush = disaster.'
+        };
+    }
+
+    // ── Strong made hands (two pair, non-nut set on safe board): POT CONTROL ──
+    if (strength >= 65 && strength < 85 && !madeHand.isNut) {
+        return {
+            deepStackAction: 'pot-control',
+            maxCommitFraction: 0.40, // Don't put more than 40% in without the nuts
+            sizingAdvice: 'Deep-stack medium-strong hand: pot control. ' +
+                'Check-call or bet small. Your hand is good but not the nuts, and deep-stacked ' +
+                'you cannot win big pots with non-nut hands — only lose big ones. ' +
+                'Control pot size and take a cheap showdown.',
+            impliedOddsBonus: 0,
+            reasoning: `Strength ${strength} at SPR ${spr.toFixed(1)}: too weak to commit stack, ` +
+                'too strong to fold. Classic pot-control spot in deep PLO.'
+        };
+    }
+
+    // ── Medium made hands (top pair, weak two pair): FOLD TO AGGRESSION ──
+    if (strength >= 40 && strength < 65) {
+        return {
+            deepStackAction: 'fold-medium',
+            maxCommitFraction: 0.20, // Max 20% of stack
+            sizingAdvice: 'Deep-stack medium hand: proceed with extreme caution. ' +
+                'Top pair in deep-stack PLO is barely worth a bet. Two pair on a wet board ' +
+                'is a check-call at best. If opponent pots it, seriously consider folding. ' +
+                'Deep-stack PLO is about making nutted hands, not protecting medium ones.',
+            impliedOddsBonus: 0,
+            reasoning: `Medium hand (${strength}) deep-stacked: high risk of paying off better hands.`
+        };
+    }
+
+    // ── Nut hands that can trap (nut full house on innocuous board): SLOW PLAY ──
+    if (madeHand.isNut && !boardTexture.isWet && !boardTexture.isDangerous && isIP) {
+        return {
+            deepStackAction: 'slow-play',
+            maxCommitFraction: 1.0,
+            sizingAdvice: 'Deep-stack nut hand on dry board: consider slow-playing. ' +
+                'When the board is safe and you have the absolute nuts, a check can ' +
+                'induce bluffs or let opponents catch up to a second-best hand.',
+            impliedOddsBonus: 0,
+            reasoning: 'Nuts on dry board deep-stacked IP: slow-play is viable.'
+        };
+    }
+
+    // ── Default: standard approach ──
+    return {
+        deepStackAction: 'standard',
+        maxCommitFraction: 0.50,
+        sizingAdvice: 'Deep-stack default: play straightforward with standard sizing.',
+        impliedOddsBonus: 0,
+        reasoning: 'No specific deep-stack override applies.'
+    };
+}
+
+// ── ADV-6. PLO TURN/RIVER PLANNING ──
+/**
+ * Plan our turn and river actions based on our current hand + draws.
+ * This goes beyond the basic multi-street plan by considering:
+ *
+ * 1. Which specific cards improve our hand (and which kill it)
+ * 2. The concept of "barrel turns" — which turn cards are good for us to bet again
+ * 3. River play planning — bet/check/fold decisions pre-planned based on turn card
+ * 4. Backdoor draw pickup — gaining extra outs on the turn changes the plan
+ *
+ * In PLO, planning ahead is critical because pots grow so fast.
+ * A flop bet of 60% pot becomes a pot-size commitment by the river.
+ * We need to know BEFORE we bet whether we can follow through.
+ *
+ * @param {Object} madeHand - Current made hand
+ * @param {number} totalOuts - Draw outs
+ * @param {Object} boardTexture - Board texture
+ * @param {string} street - Current street ('flop' or 'turn')
+ * @param {boolean} isIP - In position?
+ * @param {number} stackBB - Stack size
+ * @param {number} potSize - Current pot
+ * @param {boolean} wasAggressor - Did we bet/raise previous street?
+ * @returns {{
+ *   turnPlan: string,
+ *   riverPlan: string,
+ *   goodTurnCards: string[],
+ *   badTurnCards: string[],
+ *   shouldBarrelTurn: boolean,
+ *   shouldFireRiver: boolean,
+ *   commitLevel: 'full'|'partial'|'minimal',
+ *   reasoning: string
+ * }}
+ */
+function getPLOStreetPlanner(madeHand, totalOuts, boardTexture, street, isIP, stackBB, potSize, wasAggressor) {
+    const result = {
+        turnPlan: 'evaluate',
+        riverPlan: 'evaluate',
+        goodTurnCards: [],
+        badTurnCards: [],
+        shouldBarrelTurn: false,
+        shouldFireRiver: false,
+        commitLevel: 'minimal',
+        reasoning: ''
+    };
+
+    if (street === 'river') {
+        // Already on the river, no forward planning needed
+        result.reasoning = 'River: no future streets to plan.';
+        return result;
+    }
+
+    const cat = madeHand.category || '';
+    const strength = madeHand.strength || 0;
+
+    // ── GOOD/BAD TURN CARDS ──
+
+    // Flush-completing cards: bad if we don't have the flush, good if we do
+    if (boardTexture.isWet && !boardTexture.isMonotone) {
+        if (cat === 'flush' || cat === 'nut_flush') {
+            // Already have flush — board pairing is bad (full house beats us)
+            result.badTurnCards.push('board_pairing_card');
+        } else {
+            // No flush — third suited card is bad (someone likely flushes)
+            result.badTurnCards.push('third_flush_card');
+        }
+    }
+
+    // Straight-completing cards
+    if (totalOuts >= 8) {
+        result.goodTurnCards.push('straight_completing_card');
+    } else if (boardTexture.isDangerous) {
+        result.badTurnCards.push('straight_completing_card');
+    }
+
+    // Board-pairing card: good for sets (makes full house), bad for straights/flushes
+    if (cat === 'set') {
+        result.goodTurnCards.push('board_pairing_card');
+    } else if (cat === 'straight' || cat === 'flush') {
+        result.badTurnCards.push('board_pairing_card');
+    }
+
+    // Overcard: bad for top pair, neutral for sets, irrelevant for nut hands
+    if (cat === 'top_pair' || cat === 'overpair') {
+        result.badTurnCards.push('overcard');
+    }
+
+    // ── TURN PLAN ──
+    if (madeHand.isNut || strength >= 85) {
+        result.turnPlan = 'bet_for_value';
+        result.shouldBarrelTurn = true;
+        result.commitLevel = 'full';
+        result.reasoning = 'Nut/premium hand: plan to barrel turn for value. ' +
+            'Continue building the pot relentlessly.';
+    } else if (totalOuts >= 13 && cat !== 'air') {
+        result.turnPlan = 'semi_bluff_barrel';
+        result.shouldBarrelTurn = true;
+        result.commitLevel = 'partial';
+        result.reasoning = `Monster draw (${totalOuts} outs): plan to barrel turn as semi-bluff. ` +
+            'High equity draw justifies continued aggression.';
+    } else if (wasAggressor && strength >= 60) {
+        result.turnPlan = 'conditional_barrel';
+        result.shouldBarrelTurn = result.badTurnCards.length === 0; // Barrel unless scare card hits
+        result.commitLevel = 'partial';
+        result.reasoning = 'Aggressor with decent hand: barrel good turns, check bad turns. ' +
+            `Good turns: ${result.goodTurnCards.join(', ') || 'any non-scare card'}. ` +
+            `Bad turns: ${result.badTurnCards.join(', ') || 'none identified'}.`;
+    } else if (wasAggressor && strength < 60) {
+        result.turnPlan = 'give_up';
+        result.shouldBarrelTurn = false;
+        result.commitLevel = 'minimal';
+        result.reasoning = 'Aggressor with weak hand: plan to check turn and give up. ' +
+            'One barrel was enough — don\'t compound the bluff without equity.';
+    } else {
+        result.turnPlan = 'evaluate';
+        result.shouldBarrelTurn = false;
+        result.commitLevel = 'minimal';
+        result.reasoning = 'No strong plan: evaluate on the turn based on card and action.';
+    }
+
+    // ── RIVER PLAN ──
+    if (result.commitLevel === 'full') {
+        result.riverPlan = 'value_bet_or_shove';
+        result.shouldFireRiver = true;
+    } else if (result.commitLevel === 'partial' && totalOuts >= 10) {
+        result.riverPlan = 'bet_if_hit_check_if_miss';
+        result.shouldFireRiver = false; // Conditional on hitting
+    } else {
+        result.riverPlan = 'check_evaluate';
+        result.shouldFireRiver = false;
+    }
+
+    return result;
+}
+
+// ── ADV-7. PLO POT GEOMETRY AWARENESS ──
+/**
+ * Analyze pot geometry in PLO — how pot-limit structure affects value extraction.
+ * Key PLO pot geometry concepts:
+ *
+ * 1. POT LIMIT CONSTRAINT: You can only bet the pot. This means you can't
+ *    overbet to maximize value (unlike NLHE). Your sizing is capped.
+ *
+ * 2. GROWTH RATE: A pot-size bet doubles the pot each street.
+ *    Starting pot 100: Flop pot-bet → 300. Turn pot-bet → 900. River pot-bet → 2700.
+ *    After 3 streets of potting, the pot grows 27x.
+ *
+ * 3. STACK-TO-POT TRAJECTORY: With effective stacks of 100BB and a 10BB pot:
+ *    - SPR = 10. Potting 3 streets needs 10+30+90 = 130BB (more than our stack)
+ *    - We'd be all-in on the turn if we pot every street
+ *    - This is GOOD with nuts, BAD with medium hands
+ *
+ * 4. PARTIAL-POT BETS: Betting 60% pot each street grows pot more slowly:
+ *    100 → 220 → 484 → 1065. Total bet = 60+132+290 = 482.
+ *    With 100BB stacks and 10BB pot, this keeps us from committing.
+ *
+ * @param {number} potSize - Current pot
+ * @param {number} heroStack - Hero's stack
+ * @param {string} street - Current street
+ * @param {number} betFraction - Planned bet fraction (0.0-1.0)
+ * @returns {{
+ *   potAfterBet: number,
+ *   potAfterTwoBets: number,
+ *   potAfterThreeBets: number,
+ *   totalCommitment: number,
+ *   sprAfterBet: number,
+ *   isOvercommitting: boolean,
+ *   optimalFraction: number,
+ *   geometryAdvice: string
+ * }}
+ */
+function getPLOPotGeometry(potSize, heroStack, street, betFraction) {
+    const frac = Math.max(0.25, Math.min(1.0, betFraction || 0.65));
+    const streetsLeft = street === 'flop' ? 3 : street === 'turn' ? 2 : 1;
+
+    // Project pot and total commitment across remaining streets
+    let currentPot = potSize;
+    let totalCommit = 0;
+    const potsByStreet = [];
+
+    for (let s = 0; s < streetsLeft; s++) {
+        const bet = currentPot * frac;
+        totalCommit += bet;
+        currentPot = currentPot + bet * 2; // Both players put in bet
+        potsByStreet.push(Math.round(currentPot));
+    }
+
+    const potAfterBet = potsByStreet[0] || potSize;
+    const potAfterTwoBets = potsByStreet[1] || potAfterBet;
+    const potAfterThreeBets = potsByStreet[2] || potAfterTwoBets;
+
+    const sprAfterBet = (heroStack - (potSize * frac)) / Math.max(1, potAfterBet);
+    const isOvercommitting = totalCommit > heroStack * 0.80; // Committing 80%+ of stack
+
+    // Calculate optimal fraction to NOT overcommit (useful for pot control)
+    // If we want to commit at most 50% of our stack over remaining streets:
+    const targetCommit = heroStack * 0.50;
+    let optLo = 0.20, optHi = 1.0;
+    for (let i = 0; i < 15; i++) {
+        const mid = (optLo + optHi) / 2;
+        let tc = 0, cp = potSize;
+        for (let s = 0; s < streetsLeft; s++) {
+            tc += cp * mid;
+            cp = cp + cp * mid * 2;
+        }
+        if (tc < targetCommit) optLo = mid;
+        else optHi = mid;
+    }
+    const optimalFraction = Math.max(0.25, Math.min(1.0, (optLo + optHi) / 2));
+
+    let geometryAdvice;
+    if (isOvercommitting && streetsLeft >= 2) {
+        geometryAdvice = `WARNING: Betting ${Math.round(frac * 100)}% pot commits ${Math.round(totalCommit)} of ${heroStack} stack ` +
+            `(${Math.round(totalCommit / heroStack * 100)}%) over ${streetsLeft} streets. ` +
+            `Consider sizing down to ${Math.round(optimalFraction * 100)}% pot to maintain flexibility. ` +
+            'Only commit this much with nut hands or nut draws.';
+    } else if (isOvercommitting && streetsLeft === 1) {
+        geometryAdvice = `River: ${Math.round(frac * 100)}% pot bet commits most of remaining stack. ` +
+            'This is fine with value hands — be prepared to call a raise or fold medium hands.';
+    } else {
+        geometryAdvice = `Healthy pot geometry: ${Math.round(frac * 100)}% pot bets over ${streetsLeft} streets ` +
+            `commits ${Math.round(totalCommit / heroStack * 100)}% of stack. Room to maneuver.`;
+    }
+
+    return {
+        potAfterBet, potAfterTwoBets, potAfterThreeBets,
+        totalCommitment: Math.round(totalCommit),
+        sprAfterBet: Math.round(sprAfterBet * 100) / 100,
+        isOvercommitting, optimalFraction: Math.round(optimalFraction * 100) / 100,
+        geometryAdvice
+    };
+}
+
 // ── 8c. BAYESIAN OPPONENT MODEL UPDATER ──
 /**
  * Update our live opponent model using Bayesian principles during the session.
@@ -5502,6 +6365,33 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const isNutDraw = flushDraw.isNutFlushDraw || straightDraw.hasNutStraightDraw;
     const impliedOddsInfo = getPLOImpliedOdds(toCall, potSize, effectiveStack, totalOuts, isNutDraw, street);
 
+    // ═══ ADVANCED PLO4 MODULES (Phase 5+ expansion) ═══
+
+    // ADV-1: Nut advantage assessment — who has more nut combos in their range?
+    const wasPreAggressor = state.wasPreAggressor ? 'raiser' : 'caller';
+    const advNutAdvantage = getPLONutAdvantage(wasPreAggressor, boardCards, street, boardTexture, madeHand);
+
+    // ADV-2: Protection betting — should we bet to charge draws?
+    const protectionBet = getPLOProtectionBet(madeHand, totalOuts, boardTexture, street, numPlayers, isIP, sprZone.zone);
+
+    // ADV-3: Blocker-based thin value — can we thin value bet based on our blockers?
+    // Note: uses raw `equity` (equityFinal not yet computed at this point)
+    const blockerThinValue = getPLOBlockerThinValue(madeHand, blockers, boardTexture, street, potSize, isIP, numPlayers, equity);
+
+    // ADV-4: Multiway pot dynamics — how does multiway change our strategy?
+    const multiwayDynamics = getPLOMultiwayDynamics(numPlayers, madeHand, totalOuts, isNutDraw, isIP, street, potSize, toCall, equity);
+
+    // ADV-5: Deep stack navigation — special rules for SPR > 6
+    const spr = (stackBB * bb) / Math.max(1, potSize);
+    const deepStackNav = getPLODeepStackNavigation(stackBB, spr, madeHand, totalOuts, isNutDraw, isIP, street, boardTexture);
+
+    // ADV-6: Turn/river planning — which cards are good/bad for us
+    const streetPlan = getPLOStreetPlanner(madeHand, totalOuts, boardTexture, street, isIP, stackBB, potSize, !!state.wasPreAggressor);
+
+    // ADV-7: Pot geometry — how does our sizing plan affect stack commitment?
+    // Use geoSizing fraction as the bet plan (adaptiveBetSize not computed yet)
+    const potGeometry = getPLOPotGeometry(potSize, stackBB * bb, street, geoSizing.sizeFraction);
+
     // ── Phase 3: Range balance randomizer ──
     const situation = street === 'river' ? 'river_bet' : street === 'turn' ? 'turn_lead' : 'flop_lead';
     const rangeBalance = getPLORangeBalance(profileId, situation, equity);
@@ -5825,6 +6715,15 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Phase 6: Check-behind calibrator (IP river situations)
         const checkBehindCalibration = getPLOCheckBehindCalibration(equityFinal, madeHand, boardTexture, sdvInfo, numPlayers, 'river');
 
+        // ADV-3: Blocker-based thin value bet on river (IP, not facing bet)
+        // When we block key nut combos, a small bet targets calls from worse hands
+        if (toCall === 0 && isIP && blockerThinValue.shouldThinValue && canRaise && mwAllowValueBet) {
+            const thinAmount = clamp(Math.round(potSize * blockerThinValue.thinValueSize));
+            if (thinAmount > 0) {
+                return { type: raiseAction.type, amount: thinAmount };
+            }
+        }
+
         // Opt D: River check-raise — OOP check-raise with nuts / blocker bluff
         // (must be before the optimizer; if we should CR, we CHECK here, raise on next action call)
         if (toCall === 0 && !isIP) {
@@ -6007,12 +6906,47 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         // Phase 3: Range balance — occasionally check monsters to balance range
         if (rangeBalance.forceCheck && equityFinal >= 75) return { type: 'check' };
 
+        // ═══ ADV MODULES: Protection + Nut Advantage + Deep Stack ═══
+
+        // ADV-2: Protection betting — bet aggressively when hand is vulnerable to draws
+        // Critical protection: pot-size bet to charge draws maximum price
+        if (protectionBet.shouldProtect && protectionBet.protectionUrgency === 'critical' && canRaise) {
+            const protSize = protectionBet.shouldPotIt
+                ? clamp(calcPLOPotRaise(potSize, 0, raiseAction))
+                : clamp(Math.round(potSize * protectionBet.protectionSize));
+            return { type: raiseAction.type, amount: protSize };
+        }
+
+        // ADV-5: Deep stack pot control — override medium hands in deep-stacked PLO
+        // When deep-stacked with non-nut hands, check to control pot size
+        if (deepStackNav.deepStackAction === 'fold-medium' && equityFinal < 65) {
+            return { type: 'check' }; // Deep-stack pot control: don't build pot with medium hands
+        }
+        if (deepStackNav.deepStackAction === 'pot-control' && !madeHand.isNut && madeHand.strength < 80) {
+            // In deep-stack PLO, pot-control with strong-but-not-nut hands
+            // Only bet small or check — don't build a huge pot
+            if (canRaise && madeHand.strength >= 70) {
+                const controlSize = clamp(Math.round(potSize * 0.35)); // Small for pot control
+                return { type: raiseAction.type, amount: controlSize };
+            }
+            return { type: 'check' };
+        }
+
+        // ADV-4: Multiway dynamics — in multiway, only continue with nut-level hands
+        if (multiwayDynamics.multiwayAction === 'check-fold' && numPlayers >= 3 && !canRaise) {
+            return { type: 'check' };
+        }
+
+        // ADV-1: Nut advantage sizing adjustment — modify bet sizes based on range advantage
+        // When hero has nut advantage: bet smaller + more frequently (already encoded in nutAdvantage.sizingMod)
+
         // Opt C: Donk bet — OOP lead into preflop raiser when board favors our range
         if (donkOpportunity.shouldDonk && equityFinal >= 60 && canRaise)
             return { type: raiseAction?.type || 'bet', amount: clamp(getPLODonkBetOpportunity(isIP, wasPFRaiser, madeHand, boardTexture, equityFinal, potSize).donkSize) };
 
         // Phase 8: Board protection bet — bet full when scenario says board is about to get worse
-        if (scenarioAdvice === 'bet_full_protection' && canRaise && equityFinal >= 60)
+        // ADV-2: Also fires for high-urgency protection (not just critical)
+        if ((scenarioAdvice === 'bet_full_protection' || (protectionBet.shouldProtect && protectionBet.protectionUrgency === 'high')) && canRaise && equityFinal >= 60)
             return { type: raiseAction.type, amount: adaptiveBetSize };
 
         // Phase 5: Pot manipulation — isolate fishy opponents
@@ -6105,13 +7039,22 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
                 // Folder will fold → c-bet bluff more aggressively
                 cBetLiveGo = true;
             }
-            if (cBetLiveGo)
-                return { type: raiseAction.type, amount: clamp(Math.round(potSize * (cBetStrategy.cBetFraction + positionCbetMod) * ploLiveSizeAdj)) };
+            if (cBetLiveGo) {
+                // ADV-1: Nut advantage sizing modifier — bet smaller with range advantage (high freq),
+                // bet bigger without range advantage (polarized sizing)
+                const nutAdvSizeMod = advNutAdvantage.sizingMod || 0;
+                return { type: raiseAction.type, amount: clamp(Math.round(potSize * (cBetStrategy.cBetFraction + positionCbetMod + nutAdvSizeMod) * ploLiveSizeAdj)) };
+            }
         }
 
         // Phase 3: Turn barrel logic
-        if (turnBarrel?.shouldBarrel && canRaise)
-            return { type: raiseAction.type, amount: clamp(Math.round(potSize * turnBarrel.barrelFraction * ploLiveSizeAdj)) };
+        // ADV-6: Street planner influences barrel — only barrel when plan says to
+        if (turnBarrel?.shouldBarrel && canRaise) {
+            // If street planner says give up on turn, suppress barrel (unless equity is very high)
+            const planSuppressBarrel = streetPlan.turnPlan === 'give_up' && equityFinal < 70;
+            if (!planSuppressBarrel)
+                return { type: raiseAction.type, amount: clamp(Math.round(potSize * turnBarrel.barrelFraction * ploLiveSizeAdj)) };
+        }
 
         // Phase 5: River float and fire (IP, draw missed, blockers)
         // ═══ PHASE 37: LIVE-READ RIVER BLUFF GATE ═══
@@ -6171,6 +7114,22 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     }
 
     // ─── FACING A BET (Flop / Turn) ───
+
+    // ADV-5: Deep stack commitment cap — when deep-stacked, limit how much we commit with non-nut hands
+    // potGeometry.isOvercommitting warns us when the current sizing plan risks too much stack
+    if (deepStackNav.deepStackAction === 'fold-medium' && toCall > stackBB * bb * deepStackNav.maxCommitFraction) {
+        // Deep stack with medium hand — fold if the bet demands more than we should commit
+        if (canCheck) return { type: 'check' };
+        return { type: 'fold' };
+    }
+
+    // ADV-4: Multiway dynamics override — in multiway facing a bet, respect the dynamics
+    if (multiwayDynamics.multiwayAction === 'check-fold' && !multiwayDynamics.shouldContinue && toCall > 0) {
+        return canCheck ? { type: 'check' } : { type: 'fold' };
+    }
+
+    // ADV-3: Blocker calldown bonus — when facing a bet, good blockers make calling easier
+    // This adds equity points to our calldown threshold via blockerThinValue.calldownBonus
 
     // Bug #85: Multiway tightening when facing bets.
     // In PLO multiway pots (3+ players), when someone bets into multiple opponents,
@@ -6321,7 +7280,9 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
         ? perStreetBluff.calldownThreshold      // Phase 7: call with less equity vs aggressive opponents
         : exploitFoldThreshold - 5;             // Phase 5: default exploit threshold
     // Bug #179: Wire multiwayCallPenalty — require higher equity to call in multiway pots
-    if (equityFinal >= (callThreshold + multiwayCallPenalty) && canCall) {
+    // ADV-3: Blocker calldown bonus reduces the threshold (makes calling easier with blockers)
+    const blockerCalldownAdj = blockerThinValue.calldownBonus || 0;
+    if (equityFinal >= (callThreshold + multiwayCallPenalty - blockerCalldownAdj) && canCall) {
         const ourEquityFraction = equityFinal / 100;
         // Bug #212: Use effectivePotOdds for split-pot awareness
         if (ourEquityFraction >= effectivePotOdds - 0.05) return { type: 'call' };
@@ -6474,6 +7435,15 @@ module.exports = {
 
     // Decision cache
     createPLODecisionCache,
+
+    // Advanced PLO4 strategy (Phase 5+ expansion — 7 functions)
+    getPLONutAdvantage,
+    getPLOProtectionBet,
+    getPLOBlockerThinValue,
+    getPLOMultiwayDynamics,
+    getPLODeepStackNavigation,
+    getPLOStreetPlanner,
+    getPLOPotGeometry,
 
     // Main PLO4 decision engine
     makePLOFallbackDecision,

@@ -253,6 +253,14 @@ module.exports = {
     detectPLOBotOpponent: ploCore.detectPLOBotOpponent,
     buildPLOCounterExploitProfile: ploCore.buildPLOCounterExploitProfile,
     createPLODecisionCache: ploCore.createPLODecisionCache,
+    // Advanced PLO4 strategy (Phase 5+ expansion)
+    getPLONutAdvantage: ploCore.getPLONutAdvantage,
+    getPLOProtectionBet: ploCore.getPLOProtectionBet,
+    getPLOBlockerThinValue: ploCore.getPLOBlockerThinValue,
+    getPLOMultiwayDynamics: ploCore.getPLOMultiwayDynamics,
+    getPLODeepStackNavigation: ploCore.getPLODeepStackNavigation,
+    getPLOStreetPlanner: ploCore.getPLOStreetPlanner,
+    getPLOPotGeometry: ploCore.getPLOPotGeometry,
     makePLOFallbackDecision: ploCore.makePLOFallbackDecision,
 
     // ═══════════════════════════════════════════════════════════════════════

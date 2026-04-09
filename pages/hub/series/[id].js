@@ -602,22 +602,34 @@ export default function SeriesDetailPage() {
                                       <span className="detail-value">{evt.format}</span>
                                     </div>
                                   )}
+                                  {evt.start_time && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Start Time</span>
+                                      <span className="detail-value">{evt.start_time}</span>
+                                    </div>
+                                  )}
+                                  {evt.reg_open_until && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Registration Open Until</span>
+                                      <span className="detail-value">{evt.reg_open_until}</span>
+                                    </div>
+                                  )}
                                   {evt.starting_chips && (
                                     <div className="detail-field">
                                       <span className="detail-label">Starting Chips</span>
                                       <span className="detail-value">{typeof evt.starting_chips === 'number' ? evt.starting_chips.toLocaleString() : evt.starting_chips}</span>
                                     </div>
                                   )}
-                                  {evt.blind_levels && (
+                                  {(evt.levels || evt.blind_levels) && (
                                     <div className="detail-field">
                                       <span className="detail-label">Blind Levels</span>
-                                      <span className="detail-value">{evt.blind_levels}</span>
+                                      <span className="detail-value">{evt.levels || evt.blind_levels}{evt.level_duration_minutes ? ` (${evt.level_duration_minutes} min each)` : ''}</span>
                                     </div>
                                   )}
-                                  {evt.late_reg && (
+                                  {(evt.late_reg || evt.late_registration) && (
                                     <div className="detail-field">
                                       <span className="detail-label">Late Registration</span>
-                                      <span className="detail-value">{evt.late_reg}</span>
+                                      <span className="detail-value detail-late-reg">{evt.late_reg || evt.late_registration}</span>
                                     </div>
                                   )}
                                   {evt.notes && (
@@ -1274,6 +1286,10 @@ const styles = `
   .detail-highlight {
     color: #00D4FF;
     font-weight: 700;
+  }
+  .detail-late-reg {
+    color: #fbbf24;
+    font-weight: 600;
   }
 
   /* No Events */

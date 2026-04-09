@@ -695,19 +695,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                 {charityToday ? (
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                         <div className="vc3-list-item vc3-tourney-item">
-                                            <div className="vc3-tourney-name">{venue.name || 'Charity'} Event</div>
-                                            <div className="vc3-tourney-meta">
-                                                <span>{formatTime(venue.today_event.start_time) || 'Time TBD'}</span>
-                                                {venue.today_event.buy_in != null && String(venue.today_event.buy_in) !== '0' ? <span> · ${venue.today_event.buy_in}</span> : <span> · Free / TBD</span>}
+                                            <div className="vc3-tourney-name">{venue.today_event.tournament_name || 'Charity Tournament'}</div>
+                                            <div className="vc3-tourney-details">
+                                                <span className="vc3-tourney-time">{formatTime(venue.today_event.start_time) || 'Time TBD'}</span>
+                                                <span className="vc3-tourney-buyin">{venue.today_event.buy_in != null && String(venue.today_event.buy_in) !== '0' ? `$${venue.today_event.buy_in} Buy-In` : 'Free / TBD'}</span>
                                             </div>
-                                            {(venue.today_event.location || venue.city) ? (
-                                                <div className="vc3-tourney-location">
-                                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0, opacity: 0.6 }}>
-                                                        <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                                                    </svg>
-                                                    {[venue.today_event.location || venue.city, venue.today_event.state || venue.state].filter(Boolean).join(', ')}
-                                                </div>
-                                            ) : null}
+                                            {venue.today_event.starting_stack != null && String(venue.today_event.starting_stack) !== '0' && String(venue.today_event.starting_stack) !== 'N/A' && (
+                                                <div className="vc3-tourney-stack">{venue.today_event.starting_stack} Starting Stack</div>
+                                            )}
                                             <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
                                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" style={{ flexShrink: 0 }}>
                                                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -720,21 +715,15 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     /* Charity with upcoming (not today) event */
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                         <div className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
-                                            <div className="vc3-tourney-name">{venue.name || 'Charity'} Event</div>
-                                            <div className="vc3-tourney-meta">
-                                                <span>{formatTime(venue.next_event.start_time) || 'Time TBD'}</span>
-                                                {venue.next_event.buy_in != null && String(venue.next_event.buy_in) !== '0' ? <span> · ${venue.next_event.buy_in}</span> : <span> · Free / TBD</span>}
+                                            <div className="vc3-tourney-name">{venue.next_event.tournament_name || 'Charity Tournament'}</div>
+                                            <div className="vc3-tourney-details">
+                                                <span className="vc3-tourney-time">{formatTime(venue.next_event.start_time) || 'Time TBD'}</span>
+                                                <span className="vc3-tourney-buyin">{venue.next_event.buy_in != null && String(venue.next_event.buy_in) !== '0' ? `$${venue.next_event.buy_in} Buy-In` : 'Free / TBD'}</span>
                                             </div>
-                                            {/* Location line */}
-                                            {(venue.next_event.location || venue.city) ? (
-                                                <div className="vc3-tourney-location">
-                                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ flexShrink: 0, opacity: 0.6 }}>
-                                                        <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                                                    </svg>
-                                                    {[venue.next_event.location || venue.city, venue.next_event.state || venue.state].filter(Boolean).join(', ')}
-                                                </div>
-                                            ) : null}
-                                            {/* Next event date prominent display under location */}
+                                            {venue.next_event.starting_stack != null && String(venue.next_event.starting_stack) !== '0' && String(venue.next_event.starting_stack) !== 'N/A' && (
+                                                <div className="vc3-tourney-stack">{venue.next_event.starting_stack} Starting Stack</div>
+                                            )}
+                                            {/* Next event date */}
                                             {(() => {
                                                 const ne = venue.next_event;
                                                 const daysAway = ne.days_away;
@@ -743,8 +732,6 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                     const d = new Date();
                                                     d.setDate(d.getDate() + daysAway);
                                                     dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                                                } else if (daysAway === 1) {
-                                                    dateStr = 'Tomorrow';
                                                 }
                                                 return (
                                                     <div className="vc3-tourney-date" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: '3px 0 2px 0' }}>
@@ -764,12 +751,14 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             return (
                                                 <div key={idx} className="vc3-list-item vc3-tourney-item">
                                                     <div className="vc3-tourney-name" title={tName}>{tName}</div>
-                                                    <div className="vc3-tourney-meta">
-                                                        <span>{formatTime(t?.start_time) || 'Time TBD'}</span>
-                                                        {t?.buy_in != null && String(t.buy_in) !== 'N/A' && String(t.buy_in) !== '0' ? <span> · ${t.buy_in}</span> : <span> · Free / TBD</span>}
-                                                        {t?.guaranteed != null && String(t.guaranteed) !== '0' && String(t.guaranteed) !== 'N/A' ? <span> · <span style={{color: '#4ade80'}}>{t.guaranteed}</span> GTD</span> : null}
-                                                        {t?.starting_stack != null && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' ? <span> · {t.starting_stack}</span> : null}
+                                                    <div className="vc3-tourney-details">
+                                                        <span className="vc3-tourney-time">{formatTime(t?.start_time) || 'Time TBD'}</span>
+                                                        <span className="vc3-tourney-buyin">{t?.buy_in != null && String(t.buy_in) !== 'N/A' && String(t.buy_in) !== '0' ? `$${t.buy_in} Buy-In` : 'Free / TBD'}</span>
+                                                        {t?.guaranteed != null && String(t.guaranteed) !== '0' && String(t.guaranteed) !== 'N/A' ? <span className="vc3-tourney-gtd">{t.guaranteed} GTD</span> : null}
                                                     </div>
+                                                    {t?.starting_stack != null && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' && (
+                                                        <div className="vc3-tourney-stack">{t.starting_stack} Starting Stack</div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -1096,11 +1085,42 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 }
                 .vc3-tourney-item-special { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); }
                 .vc3-tourney-name {
-                    font-weight: 600;
+                    font-weight: 700;
+                    font-size: 12px;
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
                     width: 100%;
+                    color: #ffffff;
+                    margin-bottom: 2px;
+                }
+                .vc3-tourney-details {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
+                    align-items: center;
+                    width: 100%;
+                }
+                .vc3-tourney-time {
+                    font-size: 13px;
+                    font-weight: 700;
+                    color: #ffffff;
+                }
+                .vc3-tourney-buyin {
+                    font-size: 13px;
+                    font-weight: 700;
+                    color: #4ade80;
+                }
+                .vc3-tourney-gtd {
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: #fbbf24;
+                }
+                .vc3-tourney-stack {
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: rgba(255,255,255,0.5);
+                    margin-top: 1px;
                 }
                 .vc3-tourney-meta {
                     font-size: 11px;
