@@ -114,8 +114,8 @@ export const EventType = {
     RAKEBACK_CLAIMED: 'RAKEBACK_CLAIMED',
 
     // ── Poker Near Me & Venues ──
-    VENUE_SAVED: 'VENUE_SAVED',
-    VENUE_UNSAVED: 'VENUE_UNSAVED',
+    VENUE_SAVED: 'venue:favorite',
+    VENUE_UNSAVED: 'venue:unfavorite',
 };
 
 // ─── SSR Safety Check ──────────────────────────────────────────

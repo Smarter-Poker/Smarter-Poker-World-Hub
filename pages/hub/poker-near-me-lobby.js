@@ -1574,10 +1574,8 @@ export default function PokerNearMeLobby() {
       if (type === 'venue') {
         if (wasFavorited) {
           await removeVenueFavorite(userId, id);
-          try { eventBus.emit('venue:unfavorite', { venueId: id }, 'PokerNearMe'); } catch { }
         } else {
           await addVenueFavorite(userId, id, dataObj);
-          try { eventBus.emit('venue:favorite', { venueId: id, name: dataObj?.name }, 'PokerNearMe'); } catch { }
         }
       } else {
         // Series & Tours routing via Unified Follow API

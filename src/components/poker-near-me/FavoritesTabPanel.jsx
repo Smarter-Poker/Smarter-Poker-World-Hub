@@ -21,9 +21,8 @@ export default function FavoritesTabPanel({
     openVenueModal,
 }) {
     const favVenues = (allVenuesForMap.length > 0 ? allVenuesForMap : venues).filter(v => isFavorited('venue', v.id));
-    const favCount = Object.keys(favorites).filter(k => favorites[k]).length;
 
-    if (favCount === 0) {
+    if (favVenues.length === 0) {
         return (
             <div className="empty-state" style={{ padding: '60px 20px', background: 'radial-gradient(circle at center, rgba(239,68,68,0.05) 0%, transparent 70%)' }}>
                 <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>

@@ -1533,7 +1533,14 @@ export default function PokerNearMePage() {
     // --- NEW: Persist favorites to localStorage + bus sync ---
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            localStorage.setItem('sp-favorites', JSON.stringify(favorites));
+            const spFavs = {};
+            const seriesFavs = [];
+            Object.keys(favorites).forEach(k => {
+                if (k.startsWith('venue-') && favorites[k]) spFavs[k] = favorites[k];
+                if (k.startsWith('series-') && favorites[k]) seriesFavs.push(k.split('-')[1]);
+            });
+            localStorage.setItem('sp-favorites', JSON.stringify(spFavs));
+            localStorage.setItem('followed-series', JSON.stringify(seriesFavs));
         }
     }, [favorites]);
 
