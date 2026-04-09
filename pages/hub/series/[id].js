@@ -143,7 +143,7 @@ export default function SeriesDetailPage() {
   // Load follow state from localStorage instantly
   useEffect(() => {
 
-  if (!router.isReady) return null;
+  if (!router.isReady) return;
 
     if (!id) return;
     try {
@@ -162,7 +162,8 @@ export default function SeriesDetailPage() {
       fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10').catch(() => ({ ok: false }))
     ]);
     if (!seriesRes.ok) throw new Error(`Request failed (${seriesRes.status})`);
-    const [sj, rj, fj, aj] = await Promise.all([seriesRes.json(), resultsRes.json(), followRes.json(), activityRes.json()]);
+    const safeJson = (r) => (r && typeof r.json === 'function') ? r.json() : r;
+    const [sj, rj, fj, aj] = await Promise.all([safeJson(seriesRes), safeJson(resultsRes), safeJson(followRes), safeJson(activityRes)]);
     const seriesObj = sj.success && sj.data ? (Array.isArray(sj.data) ? sj.data[0] : sj.data) : null;
     const payload = rj.success ? (rj.data || {}) : {};
     const results = payload.results && Array.isArray(payload.results) ? payload.results : (Array.isArray(payload) ? payload : []);
