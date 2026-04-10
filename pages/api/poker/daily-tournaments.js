@@ -97,12 +97,13 @@ export default async function handler(req, res) {
               .eq('data_quality', 'scraped_verified')
               .order('buy_in', { ascending: true });
 
-          // Filter by day
-          // Declare targetDay before the if-block to avoid ReferenceError when day='all'
+          // Filter by day — use ilike for case-insensitive matching
+          // (DB has mixed-case day_of_week values: 'saturday', 'MONDAY', 'Daily', etc.)
           let targetDay = getCurrentDay();
           if (day !== 'all') {
-              targetDay = (day || getCurrentDay()).replace(/[,().]/g, '');
-              query = query.or(`day_of_week.eq.${targetDay},day_of_week.eq.Daily`);
+              targetDay = (day || getCurrentDay()).replace(/[,().]/g, '').trim();
+              // ilike handles: Saturday / saturday / SATURDAY all correctly
+              query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           }
 
           // Filter by exact venue ID
