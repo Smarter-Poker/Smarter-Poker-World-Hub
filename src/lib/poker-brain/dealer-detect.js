@@ -193,17 +193,30 @@ export function heroPositionFromDealer(dealerSeatId, numPlayers = 6) {
  * Uses a downscaled 8x8 grid sampling pass first for speed, then a full
  * resolution pass only inside the hottest cell. Total cost: ~1ms.
  */
-export function findDealerButtonGlobal(source, overrides = {}) {
+export function findDealerButtonGlobal(source, tableBounds = null, overrides = {}) {
   const cfg = { ...DEFAULT_CONFIG, ...overrides };
-  const srcW = source.videoWidth || source.width || source.naturalWidth;
-  const srcH = source.videoHeight || source.height || source.naturalHeight;
-  if (!srcW || !srcH) return null;
+  const frameW = source.videoWidth || source.width || source.naturalWidth;
+  const frameH = source.videoHeight || source.height || source.naturalHeight;
+  if (!frameW || !frameH) return null;
 
+  // ROI crop: when a tableBounds is supplied, scan only the table
+  // region — otherwise stray red UI elsewhere in the capture
+  // (chat bubbles, notification dots) can beat the real dealer chip.
+  let roiX = 0, roiY = 0, roiW = frameW, roiH = frameH;
+  if (tableBounds && tableBounds.w > 0 && tableBounds.h > 0) {
+    roiX = Math.max(0, Math.min(frameW - 1, Math.round(tableBounds.x)));
+    roiY = Math.max(0, Math.min(frameH - 1, Math.round(tableBounds.y)));
+    roiW = Math.max(1, Math.min(frameW - roiX, Math.round(tableBounds.w)));
+    roiH = Math.max(1, Math.min(frameH - roiY, Math.round(tableBounds.h)));
+  }
+
+  const srcW = roiW;
+  const srcH = roiH;
   const canvas = document.createElement('canvas');
   canvas.width = srcW;
   canvas.height = srcH;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, 0, 0, srcW, srcH);
+  ctx.drawImage(source, roiX, roiY, roiW, roiH, 0, 0, srcW, srcH);
   const imageData = ctx.getImageData(0, 0, srcW, srcH);
 
   // Coarse grid pass: split into an 8x8 grid, count red pixels per cell
@@ -261,7 +274,13 @@ export function findDealerButtonGlobal(source, overrides = {}) {
   }
   if (cnt < cfg.minClusterPixels) return null;
 
-  return { x: sumX / cnt, y: sumY / cnt, pixelCount: cnt };
+  // Return in FULL-FRAME coordinates so callers can mix with other
+  // frame-level detections (stack clusters, hero bbox, etc.).
+  return {
+    x: roiX + sumX / cnt,
+    y: roiY + sumY / cnt,
+    pixelCount: cnt,
+  };
 }
 
 /**
@@ -299,7 +318,7 @@ export function detectDealerAuto(source, layout, overrides = {}) {
   if (!srcW || !srcH || !layout) {
     return { seatId: null, position: null, confidence: 0 };
   }
-  const point = findDealerButtonGlobal(source, overrides);
+  const point = findDealerButtonGlobal(source, null, overrides);
   if (!point) return { seatId: null, position: null, confidence: 0 };
   const seat = nearestSeatToPoint(point, layout, srcW, srcH);
   if (!seat) return { seatId: null, position: null, confidence: 0 };

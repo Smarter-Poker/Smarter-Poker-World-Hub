@@ -9,9 +9,16 @@ import {
   heroPositionFromDealer,
   detectDealerAuto,
   detectOccupiedSeats,
+  findDealerButtonGlobal,
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
 import { localizeCards } from '../../lib/poker-brain/card-localizer';
+import { findTableBounds } from '../../lib/poker-brain/table-finder';
+import {
+  detectPlayerCountByStacks,
+  canonicalPosition,
+  positionFromOffset,
+} from '../../lib/poker-brain/auto-table-state';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { verifyCardSuit } from '../../lib/poker-brain/suit-color';
@@ -479,20 +486,29 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             const currentVariant = gameTypeRef.current;
             const expectedHole = PokerBrainEngine.expectedHoleCount(currentVariant);
 
+            // ── AUTO TABLE BOUNDS ──────────────────────────────────────
+            // Find the PokerBros felt oval inside the capture frame via
+            // its gold border. Everything downstream — cards, player
+            // count, dealer, position — runs in TABLE coordinates, not
+            // full-frame coordinates. This lets the HUD work when the
+            // user screen-shares a whole browser window containing an
+            // emulator (the common real-world case).
+            let tableBounds = null;
+            try {
+              tableBounds = findTableBounds(video);
+            } catch (tbErr) { /* swallow */ }
+
             // ── AUTO CARD LOCALIZATION ─────────────────────────────────
-            // Before polling the matcher with layout.json rectangles, try to
-            // auto-locate the hero hole cards + community board cards from
-            // the raw frame. If the localizer finds enough regions for the
-            // active variant (2/4/5/6 for holdem/plo/plo5/plo6), we build a
-            // synthetic layout in source-pixel coordinates and feed THAT to
-            // the matcher instead. If it finds nothing, we fall through to
-            // the calibrated layout as a safety net.
+            // Localize hero + board card regions relative to the detected
+            // table bbox (or the whole frame if no table was found).
             let matcherLayout = effectiveLayout;
             let usedAutoLayout = false;
             try {
-              const loc = localizeCards(video, { expectedHoleCount: expectedHole });
+              const loc = localizeCards(video, {
+                expectedHoleCount: expectedHole,
+                tableBounds,
+              });
               const hasHole = (loc.holeRegions || []).length >= expectedHole;
-              const hasBoard = (loc.boardRegions || []).length >= 3; // at minimum a flop
               // Pre-flop we won't have a board yet, so accept hole-only too
               if (hasHole) {
                 const srcW = video.videoWidth || video.width;
@@ -576,34 +592,87 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               stateMachineRef.current.observe(verifiedHole, verifiedBoard);
             }
 
-            // --- Auto seat occupancy → live player count -------------
-            // Every frame: count how many seats look occupied and update
-            // `players` state live. Hero-only tables fall back to 2.
+            // --- Auto player count via yellow stack-number clusters ---
+            // Count bright-yellow text clusters inside the table bbox.
+            // Each occupied seat has a yellow stack number under its
+            // avatar (EMPTY seats don't), so cluster count == players.
+            let stackClusters = [];
             try {
-              const occ = detectOccupiedSeats(video, effectiveLayout);
-              const livePlayerCount = Math.max(2, occ.playerCount || 0);
-              if (livePlayerCount !== playersRef.current) {
+              const pc = detectPlayerCountByStacks(video, tableBounds);
+              stackClusters = pc.clusters || [];
+              const livePlayerCount = Math.max(2, pc.playerCount || 0);
+              if (livePlayerCount > 0 && livePlayerCount !== playersRef.current) {
                 playersRef.current = livePlayerCount;
                 setPlayers(livePlayerCount);
               }
             } catch (err) { /* swallow */ }
 
             // --- Auto dealer button: global red-cluster scan ---------
-            // detectDealerAuto() ignores seat rectangles and scans the
-            // entire frame for the button, then maps it to the nearest
-            // seat by centroid distance. Works even with wildly wrong
-            // seat coordinates.
+            // Scans the whole table bbox for the dealer red chip, then
+            // maps the cluster centroid to the nearest occupied stack
+            // cluster (= nearest player). That pair of positions drives
+            // the canonical position label (BTN/SB/BB/UTG/MP/CO/HJ).
             try {
               let dealer = detectDealerAuto(video, effectiveLayout);
-              // Fall back to old per-seat scan if auto returns nothing
-              if (!dealer.seatId) {
+              if (!dealer || !dealer.seatId) {
                 dealer = detectDealer(video, effectiveLayout);
               }
-              if (dealer.seatId) {
+              if (dealer && dealer.seatId) {
                 setDealerSeat(dealer.seatId);
-                setPosition(
-                  heroPositionFromDealer(dealer.seatId, playersRef.current || players)
+              }
+
+              // Canonical position via occupied-seat angular ordering.
+              // We get the ACTUAL dealer button pixel centroid from a
+              // global red-chip scan (findDealerButtonGlobal), not the
+              // seat-id from detectDealerAuto — seat IDs are layout-
+              // relative and useless when the table is inside a
+              // sub-region of the capture.
+              let dealerPoint = null;
+              try { dealerPoint = findDealerButtonGlobal(video, tableBounds); }
+              catch (dpErr) { /* swallow */ }
+
+              if (
+                stackClusters.length >= 2 &&
+                dealerPoint &&
+                Number.isFinite(dealerPoint.x) &&
+                Number.isFinite(dealerPoint.y)
+              ) {
+                // Compute table center from stack cluster centroid bbox
+                let sumX = 0;
+                let sumY = 0;
+                for (const c of stackClusters) { sumX += c.cx; sumY += c.cy; }
+                const centerX = sumX / stackClusters.length;
+                const centerY = sumY / stackClusters.length;
+                const angleOf = (px, py) => {
+                  // 0° = top (12 o'clock), increase clockwise
+                  const a = Math.atan2(px - centerX, -(py - centerY)) * (180 / Math.PI);
+                  return (a + 360) % 360;
+                };
+                const occupiedAngles = stackClusters
+                  .map((c) => angleOf(c.cx, c.cy))
+                  .sort((a, b) => a - b);
+                // Hero is the stack cluster closest to the bottom of the table
+                let heroCluster = stackClusters[0];
+                let bestY = -Infinity;
+                for (const c of stackClusters) {
+                  if (c.cy > bestY) { bestY = c.cy; heroCluster = c; }
+                }
+                const heroAngle = angleOf(heroCluster.cx, heroCluster.cy);
+                const dealerAngle = angleOf(dealerPoint.x, dealerPoint.y);
+                const pos = canonicalPosition({
+                  dealerAngleDeg: dealerAngle,
+                  heroAngleDeg: heroAngle,
+                  numPlayers: stackClusters.length,
+                  occupiedAngles,
+                });
+                if (pos && pos !== 'unknown') setPosition(pos);
+              } else if (dealer && dealer.seatId) {
+                // Fallback to old mapping if stack clusters weren't found
+                const fallback = heroPositionFromDealer(
+                  dealer.seatId,
+                  playersRef.current || players,
                 );
+                setPosition(fallback);
               }
             } catch (err) { /* swallow */ }
 

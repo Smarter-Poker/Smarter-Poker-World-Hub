@@ -115,28 +115,54 @@ const HOLDEM_MIN_COMPONENT_AREA = 20;
 // Stage 1 — downscale + adaptive mask
 // ═══════════════════════════════════════════════════════════════════════
 
-function getDownscaledImage(source) {
-  const srcW = source.videoWidth || source.width || source.naturalWidth;
-  const srcH = source.videoHeight || source.height || source.naturalHeight;
-  if (!srcW || !srcH) return null;
+/**
+ * Downscale a source (video/canvas/image) into a working canvas. If a
+ * `tableBounds` rectangle is provided (in source pixel coords), crop to
+ * just that region before downscaling — so all subsequent fractional
+ * computations are relative to the table, not the full capture frame.
+ *
+ * Returns the downscaled imageData + the offsets needed to map back to
+ * source pixel coordinates (including the crop origin).
+ */
+function getDownscaledImage(source, tableBounds) {
+  const frameW = source.videoWidth || source.width || source.naturalWidth;
+  const frameH = source.videoHeight || source.height || source.naturalHeight;
+  if (!frameW || !frameH) return null;
 
-  const scale = Math.min(1, DOWNSCALE_MAX_W / srcW);
-  const dw = Math.max(1, Math.round(srcW * scale));
-  const dh = Math.max(1, Math.round(srcH * scale));
+  // Crop ROI (if provided) clamped to the source frame
+  let roiX = 0;
+  let roiY = 0;
+  let roiW = frameW;
+  let roiH = frameH;
+  if (tableBounds && tableBounds.w > 0 && tableBounds.h > 0) {
+    roiX = Math.max(0, Math.min(frameW - 1, Math.round(tableBounds.x)));
+    roiY = Math.max(0, Math.min(frameH - 1, Math.round(tableBounds.y)));
+    roiW = Math.max(1, Math.min(frameW - roiX, Math.round(tableBounds.w)));
+    roiH = Math.max(1, Math.min(frameH - roiY, Math.round(tableBounds.h)));
+  }
+
+  const scale = Math.min(1, DOWNSCALE_MAX_W / roiW);
+  const dw = Math.max(1, Math.round(roiW * scale));
+  const dh = Math.max(1, Math.round(roiH * scale));
 
   const canvas = document.createElement('canvas');
   canvas.width = dw;
   canvas.height = dh;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, 0, 0, dw, dh);
+  // drawImage(source, sx, sy, sw, sh, dx, dy, dw, dh) crops + scales in 1 op
+  ctx.drawImage(source, roiX, roiY, roiW, roiH, 0, 0, dw, dh);
   const imageData = ctx.getImageData(0, 0, dw, dh);
 
   return {
     imageData,
-    scaleBackX: srcW / dw,
-    scaleBackY: srcH / dh,
-    srcW,
-    srcH,
+    scaleBackX: roiW / dw,
+    scaleBackY: roiH / dh,
+    roiX,
+    roiY,
+    srcW: frameW,
+    srcH: frameH,
+    roiW,
+    roiH,
   };
 }
 
@@ -531,7 +557,7 @@ function scoreStripConfidence(strip, nCards) {
  */
 export function localizeCards(source, options = {}) {
   const t0 = performance.now();
-  const dn = getDownscaledImage(source);
+  const dn = getDownscaledImage(source, options.tableBounds);
   if (!dn) {
     return {
       holeRegions: [],
@@ -542,7 +568,7 @@ export function localizeCards(source, options = {}) {
       debug: { reason: 'no-source' },
     };
   }
-  const { imageData, scaleBackX, scaleBackY, srcH } = dn;
+  const { imageData, scaleBackX, scaleBackY, roiX, roiY, srcH } = dn;
   const { width: dW, height: dH } = imageData;
 
   // ---- Adaptive mask -------------------------------------------------
@@ -614,9 +640,12 @@ export function localizeCards(source, options = {}) {
   // Scale back to source pixels
   // ═══════════════════════════════════════════════════════════════════
 
+  // Slice coords are relative to the downscaled ROI; scale back to ROI
+  // pixel size then add the ROI origin so the final rect is in FULL
+  // source-frame pixel coordinates.
   const scaleUp = (r) => ({
-    x: Math.round(r.x * scaleBackX),
-    y: Math.round(r.y * scaleBackY),
+    x: roiX + Math.round(r.x * scaleBackX),
+    y: roiY + Math.round(r.y * scaleBackY),
     w: Math.round(r.w * scaleBackX),
     h: Math.round(r.h * scaleBackY),
   });
