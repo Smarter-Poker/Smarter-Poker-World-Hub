@@ -14,6 +14,8 @@ import {
   findDealerButtonGlobal,
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
+import detectCards from '../../lib/poker-brain/detection-loop';
+import execOcrPass from '../../lib/poker-brain/ocr-loop';
 // Auto-localizer disabled — static layout.json regions are more reliable.
 // import { localizeCards } from '../../lib/poker-brain/card-localizer';
 import { findTableBounds } from '../../lib/poker-brain/table-finder';
@@ -814,78 +816,18 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               }
             } catch (tbErr) { /* swallow */ }
 
-            // ── FIXED POSITION SCALING ────────────────────────────────
-            // The emulator window NEVER moves or resizes. Card positions
-            // are FIXED every hand. The matcher already handles scaling
-            // from reference (480x1054) to video (468x932) natively via
-            // simple proportional scale: scaleX = videoW/refW, scaleY =
-            // videoH/refH. This gives accurate enough coordinates
-            // (within ~5px) for dHash matching. No dynamic table-finder
-            // transform needed.
-            //
-            // Table bounds are still detected for player count / dealer
-            // detection downstream — but NOT used for coordinate mapping.
-            let matcherLayout = effectiveLayoutRef.current;
-            const usedAutoLayout = false;
-
-            const result = matcher.matchAllRegions(video, matcherLayout, {
+            // ── PHASE 4: PURE DETECTION MODULE ───────────────────────
+            const result = detectCards(video, effectiveLayoutRef.current, matcher, {
               variant: currentVariant,
               maxHoleCards: expectedHole,
               debug: debugModeRef.current,
               topN: 3,
             });
-            if (usedAutoLayout && debugModeRef.current) {
-              result.probeLog = [
-                { note: 'using auto-localized regions', variant: currentVariant },
-                ...(result.probeLog || []),
-              ];
-            }
-            setLastTimingMs(Math.round(result.timingMs * 10) / 10);
+
+            setLastTimingMs(result.timingMs);
             setFrameCount((c) => c + 1);
 
             if (debugModeRef.current && result.probeLog) {
-              // Build crop preview data URIs — the definitive visual
-              // diagnostic. Each entry is a tiny base64 PNG of the
-              // exact pixels the matcher just read for that region.
-              // Rendered in the probe panel so the user can SEE
-              // whether the crop landed on a card face or empty felt.
-              const cropPreviews = [];
-              try {
-                const vw = video.videoWidth || video.width;
-                const vh = video.videoHeight || video.height;
-                const rw = matcherLayout.referenceSize?.w || 480;
-                const rh = matcherLayout.referenceSize?.h || 1054;
-                const cScaleX = vw / rw;
-                const cScaleY = vh / rh;
-                const cropCanvas = document.createElement('canvas');
-                const cropCtx = cropCanvas.getContext('2d');
-                const variantKey = currentVariant ? String(currentVariant).toLowerCase() : null;
-                const byV = matcherLayout.holeCardsByVariant;
-                const holeArr = (variantKey && byV && Array.isArray(byV[variantKey]))
-                  ? byV[variantKey]
-                  : (matcherLayout.holeCards || []);
-                const allRegions = [
-                  ...holeArr.map((r, i) => ({ label: `hole${i}`, region: r })),
-                  ...(matcherLayout.boardCards || []).map((r, i) => ({ label: `board${i}`, region: r })),
-                ];
-                for (const { label, region } of allRegions) {
-                  const sx = Math.round(region.x * cScaleX);
-                  const sy = Math.round(region.y * cScaleY);
-                  const sw = Math.round(region.w * cScaleX);
-                  const sh = Math.round(region.h * cScaleY);
-                  if (sw > 0 && sh > 0) {
-                    cropCanvas.width = sw;
-                    cropCanvas.height = sh;
-                    cropCtx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-                    cropPreviews.push({
-                      label,
-                      src: cropCanvas.toDataURL('image/png'),
-                      region: `${sx},${sy} ${sw}x${sh}`,
-                    });
-                  }
-                }
-              } catch (cpErr) { /* swallow */ }
-
               setDebugProbe({
                 ts: Date.now(),
                 variant: currentVariant,
@@ -893,44 +835,18 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 videoH: video.videoHeight || video.height,
                 templates: matcher.getTemplateCount ? matcher.getTemplateCount() : null,
                 log: result.probeLog,
-                cropPreviews,
-                tableAnchored: null, // removed — using fixed proportional scaling
+                cropPreviews: result.cropPreviews || [],
+                tableAnchored: null, // removed
                 tableBounds: tableBounds || null,
               });
             }
 
-            // Suit-color verification pass (PokerBros 4-color deck sanity check)
-            const srcW = video.videoWidth || video.width;
-            const srcH = video.videoHeight || video.height;
-            const refW = matcherLayout.referenceSize?.w || 480;
-            const refH = matcherLayout.referenceSize?.h || 1054;
-            const csx = srcW / refW;
-            const csy = srcH / refH;
-            // Resolve the same region array the matcher used for suit verification
-            const variantRegions =
-              matcherLayout.holeCardsByVariant?.[currentVariant]
-              || matcherLayout.holeCards
-              || [];
-            const verifiedHole = (result.holeCards || []).map((card, i) => {
-              const r = variantRegions[i];
-              if (!r || !card || !card.suit) return card;
-              return verifyCardSuit(card, video, scaleRect(r, csx, csy));
-            });
-            const verifiedBoard = (result.boardCards || []).map((card, i) => {
-              const r = matcherLayout.boardCards?.[i];
-              if (!r || !card || !card.suit) return card;
-              return verifyCardSuit(card, video, scaleRect(r, csx, csy));
-            });
-
             // Feed the state machine with color-verified cards
             if (stateMachineRef.current) {
-              stateMachineRef.current.observe(verifiedHole, verifiedBoard);
+              stateMachineRef.current.observe(result.holeCards, result.boardCards);
             }
 
             // --- Auto player count via yellow stack-number clusters ---
-            // Count bright-yellow text clusters inside the table bbox.
-            // Each occupied seat has a yellow stack number under its
-            // avatar (EMPTY seats don't), so cluster count == players.
             let stackClusters = [];
             try {
               const pc = detectPlayerCountByStacks(video, tableBounds);
@@ -940,10 +856,6 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             } catch (err) { /* swallow */ }
 
             // --- Auto dealer button: global red-cluster scan ---------
-            // Scans the whole table bbox for the dealer red chip, then
-            // maps the cluster centroid to the nearest occupied stack
-            // cluster (= nearest player). That pair of positions drives
-            // the canonical position label (BTN/SB/BB/UTG/MP/CO/HJ).
             try {
               let dealer = detectDealerAuto(video, effectiveLayoutRef.current);
               if (!dealer || !dealer.seatId) {
@@ -953,12 +865,6 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 setDealerSeat(dealer.seatId);
               }
 
-              // Canonical position via occupied-seat angular ordering.
-              // We get the ACTUAL dealer button pixel centroid from a
-              // global red-chip scan (findDealerButtonGlobal), not the
-              // seat-id from detectDealerAuto — seat IDs are layout-
-              // relative and useless when the table is inside a
-              // sub-region of the capture.
               let dealerPoint = null;
               try { dealerPoint = findDealerButtonGlobal(video, tableBounds); }
               catch (dpErr) { /* swallow */ }
@@ -966,89 +872,52 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 obs.dealerPoint = { x: dealerPoint.x, y: dealerPoint.y };
               }
 
-              if (
-                stackClusters.length >= 2 &&
-                dealerPoint &&
-                Number.isFinite(dealerPoint.x) &&
-                Number.isFinite(dealerPoint.y)
-              ) {
-                // Use the TABLE bbox center as the angular origin, not the
-                // centroid of the stack clusters. The stack centroid is
-                // biased toward whichever side of the table has more
-                // players and shifts whenever a seat opens/closes,
-                // rotating the "12 o'clock" reference and mis-labeling
-                // positions. The table center is fixed and correct.
+              if (stackClusters.length >= 2 && dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
                 let centerX, centerY;
                 if (tableBounds) {
                   centerX = tableBounds.x + tableBounds.w / 2;
                   centerY = tableBounds.y + tableBounds.h / 2;
                 } else {
-                  let sumX = 0;
-                  let sumY = 0;
+                  let sumX = 0; let sumY = 0;
                   for (const c of stackClusters) { sumX += c.cx; sumY += c.cy; }
                   centerX = sumX / stackClusters.length;
                   centerY = sumY / stackClusters.length;
                 }
                 const angleOf = (px, py) => {
-                  // 0° = top (12 o'clock), increase clockwise
                   const a = Math.atan2(px - centerX, -(py - centerY)) * (180 / Math.PI);
                   return (a + 360) % 360;
                 };
-                const occupiedAngles = stackClusters
-                  .map((c) => angleOf(c.cx, c.cy))
-                  .sort((a, b) => a - b);
-                // Hero identification: prefer the stack cluster nearest to
-                // the hero hole-card strip (when auto-layout resolved one),
-                // because the strip is a strong, variant-aware hero anchor.
-                // Fall back to the bottom-most cluster if we don't have a
-                // strip yet.
+                const occupiedAngles = stackClusters.map((c) => angleOf(c.cx, c.cy)).sort((a, b) => a - b);
+                
                 let heroCluster = stackClusters[0];
-                if (usedAutoLayout && matcherLayout.holeCards && matcherLayout.holeCards.length > 0) {
-                  // Centroid of the hero hole card strip in source pixels
+                const matcherLayout = effectiveLayoutRef.current;
+                if (matcherLayout.holeCards && matcherLayout.holeCards.length > 0) {
                   let hx = 0, hy = 0;
-                  for (const r of matcherLayout.holeCards) {
-                    hx += r.x + r.w / 2;
-                    hy += r.y + r.h / 2;
-                  }
-                  hx /= matcherLayout.holeCards.length;
-                  hy /= matcherLayout.holeCards.length;
+                  for (const r of matcherLayout.holeCards) { hx += r.x + r.w / 2; hy += r.y + r.h / 2; }
+                  hx /= matcherLayout.holeCards.length; hy /= matcherLayout.holeCards.length;
                   let bestD2 = Infinity;
                   for (const c of stackClusters) {
-                    const dx = c.cx - hx;
-                    const dy = c.cy - hy;
-                    const d2 = dx * dx + dy * dy;
+                    const dx = c.cx - hx; const dy = c.cy - hy; const d2 = dx * dx + dy * dy;
                     if (d2 < bestD2) { bestD2 = d2; heroCluster = c; }
                   }
                 } else {
                   let bestY = -Infinity;
-                  for (const c of stackClusters) {
-                    if (c.cy > bestY) { bestY = c.cy; heroCluster = c; }
-                  }
+                  for (const c of stackClusters) { if (c.cy > bestY) { bestY = c.cy; heroCluster = c; } }
                 }
-                const heroAngle = angleOf(heroCluster.cx, heroCluster.cy);
-                const dealerAngle = angleOf(dealerPoint.x, dealerPoint.y);
                 const pos = canonicalPosition({
-                  dealerAngleDeg: dealerAngle,
-                  heroAngleDeg: heroAngle,
+                  dealerAngleDeg: angleOf(dealerPoint.x, dealerPoint.y),
+                  heroAngleDeg: angleOf(heroCluster.cx, heroCluster.cy),
                   numPlayers: stackClusters.length,
                   occupiedAngles,
                 });
                 if (pos && pos !== 'unknown') obs.position = pos;
               } else if (dealer && dealer.seatId) {
-                // Fallback to old mapping if stack clusters weren't found
-                const fallback = heroPositionFromDealer(
-                  dealer.seatId,
-                  playersRef.current || players,
-                );
+                const fallback = heroPositionFromDealer(dealer.seatId, playersRef.current || players);
                 if (fallback && fallback !== 'unknown') obs.position = fallback;
               }
             } catch (err) { /* swallow */ }
 
             // ── Feed observations into the temporal stabilizer ──────────
-            // All auto-detected fields go through the tracker, which
-            // applies per-field smoothing (EMA for bounds/dealer, rolling
-            // mode for counts, agreement filter for position) and returns
-            // the stable snapshot we actually surface to the user.
             let stableSnapshot = null;
             try {
               stableSnapshot = tableStateRef.current.update(obs);
@@ -1059,47 +928,26 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               if (stableSnapshot.position && stableSnapshot.position !== positionRef.current) {
                 setPosition(stableSnapshot.position);
               }
-              // Auto-switch variant when the tracker has seen the same
-              // strip shape for several frames. We never overwrite
-              // plo_hilo → plo (the hi/lo distinction comes from the
-              // OCR game-name readout, not the card count; both have
-              // 4 hole cards) so the OCR can still refine below.
-              if (
-                stableSnapshot.variant
-                && stableSnapshot.variant !== gameTypeRef.current
-                && !(stableSnapshot.variant === 'plo' && gameTypeRef.current === 'plo_hilo')
-              ) {
+              if (stableSnapshot.variant && stableSnapshot.variant !== gameTypeRef.current && !(stableSnapshot.variant === 'plo' && gameTypeRef.current === 'plo_hilo')) {
                 setGameType(stableSnapshot.variant);
               }
             } catch (trkErr) { /* swallow */ }
 
-            // Publish the debug snapshot for AutoDetectOverlay. Mutating
-            // the ref in place avoids re-renders while still giving the
-            // overlay fresh data each detection tick.
             detectionSnapshotRef.current = {
               tableBounds: (stableSnapshot && stableSnapshot.bounds) || obs.tableBounds || null,
-              // Always expose the regions the matcher is ACTUALLY polling
-              // so the calibration overlay can render them. When table-
-              // anchored, matcherLayout is in source pixels (ref = video
-              // dims), so the overlay's liveSx/liveSy = dims.w/videoW
-              // will map them correctly to the display.
-              holeRegions: null, // regions are in reference space; overlay scales them
-              boardRegions: null,
-              stackClusters,
+              holeRegions: null, boardRegions: null, stackClusters,
               dealerPoint: (stableSnapshot && stableSnapshot.dealerPoint) || obs.dealerPoint || null,
               position: (stableSnapshot && stableSnapshot.position) || obs.position || null,
               playerCount: (stableSnapshot && stableSnapshot.playerCount) || obs.playerCount || null,
               ts: now,
             };
 
-            // Available action detection (color-cluster on fold/call/raise
-            // button regions). Tells us whether it's actually hero's turn.
             try {
               const actions = detectAvailableActions(video, effectiveLayoutRef.current);
               setAvailableActions(actions);
             } catch (err) { /* swallow */ }
           } catch (err) {
-            console.warn('[HUD] matchAllRegions failed', err);
+            console.warn('[HUD] detection pass failed', err);
           }
         }
       }
@@ -1111,99 +959,19 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         const ocr = ocrRef.current;
         const ocrLayout = effectiveLayoutRef.current;
         if (video && ocr && ocrLayout.ocrRegions) {
-          const srcW = video.videoWidth || video.width;
-          const srcH = video.videoHeight || video.height;
-          if (srcW && srcH) {
-            const refW = ocrLayout.referenceSize.w;
-            const refH = ocrLayout.referenceSize.h;
-            const sx = srcW / refW;
-            const sy = srcH / refH;
-
-            // Draw frame once
-            const full = document.createElement('canvas');
-            full.width = srcW;
-            full.height = srcH;
-            full.getContext('2d').drawImage(video, 0, 0, srcW, srcH);
-
-            const run = async (name, method, opts = {}) => {
-              const raw = ocrLayout.ocrRegions[name];
-              if (!raw) return null;
-              const rect = scaleRect(raw, sx, sy);
-              const crop = cropToCanvas(full, rect);
-              // Give each logical region its own cacheKey so debounce timers
-              // and checksum caches don't collide across regions.
-              try {
-                return await ocr[method](crop, { cacheKey: name, ...opts });
-              } catch (err) {
-                return null;
-              }
-            };
-
-            // Fire and forget (they debounce internally per-region)
-            run('pot', 'readPotSize').then((r) => {
-              if (r && typeof r.value === 'number') setPotSize(r.value);
-            }).catch(() => {});
-            run('heroStack', 'readStackSizes').then((r) => {
-              if (r && typeof r.value === 'number') setHeroStack(r.value);
-            }).catch(() => {});
-            run('blindLevel', 'readBlindLevel').then((r) => {
-              if (r && r.bigBlind) setBigBlind(r.bigBlind);
-            }).catch(() => {});
-
-            // Current bet to call (from the betRaise action button label)
-            run('currentBet', 'readBetAmounts').then((r) => {
-              if (r && typeof r.value === 'number' && r.value >= 0) setBetToCall(r.value);
-            }).catch(() => {});
-
-            // Hand strength label (plain readRegion, then stored for validator)
-            const hsRaw = ocrLayout.ocrRegions.handStrength;
-            if (hsRaw && typeof ocr.readRegion === 'function') {
-              const rect = scaleRect(hsRaw, sx, sy);
-              const crop = cropToCanvas(full, rect);
-              ocr.readRegion(crop, { cacheKey: 'handStrength' }).then((r) => {
-                if (r && r.text) setPokerBrosHandLabel(r.text);
-              }).catch(() => {});
+          execOcrPass(video, ocrLayout, ocr).then((r) => {
+            if (!r) return;
+            if (r.potSize !== undefined) setPotSize(r.potSize);
+            if (r.heroStack !== undefined) setHeroStack(r.heroStack);
+            if (r.bigBlind !== undefined) setBigBlind(r.bigBlind);
+            if (r.betToCall !== undefined) setBetToCall(r.betToCall);
+            if (r.handStrength !== undefined) setPokerBrosHandLabel(r.handStrength);
+            if (r.gameVariant !== undefined) setGameType(r.gameVariant);
+            if (r.heroName !== undefined) setHeroName(r.heroName);
+            if (r.villainStacks !== undefined) {
+               setVillainStacks((prev) => ({ ...prev, ...r.villainStacks }));
             }
-
-            // Game variant detection (NLHE vs PLO vs PLO5)
-            const gvRaw = ocrLayout.ocrRegions.gameVariant;
-            if (gvRaw && typeof ocr.readRegion === 'function') {
-              const rect = scaleRect(gvRaw, sx, sy);
-              const crop = cropToCanvas(full, rect);
-              ocr.readRegion(crop, { cacheKey: 'gameVariant' }).then((r) => {
-                if (!r || !r.text || !r.meetsThreshold) return;
-                const t = String(r.text).toUpperCase();
-                if (t.includes('PLO6') || t.includes('PLO 6') || t.includes('6-CARD')) setGameType('plo6');
-                else if (t.includes('PLO5') || t.includes('PLO 5') || t.includes('5-CARD')) setGameType('plo5');
-                else if (t.includes('HI-LO') || t.includes('HI/LO') || t.includes('HILO') || t.includes('8 OR BETTER') || t.includes('PLO8')) setGameType('plo_hilo');
-                else if (t.includes('PLO') || t.includes('OMAHA')) setGameType('plo');
-                else if (t.includes('NLH') || t.includes("HOLD'EM") || t.includes('HOLDEM') || t.includes('TEXAS')) setGameType('nlhe');
-              }).catch(() => {});
-            }
-
-            // Hero name (for display only)
-            const hnRaw = ocrLayout.ocrRegions.heroName;
-            if (hnRaw && typeof ocr.readRegion === 'function') {
-              const rect = scaleRect(hnRaw, sx, sy);
-              const crop = cropToCanvas(full, rect);
-              ocr.readRegion(crop, { cacheKey: 'heroName' }).then((r) => {
-                if (r && r.text) setHeroName(r.text);
-              }).catch(() => {});
-            }
-
-            // Villain stacks (for multi-villain SPR awareness / effective stack)
-            ['seat1Stack', 'seat2Stack', 'seat3Stack'].forEach((seatKey) => {
-              const sr = ocrLayout.ocrRegions[seatKey];
-              if (!sr) return;
-              const rect = scaleRect(sr, sx, sy);
-              const crop = cropToCanvas(full, rect);
-              ocr.readStackSizes(crop, { cacheKey: seatKey }).then((r) => {
-                if (r && typeof r.value === 'number') {
-                  setVillainStacks((prev) => ({ ...prev, [seatKey]: r.value }));
-                }
-              }).catch(() => {});
-            });
-          }
+          }).catch(console.warn);
         }
       }
 

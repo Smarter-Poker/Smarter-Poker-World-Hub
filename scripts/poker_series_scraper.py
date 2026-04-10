@@ -771,9 +771,8 @@ def scrape_series(series: dict, session, batch_id: str,
         # Numeric ID — use source_url from DB if available
         pa_url = series.get("source_url") or series.get("scrape_url") or ""
         if not pa_url:
-            # Try to construct from series name
-            slug = slugify(series_name)
-            pa_url = f"https://www.pokeratlas.com/poker-tournament-series/{slug}"
+            log(f"      [SKIPPED] Generic numeric PA series ID without explicit URL. (Avoids 404 + circuit breaker)")
+            return {"series_uid": series_uid, "series_name": series_name, "found": False, "events": [], "skipped": True}
         log(f"      [NOTE] Numeric ID {series_uid} — using URL: {pa_url[:80]}")
     else:
         slug = series_uid
@@ -1222,6 +1221,10 @@ def main():
                     pass_found += 1
                     consecutive_fails = 0
                     log(f"      ✅ {len(sr['events'])} events — score={compute_completeness(sr['events'][0]) if sr['events'] else 0}")
+                elif sr.get("skipped"):
+                    # Explicitly skipped series (e.g. numeric PA IDs) shouldn't trip breaker
+                    consecutive_fails = 0
+                    log(f"      ❌ Skipped")
                 else:
                     consecutive_fails += 1
                     log(f"      ❌ No events found")

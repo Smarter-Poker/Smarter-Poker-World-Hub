@@ -62,6 +62,50 @@ const CROP_OFFSETS = [
 const SCRATCH_PAD_PX = 4;
 
 /**
+ * Compute the 64-bit Average Hash (aHash) of an ImageData.
+ * Returns two 32-bit integers [hi, lo].
+ */
+function computeAHash(imageData) {
+  const { data, width, height } = imageData;
+  const gray8x8 = new Float64Array(8 * 8);
+
+  let totalSum = 0;
+  for (let dy = 0; dy < 8; dy++) {
+    for (let dx = 0; dx < 8; dx++) {
+      const srcX0 = Math.floor((dx / 8) * width);
+      const srcY0 = Math.floor((dy / 8) * height);
+      const srcX1 = Math.floor(((dx + 1) / 8) * width);
+      const srcY1 = Math.floor(((dy + 1) / 8) * height);
+
+      let sum = 0;
+      let count = 0;
+      for (let sy = srcY0; sy < srcY1; sy++) {
+        for (let sx = srcX0; sx < srcX1; sx++) {
+          const idx = (sy * width + sx) * 4;
+          sum += data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+          count++;
+        }
+      }
+      const val = count > 0 ? sum / count : 0;
+      gray8x8[dy * 8 + dx] = val;
+      totalSum += val;
+    }
+  }
+
+  const avg = totalSum / 64;
+  const hashBits = new Uint8Array(64);
+  for (let i = 0; i < 64; i++) {
+    hashBits[i] = gray8x8[i] > avg ? 1 : 0;
+  }
+
+  let hi = 0; let lo = 0;
+  for (let i = 0; i < 32; i++) { if (hashBits[i]) hi |= (1 << (31 - i)); }
+  for (let i = 32; i < 64; i++) { if (hashBits[i]) lo |= (1 << (63 - i)); }
+
+  return [hi, lo];
+}
+
+/**
  * Compute the 64-bit difference hash (dHash) of an ImageData.
  * Returns two 32-bit integers [hi, lo] since JS doesn't have native 64-bit ints.
  */
@@ -149,7 +193,7 @@ function hammingDistance(hash1, hash2) {
  */
 class PokerBrainMatcher {
   constructor() {
-    this.templateHashes = new Map(); // card key -> [hi, lo]
+    this.templateHashes = new Map(); // card key -> { dHash: [hi, lo], aHash: [hi, lo] }
     this.loaded = false;
     this.loading = false;
     this._offscreenCanvas = null;
@@ -215,9 +259,10 @@ class PokerBrainMatcher {
         ctx.clearRect(0, 0, TEMPLATE_W, TEMPLATE_H);
         ctx.drawImage(img, 0, 0, TEMPLATE_W, TEMPLATE_H);
         const imageData = ctx.getImageData(0, 0, TEMPLATE_W, TEMPLATE_H);
-        const hash = computeDHash(imageData);
+        const dHash = computeDHash(imageData);
+        const aHash = computeAHash(imageData);
 
-        this.templateHashes.set(key, hash);
+        this.templateHashes.set(key, { dHash, aHash });
       } catch (err) {
         // Template not available yet — skip silently
         // This is expected during development when not all 52 templates exist
@@ -314,12 +359,11 @@ class PokerBrainMatcher {
     // region starting at (SCRATCH_PAD_PX+dx, SCRATCH_PAD_PX+dy) for each
     // offset in CROP_OFFSETS. Doing this with getImageData on the full
     // scratch once avoids a canvas re-draw per offset.
+    // Precompute both hashes for each offset.
     const scratchData = this._cropCtx.getImageData(0, 0, scratchW, scratchH);
     const subHashes = CROP_OFFSETS.map(([dx, dy]) => {
       const ox = SCRATCH_PAD_PX + dx;
       const oy = SCRATCH_PAD_PX + dy;
-      // Build a sub-view ImageData by copying the window to a small
-      // typed array. This is cheaper than a fresh canvas draw.
       const sub = new Uint8ClampedArray(TEMPLATE_W * TEMPLATE_H * 4);
       const srcStride = scratchW * 4;
       const dstStride = TEMPLATE_W * 4;
@@ -328,21 +372,18 @@ class PokerBrainMatcher {
         const dstOff = y * dstStride;
         sub.set(scratchData.data.subarray(srcOff, srcOff + dstStride), dstOff);
       }
-      return computeDHash({ data: sub, width: TEMPLATE_W, height: TEMPLATE_H });
+      const data = { data: sub, width: TEMPLATE_W, height: TEMPLATE_H };
+      return { dHash: computeDHash(data), aHash: computeAHash(data) };
     });
 
     const topN = Number.isFinite(options.topN) && options.topN > 0 ? options.topN : 0;
 
-    // Compare against all templates, taking the MIN distance across
-    // the offset sweep for each template.
     let bestKey = null;
     let bestDistance = Infinity;
+    let secondBestDistance = Infinity;
 
-    // Optional: collect top-N candidates for debug overlay
-    // Small fixed-size array, kept sorted ascending by distance
     const candidates = topN > 0 ? [] : null;
     const pushCandidate = (key, dist) => {
-      // Insert sorted; evict worst if exceeding topN
       let i = 0;
       while (i < candidates.length && candidates[i].distance <= dist) i++;
       candidates.splice(i, 0, { key, distance: dist });
@@ -350,17 +391,26 @@ class PokerBrainMatcher {
     };
 
     for (const [key, templateHash] of this.templateHashes) {
-      // For each template, take the MIN distance across all crop offsets.
-      // This is what makes the matcher robust to 1-2px localizer jitter.
       let dist = DHASH_BITS;
       for (let s = 0; s < subHashes.length; s++) {
-        const d = hammingDistance(subHashes[s], templateHash);
-        if (d < dist) dist = d;
+        const dScore = hammingDistance(subHashes[s].dHash, templateHash.dHash);
+        const aScore = hammingDistance(subHashes[s].aHash, templateHash.aHash);
+        // Take the min of dHash and aHash distances
+        const currentDist = Math.min(dScore, aScore);
+        if (currentDist < dist) dist = currentDist;
       }
+      
       if (dist < bestDistance) {
+        // Update second best if it's a different generic rank/suit
+        if (bestKey && bestKey[0] !== key[0]) {
+            secondBestDistance = bestDistance;
+        }
         bestDistance = dist;
         bestKey = key;
+      } else if (dist < secondBestDistance && (!bestKey || bestKey[0] !== key[0])) {
+        secondBestDistance = dist;
       }
+
       if (candidates) pushCandidate(key, dist);
     }
 
@@ -373,8 +423,22 @@ class PokerBrainMatcher {
       }));
     };
 
-    // Determine match quality
-    if (bestKey === null || bestDistance > MATCH_THRESHOLD) {
+    // Determine match quality with Adaptive Threshold Gap Acceptance
+    let accepted = false;
+    const gap = secondBestDistance - bestDistance;
+    
+    if (bestKey !== null) {
+      if (bestDistance <= MATCH_THRESHOLD) {
+        accepted = true;
+      } else if (bestDistance <= 18 && gap >= 6) {
+        // Adaptive threshold: Even if raw distance is worse than MATCH_THRESHOLD,
+        // if there's a huge gap (≥ 6) from the second best choice, it's highly 
+        // likely this is a correct match experiencing sub-pixel rendering distortion.
+        accepted = true;
+      }
+    }
+
+    if (!accepted) {
       return {
         rank: null, suit: null, confidence: 0, distance: bestDistance, key: null,
         threshold: MATCH_THRESHOLD,
