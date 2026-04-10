@@ -788,21 +788,81 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               }
             } catch (tbErr) { /* swallow */ }
 
-            // ── CARD REGIONS ──────────────────────────────────────────
-            // Use the STATIC layout.json regions (effectiveLayout) for card
-            // matching. The auto-localizer (card-localizer.js) was returning
-            // incorrect source-pixel regions that landed on the hero's
-            // name/stack area and the pot instead of actual card faces,
-            // making detection completely non-functional. The static regions
-            // are correctly calibrated (confirmed visually via the
-            // calibration overlay) and need only reference → source scaling
-            // which the matcher handles internally.
+            // ── TABLE-ANCHORED CARD REGIONS ──────────────────────────
+            // The layout.json regions are in REFERENCE space (480×1054 =
+            // pure phone screen). But getDisplayMedia captures the ENTIRE
+            // emulator window (title bar + phone screen + sidebar chrome
+            // + gesture bar), so the reference doesn't fill the capture —
+            // naive scaleX/Y puts every region 15-20 px off, enough to
+            // miss the cards entirely.
             //
-            // Table bounds, player count, and dealer detection still run
-            // above — those work correctly. Only card localization is
-            // bypassed here until the auto-localizer is rewritten.
-            const matcherLayout = effectiveLayout;
+            // Fix: use the DETECTED TABLE BOUNDS as a spatial anchor.
+            // layout.json defines `tableAnchor` = where the table sits in
+            // reference space. At runtime, findTableBounds gives us where
+            // the table sits in source space. The ratio of those two
+            // rectangles is the transform that correctly maps reference
+            // regions to source pixels, regardless of emulator chrome.
+            //
+            // When table bounds aren't available (first frame, detection
+            // miss), we fall back to naive reference scaling.
+            let matcherLayout = effectiveLayout;
             const usedAutoLayout = false;
+
+            const anchor = effectiveLayout.tableAnchor;
+            if (tableBounds && anchor && anchor.w && anchor.h) {
+              const srcW = video.videoWidth || video.width;
+              const srcH = video.videoHeight || video.height;
+              // Transform: src = ref * scale + offset
+              const tScaleX = tableBounds.w / anchor.w;
+              const tScaleY = tableBounds.h / anchor.h;
+              const tOffsetX = tableBounds.x - anchor.x * tScaleX;
+              const tOffsetY = tableBounds.y - anchor.y * tScaleY;
+              const xform = (r) => ({
+                x: Math.round(r.x * tScaleX + tOffsetX),
+                y: Math.round(r.y * tScaleY + tOffsetY),
+                w: Math.round(r.w * tScaleX),
+                h: Math.round(r.h * tScaleY),
+              });
+              const xformArr = (arr) => (arr || []).map(xform);
+              const xformVariants = (byV) => {
+                if (!byV) return {};
+                const out = {};
+                for (const [k, v] of Object.entries(byV)) {
+                  if (Array.isArray(v)) out[k] = xformArr(v);
+                }
+                return out;
+              };
+              const xformOcr = (ocr) => {
+                if (!ocr) return {};
+                const out = {};
+                for (const [k, v] of Object.entries(ocr)) {
+                  out[k] = { ...v, ...xform(v) };
+                }
+                return out;
+              };
+              matcherLayout = {
+                ...effectiveLayout,
+                referenceSize: { w: srcW, h: srcH },
+                holeCards: xformArr(effectiveLayout.holeCards),
+                holeCardsByVariant: xformVariants(effectiveLayout.holeCardsByVariant),
+                boardCards: xformArr(effectiveLayout.boardCards),
+                ocrRegions: xformOcr(effectiveLayout.ocrRegions),
+                seats: (effectiveLayout.seats || []).map((s) => ({
+                  ...s,
+                  ...xform({ x: s.x, y: s.y, w: s.w, h: s.h }),
+                })),
+                actionButtons: (() => {
+                  const out = {};
+                  for (const [k, v] of Object.entries(effectiveLayout.actionButtons || {})) {
+                    out[k] = { ...v, ...xform(v) };
+                  }
+                  return out;
+                })(),
+                // Mark as table-anchored so the diagnostic dump shows the
+                // transform instead of a cryptic scale=1.00x1.00.
+                _tableAnchored: { tScaleX, tScaleY, tOffsetX, tOffsetY },
+              };
+            }
 
             const result = matcher.matchAllRegions(video, matcherLayout, {
               variant: currentVariant,
@@ -1009,8 +1069,17 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // overlay fresh data each detection tick.
             detectionSnapshotRef.current = {
               tableBounds: (stableSnapshot && stableSnapshot.bounds) || obs.tableBounds || null,
-              holeRegions: usedAutoLayout ? matcherLayout.holeCards : null,
-              boardRegions: usedAutoLayout ? matcherLayout.boardCards : null,
+              // Always expose the regions the matcher is ACTUALLY polling
+              // so the calibration overlay can render them. When table-
+              // anchored, matcherLayout is in source pixels (ref = video
+              // dims), so the overlay's liveSx/liveSy = dims.w/videoW
+              // will map them correctly to the display.
+              holeRegions: matcherLayout._tableAnchored
+                ? (matcherLayout.holeCardsByVariant?.[currentVariant] || matcherLayout.holeCards || null)
+                : null,
+              boardRegions: matcherLayout._tableAnchored
+                ? (matcherLayout.boardCards || null)
+                : null,
               stackClusters,
               dealerPoint: (stableSnapshot && stableSnapshot.dealerPoint) || obs.dealerPoint || null,
               position: (stableSnapshot && stableSnapshot.position) || obs.position || null,

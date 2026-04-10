@@ -3,6 +3,7 @@
   "client": "pokerbros",
   "orientation": "portrait",
   "referenceSize": { "w": 480, "h": 1054 },
+  "tableAnchor": { "x": 8, "y": 78, "w": 464, "h": 730 },
 
   "holeCardsByVariant": {
     "nlhe": [
