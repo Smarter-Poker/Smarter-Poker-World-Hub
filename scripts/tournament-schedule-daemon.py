@@ -800,8 +800,34 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
             if slug: pa_urls.append(f"https://www.pokeratlas.com/poker-room/{slug}/tournaments")
     stored_slug=venue.get("pokeratlas_slug") or ""
     if stored_slug: pa_urls.insert(0,f"https://www.pokeratlas.com/poker-room/{stored_slug}/tournaments")
-    pa_urls += [f"https://www.pokeratlas.com/poker-room/{slugify(name+'-'+city)}/tournaments",
-                f"https://www.pokeratlas.com/poker-room/{slugify(name)}/tournaments"]
+
+    # ── Enhanced multi-slug generation (10+ variants) ──
+    base = slugify(name)
+    base_city = slugify(name + '-' + city) if city else base
+    # Strip common suffixes that PA often omits
+    STRIP_SUFFIXES = ["-casino","-resort","-poker-room","-card-club","-card-room",
+                      "-social-club","-poker-club","-poker-house","-card-house",
+                      "-poker","-social","-gaming","-hotel","-spa","-casino-resort",
+                      "-jai-alai-casino","-greyhound-park","-card-parlour"]
+    stripped = base
+    for sfx in sorted(STRIP_SUFFIXES, key=len, reverse=True):
+        if base.endswith(sfx):
+            stripped = base[:len(base)-len(sfx)]
+            break
+    city_slug = slugify(city) if city else ""
+
+    pa_slug_candidates = [
+        base_city,                                     # full-name-city
+        base,                                          # full-name
+        f"{stripped}-{city_slug}" if city_slug else "", # stripped-city
+        stripped,                                       # stripped
+        f"{base}-poker-room",                          # name-poker-room
+        f"{stripped}-poker-room",                      # stripped-poker-room
+        f"{stripped}-{city_slug}-poker" if city_slug else "",  # stripped-city-poker
+    ]
+    # Remove empties and dedup
+    pa_slug_candidates = list(dict.fromkeys(s for s in pa_slug_candidates if s))
+    pa_urls += [f"https://www.pokeratlas.com/poker-room/{s}/tournaments" for s in pa_slug_candidates]
     seen_pa=set()
     for pa_url in pa_urls:
         if pa_url in seen_pa: continue
@@ -873,21 +899,32 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
         time.sleep(0.5)
 
     # ── Source 2: Bravo Poker Live ───────────────────────────────────────────
-    bravo_slug=venue.get("bravo_slug") or re.sub(r"-(casino|poker|room|club|house)$","",slugify(name))
-    bravo_url=venue.get("bravo_url") or f"https://www.bravopokerlive.com/poker-rooms/{bravo_slug}/"
+    bravo_slugs = []
+    if venue.get("bravo_slug"):
+        bravo_slugs.append(venue["bravo_slug"])
+    if venue.get("bravo_url"):
+        bravo_slugs.append(venue["bravo_url"].split("/poker-rooms/")[-1].strip("/"))
+    # Auto-generated variants
+    bravo_base = re.sub(r"-(casino|poker|room|club|house|social|resort)$","",slugify(name))
+    bravo_slugs += [bravo_base, slugify(name), f"{bravo_base}-{city_slug}" if city_slug else ""]
+    bravo_slugs = list(dict.fromkeys(s for s in bravo_slugs if s))
 
-    try:
-        resp = session.session.fetch(bravo_url, timeout=12000, wait_until="domcontentloaded")
-        if getattr(resp, 'status', 0) == 200:
+    for bs in bravo_slugs[:4]:
+        bravo_url = f"https://www.bravopokerlive.com/poker-rooms/{bs}/"
+        try:
+            resp = session.session.fetch(bravo_url, timeout=12000, wait_until="domcontentloaded")
+            if getattr(resp, 'status', 0) != 200: continue
             html = resp.html_content or (resp.body.decode('utf-8','ignore') if getattr(resp,'body',None) else '')
-            if html:
-                save_evidence(name, "bravo", {"url": bravo_url, "html_hash": sha256h(html.encode("utf-8","ignore"))})
+            if not html or len(html) < 500: continue
+            save_evidence(name, "bravo", {"url": bravo_url, "html_hash": sha256h(html.encode("utf-8","ignore"))})
 
-                if has_tourn(html):
-                    recs=extract_html(html,name,vid,batch_id,bravo_url,"bravo")
-                    add(recs,"bravo",bravo_url)
-    except Exception as e:
-        log(f"      [Bravo] {str(e)[:60]}")
+            if has_tourn(html):
+                recs=extract_html(html,name,vid,batch_id,bravo_url,"bravo")
+                add(recs,"bravo",bravo_url)
+                break  # found on this slug — stop trying
+        except Exception as e:
+            log(f"      [Bravo] {str(e)[:60]}")
+        time.sleep(0.5)
 
     # ── Source 3: HendonMob (global map) ────────────────────────────────────
     hm_evts=match_global(name,hm_map)

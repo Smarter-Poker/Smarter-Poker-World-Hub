@@ -116,44 +116,67 @@ def count_events_on_page(html: str) -> int:
     rows = re.findall(r"<tr[^>]*>.*?</tr>", html, re.DOTALL | re.I)
     return sum(1 for r in rows if "$" in r and re.search(r"\b\d{2,3}:\d{2}\b", r))
 
-def try_fetch_series(session, name: str) -> tuple:
+def try_fetch_series(session, name: str, series_id: str) -> tuple:
     """
-    Try to find the PA URL for a series by:
-    1. Direct slug guess: pokeratlas.com/poker-tournament-series/<slug>
-    2. Search: pokeratlas.com/poker-tournament-series?search=<name>
+    Find a PA series page by:
+    1. Fetch the PA series listing/search and find matching slug
+    2. Try year-specific URL patterns for current and recent years
     Returns (url, html, status) or ("", "", 0)
     """
-    # Build candidate slugs
-    slug = slugify(name)
-    # Remove common suffixes that PA strips
-    for suffix in ["-poker-series", "-series", "-poker-open", "-poker-classic",
-                   "-poker-championship", "-open", "-classic"]:
-        if slug.endswith(suffix):
-            slug_short = slug[:-len(suffix)]
-            break
-    else:
-        slug_short = slug
+    slug_base = slugify(name)
+    now_year = datetime.now(timezone.utc).year
 
-    candidates = [
-        f"https://www.pokeratlas.com/poker-tournament-series/{slug}",
-        f"https://www.pokeratlas.com/poker-tournament-series/{slug_short}",
-    ]
+    # Try year-specific slugs for current and past 2 years (PA uses year-prefixed slugs)
+    year_candidates = []
+    for yr in [now_year, now_year - 1, now_year - 2]:
+        # PA format: {year}-{name-slug}-{venue?}-{year}
+        # We try just {year}-{base_slug} and {year}-{base_slug}-{year}
+        year_candidates.extend([
+            f"https://www.pokeratlas.com/poker-tournament-series/{yr}-{slug_base}-{yr}",
+            f"https://www.pokeratlas.com/poker-tournament-series/{yr}-{slug_base}",
+        ])
 
-    for url in candidates:
+    for url in year_candidates:
         try:
             resp = session.fetch(url, google_search=True, timeout=30000, wait_until="networkidle")
             if resp and resp.status == 200:
                 body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode("utf-8")
                 html = body.decode("utf-8", "ignore")
-                # Verify it's actually a series page (not a redirect to listing)
-                if "poker-tournament-series" in url and len(html) > 5000:
+                if len(html) > 5000 and ("tournament" in html.lower() or "poker" in html.lower()):
+                    log(f"    ✅ Hit: {url}")
                     return url, html, 200
             elif resp and resp.status == 404:
-                continue  # try next candidate
+                continue
         except Exception as e:
-            log(f"    [FETCH ERR] {url[:60]}: {str(e)[:60]}")
+            log(f"    [FETCH ERR] {url[:60]}: {str(e)[:50]}")
+            time.sleep(1)
+
+    # Last resort: search PA series listing for the name
+    try:
+        search_url = f"https://www.pokeratlas.com/poker-tournament-series"
+        resp = session.fetch(search_url, google_search=True, timeout=30000, wait_until="networkidle")
+        if resp and resp.status == 200:
+            body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode("utf-8")
+            html = body.decode("utf-8", "ignore")
+            # Find links matching the series name
+            name_words = [w for w in name.lower().split() if len(w) > 4]
+            for link_m in re.finditer(r'href="(/poker-tournament-series/[a-z0-9-]+)"', html):
+                href = link_m.group(1)
+                href_words = href.lower().replace("-", " ")
+                if all(w in href_words for w in name_words[:2]):
+                    full_url = f"https://www.pokeratlas.com{href}"
+                    resp2 = session.fetch(full_url, google_search=True, timeout=30000, wait_until="networkidle")
+                    if resp2 and resp2.status == 200:
+                        body2 = resp2.body if isinstance(resp2.body, bytes) else str(resp2.body).encode("utf-8")
+                        html2 = body2.decode("utf-8", "ignore")
+                        if len(html2) > 5000:
+                            log(f"    ✅ Found via listing: {full_url}")
+                            return full_url, html2, 200
+    except Exception as e:
+        log(f"    [SEARCH ERR] {str(e)[:60]}")
 
     return "", "", 0
+
 
 TOUR_KEYWORDS = [
     "wsop", "world series of poker", "mspt", "mid-states poker tour",
@@ -224,7 +247,7 @@ def main():
         name = series.get("name","Unknown")
         log(f"\n[{i+1}/{len(to_resolve)}] {name} (ID: {sid})")
 
-        url, html, status = try_fetch_series(session, name)
+        url, html, status = try_fetch_series(session, name, sid)
 
         if status != 200 or not html:
             log(f"  ❌ No PA page found — marking inactive")

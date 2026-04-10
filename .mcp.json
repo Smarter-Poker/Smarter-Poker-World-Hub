@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "/Users/smarter.poker/.nvm/versions/node/v24.12.0/bin/npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless"
+      ],
+      "env": {
+        "PLAYWRIGHT_BROWSERS_PATH": "/Users/smarter.poker/Library/Caches/ms-playwright"
+      }
+    }
+  }
+}

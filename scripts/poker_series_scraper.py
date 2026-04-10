@@ -276,41 +276,20 @@ def safe_int_text(txt: str, pattern: str) -> int | None:
 # ── Completeness scoring (matches daily_venue_scraper formula) ─────────────────
 def compute_completeness(rec: dict) -> int:
     """Score 0-100 based on how many key fields are populated.
-    Rich fields (70%): tournament_name, starting_stack, level_duration_minutes,
-        rebuy_addon, late_registration, guaranteed, format, max_entries,
-        bounty_amount, structure_sheet_url, payout_levels, age_requirement, timezone
-    Base fields (30%): buy_in, start_time, day_of_week/start_date, game_type, source_url
+    Rich fields (70%): starting_stack, level_duration_minutes, rebuy_addon,
+        late_reg_levels, guarantee, format, max_entries, bounty_amount,
+        structure_sheet_url, payout_levels, timezone, blind_levels
+    Base fields (30%): event_name, buy_in, game_type, start_date, start_time
     """
     rich_fields = [
-        "tournament_name","starting_stack","level_duration_minutes",
-        "rebuy_addon","late_registration","guaranteed","format",
-        "max_entries","bounty_amount","structure_sheet_url",
-        "payout_levels","age_requirement","timezone",
+        "starting_stack", "level_duration_minutes", "rebuy_addon",
+        "late_reg_levels", "guarantee", "format", "max_entries",
+        "bounty_amount", "structure_sheet_url", "payout_levels",
+        "timezone", "blind_levels",
     ]
-    # Map DB column names to the rich field names
-    field_map = {
-        "tournament_name": "event_name",
-        "starting_stack": "starting_stack",
-        "level_duration_minutes": "blind_levels",
-        "rebuy_addon": "re_entry",
-        "late_registration": "late_reg_levels",
-        "guaranteed": "guarantee",
-        "format": "format",
-        "max_entries": "entries",
-        "bounty_amount": "fee",
-        "structure_sheet_url": "notes",
-        "payout_levels": "prize_pool",
-        "age_requirement": "notes",
-        "timezone": "state",  # we infer tz from state
-    }
-    filled = 0
-    for rf in rich_fields:
-        col = field_map.get(rf, rf)
-        v = rec.get(col)
-        if v not in (None, "", 0, False):
-            filled += 1
+    filled = sum(1 for f in rich_fields if rec.get(f) not in (None, "", 0, False))
 
-    base_fields = ["buy_in","start_time","start_date","game_type","source"]
+    base_fields = ["event_name", "buy_in", "game_type", "start_date", "start_time"]
     base_score = sum(1 for f in base_fields if rec.get(f) not in (None, "", 0))
     return min(100, round((filled / len(rich_fields)) * 70 + (base_score / len(base_fields)) * 30))
 
@@ -691,7 +670,7 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
                     rec = make_event_rec(
                         series_uid=series_uid, series_name=series_name,
                         batch_id=batch_id, event_uid=event_uid,
-                        event_name=event_name or None,
+                        event_name=event_name or f"{series_name} - ${buyin} Event",
                         event_number=event_number,
                         buy_in=buyin, game_type=game_type, fmt=fmt,
                         guarantee=guarantee,
@@ -780,7 +759,7 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         results.append(make_event_rec(
             series_uid=series_uid, series_name=series_name,
             batch_id=batch_id, event_uid=event_uid,
-            event_name=tname, event_number=event_counter if event_counter > 0 else None,
+            event_name=tname or f"{series_name} - ${buyin} Event", event_number=event_counter if event_counter > 0 else None,
             buy_in=buyin, game_type=game_from(txt), fmt=fmt_from(txt),
             guarantee=gtd, start_date=ed, start_time=st,
             end_date=None, starting_stack=stack,
@@ -895,6 +874,79 @@ def scrape_series(series: dict, session, batch_id: str,
                 log(f"        [Source URL] {len(events2)} events")
         elif status2 != 200:
             log(f"        HTTP {status2} — skipped")
+
+    # ── SOURCE 3: Multi-source enrichment (CardPlayer + venue websites) ─────
+    # These sources were validated to provide payout_levels, structure_sheet_url,
+    # rebuy_addon, bounty_amount, and late_reg_levels during enrichment passes.
+    if result["found"] and result["events"]:
+        enrichment = {}
+        # 3a: CardPlayer.com — reliable for payout structure info
+        try:
+            cp_search = urllib.parse.quote(series_name.replace("'", ""))
+            cp_url = f"https://www.cardplayer.com/poker-tournaments?search={cp_search}"
+            cp_req = urllib.request.Request(cp_url, headers={
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+            })
+            with urllib.request.urlopen(cp_req, timeout=10) as cp_resp:
+                cp_html = cp_resp.read().decode('utf-8', errors='replace')
+                cp_text = re.sub(r'<[^>]+>', ' ', cp_html)
+                # Payout structure
+                m = re.search(r'(?:payout|prize|pay)\s*(?:structure|schedule|table|out)?[:\s]*([^\n]{5,60})', cp_text, re.I)
+                if m: enrichment['payout_levels'] = m.group(1).strip()[:100]
+                # Structure sheet PDF
+                for pm in re.finditer(r'href="([^"]*\.pdf[^"]*(?:structure|blind)[^"]*)', cp_html, re.I):
+                    enrichment['structure_sheet_url'] = pm.group(1)[:300]
+                    break
+        except Exception:
+            pass
+
+        # 3b: Venue website — reliable for structure PDFs and rebuy/late reg
+        venue_web = series.get("website") or ""
+        if not venue_web:
+            try:
+                with open(PROJECT_ROOT / 'data' / 'all-venues.json') as _vf:
+                    _venues_raw = json.load(_vf)
+                _venues = _venues_raw if isinstance(_venues_raw, list) else _venues_raw.get('venues', [])
+                _vname = series.get('venue_name', '').lower()
+                for _v in _venues:
+                    if _v.get('name', '').lower() == _vname:
+                        venue_web = _v.get('website') or _v.get('url') or ''
+                        break
+            except Exception:
+                pass
+        if venue_web:
+            try:
+                v_req = urllib.request.Request(venue_web, headers={
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+                })
+                with urllib.request.urlopen(v_req, timeout=10) as v_resp:
+                    v_html = v_resp.read().decode('utf-8', errors='replace')
+                    v_text = re.sub(r'<[^>]+>', ' ', v_html)
+                    # Late registration
+                    m = re.search(r'(?:late\s*reg(?:istration)?)[:\s]*(?:through|until|end\s*of|thru)?\s*(?:level\s*)?(\d+)', v_text, re.I)
+                    if m: enrichment.setdefault('late_reg_levels', m.group(1).strip()[:50])
+                    # Rebuy / addon
+                    m = re.search(r'(?:re[\-\s]?entry|rebuy|add[\-\s]?on)[:\s]*([^\n.]{5,80})', v_text, re.I)
+                    if m: enrichment.setdefault('rebuy_addon', m.group(1).strip()[:100])
+                    # Bounty
+                    m = re.search(r'(?:bounty|knockout|ko)[:\s]*\$?(\d[\d,]*)', v_text, re.I)
+                    if m: enrichment.setdefault('bounty_amount', int(m.group(1).replace(',', '')))
+                    # Structure PDF links from venue poker subpages
+                    for pm in re.finditer(r'href="([^"]*\.pdf[^"]*)', v_html, re.I):
+                        purl = pm.group(1)
+                        if purl.startswith('/'): purl = urllib.parse.urljoin(venue_web, purl)
+                        enrichment.setdefault('structure_sheet_url', purl[:300])
+                        break
+            except Exception:
+                pass
+
+        # Apply enrichment to all extracted events (fill-only, don't overwrite)
+        if enrichment:
+            log(f"      [Src 3: Multi-source] +{len(enrichment)} fields: {list(enrichment.keys())}")
+            for rec in result["events"]:
+                for k, v in enrichment.items():
+                    if not rec.get(k):
+                        rec[k] = v
 
     # ── Anti-hallucination guard ────────────────────────────────────────────
     if result["events"] and not anti_hallucination_ok(result["events"]):
