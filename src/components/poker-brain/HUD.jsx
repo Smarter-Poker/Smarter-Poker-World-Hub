@@ -16,7 +16,7 @@ import {
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
 import { hardwiredDetect } from '../../lib/poker-brain/hardwired-detect';
 import execOcrPass from '../../lib/poker-brain/ocr-loop';
-import { extractTournamentInfo, detectTournamentStage } from '../../lib/poker-brain/tournament-detect';
+import { detectTournamentStage } from '../../lib/poker-brain/tournament-detect';
 import { findTableBounds } from '../../lib/poker-brain/table-finder';
 import {
   detectPlayerCountByStacks,
@@ -25,7 +25,6 @@ import {
 import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
-import { verifyCardSuit } from '../../lib/poker-brain/suit-color';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
