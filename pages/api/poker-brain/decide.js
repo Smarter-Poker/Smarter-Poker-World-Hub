@@ -8,10 +8,22 @@
  * Horse Brain expects and returns the same quality recommendation
  * a Horse would get — the user just clicks the buttons themselves.
  *
+ * CRITICAL: We require 'brain' (index.js), NOT 'brain/router' directly.
+ * The barrel export wires the live observer into the router via
+ * setRouterLiveReadFn(liveObserver.getLiveRead) — skipping this
+ * means zero opponent tracking from the live observer module.
+ *
+ * Architecture:
+ *   - 32 anti-exploit modules (all active)
+ *   - GTO solver (lazy-loaded from content-engine/services/)
+ *   - Personality overlays (lazy-loaded)
+ *   - Live opponent modeling (wired through barrel export)
+ *   - PLO/PLO5/PLO6/PLO8 variant brains
+ *   - Tournament ICM adjustments
+ *   - Session analytics and performance tracking
+ *
  * The Horse Brain is server-side Node.js (CommonJS, Supabase queries,
  * threat intel loading, GTO solver, etc.) — it cannot run in the browser.
- * This API route is the clean separation between client (OCR/detection)
- * and server (decision engine).
  */
 
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -26,22 +38,60 @@ function getSupabase() {
   return _supabase;
 }
 
-// Lazy-load the Horse Brain to avoid cold-start overhead on every request
+// ═══════════════════════════════════════════════════════════════════════
+// HORSE BRAIN INITIALIZATION
+// CRITICAL: Load through brain/index.js barrel, NOT brain/router directly.
+// The barrel calls router.setRouterLiveReadFn(liveObserver.getLiveRead)
+// which wires the live observer into the decision pipeline. Without this,
+// opponent tracking is completely dead.
+// ═══════════════════════════════════════════════════════════════════════
 let _brain = null;
 function getBrain() {
   if (!_brain) {
-    _brain = require('../../../src/lib/poker-engine/brain');
+    try {
+      _brain = require('../../../src/lib/poker-engine/brain');
+    } catch (err) {
+      console.error('[poker-brain/decide] Failed to load Horse Brain:', err.message);
+      throw new Error('Horse Brain module load failure: ' + err.message);
+    }
   }
   return _brain;
 }
 
-// Lazy-load the router
-let _router = null;
-function getRouter() {
-  if (!_router) {
-    _router = require('../../../src/lib/poker-engine/brain/router');
-  }
-  return _router;
+/**
+ * Clear horse-specific side effects after each HUD decision.
+ * The router pushes chat messages and GIF emotes to a global array
+ * during getDecision() — these are for automated horses that send
+ * in-game chat. For HUD mode, we clear them to prevent memory leaks.
+ */
+function clearHorseSideEffects(brain) {
+  try {
+    // chatMessages is a shared array in core.js that router pushes to
+    if (brain.chatMessages && Array.isArray(brain.chatMessages)) {
+      brain.chatMessages.length = 0;
+    }
+    // Also clear from the core module's direct export
+    const core = brain.core || {};
+    if (core.chatMessages && Array.isArray(core.chatMessages)) {
+      core.chatMessages.length = 0;
+    }
+  } catch (_) { /* swallow — don't crash on cleanup failure */ }
+}
+
+/**
+ * Run a promise with a timeout. If the promise doesn't resolve within
+ * the given milliseconds, reject with a TimeoutError.
+ */
+function withTimeout(promise, ms, label = 'operation') {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms}ms`));
+    }, ms);
+    promise.then(
+      (result) => { clearTimeout(timer); resolve(result); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
 }
 
 /**
@@ -100,6 +150,21 @@ function synthesizeLegalActions(state) {
 /**
  * Build the engineState object the Horse Brain router expects,
  * from the HUD's OCR-scraped fields.
+ *
+ * The router expects:
+ *   engineState.players         [{id, holeCards, stack, position, folded, invested}]
+ *   engineState.communityCards  string[]
+ *   engineState.phase           'preflop' | 'flop' | 'turn' | 'river'
+ *   engineState.potTotal        number
+ *   engineState.currentBet      number
+ *   engineState.tableId         string
+ *   engineState.lastRaiser      string | null
+ *   engineState.numLimpers      number
+ *   engineState.hasStraddle     boolean
+ *   engineState.variant         'holdem' | 'plo4' | 'plo5' | 'plo6' | 'plo8'
+ *   engineState.gameType        'tournament' | 'cash'
+ *   engineState.tourneyState    object | null
+ *   engineState.handId          string
  */
 function buildEngineState(body, userId) {
   const {
@@ -122,27 +187,30 @@ function buildEngineState(body, userId) {
   // Map game type to Horse Brain variant format
   const variantMap = {
     nlhe: 'holdem',
+    holdem: 'holdem',
     plo: 'plo4',
+    plo4: 'plo4',
     plo5: 'plo5',
     plo6: 'plo6',
     plo_hilo: 'plo8',
+    plo8: 'plo8',
   };
   const variant = variantMap[gameType] || 'holdem';
 
   // Build players array — hero + synthetic opponents
   const players = [];
 
-  // Hero player
+  // Hero player — the human using the HUD
   players.push({
     id: userId,
     holeCards: holeCards,  // String format — core.cardsToStrings handles both
     stack: stackSize,
     position: position,
     folded: false,
-    invested: betToCall > 0 ? 0 : 0, // Hero hasn't acted yet
+    invested: 0, // Hero hasn't acted yet — this represents the pre-decision state
   });
 
-  // Synthetic opponents from villain stacks
+  // Synthetic opponents from villain stacks (OCR-detected)
   const villainEntries = Object.entries(villainStacks);
   if (villainEntries.length > 0) {
     villainEntries.forEach(([seatKey, stack], i) => {
@@ -200,24 +268,48 @@ function buildEngineState(body, userId) {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// API HANDLER
+// ═══════════════════════════════════════════════════════════════════════
+
+// Decision timeout: 5 seconds. The Horse Brain pipeline should complete
+// in under 500ms. If it hangs (e.g., Supabase network issue), fail fast
+// so the HUD can fall back to the local engine.
+const DECISION_TIMEOUT_MS = 5000;
+
+// Action type mapping: engine internal → HUD display format
+const ACTION_MAP = {
+  fold: 'FOLD',
+  check: 'CHECK',
+  call: 'CALL',
+  bet: 'BET',
+  raise: 'RAISE',
+  all_in: 'ALL_IN',
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    // Auth check
+    // ── AUTH ──────────────────────────────────────────────────────────
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const { data: { user }, error: authErr } = await getSupabase().auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
 
+    // ── INPUT VALIDATION ─────────────────────────────────────────────
     const body = req.body;
     if (!body || !body.holeCards || body.holeCards.length < 2) {
       return res.status(400).json({ error: 'holeCards required (min 2)' });
     }
 
-    // Build engine-compatible state from OCR data
+    // ── BUILD ENGINE STATE ───────────────────────────────────────────
     const engineState = buildEngineState(body, user.id);
     const legalActions = synthesizeLegalActions(body);
     const tableConfig = {
@@ -226,42 +318,67 @@ export default async function handler(req, res) {
       variant: engineState.variant,
     };
 
-    // Run the FULL Horse Brain pipeline
-    const router = getRouter();
+    // ── LOAD HORSE BRAIN ─────────────────────────────────────────────
+    // Uses the barrel export (brain/index.js) which wires:
+    //   - Live observer → router (opponent tracking)
+    //   - All 12 modular brain files
+    //   - 32 anti-exploit modules
+    //   - GTO, Personality, Advanced modules (lazy-loaded on first call)
+    const brain = getBrain();
+
+    // ── RUN HORSE BRAIN PIPELINE ─────────────────────────────────────
     const startMs = Date.now();
-    const result = await router.getDecision(
-      user.id,         // profileId — user IS the "horse"
-      engineState,
-      legalActions,
-      tableConfig
+    const result = await withTimeout(
+      brain.getDecision(
+        user.id,         // profileId — the human player IS the "horse"
+        engineState,
+        legalActions,
+        tableConfig
+      ),
+      DECISION_TIMEOUT_MS,
+      'Horse Brain getDecision'
     );
     const elapsedMs = Date.now() - startMs;
 
-    // Strip horse-specific fields (delay, chat emotes) and return
-    // a clean recommendation for the human player
-    const action = result.action || { type: 'check' };
+    // ── CLEAR HORSE-SPECIFIC SIDE EFFECTS ────────────────────────────
+    // The router may have pushed chat messages / GIF emotes to global
+    // arrays. These are for automated horses that type in chat. For HUD
+    // mode, the human types their own chat. Clear to prevent memory leaks.
+    clearHorseSideEffects(brain);
 
-    // Map engine action format to HUD display format
-    const actionMap = {
-      fold: 'FOLD',
-      check: 'CHECK',
-      call: 'CALL',
-      bet: 'BET',
-      raise: 'RAISE',
-      all_in: 'ALL_IN',
-    };
+    // ── VALIDATE RESULT ──────────────────────────────────────────────
+    if (!result || !result.action || typeof result.action.type !== 'string') {
+      console.error('[poker-brain/decide] Router returned invalid result:', result);
+      return res.status(200).json({
+        action: 'CHECK',
+        amount: null,
+        engineMs: elapsedMs,
+        variant: engineState.variant,
+        street: body.street || 'preflop',
+        source: 'horse_brain',
+        warning: 'Router returned invalid result, defaulting to CHECK',
+      });
+    }
+
+    // ── MAP & RETURN ─────────────────────────────────────────────────
+    const action = result.action;
+    const mappedAction = ACTION_MAP[action.type] || action.type.toUpperCase();
 
     return res.status(200).json({
-      action: actionMap[action.type] || action.type.toUpperCase(),
+      action: mappedAction,
       amount: action.amount || null,
-      // Pass through useful metadata
       engineMs: elapsedMs,
       variant: engineState.variant,
       street: body.street || 'preflop',
       source: 'horse_brain',
     });
+
   } catch (err) {
-    console.error('[poker-brain/decide] error:', err);
-    return res.status(500).json({ error: 'Decision engine error', detail: err.message });
+    const isTimeout = err.message && err.message.includes('timed out');
+    console.error('[poker-brain/decide] error:', isTimeout ? 'TIMEOUT' : err.message);
+    return res.status(isTimeout ? 504 : 500).json({
+      error: isTimeout ? 'Decision engine timeout' : 'Decision engine error',
+      detail: err.message,
+    });
   }
 }
