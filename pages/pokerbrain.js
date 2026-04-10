@@ -8,6 +8,12 @@ import supabase from '../src/lib/supabase';
 import BottomNavBar from '../src/components/ui/BottomNavBar';
 import { analyzeSession, analyzeHand } from '../src/lib/poker-brain/session-audit';
 
+// Lazy-load the HUD launcher — it uses getDisplayMedia (browser-only)
+const PokerBrainLaunchButton = dynamic(
+  () => import('../src/components/poker-brain/LaunchButton'),
+  { ssr: false }
+);
+
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
 const SUIT_DISPLAY = {
@@ -868,13 +874,8 @@ export default function PokerBrainDashboard() {
       </div>
 
       {/* Launch HUD Button */}
-      <div className="max-w-lg mx-auto px-4 pt-4">
-        <a
-          href="/hub/horses"
-          className="block w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-center py-3 rounded-xl shadow-lg transition-all"
-        >
-          Launch Poker Brain HUD
-        </a>
+      <div className="max-w-lg mx-auto px-4 pt-4 flex justify-center">
+        <PokerBrainLaunchButton label="Launch Poker Brain HUD" />
       </div>
 
       {/* Content */}
