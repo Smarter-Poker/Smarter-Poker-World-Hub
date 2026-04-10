@@ -919,8 +919,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               if (useAutoLocalizeRef.current) {
                 try {
                   const locResult = localizeCards(video, {
-                    expectedHole,
-                    referenceSize: detectionLayout?.referenceSize,
+                    expectedHoleCount: expectedHole,
+                    tableBounds: tableBounds || undefined,
                   });
                   if (locResult && locResult.holeConfidence > 0.5 && locResult.holeRegions.length > 0) {
                     detectionLayout = {

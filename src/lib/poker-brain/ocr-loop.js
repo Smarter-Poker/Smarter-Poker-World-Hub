@@ -16,6 +16,9 @@ function scaleRect(region, scaleX, scaleY) {
   };
 }
 
+// cropToCanvas creates a per-call canvas because OCR regions are processed in
+// parallel via Promise.all — a shared canvas would be overwritten by the next
+// crop before the async OCR engine finishes reading the previous one.
 function cropToCanvas(sourceCanvas, rect) {
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.floor(rect.w));
@@ -59,11 +62,21 @@ export async function execOcrPass(video, layout, ocrEngine) {
   const sx = srcW / refW;
   const sy = srcH / refH;
 
-  // Draw the full frame once
-  const full = document.createElement('canvas');
-  full.width = srcW;
-  full.height = srcH;
-  full.getContext('2d', { willReadFrequently: true }).drawImage(video, 0, 0, srcW, srcH);
+  // Draw the full frame once into a reusable canvas
+  if (!execOcrPass._fullCanvas) {
+    execOcrPass._fullCanvas = document.createElement('canvas');
+    execOcrPass._fullCtx = null;
+  }
+  const full = execOcrPass._fullCanvas;
+  if (full.width !== srcW || full.height !== srcH) {
+    full.width = srcW;
+    full.height = srcH;
+    execOcrPass._fullCtx = null; // context invalidated by resize
+  }
+  if (!execOcrPass._fullCtx) {
+    execOcrPass._fullCtx = full.getContext('2d', { willReadFrequently: true });
+  }
+  execOcrPass._fullCtx.drawImage(video, 0, 0, srcW, srcH);
 
   const run = async (name, method, opts = {}) => {
     const raw = layout.ocrRegions[name];
