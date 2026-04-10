@@ -11,7 +11,8 @@ import {
   findDealerButtonGlobal,
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
-import { localizeCards } from '../../lib/poker-brain/card-localizer';
+// Auto-localizer disabled — static layout.json regions are more reliable.
+// import { localizeCards } from '../../lib/poker-brain/card-localizer';
 import { findTableBounds } from '../../lib/poker-brain/table-finder';
 import {
   detectPlayerCountByStacks,
@@ -787,82 +788,21 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               }
             } catch (tbErr) { /* swallow */ }
 
-            // ── AUTO CARD LOCALIZATION ─────────────────────────────────
-            // Localize hero + board card regions relative to the detected
-            // table bbox (or the whole frame if no table was found).
-            let matcherLayout = effectiveLayout;
-            let usedAutoLayout = false;
-            try {
-              // First discovery pass uses the CURRENT variant's expected
-              // count so the localizer can slice correctly. The strip
-              // aspect-ratio estimator runs inside the localizer too and
-              // tells us what the variant ACTUALLY is — we feed that to
-              // the temporal tracker and, once stable, flip the HUD.
-              const loc = localizeCards(video, {
-                expectedHoleCount: expectedHole,
-                tableBounds,
-              });
-              if (loc.estimatedHoleCount) {
-                const estVariant = (() => {
-                  switch (loc.estimatedHoleCount) {
-                    case 2: return 'nlhe';
-                    case 4: return 'plo';
-                    case 5: return 'plo5';
-                    case 6: return 'plo6';
-                    default: return null;
-                  }
-                })();
-                if (estVariant) obs.variant = estVariant;
-              }
-              const hasHole = (loc.holeRegions || []).length >= expectedHole;
-              // Pre-flop we won't have a board yet, so accept hole-only too
-              if (hasHole) {
-                const srcW = video.videoWidth || video.width;
-                const srcH = video.videoHeight || video.height;
-                // Auto-localized regions are already in SOURCE pixels, so
-                // set referenceSize to source dims (scale = 1 in matcher).
-                // CRITICAL: when we fall back to effectiveLayout.boardCards
-                // for the board (pre-flop or board detection miss), those
-                // regions are in REFERENCE space (480x1054). With the new
-                // referenceSize = source, matcher scale = 1.0 and it would
-                // read garbage coordinates. We must pre-scale the fallback
-                // board regions into source pixel space.
-                const fallbackRefW = effectiveLayout.referenceSize?.w || 480;
-                const fallbackRefH = effectiveLayout.referenceSize?.h || 1054;
-                const fsx = srcW / fallbackRefW;
-                const fsy = srcH / fallbackRefH;
-                const preScaleRegions = (arr) => (arr || []).map((r) => ({
-                  x: Math.round(r.x * fsx),
-                  y: Math.round(r.y * fsy),
-                  w: Math.round(r.w * fsx),
-                  h: Math.round(r.h * fsy),
-                }));
-                const holeRegions = loc.holeRegions.slice(0, expectedHole);
-                const boardRegions = (loc.boardRegions || []).slice(0, 5);
-                const fallbackBoard = preScaleRegions(effectiveLayout.boardCards);
-                matcherLayout = {
-                  ...effectiveLayout,
-                  referenceSize: { w: srcW, h: srcH },
-                  holeCards: holeRegions,
-                  holeCardsByVariant: {
-                    // NOTE: do NOT spread effectiveLayout.holeCardsByVariant
-                    // here — those are in reference space and would be
-                    // read as source pixels. We rebuild every variant entry
-                    // from the auto-localized (already-source) regions.
-                    nlhe: holeRegions.slice(0, 2),
-                    plo: holeRegions.slice(0, 4),
-                    plo_hilo: holeRegions.slice(0, 4),
-                    plo5: holeRegions.slice(0, 5),
-                    plo6: holeRegions.slice(0, 6),
-                    [currentVariant]: holeRegions,
-                  },
-                  boardCards: boardRegions.length >= 3
-                    ? boardRegions
-                    : fallbackBoard,
-                };
-                usedAutoLayout = true;
-              }
-            } catch (locErr) { /* swallow — fall back to effectiveLayout */ }
+            // ── CARD REGIONS ──────────────────────────────────────────
+            // Use the STATIC layout.json regions (effectiveLayout) for card
+            // matching. The auto-localizer (card-localizer.js) was returning
+            // incorrect source-pixel regions that landed on the hero's
+            // name/stack area and the pot instead of actual card faces,
+            // making detection completely non-functional. The static regions
+            // are correctly calibrated (confirmed visually via the
+            // calibration overlay) and need only reference → source scaling
+            // which the matcher handles internally.
+            //
+            // Table bounds, player count, and dealer detection still run
+            // above — those work correctly. Only card localization is
+            // bypassed here until the auto-localizer is rewritten.
+            const matcherLayout = effectiveLayout;
+            const usedAutoLayout = false;
 
             const result = matcher.matchAllRegions(video, matcherLayout, {
               variant: currentVariant,
@@ -1824,6 +1764,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 editable={calibrationEditable}
                 liveSnapshotRef={detectionSnapshotRef}
                 showLiveRegions={calibrationVisible}
+                variant={gameType}
               />
             )}
             {streamReady && (

@@ -41,9 +41,17 @@ function mergeRect(base, override) {
   return { ...base, ...override };
 }
 
-function flattenLayout(layout, overrides) {
+function flattenLayout(layout, overrides, variant) {
   const out = [];
-  (layout.holeCards || []).forEach((r, i) => {
+  // Use variant-specific hole card regions when available (NLHE=2,
+  // PLO=4, PLO5=5, PLO6=6). Falls back to the flat holeCards array if
+  // no variant is specified or the variant doesn't have a dedicated set.
+  const vKey = variant ? String(variant).toLowerCase() : null;
+  const byV = layout.holeCardsByVariant;
+  const holeArr = (vKey && byV && Array.isArray(byV[vKey]))
+    ? byV[vKey]
+    : (layout.holeCards || []);
+  holeArr.forEach((r, i) => {
     out.push({
       group: 'holeCards',
       key: `holeCards.${i}`,
@@ -117,6 +125,7 @@ const CalibrationOverlay = ({
   editable = false,
   liveSnapshotRef = null,
   showLiveRegions = false,
+  variant = null,
 }) => {
   const [dims, setDims] = useState({ w: 0, h: 0 });
   const [liveTick, setLiveTick] = useState(0);
@@ -175,7 +184,7 @@ const CalibrationOverlay = ({
     };
   }, [visible, videoRef]);
 
-  const regions = flattenLayout(baseLayout, overrides);
+  const regions = flattenLayout(baseLayout, overrides, variant);
 
   const refW = baseLayout.referenceSize?.w || 480;
   const refH = baseLayout.referenceSize?.h || 1054;
