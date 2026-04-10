@@ -38,6 +38,7 @@ import os
 
 from scrapling import StealthyFetcher
 session = StealthyFetcher(auto_match=True)
+failed_cache = set()
 
 CACHE_DIR = "data/pdf-cache"
 if not os.path.exists(CACHE_DIR):
@@ -56,6 +57,9 @@ for idx, evt in enumerate(needs_enrichment, 1):
     if url in pdf_cache:
         text = pdf_cache[url]
         print("  Using memory cached PDF text")
+    elif url in failed_cache:
+        print("  [CACHE HIT] Known invalid PDF, skipping")
+        continue
     elif os.path.exists(cache_path):
         try:
             with pdfplumber.open(cache_path) as pdf:
@@ -64,6 +68,7 @@ for idx, evt in enumerate(needs_enrichment, 1):
             print("  [CACHE HIT] Loaded PDF directly from disk")
         except Exception as e:
             print(f"  Disk Cache Error: {e}")
+            failed_cache.add(url)
             continue
     else:
         try:
@@ -85,6 +90,7 @@ for idx, evt in enumerate(needs_enrichment, 1):
             time.sleep(1) # rate limit
         except Exception as e:
             print(f"  PDF Fetch Error: {e}")
+            failed_cache.add(url)
             continue
 
     patch = {}
