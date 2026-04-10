@@ -72,7 +72,6 @@ export function detectCards(videoElement, layout, matcher, options = {}) {
 
   const debugMode = !!options.debug;
   const topN = debugMode ? (Number.isFinite(options.topN) ? options.topN : 3) : 0;
-  const matchOpts = topN > 0 ? { topN } : undefined;
 
   // Run the matcher against all regions
   const result = matcher.matchAllRegions(videoElement, layout, {

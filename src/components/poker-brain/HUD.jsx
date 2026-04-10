@@ -379,10 +379,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   useEffect(() => {
     const ov = loadLayoutOverrides();
     if (ov) {
-      // v2 flag: overrides saved AFTER this fix will include _version=2.
-      // Anything without it is stale from the old broken transform era.
-      if (!ov._version || ov._version < 2) {
-        console.warn('[HUD] Clearing stale calibration overrides from old transform era');
+      // v3 flag: overrides saved AFTER layout-capture.json will include _version=3.
+      // Anything below v3 is stale from old coordinate systems and must be cleared.
+      if (!ov._version || ov._version < 3) {
+        console.warn('[HUD] Clearing stale calibration overrides (v' + (ov._version || 0) + ' < 3, layout-capture.json coordinates changed)');
         saveLayoutOverrides(null);
         setLayoutOverrides(null);
       } else {
@@ -399,7 +399,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
   const handleOverridesChange = useCallback((next) => {
     // Tag with version so we know these were saved after the transform fix
-    const tagged = next ? { ...next, _version: 2 } : null;
+    const tagged = next ? { ...next, _version: 3 } : null;
     setLayoutOverrides(tagged);
     saveLayoutOverrides(tagged);
   }, []);

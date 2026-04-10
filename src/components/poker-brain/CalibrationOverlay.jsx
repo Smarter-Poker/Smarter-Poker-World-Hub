@@ -438,6 +438,18 @@ export function mergeLayoutWithOverrides(base, overrides) {
     overrides.holeCards.forEach((o, i) => {
       if (o && out.holeCards[i]) out.holeCards[i] = { ...out.holeCards[i], ...o };
     });
+    // Also propagate hole card overrides into ALL variant-specific arrays.
+    // The matcher reads from holeCardsByVariant when a variant is active,
+    // so overrides must be applied there too — otherwise calibration edits
+    // to hole card positions have no effect on actual detection.
+    if (out.holeCardsByVariant) {
+      for (const [vKey, vArr] of Object.entries(out.holeCardsByVariant)) {
+        if (!Array.isArray(vArr)) continue;
+        overrides.holeCards.forEach((o, i) => {
+          if (o && vArr[i]) vArr[i] = { ...vArr[i], ...o };
+        });
+      }
+    }
   }
   if (overrides.boardCards) {
     overrides.boardCards.forEach((o, i) => {
