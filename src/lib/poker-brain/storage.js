@@ -79,10 +79,30 @@ export class PokerBrainStorage {
     this.handNumber = 0;
     this.online = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
+    // Store bound listener refs so destroy() can actually remove them.
+    // Anonymous arrow listeners can't be removed, so the old code leaked
+    // one set of window listeners per instance.
+    this._onOnline = () => { this.online = true; this.flushQueue().catch(() => {}); };
+    this._onOffline = () => { this.online = false; };
     if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => { this.online = true; this.flushQueue(); });
-      window.addEventListener('offline', () => { this.online = false; });
+      window.addEventListener('online', this._onOnline);
+      window.addEventListener('offline', this._onOffline);
     }
+  }
+
+  /**
+   * Remove window event listeners. Call when discarding a storage instance
+   * (e.g., the React hook unmounting or the supabase client changing).
+   * Without this, every instance leaks two listeners for the lifetime of
+   * the tab.
+   */
+  destroy() {
+    if (typeof window !== 'undefined') {
+      if (this._onOnline) window.removeEventListener('online', this._onOnline);
+      if (this._onOffline) window.removeEventListener('offline', this._onOffline);
+    }
+    this._onOnline = null;
+    this._onOffline = null;
   }
 
   async _rpcWithRetry(fn, args, attempts = 4) {
@@ -235,6 +255,19 @@ export class PokerBrainStorage {
   async flushQueue() {
     if (!this.online) return;
     const items = await queueAll();
+    // Order items so start_session runs before its dependent log_hand /
+    // end_session entries even if insertion order was interleaved.
+    items.sort((a, b) => {
+      const rank = (t) => (t === 'start_session' ? 0 : t === 'log_hand' ? 1 : 2);
+      return (rank(a.type) - rank(b.type)) || (a.id - b.id);
+    });
+
+    // Build a tempId -> realId map as we replay start_session rows.
+    // Without this, any log_hand / end_session queued while offline
+    // still has p_session_id = 'local_<ts>' which the DB rejects,
+    // poisoning the queue forever.
+    const idMap = new Map();
+
     for (const item of items) {
       try {
         switch (item.type) {
@@ -246,20 +279,59 @@ export class PokerBrainStorage {
               p_client_profile: item.args.clientProfile ?? null,
               p_starting_stack: item.args.startingStack ?? null,
             });
-            if (item.tempId && this.sessionId === item.tempId) this.sessionId = id;
+            if (item.tempId) {
+              idMap.set(item.tempId, id);
+              if (this.sessionId === item.tempId) this.sessionId = id;
+            }
             break;
           }
-          case 'log_hand':
-            await this._rpcWithRetry('pb_log_hand', item.args);
+          case 'log_hand': {
+            // Remap any tempId → real id captured from the start_session
+            // replay. If the session id is still a tempId and we never
+            // saw its start_session (shouldn't happen after sort, but
+            // defensive), skip so the poison pill doesn't block later
+            // well-formed items.
+            const args = { ...item.args };
+            if (typeof args.p_session_id === 'string' && args.p_session_id.startsWith('local_')) {
+              const real = idMap.get(args.p_session_id);
+              if (!real) {
+                console.warn('[storage] log_hand with unresolved temp session id — skipping', args.p_session_id);
+                await queueDelete(item.id);
+                continue;
+              }
+              args.p_session_id = real;
+            }
+            await this._rpcWithRetry('pb_log_hand', args);
             break;
-          case 'end_session':
-            await this._rpcWithRetry('pb_end_session', item.args);
+          }
+          case 'end_session': {
+            const args = { ...item.args };
+            if (typeof args.p_session_id === 'string' && args.p_session_id.startsWith('local_')) {
+              const real = idMap.get(args.p_session_id);
+              if (!real) {
+                console.warn('[storage] end_session with unresolved temp session id — skipping', args.p_session_id);
+                await queueDelete(item.id);
+                continue;
+              }
+              args.p_session_id = real;
+            }
+            await this._rpcWithRetry('pb_end_session', args);
             break;
+          }
+          default:
+            // Unknown type — drop it rather than poison the queue.
+            console.warn('[storage] dropping unknown queue item type', item.type);
         }
         await queueDelete(item.id);
       } catch (err) {
+        // Per-item failures no longer stop the flush. A poisonous item
+        // (permanent error) should NOT block well-formed items behind
+        // it; continue the loop and retry the failed one next flush.
+        // If this is a transient network blip, the retry-next-flush
+        // path still works. If it's permanent, at least nothing else
+        // gets trapped behind it.
         console.warn('Queue flush failed for item', item.id, err);
-        break; // stop on first failure; retry next time
+        // No break: continue with the next item.
       }
     }
   }
@@ -288,6 +360,13 @@ export function usePokerBrainStorage(supabase) {
     return () => {
       window.removeEventListener('online', onOn);
       window.removeEventListener('offline', onOff);
+      // Tear down the PokerBrainStorage instance's own window listeners
+      // so we don't leak one set per hook mount (Fast Refresh, Strict
+      // Mode double-invoke, supabase client changes, etc.).
+      if (storageRef.current && typeof storageRef.current.destroy === 'function') {
+        storageRef.current.destroy();
+      }
+      storageRef.current = null;
     };
   }, [supabase]);
 

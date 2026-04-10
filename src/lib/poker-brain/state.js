@@ -244,9 +244,21 @@ export class HandStateMachine {
   }
 
   /**
-   * Force-end the current hand (e.g., user clicked "New Hand" button).
+   * Force-end the current hand (e.g., user clicked "New Hand" button,
+   * or the capture stream was stopped mid-hand).
+   *
+   * @param {object} [options]
+   * @param {boolean} [options.silent=false] — when true, DO NOT fire
+   *   onHandEnd for the in-progress hand. Use this for user-initiated
+   *   "abort" paths (Reset Hand button, Stop Stream, etc.) where the
+   *   in-progress hand is almost certainly a misdetection and should
+   *   NOT be persisted to the hand log. A real hand completion goes
+   *   through _commit() → onHandEnd naturally when the state machine
+   *   transitions back to WAITING, so silent resets don't lose real
+   *   completed hands — only abandon the current in-progress one.
    */
-  reset() {
+  reset(options = {}) {
+    const silent = !!options.silent;
     const hadHand = this._currentHand !== null;
     const finished = this._currentHand;
     this._currentHand = null;
@@ -264,7 +276,7 @@ export class HandStateMachine {
     this._pendingBoard = [];
     this._pendingKey = '';
     this._pendingFrames = 0;
-    if (hadHand && this.onHandEnd && finished) {
+    if (!silent && hadHand && this.onHandEnd && finished) {
       try { finished.ended = true; finished.endedAt = Date.now(); this.onHandEnd(finished); } catch (e) { /* swallow */ }
     }
     if (this.onStateChange) {

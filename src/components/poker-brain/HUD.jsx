@@ -690,8 +690,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     if (tableStateRef.current) tableStateRef.current.reset();
     // Also wipe the hand state machine so a leftover in-progress hand
     // from the previous capture can't bleed into a new session.
+    // `silent: true` so the in-progress hand is NOT logged to Supabase —
+    // if detection was mid-hand when the user stopped, that hand is
+    // almost certainly incomplete or misdetected and should be
+    // abandoned, not persisted.
     if (stateMachineRef.current && stateMachineRef.current.reset) {
-      stateMachineRef.current.reset();
+      stateMachineRef.current.reset({ silent: true });
     }
     setSource(null);
     setStreamReady(false);
@@ -1284,7 +1288,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     : (matcherReady ? 'Share your screen and start detection' : 'Loading card templates...');
 
   const newHand = () => {
-    if (stateMachineRef.current) stateMachineRef.current.reset();
+    // Silent reset so the abandoned in-progress hand (often the whole
+    // reason the user is hitting "Reset Hand") is NOT written to the
+    // Supabase hand log. Real completed hands still flow through
+    // observe() → _commit() → onHandEnd normally.
+    if (stateMachineRef.current) stateMachineRef.current.reset({ silent: true });
   };
 
   // Engine returns equity/potOdds already as percentages (0-100), not 0-1.
