@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import supabase from '../src/lib/supabase';
 import BottomNavBar from '../src/components/ui/BottomNavBar';
+import { analyzeSession, analyzeHand } from '../src/lib/poker-brain/session-audit';
 
 const getSupabase = () => typeof window !== 'undefined' ? supabase : null;
 
@@ -141,6 +142,171 @@ function OverviewTab({ stats, loading }) {
   );
 }
 
+// ─── Session Audit Display ────────────────────────────────────────
+function SessionAuditPanel({ hands }) {
+  const audit = useMemo(() => {
+    if (!hands || hands.length === 0) return null;
+    // Transform DB hand rows into the format session-audit expects
+    const mapped = hands.map(h => ({
+      handId: h.id,
+      streetDecisions: h.street_decisions || {},
+      position: h.position || 'unknown',
+      gameType: h.game_type || 'nlhe',
+      bigBlind: h.big_blind || 0,
+      holeCards: h.hole_cards || [],
+      finalBoard: h.board || [],
+    }));
+    return analyzeSession(mapped);
+  }, [hands]);
+
+  if (!audit || audit.handsAnalyzed === 0) {
+    return (
+      <div className="bg-slate-900/60 rounded-lg p-3 text-xs text-slate-500">
+        No decision data available for audit. Play with Poker Brain active to record per-street decisions.
+      </div>
+    );
+  }
+
+  const gradeColor = {
+    A: '#10b981', B: '#34d399', C: '#f59e0b', D: '#f97316', F: '#ef4444',
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Grade + Score */}
+      <div className="bg-slate-900 rounded-lg p-4 flex items-center gap-4">
+        <div className="text-center">
+          <div className="text-4xl font-black" style={{ color: gradeColor[audit.grade] || '#94a3b8' }}>
+            {audit.grade}
+          </div>
+          <div className="text-[10px] text-slate-500">Session Grade</div>
+        </div>
+        <div className="flex-1 space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-400">Score</span>
+            <span className="text-white font-bold">{audit.overallScore}/100</span>
+          </div>
+          <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: audit.overallScore + '%',
+                backgroundColor: gradeColor[audit.grade] || '#94a3b8',
+              }}
+            />
+          </div>
+          <div className="text-[10px] text-slate-500">
+            {audit.handsAnalyzed} of {audit.totalHands} hands analyzed
+          </div>
+        </div>
+      </div>
+
+      {/* Leaks */}
+      {audit.leaks.length > 0 && (
+        <div className="bg-slate-900 rounded-lg p-3">
+          <h4 className="text-xs font-bold text-red-400 mb-2">Identified Leaks</h4>
+          <div className="space-y-2">
+            {audit.leaks.map((leak, i) => (
+              <div key={i} className="bg-slate-800 rounded-lg p-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={
+                    'text-[10px] font-bold px-1.5 py-0.5 rounded ' +
+                    (leak.severity === 'high' ? 'bg-red-900 text-red-300' : 'bg-amber-900 text-amber-300')
+                  }>
+                    {leak.severity.toUpperCase()}
+                  </span>
+                  <span className="text-xs text-slate-300 font-bold">{leak.type.replace(/-/g, ' ')}</span>
+                </div>
+                <p className="text-[11px] text-slate-400">{leak.description}</p>
+                <p className="text-[10px] text-blue-400 mt-1">Fix: {leak.fix}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Street Breakdown */}
+      {Object.keys(audit.streetBreakdown).length > 0 && (
+        <div className="bg-slate-900 rounded-lg p-3">
+          <h4 className="text-xs font-bold text-slate-300 mb-2">Street Scores</h4>
+          <div className="grid grid-cols-4 gap-2">
+            {['preflop', 'flop', 'turn', 'river'].map(street => {
+              const data = audit.streetBreakdown[street];
+              if (!data) return null;
+              const c = data.avgScore >= 70 ? '#10b981' : data.avgScore >= 50 ? '#f59e0b' : '#ef4444';
+              return (
+                <div key={street} className="text-center bg-slate-800 rounded-lg p-2">
+                  <div className="text-lg font-black" style={{ color: c }}>{data.avgScore}</div>
+                  <div className="text-[9px] text-slate-500 capitalize">{street}</div>
+                  <div className="text-[8px] text-slate-600">{data.hands}h</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Position Breakdown */}
+      {Object.keys(audit.positionBreakdown).length > 0 && (
+        <div className="bg-slate-900 rounded-lg p-3">
+          <h4 className="text-xs font-bold text-slate-300 mb-2">Position Scores</h4>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(audit.positionBreakdown).map(([pos, data]) => {
+              const c = data.avgScore >= 70 ? '#10b981' : data.avgScore >= 50 ? '#f59e0b' : '#ef4444';
+              return (
+                <div key={pos} className="bg-slate-800 rounded-lg px-3 py-2 text-center">
+                  <div className="text-sm font-black" style={{ color: c }}>{data.avgScore}</div>
+                  <div className="text-[9px] text-slate-500 uppercase">{pos}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recommendations */}
+      {audit.recommendations.length > 0 && (
+        <div className="bg-slate-900 rounded-lg p-3">
+          <h4 className="text-xs font-bold text-blue-400 mb-2">Recommendations</h4>
+          <div className="space-y-1">
+            {audit.recommendations.map((rec, i) => (
+              <p key={i} className="text-[11px] text-slate-400">- {rec}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Worst Hands Review */}
+      {audit.handReviews.filter(r => r.score !== null && r.score < 50).length > 0 && (
+        <div className="bg-slate-900 rounded-lg p-3">
+          <h4 className="text-xs font-bold text-amber-400 mb-2">Hands to Review (Lowest Scored)</h4>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {audit.handReviews.filter(r => r.score !== null && r.score < 50).slice(0, 10).map((review, i) => (
+              <div key={i} className="flex items-center gap-2 bg-slate-800 rounded-lg px-2 py-1.5 text-[11px]">
+                <span className="font-black w-8" style={{ color: gradeColor[review.grade] || '#94a3b8' }}>
+                  {review.grade}
+                </span>
+                <span className="text-slate-500 w-6">{review.score}</span>
+                <div className="flex gap-0.5">
+                  {(review.holeCards || []).map((c, ci) => (
+                    <MiniCard key={ci} rank={c.rank || c[0]} suit={c.suit || c[1]} />
+                  ))}
+                </div>
+                <span className="text-slate-500 uppercase text-[9px]">{review.position}</span>
+                {review.mistakes.length > 0 && (
+                  <span className="text-red-400 text-[9px] ml-auto">
+                    {review.mistakes.map(m => m.street).join(', ')}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SessionsTab({ userId }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -214,36 +380,66 @@ function SessionsTab({ userId }) {
             </div>
           </button>
           {expandedSession === s.id && sessionHands.length > 0 && (
-            <div className="border-t border-slate-700 p-3 space-y-2 max-h-64 overflow-y-auto">
-              {sessionHands.map((h, i) => (
-                <div key={h.id || i} className="flex items-center gap-2 text-xs bg-slate-900 rounded-lg px-3 py-2">
-                  <span className="text-slate-500 w-6">#{i + 1}</span>
-                  <div className="flex gap-0.5">
-                    {(h.hole_cards || []).map((c, ci) => (
-                      <MiniCard key={ci} rank={c.rank || c[0]} suit={c.suit || c[1]} />
-                    ))}
-                  </div>
-                  {h.board && h.board.length > 0 && (
-                    <>
-                      <span className="text-slate-600">|</span>
+            <div className="border-t border-slate-700 p-3 space-y-3">
+              {/* Session Audit Analysis */}
+              <SessionAuditPanel hands={sessionHands} />
+
+              {/* Raw Hand List */}
+              <details className="bg-slate-900 rounded-lg">
+                <summary className="text-xs text-slate-400 font-bold px-3 py-2 cursor-pointer hover:text-white">
+                  All Hands ({sessionHands.length})
+                </summary>
+                <div className="space-y-1 px-3 pb-3 max-h-64 overflow-y-auto">
+                  {sessionHands.map((h, i) => (
+                    <div key={h.id || i} className="flex items-center gap-2 text-xs bg-slate-800 rounded-lg px-3 py-2">
+                      <span className="text-slate-500 w-6">#{i + 1}</span>
                       <div className="flex gap-0.5">
-                        {h.board.map((c, ci) => (
+                        {(h.hole_cards || []).map((c, ci) => (
                           <MiniCard key={ci} rank={c.rank || c[0]} suit={c.suit || c[1]} />
                         ))}
                       </div>
-                    </>
-                  )}
-                  <span className="ml-auto text-slate-400">{h.street || '--'}</span>
-                  {h.equity != null && <span className="text-emerald-400">{Math.round(h.equity)}%</span>}
-                  {h.action_taken && (
-                    <span className={
-                      h.action_taken === 'FOLD' ? 'text-red-400' :
-                      h.action_taken === 'RAISE' ? 'text-amber-400' :
-                      'text-blue-400'
-                    }>{h.action_taken}</span>
-                  )}
+                      {h.board && h.board.length > 0 && (
+                        <>
+                          <span className="text-slate-600">|</span>
+                          <div className="flex gap-0.5">
+                            {h.board.map((c, ci) => (
+                              <MiniCard key={ci} rank={c.rank || c[0]} suit={c.suit || c[1]} />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      <span className="ml-auto text-slate-400">{h.street || '--'}</span>
+                      {h.equity != null && <span className="text-emerald-400">{Math.round(h.equity)}%</span>}
+                      {h.action_taken && (
+                        <span className={
+                          h.action_taken === 'FOLD' ? 'text-red-400' :
+                          h.action_taken === 'RAISE' ? 'text-amber-400' :
+                          'text-blue-400'
+                        }>{h.action_taken}</span>
+                      )}
+                      {/* Per-street decision audit inline */}
+                      {h.street_decisions && Object.keys(h.street_decisions).length > 0 && (
+                        <div className="flex gap-1 ml-1">
+                          {Object.entries(h.street_decisions).map(([st, dec]) => {
+                            if (!dec) return null;
+                            const scoreColor = dec.confidence >= 80 ? '#10b981' : dec.confidence >= 50 ? '#f59e0b' : '#ef4444';
+                            return (
+                              <span
+                                key={st}
+                                className="text-[8px] px-1 rounded"
+                                style={{ backgroundColor: scoreColor + '20', color: scoreColor }}
+                                title={`${st}: ${dec.action} (equity ${Math.round(dec.equity || 0)}%, conf ${Math.round(dec.confidence || 0)}%)`}
+                              >
+                                {st[0].toUpperCase()}:{dec.action?.[0] || '?'}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </details>
             </div>
           )}
         </div>
@@ -415,6 +611,173 @@ function SettingsTab({ userId }) {
   );
 }
 
+// ─── Audit Tab: analyze recent sessions in bulk ──────────────────
+function AuditTab({ userId }) {
+  const [loading, setLoading] = useState(true);
+  const [auditData, setAuditData] = useState(null);
+
+  const runAudit = useCallback(async () => {
+    setLoading(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session?.access_token) return;
+
+      // Fetch last 5 sessions with hands
+      const sessResp = await fetch('/api/poker-brain/sessions?page=1&limit=5', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      const sessJson = await sessResp.json();
+      const sessions = sessJson.sessions || [];
+
+      // Fetch hands for each session
+      const sessionAudits = [];
+      for (const s of sessions) {
+        try {
+          const handResp = await fetch(`/api/poker-brain/session/${s.id}`, {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          });
+          const handJson = await handResp.json();
+          const hands = (handJson.hands || []).map(h => ({
+            handId: h.id,
+            streetDecisions: h.street_decisions || {},
+            position: h.position || 'unknown',
+            gameType: h.game_type || s.game_type || 'nlhe',
+            bigBlind: h.big_blind || 0,
+            holeCards: h.hole_cards || [],
+            finalBoard: h.board || [],
+          }));
+
+          const audit = analyzeSession(hands);
+          sessionAudits.push({
+            session: s,
+            audit,
+            handsCount: hands.length,
+          });
+        } catch (_e) { /* skip session */ }
+      }
+
+      // Aggregate across all sessions
+      const allHands = sessionAudits.flatMap(sa =>
+        sa.audit.handReviews.filter(r => r.score !== null)
+      );
+      const overallScore = allHands.length > 0
+        ? Math.round(allHands.reduce((sum, r) => sum + r.score, 0) / allHands.length)
+        : 0;
+
+      // Aggregate leaks across sessions
+      const leakMap = {};
+      for (const sa of sessionAudits) {
+        for (const leak of sa.audit.leaks) {
+          if (!leakMap[leak.type]) {
+            leakMap[leak.type] = { ...leak, sessions: 1 };
+          } else {
+            leakMap[leak.type].sessions += 1;
+            if (leak.severity === 'high') leakMap[leak.type].severity = 'high';
+          }
+        }
+      }
+
+      setAuditData({
+        sessionAudits,
+        overallScore,
+        totalHands: allHands.length,
+        aggregateLeaks: Object.values(leakMap).sort((a, b) => (b.sessions - a.sessions)),
+      });
+    } catch (e) {
+      console.error('[PokerBrain] audit error:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => { runAudit(); }, [runAudit]);
+
+  if (loading) return <div className="text-center text-slate-400 py-12">Running session audit...</div>;
+  if (!auditData || auditData.sessionAudits.length === 0) {
+    return <div className="text-center text-slate-500 py-12">No sessions with decision data found. Play with Poker Brain to generate audit data.</div>;
+  }
+
+  const gradeColor = {
+    A: '#10b981', B: '#34d399', C: '#f59e0b', D: '#f97316', F: '#ef4444',
+  };
+  let overallGrade;
+  if (auditData.overallScore >= 85) overallGrade = 'A';
+  else if (auditData.overallScore >= 70) overallGrade = 'B';
+  else if (auditData.overallScore >= 55) overallGrade = 'C';
+  else if (auditData.overallScore >= 40) overallGrade = 'D';
+  else overallGrade = 'F';
+
+  return (
+    <div className="space-y-4">
+      {/* Overall Score */}
+      <div className="bg-slate-800 rounded-xl p-5 flex items-center gap-5">
+        <div className="text-center">
+          <div className="text-5xl font-black" style={{ color: gradeColor[overallGrade] }}>{overallGrade}</div>
+          <div className="text-[10px] text-slate-500 mt-1">Overall</div>
+        </div>
+        <div className="flex-1">
+          <div className="text-lg font-bold text-white">{auditData.overallScore}/100</div>
+          <div className="text-xs text-slate-400">Across {auditData.totalHands} hands in {auditData.sessionAudits.length} sessions</div>
+          <div className="w-full h-3 bg-slate-700 rounded-full overflow-hidden mt-2">
+            <div className="h-full rounded-full" style={{ width: auditData.overallScore + '%', backgroundColor: gradeColor[overallGrade] }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Persistent Leaks */}
+      {auditData.aggregateLeaks.length > 0 && (
+        <div className="bg-slate-800 rounded-xl p-4">
+          <h3 className="text-sm font-bold text-red-400 mb-3">Recurring Leaks</h3>
+          <div className="space-y-2">
+            {auditData.aggregateLeaks.map((leak, i) => (
+              <div key={i} className="bg-slate-900 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={
+                    'text-[10px] font-bold px-1.5 py-0.5 rounded ' +
+                    (leak.severity === 'high' ? 'bg-red-900 text-red-300' : 'bg-amber-900 text-amber-300')
+                  }>
+                    {leak.severity.toUpperCase()}
+                  </span>
+                  <span className="text-xs text-white font-bold">{leak.type.replace(/-/g, ' ')}</span>
+                  <span className="text-[10px] text-slate-500 ml-auto">
+                    {leak.sessions} session{leak.sessions > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">{leak.description}</p>
+                <p className="text-[10px] text-blue-400 mt-1">Fix: {leak.fix}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Per-Session Grades */}
+      <div className="bg-slate-800 rounded-xl p-4">
+        <h3 className="text-sm font-bold text-white mb-3">Session Grades</h3>
+        <div className="space-y-2">
+          {auditData.sessionAudits.map((sa, i) => (
+            <div key={i} className="flex items-center gap-3 bg-slate-900 rounded-lg px-3 py-2">
+              <span className="text-xl font-black w-8 text-center" style={{ color: gradeColor[sa.audit.grade] || '#94a3b8' }}>
+                {sa.audit.grade}
+              </span>
+              <div className="flex-1">
+                <div className="text-xs text-white font-bold">
+                  {(sa.session.game_type || 'nlhe').toUpperCase()} -- {sa.audit.overallScore}/100
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  {new Date(sa.session.started_at).toLocaleDateString()} -- {sa.handsCount} hands -- {sa.audit.leaks.length} leak{sa.audit.leaks.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────
 export default function PokerBrainDashboard() {
   const [user, setUser] = useState(null);
@@ -452,6 +815,7 @@ export default function PokerBrainDashboard() {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'sessions', label: 'Sessions' },
+    { id: 'audit', label: 'Audit' },
     { id: 'settings', label: 'Settings' },
   ];
 
@@ -507,6 +871,7 @@ export default function PokerBrainDashboard() {
       <div className="max-w-lg mx-auto px-4 py-4">
         {activeTab === 'overview' && <OverviewTab stats={stats} loading={statsLoading} />}
         {activeTab === 'sessions' && <SessionsTab userId={user.id} />}
+        {activeTab === 'audit' && <AuditTab userId={user.id} />}
         {activeTab === 'settings' && <SettingsTab userId={user.id} />}
       </div>
 

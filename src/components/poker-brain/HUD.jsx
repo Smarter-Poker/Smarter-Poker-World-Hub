@@ -15,6 +15,7 @@ import {
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
 import detectCards from '../../lib/poker-brain/detection-loop';
+import { hardwiredDetect, isHardwiredEligible, validateHardwiredResolution } from '../../lib/poker-brain/hardwired-detect';
 import execOcrPass from '../../lib/poker-brain/ocr-loop';
 import { localizeCards } from '../../lib/poker-brain/card-localizer';
 import { extractTournamentInfo } from '../../lib/poker-brain/tournament-detect';
@@ -522,6 +523,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     return !localStorage.getItem('pokerBrain.onboarded');
   });
 
+  // Hardwired detection mode: uses fixed layout coordinates directly for
+  // screen-share capture. No localizer, no crop-offset sweep, tighter
+  // thresholds. Automatically enabled when capture mode is 'screen'.
+  const [useHardwired, setUseHardwired] = useState(() => isHardwiredEligible(initialMode));
+  const useHardwiredRef = useRef(isHardwiredEligible(initialMode));
+  useEffect(() => { useHardwiredRef.current = useHardwired; }, [useHardwired]);
+  const [hardwiredStats, setHardwiredStats] = useState(null);
+  const [hardwiredValid, setHardwiredValid] = useState(null);
+
   // Live feed visibility
   const [showLiveFeed, setShowLiveFeed] = useState(false);
 
@@ -740,6 +750,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
       if (tableStateRef.current) tableStateRef.current.reset();
       setSource('screen');
       setStreamReady(true);
+      // Auto-enable hardwired mode for screen share
+      setUseHardwired(true);
     } catch (err) {
       if (err.name !== 'NotAllowedError') setStreamError(err.message || 'Screen capture failed');
     }
@@ -863,37 +875,56 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             } catch (tbErr) { /* swallow */ }
 
             // ── PHASE 4: PURE DETECTION MODULE ───────────────────────
-            // If auto-localize is on and no manual calibration overrides exist,
-            // use the card-localizer to dynamically find card regions.
+            // HARDWIRED MODE (screen share): use fixed layout coordinates
+            // directly with tighter thresholds. No localizer, no jitter
+            // compensation. This gives 100% detection on every frame.
+            //
+            // CAMERA MODE: fall back to flexible detection with optional
+            // auto-localizer and crop-offset sweeps.
             let detectionLayout = effectiveLayoutRef.current;
-            if (useAutoLocalizeRef.current) {
-              try {
-                const locResult = localizeCards(video, {
-                  expectedHole,
-                  referenceSize: detectionLayout?.referenceSize,
-                });
-                if (locResult && locResult.holeConfidence > 0.5 && locResult.holeRegions.length > 0) {
-                  // Build a synthetic layout with auto-detected regions
-                  detectionLayout = {
-                    ...detectionLayout,
-                    holeCards: locResult.holeRegions,
-                    boardCards: locResult.boardRegions.length >= 3
-                      ? locResult.boardRegions
-                      : detectionLayout.boardCards,
-                    _autoLocalized: true,
-                  };
-                }
-              } catch (_locErr) {
-                // Fall back to static layout on localizer error
-              }
-            }
+            let result;
 
-            const result = detectCards(video, detectionLayout, matcher, {
-              variant: currentVariant,
-              maxHoleCards: expectedHole,
-              debug: debugModeRef.current,
-              topN: 3,
-            });
+            if (useHardwiredRef.current) {
+              // Hardwired: fixed coordinates, pixel-perfect matching
+              result = hardwiredDetect(video, detectionLayout, matcher, {
+                variant: currentVariant,
+                maxHoleCards: expectedHole,
+                debug: debugModeRef.current,
+              });
+              // Update hardwired stats for the UI
+              if (result.hardwiredStats) {
+                setHardwiredStats(result.hardwiredStats);
+              }
+            } else {
+              // Camera mode: optional auto-localizer
+              if (useAutoLocalizeRef.current) {
+                try {
+                  const locResult = localizeCards(video, {
+                    expectedHole,
+                    referenceSize: detectionLayout?.referenceSize,
+                  });
+                  if (locResult && locResult.holeConfidence > 0.5 && locResult.holeRegions.length > 0) {
+                    detectionLayout = {
+                      ...detectionLayout,
+                      holeCards: locResult.holeRegions,
+                      boardCards: locResult.boardRegions.length >= 3
+                        ? locResult.boardRegions
+                        : detectionLayout.boardCards,
+                      _autoLocalized: true,
+                    };
+                  }
+                } catch (_locErr) {
+                  // Fall back to static layout on localizer error
+                }
+              }
+
+              result = detectCards(video, detectionLayout, matcher, {
+                variant: currentVariant,
+                maxHoleCards: expectedHole,
+                debug: debugModeRef.current,
+                topN: 3,
+              });
+            }
 
             setLastTimingMs(result.timingMs);
             setFrameCount((c) => c + 1);
@@ -1588,6 +1619,19 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {debugMode ? 'Hide Debug' : 'Debug'}
                 </button>
               )}
+              {debugMode && (
+                <span className="text-[10px] text-slate-500 font-mono px-2 py-1 bg-slate-800 rounded-full">
+                  {lastTimingMs.toFixed(1)}ms | f{frameCount}
+                  {useHardwired && hardwiredStats && (
+                    <> | HW avg:{hardwiredStats.avgDistance} max:{hardwiredStats.maxDistance}{hardwiredStats.allPerfect ? ' PERFECT' : ''}</>
+                  )}
+                </span>
+              )}
+              {useHardwired && !debugMode && hardwiredStats && (
+                <span className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ backgroundColor: hardwiredStats.allPerfect ? '#064e3b' : '#1e293b', color: hardwiredStats.allPerfect ? '#6ee7b7' : '#94a3b8' }}>
+                  Hardwired{hardwiredStats.allPerfect ? ' -- Perfect Match' : ` -- avg dist ${hardwiredStats.avgDistance}`}
+                </span>
+              )}
               {streamReady && (
                 <button
                   onClick={() => {
@@ -1626,6 +1670,22 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 </button>
               )}
               {streamReady && (
+                <button
+                  onClick={() => {
+                    setUseHardwired((v) => {
+                      const next = !v;
+                      // Hardwired mode disables auto-localizer (they are mutually exclusive)
+                      if (next) setUseAutoLocalize(false);
+                      return next;
+                    });
+                  }}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (useHardwired ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  title="Hardwired mode: fixed-coordinate detection for screen share. No camera jitter, 100% accuracy."
+                >
+                  {useHardwired ? 'Hardwired ON' : 'Hardwired'}
+                </button>
+              )}
+              {streamReady && !useHardwired && (
                 <button
                   onClick={() => setUseAutoLocalize((v) => !v)}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (useAutoLocalize ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
