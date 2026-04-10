@@ -880,6 +880,48 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             setFrameCount((c) => c + 1);
 
             if (debugModeRef.current && result.probeLog) {
+              // Build crop preview data URIs — the definitive visual
+              // diagnostic. Each entry is a tiny base64 PNG of the
+              // exact pixels the matcher just read for that region.
+              // Rendered in the probe panel so the user can SEE
+              // whether the crop landed on a card face or empty felt.
+              const cropPreviews = [];
+              try {
+                const vw = video.videoWidth || video.width;
+                const vh = video.videoHeight || video.height;
+                const rw = matcherLayout.referenceSize?.w || 480;
+                const rh = matcherLayout.referenceSize?.h || 1054;
+                const cScaleX = vw / rw;
+                const cScaleY = vh / rh;
+                const cropCanvas = document.createElement('canvas');
+                const cropCtx = cropCanvas.getContext('2d');
+                const variantKey = currentVariant ? String(currentVariant).toLowerCase() : null;
+                const byV = matcherLayout.holeCardsByVariant;
+                const holeArr = (variantKey && byV && Array.isArray(byV[variantKey]))
+                  ? byV[variantKey]
+                  : (matcherLayout.holeCards || []);
+                const allRegions = [
+                  ...holeArr.map((r, i) => ({ label: `hole${i}`, region: r })),
+                  ...(matcherLayout.boardCards || []).map((r, i) => ({ label: `board${i}`, region: r })),
+                ];
+                for (const { label, region } of allRegions) {
+                  const sx = Math.round(region.x * cScaleX);
+                  const sy = Math.round(region.y * cScaleY);
+                  const sw = Math.round(region.w * cScaleX);
+                  const sh = Math.round(region.h * cScaleY);
+                  if (sw > 0 && sh > 0) {
+                    cropCanvas.width = sw;
+                    cropCanvas.height = sh;
+                    cropCtx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+                    cropPreviews.push({
+                      label,
+                      src: cropCanvas.toDataURL('image/png'),
+                      region: `${sx},${sy} ${sw}x${sh}`,
+                    });
+                  }
+                }
+              } catch (cpErr) { /* swallow */ }
+
               setDebugProbe({
                 ts: Date.now(),
                 variant: currentVariant,
@@ -887,6 +929,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 videoH: video.videoHeight || video.height,
                 templates: matcher.getTemplateCount ? matcher.getTemplateCount() : null,
                 log: result.probeLog,
+                cropPreviews,
+                tableAnchored: matcherLayout._tableAnchored || null,
+                tableBounds: tableBounds || null,
               });
             }
 
@@ -1852,20 +1897,59 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               per region so mismatches can be diagnosed (wrong
               template, wrong region, threshold too tight, etc.). */}
           {debugMode && debugProbe && (
-            <div className="mt-2 rounded-lg border border-fuchsia-500/40 bg-fuchsia-950/30 p-2 text-[10px] font-mono text-fuchsia-100 max-h-64 overflow-auto">
+            <div className="mt-2 rounded-lg border border-fuchsia-500/40 bg-fuchsia-950/30 p-2 text-[10px] font-mono text-fuchsia-100 overflow-auto" style={{ maxHeight: 600 }}>
               <div className="mb-1 text-fuchsia-300 font-bold">
                 Probe {debugProbe.variant} &middot; {debugProbe.videoW}x{debugProbe.videoH} &middot; tpl:{debugProbe.templates ?? '?'} &middot; {new Date(debugProbe.ts).toLocaleTimeString()}
               </div>
+              {debugProbe.tableAnchored && (
+                <div className="mb-1 text-cyan-300">
+                  TABLE-ANCHORED: scale=({debugProbe.tableAnchored.tScaleX.toFixed(3)},{debugProbe.tableAnchored.tScaleY.toFixed(3)}) offset=({debugProbe.tableAnchored.tOffsetX.toFixed(1)},{debugProbe.tableAnchored.tOffsetY.toFixed(1)})
+                </div>
+              )}
+              {debugProbe.tableBounds && (
+                <div className="mb-1 text-yellow-300">
+                  TABLE BOUNDS: ({debugProbe.tableBounds.x},{debugProbe.tableBounds.y}) {debugProbe.tableBounds.w}x{debugProbe.tableBounds.h} conf={debugProbe.tableBounds.confidence?.toFixed(2)}
+                </div>
+              )}
+              {!debugProbe.tableAnchored && !debugProbe.tableBounds && (
+                <div className="mb-1 text-red-400 font-bold">
+                  NO TABLE BOUNDS DETECTED - using naive reference scaling (likely WRONG)
+                </div>
+              )}
               {(debugProbe.log || []).slice(0, 24).map((entry, i) => (
                 <div key={'probe-' + i} className="truncate">
                   {entry.kind || entry.note || 'entry'}
                   {entry.slot !== undefined ? ' [' + entry.slot + ']' : ''}
                   {entry.bestKey ? ' picked:' + entry.bestKey + ' d=' + entry.distance : ''}
+                  {entry.scaledRegion ? ` @ (${entry.scaledRegion.x},${entry.scaledRegion.y} ${entry.scaledRegion.w}x${entry.scaledRegion.h})` : ''}
                   {Array.isArray(entry.candidates) && entry.candidates.length > 0
                     ? ' | ' + entry.candidates.slice(0, 3).map((c) => c.key + ':' + c.distance).join(', ')
                     : ''}
                 </div>
               ))}
+              {/* CROP PREVIEWS — the definitive diagnostic. Shows the actual
+                  pixels the matcher cropped for each region. If you see a card
+                  face, the problem is templates/threshold. If you see empty
+                  felt or wrong area, the problem is coordinates. */}
+              {debugProbe.cropPreviews && debugProbe.cropPreviews.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-fuchsia-500/30">
+                  <div className="text-fuchsia-300 font-bold mb-1">CROP PREVIEWS (what matcher sees):</div>
+                  <div className="flex flex-wrap gap-2">
+                    {debugProbe.cropPreviews.map((cp, i) => (
+                      <div key={'crop-' + i} className="flex flex-col items-center">
+                        <img
+                          src={cp.src}
+                          alt={cp.label}
+                          className="border border-fuchsia-400"
+                          style={{ width: 48, height: 66, imageRendering: 'pixelated' }}
+                        />
+                        <div className="text-[8px] text-fuchsia-200 mt-0.5">{cp.label}</div>
+                        <div className="text-[7px] text-fuchsia-400">{cp.region}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
