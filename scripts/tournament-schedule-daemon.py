@@ -954,6 +954,7 @@ def scrape_venue(venue:dict, session, batch_id:str, hm_map:dict, cp_map:dict) ->
         for path in WEBSITE_PATHS:
             wurl = origin + path
             try:
+                recs = []
                 resp = session.session.fetch(wurl, timeout=12000, wait_until="domcontentloaded")
                 if getattr(resp, 'status', 0) == 200:
                     html = resp.html_content or (resp.body.decode('utf-8','ignore') if getattr(resp,'body',None) else '')

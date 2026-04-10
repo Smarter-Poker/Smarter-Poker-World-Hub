@@ -286,12 +286,19 @@ def anti_hallucination_ok(records: list) -> bool:
     """Reject suspicious AI-generated patterns."""
     if len(records) < 3: return True
     buyins = [r["buy_in"] for r in records if r.get("buy_in")]
-    # Red flag: >95% buy-ins are round $100 multiples
+    
+    # Red flag 1: >95% buy-ins are round $100 multiples
+    is_round = False
     if len(buyins) >= 5 and sum(1 for b in buyins if b%100==0)/len(buyins) > 0.95:
-        return False
-    # Red flag: all slots have identical date-time-buyin (copy-paste ghost)
+        is_round = True
+        
+    # Red flag 2: all slots have identical date-time-buyin (copy-paste ghost)
     slots = [f"{r.get('start_date')}-{r.get('start_time')}-{r.get('buy_in')}" for r in records]
-    if len(slots) > 5 and len(set(slots)) == 1: return False
+    is_identical = len(slots) > 5 and len(set(slots)) == 1
+    
+    # Reject if both flags are present, or just identical slots (which is the main indicator of hallucination)
+    if is_identical: return False
+    
     return True
 
 # ── Supabase REST helpers (via PostgREST — triggers fire) ──────────────────────
@@ -1218,10 +1225,10 @@ def main():
                 else:
                     consecutive_fails += 1
                     log(f"      ❌ No events found")
-                    # Increment fail count in DB for enrich tracking
+                    # Update status in DB
                     if not args.dry_run:
                         sb_patch_series(series_uid, {
-                            "scrape_fail_count": (series.get("scrape_fail_count") or 0) + 1,
+                            "scrape_status": "failed",
                             "scrape_timestamp": datetime.now(timezone.utc).isoformat(),
                         })
             except Exception as e:
