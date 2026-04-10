@@ -8,7 +8,6 @@ import {
   detectDealer,
   heroPositionFromDealer,
   detectDealerAuto,
-  detectOccupiedSeats,
   findDealerButtonGlobal,
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
@@ -17,8 +16,8 @@ import { findTableBounds } from '../../lib/poker-brain/table-finder';
 import {
   detectPlayerCountByStacks,
   canonicalPosition,
-  positionFromOffset,
 } from '../../lib/poker-brain/auto-table-state';
+import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { verifyCardSuit } from '../../lib/poker-brain/suit-color';
@@ -223,6 +222,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const lastOcrTimeRef = useRef(0);
   const stateMachineRef = useRef(null);
   const sessionIdRef = useRef(null);
+  // Temporal stabilizer for auto-detected table state (bounds, player
+  // count, position, dealer). Smooths frame-to-frame noise so HUD
+  // indicators don't flicker while the underlying detection is sound.
+  const tableStateRef = useRef(new TableStateTracker());
 
   // Refs that mirror game-state so stale closures inside long-lived callbacks
   // (state machine, detection loop) can read fresh values without being
@@ -493,9 +496,29 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // full-frame coordinates. This lets the HUD work when the
             // user screen-shares a whole browser window containing an
             // emulator (the common real-world case).
+            // Collect raw auto-detection observations for this frame and
+            // feed them through the temporal tracker at the end of the
+            // block. The tracker smooths frame-to-frame jitter so the HUD
+            // doesn't flicker on one-frame misdetections.
+            const obs = {
+              tableBounds: null,
+              playerCount: null,
+              position: null,
+              dealerPoint: null,
+              variant: currentVariant,
+            };
             let tableBounds = null;
             try {
-              tableBounds = findTableBounds(video);
+              const prevStable = tableStateRef.current.snapshot().bounds;
+              tableBounds = findTableBounds(video, { previous: prevStable });
+              if (tableBounds) {
+                obs.tableBounds = tableBounds;
+                // Use the smoothed bounds for downstream detection so
+                // per-frame wobble doesn't propagate into stacks/cards.
+                // We still pass the RAW bounds to the tracker below.
+                const smoothed = tableStateRef.current.snapshot().bounds;
+                if (smoothed) tableBounds = smoothed;
+              }
             } catch (tbErr) { /* swallow */ }
 
             // ── AUTO CARD LOCALIZATION ─────────────────────────────────
@@ -513,26 +536,46 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               if (hasHole) {
                 const srcW = video.videoWidth || video.width;
                 const srcH = video.videoHeight || video.height;
-                // Build a variant-specific hole region bucket so matcher's
-                // holeCardsByVariant lookup still works for holdem/plo/plo5/plo6
+                // Auto-localized regions are already in SOURCE pixels, so
+                // set referenceSize to source dims (scale = 1 in matcher).
+                // CRITICAL: when we fall back to effectiveLayout.boardCards
+                // for the board (pre-flop or board detection miss), those
+                // regions are in REFERENCE space (480x1054). With the new
+                // referenceSize = source, matcher scale = 1.0 and it would
+                // read garbage coordinates. We must pre-scale the fallback
+                // board regions into source pixel space.
+                const fallbackRefW = effectiveLayout.referenceSize?.w || 480;
+                const fallbackRefH = effectiveLayout.referenceSize?.h || 1054;
+                const fsx = srcW / fallbackRefW;
+                const fsy = srcH / fallbackRefH;
+                const preScaleRegions = (arr) => (arr || []).map((r) => ({
+                  x: Math.round(r.x * fsx),
+                  y: Math.round(r.y * fsy),
+                  w: Math.round(r.w * fsx),
+                  h: Math.round(r.h * fsy),
+                }));
                 const holeRegions = loc.holeRegions.slice(0, expectedHole);
                 const boardRegions = (loc.boardRegions || []).slice(0, 5);
+                const fallbackBoard = preScaleRegions(effectiveLayout.boardCards);
                 matcherLayout = {
                   ...effectiveLayout,
                   referenceSize: { w: srcW, h: srcH },
                   holeCards: holeRegions,
                   holeCardsByVariant: {
-                    ...(effectiveLayout.holeCardsByVariant || {}),
+                    // NOTE: do NOT spread effectiveLayout.holeCardsByVariant
+                    // here — those are in reference space and would be
+                    // read as source pixels. We rebuild every variant entry
+                    // from the auto-localized (already-source) regions.
                     nlhe: holeRegions.slice(0, 2),
                     plo: holeRegions.slice(0, 4),
-                    plo_hi_lo: holeRegions.slice(0, 4),
+                    plo_hilo: holeRegions.slice(0, 4),
                     plo5: holeRegions.slice(0, 5),
                     plo6: holeRegions.slice(0, 6),
                     [currentVariant]: holeRegions,
                   },
                   boardCards: boardRegions.length >= 3
                     ? boardRegions
-                    : (effectiveLayout.boardCards || []),
+                    : fallbackBoard,
                 };
                 usedAutoLayout = true;
               }
@@ -601,10 +644,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               const pc = detectPlayerCountByStacks(video, tableBounds);
               stackClusters = pc.clusters || [];
               const livePlayerCount = Math.max(2, pc.playerCount || 0);
-              if (livePlayerCount > 0 && livePlayerCount !== playersRef.current) {
-                playersRef.current = livePlayerCount;
-                setPlayers(livePlayerCount);
-              }
+              if (livePlayerCount >= 2) obs.playerCount = livePlayerCount;
             } catch (err) { /* swallow */ }
 
             // --- Auto dealer button: global red-cluster scan ---------
@@ -630,6 +670,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               let dealerPoint = null;
               try { dealerPoint = findDealerButtonGlobal(video, tableBounds); }
               catch (dpErr) { /* swallow */ }
+              if (dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
+                obs.dealerPoint = { x: dealerPoint.x, y: dealerPoint.y };
+              }
 
               if (
                 stackClusters.length >= 2 &&
@@ -637,12 +680,23 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 Number.isFinite(dealerPoint.x) &&
                 Number.isFinite(dealerPoint.y)
               ) {
-                // Compute table center from stack cluster centroid bbox
-                let sumX = 0;
-                let sumY = 0;
-                for (const c of stackClusters) { sumX += c.cx; sumY += c.cy; }
-                const centerX = sumX / stackClusters.length;
-                const centerY = sumY / stackClusters.length;
+                // Use the TABLE bbox center as the angular origin, not the
+                // centroid of the stack clusters. The stack centroid is
+                // biased toward whichever side of the table has more
+                // players and shifts whenever a seat opens/closes,
+                // rotating the "12 o'clock" reference and mis-labeling
+                // positions. The table center is fixed and correct.
+                let centerX, centerY;
+                if (tableBounds) {
+                  centerX = tableBounds.x + tableBounds.w / 2;
+                  centerY = tableBounds.y + tableBounds.h / 2;
+                } else {
+                  let sumX = 0;
+                  let sumY = 0;
+                  for (const c of stackClusters) { sumX += c.cx; sumY += c.cy; }
+                  centerX = sumX / stackClusters.length;
+                  centerY = sumY / stackClusters.length;
+                }
                 const angleOf = (px, py) => {
                   // 0° = top (12 o'clock), increase clockwise
                   const a = Math.atan2(px - centerX, -(py - centerY)) * (180 / Math.PI);
@@ -651,11 +705,33 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 const occupiedAngles = stackClusters
                   .map((c) => angleOf(c.cx, c.cy))
                   .sort((a, b) => a - b);
-                // Hero is the stack cluster closest to the bottom of the table
+                // Hero identification: prefer the stack cluster nearest to
+                // the hero hole-card strip (when auto-layout resolved one),
+                // because the strip is a strong, variant-aware hero anchor.
+                // Fall back to the bottom-most cluster if we don't have a
+                // strip yet.
                 let heroCluster = stackClusters[0];
-                let bestY = -Infinity;
-                for (const c of stackClusters) {
-                  if (c.cy > bestY) { bestY = c.cy; heroCluster = c; }
+                if (usedAutoLayout && matcherLayout.holeCards && matcherLayout.holeCards.length > 0) {
+                  // Centroid of the hero hole card strip in source pixels
+                  let hx = 0, hy = 0;
+                  for (const r of matcherLayout.holeCards) {
+                    hx += r.x + r.w / 2;
+                    hy += r.y + r.h / 2;
+                  }
+                  hx /= matcherLayout.holeCards.length;
+                  hy /= matcherLayout.holeCards.length;
+                  let bestD2 = Infinity;
+                  for (const c of stackClusters) {
+                    const dx = c.cx - hx;
+                    const dy = c.cy - hy;
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < bestD2) { bestD2 = d2; heroCluster = c; }
+                  }
+                } else {
+                  let bestY = -Infinity;
+                  for (const c of stackClusters) {
+                    if (c.cy > bestY) { bestY = c.cy; heroCluster = c; }
+                  }
                 }
                 const heroAngle = angleOf(heroCluster.cx, heroCluster.cy);
                 const dealerAngle = angleOf(dealerPoint.x, dealerPoint.y);
@@ -665,16 +741,32 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   numPlayers: stackClusters.length,
                   occupiedAngles,
                 });
-                if (pos && pos !== 'unknown') setPosition(pos);
+                if (pos && pos !== 'unknown') obs.position = pos;
               } else if (dealer && dealer.seatId) {
                 // Fallback to old mapping if stack clusters weren't found
                 const fallback = heroPositionFromDealer(
                   dealer.seatId,
                   playersRef.current || players,
                 );
-                setPosition(fallback);
+                if (fallback && fallback !== 'unknown') obs.position = fallback;
               }
             } catch (err) { /* swallow */ }
+
+            // ── Feed observations into the temporal stabilizer ──────────
+            // All auto-detected fields go through the tracker, which
+            // applies per-field smoothing (EMA for bounds/dealer, rolling
+            // mode for counts, agreement filter for position) and returns
+            // the stable snapshot we actually surface to the user.
+            try {
+              const stable = tableStateRef.current.update(obs);
+              if (stable.playerCount && stable.playerCount !== playersRef.current) {
+                playersRef.current = stable.playerCount;
+                setPlayers(stable.playerCount);
+              }
+              if (stable.position && stable.position !== positionRef.current) {
+                setPosition(stable.position);
+              }
+            } catch (trkErr) { /* swallow */ }
 
             // Available action detection (color-cluster on fold/call/raise
             // button regions). Tells us whether it's actually hero's turn.
