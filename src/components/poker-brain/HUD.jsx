@@ -789,22 +789,29 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             } catch (tbErr) { /* swallow */ }
 
             // ── TABLE-ANCHORED CARD REGIONS ──────────────────────────
-            // The layout.json regions are in REFERENCE space (480×1054 =
+            // The layout.json regions are in REFERENCE space (480x1054 =
             // pure phone screen). But getDisplayMedia captures the ENTIRE
             // emulator window (title bar + phone screen + sidebar chrome
-            // + gesture bar), so the reference doesn't fill the capture —
-            // naive scaleX/Y puts every region 15-20 px off, enough to
-            // miss the cards entirely.
+            // + gesture bar), so the reference doesn't fill the capture.
             //
-            // Fix: use the DETECTED TABLE BOUNDS as a spatial anchor.
-            // layout.json defines `tableAnchor` = where the table sits in
-            // reference space. At runtime, findTableBounds gives us where
-            // the table sits in source space. The ratio of those two
-            // rectangles is the transform that correctly maps reference
-            // regions to source pixels, regardless of emulator chrome.
+            // Strategy: use the DETECTED TABLE BOUNDS to compute the
+            // transform from reference to source pixels. The table-finder
+            // detects the gold ring + felt oval; layout.json's tableAnchor
+            // says where that same region should be in reference space.
             //
-            // When table bounds aren't available (first frame, detection
-            // miss), we fall back to naive reference scaling.
+            // ROBUST FIX: The table-finder sometimes detects only the
+            // felt oval (not the full gold ring), producing a NARROWER
+            // bbox than tableAnchor expects. This caused tScaleX = 0.58
+            // — way too compressed, putting all regions in the wrong place.
+            //
+            // New approach: use CENTER-ALIGNED, UNIFORM SCALE transform.
+            // 1. Compute scaleX and scaleY from table bounds / anchor.
+            // 2. If they diverge by more than 25%, the width detection is
+            //    unreliable — use the HEIGHT-based scale for both axes
+            //    (height detection is more reliable because there's less
+            //    chrome on top/bottom than left/right).
+            // 3. Compute offset from table CENTER (more robust than corner).
+            // 4. Sanity-check: reject any scale outside [0.5, 1.5].
             let matcherLayout = effectiveLayout;
             const usedAutoLayout = false;
 
@@ -812,56 +819,97 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             if (tableBounds && anchor && anchor.w && anchor.h) {
               const srcW = video.videoWidth || video.width;
               const srcH = video.videoHeight || video.height;
-              // Transform: src = ref * scale + offset
-              const tScaleX = tableBounds.w / anchor.w;
-              const tScaleY = tableBounds.h / anchor.h;
-              const tOffsetX = tableBounds.x - anchor.x * tScaleX;
-              const tOffsetY = tableBounds.y - anchor.y * tScaleY;
-              const xform = (r) => ({
-                x: Math.round(r.x * tScaleX + tOffsetX),
-                y: Math.round(r.y * tScaleY + tOffsetY),
-                w: Math.round(r.w * tScaleX),
-                h: Math.round(r.h * tScaleY),
-              });
-              const xformArr = (arr) => (arr || []).map(xform);
-              const xformVariants = (byV) => {
-                if (!byV) return {};
-                const out = {};
-                for (const [k, v] of Object.entries(byV)) {
-                  if (Array.isArray(v)) out[k] = xformArr(v);
-                }
-                return out;
-              };
-              const xformOcr = (ocr) => {
-                if (!ocr) return {};
-                const out = {};
-                for (const [k, v] of Object.entries(ocr)) {
-                  out[k] = { ...v, ...xform(v) };
-                }
-                return out;
-              };
-              matcherLayout = {
-                ...effectiveLayout,
-                referenceSize: { w: srcW, h: srcH },
-                holeCards: xformArr(effectiveLayout.holeCards),
-                holeCardsByVariant: xformVariants(effectiveLayout.holeCardsByVariant),
-                boardCards: xformArr(effectiveLayout.boardCards),
-                ocrRegions: xformOcr(effectiveLayout.ocrRegions),
-                seats: (effectiveLayout.seats || []).map((s) => ({
-                  ...s,
-                  ...xform({ x: s.x, y: s.y, w: s.w, h: s.h }),
-                })),
-                actionButtons: (() => {
+
+              // Raw per-axis scales
+              const rawScaleX = tableBounds.w / anchor.w;
+              const rawScaleY = tableBounds.h / anchor.h;
+
+              // Detect if axes diverge (e.g., width detection missed the
+              // gold ring and only found the narrower felt oval)
+              const divergence = Math.abs(rawScaleX - rawScaleY) / Math.max(rawScaleX, rawScaleY);
+
+              let tScaleX, tScaleY;
+              if (divergence > 0.25) {
+                // Axes diverge too much — use the HEIGHT-based scale for
+                // both axes. Height is more reliable because the emulator
+                // chrome is mostly on top (title bar) and right (sidebar),
+                // while the felt/ring extends nearly the full vertical span.
+                const uniformScale = rawScaleY;
+                tScaleX = uniformScale;
+                tScaleY = uniformScale;
+                console.warn(
+                  `[HUD] Table scale divergence ${(divergence * 100).toFixed(0)}%: ` +
+                  `rawX=${rawScaleX.toFixed(3)} rawY=${rawScaleY.toFixed(3)} — ` +
+                  `using uniform scale=${uniformScale.toFixed(3)}`
+                );
+              } else {
+                tScaleX = rawScaleX;
+                tScaleY = rawScaleY;
+              }
+
+              // Sanity check: reject wildly out-of-range scales
+              if (tScaleX < 0.5 || tScaleX > 1.5 || tScaleY < 0.5 || tScaleY > 1.5) {
+                console.warn(
+                  `[HUD] Table-anchored scale out of range: ` +
+                  `(${tScaleX.toFixed(3)}, ${tScaleY.toFixed(3)}) — skipping transform`
+                );
+              } else {
+                // Compute offset from table CENTER (more robust than corner)
+                const anchorCX = anchor.x + anchor.w / 2;
+                const anchorCY = anchor.y + anchor.h / 2;
+                const boundsCX = tableBounds.x + tableBounds.w / 2;
+                const boundsCY = tableBounds.y + tableBounds.h / 2;
+                const tOffsetX = boundsCX - anchorCX * tScaleX;
+                const tOffsetY = boundsCY - anchorCY * tScaleY;
+
+                const xform = (r) => ({
+                  x: Math.round(r.x * tScaleX + tOffsetX),
+                  y: Math.round(r.y * tScaleY + tOffsetY),
+                  w: Math.round(r.w * tScaleX),
+                  h: Math.round(r.h * tScaleY),
+                });
+                const xformArr = (arr) => (arr || []).map(xform);
+                const xformVariants = (byV) => {
+                  if (!byV) return {};
                   const out = {};
-                  for (const [k, v] of Object.entries(effectiveLayout.actionButtons || {})) {
+                  for (const [k, v] of Object.entries(byV)) {
+                    if (Array.isArray(v)) out[k] = xformArr(v);
+                  }
+                  return out;
+                };
+                const xformOcr = (ocr) => {
+                  if (!ocr) return {};
+                  const out = {};
+                  for (const [k, v] of Object.entries(ocr)) {
                     out[k] = { ...v, ...xform(v) };
                   }
                   return out;
-                })(),
-                // Mark as table-anchored so the diagnostic dump shows the
-                // transform instead of a cryptic scale=1.00x1.00.
-                _tableAnchored: { tScaleX, tScaleY, tOffsetX, tOffsetY },
-              };
+                };
+                matcherLayout = {
+                  ...effectiveLayout,
+                  referenceSize: { w: srcW, h: srcH },
+                  holeCards: xformArr(effectiveLayout.holeCards),
+                  holeCardsByVariant: xformVariants(effectiveLayout.holeCardsByVariant),
+                  boardCards: xformArr(effectiveLayout.boardCards),
+                  ocrRegions: xformOcr(effectiveLayout.ocrRegions),
+                  seats: (effectiveLayout.seats || []).map((s) => ({
+                    ...s,
+                    ...xform({ x: s.x, y: s.y, w: s.w, h: s.h }),
+                  })),
+                  actionButtons: (() => {
+                    const out = {};
+                    for (const [k, v] of Object.entries(effectiveLayout.actionButtons || {})) {
+                      out[k] = { ...v, ...xform(v) };
+                    }
+                    return out;
+                  })(),
+                  _tableAnchored: {
+                    tScaleX, tScaleY, tOffsetX, tOffsetY,
+                    rawScaleX, rawScaleY, divergence,
+                    uniform: divergence > 0.25,
+                  },
+                };
+              }
             }
 
             const result = matcher.matchAllRegions(video, matcherLayout, {
@@ -1742,7 +1790,18 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               )}
               {streamReady && (
                 <button
-                  onClick={() => setDebugMode((v) => !v)}
+                  onClick={() => {
+                    setDebugMode((v) => {
+                      const next = !v;
+                      // Mutually exclusive: turning on Debug turns off Calibrate
+                      if (next) {
+                        setCalibrationVisible(false);
+                        setCalibrationEditable(false);
+                        setCalibrationFullScreen(false);
+                      }
+                      return next;
+                    });
+                  }}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (debugMode ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
                   title="Toggle auto-detect overlay + matcher probe log"
                 >
@@ -1751,7 +1810,19 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               )}
               {streamReady && (
                 <button
-                  onClick={() => setCalibrationVisible((v) => !v)}
+                  onClick={() => {
+                    setCalibrationVisible((v) => {
+                      const next = !v;
+                      // Mutually exclusive: turning on Calibrate turns off Debug
+                      if (next) {
+                        setDebugMode(false);
+                      } else {
+                        setCalibrationEditable(false);
+                        setCalibrationFullScreen(false);
+                      }
+                      return next;
+                    });
+                  }}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (calibrationVisible ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
                 >
                   {calibrationVisible ? 'Hide Calibration' : 'Calibrate'}
@@ -1904,6 +1975,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {debugProbe.tableAnchored && (
                 <div className="mb-1 text-cyan-300">
                   TABLE-ANCHORED: scale=({debugProbe.tableAnchored.tScaleX.toFixed(3)},{debugProbe.tableAnchored.tScaleY.toFixed(3)}) offset=({debugProbe.tableAnchored.tOffsetX.toFixed(1)},{debugProbe.tableAnchored.tOffsetY.toFixed(1)})
+                  {debugProbe.tableAnchored.uniform && (
+                    <span className="text-amber-300 ml-2">
+                      [UNIFORM - rawX={debugProbe.tableAnchored.rawScaleX?.toFixed(3)} rawY={debugProbe.tableAnchored.rawScaleY?.toFixed(3)} div={((debugProbe.tableAnchored.divergence || 0) * 100).toFixed(0)}%]
+                    </span>
+                  )}
                 </div>
               )}
               {debugProbe.tableBounds && (
