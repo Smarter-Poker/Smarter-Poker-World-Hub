@@ -470,6 +470,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const effectiveStackRef = useRef(effectiveStack);
   useEffect(() => { effectiveStackRef.current = effectiveStack; }, [effectiveStack]);
 
+  // Live ref for the merged layout so the long-lived detection loop (whose
+  // deps are [streamReady, matcherReady, detecting]) always reads the
+  // freshest calibration overrides. Without this, changing calibration
+  // while detection is running has no effect until detection is restarted.
+  const effectiveLayoutRef = useRef(effectiveLayout);
+  useEffect(() => { effectiveLayoutRef.current = effectiveLayout; }, [effectiveLayout]);
+
   // Storage (Supabase + IndexedDB queue)
   const storage = usePokerBrainStorage(supabase);
   // Live ref so stable callbacks (stopStream, unmount cleanup) that don't
@@ -818,7 +825,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             //
             // Table bounds are still detected for player count / dealer
             // detection downstream — but NOT used for coordinate mapping.
-            let matcherLayout = effectiveLayout;
+            let matcherLayout = effectiveLayoutRef.current;
             const usedAutoLayout = false;
 
             const result = matcher.matchAllRegions(video, matcherLayout, {
@@ -938,9 +945,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // cluster (= nearest player). That pair of positions drives
             // the canonical position label (BTN/SB/BB/UTG/MP/CO/HJ).
             try {
-              let dealer = detectDealerAuto(video, effectiveLayout);
+              let dealer = detectDealerAuto(video, effectiveLayoutRef.current);
               if (!dealer || !dealer.seatId) {
-                dealer = detectDealer(video, effectiveLayout);
+                dealer = detectDealer(video, effectiveLayoutRef.current);
               }
               if (dealer && dealer.seatId) {
                 setDealerSeat(dealer.seatId);
@@ -1088,7 +1095,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // Available action detection (color-cluster on fold/call/raise
             // button regions). Tells us whether it's actually hero's turn.
             try {
-              const actions = detectAvailableActions(video, effectiveLayout);
+              const actions = detectAvailableActions(video, effectiveLayoutRef.current);
               setAvailableActions(actions);
             } catch (err) { /* swallow */ }
           } catch (err) {
@@ -1102,12 +1109,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         lastOcrTimeRef.current = now;
         const video = videoRef.current;
         const ocr = ocrRef.current;
-        if (video && ocr && effectiveLayout.ocrRegions) {
+        const ocrLayout = effectiveLayoutRef.current;
+        if (video && ocr && ocrLayout.ocrRegions) {
           const srcW = video.videoWidth || video.width;
           const srcH = video.videoHeight || video.height;
           if (srcW && srcH) {
-            const refW = effectiveLayout.referenceSize.w;
-            const refH = effectiveLayout.referenceSize.h;
+            const refW = ocrLayout.referenceSize.w;
+            const refH = ocrLayout.referenceSize.h;
             const sx = srcW / refW;
             const sy = srcH / refH;
 
@@ -1118,7 +1126,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             full.getContext('2d').drawImage(video, 0, 0, srcW, srcH);
 
             const run = async (name, method, opts = {}) => {
-              const raw = effectiveLayout.ocrRegions[name];
+              const raw = ocrLayout.ocrRegions[name];
               if (!raw) return null;
               const rect = scaleRect(raw, sx, sy);
               const crop = cropToCanvas(full, rect);
@@ -1148,7 +1156,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             }).catch(() => {});
 
             // Hand strength label (plain readRegion, then stored for validator)
-            const hsRaw = effectiveLayout.ocrRegions.handStrength;
+            const hsRaw = ocrLayout.ocrRegions.handStrength;
             if (hsRaw && typeof ocr.readRegion === 'function') {
               const rect = scaleRect(hsRaw, sx, sy);
               const crop = cropToCanvas(full, rect);
@@ -1158,7 +1166,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             }
 
             // Game variant detection (NLHE vs PLO vs PLO5)
-            const gvRaw = effectiveLayout.ocrRegions.gameVariant;
+            const gvRaw = ocrLayout.ocrRegions.gameVariant;
             if (gvRaw && typeof ocr.readRegion === 'function') {
               const rect = scaleRect(gvRaw, sx, sy);
               const crop = cropToCanvas(full, rect);
@@ -1174,7 +1182,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             }
 
             // Hero name (for display only)
-            const hnRaw = effectiveLayout.ocrRegions.heroName;
+            const hnRaw = ocrLayout.ocrRegions.heroName;
             if (hnRaw && typeof ocr.readRegion === 'function') {
               const rect = scaleRect(hnRaw, sx, sy);
               const crop = cropToCanvas(full, rect);
@@ -1185,7 +1193,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
             // Villain stacks (for multi-villain SPR awareness / effective stack)
             ['seat1Stack', 'seat2Stack', 'seat3Stack'].forEach((seatKey) => {
-              const sr = effectiveLayout.ocrRegions[seatKey];
+              const sr = ocrLayout.ocrRegions[seatKey];
               if (!sr) return;
               const rect = scaleRect(sr, sx, sy);
               const crop = cropToCanvas(full, rect);
