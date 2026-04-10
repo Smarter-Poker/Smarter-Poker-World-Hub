@@ -2,25 +2,27 @@
  * Poker Brain - Decision Bridge
  * =============================
  * Glue between the raw matcher output (hole/board cards with confidence) and
- * the real decision engine in engine.js.
+ * the FULL Horse Brain decision engine via the /api/poker-brain/decide route.
  *
- * Responsibilities:
- *   - Convert matcher card objects ({rank, suit, confidence, key}) to the
- *     shape engine expects ({rank, suit})
- *   - Enforce a confidence floor - low-confidence matches are dropped and
- *     reported as unknown so the engine does not get garbage input
- *   - Handle partial-board cases (e.g., 2 of 3 flop cards matched) by either
- *     refusing to call the engine or degrading gracefully to preflop
- *   - Estimate remaining game state fields (pot, stack, players, position)
- *     from whatever signals the HUD has available (OCR output, user input,
- *     defaults)
- *   - Return a unified object with the engine decision plus metadata the
- *     HUD needs to render confidence indicators and explain the reasoning
+ * Architecture:
+ *   The Horse Brain (20,000+ lines, 32 anti-exploit modules, GTO solver,
+ *   personality overlays, live opponent modeling, tournament ICM, PLO variant
+ *   brains) runs SERVER-SIDE via the API route. This bridge:
  *
- * Pure JS. Imports engine.js (default export PokerBrainEngine).
+ *   1. Filters cards by confidence floor (same as before)
+ *   2. POSTs the OCR state to /api/poker-brain/decide
+ *   3. The server runs the FULL Horse Brain pipeline (router.getDecision)
+ *   4. Returns the recommendation for the HUD popup
+ *
+ *   The local engine.js is kept ONLY as a fast offline fallback if the API
+ *   is unreachable. The Horse Brain is the primary decision source.
+ *
+ * The HUD user sees the same quality recommendation a Horse would get —
+ * they just click the buttons themselves.
  */
 
 import PokerBrainEngine from './engine';
+import { supabase } from '../supabase';
 
 const DEFAULT_CONFIDENCE_FLOOR = 0.80;  // 80% match confidence required
 const STRONG_CONFIDENCE_FLOOR  = 0.90;  // Used for high-stakes decisions
@@ -59,16 +61,62 @@ export function extractCards(matcherCards, confidenceFloor = DEFAULT_CONFIDENCE_
 }
 
 /**
- * Main entry point. Returns a decision object shaped for the HUD:
+ * Call the FULL Horse Brain via the server-side API route.
+ * This gives the HUD user 100% of the same decision engine that
+ * the automated Horses use — all 32 anti-exploit modules, GTO solver,
+ * PLO/PLO5/PLO6/PLO8 variant brains, tournament ICM, opponent modeling.
+ *
+ * @param {object} params - OCR-scraped game state
+ * @param {string} authToken - Supabase JWT for authentication
+ * @returns {Promise<object|null>} Horse Brain decision or null on failure
+ */
+async function callHorseBrain(params, authToken) {
+  try {
+    const resp = await fetch('/api/poker-brain/decide', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(params),
+    });
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch (err) {
+    console.warn('[decision-bridge] Horse Brain API unreachable, falling back to local engine:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Get the current Supabase auth token for API calls.
+ * Returns null if not authenticated.
+ */
+async function getAuthToken() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Main entry point — ASYNC. Calls the full Horse Brain server-side.
+ * Falls back to the local engine only if the API is unreachable.
+ *
+ * Returns a decision object shaped for the HUD:
  *   {
  *     ready: boolean,          // true if engine produced a real decision
  *     reason: string,          // explanation of why not (if !ready)
  *     action, raiseAmount, confidence, reasoning, equity, potOdds,
  *     street, handStrength, holeCards, boardCards,
+ *     source: 'horse_brain' | 'local_fallback',
+ *     engineMs: number,        // server-side computation time (ms)
  *     detection: { holeConfidence, boardConfidence, unknownCount },
  *   }
  */
-export function getBridgedDecision(input) {
+export async function getBridgedDecision(input) {
   const {
     rawHoleCards = [],
     rawBoardCards = [],
@@ -136,7 +184,129 @@ export function getBridgedDecision(input) {
     effectiveBoard = [];
   }
 
-  // Call the real engine
+  // ═══════════════════════════════════════════════════════════════════
+  // PRIMARY: Call the FULL Horse Brain via server-side API
+  // This gives the HUD user 100% of the same decision engine as Horses
+  // ═══════════════════════════════════════════════════════════════════
+  const authToken = await getAuthToken();
+  if (authToken) {
+    // Convert card objects to string format the API expects: ['As', 'Kh']
+    const holeStrings = holeTrimmed.map(c => `${c.rank}${c.suit}`);
+    const boardStrings = effectiveBoard.map(c => `${c.rank}${c.suit}`);
+
+    const horseBrainResult = await callHorseBrain({
+      holeCards: holeStrings,
+      boardCards: boardStrings,
+      potSize,
+      betToCall,
+      stackSize,
+      bigBlind,
+      position,
+      numPlayers,
+      gameType,
+      street,
+      isTournament,
+      tournamentStage,
+      villainStacks: input.villainStacks || {},
+    }, authToken);
+
+    if (horseBrainResult && horseBrainResult.action) {
+      // Horse Brain returned a valid decision — use it.
+      // Compute supplemental client-side metadata (hand strength label,
+      // texture, outs) for the HUD display since the Horse Brain API
+      // returns the action decision but the HUD needs visual context too.
+      let handStrength = null;
+      let texture = null;
+      const isOmahaVariant = String(gameType).toLowerCase().includes('plo');
+      if (effectiveBoard.length >= 3) {
+        try {
+          if (isOmahaVariant) {
+            let best = null;
+            for (let i = 0; i < holeTrimmed.length; i++) {
+              for (let j = i + 1; j < holeTrimmed.length; j++) {
+                for (let a = 0; a < effectiveBoard.length; a++) {
+                  for (let b = a + 1; b < effectiveBoard.length; b++) {
+                    for (let c = b + 1; c < effectiveBoard.length; c++) {
+                      const five = [holeTrimmed[i], holeTrimmed[j], effectiveBoard[a], effectiveBoard[b], effectiveBoard[c]];
+                      const h = PokerBrainEngine.getBestFiveCardFromCards(five);
+                      if (h && (!best || h.score > best.score)) best = h;
+                    }
+                  }
+                }
+              }
+            }
+            if (best) handStrength = best.name || best.rank;
+          } else {
+            const best = PokerBrainEngine.getBestFiveCardFromCards([...holeTrimmed, ...effectiveBoard]);
+            if (best) handStrength = best.name || best.rank;
+          }
+        } catch (err) { /* swallow */ }
+        try {
+          texture = PokerBrainEngine.classifyTexture(effectiveBoard);
+        } catch (err) { /* swallow */ }
+      }
+      let outs = 0;
+      let outsImproves = [];
+      if (!isOmahaVariant && (effectiveBoard.length === 3 || effectiveBoard.length === 4)) {
+        try {
+          const o = PokerBrainEngine.countOuts(holeTrimmed, effectiveBoard);
+          outs = o.outs;
+          outsImproves = o.improves || [];
+        } catch (err) { /* swallow */ }
+      }
+      const spr = PokerBrainEngine.calculateStackToPot(stackSize, potSize);
+      const bbStack = bigBlind > 0 ? stackSize / bigBlind : null;
+      const mRatio = PokerBrainEngine.calculateM(stackSize, bigBlind, numPlayers);
+
+      // Map Horse Brain action to HUD display — the API already returns
+      // uppercase action names (FOLD, CALL, RAISE, etc.)
+      const action = horseBrainResult.action;
+      const amount = horseBrainResult.amount;
+
+      return {
+        ready: true,
+        reason: null,
+        action,
+        raiseAmount: amount,
+        confidence: 0.95, // Horse Brain is high-confidence by design
+        reasoning: `Horse Brain [${horseBrainResult.variant || gameType}] ${horseBrainResult.street || street} — ${horseBrainResult.engineMs || '?'}ms`,
+        equity: null, // Horse Brain handles equity internally
+        potOdds: potSize > 0 && betToCall > 0 ? betToCall / (potSize + betToCall) : null,
+        highEquity: null,
+        lowEquity: null,
+        bubbleFactor: null,
+        bbStack: bbStack,
+        variant: horseBrainResult.variant || gameType,
+        isHiLo: String(gameType).includes('hilo') || String(gameType).includes('plo8'),
+        isOmaha: isOmahaVariant,
+        street,
+        handStrength,
+        texture,
+        outs,
+        outsImproves,
+        spr: Number.isFinite(spr) ? Math.round(spr * 10) / 10 : null,
+        mRatio: Number.isFinite(mRatio) ? Math.round(mRatio * 10) / 10 : null,
+        pushFoldHint: null, // Horse Brain handles push-fold internally
+        isTournament,
+        tournamentStage,
+        holeCards: holeTrimmed,
+        boardCards: effectiveBoard,
+        source: 'horse_brain',
+        engineMs: horseBrainResult.engineMs,
+        detection: {
+          holeConfidence: holeResult.minConfidence,
+          boardConfidence: boardResult.minConfidence,
+          unknownCount,
+        },
+      };
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // FALLBACK: Local engine (only if Horse Brain API is unreachable)
+  // This should rarely be hit — only if auth fails or network is down.
+  // ═══════════════════════════════════════════════════════════════════
+  console.warn('[decision-bridge] Using LOCAL fallback engine — Horse Brain API unavailable');
   let engineResult;
   try {
     engineResult = PokerBrainEngine.getDecision({
@@ -161,6 +331,7 @@ export function getBridgedDecision(input) {
       reason: 'Engine error: ' + (err.message || 'unknown'),
       action: 'WAIT',
       street,
+      source: 'error',
       holeCards: hole,
       boardCards: board,
       detection: {
@@ -172,9 +343,6 @@ export function getBridgedDecision(input) {
   }
 
   // Hand strength label (for UI, computed from current made hand).
-  // For Omaha variants we must honor the 2-from-hole rule, which
-  // getBestFiveCardFromCards does NOT enforce. So we iterate explicit
-  // 2-from-hole / 3-from-board combos when isOmaha.
   let handStrength = null;
   let texture = null;
   const isOmahaVariant = PokerBrainEngine.isHiLoVariant
@@ -207,8 +375,6 @@ export function getBridgedDecision(input) {
       texture = PokerBrainEngine.classifyTexture(effectiveBoard);
     } catch (err) { /* swallow */ }
   }
-  // Outs counter only meaningful on flop/turn with full hole + board.
-  // countOuts assumes 2-card hole; skip for Omaha variants.
   let outs = 0;
   let outsImproves = [];
   if (!isOmahaVariant && (effectiveBoard.length === 3 || effectiveBoard.length === 4)) {
@@ -221,7 +387,6 @@ export function getBridgedDecision(input) {
   const spr = PokerBrainEngine.calculateStackToPot(stackSize, potSize);
   const bbStack = bigBlind > 0 ? stackSize / bigBlind : null;
   const mRatio = PokerBrainEngine.calculateM(stackSize, bigBlind, numPlayers);
-  // Push-fold hint for tournament short stacks
   let pushFoldHint = null;
   if (isTournament && !isOmahaVariant && street === 'preflop' && bbStack != null && bbStack <= 20) {
     try {
@@ -266,6 +431,7 @@ export function getBridgedDecision(input) {
     tournamentStage,
     holeCards: holeTrimmed,
     boardCards: effectiveBoard,
+    source: 'local_fallback',
     detection: {
       holeConfidence: holeResult.minConfidence,
       boardConfidence: boardResult.minConfidence,

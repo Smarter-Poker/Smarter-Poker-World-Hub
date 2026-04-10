@@ -1111,10 +1111,20 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
   // ============================================================================
   // DECISION COMPUTATION (reruns when state or game inputs change)
-  // Rate-limited: min 200ms between recomputes to avoid thrashing Monte Carlo
+  // Rate-limited: min 200ms between recomputes to avoid thrashing.
+  //
+  // ASYNC: getBridgedDecision() now calls the FULL Horse Brain server-side
+  // via /api/poker-brain/decide. The same 32-module pipeline, GTO solver,
+  // and personality overlays that power the automated Horses now power the
+  // HUD recommendations. The human user clicks the buttons themselves.
+  //
+  // Race condition handling: a generation counter ensures that if the game
+  // state changes while a Horse Brain request is in flight, the stale
+  // response is discarded and only the freshest decision is applied.
   // ============================================================================
   const decisionTimerRef = useRef(null);
   const lastDecisionKeyRef = useRef('');
+  const decisionGenerationRef = useRef(0);
   useEffect(() => {
     if (handState.holeCards.length < 2) {
       setDecision(null);
@@ -1134,58 +1144,79 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
     decisionTimerRef.current = setTimeout(() => {
       lastDecisionKeyRef.current = key;
-      const bridged = getBridgedDecision({
-        rawHoleCards: handState.holeCards,
-        rawBoardCards: handState.boardCards,
-        gameType,
-        potSize,
-        betToCall: effBetToCall,
-        bigBlind,
-        stackSize: effectiveStack,
-        position,
-        numPlayers: players,
-        blindLevel: bigBlind || 1,
-        isTournament,
-        tournamentStage,
-      });
-      setDecision(bridged);
+      // Increment generation counter — any in-flight request with a lower
+      // generation will be discarded when it resolves.
+      const generation = ++decisionGenerationRef.current;
 
-      // Record the decision on the current street of the current hand
-      if (bridged.ready && stateMachineRef.current) {
-        stateMachineRef.current.recordDecision({
-          action: bridged.action,
-          raiseAmount: bridged.raiseAmount,
-          equity: bridged.equity,
-          potOdds: bridged.potOdds,
-          confidence: bridged.confidence,
-          reasoning: bridged.reasoning,
-        });
-      }
-
-      // Validator: compare engine hand name against PokerBros OCR label
-      try {
-        if (bridged.ready && bridged.handStrength && pokerBrosHandLabel) {
-          const v = compareHandStrength(bridged.handStrength, pokerBrosHandLabel);
-          setValidator(v);
-        } else {
-          setValidator(null);
-        }
-      } catch (err) { /* swallow */ }
-
-      // Action-button consistency: does the recommendation actually
-      // correspond to a button that is visible right now?
-      if (bridged.ready) {
+      // Async IIFE: getBridgedDecision is now async (calls Horse Brain API)
+      (async () => {
         try {
-          setActionValidation(validateAction(availableActions, bridged.action));
-        } catch (err) { setActionValidation(null); }
-      } else {
-        setActionValidation(null);
-      }
+          const bridged = await getBridgedDecision({
+            rawHoleCards: handState.holeCards,
+            rawBoardCards: handState.boardCards,
+            gameType,
+            potSize,
+            betToCall: effBetToCall,
+            bigBlind,
+            stackSize: effectiveStack,
+            position,
+            numPlayers: players,
+            blindLevel: bigBlind || 1,
+            isTournament,
+            tournamentStage,
+            villainStacks,
+          });
+
+          // STALE GUARD: if a newer request has been issued while we
+          // were awaiting the Horse Brain, discard this result.
+          if (generation !== decisionGenerationRef.current) return;
+
+          setDecision(bridged);
+
+          // Record the decision on the current street of the current hand
+          if (bridged.ready && stateMachineRef.current) {
+            stateMachineRef.current.recordDecision({
+              action: bridged.action,
+              raiseAmount: bridged.raiseAmount,
+              equity: bridged.equity,
+              potOdds: bridged.potOdds,
+              confidence: bridged.confidence,
+              reasoning: bridged.reasoning,
+            });
+          }
+
+          // Validator: compare engine hand name against PokerBros OCR label
+          try {
+            if (bridged.ready && bridged.handStrength && pokerBrosHandLabel) {
+              const v = compareHandStrength(bridged.handStrength, pokerBrosHandLabel);
+              setValidator(v);
+            } else {
+              setValidator(null);
+            }
+          } catch (err) { /* swallow */ }
+
+          // Action-button consistency: does the recommendation actually
+          // correspond to a button that is visible right now?
+          if (bridged.ready) {
+            try {
+              setActionValidation(validateAction(availableActions, bridged.action));
+            } catch (err) { setActionValidation(null); }
+          } else {
+            setActionValidation(null);
+          }
+        } catch (err) {
+          // Horse Brain API or fallback engine failed — don't crash the HUD
+          console.error('[HUD] Decision computation error:', err);
+          if (generation === decisionGenerationRef.current) {
+            setDecision(null);
+          }
+        }
+      })();
     }, 200);
     return () => {
       if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
     };
-  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, isTournament, tournamentStage, pokerBrosHandLabel, availableActions]);
+  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, isTournament, tournamentStage, pokerBrosHandLabel, availableActions, villainStacks]);
 
   // ============================================================================
   // UI HELPERS
@@ -1471,7 +1502,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
         {/* DECISION BANNER */}
         <div className={'mb-4 p-4 rounded-2xl bg-gradient-to-r ' + decisionColor + ' shadow-2xl'}>
-          <div className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Poker Brain says</div>
+          <div className="text-[10px] text-white/70 uppercase tracking-widest font-bold">
+            {decision && decision.source === 'horse_brain'
+              ? 'Horse Brain says'
+              : decision && decision.source === 'local_fallback'
+                ? 'Poker Brain says (offline)'
+                : 'Poker Brain says'}
+            {decision && decision.engineMs && (
+              <span className="ml-2 text-white/40 normal-case">{decision.engineMs}ms</span>
+            )}
+          </div>
           <div className="text-4xl sm:text-5xl font-black text-white leading-none mt-1">
             {displayAction}
             {decision && decision.ready && decision.raiseAmount > 0 && (
