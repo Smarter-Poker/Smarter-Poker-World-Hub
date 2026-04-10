@@ -16,7 +16,7 @@
  *   await storage.endSession({ finalStack: 120 });
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 
 // ---------------------------------------------------------------------------
 // IndexedDB offline queue
@@ -310,19 +310,42 @@ export function usePokerBrainStorage(supabase) {
   const listRecentSessions = useCallback(async (n) => storageRef.current?.listRecentSessions(n), []);
   const listHands = useCallback(async (id, n) => storageRef.current?.listHands(id, n), []);
 
-  return {
-    ready,
-    online,
-    stats,
-    startSession,
-    logHand,
-    endSession,
-    saveProfile,
-    listProfiles,
-    listRecentSessions,
-    listHands,
-    storage: storageRef.current,
-  };
+  // Memoize the returned object so consumers using `[storage]` as an
+  // effect dependency don't see a new reference every render. Without
+  // this, effects like HUD's state-machine-creator re-run on EVERY
+  // render (any setState in the HUD → new storage object → effect fires
+  // → state machine destroyed & rebuilt → hand tracking loses state).
+  //
+  // We intentionally DON'T include `storageRef.current` in the deps:
+  // the ref is written once inside a useEffect, so the first non-null
+  // snapshot is stable for the rest of the component's lifetime.
+  return useMemo(
+    () => ({
+      ready,
+      online,
+      stats,
+      startSession,
+      logHand,
+      endSession,
+      saveProfile,
+      listProfiles,
+      listRecentSessions,
+      listHands,
+      storage: storageRef.current,
+    }),
+    [
+      ready,
+      online,
+      stats,
+      startSession,
+      logHand,
+      endSession,
+      saveProfile,
+      listProfiles,
+      listRecentSessions,
+      listHands,
+    ],
+  );
 }
 
 export default PokerBrainStorage;

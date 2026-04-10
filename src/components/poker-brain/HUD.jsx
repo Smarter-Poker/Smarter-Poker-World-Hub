@@ -396,7 +396,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   // Temporal stabilizer for auto-detected table state (bounds, player
   // count, position, dealer). Smooths frame-to-frame noise so HUD
   // indicators don't flicker while the underlying detection is sound.
-  const tableStateRef = useRef(new TableStateTracker());
+  //
+  // Lazy-init: `useRef(new Foo())` would allocate a fresh instance on
+  // every render and throw it away — this pattern allocates exactly once.
+  const tableStateRef = useRef(null);
+  if (tableStateRef.current === null) {
+    tableStateRef.current = new TableStateTracker();
+  }
   // Latest frame's auto-detection snapshot, consumed by AutoDetectOverlay.
   // Written directly by the detection loop (no setState → no re-render
   // storm), read by an rAF-driven canvas draw.
@@ -440,6 +446,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
   // Storage (Supabase + IndexedDB queue)
   const storage = usePokerBrainStorage(supabase);
+  // Live ref so stable callbacks (stopStream, unmount cleanup) that don't
+  // list `storage` as a dep can still reach the latest methods. The
+  // individual hook methods (endSession, logHand, …) are already stable
+  // useCallback refs, but `storage.ready` is captured at closure time and
+  // goes stale in empty-dep effects — this ref bypasses that.
+  const storageLiveRef = useRef(storage);
+  useEffect(() => { storageLiveRef.current = storage; }, [storage]);
 
   // ============================================================================
   // STATE MACHINE (created once)
@@ -515,7 +528,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     return () => {
       stateMachineRef.current = null;
     };
-  }, [storage]);
+    // Only rebuild the state machine when storage readiness flips — the
+    // callbacks (storage.logHand, etc.) are stable useCallback refs and
+    // safely read the latest storageRef.current at call time. Depending
+    // on the whole `storage` object here would re-run the effect any
+    // time stats refresh and silently destroy the in-progress hand.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storage.ready]);
 
   // ============================================================================
   // MATCHER INITIALIZATION
@@ -567,15 +586,26 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
       if (id) sessionIdRef.current = id;
     }).catch((err) => console.warn('[HUD] startSession failed', err))
       .finally(() => { startingSessionRef.current = false; });
-  }, [storage, detecting, source]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storage.ready, detecting, source]);
 
   useEffect(() => {
     return () => {
-      if (storage.ready && sessionIdRef.current) {
-        storage.endSession({
-          finalStack: heroStackRef.current || null,
-          notes: null,
-        }).catch(() => {});
+      // Read the LATEST storage from the live ref — the `storage` we'd
+      // close over here is whatever was returned on the first render
+      // (ready: false, all methods as no-ops), so gating on
+      // `storage.ready` would always be false and this cleanup would
+      // silently leak every session. storageLiveRef always points at
+      // the current memoized storage object from the hook.
+      if (sessionIdRef.current) {
+        const live = storageLiveRef.current;
+        if (live && live.endSession) {
+          live.endSession({
+            finalStack: heroStackRef.current || null,
+            notes: null,
+          }).catch(() => {});
+        }
+        sessionIdRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -618,7 +648,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         setSource(null);
         setStreamReady(false);
         setDetecting(false);
+        // Clear all auto-detection state so the next capture starts
+        // fresh — prevents stale debug overlay and tracker bleed.
+        detectionSnapshotRef.current = null;
+        if (tableStateRef.current) tableStateRef.current.reset();
       });
+      // New stream = new table. Wipe any stabilized state from a
+      // previous capture so nothing carries over.
+      detectionSnapshotRef.current = null;
+      if (tableStateRef.current) tableStateRef.current.reset();
       setSource('screen');
       setStreamReady(true);
     } catch (err) {
@@ -633,6 +671,28 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     }
     if (videoRef.current) videoRef.current.srcObject = null;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    // End the Supabase session cleanly so the DB row is closed AND so
+    // the next capture gets a fresh sessionId. Without this, stop→start
+    // leaves sessionIdRef populated with a stale id and the session-
+    // start effect bails out, causing every future hand to log against
+    // a zombie session.
+    if (sessionIdRef.current) {
+      const live = storageLiveRef.current;
+      if (live && live.endSession) {
+        live.endSession({
+          finalStack: heroStackRef.current || null,
+          notes: null,
+        }).catch(() => {});
+      }
+      sessionIdRef.current = null;
+    }
+    detectionSnapshotRef.current = null;
+    if (tableStateRef.current) tableStateRef.current.reset();
+    // Also wipe the hand state machine so a leftover in-progress hand
+    // from the previous capture can't bleed into a new session.
+    if (stateMachineRef.current && stateMachineRef.current.reset) {
+      stateMachineRef.current.reset();
+    }
     setSource(null);
     setStreamReady(false);
     setDetecting(false);
@@ -647,7 +707,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     const DETECT_INTERVAL_MS = 250;   // 4 Hz cards
     const OCR_INTERVAL_MS    = 1000;  // 1 Hz pot/stack/blinds
 
+    // Teardown flag. The loop is async, so the effect cleanup may fire
+    // while a `loop` invocation is mid-await. cancelAnimationFrame only
+    // kills the CURRENTLY scheduled rAF id — if the running loop
+    // schedules a new rAF after cleanup, nothing cancels it and we
+    // leak a zombie loop that keeps firing setState into an unmounted
+    // (or re-initialized) component. The flag guards the re-schedule.
+    let stopped = false;
+
     const loop = async () => {
+      if (stopped) return;
       const now = performance.now();
 
       // ---- Card + dealer detection (4 Hz) ----
@@ -1101,14 +1170,21 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         }
       }
 
-      rafRef.current = requestAnimationFrame(loop);
+      if (!stopped) rafRef.current = requestAnimationFrame(loop);
     };
 
     rafRef.current = requestAnimationFrame(loop);
     return () => {
+      stopped = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [streamReady, matcherReady, detecting, players]);
+    // `players` is intentionally NOT a dependency: the loop reads it
+    // via playersRef.current, and auto-detection updates `players`
+    // several times per second — putting it in deps would tear the
+    // loop down and rebuild it on every count change, destroying
+    // detection stability and causing tracker observations to restart.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamReady, matcherReady, detecting]);
 
   // ============================================================================
   // DECISION COMPUTATION (reruns when state or game inputs change)
@@ -1586,6 +1662,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               )}
               {streamReady && (
                 <button
+                  onClick={() => setDebugMode((v) => !v)}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (debugMode ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  title="Toggle auto-detect overlay + matcher probe log"
+                >
+                  {debugMode ? 'Hide Debug' : 'Debug'}
+                </button>
+              )}
+              {streamReady && (
+                <button
                   onClick={() => setCalibrationVisible((v) => !v)}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (calibrationVisible ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
                 >
@@ -1668,6 +1753,29 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               />
             )}
           </div>
+
+          {/* DEBUG PROBE PANEL
+              Consumes debugProbe — set by the detection loop when
+              debugMode is on. Shows the matcher's top-3 candidate list
+              per region so mismatches can be diagnosed (wrong
+              template, wrong region, threshold too tight, etc.). */}
+          {debugMode && debugProbe && (
+            <div className="mt-2 rounded-lg border border-fuchsia-500/40 bg-fuchsia-950/30 p-2 text-[10px] font-mono text-fuchsia-100 max-h-64 overflow-auto">
+              <div className="mb-1 text-fuchsia-300 font-bold">
+                Probe {debugProbe.variant} &middot; {debugProbe.videoW}x{debugProbe.videoH} &middot; tpl:{debugProbe.templates ?? '?'} &middot; {new Date(debugProbe.ts).toLocaleTimeString()}
+              </div>
+              {(debugProbe.log || []).slice(0, 24).map((entry, i) => (
+                <div key={'probe-' + i} className="truncate">
+                  {entry.kind || entry.note || 'entry'}
+                  {entry.slot !== undefined ? ' [' + entry.slot + ']' : ''}
+                  {entry.bestKey ? ' picked:' + entry.bestKey + ' d=' + entry.distance : ''}
+                  {Array.isArray(entry.candidates) && entry.candidates.length > 0
+                    ? ' | ' + entry.candidates.slice(0, 3).map((c) => c.key + ':' + c.distance).join(', ')
+                    : ''}
+                </div>
+              ))}
+            </div>
+          )}
 
           {matcherReady && templateCount < 10 && (
             <p className="mt-2 text-[11px] text-amber-400 leading-snug">
