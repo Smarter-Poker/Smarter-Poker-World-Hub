@@ -533,14 +533,10 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
         if af: parts.append(f"Addon: ${af}")
         return ", ".join(parts) if parts else "Rebuy available"
 
-    def _parse_late_reg(obj: dict) -> int | None:
+    def _parse_late_reg(obj: dict) -> str | None:
         lr = obj.get("lateRegistration") or obj.get("lateReg") or obj.get("lateRegistrationLevel")
         if lr is None: return None
-        if isinstance(lr, (int, float)): return int(lr)
-        if isinstance(lr, str):
-            m = re.search(r"(\d+)", lr)
-            if m: return int(m.group(1))
-        return None
+        return str(lr)[:80].strip()
 
     def _parse_series(obj: dict):
         sn = obj.get("seriesName") or obj.get("series") or obj.get("circuitName") or ""

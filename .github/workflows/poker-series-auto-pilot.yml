@@ -1,0 +1,107 @@
+name: 3-Day Poker Series Auto-Pilot
+
+# Fully automated background cycle running every 3 days.
+# It discovers, scrapes, parses PDFs, and pushes all structural data.
+
+on:
+  schedule:
+    # 05:00 UTC (Around midnight EST) every 3 days.
+    - cron: '0 5 */3 * *'
+  workflow_dispatch:  # Allow manual trigger
+
+concurrency:
+  group: tournament-series-autopilot
+  cancel-in-progress: false
+
+jobs:
+  run-auto-pilot:
+    name: "Crawl, Scrape, and Enrich Poker Series"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # Usually finishes within 1-2 hours depending on Cloudflare
+
+    env:
+      SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          pip install scrapling==0.4.2 camoufox playwright bs4 pdfplumber
+          playwright install chromium --with-deps
+          if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
+
+      # ---------------------------------------------------------
+      # STEP 1: Discovery Phase (Hunt for NEW series on PokerAtlas/Others)
+      # ---------------------------------------------------------
+      - name: Discovery Sweep
+        id: discovery
+        run: |
+          python3 scripts/scrape_poker_series_discovery.py
+
+      - name: Alert Human (Discovery Failed)
+        if: failure() && steps.discovery.outcome == 'failure'
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+        run: python3 scripts/utils/send_sms_alert.py "Step 1 (Discovery Sweep) Crash"
+
+      # ---------------------------------------------------------
+      # STEP 2: Scrape Core Series Data
+      # ---------------------------------------------------------
+      - name: Core Information Scrape
+        id: scrape
+        run: |
+          python3 scripts/poker_series_scraper.py
+
+      - name: Alert Human (Core Scraper Failed)
+        if: failure() && steps.scrape.outcome == 'failure'
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+        run: python3 scripts/utils/send_sms_alert.py "Step 2 (Core Series Scraper) Crash"
+
+      # ---------------------------------------------------------
+      # STEP 3: Venue/Event Native Data Extraction (Stacks/Late Reg)
+      # ---------------------------------------------------------
+      - name: Extract Venue Level Data
+        id: venue_event
+        run: |
+          python3 scripts/fix_enrichment.py
+
+      - name: Alert Human (Venue Enrichment Failed)
+        if: failure() && steps.venue_event.outcome == 'failure'
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+        run: python3 scripts/utils/send_sms_alert.py "Step 3 (Venue Enrichment) Crash"
+
+      # ---------------------------------------------------------
+      # STEP 4: PDF Rule Parsing (Casino Structure Sheets)
+      # ---------------------------------------------------------
+      - name: PDF Rule Extraction 
+        id: pdf_extract
+        run: |
+          python3 scripts/enrich_pdf_sources.py
+
+      - name: Alert Human (PDF Extraction Failed)
+        if: failure() && steps.pdf_extract.outcome == 'failure'
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+        run: python3 scripts/utils/send_sms_alert.py "Step 4 (PDF Rules Extraction) Crash"
