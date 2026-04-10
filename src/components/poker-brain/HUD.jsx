@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getMatcher } from '../../lib/poker-brain/matcher';
-import layoutData from '../../lib/poker-brain/layout.json';
+import layoutData from '../../lib/poker-brain/layout-capture.json';
+// NOTE: v4 layout-capture.json has VERIFIED pixel coordinates measured from
+// actual PokerBros screenshots. Replaces the old layout.json which had wrong
+// positions (hole cards landed on avatar, board cards offset by ~40px).
 import PokerBrainEngine from '../../lib/poker-brain/engine';
 import { getBridgedDecision } from '../../lib/poker-brain/decision-bridge';
 import { HandStateMachine, STREETS } from '../../lib/poker-brain/state';
