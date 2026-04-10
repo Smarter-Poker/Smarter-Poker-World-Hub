@@ -33,9 +33,15 @@ print(f"Events needing PDF enrichment: {len(needs_enrichment)}")
 pdf_cache = {}
 stats = {'stack': 0, 'gtd': 0, 'late': 0, 'updated': 0}
 
-from scrapling import StealthyFetcher
+import hashlib
+import os
 
+from scrapling import StealthyFetcher
 session = StealthyFetcher(auto_match=True)
+
+CACHE_DIR = "data/pdf-cache"
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
 
 for idx, evt in enumerate(needs_enrichment, 1):
     url = evt['structure_sheet_url']
@@ -44,9 +50,21 @@ for idx, evt in enumerate(needs_enrichment, 1):
         
     print(f"\n[{idx}/{len(needs_enrichment)}] {evt['event_name']}")
     
+    url_hash = hashlib.md5(url.encode()).hexdigest()
+    cache_path = os.path.join(CACHE_DIR, f"{url_hash}.pdf")
+    
     if url in pdf_cache:
         text = pdf_cache[url]
-        print("  Using cached PDF text")
+        print("  Using memory cached PDF text")
+    elif os.path.exists(cache_path):
+        try:
+            with pdfplumber.open(cache_path) as pdf:
+                text = "\n".join(p.extract_text() or "" for p in pdf.pages)
+            pdf_cache[url] = text
+            print("  [CACHE HIT] Loaded PDF directly from disk")
+        except Exception as e:
+            print(f"  Disk Cache Error: {e}")
+            continue
     else:
         try:
             r = session.fetch(url, timeout=25000)
@@ -55,13 +73,18 @@ for idx, evt in enumerate(needs_enrichment, 1):
             raw = r.body
             if not raw.startswith(b'%PDF'):
                 raise ValueError("Not a PDF")
+                
+            # Save the raw PDF binary to disk instantly
+            with open(cache_path, "wb") as f:
+                f.write(raw)
+                
             with pdfplumber.open(io.BytesIO(raw)) as pdf:
                 text = "\n".join(p.extract_text() or "" for p in pdf.pages)
             pdf_cache[url] = text
-            print(f"  Downloaded & Parsed PDF: {len(text)} chars")
+            print(f"  [DOWNLOADED] Saved & Parsed PDF: {len(text)} chars")
             time.sleep(1) # rate limit
         except Exception as e:
-            print(f"  PDF Error: {e}")
+            print(f"  PDF Fetch Error: {e}")
             continue
 
     patch = {}
