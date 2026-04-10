@@ -120,6 +120,177 @@ function scaleRect(rect, sx, sy) {
 }
 
 // ---------------------------------------------------------------------------
+// AutoDetectOverlay
+// ---------------------------------------------------------------------------
+// Draws a translucent debug layer over the captured video showing every
+// auto-detected region: table bbox, hole-card strip, board-card strip,
+// stack clusters, and dealer point. Reads from snapshotRef which is
+// updated in place by the detection loop so the overlay can redraw at
+// ~30fps independently of the 4Hz detection cadence.
+//
+// The video element uses `object-contain`, so we compute the visible
+// letterbox rect for the source-pixel → display-pixel mapping.
+const AutoDetectOverlay = ({ videoRef, snapshotRef, visible }) => {
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const ctx = canvas.getContext('2d');
+    let stopped = false;
+
+    const draw = () => {
+      if (stopped) return;
+      const video = videoRef.current;
+      const snap = snapshotRef.current;
+      if (!video || !snap) {
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      const srcW = video.videoWidth || 0;
+      const srcH = video.videoHeight || 0;
+      const rect = video.getBoundingClientRect();
+      if (!srcW || !srcH || !rect.width || !rect.height) {
+        rafRef.current = requestAnimationFrame(draw);
+        return;
+      }
+      // Sync canvas size to displayed video rect
+      if (canvas.width !== Math.round(rect.width) || canvas.height !== Math.round(rect.height)) {
+        canvas.width = Math.round(rect.width);
+        canvas.height = Math.round(rect.height);
+      }
+      // object-contain letterbox math
+      const srcAR = srcW / srcH;
+      const dstAR = rect.width / rect.height;
+      let vw, vh, vx, vy;
+      if (srcAR > dstAR) {
+        vw = rect.width;
+        vh = rect.width / srcAR;
+        vx = 0;
+        vy = (rect.height - vh) / 2;
+      } else {
+        vh = rect.height;
+        vw = rect.height * srcAR;
+        vx = (rect.width - vw) / 2;
+        vy = 0;
+      }
+      const sx = vw / srcW;
+      const sy = vh / srcH;
+      const mapX = (x) => vx + x * sx;
+      const mapY = (y) => vy + y * sy;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.font = '11px ui-monospace, monospace';
+      ctx.textBaseline = 'top';
+
+      // Table bounds
+      if (snap.tableBounds) {
+        const b = snap.tableBounds;
+        ctx.strokeStyle = 'rgba(34,211,238,0.95)';
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(mapX(b.x), mapY(b.y), b.w * sx, b.h * sy);
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(34,211,238,0.95)';
+        ctx.fillText('table', mapX(b.x) + 4, mapY(b.y) + 4);
+      }
+
+      // Hole cards
+      if (snap.holeRegions && snap.holeRegions.length) {
+        ctx.strokeStyle = 'rgba(250,204,21,0.95)';
+        ctx.fillStyle = 'rgba(250,204,21,0.15)';
+        for (let i = 0; i < snap.holeRegions.length; i++) {
+          const r = snap.holeRegions[i];
+          const rx = mapX(r.x), ry = mapY(r.y);
+          ctx.fillRect(rx, ry, r.w * sx, r.h * sy);
+          ctx.strokeRect(rx, ry, r.w * sx, r.h * sy);
+        }
+        ctx.fillStyle = 'rgba(250,204,21,0.95)';
+        ctx.fillText(
+          'hole x' + snap.holeRegions.length,
+          mapX(snap.holeRegions[0].x),
+          mapY(snap.holeRegions[0].y) - 14,
+        );
+      }
+
+      // Board cards
+      if (snap.boardRegions && snap.boardRegions.length) {
+        ctx.strokeStyle = 'rgba(236,72,153,0.95)';
+        ctx.fillStyle = 'rgba(236,72,153,0.15)';
+        for (let i = 0; i < snap.boardRegions.length; i++) {
+          const r = snap.boardRegions[i];
+          const rx = mapX(r.x), ry = mapY(r.y);
+          ctx.fillRect(rx, ry, r.w * sx, r.h * sy);
+          ctx.strokeRect(rx, ry, r.w * sx, r.h * sy);
+        }
+        ctx.fillStyle = 'rgba(236,72,153,0.95)';
+        ctx.fillText(
+          'board x' + snap.boardRegions.length,
+          mapX(snap.boardRegions[0].x),
+          mapY(snap.boardRegions[0].y) - 14,
+        );
+      }
+
+      // Stack clusters
+      if (snap.stackClusters && snap.stackClusters.length) {
+        ctx.strokeStyle = 'rgba(34,197,94,0.95)';
+        ctx.fillStyle = 'rgba(34,197,94,0.35)';
+        for (const c of snap.stackClusters) {
+          const cx = mapX(c.cx);
+          const cy = mapY(c.cy);
+          ctx.beginPath();
+          ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(34,197,94,0.95)';
+        ctx.fillText('players ' + snap.stackClusters.length, 8, 8);
+      }
+
+      // Dealer button
+      if (snap.dealerPoint) {
+        const dx = mapX(snap.dealerPoint.x);
+        const dy = mapY(snap.dealerPoint.y);
+        ctx.strokeStyle = 'rgba(239,68,68,1)';
+        ctx.fillStyle = 'rgba(239,68,68,0.7)';
+        ctx.beginPath();
+        ctx.arc(dx, dy, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fillText('D', dx - 3, dy - 6);
+      }
+
+      // Position label (bottom-left of canvas)
+      if (snap.position) {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(6, canvas.height - 22, 90, 16);
+        ctx.fillStyle = 'rgba(250,204,21,1)';
+        ctx.fillText('pos ' + snap.position, 10, canvas.height - 20);
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+
+    rafRef.current = requestAnimationFrame(draw);
+    return () => {
+      stopped = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [visible, videoRef, snapshotRef]);
+
+  if (!visible) return null;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------
 // Main HUD
 // ---------------------------------------------------------------------------
 const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initialGameType = 'nlhe', onClose } = {}) => {
@@ -226,6 +397,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   // count, position, dealer). Smooths frame-to-frame noise so HUD
   // indicators don't flicker while the underlying detection is sound.
   const tableStateRef = useRef(new TableStateTracker());
+  // Latest frame's auto-detection snapshot, consumed by AutoDetectOverlay.
+  // Written directly by the detection loop (no setState → no re-render
+  // storm), read by an rAF-driven canvas draw.
+  const detectionSnapshotRef = useRef(null);
 
   // Refs that mirror game-state so stale closures inside long-lived callbacks
   // (state machine, detection loop) can read fresh values without being
@@ -527,10 +702,27 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             let matcherLayout = effectiveLayout;
             let usedAutoLayout = false;
             try {
+              // First discovery pass uses the CURRENT variant's expected
+              // count so the localizer can slice correctly. The strip
+              // aspect-ratio estimator runs inside the localizer too and
+              // tells us what the variant ACTUALLY is — we feed that to
+              // the temporal tracker and, once stable, flip the HUD.
               const loc = localizeCards(video, {
                 expectedHoleCount: expectedHole,
                 tableBounds,
               });
+              if (loc.estimatedHoleCount) {
+                const estVariant = (() => {
+                  switch (loc.estimatedHoleCount) {
+                    case 2: return 'nlhe';
+                    case 4: return 'plo';
+                    case 5: return 'plo5';
+                    case 6: return 'plo6';
+                    default: return null;
+                  }
+                })();
+                if (estVariant) obs.variant = estVariant;
+              }
               const hasHole = (loc.holeRegions || []).length >= expectedHole;
               // Pre-flop we won't have a board yet, so accept hole-only too
               if (hasHole) {
@@ -757,16 +949,43 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // applies per-field smoothing (EMA for bounds/dealer, rolling
             // mode for counts, agreement filter for position) and returns
             // the stable snapshot we actually surface to the user.
+            let stableSnapshot = null;
             try {
-              const stable = tableStateRef.current.update(obs);
-              if (stable.playerCount && stable.playerCount !== playersRef.current) {
-                playersRef.current = stable.playerCount;
-                setPlayers(stable.playerCount);
+              stableSnapshot = tableStateRef.current.update(obs);
+              if (stableSnapshot.playerCount && stableSnapshot.playerCount !== playersRef.current) {
+                playersRef.current = stableSnapshot.playerCount;
+                setPlayers(stableSnapshot.playerCount);
               }
-              if (stable.position && stable.position !== positionRef.current) {
-                setPosition(stable.position);
+              if (stableSnapshot.position && stableSnapshot.position !== positionRef.current) {
+                setPosition(stableSnapshot.position);
+              }
+              // Auto-switch variant when the tracker has seen the same
+              // strip shape for several frames. We never overwrite
+              // plo_hilo → plo (the hi/lo distinction comes from the
+              // OCR game-name readout, not the card count; both have
+              // 4 hole cards) so the OCR can still refine below.
+              if (
+                stableSnapshot.variant
+                && stableSnapshot.variant !== gameTypeRef.current
+                && !(stableSnapshot.variant === 'plo' && gameTypeRef.current === 'plo_hilo')
+              ) {
+                setGameType(stableSnapshot.variant);
               }
             } catch (trkErr) { /* swallow */ }
+
+            // Publish the debug snapshot for AutoDetectOverlay. Mutating
+            // the ref in place avoids re-renders while still giving the
+            // overlay fresh data each detection tick.
+            detectionSnapshotRef.current = {
+              tableBounds: (stableSnapshot && stableSnapshot.bounds) || obs.tableBounds || null,
+              holeRegions: usedAutoLayout ? matcherLayout.holeCards : null,
+              boardRegions: usedAutoLayout ? matcherLayout.boardCards : null,
+              stackClusters,
+              dealerPoint: (stableSnapshot && stableSnapshot.dealerPoint) || obs.dealerPoint || null,
+              position: (stableSnapshot && stableSnapshot.position) || obs.position || null,
+              playerCount: (stableSnapshot && stableSnapshot.playerCount) || obs.playerCount || null,
+              ts: now,
+            };
 
             // Available action detection (color-cluster on fold/call/raise
             // button regions). Tells us whether it's actually hero's turn.
@@ -1439,6 +1658,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 onOverridesChange={handleOverridesChange}
                 visible={calibrationVisible}
                 editable={calibrationEditable}
+              />
+            )}
+            {streamReady && (
+              <AutoDetectOverlay
+                videoRef={videoRef}
+                snapshotRef={detectionSnapshotRef}
+                visible={debugMode}
               />
             )}
           </div>

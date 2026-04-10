@@ -495,6 +495,44 @@ function findHoldemHeroPair(mask, dW, bbox) {
 // Stage 5 — board card count estimation
 // ═══════════════════════════════════════════════════════════════════════
 
+/**
+ * Estimate the hero hole-card count from a hero-strip bbox. Returns one
+ * of {2, 4, 5, 6} or 0 if the strip is too weak to classify. Used by
+ * the HUD to auto-detect NLHE vs PLO vs PLO5 vs PLO6 without the user
+ * having to pick the variant manually.
+ *
+ * Heuristic: hero cards are displayed with a consistent per-card width
+ * (PokerBros fans the cards with ~45-55% overlap, so the strip width
+ * grows roughly linearly with card count). The strip aspect ratio
+ * (w/h) is the stablest signal we can extract without running the
+ * matcher.
+ *
+ *   2 stacked / side-by-side cards  → AR ~ 1.20 - 1.70
+ *   4 cards fanned                  → AR ~ 2.00 - 2.80
+ *   5 cards fanned                  → AR ~ 2.60 - 3.30
+ *   6 cards fanned                  → AR ~ 3.10 - 4.00
+ *
+ * Bands overlap slightly — we snap to the nearest anchor.
+ */
+function estimateHeroHoleCount(strip) {
+  if (!strip) return 0;
+  const ar = strip.w / strip.h;
+  if (!Number.isFinite(ar) || ar < 1.0 || ar > 5.0) return 0;
+  const anchors = [
+    { n: 2, ar: 1.45 },
+    { n: 4, ar: 2.40 },
+    { n: 5, ar: 2.95 },
+    { n: 6, ar: 3.55 },
+  ];
+  let best = 0;
+  let bestD = Infinity;
+  for (const a of anchors) {
+    const d = Math.abs(ar - a.ar);
+    if (d < bestD) { bestD = d; best = a.n; }
+  }
+  return best;
+}
+
 function estimateBoardCardCount(strip) {
   if (!strip) return 0;
   // Aspect ratio sanity: board of N cards has w/h ~ N / 1.46 (≈2.05 / 2.74 /
@@ -655,12 +693,17 @@ export function localizeCards(source, options = {}) {
 
   const t1 = performance.now();
 
+  // Variant-independent hole card count estimate from the strip geometry.
+  // The HUD uses this to auto-switch variant (NLHE vs PLO/PLO5/PLO6).
+  const estimatedHoleCount = estimateHeroHoleCount(heroStrip);
+
   return {
     holeRegions,
     boardRegions,
     holeConfidence,
     boardConfidence,
     tablePixelHeight: srcH,
+    estimatedHoleCount,
     timingMs: t1 - t0,
     debug: {
       lumThreshold,
@@ -671,8 +714,10 @@ export function localizeCards(source, options = {}) {
       boardStrip,
       nBoard,
       expectedHole,
+      estimatedHoleCount,
     },
   };
 }
 
+export { estimateHeroHoleCount };
 export default localizeCards;

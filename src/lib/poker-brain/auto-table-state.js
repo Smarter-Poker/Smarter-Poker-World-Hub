@@ -47,19 +47,32 @@
 
 const DOWNSCALE_MAX_W = 400;
 
-// Yellow stack-number signature (PokerBros stack text color)
-const YELLOW_R_MIN = 200;
-const YELLOW_G_MIN = 170;
-const YELLOW_B_MAX = 110;
-const YELLOW_RB_MIN = 90;
-const YELLOW_RG_MAX = 60; // R shouldn't dominate G by too much (not orange)
+// Yellow stack-number signature (PokerBros stack text color).
+//
+// Adaptive test: we want a single predicate that works across dim
+// captures, bright HDR windows, and heavy JPEG compression. The fixed
+// R>=200,G>=170 test from v1 missed yellows at ~180/150 on lower-
+// brightness monitors and fired on orange stack pulses on bright ones.
+//
+// Instead we test three orthogonal properties of "yellow text":
+//   1. Lightness floor — (R+G)/2 > LIGHTNESS_MIN, so dim pixels are
+//      rejected but we don't anchor on R alone.
+//   2. Blue deficit — (R+G)/2 - B > BLUE_DEFICIT_MIN, so neutral greys
+//      and whites are rejected (whites have R≈G≈B, yellows have low B).
+//   3. Red-green balance — |R - G| <= RG_BALANCE_MAX, so orange (R>>G)
+//      and lime (G>>R) are rejected.
+//
+// These three tests together form a tight yellow gate that auto-adapts
+// to lighting without any calibration.
+const LIGHTNESS_MIN = 155;    // (R+G)/2 — permissive enough for dim captures
+const BLUE_DEFICIT_MIN = 70;  // (R+G)/2 - B — tight enough to reject white
+const RG_BALANCE_MAX = 55;    // |R - G| — rejects orange and lime
 
 function isStackYellow(r, g, b) {
-  if (r < YELLOW_R_MIN) return false;
-  if (g < YELLOW_G_MIN) return false;
-  if (b > YELLOW_B_MAX) return false;
-  if (r - b < YELLOW_RB_MIN) return false;
-  if (r - g > YELLOW_RG_MAX) return false;
+  const lightness = (r + g) * 0.5;
+  if (lightness < LIGHTNESS_MIN) return false;
+  if (lightness - b < BLUE_DEFICIT_MIN) return false;
+  if (Math.abs(r - g) > RG_BALANCE_MAX) return false;
   return true;
 }
 
