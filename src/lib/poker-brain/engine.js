@@ -1306,6 +1306,25 @@ const PokerBrainEngine = (() => {
           }
         }
       }
+
+      // ── Preflop equity calculation ──────────────────────────────
+      // Compute all-in equity vs random so the HUD displays a meaningful
+      // equity percentage even on preflop streets. Use a smaller iteration
+      // budget (800) to keep the HUD responsive — preflop equity is
+      // supplementary info, not the decision driver.
+      if (holeCards.length >= 2) {
+        try {
+          const villainCount = Math.max(1, numPlayers - 1);
+          const preflopEquity = calculateEquity(
+            holeCards, boardCards, villainCount, gameType, 800
+          );
+          equity = preflopEquity.equity;
+          highEquity = preflopEquity.highEquity != null ? preflopEquity.highEquity : equity;
+          lowEquity = preflopEquity.lowEquity || 0;
+        } catch (_eqErr) {
+          // Equity is supplementary; swallow errors and leave equity at 0.
+        }
+      }
     }
     // ========== POSTFLOP ==========
     else {

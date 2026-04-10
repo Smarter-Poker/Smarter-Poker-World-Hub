@@ -16,7 +16,7 @@ import {
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
 import { hardwiredDetect } from '../../lib/poker-brain/hardwired-detect';
 import execOcrPass from '../../lib/poker-brain/ocr-loop';
-import { extractTournamentInfo } from '../../lib/poker-brain/tournament-detect';
+import { extractTournamentInfo, detectTournamentStage } from '../../lib/poker-brain/tournament-detect';
 import { findTableBounds } from '../../lib/poker-brain/table-finder';
 import {
   detectPlayerCountByStacks,
@@ -1064,11 +1064,23 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             if (r.villainStacks !== undefined) {
                setVillainStacks((prev) => ({ ...prev, ...r.villainStacks }));
             }
-            // Auto-detect tournament stage from OCR data if in tournament mode
-            if (r.rawText && isTournamentRef.current) {
+            // Auto-detect tournament stage from OCR-derived blind level.
+            // The old rawText path was dead code (OCR loop returns structured
+            // data, not raw text). Now we use the bigBlind value to estimate
+            // the blind level and infer tournament stage.
+            if (isTournamentRef.current && r.bigBlind && r.bigBlind > 0) {
               try {
-                const tInfo = extractTournamentInfo(r.rawText);
-                if (tInfo.confidence >= 0.5) {
+                // Estimate blind level from BB size. PokerBros starting
+                // blinds are typically 10-50. Rough mapping to level index:
+                const approxLevel = r.bigBlind <= 20 ? 1
+                  : r.bigBlind <= 50 ? 3
+                  : r.bigBlind <= 100 ? 6
+                  : r.bigBlind <= 300 ? 10
+                  : r.bigBlind <= 600 ? 15
+                  : r.bigBlind <= 1500 ? 20
+                  : 25;
+                const tInfo = detectTournamentStage({ blindLevel: approxLevel });
+                if (tInfo.confidence >= 0.3) {
                   setAutoTournamentStage(tInfo);
                   setTournamentStage(tInfo.stage);
                 }
