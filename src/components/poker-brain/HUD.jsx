@@ -833,6 +833,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     // leak a zombie loop that keeps firing setState into an unmounted
     // (or re-initialized) component. The flag guards the re-schedule.
     let stopped = false;
+    let detectionFrameCount = 0;
 
     const loop = async () => {
       if (stopped) return;
@@ -871,18 +872,26 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               variant: currentVariant,
             };
             let tableBounds = null;
-            try {
-              const prevStable = tableStateRef.current.snapshot().bounds;
-              tableBounds = findTableBounds(video, { previous: prevStable });
-              if (tableBounds) {
-                obs.tableBounds = tableBounds;
-                // Use the smoothed bounds for downstream detection so
-                // per-frame wobble doesn't propagate into stacks/cards.
-                // We still pass the RAW bounds to the tracker below.
-                const smoothed = tableStateRef.current.snapshot().bounds;
-                if (smoothed) tableBounds = smoothed;
-              }
-            } catch (tbErr) { /* swallow */ }
+            // In hardwired mode, table bounds are fixed — only scan every
+            // 4 seconds (16 frames at 4Hz) instead of every frame.
+            const isHW = useHardwiredRef.current;
+            const frameNum = detectionFrameCount++;
+            const slowScanOk = !isHW || (frameNum % 16 === 0);
+            if (slowScanOk) {
+              try {
+                const prevStable = tableStateRef.current.snapshot().bounds;
+                tableBounds = findTableBounds(video, { previous: prevStable });
+                if (tableBounds) {
+                  obs.tableBounds = tableBounds;
+                  const smoothed = tableStateRef.current.snapshot().bounds;
+                  if (smoothed) tableBounds = smoothed;
+                }
+              } catch (tbErr) { /* swallow */ }
+            } else {
+              // Reuse last known bounds
+              const cached = tableStateRef.current.snapshot().bounds;
+              if (cached) tableBounds = cached;
+            }
 
             // ── PHASE 4: PURE DETECTION MODULE ───────────────────────
             // HARDWIRED MODE (screen share): use fixed layout coordinates
@@ -1255,10 +1264,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 <div className="w-full bg-slate-700 rounded-full h-3">
                   <div
                     className="h-3 rounded-full bg-gradient-to-r from-amber-500 to-emerald-500"
-                    style={{ width: `${Math.min(100, sessionAuditResult.score || 0)}%` }}
+                    style={{ width: `${Math.min(100, sessionAuditResult.overallScore || 0)}%` }}
                   />
                 </div>
-                <div className="text-xs text-slate-400 mt-1">{sessionAuditResult.score ?? '--'} / 100 -- {sessionAuditResult.handsAnalyzed || 0} hands analyzed</div>
+                <div className="text-xs text-slate-400 mt-1">{sessionAuditResult.overallScore ?? '--'} / 100 -- {sessionAuditResult.handsAnalyzed || 0} hands analyzed</div>
               </div>
             </div>
             {/* Leaks */}
@@ -1275,14 +1284,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               </div>
             )}
             {/* Street Scores */}
-            {sessionAuditResult.streetScores && (
+            {sessionAuditResult.streetBreakdown && Object.keys(sessionAuditResult.streetBreakdown).length > 0 && (
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-slate-300 mb-2">By Street</h3>
                 <div className="grid grid-cols-4 gap-2">
-                  {Object.entries(sessionAuditResult.streetScores).map(([street, data]) => (
+                  {Object.entries(sessionAuditResult.streetBreakdown).map(([street, data]) => (
                     <div key={street} className="bg-slate-700/50 rounded p-2 text-center">
                       <div className="text-xs text-slate-400 capitalize">{street}</div>
-                      <div className="text-lg font-bold">{typeof data === 'number' ? data : (data?.score ?? '--')}</div>
+                      <div className="text-lg font-bold">{data?.avgScore ?? '--'}</div>
+                      <div className="text-[9px] text-slate-500">{data?.hands || 0} hands</div>
                     </div>
                   ))}
                 </div>

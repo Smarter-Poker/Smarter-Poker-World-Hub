@@ -140,6 +140,9 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     maxHoleCards: options.maxHoleCards,
     debug: debugMode,
     topN,
+    // Hardwired mode: tighter threshold + skip crop-offset sweep
+    threshold: HARDWIRED_MATCH_THRESHOLD,
+    skipOffsets: true,
   });
 
   // Suit-color verification pass

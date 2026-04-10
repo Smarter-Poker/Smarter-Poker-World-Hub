@@ -144,12 +144,21 @@ export class PokerBrainStorage {
 
   async logHand(hand) {
     this.handNumber += 1;
+    // Serialize card objects to string notation ('As', 'Kh', etc.)
+    // The matcher returns full objects {rank,suit,confidence,...} but
+    // Supabase stores text[] — we need 'Rs' format.
+    const serializeCards = (cards) => {
+      if (!Array.isArray(cards)) return [];
+      return cards
+        .filter(c => c && c.rank && c.suit)
+        .map(c => `${c.rank}${c.suit}`);
+    };
     const args = {
       p_session_id: this.sessionId,
       p_hand_number: this.handNumber,
       p_position: hand.position ?? null,
-      p_hole_cards: hand.holeCards ?? [],
-      p_board: hand.board ?? [],
+      p_hole_cards: serializeCards(hand.holeCards),
+      p_board: serializeCards(hand.board),
       p_game_type: hand.gameType,
       p_pot_size: hand.potSize ?? null,
       p_bet_to_call: hand.betToCall ?? null,

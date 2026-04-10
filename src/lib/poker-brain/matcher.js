@@ -311,18 +311,13 @@ class PokerBrainMatcher {
     this._ensureCanvases();
 
     // ---- Cropping with padding + offset sweep -------------------------
-    // 1. Draw the region (slightly expanded) into a scratch canvas that
-    //    is larger than the template by 2*SCRATCH_PAD_PX on each axis.
-    // 2. Compute dHash at each of CROP_OFFSETS by grabbing a
-    //    TEMPLATE_W × TEMPLATE_H sub-window at (pad+dx, pad+dy).
-    // 3. Keep the MIN Hamming distance across all offsets → robust to
-    //    ±1-2px crop jitter from the localizer.
-    //
-    // The sub-pixel alignment problem is the #1 reason dHash matching
-    // drops from 100% → ~70% for a clean card on PokerBros: dHash is
-    // computed on a 9×9 grayscale thumbnail, and a 1-pixel horizontal
-    // shift in the crop can flip up to 8 hash bits. This pass pushes
-    // that error to roughly zero without touching the templates.
+    // When `skipOffsets` is true (hardwired mode), we skip the 5-offset
+    // crop sweep entirely — pixel-perfect screen captures have zero
+    // jitter so the sweep is wasted compute. We also allow a custom
+    // `threshold` to tighten matching for hardwired mode.
+    const effectiveThreshold = Number.isFinite(options.threshold) ? options.threshold : MATCH_THRESHOLD;
+    const doOffsetSweep = !options.skipOffsets;
+
     const scratchW = this._cropCanvas.width;
     const scratchH = this._cropCanvas.height;
     this._cropCtx.clearRect(0, 0, scratchW, scratchH);
@@ -343,7 +338,7 @@ class PokerBrainMatcher {
     if (srcW <= 0 || srcH <= 0) {
       return {
         rank: null, suit: null, confidence: 0, distance: DHASH_BITS, key: null,
-        threshold: MATCH_THRESHOLD,
+        threshold: effectiveThreshold,
         candidates: undefined,
       };
     }
@@ -359,9 +354,10 @@ class PokerBrainMatcher {
     // region starting at (SCRATCH_PAD_PX+dx, SCRATCH_PAD_PX+dy) for each
     // offset in CROP_OFFSETS. Doing this with getImageData on the full
     // scratch once avoids a canvas re-draw per offset.
-    // Precompute both hashes for each offset.
+    // Precompute both hashes for each offset (or just center if skipping).
     const scratchData = this._cropCtx.getImageData(0, 0, scratchW, scratchH);
-    const subHashes = CROP_OFFSETS.map(([dx, dy]) => {
+    const offsets = doOffsetSweep ? CROP_OFFSETS : [[0, 0]];
+    const subHashes = offsets.map(([dx, dy]) => {
       const ox = SCRATCH_PAD_PX + dx;
       const oy = SCRATCH_PAD_PX + dy;
       const sub = new Uint8ClampedArray(TEMPLATE_W * TEMPLATE_H * 4);
@@ -426,9 +422,9 @@ class PokerBrainMatcher {
     // Determine match quality with Adaptive Threshold Gap Acceptance
     let accepted = false;
     const gap = secondBestDistance - bestDistance;
-    
+
     if (bestKey !== null) {
-      if (bestDistance <= MATCH_THRESHOLD) {
+      if (bestDistance <= effectiveThreshold) {
         accepted = true;
       } else if (bestDistance <= 18 && gap >= 6) {
         // Adaptive threshold: Even if raw distance is worse than MATCH_THRESHOLD,
@@ -441,7 +437,7 @@ class PokerBrainMatcher {
     if (!accepted) {
       return {
         rank: null, suit: null, confidence: 0, distance: bestDistance, key: null,
-        threshold: MATCH_THRESHOLD,
+        threshold: effectiveThreshold,
         candidates: buildCandidates(),
       };
     }
@@ -452,7 +448,7 @@ class PokerBrainMatcher {
         rank: null, suit: null,
         confidence: 1 - (bestDistance / DHASH_BITS),
         distance: bestDistance, key: bestKey,
-        threshold: MATCH_THRESHOLD,
+        threshold: effectiveThreshold,
         candidates: buildCandidates(),
       };
     }
@@ -539,7 +535,12 @@ class PokerBrainMatcher {
 
     const debugMode = !!options.debug;
     const topN = debugMode ? (Number.isFinite(options.topN) ? options.topN : 3) : 0;
-    const matchOpts = topN > 0 ? { topN } : undefined;
+    // Forward hardwired-mode options (threshold, skipOffsets) to matchRegion
+    const matchOpts = {
+      ...(topN > 0 ? { topN } : {}),
+      ...(options.threshold != null ? { threshold: options.threshold } : {}),
+      ...(options.skipOffsets ? { skipOffsets: true } : {}),
+    };
 
     // Match hole cards
     const holeCards = [];

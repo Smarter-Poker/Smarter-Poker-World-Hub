@@ -30,6 +30,28 @@ const SAMPLE_STEP = 3;          // sample every 3rd pixel
 const NEAR_WHITE_THRESHOLD = 210; // r+g+b/3 above this -> ignored (card background)
 const NEAR_BLACK_THRESHOLD = 40;  // below this -> ignored (most UI borders)
 
+// Reusable scratch canvas — avoids 28+ allocs/sec during detection loop.
+// Resized on demand when the region dimensions change.
+let _scratchCanvas = null;
+let _scratchCtx = null;
+let _scratchW = 0;
+let _scratchH = 0;
+
+function getScratchCtx(w, h) {
+  if (!_scratchCanvas || w > _scratchW || h > _scratchH) {
+    // Allocate with some headroom so we don't resize every frame
+    const newW = Math.max(w, _scratchW, 64);
+    const newH = Math.max(h, _scratchH, 64);
+    _scratchCanvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(newW, newH)
+      : (() => { const c = document.createElement('canvas'); c.width = newW; c.height = newH; return c; })();
+    _scratchCtx = _scratchCanvas.getContext('2d');
+    _scratchW = newW;
+    _scratchH = newH;
+  }
+  return _scratchCtx;
+}
+
 function sqDist(r, g, b, target) {
   const dr = r - target.r;
   const dg = g - target.g;
@@ -52,14 +74,12 @@ export function detectDominantSuitColor(source, rect) {
     return { suit: null, confidence: 0, counts: { c: 0, h: 0, s: 0, d: 0 } };
   }
 
-  // Draw the region into a scratch canvas so we have ImageData to sample
+  // Draw the region into the reusable scratch canvas for pixel sampling
   const w = Math.max(1, Math.floor(rect.w));
   const h = Math.max(1, Math.floor(rect.h));
-  const canvas = typeof OffscreenCanvas !== 'undefined'
-    ? new OffscreenCanvas(w, h)
-    : (() => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; })();
-  const ctx = canvas.getContext('2d');
+  const ctx = getScratchCtx(w, h);
   try {
+    ctx.clearRect(0, 0, w, h);
     ctx.drawImage(
       source,
       Math.max(0, Math.floor(rect.x)),

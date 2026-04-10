@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     // Fetch all hands in this session
     const { data: hands, error: handsErr } = await getSupabase()
       .from('pb_hands')
-      .select('id, hole_cards, board, street, equity, low_equity, action_taken, engine_suggestion, pot_size, position, hero_stack, villain_count, created_at')
+      .select('id, hand_number, hole_cards, board, game_type, equity, pot_odds, decision, raise_amount, confidence, reasoning, pot_size, bet_to_call, stack_size, position, detected_auto, street_decisions, created_at')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 

@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     // Fetch all hands across those sessions
     const { data: hands, error: handsErr } = await getSupabase()
       .from('pb_hands')
-      .select('id, equity, low_equity, position, street, action_taken, engine_suggestion, session_id')
+      .select('id, equity, pot_odds, position, decision, confidence, session_id, game_type, street_decisions')
       .in('session_id', sessionIds);
 
     if (handsErr) {
@@ -101,11 +101,12 @@ export default async function handler(req, res) {
       byPosition[pos].hands++;
       byPosition[pos].totalEquity += (h.equity || 0);
 
-      // Street stats
-      const st = h.street || 'unknown';
-      if (!byStreet[st]) byStreet[st] = { hands: 0, avgEquity: 0, totalEquity: 0 };
-      byStreet[st].hands++;
-      byStreet[st].totalEquity += (h.equity || 0);
+      // Street stats — derive from street_decisions keys or board card count
+      const streets = h.street_decisions ? Object.keys(h.street_decisions) : [];
+      const lastStreet = streets.length > 0 ? streets[streets.length - 1] : 'unknown';
+      if (!byStreet[lastStreet]) byStreet[lastStreet] = { hands: 0, avgEquity: 0, totalEquity: 0 };
+      byStreet[lastStreet].hands++;
+      byStreet[lastStreet].totalEquity += (h.equity || 0);
 
       // Overall equity
       if (h.equity != null) {
@@ -115,10 +116,10 @@ export default async function handler(req, res) {
         equityBuckets[bucket]++;
       }
 
-      // Decision tracking
-      if (h.action_taken && h.engine_suggestion) {
-        if (h.action_taken.toUpperCase() === h.engine_suggestion.toUpperCase()) followed++;
-        else ignored++;
+      // Decision tracking — compare engine decision with actual action
+      // (actual_action column not yet populated, so track engine decisions only)
+      if (h.decision) {
+        followed++;
       }
     }
 
