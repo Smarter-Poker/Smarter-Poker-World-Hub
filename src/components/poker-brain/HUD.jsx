@@ -350,7 +350,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   // Calibration overlay state
   const [calibrationVisible, setCalibrationVisible] = useState(false);
   const [calibrationEditable, setCalibrationEditable] = useState(false);
+  const [calibrationFullScreen, setCalibrationFullScreen] = useState(false);
   const [layoutOverrides, setLayoutOverrides] = useState(null);
+  // Native video dims — captured after loadedmetadata fires. Used to
+  // size the capture feed container to the real emulator aspect ratio
+  // instead of a fixed 16:9 box that letterboxes the portrait stream
+  // into a sliver.
+  const [videoNativeDims, setVideoNativeDims] = useState(null);
 
   // Hand strength OCR label (from PokerBros UI)
   const [pokerBrosHandLabel, setPokerBrosHandLabel] = useState('');
@@ -1705,6 +1711,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {calibrationEditable ? 'Lock' : 'Edit Regions'}
                 </button>
               )}
+              {streamReady && calibrationVisible && (
+                <button
+                  onClick={() => setCalibrationFullScreen((v) => !v)}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (calibrationFullScreen ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  title="Expand the capture feed to fill the viewport for precise manual calibration"
+                >
+                  {calibrationFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+                </button>
+              )}
               {streamReady && calibrationVisible && layoutOverrides && (
                 <button
                   onClick={resetCalibration}
@@ -1724,14 +1739,58 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             </div>
           </div>
 
-          <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black aspect-video">
-            <video
-              ref={videoRef}
-              className="absolute inset-0 w-full h-full object-contain bg-black"
-              playsInline
-              muted
-              autoPlay
-            />
+          <div
+            className={
+              calibrationFullScreen
+                ? 'fixed inset-0 z-[9999] bg-black/95 p-4'
+                : 'relative rounded-xl overflow-hidden border border-white/10 bg-black mx-auto'
+            }
+            style={
+              calibrationFullScreen
+                ? undefined
+                : videoNativeDims
+                  ? {
+                      // Match the real emulator aspect ratio so the preview
+                      // isn't squished into a 16:9 box. Cap max-height at
+                      // ~80vh so the feed stays on-screen next to the HUD.
+                      aspectRatio: `${videoNativeDims.w} / ${videoNativeDims.h}`,
+                      maxHeight: '80vh',
+                      // Width derived from height*aspect, constrained by
+                      // the parent — the mx-auto centers the box inside
+                      // the HUD panel.
+                      width: 'auto',
+                      height: '80vh',
+                      maxWidth: '100%',
+                    }
+                  : { aspectRatio: '16 / 9' }
+            }
+          >
+            {calibrationFullScreen && (
+              <button
+                onClick={() => setCalibrationFullScreen(false)}
+                className="absolute top-4 right-4 z-20 text-xs font-bold px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg"
+              >
+                Exit Full Screen
+              </button>
+            )}
+            {/* Inner positioning wrapper — video lives absolute inset-0 inside
+                this box, so CalibrationOverlay and AutoDetectOverlay can
+                continue to use the same letterbox math whether we're in
+                the normal aspect-video card or the fullscreen overlay. */}
+            <div className={calibrationFullScreen ? 'relative w-full h-full' : 'absolute inset-0'}>
+              <video
+                ref={videoRef}
+                className="absolute inset-0 w-full h-full object-contain bg-black"
+                playsInline
+                muted
+                autoPlay
+                onLoadedMetadata={(e) => {
+                  const v = e.currentTarget;
+                  if (v.videoWidth && v.videoHeight) {
+                    setVideoNativeDims({ w: v.videoWidth, h: v.videoHeight });
+                  }
+                }}
+              />
             {!streamReady && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 p-4 text-center">
                 <p className="text-sm font-semibold mb-3">
@@ -1763,6 +1822,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 onOverridesChange={handleOverridesChange}
                 visible={calibrationVisible}
                 editable={calibrationEditable}
+                liveSnapshotRef={detectionSnapshotRef}
+                showLiveRegions={calibrationVisible}
               />
             )}
             {streamReady && (
@@ -1772,6 +1833,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 visible={debugMode}
               />
             )}
+            </div>
           </div>
 
           {/* DEBUG PROBE PANEL

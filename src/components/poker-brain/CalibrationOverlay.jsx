@@ -26,6 +26,14 @@ const REGION_COLORS = {
   ocrRegions: '#60a5fa',
   actionButtons: '#a78bfa',
   seats: '#ec4899',
+  // Live (auto-localized) regions are drawn in a distinct bright cyan
+  // so the user can see at a glance whether the matcher is ACTUALLY
+  // looking at the right pixels. These override the static layout.json
+  // regions inside the detection loop (see HUD.jsx auto-localizer path)
+  // — when detection appears dead, the visual gap between the static
+  // region (amber/green) and the live region (cyan) is the whole story.
+  liveHoleCards: '#22d3ee',
+  liveBoardCards: '#a3e635',
 };
 
 function mergeRect(base, override) {
@@ -107,10 +115,22 @@ const CalibrationOverlay = ({
   onOverridesChange,
   visible = true,
   editable = false,
+  liveSnapshotRef = null,
+  showLiveRegions = false,
 }) => {
   const [dims, setDims] = useState({ w: 0, h: 0 });
+  const [liveTick, setLiveTick] = useState(0);
   const containerRef = useRef(null);
   const dragRef = useRef(null);
+
+  // When showing live regions, poll the snapshot ref at ~4Hz so the
+  // overlay repaints as the auto-localizer updates. We can't subscribe
+  // to a ref directly, so a lightweight interval is the simplest tool.
+  useEffect(() => {
+    if (!visible || !showLiveRegions || !liveSnapshotRef) return;
+    const iv = setInterval(() => setLiveTick((t) => (t + 1) % 1_000_000), 250);
+    return () => clearInterval(iv);
+  }, [visible, showLiveRegions, liveSnapshotRef]);
 
   // Track the video element's rendered size (object-contain may letterbox)
   useEffect(() => {
@@ -161,6 +181,23 @@ const CalibrationOverlay = ({
   const refH = baseLayout.referenceSize?.h || 1054;
   const sx = dims.w / refW;
   const sy = dims.h / refH;
+
+  // Live (auto-localized) regions come in SOURCE-PIXEL coordinates (i.e.
+  // the same space as the captured video's native width/height), not
+  // reference units. We scale them to the displayed video rect using
+  // the video element's native dims — that's a separate transform from
+  // the static reference-space one above.
+  const video = videoRef.current;
+  const nativeW = video ? (video.videoWidth || 0) : 0;
+  const nativeH = video ? (video.videoHeight || 0) : 0;
+  const liveSx = nativeW ? (dims.w / nativeW) : 0;
+  const liveSy = nativeH ? (dims.h / nativeH) : 0;
+  const liveSnapshot = (showLiveRegions && liveSnapshotRef && liveSnapshotRef.current) || null;
+  // Touch liveTick so React re-renders when the snapshot updates. This
+  // line is deliberate — without reading liveTick the setInterval would
+  // trigger state changes that don't actually cause re-render of the
+  // region boxes below.
+  void liveTick;
 
   const onPointerDown = useCallback((e, region) => {
     if (!editable) return;
@@ -219,6 +256,83 @@ const CalibrationOverlay = ({
         height: dims.h,
       }}
     >
+      {/* LIVE auto-localized regions — drawn first so static regions
+          layer on top. These are what the matcher is ACTUALLY polling
+          every detection tick; if they don't cover the real card
+          pixels, detection is dead and layout.json won't save you. */}
+      {liveSnapshot && liveSx && liveSy && (
+        <>
+          {(liveSnapshot.holeRegions || []).map((r, i) => (
+            <div
+              key={'live-hole-' + i}
+              style={{
+                position: 'absolute',
+                left: r.x * liveSx,
+                top: r.y * liveSy,
+                width: r.w * liveSx,
+                height: r.h * liveSy,
+                border: `2px dashed ${REGION_COLORS.liveHoleCards}`,
+                boxShadow: '0 0 8px rgba(34, 211, 238, 0.6)',
+                background: 'rgba(34, 211, 238, 0.10)',
+                boxSizing: 'border-box',
+                pointerEvents: 'none',
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: -14, right: 0, fontSize: 9,
+                color: REGION_COLORS.liveHoleCards,
+                background: 'rgba(0,0,0,0.8)',
+                padding: '1px 4px', borderRadius: 2, fontWeight: 700,
+              }}>LIVE h{i}</div>
+            </div>
+          ))}
+          {(liveSnapshot.boardRegions || []).map((r, i) => (
+            <div
+              key={'live-board-' + i}
+              style={{
+                position: 'absolute',
+                left: r.x * liveSx,
+                top: r.y * liveSy,
+                width: r.w * liveSx,
+                height: r.h * liveSy,
+                border: `2px dashed ${REGION_COLORS.liveBoardCards}`,
+                boxShadow: '0 0 8px rgba(163, 230, 53, 0.6)',
+                background: 'rgba(163, 230, 53, 0.10)',
+                boxSizing: 'border-box',
+                pointerEvents: 'none',
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: -14, right: 0, fontSize: 9,
+                color: REGION_COLORS.liveBoardCards,
+                background: 'rgba(0,0,0,0.8)',
+                padding: '1px 4px', borderRadius: 2, fontWeight: 700,
+              }}>LIVE b{i}</div>
+            </div>
+          ))}
+          {liveSnapshot.tableBounds && (
+            <div
+              style={{
+                position: 'absolute',
+                left: liveSnapshot.tableBounds.x * liveSx,
+                top: liveSnapshot.tableBounds.y * liveSy,
+                width: liveSnapshot.tableBounds.w * liveSx,
+                height: liveSnapshot.tableBounds.h * liveSy,
+                border: '1px dotted #fbbf24',
+                background: 'transparent',
+                boxSizing: 'border-box',
+                pointerEvents: 'none',
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: -14, left: 0, fontSize: 9,
+                color: '#fbbf24', background: 'rgba(0,0,0,0.8)',
+                padding: '1px 4px', borderRadius: 2, fontWeight: 700,
+              }}>TABLE BOUNDS</div>
+            </div>
+          )}
+        </>
+      )}
       {regions.map((r) => {
         const left = r.rect.x * sx;
         const top = r.rect.y * sy;
