@@ -2230,6 +2230,11 @@ function makeTurnRiverHeuristicDecision(params) {
     // throughout the entire function (was causing ReferenceError when no live read)
     let currentActionTimingTell = 'unknown';
     let currentActionTimingMs = null;
+    // Phase 47 FIX: liveCRBoost and liveCRSizeMod must be function-scoped because
+    // they're used in BOTH turn AND river check-raise logic. Previously declared
+    // inside the turn CR block (line ~3718), causing ReferenceError on river hands.
+    let liveCRBoost = 0;
+    let liveCRSizeMod = 1.0;
 
     if (liveRead && liveRead.confidence >= 0.10) {
         // ═══ LIVE-READ NaN/INTEGRITY GUARD (Phase 32) ═══
@@ -3715,8 +3720,10 @@ function makeTurnRiverHeuristicDecision(params) {
 
             // ═══ PHASE 16: LIVE-READ DRIVEN CHECK-RAISE STRATEGY ═══
             // Pre-compute live exploits for all check-raise types
-            let liveCRBoost = 0;   // Additive to check-raise frequency
-            let liveCRSizeMod = 1.0; // Multiplicative to check-raise sizing
+            // (liveCRBoost and liveCRSizeMod declared at function scope for
+            //  turn + river access — see Phase 47 FIX above)
+            liveCRBoost = 0;   // Reset for this street
+            liveCRSizeMod = 1.0;
             if (liveRead && liveRead.confidence >= 0.20) {
                 // Opponent c-bets too much → check-raise MORE (they bet wide, so CR prints money)
                 if (liveRead.cBetPct !== null && liveRead.cBetPct > 0.70) {
