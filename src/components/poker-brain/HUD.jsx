@@ -711,6 +711,18 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     const DETECT_INTERVAL_MS = 250;   // 4 Hz cards
     const OCR_INTERVAL_MS    = 1000;  // 1 Hz pot/stack/blinds
 
+    // Arm the matcher's one-shot diagnostic dump whenever detection
+    // (re)starts. For the first few frames the matcher will print a
+    // full per-region breakdown to the console — best match, distance,
+    // top-3 candidates, and scaled region coords. This turns "nothing
+    // is detected" into an actionable signal: we can see immediately
+    // whether the matcher is reading cards and rejecting them (bump
+    // MATCH_THRESHOLD) or whether the regions are landing in empty
+    // space (auto-localizer or reference-size issue).
+    if (matcherRef.current && typeof matcherRef.current.armDiagnostics === 'function') {
+      matcherRef.current.armDiagnostics(5);
+    }
+
     // Teardown flag. The loop is async, so the effect cleanup may fire
     // while a `loop` invocation is mid-await. cancelAnimationFrame only
     // kills the CURRENTLY scheduled rAF id — if the running loop

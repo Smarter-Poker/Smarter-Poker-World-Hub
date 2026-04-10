@@ -38,14 +38,16 @@ const DHASH_SIZE = 9; // resize to 9x9, produces 8x8=64-bit hash
 const DHASH_BITS = 64;
 
 // Match thresholds
-// Lowered from 8 → 5. At distance 8 the confidence displayed to the user
-// drops to ~87% which looks "uncertain", and distance 6-8 is often a
-// near-miss between two similar ranks (T vs 9, 6 vs 9). Distance ≤ 5
-// corresponds to ~92% confidence minimum and virtually eliminates
-// confusable matches without sacrificing real hits — the typical
-// distance for a clean crop on a correctly-aligned template is 0-3.
-const MATCH_THRESHOLD = 5;
-const EMPTY_THRESHOLD = 5;   // Empty/back detection threshold
+// Raised back to 12 after a real-world regression: the previous value of 5
+// was tuned against a synthetic reference deck and rejected virtually every
+// live PokerBros card (cards were matching at distances 7-11 due to sub-
+// pixel rasterization differences between the emulator's GL surface and
+// the extracted template PNGs). The net effect of threshold=5 was a
+// completely dead HUD — zero cards detected, state machine stuck in
+// WAITING forever. 12 lets real matches through while still rejecting
+// genuine noise (a wrong-rank confusable typically scores 18+).
+const MATCH_THRESHOLD = 12;
+const EMPTY_THRESHOLD = 8;   // Empty/back detection threshold
 const UNKNOWN_LABEL = null;  // Return null for unknown cards
 
 // Crop robustness: recompute the dHash at small pixel offsets and keep
@@ -154,6 +156,20 @@ class PokerBrainMatcher {
     this._offscreenCtx = null;
     this._cropCanvas = null;
     this._cropCtx = null;
+    // Diagnostic: emit a one-time console breakdown of the best match
+    // per region on the first N invocations after a stream starts. This
+    // is NOT gated on debug mode — it runs automatically so that when
+    // the HUD appears dead we can immediately see whether the matcher
+    // is getting cards and just rejecting them (threshold problem) or
+    // sees nothing (region/capture problem).
+    this._diagFramesRemaining = 0;
+  }
+
+  /**
+   * Arm the diagnostic dump for the next N matchAllRegions() calls.
+   */
+  armDiagnostics(frames = 3) {
+    this._diagFramesRemaining = frames;
   }
 
   /**
@@ -520,6 +536,55 @@ class PokerBrainMatcher {
     }
 
     const timingMs = performance.now() - startTime;
+
+    // ---- One-shot diagnostic dump ----
+    // When armed, print the best match (and distance) for every polled
+    // region. Runs for a few frames after a stream starts, so when the
+    // user reports "nothing is detected" we can see immediately whether
+    // the matcher is reading cards and rejecting them (threshold issue)
+    // or seeing empty/back (region/capture issue).
+    if (this._diagFramesRemaining > 0) {
+      this._diagFramesRemaining -= 1;
+      try {
+        const rows = [];
+        for (let i = 0; i < layoutHole.length; i++) {
+          const region = layoutHole[i];
+          if (!region) continue;
+          const scaled = scaleRegion(region);
+          const r = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, { topN: 3 });
+          rows.push({
+            slot: `hole${i}`,
+            best: r.key,
+            dist: r.distance,
+            conf: r.confidence.toFixed(2),
+            top3: (r.candidates || []).slice(0, 3).map((c) => `${c.key}:${c.distance}`).join(' '),
+            region: `${scaled.x},${scaled.y} ${scaled.w}x${scaled.h}`,
+          });
+        }
+        for (let i = 0; i < layout.boardCards.length; i++) {
+          const region = layout.boardCards[i];
+          const scaled = scaleRegion(region);
+          const r = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, { topN: 3 });
+          rows.push({
+            slot: `board${i}`,
+            best: r.key,
+            dist: r.distance,
+            conf: r.confidence.toFixed(2),
+            top3: (r.candidates || []).slice(0, 3).map((c) => `${c.key}:${c.distance}`).join(' '),
+            region: `${scaled.x},${scaled.y} ${scaled.w}x${scaled.h}`,
+          });
+        }
+        // eslint-disable-next-line no-console
+        console.log(
+          `[Matcher diag] video=${videoW}x${videoH} ref=${refW}x${refH} scale=${scaleX.toFixed(2)}x${scaleY.toFixed(2)} threshold=${MATCH_THRESHOLD}`
+        );
+        // eslint-disable-next-line no-console
+        console.table(rows);
+      } catch (diagErr) {
+        // eslint-disable-next-line no-console
+        console.warn('[Matcher diag] dump failed', diagErr);
+      }
+    }
 
     const out = { holeCards, boardCards, timingMs, polledHoleCount: layoutHole.length };
     if (probeLog) out.probeLog = probeLog;
