@@ -1064,13 +1064,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                setVillainStacks((prev) => ({ ...prev, ...r.villainStacks }));
             }
             // Auto-detect tournament stage from OCR-derived blind level.
-            // The old rawText path was dead code (OCR loop returns structured
-            // data, not raw text). Now we use the bigBlind value to estimate
-            // the blind level and infer tournament stage.
+            // Only fires when in tournament mode AND the detected stage
+            // differs from the current stage (avoids overriding manual
+            // user selection and prevents unnecessary re-renders from
+            // creating new objects every OCR tick at 1Hz).
             if (isTournamentRef.current && r.bigBlind && r.bigBlind > 0) {
               try {
-                // Estimate blind level from BB size. PokerBros starting
-                // blinds are typically 10-50. Rough mapping to level index:
                 const approxLevel = r.bigBlind <= 20 ? 1
                   : r.bigBlind <= 50 ? 3
                   : r.bigBlind <= 100 ? 6
@@ -1079,7 +1078,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   : r.bigBlind <= 1500 ? 20
                   : 25;
                 const tInfo = detectTournamentStage({ blindLevel: approxLevel });
-                if (tInfo.confidence >= 0.3) {
+                // Only update if confidence is meaningful AND stage changed.
+                // Gate at 0.5 (matches original threshold) so low-confidence
+                // blind-level-only inference (0.4) doesn't override a manual
+                // user selection. Higher-confidence sources (player count +
+                // paid spots) will clear 0.5 and auto-update correctly.
+                if (tInfo.confidence >= 0.5 && tInfo.stage !== tournamentStageRef.current) {
                   setAutoTournamentStage(tInfo);
                   setTournamentStage(tInfo.stage);
                 }
@@ -1483,7 +1487,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   <div className="text-sm font-bold">{equityPct}%</div>
                 </div>
               )}
-              {potOddsPct !== null && potOddsPct > 0 && (
+              {potOddsPct !== null && potOddsPct > 0 && potSize > 0 && (
                 <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
                   <div className="text-[9px] text-white/60 uppercase">Pot odds</div>
                   <div className="text-sm font-bold">{potOddsPct}%</div>
