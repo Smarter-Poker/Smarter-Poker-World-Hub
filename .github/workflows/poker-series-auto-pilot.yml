@@ -52,7 +52,7 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+          MY_PHONE_NUMBER: "+17086775221"
         run: python3 scripts/utils/send_sms_alert.py "Step 1 (Discovery Sweep) Crash"
 
       # ---------------------------------------------------------
@@ -69,7 +69,7 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+          MY_PHONE_NUMBER: "+17086775221"
         run: python3 scripts/utils/send_sms_alert.py "Step 2 (Core Series Scraper) Crash"
 
       # ---------------------------------------------------------
@@ -86,7 +86,7 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+          MY_PHONE_NUMBER: "+17086775221"
         run: python3 scripts/utils/send_sms_alert.py "Step 3 (Venue Enrichment) Crash"
 
       # ---------------------------------------------------------
@@ -103,5 +103,5 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
-          MY_PHONE_NUMBER: ${{ secrets.MY_PHONE_NUMBER }}
+          MY_PHONE_NUMBER: "+17086775221"
         run: python3 scripts/utils/send_sms_alert.py "Step 4 (PDF Rules Extraction) Crash"
