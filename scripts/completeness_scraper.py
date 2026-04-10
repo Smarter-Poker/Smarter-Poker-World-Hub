@@ -46,23 +46,32 @@ run_ts        = datetime.now().strftime("%Y%m%d_%H%M%S")
 LOG_FILE      = LOG_DIR / f"completeness_{run_ts}.log"
 
 # ── Supabase ──────────────────────────────────────────────────────────────────
-SUPABASE_URL  = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
-SUPABASE_KEY  = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", ""))
+# Always prefer SUPABASE_SERVICE_ROLE_KEY — required for DELETE and upserts.
+# Parse .env.local manually with proper quote-stripping and key priority.
+SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+_anon_key    = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    # Try .env.local
+    # Try .env.local — always parse ALL lines, service role key takes precedence
     env_path = PROJECT_ROOT / ".env.local"
     if env_path.exists():
+        _anon_from_file = ""
         for line in env_path.read_text().splitlines():
-            if "=" in line and not line.strip().startswith("#"):
-                k, _, v = line.partition("=")
-                k = k.strip(); v = v.strip().strip('"').strip("'")
-                if k == "NEXT_PUBLIC_SUPABASE_URL" and not SUPABASE_URL:
-                    SUPABASE_URL = v
-                if k in ("SUPABASE_SERVICE_ROLE_KEY",) and not SUPABASE_KEY:
-                    SUPABASE_KEY = v
-                if k == "NEXT_PUBLIC_SUPABASE_ANON_KEY" and not SUPABASE_KEY:
-                    SUPABASE_KEY = v
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            k = k.strip(); v = v.strip().strip('"').strip("'")
+            if k == "NEXT_PUBLIC_SUPABASE_URL" and not SUPABASE_URL:
+                SUPABASE_URL = v
+            if k == "SUPABASE_SERVICE_ROLE_KEY":
+                SUPABASE_KEY = v  # always overwrite — service role > anon
+            if k == "NEXT_PUBLIC_SUPABASE_ANON_KEY" and not _anon_from_file:
+                _anon_from_file = v
+        # Only fall back to anon key if service role was never found
+        if not SUPABASE_KEY and _anon_from_file:
+            SUPABASE_KEY = _anon_from_file
 
 SB_HDRS = {
     "apikey": SUPABASE_KEY,

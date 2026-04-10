@@ -16,8 +16,8 @@ import {
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
 import detectCards from '../../lib/poker-brain/detection-loop';
 import execOcrPass from '../../lib/poker-brain/ocr-loop';
-// Auto-localizer disabled — static layout.json regions are more reliable.
-// import { localizeCards } from '../../lib/poker-brain/card-localizer';
+import { localizeCards } from '../../lib/poker-brain/card-localizer';
+import { extractTournamentInfo } from '../../lib/poker-brain/tournament-detect';
 import { findTableBounds } from '../../lib/poker-brain/table-finder';
 import {
   detectPlayerCountByStacks,
@@ -29,6 +29,8 @@ import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { verifyCardSuit } from '../../lib/poker-brain/suit-color';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
+import Onboarding from './Onboarding';
+import LiveFeed from './LiveFeed';
 import CalibrationOverlay, {
   loadLayoutOverrides,
   saveLayoutOverrides,
@@ -65,9 +67,18 @@ const SUIT_DISPLAY = {
   c: { glyph: '\u2663', label: 'Clubs',    color: '#16a34a' },
 };
 
-const DetectedCard = ({ card }) => {
+// Confidence color: green = excellent, yellow = good, red = marginal
+function confidenceColor(distance) {
+  if (distance == null) return '#6b7280';
+  if (distance <= 4) return '#10b981';  // green - excellent match
+  if (distance <= 8) return '#f59e0b';  // yellow - good match
+  return '#ef4444';                      // red - marginal match
+}
+
+const DetectedCard = ({ card, showConfidenceIndicator }) => {
   const suit = SUIT_DISPLAY[card.suit] || SUIT_DISPLAY.s;
   const confidence = Math.round((card.confidence || 0) * 100);
+  const distance = card.distance != null ? card.distance : null;
   return (
     <div
       className="relative flex flex-col items-center justify-center rounded-xl border-2 shadow-lg"
@@ -85,6 +96,18 @@ const DetectedCard = ({ card }) => {
       <span className="text-lg leading-none" style={{ color: suit.color }}>
         {suit.glyph}
       </span>
+      {showConfidenceIndicator && distance != null && (
+        <span
+          className="absolute -top-1 -right-1 rounded-full"
+          style={{
+            width: '8px',
+            height: '8px',
+            backgroundColor: confidenceColor(distance),
+            border: '1px solid rgba(255,255,255,0.8)',
+          }}
+          title={`Match distance: ${distance}`}
+        />
+      )}
       {confidence > 0 && (
         <span className="absolute -bottom-5 text-[9px] text-slate-400 font-mono">
           {confidence}%
@@ -479,6 +502,29 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const effectiveLayoutRef = useRef(effectiveLayout);
   useEffect(() => { effectiveLayoutRef.current = effectiveLayout; }, [effectiveLayout]);
 
+  // Auto-localizer: uses card-localizer.js to detect card regions without
+  // layout.json coordinates. Toggle-able by user, ref-mirrored for the loop.
+  const [useAutoLocalize, setUseAutoLocalize] = useState(false);
+  const useAutoLocalizeRef = useRef(false);
+  useEffect(() => { useAutoLocalizeRef.current = useAutoLocalize; }, [useAutoLocalize]);
+
+  // Confidence overlay toggle
+  const [showConfidence, setShowConfidence] = useState(false);
+  const showConfidenceRef = useRef(false);
+  useEffect(() => { showConfidenceRef.current = showConfidence; }, [showConfidence]);
+
+  // Auto tournament stage detection
+  const [autoTournamentStage, setAutoTournamentStage] = useState(null);
+
+  // Onboarding: show on first ever launch
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem('pokerBrain.onboarded');
+  });
+
+  // Live feed visibility
+  const [showLiveFeed, setShowLiveFeed] = useState(false);
+
   // Storage (Supabase + IndexedDB queue)
   const storage = usePokerBrainStorage(supabase);
   // Live ref so stable callbacks (stopStream, unmount cleanup) that don't
@@ -817,7 +863,32 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             } catch (tbErr) { /* swallow */ }
 
             // ── PHASE 4: PURE DETECTION MODULE ───────────────────────
-            const result = detectCards(video, effectiveLayoutRef.current, matcher, {
+            // If auto-localize is on and no manual calibration overrides exist,
+            // use the card-localizer to dynamically find card regions.
+            let detectionLayout = effectiveLayoutRef.current;
+            if (useAutoLocalizeRef.current) {
+              try {
+                const locResult = localizeCards(video, {
+                  expectedHole,
+                  referenceSize: detectionLayout?.referenceSize,
+                });
+                if (locResult && locResult.holeConfidence > 0.5 && locResult.holeRegions.length > 0) {
+                  // Build a synthetic layout with auto-detected regions
+                  detectionLayout = {
+                    ...detectionLayout,
+                    holeCards: locResult.holeRegions,
+                    boardCards: locResult.boardRegions.length >= 3
+                      ? locResult.boardRegions
+                      : detectionLayout.boardCards,
+                    _autoLocalized: true,
+                  };
+                }
+              } catch (_locErr) {
+                // Fall back to static layout on localizer error
+              }
+            }
+
+            const result = detectCards(video, detectionLayout, matcher, {
               variant: currentVariant,
               maxHoleCards: expectedHole,
               debug: debugModeRef.current,
@@ -971,6 +1042,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             if (r.villainStacks !== undefined) {
                setVillainStacks((prev) => ({ ...prev, ...r.villainStacks }));
             }
+            // Auto-detect tournament stage from OCR data if in tournament mode
+            if (r.rawText && isTournamentRef.current) {
+              try {
+                const tInfo = extractTournamentInfo(r.rawText);
+                if (tInfo.confidence >= 0.5) {
+                  setAutoTournamentStage(tInfo);
+                  setTournamentStage(tInfo.stage);
+                }
+              } catch (_te) { /* ignore tournament detection errors */ }
+            }
           }).catch(console.warn);
         }
       }
@@ -1109,6 +1190,17 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   // ============================================================================
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-3 pb-24">
+      {/* Onboarding overlay for first-time users */}
+      {showOnboarding && (
+        <Onboarding
+          onComplete={({ captureMode: cm, variant: v }) => {
+            setShowOnboarding(false);
+            if (v) setGameType(v);
+          }}
+          onSelectCapture={() => {}}
+          onSelectVariant={(v) => v && setGameType(v)}
+        />
+      )}
       <div className="max-w-4xl mx-auto">
         {/* HEADER */}
         <div className="mb-3 flex items-start justify-between gap-3">
@@ -1176,18 +1268,25 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               <span className={'font-bold ' + (isTournament ? 'text-amber-300' : 'text-slate-500')}>MTT</span>
             </label>
             {isTournament && (
-              <select
-                value={tournamentStage}
-                onChange={(e) => setTournamentStage(e.target.value)}
-                className="ml-2 bg-transparent font-bold text-white uppercase cursor-pointer"
-                title="Tournament stage"
-              >
-                <option value="early" className="text-black">EARLY</option>
-                <option value="middle" className="text-black">MIDDLE</option>
-                <option value="bubble" className="text-black">BUBBLE</option>
-                <option value="itm" className="text-black">ITM</option>
-                <option value="ft" className="text-black">FT</option>
-              </select>
+              <>
+                <select
+                  value={tournamentStage}
+                  onChange={(e) => { setTournamentStage(e.target.value); setAutoTournamentStage(null); }}
+                  className="ml-2 bg-transparent font-bold text-white uppercase cursor-pointer"
+                  title="Tournament stage (auto-detected when OCR data is available)"
+                >
+                  <option value="early" className="text-black">EARLY</option>
+                  <option value="middle" className="text-black">MIDDLE</option>
+                  <option value="bubble" className="text-black">BUBBLE</option>
+                  <option value="itm" className="text-black">ITM</option>
+                  <option value="ft" className="text-black">FT</option>
+                </select>
+                {autoTournamentStage && autoTournamentStage.confidence >= 0.5 && (
+                  <span className="text-[9px] text-cyan-400 ml-1" title={autoTournamentStage.reasoning}>
+                    (auto)
+                  </span>
+                )}
+              </>
             )}
           </span>
           <span className="bg-slate-800 rounded px-2 py-1">
@@ -1420,7 +1519,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             </h2>
             <div className="flex gap-2">
               {handState.holeCards.length > 0 ? (
-                handState.holeCards.map((card, i) => <DetectedCard key={'hole-' + i} card={card} />)
+                handState.holeCards.map((card, i) => <DetectedCard key={'hole-' + i} card={card} showConfidenceIndicator={showConfidence} />)
               ) : (
                 <>
                   <EmptyCardSlot label="?" />
@@ -1436,7 +1535,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             </h2>
             <div className="flex gap-1.5 flex-wrap">
               {handState.boardCards.length > 0 ? (
-                handState.boardCards.map((card, i) => <DetectedCard key={'board-' + i} card={card} />)
+                handState.boardCards.map((card, i) => <DetectedCard key={'board-' + i} card={card} showConfidenceIndicator={showConfidence} />)
               ) : (
                 [0, 1, 2, 3, 4].map((i) => (
                   <EmptyCardSlot key={'empty-' + i} label={i < 3 ? 'Flop' : i === 3 ? 'Turn' : 'River'} />
@@ -1524,6 +1623,33 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   title="Expand the capture feed to fill the viewport for precise manual calibration"
                 >
                   {calibrationFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+                </button>
+              )}
+              {streamReady && (
+                <button
+                  onClick={() => setUseAutoLocalize((v) => !v)}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (useAutoLocalize ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  title="Use automatic card region detection instead of static layout coordinates"
+                >
+                  {useAutoLocalize ? 'Auto-Detect ON' : 'Auto-Detect'}
+                </button>
+              )}
+              {streamReady && (
+                <button
+                  onClick={() => setShowConfidence((v) => !v)}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (showConfidence ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  title="Show color-coded match confidence indicators on detected cards"
+                >
+                  {showConfidence ? 'Confidence ON' : 'Confidence'}
+                </button>
+              )}
+              {streamReady && (
+                <button
+                  onClick={() => setShowLiveFeed((v) => !v)}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (showLiveFeed ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  title="Show real-time hand feed for coaching or review"
+                >
+                  {showLiveFeed ? 'Feed ON' : 'Live Feed'}
                 </button>
               )}
               {streamReady && calibrationVisible && layoutOverrides && (
@@ -1705,6 +1831,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             </p>
           )}
         </div>
+
+        {/* LIVE FEED */}
+        {showLiveFeed && storage && storage.sessionId && (
+          <div className="mt-4">
+            <LiveFeed storage={storage} sessionId={storage.sessionId} />
+          </div>
+        )}
 
         {/* HAND HISTORY */}
         <HandHistory hands={recentHands} />

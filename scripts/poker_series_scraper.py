@@ -155,6 +155,47 @@ def parse_date(text: str) -> str | None:
             except: pass
     return None
 
+def parse_date_series(text: str, series_year: int = 0) -> str | None:
+    """
+    Series-aware date parser — NEVER rolls dates forward.
+    Series events have fixed dates; Mar 25 2026 stays 2026 even if past.
+    Uses series_year hint from series uid e.g. 'pa_2026-spring-classic' -> 2026.
+    """
+    now = datetime.now(timezone.utc)
+    # Full ISO date wins always
+    m = re.search(r"\b(20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b", text)
+    if m: return m.group(0)
+    yr_hint = series_year
+    if not yr_hint:
+        yh = re.search(r"\b(202[3-9])\b", text)
+        if yh: yr_hint = int(yh.group(1))
+    if not yr_hint:
+        yr_hint = now.year
+    m2 = re.search(r"\b("+"|".join(MONTHS)+r")\b\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s*(20\d\d))?", text, re.I)
+    if m2:
+        mo = MONTHS[m2.group(1).lower()]
+        day = int(m2.group(2))
+        yr = int(m2.group(3) or yr_hint)
+        try:
+            return datetime(yr, mo, day, tzinfo=timezone.utc).strftime("%Y-%m-%d")
+        except: pass
+    m3 = re.search(r"\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b", text)
+    if m3:
+        mo, day = int(m3.group(1)), int(m3.group(2))
+        yr = int(m3.group(3) or yr_hint)
+        if yr < 100: yr += 2000
+        if 1<=mo<=12 and 1<=day<=31:
+            try:
+                return datetime(yr, mo, day, tzinfo=timezone.utc).strftime("%Y-%m-%d")
+            except: pass
+    return None
+
+def extract_series_year(series_uid: str) -> int:
+    """Extract year from a series uid like 'pa_2026-spring-classic' -> 2026."""
+    m = re.search(r"\b(202[3-9])\b", series_uid)
+    if m: return int(m.group(1))
+    return 0
+
 def normalize_day(text: str) -> str:
     tl = text.lower()
     for d in DAYS_FULL:
@@ -393,7 +434,8 @@ def fetch_with_retry(session, url: str, retries: int = 3, **kwargs) -> tuple:
     resp = None
     for attempt in range(retries):
         try:
-            resp = session.fetch(url, timeout=30000, wait_until="networkidle", **kwargs)
+            # google_search=True routes via Google referrer — matches daily_venue_scraper approach
+            resp = session.fetch(url, google_search=True, timeout=45000, wait_until="networkidle", **kwargs)
             if resp and resp.status == 200:
                 body = resp.body if isinstance(resp.body, bytes) else str(resp.body).encode("utf-8")
                 html = body.decode("utf-8", "ignore")
@@ -684,6 +726,7 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
     text = re.sub(r"\s+"," ", re.sub(r"<[^>]+>"," ",html))
     seen, results = set(), []
     event_counter = 0
+    series_year = extract_series_year(series_uid)  # e.g. 2026 from 'pa_2026-spring-..'
 
     def try_block(txt: str):
         nonlocal event_counter
@@ -692,11 +735,17 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         buyin = int(bi.group(1).replace(",",""))
         if not 10<=buyin<=250000: return
         st = normalize_time_to_24h(normalize_time(tm.group(1))) if tm else None
-        ed = parse_date(txt)
-        if not ed: return  # series events should have specific dates
+        # Use series-aware date parser — NO forward-rolling
+        ed = parse_date_series(txt, series_year)
+        if not ed: return  # series events MUST have specific dated events
+        # Event name — prefer quoted short strings, avoid grabbing paragraphs
         tname = None
-        nm = re.search(r'(?:"([^"]{4,80})"|(\$\d+[^$\n]{3,60}))', txt)
-        if nm: tname = (nm.group(1) or nm.group(2) or "")[:150]
+        nm = re.search(r'"([^"]{5,70})"', txt)
+        if nm: tname = nm.group(1)[:150]
+        else:
+            # Grab the dollar-amount description up to 60 chars if clean
+            desc = re.match(r'(\$[\d,K]+[^\n|$]{3,60})', txt)
+            if desc: tname = desc.group(1).strip()[:150]
         # GTD: match "$50K Gtd" / "$100K GTD" / "Guaranteed: $10,000" patterns
         gtd = None
         gtd_m = re.search(r"\$(\d+)[Kk]\s*(?:GTD|Gtd|Guaranteed)", txt)
@@ -752,6 +801,10 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         if "<th" in row.lower(): continue
         rt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", row)).strip()
         if "$" in rt: try_block(rt)
+    # Line-by-line scan — matches daily_venue_scraper lines 545-547
+    for line in html.split("\n"):
+        line = line.strip()
+        if len(line) >= 12 and "$" in line: try_block(line)
     return results
 
 # ── Core per-series scraper ────────────────────────────────────────────────────
@@ -1078,14 +1131,14 @@ def load_enrich_series(filter_state: str = "", min_score: int = 60,
 
     # Get DB metadata
     db_series = sb_get_paged("poker_series",
-        "?select=series_uid,state,scrape_url,source_url,scrape_fail_count")
+        "?select=series_uid,state,scrape_url,source_url")
     db_map = {r["series_uid"]: r for r in db_series}
     master_map = {str(s.get("id","")): s for s in master}
 
     result = []
     for uid, avg_score, missing in low_score_uids:
         db_row = db_map.get(uid, {})
-        fail_count = db_row.get("scrape_fail_count") or 0
+        fail_count = 0  # scrape_fail_count column not in poker_series schema
 
         # Skip permanently ungettable
         if fail_count >= ENRICH_FAIL_MAX:

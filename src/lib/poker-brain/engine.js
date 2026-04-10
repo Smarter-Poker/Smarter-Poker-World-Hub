@@ -443,10 +443,17 @@ const PokerBrainEngine = (() => {
 
     const equity = (wins + ties * 0.5) / iterations * 100;
 
+    // lowPossible: fraction of iterations where ANY player had a qualifying low.
+    // Used for exact Hi-Lo scoop equity computation.
+    const lowPossible = isHiLo && iterations > 0
+      ? Math.round((lowsCounted / iterations) * 1000) / 1000
+      : 0;
+
     const result = {
       equity: Math.round(equity * 100) / 100,
       highEquity: isHiLo ? Math.round((highWins / iterations) * 10000) / 100 : equity,
       lowEquity: isHiLo ? Math.round((lowWins / iterations) * 10000) / 100 : 0,
+      lowPossible,
       wins,
       ties,
       iterations
@@ -879,6 +886,143 @@ const PokerBrainEngine = (() => {
   };
 
   /**
+   * Compute ICM bubble factor with stack-size awareness and optional
+   * full tournament data (players remaining, paid spots).
+   * @param {object} opts
+   * @param {number} [opts.heroStack] - hero stack in chips
+   * @param {number} [opts.avgStack] - average stack in chips
+   * @param {number} [opts.playersRemaining] - players still alive
+   * @param {number} [opts.paidSpots] - how many spots are paid
+   * @param {string} [opts.stage] - tournament stage string fallback
+   * @param {number} [opts.bbSize] - big blind size (for BB calculation)
+   * @returns {number} bubble factor >= 1.0
+   */
+  const computeICMBubbleFactor = (opts = {}) => {
+    try {
+      const { heroStack, avgStack, playersRemaining, paidSpots, stage, bbSize } = opts;
+
+      // Calculate BB stack for stack-size adjustments
+      const bbStack = (heroStack && bbSize && bbSize > 0) ? heroStack / bbSize : null;
+      const stackMultiplier = bbStack != null
+        ? (bbStack < 15 ? 1.15 : bbStack > 40 ? 0.85 : 1.0)
+        : 1.0;
+
+      // Full ICM path: when we have players remaining and paid spots
+      if (playersRemaining && paidSpots && playersRemaining > 0 && paidSpots > 0) {
+        const ratio = paidSpots / playersRemaining;
+        const isShortStack = heroStack && avgStack && heroStack < avgStack * 0.6;
+        const isBigStack = heroStack && avgStack && heroStack > avgStack * 1.8;
+
+        // On the actual bubble (1 away from the money)
+        if (playersRemaining === paidSpots + 1) {
+          const baseFactor = isShortStack ? 1.8 : isBigStack ? 1.4 : 1.6;
+          return baseFactor * stackMultiplier;
+        }
+
+        // Near bubble (within 20% of paid spots)
+        if (playersRemaining <= paidSpots * 1.2) {
+          const proximity = 1 - ((playersRemaining - paidSpots) / (paidSpots * 0.2));
+          const baseFactor = 1.3 + (proximity * 0.3);
+          return baseFactor * stackMultiplier;
+        }
+
+        // In the money
+        if (playersRemaining <= paidSpots) {
+          // Final table (9 or fewer, or top 15% of paid spots)
+          if (playersRemaining <= 9 || playersRemaining <= paidSpots * 0.15) {
+            const ftFactor = 1.25 + (0.15 * (9 / Math.max(2, playersRemaining)));
+            return ftFactor * stackMultiplier;
+          }
+          // General ITM
+          const itmFactor = 1.15 + (0.1 * ratio);
+          return Math.min(1.4, itmFactor) * stackMultiplier;
+        }
+
+        // Pre-bubble: scale gently with proximity
+        const preBubbleFactor = 1.0 + (ratio * 0.3);
+        return Math.min(1.3, preBubbleFactor) * stackMultiplier;
+      }
+
+      // Fallback: stage-based with stack-size adjustment
+      const baseFactor = bubbleFactorForStage(stage);
+      return baseFactor * stackMultiplier;
+    } catch (_e) {
+      // Safe fallback
+      return bubbleFactorForStage(opts.stage);
+    }
+  };
+
+  /**
+   * Estimate a PLO hand's all-in equity vs a random PLO range.
+   * Scores hand quality features and maps to approximate equity %.
+   * @param {Array} holeCards - array of {rank, suit} objects (4-6 cards)
+   * @returns {{ equity: number, features: string[] }}
+   */
+  const estimatePloHandEquityVsRandom = (holeCards) => {
+    if (!holeCards || holeCards.length < 4) return { equity: 25, features: [] };
+    const features = [];
+    let score = 0;
+
+    // Suitedness check
+    const suitCounts = {};
+    for (const c of holeCards) {
+      suitCounts[c.suit] = (suitCounts[c.suit] || 0) + 1;
+    }
+    const suitPairs = Object.values(suitCounts).filter(v => v >= 2).length;
+    if (suitPairs >= 2) {
+      score += 15;
+      features.push('double-suited');
+    } else if (suitPairs === 1) {
+      score += 8;
+      features.push('single-suited');
+    }
+
+    // Pair check
+    const rankCounts = {};
+    for (const c of holeCards) {
+      rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1;
+    }
+    const hasPair = Object.values(rankCounts).some(v => v >= 2);
+    if (hasPair) {
+      score += 12;
+      features.push('pair');
+    }
+
+    // Connectivity: all cards within 4 ranks of each other
+    const vals = holeCards.map(c => RANK_VALUE[c.rank]).sort((a, b) => a - b);
+    const spread = vals[vals.length - 1] - vals[0];
+    if (spread <= 4) {
+      score += 10;
+      features.push('connected');
+    } else if (spread <= 6) {
+      score += 5;
+      features.push('semi-connected');
+    }
+
+    // Broadway count (T+)
+    const broadways = holeCards.filter(c => RANK_VALUE[c.rank] >= 10).length;
+    score += broadways * 5;
+    if (broadways >= 3) features.push(`${broadways} broadways`);
+
+    // Middling cards (7-9)
+    const middling = holeCards.filter(c => RANK_VALUE[c.rank] >= 7 && RANK_VALUE[c.rank] < 10).length;
+    score += middling * 3;
+
+    // Aces bonus
+    if (rankCounts['A'] >= 1) {
+      score += 5;
+      if (rankCounts['A'] >= 2) {
+        score += 10;
+        features.push('double aces');
+      }
+    }
+
+    // Normalize: raw score ranges ~0-70, map to 25-65% equity
+    const equity = Math.max(25, Math.min(65, 25 + (score / 70) * 40));
+    return { equity: Math.round(equity * 10) / 10, features };
+  };
+
+  /**
    * ICM-adjusted call EV. Raw EV is in chips; we scale the risk side by
    * the bubble factor so marginal calls near the bubble get rejected.
    */
@@ -933,7 +1077,10 @@ const PokerBrainEngine = (() => {
     let confidence = 0;
     let reasoning = '';
     const bbStackCalc = (bigBlind > 0 ? stackSize / bigBlind : null);
-    const bubbleFactor = istournament ? bubbleFactorForStage(tournamentStage) : 1.0;
+    const bubbleFactor = istournament ? computeICMBubbleFactor({
+      heroStack: stackSize, avgStack: null, playersRemaining: numPlayers,
+      paidSpots: null, stage: tournamentStage, bbSize: bigBlind
+    }) : 1.0;
     let variantNote = '';
 
     // Variant hole-card validation. Reject hands that don't have the
@@ -1131,12 +1278,33 @@ const PokerBrainEngine = (() => {
         }
       }
 
-      // PLO tournament: simple short-stack shove gate (no Nash chart for PLO)
-      if (istournament && isOmaha && bbStackCalc != null && bbStackCalc < 12 && action !== 'FOLD') {
-        action = 'RAISE';
-        raiseAmount = stackSize;
-        confidence = Math.max(confidence, 72);
-        reasoning += ' (PLO short-stack jam)';
+      // PLO tournament: equity-vs-random shove heuristic
+      if (istournament && isOmaha && bbStackCalc != null && bbStackCalc <= 15 && action !== 'FOLD') {
+        try {
+          const ploEst = estimatePloHandEquityVsRandom(holeCards);
+          const threshold = bbStackCalc <= 8 ? 35 : bbStackCalc <= 12 ? 42 : 50;
+          if (ploEst.equity >= threshold) {
+            action = 'RAISE';
+            raiseAmount = stackSize;
+            confidence = Math.max(confidence, Math.min(85, Math.round(ploEst.equity + 10)));
+            const featureStr = ploEst.features.length > 0 ? ploEst.features.join(', ') : 'marginal';
+            reasoning += ` (PLO shove: ${featureStr}, ~${ploEst.equity}% equity vs random at ${Math.round(bbStackCalc)}BB)`;
+          } else if (bbStackCalc <= 8 && ploEst.equity >= 30) {
+            // Desperate: 8BB or less, still shove semi-playable hands
+            action = 'RAISE';
+            raiseAmount = stackSize;
+            confidence = Math.max(confidence, 60);
+            reasoning += ` (PLO desperation shove at ${Math.round(bbStackCalc)}BB, ~${ploEst.equity}% equity)`;
+          }
+        } catch (_e) {
+          // Fallback to old simple gate
+          if (bbStackCalc < 12) {
+            action = 'RAISE';
+            raiseAmount = stackSize;
+            confidence = Math.max(confidence, 72);
+            reasoning += ' (PLO short-stack jam)';
+          }
+        }
       }
     }
     // ========== POSTFLOP ==========
@@ -1173,12 +1341,15 @@ const PokerBrainEngine = (() => {
       highEquity = equityResult.highEquity != null ? equityResult.highEquity : equity;
       lowEquity = equityResult.lowEquity || 0;
 
-      // Hi-Lo: rough scoop expectation = highEquity + lowEquity, capped.
-      // If we have strong low-hand potential, boost confidence slightly
-      // since even when we lose high, we can quarter or scoop the low.
+      // Hi-Lo: exact expected share using lowPossible probability.
+      // pot_share = P(low exists) * (0.5*highEq + 0.5*lowEq) + P(no low) * highEq
       if (isHiLo && lowEquity > 0) {
-        equity = Math.min(100, (highEquity * 0.5) + (lowEquity * 0.5) + (highEquity > 70 ? 10 : 0));
-        variantNote = ` [hi ${Math.round(highEquity)}%, lo ${Math.round(lowEquity)}%]`;
+        const pLow = equityResult.lowPossible != null ? equityResult.lowPossible : 0.6;
+        equity = Math.min(100,
+          pLow * (0.5 * highEquity + 0.5 * lowEquity) +
+          (1 - pLow) * highEquity
+        );
+        variantNote = ` [hi ${Math.round(highEquity)}%, lo ${Math.round(lowEquity)}%, low possible ${Math.round(pLow * 100)}%]`;
       }
 
       const spr = calculateStackToPot(stackSize, potSize);
@@ -1345,6 +1516,8 @@ const PokerBrainEngine = (() => {
     getPushFoldRange,
     calculateM,
     bubbleFactorForStage,
+    computeICMBubbleFactor,
+    estimatePloHandEquityVsRandom,
     icmAdjustedEV,
     PUSH_RANGE_BY_BB,
 

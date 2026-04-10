@@ -110,7 +110,16 @@ export function detectDealer(source, layout, overrides = {}) {
   let bestSeat = null;
   let bestCount = 0;
 
-  for (const seat of layout.seats) {
+  // Choose seat regions: prefer table-size-specific if player count is known
+  const playerCount = overrides.playerCount || layout.seats.length || 6;
+  let seatRegions = layout.seats;
+  if (playerCount <= 2 && (!layout.seats || layout.seats.length === 0)) {
+    seatRegions = DEALER_REGIONS_HU;
+  } else if (playerCount >= 7 && (!layout.seats || layout.seats.length < 7)) {
+    seatRegions = DEALER_REGIONS_9MAX;
+  }
+
+  for (const seat of seatRegions) {
     const scaled = scaleRect(seat, scaleX, scaleY);
     const count = countRedPixels(imageData, scaled, cfg);
     counts[seat.id] = count;
@@ -147,34 +156,71 @@ export function detectDealer(source, layout, overrides = {}) {
  *   n=4                    -> MP   -> 'middle'
  *   n=5                    -> CO   -> 'late'
  */
+// Clockwise seat orderings by table size (from hero, going right/clockwise)
 const CW_ORDER_6MAX = ['hero', 'seat5', 'seat3', 'seat1', 'seat2', 'seat4'];
+const CW_ORDER_9MAX = ['hero', 'seat8', 'seat6', 'seat4', 'seat2', 'seat1', 'seat3', 'seat5', 'seat7'];
+const CW_ORDER_HU   = ['hero', 'seat1'];
+
+// Position maps: clockwise distance from dealer -> position name
+const POS_MAP_6 = ['late', 'sb', 'bb', 'early', 'middle', 'late'];
+const POS_MAP_9 = ['late', 'sb', 'bb', 'early', 'early', 'early', 'middle', 'middle', 'late'];
+const POS_MAP_HU = ['late', 'bb']; // dealer = BTN/SB in HU, other = BB
 
 export function heroPositionFromDealer(dealerSeatId, numPlayers = 6) {
   if (!dealerSeatId) return 'middle';
-  const order = CW_ORDER_6MAX;
+
+  // Select the right clockwise ordering for the table size
+  let order, posMap;
+  if (numPlayers <= 2) {
+    order = CW_ORDER_HU;
+    posMap = POS_MAP_HU;
+  } else if (numPlayers <= 6) {
+    order = CW_ORDER_6MAX;
+    posMap = POS_MAP_6;
+  } else {
+    order = CW_ORDER_9MAX;
+    posMap = POS_MAP_9;
+  }
+
   const heroIdx = order.indexOf('hero');
   const dealerIdx = order.indexOf(dealerSeatId);
-  if (dealerIdx === -1 || heroIdx === -1) return 'middle';
+  if (dealerIdx === -1 || heroIdx === -1) {
+    // Seat not in our ordering: use generic distance-based fallback
+    return _genericPosition(numPlayers);
+  }
+
   // n = clockwise distance FROM dealer TO hero
   const n = (heroIdx - dealerIdx + order.length) % order.length;
-  if (numPlayers <= 6) {
-    switch (n) {
-      case 0: return 'late';   // BTN (hero has the button)
-      case 1: return 'sb';
-      case 2: return 'bb';
-      case 3: return 'early';  // UTG
-      case 4: return 'middle'; // MP/HJ
-      case 5: return 'late';   // CO
-      default: return 'middle';
-    }
-  }
-  // Fallback for non-6max (table sizes not yet supported explicitly)
-  if (n === 0) return 'late';
-  if (n === 1) return 'sb';
-  if (n === 2) return 'bb';
-  if (n <= Math.floor(numPlayers / 2)) return 'early';
+  return posMap[Math.min(n, posMap.length - 1)] || 'middle';
+}
+
+function _genericPosition(numPlayers) {
+  // When we can't determine position, return middle as safe default
   return 'middle';
 }
+
+/**
+ * Seat anchor regions for dealer button scanning by table size.
+ * Coordinates are in 480x1054 reference space. Each entry defines
+ * the search rectangle around a seat where the dealer chip appears.
+ * The chip sits ~30px toward table center from the avatar.
+ */
+const DEALER_REGIONS_9MAX = [
+  { id: 'hero',  x: 215, y: 820, w: 50, h: 50 },
+  { id: 'seat8', x: 370, y: 750, w: 50, h: 50 },
+  { id: 'seat6', x: 400, y: 575, w: 50, h: 50 },
+  { id: 'seat4', x: 370, y: 400, w: 50, h: 50 },
+  { id: 'seat2', x: 295, y: 280, w: 50, h: 50 },
+  { id: 'seat1', x: 135, y: 280, w: 50, h: 50 },
+  { id: 'seat3', x: 60,  y: 400, w: 50, h: 50 },
+  { id: 'seat5', x: 30,  y: 575, w: 50, h: 50 },
+  { id: 'seat7', x: 60,  y: 750, w: 50, h: 50 },
+];
+
+const DEALER_REGIONS_HU = [
+  { id: 'hero',  x: 215, y: 820, w: 50, h: 50 },
+  { id: 'seat1', x: 215, y: 325, w: 50, h: 50 },
+];
 
 /* ═══════════════════════════════════════════════════════════════════════
  * Auto-calibration helpers
