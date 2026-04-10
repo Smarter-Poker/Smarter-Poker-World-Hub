@@ -130,7 +130,6 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
 
   const debugMode = !!options.debug;
   const topN = debugMode ? 3 : 0;
-  const matchOpts = topN > 0 ? { topN } : undefined;
 
   // Use the matcher's matchAllRegions -- it handles canvas drawing and cropping.
   // In hardwired mode the layout coordinates are the exact truth, so this call

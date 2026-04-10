@@ -14,10 +14,8 @@ import {
   findDealerButtonGlobal,
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
-import detectCards from '../../lib/poker-brain/detection-loop';
-import { hardwiredDetect, isHardwiredEligible, validateHardwiredResolution } from '../../lib/poker-brain/hardwired-detect';
+import { hardwiredDetect } from '../../lib/poker-brain/hardwired-detect';
 import execOcrPass from '../../lib/poker-brain/ocr-loop';
-import { localizeCards } from '../../lib/poker-brain/card-localizer';
 import { extractTournamentInfo } from '../../lib/poker-brain/tournament-detect';
 import { findTableBounds } from '../../lib/poker-brain/table-finder';
 import {
@@ -505,11 +503,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const effectiveLayoutRef = useRef(effectiveLayout);
   useEffect(() => { effectiveLayoutRef.current = effectiveLayout; }, [effectiveLayout]);
 
-  // Auto-localizer: uses card-localizer.js to detect card regions without
-  // layout.json coordinates. Toggle-able by user, ref-mirrored for the loop.
-  const [useAutoLocalize, setUseAutoLocalize] = useState(false);
-  const useAutoLocalizeRef = useRef(false);
-  useEffect(() => { useAutoLocalizeRef.current = useAutoLocalize; }, [useAutoLocalize]);
+  // Auto-localizer: RETIRED. Camera mode is permanently removed.
+  // Hardwired mode uses fixed layout coordinates, no localizer needed.
 
   // Confidence overlay toggle
   const [showConfidence, setShowConfidence] = useState(false);
@@ -526,11 +521,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   });
 
   // Hardwired detection mode: uses fixed layout coordinates directly for
-  // screen-share capture. No localizer, no crop-offset sweep, tighter
-  // thresholds. Automatically enabled when capture mode is 'screen'.
-  const [useHardwired, setUseHardwired] = useState(() => isHardwiredEligible(initialMode));
-  const useHardwiredRef = useRef(isHardwiredEligible(initialMode));
-  useEffect(() => { useHardwiredRef.current = useHardwired; }, [useHardwired]);
+  // Hardwired mode: ALWAYS ON. Camera mode is permanently retired — we only
+  // use pixel-perfect screen share from the browser-based PokerBros emulator.
+  // No localizer, no crop-offset sweep, tighter thresholds (8 vs 12).
+  const [useHardwired] = useState(true);
+  const useHardwiredRef = useRef(true);
   const [hardwiredStats, setHardwiredStats] = useState(null);
   const [hardwiredValid, setHardwiredValid] = useState(null);
 
@@ -753,8 +748,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
       if (tableStateRef.current) tableStateRef.current.reset();
       setSource('screen');
       setStreamReady(true);
-      // Auto-enable hardwired mode for screen share
-      setUseHardwired(true);
+      // Hardwired mode is always on — no toggle needed.
     } catch (err) {
       if (err.name !== 'NotAllowedError') setStreamError(err.message || 'Screen capture failed');
     }
@@ -874,9 +868,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             let tableBounds = null;
             // In hardwired mode, table bounds are fixed — only scan every
             // 4 seconds (16 frames at 4Hz) instead of every frame.
-            const isHW = useHardwiredRef.current;
+            // Hardwired mode: table bounds, dealer, player count only change
+            // once per hand. Scan every 16th frame (= every 4s at 4Hz).
             const frameNum = detectionFrameCount++;
-            const slowScanOk = !isHW || (frameNum % 16 === 0);
+            const slowScanOk = (frameNum % 16 === 0);
             if (slowScanOk) {
               try {
                 const prevStable = tableStateRef.current.snapshot().bounds;
@@ -903,46 +898,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             let detectionLayout = effectiveLayoutRef.current;
             let result;
 
-            if (useHardwiredRef.current) {
-              // Hardwired: fixed coordinates, pixel-perfect matching
-              result = hardwiredDetect(video, detectionLayout, matcher, {
-                variant: currentVariant,
-                maxHoleCards: expectedHole,
-                debug: debugModeRef.current,
-              });
-              // Update hardwired stats for the UI
-              if (result.hardwiredStats) {
-                setHardwiredStats(result.hardwiredStats);
-              }
-            } else {
-              // Camera mode: optional auto-localizer
-              if (useAutoLocalizeRef.current) {
-                try {
-                  const locResult = localizeCards(video, {
-                    expectedHoleCount: expectedHole,
-                    tableBounds: tableBounds || undefined,
-                  });
-                  if (locResult && locResult.holeConfidence > 0.5 && locResult.holeRegions.length > 0) {
-                    detectionLayout = {
-                      ...detectionLayout,
-                      holeCards: locResult.holeRegions,
-                      boardCards: locResult.boardRegions.length >= 3
-                        ? locResult.boardRegions
-                        : detectionLayout.boardCards,
-                      _autoLocalized: true,
-                    };
-                  }
-                } catch (_locErr) {
-                  // Fall back to static layout on localizer error
-                }
-              }
-
-              result = detectCards(video, detectionLayout, matcher, {
-                variant: currentVariant,
-                maxHoleCards: expectedHole,
-                debug: debugModeRef.current,
-                topN: 3,
-              });
+            // Hardwired ONLY: fixed coordinates, pixel-perfect matching,
+            // tighter threshold (8), no crop-offset sweep, no localizer.
+            result = hardwiredDetect(video, detectionLayout, matcher, {
+              variant: currentVariant,
+              maxHoleCards: expectedHole,
+              debug: debugModeRef.current,
+            });
+            // Update hardwired stats for the UI
+            if (result.hardwiredStats) {
+              setHardwiredStats(result.hardwiredStats);
             }
 
             setLastTimingMs(result.timingMs);
@@ -968,75 +933,82 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             }
 
             // --- Auto player count via yellow stack-number clusters ---
+            // In hardwired mode, player count / dealer / position change once
+            // per hand, not per frame — only scan every 16th frame (4s at 4Hz).
             let stackClusters = [];
-            try {
+            if (!slowScanOk) {
+              // Skip player count + dealer scan on non-scan frames in HW mode.
+              // The temporal tracker retains the last stable snapshot.
+            } else try {
               const pc = detectPlayerCountByStacks(video, tableBounds);
               stackClusters = pc.clusters || [];
               const livePlayerCount = Math.max(2, pc.playerCount || 0);
               if (livePlayerCount >= 2) obs.playerCount = livePlayerCount;
             } catch (err) { /* swallow */ }
 
-            // --- Auto dealer button: global red-cluster scan ---------
-            try {
-              let dealer = detectDealerAuto(video, effectiveLayoutRef.current);
-              if (!dealer || !dealer.seatId) {
-                dealer = detectDealer(video, effectiveLayoutRef.current);
-              }
-              if (dealer && dealer.seatId) {
-                setDealerSeat(dealer.seatId);
-              }
-
-              let dealerPoint = null;
-              try { dealerPoint = findDealerButtonGlobal(video, tableBounds); }
-              catch (dpErr) { /* swallow */ }
-              if (dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
-                obs.dealerPoint = { x: dealerPoint.x, y: dealerPoint.y };
-              }
-
-              if (stackClusters.length >= 2 && dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
-                let centerX, centerY;
-                if (tableBounds) {
-                  centerX = tableBounds.x + tableBounds.w / 2;
-                  centerY = tableBounds.y + tableBounds.h / 2;
-                } else {
-                  let sumX = 0; let sumY = 0;
-                  for (const c of stackClusters) { sumX += c.cx; sumY += c.cy; }
-                  centerX = sumX / stackClusters.length;
-                  centerY = sumY / stackClusters.length;
+            // --- Auto dealer button + position (throttled in HW mode) ---
+            if (slowScanOk) {
+              try {
+                let dealer = detectDealerAuto(video, effectiveLayoutRef.current);
+                if (!dealer || !dealer.seatId) {
+                  dealer = detectDealer(video, effectiveLayoutRef.current);
                 }
-                const angleOf = (px, py) => {
-                  const a = Math.atan2(px - centerX, -(py - centerY)) * (180 / Math.PI);
-                  return (a + 360) % 360;
-                };
-                const occupiedAngles = stackClusters.map((c) => angleOf(c.cx, c.cy)).sort((a, b) => a - b);
-                
-                let heroCluster = stackClusters[0];
-                const matcherLayout = effectiveLayoutRef.current;
-                if (matcherLayout.holeCards && matcherLayout.holeCards.length > 0) {
-                  let hx = 0, hy = 0;
-                  for (const r of matcherLayout.holeCards) { hx += r.x + r.w / 2; hy += r.y + r.h / 2; }
-                  hx /= matcherLayout.holeCards.length; hy /= matcherLayout.holeCards.length;
-                  let bestD2 = Infinity;
-                  for (const c of stackClusters) {
-                    const dx = c.cx - hx; const dy = c.cy - hy; const d2 = dx * dx + dy * dy;
-                    if (d2 < bestD2) { bestD2 = d2; heroCluster = c; }
+                if (dealer && dealer.seatId) {
+                  setDealerSeat(dealer.seatId);
+                }
+
+                let dealerPoint = null;
+                try { dealerPoint = findDealerButtonGlobal(video, tableBounds); }
+                catch (dpErr) { /* swallow */ }
+                if (dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
+                  obs.dealerPoint = { x: dealerPoint.x, y: dealerPoint.y };
+                }
+
+                if (stackClusters.length >= 2 && dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
+                  let centerX, centerY;
+                  if (tableBounds) {
+                    centerX = tableBounds.x + tableBounds.w / 2;
+                    centerY = tableBounds.y + tableBounds.h / 2;
+                  } else {
+                    let sumX = 0; let sumY = 0;
+                    for (const c of stackClusters) { sumX += c.cx; sumY += c.cy; }
+                    centerX = sumX / stackClusters.length;
+                    centerY = sumY / stackClusters.length;
                   }
-                } else {
-                  let bestY = -Infinity;
-                  for (const c of stackClusters) { if (c.cy > bestY) { bestY = c.cy; heroCluster = c; } }
+                  const angleOf = (px, py) => {
+                    const a = Math.atan2(px - centerX, -(py - centerY)) * (180 / Math.PI);
+                    return (a + 360) % 360;
+                  };
+                  const occupiedAngles = stackClusters.map((c) => angleOf(c.cx, c.cy)).sort((a, b) => a - b);
+
+                  let heroCluster = stackClusters[0];
+                  const matcherLayout = effectiveLayoutRef.current;
+                  if (matcherLayout.holeCards && matcherLayout.holeCards.length > 0) {
+                    let hx = 0, hy = 0;
+                    for (const r of matcherLayout.holeCards) { hx += r.x + r.w / 2; hy += r.y + r.h / 2; }
+                    hx /= matcherLayout.holeCards.length; hy /= matcherLayout.holeCards.length;
+                    let bestD2 = Infinity;
+                    for (const c of stackClusters) {
+                      const dx = c.cx - hx; const dy = c.cy - hy; const d2 = dx * dx + dy * dy;
+                      if (d2 < bestD2) { bestD2 = d2; heroCluster = c; }
+                    }
+                  } else {
+                    let bestY = -Infinity;
+                    for (const c of stackClusters) { if (c.cy > bestY) { bestY = c.cy; heroCluster = c; } }
+                  }
+                  const pos = canonicalPosition({
+                    dealerAngleDeg: angleOf(dealerPoint.x, dealerPoint.y),
+                    heroAngleDeg: angleOf(heroCluster.cx, heroCluster.cy),
+                    numPlayers: stackClusters.length,
+                    occupiedAngles,
+                  });
+                  if (pos && pos !== 'unknown') obs.position = pos;
+                } else if (dealer && dealer.seatId) {
+                  const fallback = heroPositionFromDealer(dealer.seatId, playersRef.current || players);
+                  if (fallback && fallback !== 'unknown') obs.position = fallback;
                 }
-                const pos = canonicalPosition({
-                  dealerAngleDeg: angleOf(dealerPoint.x, dealerPoint.y),
-                  heroAngleDeg: angleOf(heroCluster.cx, heroCluster.cy),
-                  numPlayers: stackClusters.length,
-                  occupiedAngles,
-                });
-                if (pos && pos !== 'unknown') obs.position = pos;
-              } else if (dealer && dealer.seatId) {
-                const fallback = heroPositionFromDealer(dealer.seatId, playersRef.current || players);
-                if (fallback && fallback !== 'unknown') obs.position = fallback;
-              }
-            } catch (err) { /* swallow */ }
+              } catch (err) { /* swallow */ }
+            }
 
             // ── Feed observations into the temporal stabilizer ──────────
             let stableSnapshot = null;
@@ -1767,29 +1739,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 </button>
               )}
               {streamReady && (
-                <button
-                  onClick={() => {
-                    setUseHardwired((v) => {
-                      const next = !v;
-                      // Hardwired mode disables auto-localizer (they are mutually exclusive)
-                      if (next) setUseAutoLocalize(false);
-                      return next;
-                    });
-                  }}
-                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (useHardwired ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
-                  title="Hardwired mode: fixed-coordinate detection for screen share. No camera jitter, 100% accuracy."
+                <span
+                  className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-600 text-white cursor-default"
+                  title="Hardwired mode: fixed-coordinate pixel-perfect detection. Always on."
                 >
-                  {useHardwired ? 'Hardwired ON' : 'Hardwired'}
-                </button>
-              )}
-              {streamReady && !useHardwired && (
-                <button
-                  onClick={() => setUseAutoLocalize((v) => !v)}
-                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (useAutoLocalize ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
-                  title="Use automatic card region detection instead of static layout coordinates"
-                >
-                  {useAutoLocalize ? 'Auto-Detect ON' : 'Auto-Detect'}
-                </button>
+                  Hardwired
+                </span>
               )}
               {streamReady && (
                 <button
