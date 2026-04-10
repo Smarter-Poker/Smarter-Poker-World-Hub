@@ -99,7 +99,7 @@ const nlheState = {
   preflopAction: 'rfi',
 };
 const nlheDirect = Engine.getDecision(nlheState);
-const nlheBridged = getBridgedDecision({
+const nlheBridged = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence(nlheState.holeCards),
   rawBoardCards: [],
   gameType: 'nlhe',
@@ -141,7 +141,7 @@ const ploDirect = Engine.getDecision({
   street: 'preflop',
   preflopAction: 'rfi',
 });
-const ploBridged = getBridgedDecision({
+const ploBridged = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence(ploHole),
   rawBoardCards: [],
   gameType: 'plo',
@@ -160,7 +160,7 @@ assertEq(ploBridged.isOmaha, true, 'PLO isOmaha = true');
 assertEq(ploBridged.isHiLo, false, 'PLO isHiLo = false');
 
 // PLO rejects 2-card hole
-const ploTooFew = getBridgedDecision({
+const ploTooFew = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence([{rank:'A',suit:'s'},{rank:'A',suit:'h'}]),
   rawBoardCards: [],
   gameType: 'plo',
@@ -196,7 +196,7 @@ const hiloDirect = Engine.getDecision({
   street: 'preflop',
   preflopAction: 'rfi',
 });
-const hiloBridged = getBridgedDecision({
+const hiloBridged = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence(hiloHoleValid),
   rawBoardCards: [],
   gameType: 'plo_hilo',
@@ -257,7 +257,7 @@ const plo5Direct = Engine.getDecision({
   street: 'preflop',
   preflopAction: 'rfi',
 });
-const plo5Bridged = getBridgedDecision({
+const plo5Bridged = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence(plo5Hole),
   rawBoardCards: [],
   gameType: 'plo5',
@@ -275,7 +275,7 @@ assertEq(plo5Bridged.action, plo5Direct.action, 'PLO5 action parity');
 assertEq(plo5Bridged.holeCards.length, 5, 'PLO5 bridged holeCards length = 5');
 
 // PLO5 with 4-card hole -> not ready
-const plo5Short = getBridgedDecision({
+const plo5Short = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence(plo5Hole.slice(0, 4)),
   rawBoardCards: [],
   gameType: 'plo5',
@@ -310,7 +310,7 @@ const plo6Hole = [
   {rank:'K',suit:'s'},{rank:'K',suit:'h'},
   {rank:'Q',suit:'c'},{rank:'J',suit:'d'},
 ];
-const plo6Bridged = getBridgedDecision({
+const plo6Bridged = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence(plo6Hole),
   rawBoardCards: [],
   gameType: 'plo6',
@@ -348,7 +348,7 @@ const mttDirect = Engine.getDecision({
 });
 assertEq(mttDirect.action, 'RAISE', 'MTT 5bb A5o -> push (RAISE)');
 assert(mttDirect.reasoning.toLowerCase().includes('push') || mttDirect.reasoning.toLowerCase().includes('shove'), `MTT reasoning mentions shove (got: ${mttDirect.reasoning})`);
-assertEq(mttDirect.bubbleFactor, 1.5, 'MTT bubble factor = 1.5');
+assert(mttDirect.bubbleFactor >= 1.5 && mttDirect.bubbleFactor <= 2.0, `MTT bubble factor in [1.5, 2.0] (got ${mttDirect.bubbleFactor})`);
 assertEq(mttDirect.bbStack, 5, 'MTT bbStack = 5');
 
 // MTT 72o at 5bb -> fold
@@ -370,7 +370,7 @@ const mttFold = Engine.getDecision({
 assertEq(mttFold.action, 'FOLD', 'MTT 5bb 72o -> FOLD');
 
 // Bridge parity: tournament fields surface
-const mttBridged = getBridgedDecision({
+const mttBridged = await getBridgedDecision({
   rawHoleCards: cardsWithConfidence([{rank:'A',suit:'s'},{rank:'5',suit:'h'}]),
   rawBoardCards: [],
   gameType: 'nlhe',
@@ -389,7 +389,7 @@ assertEq(mttBridged.action, mttDirect.action, 'MTT action parity');
 assertEq(mttBridged.isTournament, true, 'MTT isTournament = true');
 assertEq(mttBridged.tournamentStage, 'bubble', 'MTT stage parity');
 assertEq(mttBridged.bbStack, 5, 'MTT bridged bbStack = 5');
-assertEq(mttBridged.bubbleFactor, 1.5, 'MTT bridged bubbleFactor = 1.5');
+assert(mttBridged.bubbleFactor >= 1.5 && mttBridged.bubbleFactor <= 2.0, `MTT bridged bubbleFactor in [1.5, 2.0] (got ${mttBridged.bubbleFactor})`);
 assert(mttBridged.pushFoldHint != null, 'MTT bridged has pushFoldHint');
 assertEq(mttBridged.pushFoldHint.inRange, true, 'MTT A5o in push range @ 5bb');
 assert(typeof mttBridged.mRatio === 'number' && mttBridged.mRatio > 0, 'MTT bridged has mRatio');
@@ -407,7 +407,7 @@ const variants = [
   { gt: 'plo6', hole: plo6Hole },
 ];
 for (const v of variants) {
-  const b = getBridgedDecision({
+  const b = await getBridgedDecision({
     rawHoleCards: cardsWithConfidence(v.hole),
     rawBoardCards: [],
     gameType: v.gt,

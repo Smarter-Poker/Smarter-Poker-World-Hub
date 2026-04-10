@@ -122,10 +122,12 @@ assert(
 
 // ----------------------------------------------------------------------
 // 4. decision-bridge returns equity as 0-100 percent (not 0-1)
+//    getBridgedDecision is now async (calls Horse Brain API, falls back
+//    to local engine in test env with no auth token)
 // ----------------------------------------------------------------------
 section('decision-bridge.getBridgedDecision equity/potOdds scale');
 
-const bridged = getBridgedDecision({
+const bridged = await getBridgedDecision({
   rawHoleCards: [
     { rank: 'A', suit: 's', confidence: 0.98 },
     { rank: 'K', suit: 's', confidence: 0.98 },
@@ -150,7 +152,7 @@ assert(
 );
 
 // Postflop with a full board to exercise the Monte Carlo path
-const bridged2 = getBridgedDecision({
+const bridged2 = await getBridgedDecision({
   rawHoleCards: [
     { rank: 'A', suit: 's', confidence: 0.98 },
     { rank: 'A', suit: 'h', confidence: 0.98 },

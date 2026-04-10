@@ -279,7 +279,7 @@ const { getBridgedDecision } = await import('../src/lib/poker-brain/decision-bri
 
 // PLO6 requested, but only 4 cards present -> bridge should return ready:false
 // with the requiredHoleCount metadata.
-const partial = getBridgedDecision({
+const partial = await getBridgedDecision({
   rawHoleCards: [
     { rank: 'A', suit: 's', confidence: 0.95 },
     { rank: 'K', suit: 'h', confidence: 0.95 },
