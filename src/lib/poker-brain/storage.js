@@ -161,6 +161,7 @@ export class PokerBrainStorage {
       p_confidence: hand.confidence ?? null,
       p_reasoning: hand.reasoning ?? null,
       p_detected_auto: !!hand.detectedAuto,
+      p_street_decisions: hand.streetDecisions ? JSON.parse(JSON.stringify(hand.streetDecisions)) : null,
     };
     if (!this.online) {
       await queuePut({ type: 'log_hand', args });

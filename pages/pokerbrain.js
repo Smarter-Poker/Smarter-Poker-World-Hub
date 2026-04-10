@@ -867,6 +867,16 @@ export default function PokerBrainDashboard() {
         </div>
       </div>
 
+      {/* Launch HUD Button */}
+      <div className="max-w-lg mx-auto px-4 pt-4">
+        <a
+          href="/hub/horses"
+          className="block w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-center py-3 rounded-xl shadow-lg transition-all"
+        >
+          Launch Poker Brain HUD
+        </a>
+      </div>
+
       {/* Content */}
       <div className="max-w-lg mx-auto px-4 py-4">
         {activeTab === 'overview' && <OverviewTab stats={stats} loading={statsLoading} />}

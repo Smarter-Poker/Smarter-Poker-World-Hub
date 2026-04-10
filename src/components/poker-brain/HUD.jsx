@@ -28,6 +28,7 @@ import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { verifyCardSuit } from '../../lib/poker-brain/suit-color';
+import { analyzeSession } from '../../lib/poker-brain/session-audit';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
 import Onboarding from './Onboarding';
@@ -376,6 +377,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
   // Live hand history for this session
   const [recentHands, setRecentHands] = useState([]);
+  const [sessionAuditResult, setSessionAuditResult] = useState(null);
 
   // Calibration overlay state
   const [calibrationVisible, setCalibrationVisible] = useState(false);
@@ -604,6 +606,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             confidence: lastDecision ? lastDecision.confidence : null,
             reasoning: lastDecision ? lastDecision.reasoning : null,
             detectedAuto: true,
+            streetDecisions: hand.streetDecisions || null,
           }).catch((err) => console.warn('[HUD] logHand failed', err));
         }
       },
@@ -790,10 +793,17 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     if (stateMachineRef.current && stateMachineRef.current.reset) {
       stateMachineRef.current.reset({ silent: true });
     }
+    // Compute session audit if we have hands
+    if (recentHands.length > 0) {
+      try {
+        const audit = analyzeSession(recentHands);
+        setSessionAuditResult(audit);
+      } catch (_) { /* swallow */ }
+    }
     setSource(null);
     setStreamReady(false);
     setDetecting(false);
-  }, []);
+  }, [recentHands]);
 
   // ============================================================================
   // DETECTION + OCR LOOP
@@ -1221,6 +1231,83 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   // ============================================================================
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-3 pb-24">
+      {/* Session Audit Summary (shown after stopping detection) */}
+      {sessionAuditResult && !detecting && !source && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-600 rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Session Audit</h2>
+              <button
+                onClick={() => setSessionAuditResult(null)}
+                className="text-slate-400 hover:text-white text-lg px-2"
+              >X</button>
+            </div>
+            {/* Grade + Score */}
+            <div className="flex items-center gap-4 mb-4">
+              <div className={`text-5xl font-black ${
+                sessionAuditResult.grade === 'A' ? 'text-emerald-400' :
+                sessionAuditResult.grade === 'B' ? 'text-blue-400' :
+                sessionAuditResult.grade === 'C' ? 'text-yellow-400' :
+                sessionAuditResult.grade === 'D' ? 'text-orange-400' : 'text-red-400'
+              }`}>{sessionAuditResult.grade || '--'}</div>
+              <div className="flex-1">
+                <div className="text-sm text-slate-400 mb-1">Session Score</div>
+                <div className="w-full bg-slate-700 rounded-full h-3">
+                  <div
+                    className="h-3 rounded-full bg-gradient-to-r from-amber-500 to-emerald-500"
+                    style={{ width: `${Math.min(100, sessionAuditResult.score || 0)}%` }}
+                  />
+                </div>
+                <div className="text-xs text-slate-400 mt-1">{sessionAuditResult.score ?? '--'} / 100 -- {sessionAuditResult.handsAnalyzed || 0} hands analyzed</div>
+              </div>
+            </div>
+            {/* Leaks */}
+            {sessionAuditResult.leaks && sessionAuditResult.leaks.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-amber-400 mb-2">Identified Leaks</h3>
+                <div className="space-y-1">
+                  {sessionAuditResult.leaks.map((leak, i) => (
+                    <div key={i} className="text-xs bg-red-900/30 border border-red-500/20 rounded px-3 py-1.5 text-red-300">
+                      <span className="font-semibold">{leak.type}:</span> {leak.description}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Street Scores */}
+            {sessionAuditResult.streetScores && (
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-slate-300 mb-2">By Street</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.entries(sessionAuditResult.streetScores).map(([street, data]) => (
+                    <div key={street} className="bg-slate-700/50 rounded p-2 text-center">
+                      <div className="text-xs text-slate-400 capitalize">{street}</div>
+                      <div className="text-lg font-bold">{typeof data === 'number' ? data : (data?.score ?? '--')}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Recommendations */}
+            {sessionAuditResult.recommendations && sessionAuditResult.recommendations.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-emerald-400 mb-2">Recommendations</h3>
+                <ul className="space-y-1">
+                  {sessionAuditResult.recommendations.map((rec, i) => (
+                    <li key={i} className="text-xs text-slate-300 bg-emerald-900/20 border border-emerald-500/20 rounded px-3 py-1.5">
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button
+              onClick={() => setSessionAuditResult(null)}
+              className="w-full mt-2 bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2 rounded-lg transition"
+            >Dismiss</button>
+          </div>
+        </div>
+      )}
       {/* Onboarding overlay for first-time users */}
       {showOnboarding && (
         <Onboarding
