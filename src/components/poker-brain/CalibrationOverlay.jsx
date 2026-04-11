@@ -434,6 +434,20 @@ export function saveLayoutOverrides(overrides) {
 export function mergeLayoutWithOverrides(base, overrides) {
   if (!overrides) return base;
   const out = JSON.parse(JSON.stringify(base));
+
+  // Reference size override — critical for matching coordinate systems
+  if (overrides.referenceSize) {
+    out.referenceSize = { ...(out.referenceSize || {}), ...overrides.referenceSize };
+  }
+
+  // Unified region overrides (hole cards + board cards)
+  if (overrides.holeCardRegion) {
+    out.holeCardRegion = { ...(out.holeCardRegion || {}), ...overrides.holeCardRegion };
+  }
+  if (overrides.boardCardRegion) {
+    out.boardCardRegion = { ...(out.boardCardRegion || {}), ...overrides.boardCardRegion };
+  }
+
   if (overrides.holeCards) {
     overrides.holeCards.forEach((o, i) => {
       if (o && out.holeCards[i]) out.holeCards[i] = { ...out.holeCards[i], ...o };
@@ -451,6 +465,17 @@ export function mergeLayoutWithOverrides(base, overrides) {
       }
     }
   }
+
+  // Full holeCardsByVariant override — replaces entire variant arrays
+  if (overrides.holeCardsByVariant) {
+    out.holeCardsByVariant = out.holeCardsByVariant || {};
+    for (const [vKey, vArr] of Object.entries(overrides.holeCardsByVariant)) {
+      if (Array.isArray(vArr)) {
+        out.holeCardsByVariant[vKey] = vArr;
+      }
+    }
+  }
+
   if (overrides.boardCards) {
     overrides.boardCards.forEach((o, i) => {
       if (o && out.boardCards[i]) out.boardCards[i] = { ...out.boardCards[i], ...o };
