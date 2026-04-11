@@ -611,49 +611,125 @@ class PokerBrainMatcher {
     // backwards compatibility with the wiring test.
     const probeLog = (options.probeMode || debugMode) ? [] : undefined;
 
-    // --- Direct per-card matching from the full video canvas ---
-    // Each card region is matched individually against the offscreen canvas.
-    // This is the proven, reliable path. Unified region capture was removed
-    // because OffscreenCanvas sub-crops silently produced zero detections.
-    const holeCards = [];
-    for (let i = 0; i < layoutHole.length; i++) {
-      const region = layoutHole[i];
-      if (!region) continue;
-      const scaled = scaleRegion(region);
-      const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, matchOpts);
-      if (probeLog) {
-        probeLog.push({
-          kind: 'hole', slot: i,
-          region: { x: region.x, y: region.y, w: region.w, h: region.h },
-          scaledRegion: scaled,
-          bestKey: result.key || result.bestGuess, distance: result.distance,
-          confidence: result.confidence, threshold: result.threshold,
-          matched: !!(result.rank && result.suit),
-          candidates: result.candidates,
-        });
+    // --- UNIFIED REGION CAPTURE ---
+    // One crop for all hole cards, one crop for all board cards.
+    // Subdivide each unified crop into equal horizontal slots, then match
+    // each slot against templates. This is more reliable than individual
+    // per-card crops because:
+    //   1. Single drawImage call per group = consistent scaling
+    //   2. Cards are positioned relative to each other within the crop
+    //   3. No risk of individual coordinates drifting apart
+
+    /**
+     * Match cards from a unified region by subdividing into equal slots.
+     * @param {object} unifiedRegion - { x, y, w, h, count }
+     * @param {string} kind - 'hole' | 'board' for probe logging
+     * @returns {Array} matched cards
+     */
+    const matchUnifiedRegion = (unifiedRegion, kind) => {
+      const cards = [];
+      if (!unifiedRegion || !unifiedRegion.count) return cards;
+
+      const count = unifiedRegion.count;
+      const scaled = scaleRegion(unifiedRegion);
+
+      // Subdivide the unified region into equal horizontal slots
+      const slotW = Math.round(scaled.w / count);
+
+      for (let i = 0; i < count; i++) {
+        const slotRegion = {
+          x: scaled.x + i * slotW,
+          y: scaled.y,
+          w: slotW,
+          h: scaled.h,
+        };
+
+        const result = this.matchRegion(this._offscreenCanvas, slotRegion, videoW, videoH, matchOpts);
+
+        if (probeLog) {
+          // Show the slot region in reference space for diagnostics
+          const refSlotW = Math.round(unifiedRegion.w / count);
+          probeLog.push({
+            kind, slot: i,
+            region: {
+              x: unifiedRegion.x + i * refSlotW,
+              y: unifiedRegion.y,
+              w: refSlotW,
+              h: unifiedRegion.h,
+            },
+            scaledRegion: slotRegion,
+            bestKey: result.key || result.bestGuess, distance: result.distance,
+            confidence: result.confidence, threshold: result.threshold,
+            matched: !!(result.rank && result.suit),
+            candidates: result.candidates,
+          });
+        }
+
+        if (result.rank && result.suit) cards.push(result);
       }
-      if (result.rank && result.suit) holeCards.push(result);
+      return cards;
+    };
+
+    // --- Hole cards: use unified holeCardRegion ---
+    let holeCards = [];
+    const holeRegionMap = layout.holeCardRegion || {};
+    const unifiedHole = variantKey && holeRegionMap[variantKey]
+      ? holeRegionMap[variantKey]
+      : holeRegionMap.nlhe || null;
+
+    if (unifiedHole && unifiedHole.count) {
+      // UNIFIED path: one crop, subdivide into slots
+      holeCards = matchUnifiedRegion(unifiedHole, 'hole');
+    } else {
+      // FALLBACK: individual per-card regions (legacy path)
+      for (let i = 0; i < layoutHole.length; i++) {
+        const region = layoutHole[i];
+        if (!region) continue;
+        const scaled = scaleRegion(region);
+        const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, matchOpts);
+        if (probeLog) {
+          probeLog.push({
+            kind: 'hole', slot: i,
+            region: { x: region.x, y: region.y, w: region.w, h: region.h },
+            scaledRegion: scaled,
+            bestKey: result.key || result.bestGuess, distance: result.distance,
+            confidence: result.confidence, threshold: result.threshold,
+            matched: !!(result.rank && result.suit),
+            candidates: result.candidates,
+          });
+        }
+        if (result.rank && result.suit) holeCards.push(result);
+      }
     }
 
-    const boardRegions = Array.isArray(layout.boardCards) ? layout.boardCards : [];
-    const boardCards = [];
-    for (let i = 0; i < boardRegions.length; i++) {
-      const region = boardRegions[i];
-      if (!region) continue;
-      const scaled = scaleRegion(region);
-      const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, matchOpts);
-      if (probeLog) {
-        probeLog.push({
-          kind: 'board', slot: i,
-          region: { x: region.x, y: region.y, w: region.w, h: region.h },
-          scaledRegion: scaled,
-          bestKey: result.key || result.bestGuess, distance: result.distance,
-          confidence: result.confidence, threshold: result.threshold,
-          matched: !!(result.rank && result.suit),
-          candidates: result.candidates,
-        });
+    // --- Board cards: use unified boardCardRegion ---
+    let boardCards = [];
+    const unifiedBoard = layout.boardCardRegion || null;
+
+    if (unifiedBoard && unifiedBoard.count) {
+      // UNIFIED path: one crop, subdivide into slots
+      boardCards = matchUnifiedRegion(unifiedBoard, 'board');
+    } else {
+      // FALLBACK: individual per-card regions (legacy path)
+      const boardRegions = Array.isArray(layout.boardCards) ? layout.boardCards : [];
+      for (let i = 0; i < boardRegions.length; i++) {
+        const region = boardRegions[i];
+        if (!region) continue;
+        const scaled = scaleRegion(region);
+        const result = this.matchRegion(this._offscreenCanvas, scaled, videoW, videoH, matchOpts);
+        if (probeLog) {
+          probeLog.push({
+            kind: 'board', slot: i,
+            region: { x: region.x, y: region.y, w: region.w, h: region.h },
+            scaledRegion: scaled,
+            bestKey: result.key || result.bestGuess, distance: result.distance,
+            confidence: result.confidence, threshold: result.threshold,
+            matched: !!(result.rank && result.suit),
+            candidates: result.candidates,
+          });
+        }
+        if (result.rank && result.suit) boardCards.push(result);
       }
-      if (result.rank && result.suit) boardCards.push(result);
     }
 
     const timingMs = performance.now() - startTime;
