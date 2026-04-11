@@ -276,11 +276,12 @@ def expand_to_dated_rows(template: dict) -> list:
     
     parent_id = str(uuid.uuid4())
     rows = []
-    n_dates = 10
     
     if dow == "daily":
+        n_dates = 70  # 10 weeks out for daily
         dates = [(datetime.now(timezone.utc) + timedelta(days=i)).date().isoformat() for i in range(1, n_dates+1)]
     else:
+        n_dates = 10  # 10 weeks out for specific day
         dates = []
         d = (datetime.now(timezone.utc) + timedelta(days=1)).date()
         target_dow = dow_map[dow]

@@ -1,9 +1,9 @@
 {
   "phase": "twice_daily",
-  "last_run": "2026-04-10T18:16:36.255983+00:00",
-  "coverage_pct": 47.33542319749217,
-  "venues_with_data": 151,
-  "venues_zero": 168,
-  "total_venues": 319,
+  "last_run": "2026-04-10T21:47:28.484326+00:00",
+  "coverage_pct": 47.2972972972973,
+  "venues_with_data": 140,
+  "venues_zero": 156,
+  "total_venues": 296,
   "consecutive_100pct_runs": 0
 }
