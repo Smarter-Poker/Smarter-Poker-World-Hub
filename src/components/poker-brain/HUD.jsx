@@ -601,6 +601,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             reasoning: lastDecision ? lastDecision.reasoning : null,
             detectedAuto: true,
             streetDecisions: hand.streetDecisions || null,
+            engineSuggestion: lastDecision ? lastDecision.action : null,
           }).catch((err) => console.warn('[HUD] logHand failed', err));
         }
       },

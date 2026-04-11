@@ -22,20 +22,57 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 // IndexedDB offline queue
 // ---------------------------------------------------------------------------
 const DB_NAME = 'poker-brain-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_QUEUE = 'offline_queue';
+const STORE_IDMAP = 'session_id_map';
 
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
+    req.onupgradeneeded = (event) => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_QUEUE)) {
         db.createObjectStore(STORE_QUEUE, { keyPath: 'id', autoIncrement: true });
       }
+      // v2: persist temp→real session ID mappings so they survive page reload.
+      // Without this, offline-queued log_hand/end_session entries with
+      // p_session_id = 'local_<ts>' become unresolvable after a refresh.
+      if (!db.objectStoreNames.contains(STORE_IDMAP)) {
+        db.createObjectStore(STORE_IDMAP, { keyPath: 'tempId' });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+  });
+}
+
+async function idMapPut(tempId, realId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_IDMAP, 'readwrite');
+    tx.objectStore(STORE_IDMAP).put({ tempId, realId, savedAt: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idMapGetAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_IDMAP, 'readonly');
+    const req = tx.objectStore(STORE_IDMAP).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idMapDelete(tempId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_IDMAP, 'readwrite');
+    tx.objectStore(STORE_IDMAP).delete(tempId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 
@@ -171,6 +208,7 @@ export class PokerBrainStorage {
       p_reasoning: hand.reasoning ?? null,
       p_detected_auto: !!hand.detectedAuto,
       p_street_decisions: hand.streetDecisions ? JSON.parse(JSON.stringify(hand.streetDecisions)) : null,
+      p_engine_suggestion: hand.engineSuggestion ?? null,
     };
     if (!this.online) {
       await queuePut({ type: 'log_hand', args });
@@ -276,7 +314,18 @@ export class PokerBrainStorage {
     // Without this, any log_hand / end_session queued while offline
     // still has p_session_id = 'local_<ts>' which the DB rejects,
     // poisoning the queue forever.
+    //
+    // Restore any previously persisted mappings from IndexedDB so that
+    // a page reload doesn't lose the temp→real ID associations created
+    // by earlier flush runs that succeeded for start_session but not
+    // for the dependent log_hand/end_session entries.
     const idMap = new Map();
+    try {
+      const persisted = await idMapGetAll();
+      for (const entry of persisted) {
+        idMap.set(entry.tempId, entry.realId);
+      }
+    } catch (_) { /* IndexedDB read failed — proceed with empty map */ }
 
     for (const item of items) {
       try {
@@ -291,6 +340,8 @@ export class PokerBrainStorage {
             });
             if (item.tempId) {
               idMap.set(item.tempId, id);
+              // Persist to IndexedDB so the mapping survives page reload
+              try { await idMapPut(item.tempId, id); } catch (_) {}
               if (this.sessionId === item.tempId) this.sessionId = id;
             }
             break;

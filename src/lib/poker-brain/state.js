@@ -162,6 +162,7 @@ export class HandStateMachine {
         gameType: null,
         bigBlind: null,
         ended: false,
+        warnings: [],         // structured error log for callback/lifecycle exceptions
       };
       this.state.handStartedAt = now;
       this.state.handId = this._currentHand.handId;
@@ -189,12 +190,13 @@ export class HandStateMachine {
     this.state.lastChangeAt = now;
     if (this._currentHand) this._currentHand.finalBoard = boardCards.slice();
 
-    // Fire callbacks
+    // Fire callbacks — exceptions are caught and logged to hand.warnings[]
+    // so callers can surface them without crashing the state machine loop.
     if (isHandStart && this.onHandStart) {
-      try { this.onHandStart(this._currentHand); } catch (e) { /* swallow */ }
+      try { this.onHandStart(this._currentHand); } catch (e) { if (this._currentHand) this._currentHand.warnings.push(`[onHandStart] ${e.message}`); }
     }
     if (nextStreet !== committedStreet && this.onStreetChange) {
-      try { this.onStreetChange(this._currentHand, committedStreet, nextStreet); } catch (e) { /* swallow */ }
+      try { this.onStreetChange(this._currentHand, committedStreet, nextStreet); } catch (e) { if (this._currentHand) this._currentHand.warnings.push(`[onStreetChange] ${e.message}`); }
     }
     if (isHandEnd) {
       if (this._currentHand) {
@@ -202,7 +204,7 @@ export class HandStateMachine {
         this._currentHand.endedAt = now;
       }
       if (this.onHandEnd) {
-        try { this.onHandEnd(this._currentHand); } catch (e) { /* swallow */ }
+        try { this.onHandEnd(this._currentHand); } catch (e) { if (this._currentHand) this._currentHand.warnings.push(`[onHandEnd] ${e.message}`); }
       }
       this._currentHand = null;
       this.state.handId = null;
@@ -210,7 +212,7 @@ export class HandStateMachine {
     }
 
     if (this.onStateChange) {
-      try { this.onStateChange(this.getState()); } catch (e) { /* swallow */ }
+      try { this.onStateChange(this.getState()); } catch (e) { /* onStateChange errors are non-fatal UI updates — log to console */ console.warn('[HandStateMachine] onStateChange error:', e.message); }
     }
   }
 
@@ -277,10 +279,10 @@ export class HandStateMachine {
     this._pendingKey = '';
     this._pendingFrames = 0;
     if (!silent && hadHand && this.onHandEnd && finished) {
-      try { finished.ended = true; finished.endedAt = Date.now(); this.onHandEnd(finished); } catch (e) { /* swallow */ }
+      try { finished.ended = true; finished.endedAt = Date.now(); this.onHandEnd(finished); } catch (e) { if (finished && finished.warnings) finished.warnings.push(`[onHandEnd:reset] ${e.message}`); }
     }
     if (this.onStateChange) {
-      try { this.onStateChange(this.getState()); } catch (e) { /* swallow */ }
+      try { this.onStateChange(this.getState()); } catch (e) { console.warn('[HandStateMachine] onStateChange error:', e.message); }
     }
   }
 

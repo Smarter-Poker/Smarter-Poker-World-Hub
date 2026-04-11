@@ -614,7 +614,7 @@ section('Bridge Horse Brain and fallback paths return same field set');
     'ready', 'reason', 'action', 'raiseAmount', 'confidence', 'reasoning',
     'equity', 'potOdds', 'street', 'handStrength', 'texture', 'outs',
     'outsImproves', 'spr', 'mRatio', 'isTournament', 'tournamentStage',
-    'holeCards', 'boardCards', 'source', 'detection',
+    'holeCards', 'boardCards', 'source', 'detection', 'warnings', 'degraded',
   ];
 
   // Count occurrences of field in return objects: matches "field:" or "field," (shorthand)

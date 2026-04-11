@@ -215,6 +215,13 @@ export async function getBridgedDecision(input) {
       // Compute supplemental client-side metadata (hand strength label,
       // texture, outs) for the HUD display since the Horse Brain API
       // returns the action decision but the HUD needs visual context too.
+      const warnings = [];
+      // If Horse Brain returned a warning (e.g. invalid router result, defaulted to CHECK),
+      // flag this decision as degraded so the HUD can display a visual indicator.
+      const degraded = !!horseBrainResult.warning;
+      if (horseBrainResult.warning) {
+        warnings.push(`[horseBrain] ${horseBrainResult.warning}`);
+      }
       let handStrength = null;
       let texture = null;
       const isOmahaVariant = String(gameType).toLowerCase().includes('plo');
@@ -240,10 +247,10 @@ export async function getBridgedDecision(input) {
             const best = PokerBrainEngine.getBestFiveCardFromCards([...holeTrimmed, ...effectiveBoard]);
             if (best) handStrength = best.name || best.rank;
           }
-        } catch (err) { /* swallow */ }
+        } catch (err) { warnings.push(`[handStrength] ${err.message}`); }
         try {
           texture = PokerBrainEngine.classifyTexture(effectiveBoard);
-        } catch (err) { /* swallow */ }
+        } catch (err) { warnings.push(`[texture] ${err.message}`); }
       }
       let outs = 0;
       let outsImproves = [];
@@ -252,7 +259,7 @@ export async function getBridgedDecision(input) {
           const o = PokerBrainEngine.countOuts(holeTrimmed, effectiveBoard);
           outs = o.outs;
           outsImproves = o.improves || [];
-        } catch (err) { /* swallow */ }
+        } catch (err) { warnings.push(`[outs] ${err.message}`); }
       }
       const spr = PokerBrainEngine.calculateStackToPot(stackSize, potSize);
       const bbStack = bigBlind > 0 ? stackSize / bigBlind : null;
@@ -293,6 +300,8 @@ export async function getBridgedDecision(input) {
         boardCards: effectiveBoard,
         source: 'horse_brain',
         engineMs: horseBrainResult.engineMs,
+        degraded,
+        warnings,
         detection: {
           holeConfidence: holeResult.minConfidence,
           boardConfidence: boardResult.minConfidence,
@@ -307,6 +316,7 @@ export async function getBridgedDecision(input) {
   // This should rarely be hit — only if auth fails or network is down.
   // ═══════════════════════════════════════════════════════════════════
   console.warn('[decision-bridge] Using LOCAL fallback engine — Horse Brain API unavailable');
+  const warnings = [];
   let engineResult;
   try {
     engineResult = PokerBrainEngine.getDecision({
@@ -332,6 +342,8 @@ export async function getBridgedDecision(input) {
       action: 'WAIT',
       street,
       source: 'error',
+      degraded: true,
+      warnings: [`[engine] ${err.message || 'unknown'}`],
       holeCards: hole,
       boardCards: board,
       detection: {
@@ -370,10 +382,10 @@ export async function getBridgedDecision(input) {
         const best = PokerBrainEngine.getBestFiveCardFromCards([...holeTrimmed, ...effectiveBoard]);
         if (best) handStrength = best.name || best.rank;
       }
-    } catch (err) { /* swallow */ }
+    } catch (err) { warnings.push(`[handStrength] ${err.message}`); }
     try {
       texture = PokerBrainEngine.classifyTexture(effectiveBoard);
-    } catch (err) { /* swallow */ }
+    } catch (err) { warnings.push(`[texture] ${err.message}`); }
   }
   let outs = 0;
   let outsImproves = [];
@@ -382,7 +394,7 @@ export async function getBridgedDecision(input) {
       const o = PokerBrainEngine.countOuts(holeTrimmed, effectiveBoard);
       outs = o.outs;
       outsImproves = o.improves || [];
-    } catch (err) { /* swallow */ }
+    } catch (err) { warnings.push(`[outs] ${err.message}`); }
   }
   const spr = PokerBrainEngine.calculateStackToPot(stackSize, potSize);
   const bbStack = bigBlind > 0 ? stackSize / bigBlind : null;
@@ -400,7 +412,7 @@ export async function getBridgedDecision(input) {
           inRange: range.has(normalized),
         };
       }
-    } catch (err) { /* swallow */ }
+    } catch (err) { warnings.push(`[pushFold] ${err.message}`); }
   }
 
   return {
@@ -432,6 +444,8 @@ export async function getBridgedDecision(input) {
     holeCards: holeTrimmed,
     boardCards: effectiveBoard,
     source: 'local_fallback',
+    degraded: false,
+    warnings,
     detection: {
       holeConfidence: holeResult.minConfidence,
       boardConfidence: boardResult.minConfidence,
