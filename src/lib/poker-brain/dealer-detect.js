@@ -29,16 +29,51 @@ const DEFAULT_CONFIG = {
 /**
  * Test whether an RGB triplet is "red enough" to be the dealer button.
  * PokerBros button is roughly (200, 40, 55) - saturated crimson.
- * We require R to dominate G and B by a margin AND R to be above ~160.
+ * We require R to dominate G and B by a margin AND R to be above a threshold.
+ *
+ * v2: Relaxed thresholds to handle video compression artifacts and slight
+ * skin variations. Also accepts darker reds (R >= 120) that appear when
+ * the button is partially occluded or in shadow.
  */
 function isDealerRed(r, g, b, cfg) {
-  if (r < 140) return false;
-  if (r - g < 60) return false;
-  if (r - b < 60) return false;
+  if (r < 120) return false;        // was 140, relaxed for darker reds
+  if (r - g < 45) return false;      // was 60, relaxed for compression
+  if (r - b < 40) return false;      // was 60, relaxed for reddish-brown tones
+  // Fast path: if R strongly dominates, accept without color distance check
+  if (r > 170 && g < 80 && b < 90) return true;
   const dr = Math.abs(r - cfg.color.r);
   const dg = Math.abs(g - cfg.color.g);
   const db = Math.abs(b - cfg.color.b);
   return dr + dg + db < cfg.color.tolerance * 3;
+}
+
+/**
+ * Check if a cluster region contains white pixels (the "D" letter on the
+ * dealer chip). This confirms a red cluster is actually the dealer button
+ * and not a red UI element or avatar artifact.
+ *
+ * Returns true if at least `minWhitePixels` white-ish pixels are found
+ * inside the bounding box of the red cluster.
+ */
+function hasWhiteDLetter(imageData, rect, minWhitePixels = 3) {
+  const { data, width } = imageData;
+  const x0 = Math.max(0, Math.floor(rect.x));
+  const y0 = Math.max(0, Math.floor(rect.y));
+  const x1 = Math.min(imageData.width, Math.floor(rect.x + rect.w));
+  const y1 = Math.min(imageData.height, Math.floor(rect.y + rect.h));
+  let count = 0;
+  for (let y = y0; y < y1; y += 2) {
+    for (let x = x0; x < x1; x += 2) {
+      const idx = (y * width + x) * 4;
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+      // White-ish: all channels > 200, low spread
+      if (r > 200 && g > 200 && b > 200 && Math.max(r, g, b) - Math.min(r, g, b) < 40) {
+        count++;
+        if (count >= minWhitePixels) return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -320,12 +355,28 @@ export function findDealerButtonGlobal(source, tableBounds = null, overrides = {
   }
   if (cnt < cfg.minClusterPixels) return null;
 
+  // Confirm: check for white "D" letter inside the red cluster bbox.
+  // The dealer chip on PokerBros always has a white "D" in the center.
+  // This eliminates false positives from red UI elements / avatars.
+  const clusterCx = sumX / cnt;
+  const clusterCy = sumY / cnt;
+  const chipRadius = Math.max(8, Math.sqrt(cnt / Math.PI));
+  const chipRect = {
+    x: clusterCx - chipRadius,
+    y: clusterCy - chipRadius,
+    w: chipRadius * 2,
+    h: chipRadius * 2,
+  };
+  const confirmedByWhiteD = hasWhiteDLetter(imageData, chipRect, 2);
+
   // Return in FULL-FRAME coordinates so callers can mix with other
   // frame-level detections (stack clusters, hero bbox, etc.).
   return {
-    x: roiX + sumX / cnt,
-    y: roiY + sumY / cnt,
+    x: roiX + clusterCx,
+    y: roiY + clusterCy,
     pixelCount: cnt,
+    confirmedD: confirmedByWhiteD,
+    confidence: confirmedByWhiteD ? Math.min(1, cnt / 60) : Math.min(0.5, cnt / 120),
   };
 }
 

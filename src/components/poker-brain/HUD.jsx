@@ -26,7 +26,7 @@ import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
-import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops, autoCalibrateLive } from '../../lib/poker-brain/template-capture';
+import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops, autoCalibrateLive, persistCalibratedHashes, restoreCalibratedHashes } from '../../lib/poker-brain/template-capture';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
 import Onboarding from './Onboarding';
@@ -935,6 +935,20 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     let stopped = false;
     let detectionFrameCount = 0;
     let autoCalDone = false; // Track if auto-calibration has run
+    let lastCalVariant = null; // Track variant for re-cal on switch
+    let lastCalFrame = 0; // Frame when last auto-cal ran
+
+    // Restore cached calibration from localStorage on start
+    try {
+      const matcher = matcherRef.current;
+      if (matcher && matcher.templateHashes) {
+        const restored = restoreCalibratedHashes(matcher);
+        if (restored > 0) {
+          autoCalDone = true;
+          console.log(`[HUD] Restored ${restored} cached calibration hashes`);
+        }
+      }
+    } catch (_) { /* ignore */ }
 
     const loop = async () => {
       if (stopped) return;
@@ -954,12 +968,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             const currentVariant = gameTypeRef.current;
             const expectedHole = PokerBrainEngine.expectedHoleCount(currentVariant);
 
-            // ── AUTO-CALIBRATE LIVE TEMPLATES (one-time) ──────────────
-            // On frame 8 (~2s after start), capture card crops from the
-            // live video and inject their hashes into the matcher. This
-            // recalibrates templates to the exact video resolution,
-            // dropping dHash distances from 10-25 to 0-3. Only runs once.
-            if (!autoCalDone && detectionFrameCount === 8) {
+            // ── AUTO-CALIBRATE LIVE TEMPLATES ─────────────────────────
+            // Triggers:
+            //   1. Initial: frame 8 (~2s after start) if no cached hashes
+            //   2. Variant change: immediately when game type switches
+            //   3. Periodic: every 200 frames (~50s) to handle skin/lighting drift
+            const variantChanged = lastCalVariant !== null && lastCalVariant !== currentVariant;
+            const periodicRecal = autoCalDone && (detectionFrameCount - lastCalFrame >= 200);
+            const initialCal = !autoCalDone && detectionFrameCount === 8;
+
+            if (initialCal || variantChanged || periodicRecal) {
               try {
                 const calResult = autoCalibrateLive(
                   video,
@@ -969,12 +987,17 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 );
                 if (calResult.injected > 0) {
                   autoCalDone = true;
-                  console.log(`[HUD] Auto-calibrated ${calResult.injected} templates from live video`);
+                  lastCalVariant = currentVariant;
+                  lastCalFrame = detectionFrameCount;
+                  // Persist to localStorage so page refresh doesn't lose calibration
+                  try { persistCalibratedHashes(matcher.templateHashes); } catch (_) {}
+                  console.log(`[HUD] Auto-calibrated ${calResult.injected} templates (trigger: ${variantChanged ? 'variant-change' : periodicRecal ? 'periodic' : 'initial'})`);
                 }
               } catch (calErr) {
                 console.warn('[HUD] Auto-calibrate failed:', calErr.message);
               }
             }
+            if (!lastCalVariant) lastCalVariant = currentVariant;
 
             // ── AUTO TABLE BOUNDS ──────────────────────────────────────
             // Find the PokerBros felt oval inside the capture frame via
@@ -1057,7 +1080,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 region: p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : 'n/a',
               }));
               setDiagInfo({
-                build: 'v7-percard-t18',
+                build: 'v8-autocal-persist',
                 vw, vh, refW, refH,
                 sX: Math.round(sX * 1000) / 1000,
                 sY: Math.round(sY * 1000) / 1000,
@@ -1067,6 +1090,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 tpl: matcher.getTemplateCount ? matcher.getTemplateCount() : 0,
                 holeFound: result.holeCards?.length || 0,
                 boardFound: result.boardCards?.length || 0,
+                calStatus: autoCalDone ? 'OK' : (detectionFrameCount < 8 ? 'pending' : 'failed'),
+                calFrame: lastCalFrame,
                 probe: probeSummary,
               });
             }
@@ -1937,7 +1962,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {/* Visible diagnostic overlay -- shows video dims, scale, per-card distances */}
               {diagInfo && (
                 <div className="text-[9px] font-mono bg-black/90 text-green-300 p-2 rounded mt-1 max-w-full overflow-x-auto whitespace-pre">
-                  {diagInfo.build} | video:{diagInfo.vw}x{diagInfo.vh} ref:{diagInfo.refW}x{diagInfo.refH} scale:{diagInfo.sX}/{diagInfo.sY} | tpl:{diagInfo.tpl} | hole:{diagInfo.holeFound}/{diagInfo.holeN} board:{diagInfo.boardFound}/{diagInfo.boardN}
+                  {diagInfo.build} | video:{diagInfo.vw}x{diagInfo.vh} ref:{diagInfo.refW}x{diagInfo.refH} scale:{diagInfo.sX}/{diagInfo.sY} | tpl:{diagInfo.tpl} | hole:{diagInfo.holeFound}/{diagInfo.holeN} board:{diagInfo.boardFound}/{diagInfo.boardN} | cal:{diagInfo.calStatus || '?'}@f{diagInfo.calFrame ?? '-'}
                   {'\n'}{(diagInfo.probe || []).map((p, i) =>
                     `${p.kind}[${p.slot}] ${p.matched ? 'OK' : 'MISS'} best=${p.best} dist=${p.dist} @ ${p.region}`
                   ).join('\n')}

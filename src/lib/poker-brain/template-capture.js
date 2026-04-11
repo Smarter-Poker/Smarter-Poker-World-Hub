@@ -358,4 +358,103 @@ function popcount32(v) {
   return c;
 }
 
+// ---- localStorage Persistence ----
+// Save auto-calibrated hashes so they survive page refreshes.
+// Key format: 'pb-cal-{label}' → JSON { dHash: [hi, lo], aHash: [hi, lo] }
+
+const CAL_STORAGE_PREFIX = 'pb-cal-';
+const CAL_META_KEY = 'pb-cal-meta';
+
+/**
+ * Persist all calibrated template hashes to localStorage.
+ * Call after autoCalibrateLive() succeeds.
+ *
+ * @param {Map<string, {dHash: number[], aHash: number[]}>} templateHashes
+ * @returns {number} count of entries saved
+ */
+export function persistCalibratedHashes(templateHashes) {
+  if (!templateHashes || typeof localStorage === 'undefined') return 0;
+  let saved = 0;
+  const keys = [];
+  for (const [label, hash] of templateHashes) {
+    if (!hash || !hash.dHash || !hash.aHash) continue;
+    try {
+      localStorage.setItem(
+        CAL_STORAGE_PREFIX + label,
+        JSON.stringify({ dHash: hash.dHash, aHash: hash.aHash }),
+      );
+      keys.push(label);
+      saved++;
+    } catch (_) { /* quota exceeded — skip silently */ }
+  }
+  try {
+    localStorage.setItem(CAL_META_KEY, JSON.stringify({
+      keys,
+      savedAt: Date.now(),
+      count: saved,
+    }));
+  } catch (_) { /* ignore */ }
+  console.log(`[TemplateCal] Persisted ${saved} calibrated hashes to localStorage`);
+  return saved;
+}
+
+/**
+ * Restore previously calibrated hashes from localStorage into the matcher.
+ * Returns the number of hashes restored. If stale (>24h), returns 0.
+ *
+ * @param {PokerBrainMatcher} matcher
+ * @param {object} [options]
+ * @param {number} [options.maxAgeMs=86400000] - max age before considering stale (default 24h)
+ * @returns {number} count restored
+ */
+export function restoreCalibratedHashes(matcher, options = {}) {
+  if (!matcher || !matcher.templateHashes || typeof localStorage === 'undefined') return 0;
+  const maxAge = options.maxAgeMs ?? 86400000; // 24 hours
+
+  try {
+    const metaStr = localStorage.getItem(CAL_META_KEY);
+    if (!metaStr) return 0;
+    const meta = JSON.parse(metaStr);
+    if (Date.now() - (meta.savedAt || 0) > maxAge) {
+      console.log('[TemplateCal] Cached hashes are stale (>24h), skipping restore');
+      return 0;
+    }
+
+    let restored = 0;
+    for (const label of (meta.keys || [])) {
+      const raw = localStorage.getItem(CAL_STORAGE_PREFIX + label);
+      if (!raw) continue;
+      try {
+        const hash = JSON.parse(raw);
+        if (Array.isArray(hash.dHash) && Array.isArray(hash.aHash)) {
+          matcher.templateHashes.set(label, hash);
+          restored++;
+        }
+      } catch (_) { /* corrupt entry */ }
+    }
+    console.log(`[TemplateCal] Restored ${restored} calibrated hashes from localStorage`);
+    return restored;
+  } catch (_) {
+    return 0;
+  }
+}
+
+/**
+ * Clear all calibrated hashes from localStorage.
+ */
+export function clearCalibratedHashes() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const metaStr = localStorage.getItem(CAL_META_KEY);
+    if (metaStr) {
+      const meta = JSON.parse(metaStr);
+      for (const label of (meta.keys || [])) {
+        localStorage.removeItem(CAL_STORAGE_PREFIX + label);
+      }
+    }
+    localStorage.removeItem(CAL_META_KEY);
+    console.log('[TemplateCal] Cleared all calibrated hashes from localStorage');
+  } catch (_) { /* ignore */ }
+}
+
 export default captureCardCrops;
