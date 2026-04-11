@@ -107,9 +107,9 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     };
   }
 
-  // Scale from layout reference (480x1054) to actual video dimensions
-  const refW = layout.referenceSize?.w || 480;
-  const refH = layout.referenceSize?.h || 1054;
+  // Scale from layout reference to actual video dimensions
+  const refW = layout.referenceSize?.w || 468;
+  const refH = layout.referenceSize?.h || 932;
   const scaleX = videoW / refW;
   const scaleY = videoH / refH;
 
@@ -131,23 +131,52 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
   const debugMode = !!options.debug;
   const topN = debugMode ? 3 : 0;
 
-  // Use the matcher's matchAllRegions -- it handles canvas drawing and cropping.
-  // In hardwired mode the layout coordinates are the exact truth, so this call
-  // is maximally efficient: fixed regions, no localizer overhead.
-  const result = matcher.matchAllRegions(videoElement, layout, {
-    variant: options.variant,
-    maxHoleCards: options.maxHoleCards,
-    debug: debugMode,
-    topN,
-    // Hardwired mode: tighter threshold + skip crop-offset sweep
+  // ---------------------------------------------------------------
+  // UNIFIED REGION CAPTURE
+  // Instead of matching each card individually against the full video
+  // canvas, we capture ONE unified region for all hole cards and ONE
+  // for all board cards. Each unified region is cropped from the video
+  // once, then individual cards are matched as sub-regions within it.
+  // This is both faster (fewer canvas crops) and more robust (all
+  // cards shift together if the region is slightly off).
+  // ---------------------------------------------------------------
+
+  // Draw video to offscreen canvas once for all operations
+  const canvas = _ensureOffscreen(videoW, videoH);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(videoElement, 0, 0, videoW, videoH);
+
+  const matchOpts = {
+    ...(topN > 0 ? { topN } : {}),
     threshold: HARDWIRED_MATCH_THRESHOLD,
     skipOffsets: true,
-  });
+  };
+
+  const probeLog = debugMode ? [] : undefined;
+
+  // ---- HOLE CARDS: unified region capture ----
+  const holeCards = _matchUnifiedRegion(
+    canvas, videoW, videoH,
+    layout.holeCardRegion?.[variantKey || 'nlhe'],
+    holeRegions,
+    scaleX, scaleY,
+    matcher, matchOpts, probeLog, 'hole'
+  );
+
+  // ---- BOARD CARDS: unified region capture ----
+  const boardRegions = Array.isArray(layout.boardCards) ? layout.boardCards : [];
+  const boardCards = _matchUnifiedRegion(
+    canvas, videoW, videoH,
+    layout.boardCardRegion,
+    boardRegions,
+    scaleX, scaleY,
+    matcher, matchOpts, probeLog, 'board'
+  );
 
   // Suit-color verification pass
   const variantRegions = layout.holeCardsByVariant?.[variantKey] || layout.holeCards || [];
 
-  const verifiedHole = (result.holeCards || []).map((card, i) => {
+  const verifiedHole = holeCards.map((card, i) => {
     const r = variantRegions[i];
     if (!r || !card || !card.suit) return card;
     const scaledR = scaleRegion(r, scaleX, scaleY);
@@ -158,7 +187,7 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     };
   });
 
-  const verifiedBoard = (result.boardCards || []).map((card, i) => {
+  const verifiedBoard = boardCards.map((card, i) => {
     const r = layout.boardCards?.[i];
     if (!r || !card || !card.suit) return card;
     const scaledR = scaleRegion(r, scaleX, scaleY);
@@ -199,11 +228,164 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     },
   };
 
-  if (debugMode && result.probeLog) {
-    output.probeLog = result.probeLog;
+  if (debugMode && probeLog) {
+    output.probeLog = probeLog;
   }
 
   return output;
+}
+
+// ---------------------------------------------------------------
+// Internal helpers for unified region capture
+// ---------------------------------------------------------------
+
+/** Lazily created offscreen canvas for frame capture. */
+let _offCanvas = null;
+let _offCtx = null;
+
+function _ensureOffscreen(w, h) {
+  if (!_offCanvas) {
+    _offCanvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(w, h)
+      : document.createElement('canvas');
+    _offCtx = _offCanvas.getContext('2d');
+  }
+  if (_offCanvas.width !== w || _offCanvas.height !== h) {
+    _offCanvas.width = w;
+    _offCanvas.height = h;
+  }
+  return _offCanvas;
+}
+
+/**
+ * Match cards using a unified region approach:
+ *   1. Crop the unified bounding box from the video canvas (one crop)
+ *   2. For each individual card, compute its position relative to the
+ *      unified region and match against templates
+ *
+ * Falls back to direct per-card matching if no unified region is defined.
+ *
+ * @param {HTMLCanvasElement|OffscreenCanvas} canvas - Full video frame
+ * @param {number} videoW
+ * @param {number} videoH
+ * @param {object|undefined} unifiedRegion - { x, y, w, h, count } in ref space
+ * @param {Array} cardRegions - Individual card regions in ref space
+ * @param {number} scaleX
+ * @param {number} scaleY
+ * @param {object} matcher
+ * @param {object} matchOpts
+ * @param {Array|undefined} probeLog
+ * @param {string} kind - 'hole' or 'board' (for logging)
+ * @returns {Array} matched cards
+ */
+function _matchUnifiedRegion(
+  canvas, videoW, videoH,
+  unifiedRegion, cardRegions,
+  scaleX, scaleY,
+  matcher, matchOpts, probeLog, kind
+) {
+  const cards = [];
+  if (!cardRegions || cardRegions.length === 0) return cards;
+
+  if (unifiedRegion) {
+    // --- Unified capture path ---
+    // Scale the unified bounding box to video space
+    const uScaled = scaleRegion(unifiedRegion, scaleX, scaleY);
+
+    // Clamp to video bounds
+    const ux = Math.max(0, uScaled.x);
+    const uy = Math.max(0, uScaled.y);
+    const uw = Math.min(uScaled.w, videoW - ux);
+    const uh = Math.min(uScaled.h, videoH - uy);
+
+    if (uw <= 0 || uh <= 0) return cards;
+
+    // Crop the unified region to a temporary canvas
+    const unifiedCanvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(uw, uh)
+      : document.createElement('canvas');
+    unifiedCanvas.width = uw;
+    unifiedCanvas.height = uh;
+    const uCtx = unifiedCanvas.getContext('2d');
+    uCtx.drawImage(canvas, ux, uy, uw, uh, 0, 0, uw, uh);
+
+    // Now match each individual card as a sub-region within the unified crop.
+    // Card positions are relative to the unified region's origin.
+    for (let i = 0; i < cardRegions.length; i++) {
+      const cardRef = cardRegions[i];
+      if (!cardRef) continue;
+
+      // Scale card to video space, then make relative to unified origin
+      const cardScaled = scaleRegion(cardRef, scaleX, scaleY);
+      const subRegion = {
+        x: cardScaled.x - ux,
+        y: cardScaled.y - uy,
+        w: cardScaled.w,
+        h: cardScaled.h,
+      };
+
+      // Clamp sub-region to unified canvas bounds
+      const sx = Math.max(0, subRegion.x);
+      const sy = Math.max(0, subRegion.y);
+      const sw = Math.min(subRegion.w, uw - sx);
+      const sh = Math.min(subRegion.h, uh - sy);
+
+      if (sw <= 4 || sh <= 4) continue; // too small to match
+
+      const result = matcher.matchRegion(unifiedCanvas, { x: sx, y: sy, w: sw, h: sh }, uw, uh, matchOpts);
+
+      if (probeLog) {
+        probeLog.push({
+          kind,
+          slot: i,
+          region: { x: cardRef.x, y: cardRef.y, w: cardRef.w, h: cardRef.h },
+          scaledRegion: cardScaled,
+          subRegion: { x: sx, y: sy, w: sw, h: sh },
+          unifiedCapture: true,
+          bestKey: result.key,
+          distance: result.distance,
+          confidence: result.confidence,
+          threshold: result.threshold,
+          matched: !!(result.rank && result.suit),
+          candidates: result.candidates,
+        });
+      }
+
+      if (result.rank && result.suit) {
+        cards.push(result);
+      }
+    }
+  } else {
+    // --- Fallback: direct per-card matching from full canvas ---
+    for (let i = 0; i < cardRegions.length; i++) {
+      const cardRef = cardRegions[i];
+      if (!cardRef) continue;
+      const scaled = scaleRegion(cardRef, scaleX, scaleY);
+      const result = matcher.matchRegion(canvas, scaled, videoW, videoH, matchOpts);
+
+      if (probeLog) {
+        probeLog.push({
+          kind,
+          slot: i,
+          region: { x: cardRef.x, y: cardRef.y, w: cardRef.w, h: cardRef.h },
+          scaledRegion: scaled,
+          unifiedCapture: false,
+          bestKey: result.key,
+          distance: result.distance,
+          confidence: result.confidence,
+          threshold: result.threshold,
+          matched: !!(result.rank && result.suit),
+          candidates: result.candidates,
+        });
+      }
+
+      if (result.rank && result.suit) {
+        cards.push(result);
+      }
+    }
+  }
+
+  return cards;
 }
 
 /**
