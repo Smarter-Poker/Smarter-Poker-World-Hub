@@ -25,11 +25,13 @@
 
 import { verifyCardSuit } from './suit-color';
 
-// Hardwired mode uses a much tighter threshold since screen capture gives
-// pixel-perfect frames. dHash distances are typically 0-3 for correct matches
-// and 15+ for wrong cards. The 8-distance threshold provides generous margin
-// while eliminating virtually all false positives.
-const HARDWIRED_MATCH_THRESHOLD = 8;
+// Hardwired mode threshold. Originally 8, but real-world PokerBros screen
+// capture shows dHash distances of 8-14 because template PNGs were extracted
+// from a different-resolution reference screenshot (471x1063) than the live
+// video feed (468x932). The sub-pixel resampling differences inflate hash
+// distances by 5-8 bits. Threshold 15 lets real matches through while still
+// rejecting wrong cards (wrong-rank confusables score 20+).
+const HARDWIRED_MATCH_THRESHOLD = 15;
 
 // In hardwired mode we skip the crop-offset sweep entirely. Instead we do a
 // single direct crop at the exact layout coordinates. This cuts per-region
