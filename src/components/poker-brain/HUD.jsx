@@ -1034,7 +1034,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 region: p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : 'n/a',
               }));
               setDiagInfo({
-                build: 'v5-direct-percard',
+                build: 'v6-unified-t15',
                 vw, vh, refW, refH,
                 sX: Math.round(sX * 1000) / 1000,
                 sY: Math.round(sY * 1000) / 1000,
@@ -1815,10 +1815,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               {handState.holeCards.length > 0 ? (
                 handState.holeCards.map((card, i) => <DetectedCard key={'hole-' + i} card={card} showConfidenceIndicator={showConfidence} />)
               ) : (
-                <>
-                  <EmptyCardSlot label="?" />
-                  <EmptyCardSlot label="?" />
-                </>
+                Array.from({ length: { nlhe: 2, plo: 4, plo_hilo: 4, plo5: 5, plo6: 6 }[gameType] || 2 }).map((_, i) => (
+                  <EmptyCardSlot key={'empty-hole-' + i} label="?" />
+                ))
               )}
             </div>
           </div>
