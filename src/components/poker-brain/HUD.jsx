@@ -407,10 +407,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   useEffect(() => {
     const ov = loadLayoutOverrides();
     if (ov) {
-      // v3 flag: overrides saved AFTER layout-capture.json will include _version=3.
-      // Anything below v3 is stale from old coordinate systems and must be cleared.
-      if (!ov._version || ov._version < 3) {
-        console.warn('[HUD] Clearing stale calibration overrides (v' + (ov._version || 0) + ' < 3, layout-capture.json coordinates changed)');
+      // v4 flag: overrides saved AFTER threshold fix will include _version=4.
+      // v3 overrides had manually dragged regions with undersized crops (35x59)
+      // that inflated hash distances. Clear everything below v4.
+      if (!ov._version || ov._version < 4) {
+        console.warn('[HUD] Clearing stale calibration overrides (v' + (ov._version || 0) + ' < 4, threshold + crop size changed)');
         saveLayoutOverrides(null);
         setLayoutOverrides(null);
       } else {
@@ -427,7 +428,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
   const handleOverridesChange = useCallback((next) => {
     // Tag with version so we know these were saved after the transform fix
-    const tagged = next ? { ...next, _version: 3 } : null;
+    const tagged = next ? { ...next, _version: 4 } : null;
     setLayoutOverrides(tagged);
     saveLayoutOverrides(tagged);
   }, []);
@@ -493,7 +494,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           console.log('[AutoCal] Board card clusters:', boardClusters.map(c => `${c.bestKey}@${c.x},${c.y} d=${c.distance}`));
 
           // Build overrides from discovered positions
-          const newOverrides = { ...(layoutOverrides || {}), _version: 3 };
+          const newOverrides = { ...(layoutOverrides || {}), _version: 4 };
 
           if (holeClusters.length >= 1) {
             // Override NLHE hole cards with discovered positions

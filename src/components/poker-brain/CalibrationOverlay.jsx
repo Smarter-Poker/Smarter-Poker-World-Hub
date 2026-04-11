@@ -233,10 +233,12 @@ const CalibrationOverlay = ({
       if (d.mode === 'move') {
         next = { ...d.startRect, x: d.startRect.x + dxRef, y: d.startRect.y + dyRef };
       } else if (d.mode === 'resize') {
+        // Minimum 45x60 to prevent undersized crops that inflate hash distances
+        // (templates are 64x88, crops smaller than ~45x60 get stretched too much)
         next = {
           ...d.startRect,
-          w: Math.max(4, d.startRect.w + dxRef),
-          h: Math.max(4, d.startRect.h + dyRef),
+          w: Math.max(45, d.startRect.w + dxRef),
+          h: Math.max(60, d.startRect.h + dyRef),
         };
       }
       if (next && onOverridesChange) {
