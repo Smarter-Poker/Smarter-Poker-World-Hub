@@ -106,6 +106,7 @@ export async function execOcrPass(video, layout, ocrEngine) {
 
   promises.push(run('blindLevel', 'readBlindLevel').then(r => {
     if (r && r.bigBlind) results.bigBlind = r.bigBlind;
+    if (r && r.smallBlind) results.smallBlind = r.smallBlind;
   }));
 
   promises.push(run('currentBet', 'readBetAmounts').then(r => {
@@ -150,9 +151,9 @@ export async function execOcrPass(video, layout, ocrEngine) {
 
   await Promise.all(promises);
 
-  if (Object.keys(villainStacks).length > 0) {
-    results.villainStacks = villainStacks;
-  }
+  // Always include villainStacks (even if empty) so callers don't need
+  // existence checks — they can rely on the field being present.
+  results.villainStacks = villainStacks;
 
   return results;
 }

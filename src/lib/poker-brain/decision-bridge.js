@@ -268,10 +268,10 @@ export async function getBridgedDecision(input) {
         reason: null,
         action,
         raiseAmount: amount,
-        confidence: 0.95, // Horse Brain is high-confidence by design
+        confidence: 95, // Horse Brain is high-confidence by design (0-100 scale, matching engine convention)
         reasoning: `Horse Brain [${horseBrainResult.variant || gameType}] ${horseBrainResult.street || street} — ${horseBrainResult.engineMs || '?'}ms`,
-        equity: null, // Horse Brain handles equity internally
-        potOdds: potSize > 0 && betToCall > 0 ? betToCall / (potSize + betToCall) : null,
+        equity: horseBrainResult.equity ?? null, // Pass through if Horse Brain returns it
+        potOdds: potSize > 0 && betToCall > 0 ? Math.round((betToCall / (potSize + betToCall)) * 10000) / 100 : null, // 0-100 percentage scale to match engine convention
         highEquity: null,
         lowEquity: null,
         bubbleFactor: null,
