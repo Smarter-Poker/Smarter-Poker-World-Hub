@@ -26,7 +26,7 @@ import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
-import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops } from '../../lib/poker-brain/template-capture';
+import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops, autoCalibrateLive } from '../../lib/poker-brain/template-capture';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
 import Onboarding from './Onboarding';
@@ -934,6 +934,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     // (or re-initialized) component. The flag guards the re-schedule.
     let stopped = false;
     let detectionFrameCount = 0;
+    let autoCalDone = false; // Track if auto-calibration has run
 
     const loop = async () => {
       if (stopped) return;
@@ -952,6 +953,28 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             // have holeCardsByVariant.
             const currentVariant = gameTypeRef.current;
             const expectedHole = PokerBrainEngine.expectedHoleCount(currentVariant);
+
+            // ── AUTO-CALIBRATE LIVE TEMPLATES (one-time) ──────────────
+            // On frame 8 (~2s after start), capture card crops from the
+            // live video and inject their hashes into the matcher. This
+            // recalibrates templates to the exact video resolution,
+            // dropping dHash distances from 10-25 to 0-3. Only runs once.
+            if (!autoCalDone && detectionFrameCount === 8) {
+              try {
+                const calResult = autoCalibrateLive(
+                  video,
+                  effectiveLayoutRef.current,
+                  matcher,
+                  { variant: currentVariant, maxDistance: 25 },
+                );
+                if (calResult.injected > 0) {
+                  autoCalDone = true;
+                  console.log(`[HUD] Auto-calibrated ${calResult.injected} templates from live video`);
+                }
+              } catch (calErr) {
+                console.warn('[HUD] Auto-calibrate failed:', calErr.message);
+              }
+            }
 
             // ── AUTO TABLE BOUNDS ──────────────────────────────────────
             // Find the PokerBros felt oval inside the capture frame via
@@ -1278,7 +1301,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const lastDecisionKeyRef = useRef('');
   const decisionGenerationRef = useRef(0);
   useEffect(() => {
-    if (handState.holeCards.length < 2) {
+    // GTO pipeline gate: require ALL expected hole cards, not just 2.
+    // For PLO6 that means 6 cards, for NLHE that means 2, etc.
+    // Also require position to be known (dealer button detected).
+    const expectedHoleForGTO = PokerBrainEngine.expectedHoleCount(gameType) || 2;
+    if (handState.holeCards.length < expectedHoleForGTO) {
       setDecision(null);
       setValidator(null);
       return;

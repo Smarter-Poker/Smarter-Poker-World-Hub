@@ -199,63 +199,163 @@ export function injectLiveHashes(matcher, crops, labels) {
   return injected;
 }
 
-// ---- Local hash implementations (mirrors matcher.js) ----
+// ---- Local hash implementations ----
+// CRITICAL: These MUST return [hi, lo] (two 32-bit integers) to match
+// matcher.js's format. The original implementation returned Uint8Array(8)
+// which is INCOMPATIBLE with the matcher's hammingDistance() function
+// that expects hash[0] and hash[1] to be 32-bit integer halves.
 
 function computeAHashLocal(imageData) {
   const { data, width, height } = imageData;
-  // Resize to 8x8 grayscale
   const size = 8;
-  const gray = new Float32Array(size * size);
+  const gray = new Float64Array(size * size);
+  let totalSum = 0;
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const srcX = Math.floor(x * width / size);
-      const srcY = Math.floor(y * height / size);
-      const idx = (srcY * width + srcX) * 4;
-      gray[y * size + x] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+  for (let dy = 0; dy < size; dy++) {
+    for (let dx = 0; dx < size; dx++) {
+      const srcX0 = Math.floor((dx / size) * width);
+      const srcY0 = Math.floor((dy / size) * height);
+      const srcX1 = Math.floor(((dx + 1) / size) * width);
+      const srcY1 = Math.floor(((dy + 1) / size) * height);
+      let sum = 0, count = 0;
+      for (let sy = srcY0; sy < srcY1; sy++) {
+        for (let sx = srcX0; sx < srcX1; sx++) {
+          const idx = (sy * width + sx) * 4;
+          sum += data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+          count++;
+        }
+      }
+      const val = count > 0 ? sum / count : 0;
+      gray[dy * size + dx] = val;
+      totalSum += val;
     }
   }
 
-  let sum = 0;
-  for (let i = 0; i < gray.length; i++) sum += gray[i];
-  const avg = sum / gray.length;
-
-  const hash = new Uint8Array(8);
-  for (let i = 0; i < 64; i++) {
-    if (gray[i] >= avg) {
-      hash[i >> 3] |= (1 << (7 - (i & 7)));
-    }
-  }
-  return hash;
+  const avg = totalSum / 64;
+  let hi = 0, lo = 0;
+  for (let i = 0; i < 32; i++) { if (gray[i] > avg) hi |= (1 << (31 - i)); }
+  for (let i = 32; i < 64; i++) { if (gray[i] > avg) lo |= (1 << (63 - i)); }
+  return [hi, lo];
 }
 
 function computeDHashLocal(imageData) {
   const { data, width, height } = imageData;
   const DHASH_SIZE = 9;
-  const gray = new Float32Array(DHASH_SIZE * DHASH_SIZE);
+  const gray = new Float64Array(DHASH_SIZE * DHASH_SIZE);
 
-  for (let y = 0; y < DHASH_SIZE; y++) {
-    for (let x = 0; x < DHASH_SIZE; x++) {
-      const srcX = Math.floor(x * width / DHASH_SIZE);
-      const srcY = Math.floor(y * height / DHASH_SIZE);
-      const idx = (srcY * width + srcX) * 4;
-      gray[y * DHASH_SIZE + x] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+  for (let dy = 0; dy < DHASH_SIZE; dy++) {
+    for (let dx = 0; dx < DHASH_SIZE; dx++) {
+      const srcX0 = Math.floor((dx / DHASH_SIZE) * width);
+      const srcY0 = Math.floor((dy / DHASH_SIZE) * height);
+      const srcX1 = Math.floor(((dx + 1) / DHASH_SIZE) * width);
+      const srcY1 = Math.floor(((dy + 1) / DHASH_SIZE) * height);
+      let sum = 0, count = 0;
+      for (let sy = srcY0; sy < srcY1; sy++) {
+        for (let sx = srcX0; sx < srcX1; sx++) {
+          const idx = (sy * width + sx) * 4;
+          sum += data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+          count++;
+        }
+      }
+      gray[dy * DHASH_SIZE + dx] = count > 0 ? sum / count : 0;
     }
   }
 
-  const hash = new Uint8Array(8);
+  const hashBits = new Uint8Array(64);
   let bitIndex = 0;
   for (let y = 0; y < DHASH_SIZE - 1; y++) {
     for (let x = 0; x < DHASH_SIZE - 1; x++) {
-      const left = gray[y * DHASH_SIZE + x];
-      const right = gray[y * DHASH_SIZE + x + 1];
-      if (left > right) {
-        hash[bitIndex >> 3] |= (1 << (7 - (bitIndex & 7)));
-      }
+      hashBits[bitIndex] = gray[y * DHASH_SIZE + x] > gray[y * DHASH_SIZE + x + 1] ? 1 : 0;
       bitIndex++;
     }
   }
-  return hash;
+
+  let hi = 0, lo = 0;
+  for (let i = 0; i < 32; i++) { if (hashBits[i]) hi |= (1 << (31 - i)); }
+  for (let i = 32; i < 64; i++) { if (hashBits[i]) lo |= (1 << (63 - i)); }
+  return [hi, lo];
+}
+
+/**
+ * Auto-calibrate: capture crops from the live video at ALL card positions,
+ * match each against existing templates (accepting ANY distance), and inject
+ * the live crop hashes as the matched card label. This recalibrates the
+ * template hashes to the exact video resolution, dropping distances from
+ * 10-25 down to 0-3 on all subsequent frames.
+ *
+ * Should be called once after screen capture starts (when cards are visible).
+ *
+ * @param {HTMLVideoElement} videoElement
+ * @param {object} layout - layout-capture.json
+ * @param {PokerBrainMatcher} matcher
+ * @param {object} options
+ * @param {string} [options.variant='nlhe']
+ * @param {number} [options.maxDistance=25] - reject matches worse than this
+ * @returns {{ injected: number, matches: Array }}
+ */
+export function autoCalibrateLive(videoElement, layout, matcher, options = {}) {
+  if (!matcher || !matcher.templateHashes || matcher.templateHashes.size === 0) {
+    return { injected: 0, matches: [] };
+  }
+
+  const variant = options.variant || 'nlhe';
+  const maxDistance = options.maxDistance ?? 25;
+
+  // Capture crops from current frame
+  const crops = captureCardCrops(videoElement, layout, { variant });
+  if (crops.length === 0) return { injected: 0, matches: [] };
+
+  const matches = [];
+  let injected = 0;
+
+  for (const crop of crops) {
+    const ctx = crop.canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, TEMPLATE_W, TEMPLATE_H);
+    const liveDHash = computeDHashLocal(imageData);
+    const liveAHash = computeAHashLocal(imageData);
+
+    // Find best matching template at ANY distance
+    let bestKey = null;
+    let bestDist = Infinity;
+    for (const [key, tplHash] of matcher.templateHashes) {
+      if (key === 'back' || key === 'empty') continue;
+      const dDist = popcount32((liveDHash[0] ^ tplHash.dHash[0]) >>> 0) +
+                    popcount32((liveDHash[1] ^ tplHash.dHash[1]) >>> 0);
+      const aDist = popcount32((liveAHash[0] ^ tplHash.aHash[0]) >>> 0) +
+                    popcount32((liveAHash[1] ^ tplHash.aHash[1]) >>> 0);
+      const dist = Math.min(dDist, aDist);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestKey = key;
+      }
+    }
+
+    matches.push({
+      kind: crop.kind, slot: crop.slot,
+      bestKey, bestDist,
+      accepted: bestDist <= maxDistance,
+    });
+
+    // Inject if match is reasonable
+    if (bestKey && bestDist <= maxDistance) {
+      matcher.templateHashes.set(bestKey, { dHash: liveDHash, aHash: liveAHash });
+      injected++;
+    }
+  }
+
+  console.log(`[AutoCal] Injected ${injected}/${crops.length} live hashes (variant=${variant})`);
+  matches.forEach(m => {
+    console.log(`  ${m.kind}[${m.slot}] -> ${m.bestKey} dist=${m.bestDist} ${m.accepted ? 'OK' : 'SKIP'}`);
+  });
+
+  return { injected, matches };
+}
+
+// Popcount for 32-bit integer (Brian Kernighan)
+function popcount32(v) {
+  let c = 0;
+  while (v) { v &= v - 1; c++; }
+  return c;
 }
 
 export default captureCardCrops;
