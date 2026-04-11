@@ -1082,7 +1082,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               stackClusters = pc.clusters || [];
               const livePlayerCount = Math.max(2, pc.playerCount || 0);
               if (livePlayerCount >= 2) obs.playerCount = livePlayerCount;
-            } catch (err) { /* swallow */ }
+              console.log('[HUD players]', livePlayerCount, 'clusters:', stackClusters.length,
+                'bounds:', tableBounds ? `${Math.round(tableBounds.x)},${Math.round(tableBounds.y)} ${Math.round(tableBounds.w)}x${Math.round(tableBounds.h)}` : 'none');
+            } catch (err) { console.warn('[HUD players] detect err:', err.message); }
 
             // --- Auto dealer button + position (throttled in HW mode) ---
             if (slowScanOk) {
@@ -1094,12 +1096,23 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 if (dealer && dealer.seatId) {
                   setDealerSeat(dealer.seatId);
                 }
+                // Diagnostic: log dealer detection results every slow scan
+                // so we can see if the red-pixel search is finding anything
+                if (dealer) {
+                  console.log('[HUD dealer]', dealer.seatId || 'none',
+                    'conf:', dealer.confidence,
+                    'counts:', JSON.stringify(dealer.counts || {}),
+                    'btn:', dealer.buttonPoint ? `${Math.round(dealer.buttonPoint.x)},${Math.round(dealer.buttonPoint.y)} px:${dealer.buttonPoint.pixelCount}` : 'none');
+                }
 
                 let dealerPoint = null;
                 try { dealerPoint = findDealerButtonGlobal(video, tableBounds); }
-                catch (dpErr) { /* swallow */ }
+                catch (dpErr) { console.warn('[HUD dealer] global scan err:', dpErr.message); }
                 if (dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
                   obs.dealerPoint = { x: dealerPoint.x, y: dealerPoint.y };
+                  console.log('[HUD dealer] globalPoint:', Math.round(dealerPoint.x), Math.round(dealerPoint.y), 'px:', dealerPoint.pixelCount);
+                } else {
+                  console.log('[HUD dealer] globalPoint: not found (tableBounds:', tableBounds ? 'yes' : 'no', ')');
                 }
 
                 if (stackClusters.length >= 2 && dealerPoint && Number.isFinite(dealerPoint.x) && Number.isFinite(dealerPoint.y)) {
