@@ -26,6 +26,7 @@ import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
+import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops } from '../../lib/poker-brain/template-capture';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
 import Onboarding from './Onboarding';
@@ -528,6 +529,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const [hardwiredStats, setHardwiredStats] = useState(null);
   const [hardwiredValid, setHardwiredValid] = useState(null);
   const [diagInfo, setDiagInfo] = useState(null);
+  const [capturePreview, setCapturePreview] = useState(null); // { crops, fullFrame }
+  const [captureLabels, setCaptureLabels] = useState({}); // { 'hole_0': 'Ah', 'board_2': '7s' }
 
   // Live feed visibility
   const [showLiveFeed, setShowLiveFeed] = useState(false);
@@ -1797,6 +1800,112 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {'\n'}{(diagInfo.probe || []).map((p, i) =>
                     `${p.kind}[${p.slot}] ${p.matched ? 'OK' : 'MISS'} best=${p.best} dist=${p.dist} @ ${p.region}`
                   ).join('\n')}
+                </div>
+              )}
+              {/* Template capture button */}
+              {streamReady && (
+                <button
+                  onClick={() => {
+                    const video = videoRef.current;
+                    if (!video) return;
+                    const layout = effectiveLayoutRef.current;
+                    const crops = captureCardCrops(video, layout, { variant: gameType });
+                    const fullFrame = captureFullFrame(video);
+                    setCapturePreview({ crops, fullFrame });
+                    // Pre-populate labels from current diagInfo best matches
+                    const labels = {};
+                    if (diagInfo?.probe) {
+                      diagInfo.probe.forEach(p => {
+                        if (p.best && p.best !== 'null' && p.best !== 'empty' && p.best !== 'back') {
+                          labels[`${p.kind}_${p.slot}`] = p.best;
+                        }
+                      });
+                    }
+                    setCaptureLabels(labels);
+                  }}
+                  className="text-[11px] font-bold px-3 py-1 rounded-full bg-orange-600 hover:bg-orange-500 text-white"
+                >
+                  Capture Templates
+                </button>
+              )}
+              {/* Template capture preview panel */}
+              {capturePreview && (
+                <div className="bg-black/95 border border-orange-500 rounded-lg p-3 mt-1 max-w-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-orange-400 font-bold text-sm">Template Capture</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          const matcher = getMatcher();
+                          const allLabels = capturePreview.crops.map((c) => {
+                            const key = `${c.kind}_${c.slot}`;
+                            return captureLabels[key] || null;
+                          });
+                          const count = injectLiveHashes(matcher, capturePreview.crops, allLabels);
+                          alert(`Injected ${count} live template hashes. Detection should improve immediately.`);
+                        }}
+                        className="text-[10px] px-2 py-1 rounded bg-green-600 hover:bg-green-500 text-white font-bold"
+                      >
+                        Inject into Matcher
+                      </button>
+                      <button
+                        onClick={() => {
+                          const allLabels = capturePreview.crops.map((c) => {
+                            const key = `${c.kind}_${c.slot}`;
+                            return captureLabels[key] || `${c.kind}_${c.slot}`;
+                          });
+                          downloadAllCrops(capturePreview.crops, allLabels);
+                        }}
+                        className="text-[10px] px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold"
+                      >
+                        Download PNGs
+                      </button>
+                      <button
+                        onClick={() => setCapturePreview(null)}
+                        className="text-[10px] px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-white font-bold"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-slate-400 mb-2">
+                    Click a card label to change it. Set the correct card key (e.g., Ah, Kd, 7s) then click Inject.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {capturePreview.crops.map((crop, i) => {
+                      const key = `${crop.kind}_${crop.slot}`;
+                      const label = captureLabels[key] || '?';
+                      return (
+                        <div key={key} className="flex flex-col items-center bg-slate-800 rounded p-1">
+                          <img
+                            src={crop.dataUrl}
+                            alt={key}
+                            style={{ width: 48, height: 66, imageRendering: 'pixelated' }}
+                            className="border border-slate-600 rounded"
+                          />
+                          <input
+                            type="text"
+                            value={label}
+                            onChange={(e) => setCaptureLabels(prev => ({ ...prev, [key]: e.target.value }))}
+                            className="mt-1 w-12 text-[10px] text-center bg-slate-900 border border-slate-600 rounded text-white px-1"
+                            placeholder="Ah"
+                          />
+                          <span className="text-[8px] text-slate-500">{crop.kind}[{crop.slot}]</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {capturePreview.fullFrame && (
+                    <details className="mt-2">
+                      <summary className="text-[9px] text-slate-500 cursor-pointer">Full Frame</summary>
+                      <img
+                        src={capturePreview.fullFrame.dataUrl}
+                        alt="Full frame"
+                        style={{ maxWidth: '100%', height: 'auto', maxHeight: 300 }}
+                        className="mt-1 rounded border border-slate-700"
+                      />
+                    </details>
+                  )}
                 </div>
               )}
               {streamReady && (
