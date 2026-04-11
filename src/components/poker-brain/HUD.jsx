@@ -903,11 +903,43 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             result = hardwiredDetect(video, detectionLayout, matcher, {
               variant: currentVariant,
               maxHoleCards: expectedHole,
-              debug: debugModeRef.current,
+              debug: true, // Always pass debug for probeLog
             });
             // Update hardwired stats for the UI
             if (result.hardwiredStats) {
               setHardwiredStats(result.hardwiredStats);
+            }
+
+            // -- One-shot diagnostic dump (first 3 frames after stream starts) --
+            // Prints video dims, scale factors, region coords, and per-card
+            // match results so we can diagnose detection failures immediately.
+            if (typeof window.__pbDiagCount === 'undefined') window.__pbDiagCount = 0;
+            if (window.__pbDiagCount < 3) {
+              window.__pbDiagCount++;
+              const vw = video.videoWidth || video.width;
+              const vh = video.videoHeight || video.height;
+              const refW = detectionLayout.referenceSize?.w;
+              const refH = detectionLayout.referenceSize?.h;
+              const sX = vw / refW;
+              const sY = vh / refH;
+              const holeRegions = detectionLayout.holeCardsByVariant?.[currentVariant] || detectionLayout.holeCards || [];
+              const boardRegions = detectionLayout.boardCards || [];
+              console.log('[PB-DIAG] frame', window.__pbDiagCount, JSON.stringify({
+                BUILD: 'v5-direct-match',
+                videoW: vw, videoH: vh,
+                refW, refH,
+                scaleX: Math.round(sX * 1000) / 1000,
+                scaleY: Math.round(sY * 1000) / 1000,
+                variant: currentVariant,
+                holeRegionCount: holeRegions.length,
+                boardRegionCount: boardRegions.length,
+                holeRegion0: holeRegions[0] || null,
+                templates: matcher.getTemplateCount ? matcher.getTemplateCount() : 0,
+                holeCardsFound: result.holeCards?.length || 0,
+                boardCardsFound: result.boardCards?.length || 0,
+                avgDist: result.hardwiredStats?.avgDistance,
+                probeLog: result.probeLog?.slice(0, 4) || [],
+              }, null, 2));
             }
 
             setLastTimingMs(result.timingMs);
