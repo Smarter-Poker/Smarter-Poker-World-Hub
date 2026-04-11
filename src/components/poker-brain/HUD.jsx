@@ -382,6 +382,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const [calibrationEditable, setCalibrationEditable] = useState(false);
   const [calibrationFullScreen, setCalibrationFullScreen] = useState(false);
   const [layoutOverrides, setLayoutOverrides] = useState(null);
+  const [autoCalResults, setAutoCalResults] = useState(null);
+  const [autoCalRunning, setAutoCalRunning] = useState(false);
   // Native video dims — captured after loadedmetadata fires. Used to
   // size the capture feed container to the real emulator aspect ratio
   // instead of a fixed 16:9 box that letterboxes the portrait stream
@@ -434,6 +436,105 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     setLayoutOverrides(null);
     saveLayoutOverrides(null);
   }, []);
+
+  // Auto-calibrate: sweep the video frame to find card positions
+  const runAutoCalibrate = useCallback(() => {
+    const video = videoRef.current;
+    const matcher = matcherRef.current;
+    if (!video || !matcher || !matcher.isReady()) {
+      console.warn('[AutoCal] Video or matcher not ready');
+      return;
+    }
+    setAutoCalRunning(true);
+    // Use requestAnimationFrame to not block UI
+    requestAnimationFrame(() => {
+      try {
+        const holeResults = matcher.autoCalibrateSweep(video, {
+          zone: 'hole', stepX: 3, stepY: 3, cropW: 50, cropH: 70, topN: 30,
+        });
+        const boardResults = matcher.autoCalibrateSweep(video, {
+          zone: 'board', stepX: 3, stepY: 3, cropW: 50, cropH: 70, topN: 30,
+        });
+        setAutoCalResults({ hole: holeResults, board: boardResults });
+
+        // Auto-apply: if we found good hole card matches (dist <= 8),
+        // update the layout overrides automatically
+        const goodHole = holeResults.filter(r => r.distance <= 8);
+        const goodBoard = boardResults.filter(r => r.distance <= 8);
+
+        if (goodHole.length > 0 || goodBoard.length > 0) {
+          console.log('[AutoCal] Found good matches! Hole:', goodHole.length, 'Board:', goodBoard.length);
+
+          // Group nearby positions (within 30px) to find distinct card locations
+          const clusterPositions = (results, minDist = 30) => {
+            const clusters = [];
+            for (const r of results) {
+              let merged = false;
+              for (const c of clusters) {
+                if (Math.abs(r.x - c.x) < minDist && Math.abs(r.y - c.y) < minDist) {
+                  // Keep the one with lower distance
+                  if (r.distance < c.distance) {
+                    c.x = r.x; c.y = r.y; c.w = r.w; c.h = r.h;
+                    c.bestKey = r.bestKey; c.distance = r.distance;
+                  }
+                  merged = true;
+                  break;
+                }
+              }
+              if (!merged) clusters.push({ ...r });
+            }
+            return clusters.sort((a, b) => a.x - b.x); // sort left-to-right
+          };
+
+          const holeClusters = clusterPositions(goodHole);
+          const boardClusters = clusterPositions(goodBoard);
+
+          console.log('[AutoCal] Hole card clusters:', holeClusters.map(c => `${c.bestKey}@${c.x},${c.y} d=${c.distance}`));
+          console.log('[AutoCal] Board card clusters:', boardClusters.map(c => `${c.bestKey}@${c.x},${c.y} d=${c.distance}`));
+
+          // Build overrides from discovered positions
+          const newOverrides = { ...(layoutOverrides || {}), _version: 3 };
+
+          if (holeClusters.length >= 1) {
+            // Override NLHE hole cards with discovered positions
+            const nlheHole = holeClusters.slice(0, 2).map(c => ({
+              x: c.x, y: c.y, w: c.w, h: c.h,
+            }));
+            // If only found 1 card, estimate the second position
+            if (nlheHole.length === 1 && holeClusters[0]) {
+              nlheHole.push({
+                x: holeClusters[0].x + 40,
+                y: holeClusters[0].y - 5,
+                w: holeClusters[0].w,
+                h: holeClusters[0].h,
+              });
+            }
+            newOverrides.holeCards = nlheHole;
+            // Also update holeCardsByVariant for nlhe
+            newOverrides.holeCardsByVariant = {
+              nlhe: nlheHole,
+            };
+          }
+
+          if (boardClusters.length >= 1) {
+            newOverrides.boardCards = boardClusters.slice(0, 5).map(c => ({
+              x: c.x, y: c.y, w: c.w, h: c.h,
+            }));
+          }
+
+          setLayoutOverrides(newOverrides);
+          saveLayoutOverrides(newOverrides);
+          console.log('[AutoCal] Layout overrides saved:', JSON.stringify(newOverrides, null, 2));
+        } else {
+          console.warn('[AutoCal] No good matches found. Best hole:', holeResults[0], 'Best board:', boardResults[0]);
+        }
+      } catch (err) {
+        console.error('[AutoCal] Error:', err);
+      } finally {
+        setAutoCalRunning(false);
+      }
+    });
+  }, [layoutOverrides]);
 
   // Refs
   const videoRef = useRef(null);
@@ -1802,6 +1903,23 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   ).join('\n')}
                 </div>
               )}
+              {/* Auto-calibrate results panel */}
+              {autoCalResults && (
+                <div className="text-[9px] font-mono bg-black/90 text-cyan-300 p-2 rounded mt-1 max-w-full overflow-x-auto whitespace-pre border border-cyan-600/40">
+                  {'=== AUTO-CALIBRATE RESULTS ===\n'}
+                  {'HOLE CARDS (top 10):\n'}
+                  {(autoCalResults.hole || []).slice(0, 10).map((r, i) =>
+                    `  #${i + 1}: ${r.bestKey} @ (${r.x},${r.y}) ${r.w}x${r.h} dist=${r.distance} dH=${r.dDist} aH=${r.aDist}`
+                  ).join('\n')}
+                  {'\n\nBOARD CARDS (top 10):\n'}
+                  {(autoCalResults.board || []).slice(0, 10).map((r, i) =>
+                    `  #${i + 1}: ${r.bestKey} @ (${r.x},${r.y}) ${r.w}x${r.h} dist=${r.distance} dH=${r.dDist} aH=${r.aDist}`
+                  ).join('\n')}
+                  {autoCalResults.hole?.[0]?.distance <= 8
+                    ? '\n\n>> GOOD MATCHES FOUND -- layout auto-updated!'
+                    : '\n\n>> No strong matches. Cards may not be visible or templates need updating.'}
+                </div>
+              )}
               {/* Template capture button */}
               {streamReady && (
                 <button
@@ -1943,6 +2061,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   title="Expand the capture feed to fill the viewport for precise manual calibration"
                 >
                   {calibrationFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+                </button>
+              )}
+              {streamReady && (
+                <button
+                  onClick={runAutoCalibrate}
+                  disabled={autoCalRunning}
+                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (autoCalRunning ? 'bg-yellow-600 text-white animate-pulse' : autoCalResults ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
+                  title="Scan the video frame to auto-detect card positions. Updates layout coordinates automatically."
+                >
+                  {autoCalRunning ? 'Scanning...' : autoCalResults ? 'Re-Scan' : 'Auto-Calibrate'}
                 </button>
               )}
               {streamReady && (

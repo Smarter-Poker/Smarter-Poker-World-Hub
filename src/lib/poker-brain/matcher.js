@@ -499,7 +499,9 @@ class PokerBrainMatcher {
 
     if (!accepted) {
       return {
-        rank: null, suit: null, confidence: 0, distance: bestDistance, key: null,
+        rank: null, suit: null, confidence: 0, distance: bestDistance,
+        key: null,
+        bestGuess: bestKey, // Always expose the best guess for diagnostics
         threshold: effectiveThreshold,
         candidates: buildCandidates(),
       };
@@ -722,6 +724,154 @@ class PokerBrainMatcher {
    */
   getTemplateCount() {
     return this.templateHashes.size;
+  }
+
+  /**
+   * Auto-calibration sweep: scan the video frame to find where cards are.
+   * Sweeps a crop window across a region of the frame, hashing each position
+   * and comparing against all templates. Returns the positions with the
+   * lowest distances (i.e. where cards actually are).
+   *
+   * @param {HTMLVideoElement|HTMLCanvasElement} videoElement
+   * @param {object} [options]
+   * @param {string} [options.zone] - 'hole' | 'board' | 'full'
+   * @param {number} [options.stepX] - pixel step size for X sweep (default 5)
+   * @param {number} [options.stepY] - pixel step size for Y sweep (default 5)
+   * @param {number} [options.cropW] - crop width (default 55)
+   * @param {number} [options.cropH] - crop height (default 75)
+   * @param {number} [options.topN] - number of best positions to return (default 20)
+   * @returns {Array<{x, y, w, h, bestKey, distance, dDist, aDist}>}
+   */
+  autoCalibrateSweep(videoElement, options = {}) {
+    if (!this.loaded || this.templateHashes.size === 0) return [];
+
+    this._ensureCanvases();
+
+    const videoW = videoElement.videoWidth || videoElement.width;
+    const videoH = videoElement.videoHeight || videoElement.height;
+    if (!videoW || !videoH) return [];
+
+    // Draw video to offscreen canvas
+    this._offscreenCanvas.width = videoW;
+    this._offscreenCanvas.height = videoH;
+    this._offscreenCtx.drawImage(videoElement, 0, 0, videoW, videoH);
+
+    const zone = options.zone || 'hole';
+    const stepX = options.stepX || 5;
+    const stepY = options.stepY || 5;
+    const cropW = options.cropW || 55;
+    const cropH = options.cropH || 75;
+    const topN = options.topN || 20;
+
+    // Define scan region based on zone
+    let scanX0, scanY0, scanX1, scanY1;
+    if (zone === 'hole') {
+      // Hole cards: scan bottom 40% of frame, middle 80% width
+      scanX0 = Math.round(videoW * 0.15);
+      scanY0 = Math.round(videoH * 0.60);
+      scanX1 = Math.round(videoW * 0.85) - cropW;
+      scanY1 = Math.round(videoH * 0.90) - cropH;
+    } else if (zone === 'board') {
+      // Board cards: scan middle 30% vertically, middle 80% width
+      scanX0 = Math.round(videoW * 0.10);
+      scanY0 = Math.round(videoH * 0.30);
+      scanX1 = Math.round(videoW * 0.90) - cropW;
+      scanY1 = Math.round(videoH * 0.55) - cropH;
+    } else {
+      // Full scan
+      scanX0 = 0;
+      scanY0 = 0;
+      scanX1 = videoW - cropW;
+      scanY1 = videoH - cropH;
+    }
+
+    // Temporary canvas for cropping
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = TEMPLATE_W;
+    tmpCanvas.height = TEMPLATE_H;
+    const tmpCtx = tmpCanvas.getContext('2d', { willReadFrequently: true });
+
+    // Results: keep top-N best matches (lowest distance for a real card)
+    const results = [];
+
+    const startTime = performance.now();
+
+    for (let sy = scanY0; sy <= scanY1; sy += stepY) {
+      for (let sx = scanX0; sx <= scanX1; sx += stepX) {
+        tmpCtx.clearRect(0, 0, TEMPLATE_W, TEMPLATE_H);
+        tmpCtx.drawImage(
+          this._offscreenCanvas,
+          sx, sy, cropW, cropH,
+          0, 0, TEMPLATE_W, TEMPLATE_H,
+        );
+
+        const imageData = tmpCtx.getImageData(0, 0, TEMPLATE_W, TEMPLATE_H);
+        const dHash = computeDHash(imageData);
+        const aHash = computeAHash(imageData);
+
+        // Find best template match
+        let bestKey = null;
+        let bestDist = DHASH_BITS;
+        let bestDDist = DHASH_BITS;
+        let bestADist = DHASH_BITS;
+
+        for (const [key, tpl] of this.templateHashes) {
+          // Skip empty/back for calibration — we want real cards
+          if (key === 'empty' || key === 'back') continue;
+
+          const dScore = hammingDistance(dHash, tpl.dHash);
+          const aScore = hammingDistance(aHash, tpl.aHash);
+          const minScore = Math.min(dScore, aScore);
+
+          if (minScore < bestDist) {
+            bestDist = minScore;
+            bestKey = key;
+            bestDDist = dScore;
+            bestADist = aScore;
+          }
+        }
+
+        // Only keep if distance is reasonable (< 20)
+        if (bestDist < 20) {
+          // Insert sorted by distance
+          let inserted = false;
+          for (let i = 0; i < results.length; i++) {
+            if (bestDist < results[i].distance) {
+              results.splice(i, 0, {
+                x: sx, y: sy, w: cropW, h: cropH,
+                bestKey, distance: bestDist,
+                dDist: bestDDist, aDist: bestADist,
+              });
+              inserted = true;
+              break;
+            }
+          }
+          if (!inserted && results.length < topN) {
+            results.push({
+              x: sx, y: sy, w: cropW, h: cropH,
+              bestKey, distance: bestDist,
+              dDist: bestDDist, aDist: bestADist,
+            });
+          }
+          if (results.length > topN) results.length = topN;
+        }
+      }
+    }
+
+    const elapsed = performance.now() - startTime;
+    // eslint-disable-next-line no-console
+    console.log(`[AutoCalibrate] zone=${zone} scanned ${Math.ceil((scanX1-scanX0)/stepX) * Math.ceil((scanY1-scanY0)/stepY)} positions in ${elapsed.toFixed(0)}ms`);
+    // eslint-disable-next-line no-console
+    console.table(results.slice(0, 10).map(r => ({
+      pos: `${r.x},${r.y}`,
+      size: `${r.w}x${r.h}`,
+      card: r.bestKey,
+      dist: r.distance,
+      dHash: r.dDist,
+      aHash: r.aDist,
+    })));
+
+    return results;
   }
 }
 
