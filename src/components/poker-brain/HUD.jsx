@@ -527,6 +527,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const useHardwiredRef = useRef(true);
   const [hardwiredStats, setHardwiredStats] = useState(null);
   const [hardwiredValid, setHardwiredValid] = useState(null);
+  const [diagInfo, setDiagInfo] = useState(null);
 
   // Live feed visibility
   const [showLiveFeed, setShowLiveFeed] = useState(false);
@@ -910,12 +911,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               setHardwiredStats(result.hardwiredStats);
             }
 
-            // -- One-shot diagnostic dump (first 3 frames after stream starts) --
-            // Prints video dims, scale factors, region coords, and per-card
-            // match results so we can diagnose detection failures immediately.
-            if (typeof window.__pbDiagCount === 'undefined') window.__pbDiagCount = 0;
-            if (window.__pbDiagCount < 3) {
-              window.__pbDiagCount++;
+            // -- Persistent diagnostic (updates every frame, shown in HUD UI) --
+            {
               const vw = video.videoWidth || video.width;
               const vh = video.videoHeight || video.height;
               const refW = detectionLayout.referenceSize?.w;
@@ -924,22 +921,26 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               const sY = vh / refH;
               const holeRegions = detectionLayout.holeCardsByVariant?.[currentVariant] || detectionLayout.holeCards || [];
               const boardRegions = detectionLayout.boardCards || [];
-              console.log('[PB-DIAG] frame', window.__pbDiagCount, JSON.stringify({
-                BUILD: 'v5-direct-match',
-                videoW: vw, videoH: vh,
-                refW, refH,
-                scaleX: Math.round(sX * 1000) / 1000,
-                scaleY: Math.round(sY * 1000) / 1000,
+              // Build probe summary: show best distance for each slot
+              const probeSummary = (result.probeLog || []).map(p => ({
+                kind: p.kind, slot: p.slot,
+                best: p.bestKey, dist: p.distance,
+                matched: p.matched,
+                region: p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : 'n/a',
+              }));
+              setDiagInfo({
+                build: 'v5-direct-percard',
+                vw, vh, refW, refH,
+                sX: Math.round(sX * 1000) / 1000,
+                sY: Math.round(sY * 1000) / 1000,
                 variant: currentVariant,
-                holeRegionCount: holeRegions.length,
-                boardRegionCount: boardRegions.length,
-                holeRegion0: holeRegions[0] || null,
-                templates: matcher.getTemplateCount ? matcher.getTemplateCount() : 0,
-                holeCardsFound: result.holeCards?.length || 0,
-                boardCardsFound: result.boardCards?.length || 0,
-                avgDist: result.hardwiredStats?.avgDistance,
-                probeLog: result.probeLog?.slice(0, 4) || [],
-              }, null, 2));
+                holeN: holeRegions.length,
+                boardN: boardRegions.length,
+                tpl: matcher.getTemplateCount ? matcher.getTemplateCount() : 0,
+                holeFound: result.holeCards?.length || 0,
+                boardFound: result.boardCards?.length || 0,
+                probe: probeSummary,
+              });
             }
 
             setLastTimingMs(result.timingMs);
@@ -1788,6 +1789,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 <span className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ backgroundColor: hardwiredStats.allPerfect ? '#064e3b' : '#1e293b', color: hardwiredStats.allPerfect ? '#6ee7b7' : '#94a3b8' }}>
                   Hardwired{hardwiredStats.allPerfect ? ' -- Perfect Match' : ` -- avg dist ${hardwiredStats.avgDistance}`}
                 </span>
+              )}
+              {/* Visible diagnostic overlay -- shows video dims, scale, per-card distances */}
+              {diagInfo && (
+                <div className="text-[9px] font-mono bg-black/90 text-green-300 p-2 rounded mt-1 max-w-full overflow-x-auto whitespace-pre">
+                  {diagInfo.build} | video:{diagInfo.vw}x{diagInfo.vh} ref:{diagInfo.refW}x{diagInfo.refH} scale:{diagInfo.sX}/{diagInfo.sY} | tpl:{diagInfo.tpl} | hole:{diagInfo.holeFound}/{diagInfo.holeN} board:{diagInfo.boardFound}/{diagInfo.boardN}
+                  {'\n'}{(diagInfo.probe || []).map((p, i) =>
+                    `${p.kind}[${p.slot}] ${p.matched ? 'OK' : 'MISS'} best=${p.best} dist=${p.dist} @ ${p.region}`
+                  ).join('\n')}
+                </div>
               )}
               {streamReady && (
                 <button
