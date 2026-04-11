@@ -25,13 +25,13 @@
 
 import { verifyCardSuit } from './suit-color';
 
-// Hardwired mode threshold. Originally 8, but real-world PokerBros screen
-// capture shows dHash distances of 8-14 because template PNGs were extracted
-// from a different-resolution reference screenshot (471x1063) than the live
-// video feed (468x932). The sub-pixel resampling differences inflate hash
-// distances by 5-8 bits. Threshold 15 lets real matches through while still
-// rejecting wrong cards (wrong-rank confusables score 20+).
-const HARDWIRED_MATCH_THRESHOLD = 15;
+// Hardwired mode threshold. Originally 8, raised to 15, now 18.
+// Real-world PokerBros screen capture shows dHash distances of 8-14 for
+// hole cards (with correct individual per-card crops) and 16-20 for board
+// cards (templates extracted from 471x1063 reference vs 468x932 live feed).
+// Threshold 18 + adaptive gap acceptance (up to threshold+6 with gap>=6)
+// covers most real matches. Wrong-rank confusables typically score 22+.
+const HARDWIRED_MATCH_THRESHOLD = 18;
 
 // In hardwired mode we skip the crop-offset sweep entirely. Instead we do a
 // single direct crop at the exact layout coordinates. This cuts per-region

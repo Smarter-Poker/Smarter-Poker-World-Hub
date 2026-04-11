@@ -1034,7 +1034,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 region: p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : 'n/a',
               }));
               setDiagInfo({
-                build: 'v6-unified-t15',
+                build: 'v7-percard-t18',
                 vw, vh, refW, refH,
                 sX: Math.round(sX * 1000) / 1000,
                 sY: Math.round(sY * 1000) / 1000,

@@ -670,18 +670,16 @@ class PokerBrainMatcher {
       return cards;
     };
 
-    // --- Hole cards: use unified holeCardRegion ---
+    // --- Hole cards: INDIVIDUAL per-card regions first (correct fanning) ---
+    // Priority: individual per-card regions (holeCardsByVariant) FIRST.
+    // These have per-card y-offsets that follow the PokerBros fan display.
+    // Unified region subdivision (holeCardRegion) is FALLBACK only — its
+    // equal-width horizontal slots ignore fanning and produce badly
+    // distorted aspect ratios (e.g. PLO6: 37x95 → 1.73x stretch to 64x88).
     let holeCards = [];
-    const holeRegionMap = layout.holeCardRegion || {};
-    const unifiedHole = variantKey && holeRegionMap[variantKey]
-      ? holeRegionMap[variantKey]
-      : holeRegionMap.nlhe || null;
 
-    if (unifiedHole && unifiedHole.count) {
-      // UNIFIED path: one crop, subdivide into slots
-      holeCards = matchUnifiedRegion(unifiedHole, 'hole');
-    } else {
-      // FALLBACK: individual per-card regions (legacy path)
+    if (layoutHole.length > 0) {
+      // INDIVIDUAL per-card path: each card has its own x/y/w/h
       for (let i = 0; i < layoutHole.length; i++) {
         const region = layoutHole[i];
         if (!region) continue;
@@ -700,18 +698,24 @@ class PokerBrainMatcher {
         }
         if (result.rank && result.suit) holeCards.push(result);
       }
+    } else {
+      // FALLBACK: unified region subdivision (if no individual regions)
+      const holeRegionMap = layout.holeCardRegion || {};
+      const unifiedHole = variantKey && holeRegionMap[variantKey]
+        ? holeRegionMap[variantKey]
+        : holeRegionMap.nlhe || null;
+      if (unifiedHole && unifiedHole.count) {
+        holeCards = matchUnifiedRegion(unifiedHole, 'hole');
+      }
     }
 
-    // --- Board cards: use unified boardCardRegion ---
+    // --- Board cards: INDIVIDUAL per-card regions first ---
+    // Same priority: individual boardCards[] regions first, unified fallback.
     let boardCards = [];
-    const unifiedBoard = layout.boardCardRegion || null;
+    const boardRegions = Array.isArray(layout.boardCards) ? layout.boardCards : [];
 
-    if (unifiedBoard && unifiedBoard.count) {
-      // UNIFIED path: one crop, subdivide into slots
-      boardCards = matchUnifiedRegion(unifiedBoard, 'board');
-    } else {
-      // FALLBACK: individual per-card regions (legacy path)
-      const boardRegions = Array.isArray(layout.boardCards) ? layout.boardCards : [];
+    if (boardRegions.length > 0) {
+      // INDIVIDUAL per-card path
       for (let i = 0; i < boardRegions.length; i++) {
         const region = boardRegions[i];
         if (!region) continue;
@@ -729,6 +733,12 @@ class PokerBrainMatcher {
           });
         }
         if (result.rank && result.suit) boardCards.push(result);
+      }
+    } else {
+      // FALLBACK: unified region subdivision
+      const unifiedBoard = layout.boardCardRegion || null;
+      if (unifiedBoard && unifiedBoard.count) {
+        boardCards = matchUnifiedRegion(unifiedBoard, 'board');
       }
     }
 
