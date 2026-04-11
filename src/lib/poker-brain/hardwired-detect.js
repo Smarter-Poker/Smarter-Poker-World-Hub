@@ -173,10 +173,64 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     };
   });
 
+  // ── DEDUPLICATION ──────────────────────────────────────────────────
+  // A standard deck has exactly ONE of each card. If multiple regions
+  // match the same card key (e.g. two slots both say "Th"), keep only
+  // the one with the LOWEST distance (best match) and discard the rest.
+  // This prevents impossible hands like "Th Th Th" caused by aspect-
+  // ratio distortion making different cards hash to the same template.
+  const dedup = (cards) => {
+    const seen = new Map(); // key -> { index, distance }
+    const keep = new Array(cards.length).fill(true);
+    for (let i = 0; i < cards.length; i++) {
+      const c = cards[i];
+      if (!c || !c.key) continue;
+      const k = c.key;
+      if (seen.has(k)) {
+        const prev = seen.get(k);
+        // Keep the lower-distance match
+        if ((c.distance ?? 99) < (prev.distance ?? 99)) {
+          keep[prev.index] = false;
+          seen.set(k, { index: i, distance: c.distance });
+        } else {
+          keep[i] = false;
+        }
+      } else {
+        seen.set(k, { index: i, distance: c.distance });
+      }
+    }
+    return cards.filter((_, i) => keep[i]);
+  };
+
+  // Dedup hole cards and board cards independently, then cross-check
+  // (a card can't appear in BOTH hole and board)
+  let dedupedHole = dedup(verifiedHole);
+  let dedupedBoard = dedup(verifiedBoard);
+
+  // Cross-dedup: if the same card appears in both hole and board,
+  // keep the one with the lower distance
+  const holeKeys = new Map();
+  for (const c of dedupedHole) {
+    if (c && c.key) holeKeys.set(c.key, c.distance ?? 99);
+  }
+  dedupedBoard = dedupedBoard.filter(c => {
+    if (!c || !c.key) return true;
+    if (holeKeys.has(c.key)) {
+      // Keep in whichever group has lower distance
+      return (c.distance ?? 99) < holeKeys.get(c.key);
+    }
+    return true;
+  });
+  const boardKeys = new Set(dedupedBoard.filter(c => c && c.key).map(c => c.key));
+  dedupedHole = dedupedHole.filter(c => {
+    if (!c || !c.key) return true;
+    return !boardKeys.has(c.key);
+  });
+
   const timingMs = performance.now() - startTime;
 
   // Compute hardwired-specific stats
-  const allCards = [...verifiedHole, ...verifiedBoard];
+  const allCards = [...dedupedHole, ...dedupedBoard];
   const matchDistances = allCards.filter(c => c && c.distance != null).map(c => c.distance);
   const avgDistance = matchDistances.length > 0
     ? Math.round(matchDistances.reduce((a, b) => a + b, 0) / matchDistances.length * 10) / 10
@@ -187,8 +241,8 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
   const perfectMatches = matchDistances.filter(d => d <= 2).length;
 
   const output = {
-    holeCards: verifiedHole,
-    boardCards: verifiedBoard,
+    holeCards: dedupedHole,
+    boardCards: dedupedBoard,
     timingMs: Math.round(timingMs * 10) / 10,
     polledHoleCount: holeRegions.length,
     // Hardwired metadata
