@@ -742,6 +742,44 @@ class PokerBrainMatcher {
       }
     }
 
+    // ── DEDUP BLOCKER (matcher level) ──────────────────────────────────
+    // A standard 52-card deck has exactly ONE of each card. If two regions
+    // match the same key, keep the one with the lowest distance. This is
+    // enforced here (matcher level) AND in hardwired-detect.js (caller
+    // level) for belt-and-suspenders safety. Also cross-dedup between
+    // hole and board — a card cannot appear in both.
+    const _dedup = (cards) => {
+      const seen = new Map();
+      const keep = new Array(cards.length).fill(true);
+      for (let i = 0; i < cards.length; i++) {
+        const c = cards[i];
+        if (!c || !c.key || c.key === 'back' || c.key === 'empty') continue;
+        if (seen.has(c.key)) {
+          const prev = seen.get(c.key);
+          if ((c.distance ?? 99) < (prev.distance ?? 99)) {
+            keep[prev.index] = false;
+            seen.set(c.key, { index: i, distance: c.distance });
+          } else {
+            keep[i] = false;
+          }
+        } else {
+          seen.set(c.key, { index: i, distance: c.distance });
+        }
+      }
+      return cards.filter((_, i) => keep[i]);
+    };
+    holeCards = _dedup(holeCards);
+    boardCards = _dedup(boardCards);
+    // Cross-dedup: remove any card from board that also appears in hole (keep lower dist)
+    const holeKeySet = new Map(holeCards.filter(c => c?.key).map(c => [c.key, c.distance ?? 99]));
+    boardCards = boardCards.filter(c => {
+      if (!c?.key) return true;
+      if (holeKeySet.has(c.key)) return (c.distance ?? 99) < holeKeySet.get(c.key);
+      return true;
+    });
+    const boardKeySet = new Set(boardCards.filter(c => c?.key).map(c => c.key));
+    holeCards = holeCards.filter(c => !c?.key || !boardKeySet.has(c.key));
+
     const timingMs = performance.now() - startTime;
 
     // ---- One-shot diagnostic dump ----
