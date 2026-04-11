@@ -9,7 +9,7 @@
  * This module is independently testable against ground-truth frames.
  */
 
-import { verifyCardSuit } from './suit-color';
+import { verifyCardSuit } from './suit-color.js';
 
 /**
  * Scale a region from layout reference space to actual video dimensions.

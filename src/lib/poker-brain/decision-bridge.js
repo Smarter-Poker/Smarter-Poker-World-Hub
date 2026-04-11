@@ -21,7 +21,9 @@
  * they just click the buttons themselves.
  */
 
-import PokerBrainEngine from './engine';
+import PokerBrainEngine from './engine.js';
+// NOTE: supabase import uses extensionless path because the source is .ts
+// (resolved by Next.js/Webpack at build time, not raw Node ESM).
 import { supabase } from '../supabase';
 
 const DEFAULT_CONFIDENCE_FLOOR = 0.80;  // 80% match confidence required

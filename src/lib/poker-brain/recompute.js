@@ -46,7 +46,7 @@
  * runtime into the browser bundle.
  */
 
-import PokerBrainEngine from './engine';
+import PokerBrainEngine from './engine.js';
 
 const SCHEMA_VERSION = 4; // bump when evaluator / equity changes again
 

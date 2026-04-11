@@ -127,7 +127,7 @@ const PokerBrainEngine = (() => {
       getRanks().forEach(v => { counts[v] = (counts[v] || 0) + 1; });
       return Object.entries(counts)
         .sort((a, b) => b[1] - a[1] || b[0] - a[0])
-        .map(([rank, count]) => ({ rank: parseInt(rank), count }));
+        .map(([rank, count]) => ({ rank: parseInt(rank, 10), count }));
     };
 
     const flush = isFlush();

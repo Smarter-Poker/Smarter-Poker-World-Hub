@@ -23,7 +23,7 @@
  *   const result = hardwiredDetect(videoElement, layout, matcher, { variant: 'plo' });
  */
 
-import { verifyCardSuit } from './suit-color';
+import { verifyCardSuit } from './suit-color.js';
 
 // Hardwired mode threshold. Originally 8, raised to 15, now 18.
 // Real-world PokerBros screen capture shows dHash distances of 8-14 for
@@ -154,23 +154,25 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
   const verifiedHole = (result.holeCards || []).map((card, i) => {
     const r = variantRegions[i];
     if (!r || !card || !card.suit) return card;
-    const scaledR = scaleRegion(r, scaleX, scaleY);
-    const verified = verifyCardSuit(card, videoElement, scaledR);
-    return {
-      ...verified,
-      hardwired: true,
-    };
+    try {
+      const scaledR = scaleRegion(r, scaleX, scaleY);
+      const verified = verifyCardSuit(card, videoElement, scaledR);
+      return { ...(verified || card), hardwired: true };
+    } catch (_) {
+      return { ...card, hardwired: true };
+    }
   });
 
   const verifiedBoard = (result.boardCards || []).map((card, i) => {
     const r = layout.boardCards?.[i];
     if (!r || !card || !card.suit) return card;
-    const scaledR = scaleRegion(r, scaleX, scaleY);
-    const verified = verifyCardSuit(card, videoElement, scaledR);
-    return {
-      ...verified,
-      hardwired: true,
-    };
+    try {
+      const scaledR = scaleRegion(r, scaleX, scaleY);
+      const verified = verifyCardSuit(card, videoElement, scaledR);
+      return { ...(verified || card), hardwired: true };
+    } catch (_) {
+      return { ...card, hardwired: true };
+    }
   });
 
   // ── DEDUPLICATION ──────────────────────────────────────────────────

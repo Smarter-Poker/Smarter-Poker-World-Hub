@@ -31,25 +31,25 @@ export function parsePlayerCount(text) {
   // "45/100" or "45 / 100"
   const slashMatch = cleaned.match(/(\d+)\s*\/\s*(\d+)/);
   if (slashMatch) {
-    return { remaining: parseInt(slashMatch[1]), total: parseInt(slashMatch[2]) };
+    return { remaining: parseInt(slashMatch[1], 10), total: parseInt(slashMatch[2], 10) };
   }
 
   // "45 of 100"
   const ofMatch = cleaned.match(/(\d+)\s+of\s+(\d+)/);
   if (ofMatch) {
-    return { remaining: parseInt(ofMatch[1]), total: parseInt(ofMatch[2]) };
+    return { remaining: parseInt(ofMatch[1], 10), total: parseInt(ofMatch[2], 10) };
   }
 
   // "remaining: 45" or "players: 45"
   const labelMatch = cleaned.match(/(?:remaining|players|left)\s*[:=]?\s*(\d+)/);
   if (labelMatch) {
-    return { remaining: parseInt(labelMatch[1]), total: null };
+    return { remaining: parseInt(labelMatch[1], 10), total: null };
   }
 
   // Just a bare number near "player" context
   const bareMatch = cleaned.match(/(\d+)\s*(?:players?|left|remaining)/);
   if (bareMatch) {
-    return { remaining: parseInt(bareMatch[1]), total: null };
+    return { remaining: parseInt(bareMatch[1], 10), total: null };
   }
 
   return { remaining: null, total: null };
@@ -66,10 +66,10 @@ export function parsePaidSpots(text) {
   const cleaned = text.replace(/[,]/g, '').toLowerCase();
 
   const payMatch = cleaned.match(/(?:pays?|paid|prizes?|itm)\s*[:=]?\s*(\d+)/);
-  if (payMatch) return parseInt(payMatch[1]);
+  if (payMatch) return parseInt(payMatch[1], 10);
 
   const spotsMatch = cleaned.match(/(\d+)\s*(?:paid|spots?|prizes?)/);
-  if (spotsMatch) return parseInt(spotsMatch[1]);
+  if (spotsMatch) return parseInt(spotsMatch[1], 10);
 
   return null;
 }
@@ -163,7 +163,7 @@ export function extractTournamentInfo(ocrText) {
   // Try to extract blind level: "Level 5" or "Lvl 5" or "L5"
   let blindLevel = null;
   const levelMatch = ocrText.match(/(?:level|lvl|l)\s*[:=]?\s*(\d+)/i);
-  if (levelMatch) blindLevel = parseInt(levelMatch[1]);
+  if (levelMatch) blindLevel = parseInt(levelMatch[1], 10);
 
   return detectTournamentStage({
     playersRemaining: players.remaining,
