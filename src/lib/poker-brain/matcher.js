@@ -311,13 +311,66 @@ class PokerBrainMatcher {
     this._ensureCanvases();
 
     // ---- Cropping with padding + offset sweep -------------------------
-    // When `skipOffsets` is true (hardwired mode), we skip the 5-offset
-    // crop sweep entirely — pixel-perfect screen captures have zero
-    // jitter so the sweep is wasted compute. We also allow a custom
-    // `threshold` to tighten matching for hardwired mode.
+    // When `skipOffsets` is true (hardwired mode), we use a DIRECT crop
+    // path that matches the template loading exactly: crop the source
+    // region and scale directly to TEMPLATE_W x TEMPLATE_H (64x88).
+    // This eliminates the padding-induced scaling mismatch that causes
+    // hash distances of 15-23 even when the template images are correct.
+    //
+    // Camera mode still uses the padded + offset-sweep approach to absorb
+    // jitter from camera angle/focus/distance variation.
     const effectiveThreshold = Number.isFinite(options.threshold) ? options.threshold : MATCH_THRESHOLD;
     const doOffsetSweep = !options.skipOffsets;
 
+    // ==== HARDWIRED DIRECT-CROP PATH ====
+    // In hardwired mode, crop the exact region and scale to 64x88,
+    // identical to how template PNGs are loaded and hashed. This gives
+    // dHash distances of 0-3 for correct matches.
+    if (!doOffsetSweep) {
+      // Direct crop: source region → TEMPLATE_W x TEMPLATE_H canvas
+      // This matches the template loading path exactly (line 259-263):
+      //   ctx.drawImage(img, 0, 0, TEMPLATE_W, TEMPLATE_H);
+      const directCanvas = this._cropCanvas;
+      const directCtx = this._cropCtx;
+      // Use the crop canvas at template dimensions for direct match
+      // We temporarily resize if needed, but since we only need 64x88,
+      // just use an inline canvas approach.
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = TEMPLATE_W;
+      tmpCanvas.height = TEMPLATE_H;
+      const tmpCtx = tmpCanvas.getContext('2d', { willReadFrequently: true });
+      tmpCtx.clearRect(0, 0, TEMPLATE_W, TEMPLATE_H);
+
+      const srcX = Math.max(0, Math.round(region.x));
+      const srcY = Math.max(0, Math.round(region.y));
+      const srcW = Math.min(Math.round(region.w), sourceW - srcX);
+      const srcH = Math.min(Math.round(region.h), sourceH - srcY);
+
+      if (srcW <= 0 || srcH <= 0) {
+        return {
+          rank: null, suit: null, confidence: 0, distance: DHASH_BITS, key: null,
+          threshold: effectiveThreshold,
+          candidates: undefined,
+        };
+      }
+
+      // Draw source region directly to 64x88 — same scaling as template load
+      tmpCtx.drawImage(
+        source,
+        srcX, srcY, srcW, srcH,
+        0, 0, TEMPLATE_W, TEMPLATE_H,
+      );
+
+      const imageData = tmpCtx.getImageData(0, 0, TEMPLATE_W, TEMPLATE_H);
+      const dHash = computeDHash(imageData);
+      const aHash = computeAHash(imageData);
+      const subHashes = [{ dHash, aHash }];
+
+      // Fall through to the matching loop below
+      return this._matchAgainstTemplates(subHashes, effectiveThreshold, options);
+    }
+
+    // ==== CAMERA PADDED-CROP PATH (offset sweep) ====
     const scratchW = this._cropCanvas.width;
     const scratchH = this._cropCanvas.height;
     this._cropCtx.clearRect(0, 0, scratchW, scratchH);
@@ -343,20 +396,18 @@ class PokerBrainMatcher {
       };
     }
 
-    // Draw padded crop to scratch, scaled to scratchW × scratchH.
+    // Draw padded crop to scratch, scaled to scratchW x scratchH.
     this._cropCtx.drawImage(
       source,
       srcX, srcY, srcW, srcH,
       0, 0, scratchW, scratchH,
     );
 
-    // Precompute hashes for each offset. We grab a TEMPLATE_W×TEMPLATE_H
+    // Precompute hashes for each offset. We grab a TEMPLATE_W x TEMPLATE_H
     // region starting at (SCRATCH_PAD_PX+dx, SCRATCH_PAD_PX+dy) for each
-    // offset in CROP_OFFSETS. Doing this with getImageData on the full
-    // scratch once avoids a canvas re-draw per offset.
-    // Precompute both hashes for each offset (or just center if skipping).
+    // offset in CROP_OFFSETS.
     const scratchData = this._cropCtx.getImageData(0, 0, scratchW, scratchH);
-    const offsets = doOffsetSweep ? CROP_OFFSETS : [[0, 0]];
+    const offsets = CROP_OFFSETS;
     const subHashes = offsets.map(([dx, dy]) => {
       const ox = SCRATCH_PAD_PX + dx;
       const oy = SCRATCH_PAD_PX + dy;
@@ -372,6 +423,15 @@ class PokerBrainMatcher {
       return { dHash: computeDHash(data), aHash: computeAHash(data) };
     });
 
+    // Camera path: use shared matching logic
+    return this._matchAgainstTemplates(subHashes, effectiveThreshold, options);
+  }
+
+  /**
+   * Shared matching logic: compare precomputed hashes against all templates.
+   * Used by both the hardwired direct-crop path and the camera padded-crop path.
+   */
+  _matchAgainstTemplates(subHashes, effectiveThreshold, options = {}) {
     const topN = Number.isFinite(options.topN) && options.topN > 0 ? options.topN : 0;
 
     let bestKey = null;
@@ -395,7 +455,7 @@ class PokerBrainMatcher {
         const currentDist = Math.min(dScore, aScore);
         if (currentDist < dist) dist = currentDist;
       }
-      
+
       if (dist < bestDistance) {
         // Update second best if it's a different generic rank/suit
         if (bestKey && bestKey[0] !== key[0]) {

@@ -29,7 +29,7 @@ import { verifyCardSuit } from './suit-color';
 // pixel-perfect frames. dHash distances are typically 0-3 for correct matches
 // and 15+ for wrong cards. The 8-distance threshold provides generous margin
 // while eliminating virtually all false positives.
-const HARDWIRED_MATCH_THRESHOLD = 25;
+const HARDWIRED_MATCH_THRESHOLD = 8;
 
 // In hardwired mode we skip the crop-offset sweep entirely. Instead we do a
 // single direct crop at the exact layout coordinates. This cuts per-region
