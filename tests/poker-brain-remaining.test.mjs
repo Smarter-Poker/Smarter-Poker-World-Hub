@@ -170,23 +170,23 @@ testEq(isHardwiredEligible('screenshare'), false, 'screenshare → false');
 
 section('validateHardwiredResolution — valid resolutions');
 
-// Reference: 480x1054, AR = 480/1054 ≈ 0.4554
-const refLayout = { referenceSize: { w: 480, h: 1054 } };
+// Reference: 468x932 (matches hardwiredDetect defaults after bug fix)
+const refLayout = { referenceSize: { w: 468, h: 932 } };
 
 {
-  const r = validateHardwiredResolution(480, 1054, refLayout);
+  const r = validateHardwiredResolution(468, 932, refLayout);
   testEq(r.valid, true, 'exact reference dimensions → valid');
   testApprox(r.scaleFactor, 1.0, 0.001, 'scale factor = 1.0 for exact match');
 }
 
 {
-  const r = validateHardwiredResolution(960, 2108, refLayout);
+  const r = validateHardwiredResolution(936, 1864, refLayout);
   testEq(r.valid, true, '2x reference → valid');
   testApprox(r.scaleFactor, 2.0, 0.001, 'scale factor = 2.0 for 2x');
 }
 
 {
-  const r = validateHardwiredResolution(240, 527, refLayout);
+  const r = validateHardwiredResolution(234, 466, refLayout);
   testEq(r.valid, true, '0.5x reference → valid');
   testApprox(r.scaleFactor, 0.5, 0.001, 'scale factor = 0.5');
 }
@@ -211,24 +211,23 @@ section('validateHardwiredResolution — invalid resolutions');
 
 {
   const r = validateHardwiredResolution(1080, 1920, refLayout);
-  // 1080/1920 = 0.5625 vs 480/1054 = 0.4554 → 23.5% diff > 5%
+  // 1080/1920 = 0.5625 vs 468/932 = 0.5021 → 12% diff > 5%
   testEq(r.valid, false, 'portrait 9:16 → invalid (wrong AR)');
 }
 
 section('validateHardwiredResolution — edge cases');
 
 {
-  // Within 5% AR: 480/1054 * 1.049 ≈ 0.4777, video 478x1000 → AR = 0.478
-  const r = validateHardwiredResolution(478, 1000, refLayout);
-  // 478/1000 = 0.478 vs 0.4554 → diff = 0.0226/0.4554 = 4.96% — borderline
-  // Whether this passes or fails depends on floating point — just test it returns an object
+  // Within 5% AR: 468/932 ≈ 0.5021, test with ~4.9% deviation
+  const r = validateHardwiredResolution(490, 932, refLayout);
+  // 490/932 = 0.5257 vs 0.5021 → diff = 0.0236/0.5021 = 4.7% — within 5%
   test(typeof r.valid === 'boolean', 'borderline AR returns valid boolean');
 }
 
 {
-  // No referenceSize in layout → defaults to 480x1054
-  const r = validateHardwiredResolution(480, 1054, {});
-  testEq(r.valid, true, 'missing referenceSize defaults to 480x1054');
+  // No referenceSize in layout → defaults to 468x932
+  const r = validateHardwiredResolution(468, 932, {});
+  testEq(r.valid, true, 'missing referenceSize defaults to 468x932');
 }
 
 // ============================================================================

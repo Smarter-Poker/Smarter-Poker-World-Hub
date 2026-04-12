@@ -281,8 +281,8 @@ export function validateHardwiredResolution(videoW, videoH, layout) {
     return { valid: false, reason: 'No video dimensions' };
   }
 
-  const refW = layout.referenceSize?.w || 480;
-  const refH = layout.referenceSize?.h || 1054;
+  const refW = layout.referenceSize?.w || 468;
+  const refH = layout.referenceSize?.h || 932;
   const refAR = refW / refH;
   const videoAR = videoW / videoH;
 

@@ -91,7 +91,10 @@ async function callHorseBrain(params, authToken) {
         },
         body: JSON.stringify(params),
       });
-      if (resp.ok) return await resp.json();
+      if (resp.ok) {
+        try { return await resp.json(); }
+        catch (jsonErr) { lastErr = jsonErr; continue; }
+      }
       // 4xx = client error, don't retry
       if (resp.status >= 400 && resp.status < 500) return null;
       // 5xx = server error, retry
@@ -402,9 +405,7 @@ export async function getBridgedDecision(input) {
   // Hand strength label (for UI, computed from current made hand).
   let handStrength = null;
   let texture = null;
-  const isOmahaVariant = PokerBrainEngine.isHiLoVariant
-    ? String(gameType).toLowerCase().includes('plo')
-    : false;
+  const isOmahaVariant = String(gameType).toLowerCase().includes('plo');
   if (effectiveBoard.length >= 3) {
     try {
       if (isOmahaVariant) {
