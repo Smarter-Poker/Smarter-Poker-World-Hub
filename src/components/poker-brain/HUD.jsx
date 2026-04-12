@@ -89,19 +89,18 @@ const DetectedCard = ({ card, showConfidenceIndicator }) => {
   const distance = card.distance != null ? card.distance : null;
   return (
     <div
-      className="relative flex flex-col items-center justify-center rounded-xl border-2 shadow-lg"
+      className="relative flex flex-col items-center justify-center rounded-lg border-2 shadow"
       style={{
-        width: '52px',
-        height: '72px',
+        width: '36px',
+        height: '50px',
         backgroundColor: '#ffffff',
         borderColor: suit.color,
-        boxShadow: '0 2px 8px ' + suit.color + '40',
       }}
     >
-      <span className="text-2xl font-black leading-none" style={{ color: suit.color }}>
+      <span className="text-lg font-black leading-none" style={{ color: suit.color }}>
         {card.rank}
       </span>
-      <span className="text-lg leading-none" style={{ color: suit.color }}>
+      <span className="text-sm leading-none" style={{ color: suit.color }}>
         {suit.glyph}
       </span>
       {showConfidenceIndicator && distance != null && (
@@ -127,10 +126,10 @@ const DetectedCard = ({ card, showConfidenceIndicator }) => {
 
 const EmptyCardSlot = ({ label }) => (
   <div
-    className="flex items-center justify-center rounded-xl border-2 border-dashed border-white/20"
-    style={{ width: '52px', height: '72px', backgroundColor: 'rgba(255,255,255,0.05)' }}
+    className="flex items-center justify-center rounded-lg border border-dashed border-white/20"
+    style={{ width: '36px', height: '50px', backgroundColor: 'rgba(255,255,255,0.05)' }}
   >
-    <span className="text-[10px] text-slate-500 font-semibold">{label}</span>
+    <span className="text-[8px] text-slate-500 font-semibold">{label}</span>
   </div>
 );
 
@@ -1673,7 +1672,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   // RENDER
   // ============================================================================
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-3 pb-24">
+    <div className="h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-2 overflow-y-auto">
       {/* Session Audit Summary (shown after stopping detection) */}
       {sessionAuditResult && !detecting && !source && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
@@ -1764,43 +1763,29 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         />
       )}
       <div className="max-w-4xl mx-auto">
-        {/* HEADER */}
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
-              Poker Brain HUD
-            </h1>
-            <p className="text-slate-400 text-xs">
-              Full engine | Template matching | Monte Carlo equity | PokerBros NLH
-              {heroName ? (
-                <span className="ml-2 text-amber-300">&middot; {heroName}</span>
-              ) : null}
-            </p>
-          </div>
+        {/* HEADER -- compact single row */}
+        <div className="mb-1 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-amber-400">Poker Brain</span>
+            {heroName && <span className="text-[10px] text-amber-300">{heroName}</span>}
             {detecting && (
-              <div className="flex items-center gap-1.5 bg-emerald-900/50 border border-emerald-500/30 rounded-full px-3 py-1">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-[10px] font-semibold text-emerald-300">DETECTING</span>
-              </div>
-            )}
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="shrink-0 w-10 h-10 rounded-full bg-red-600 hover:bg-red-500 text-white font-bold border border-red-400"
-                title="Close"
-              >
-                X
-              </button>
+              <span className="flex items-center gap-1 text-[9px] text-emerald-300">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />LIVE
+              </span>
             )}
           </div>
+          {onClose && (
+            <button onClick={onClose} className="text-xs px-2 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white font-bold">X</button>
+          )}
         </div>
 
         {/* STATUS BAR */}
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] text-slate-400">
-          <span className="bg-slate-800 rounded px-2 py-1">
-            Templates: {templateCount}
-          </span>
+        <div className="mb-1 flex flex-wrap items-center gap-1 text-[9px] text-slate-400">
+          {debugMode && (
+            <span className="bg-slate-800 rounded px-2 py-1">
+              Templates: {templateCount}
+            </span>
+          )}
           <span className="bg-slate-800 rounded px-2 py-1">
             Street: <span className="font-bold text-white">{handState.street}</span>
           </span>
@@ -1819,56 +1804,60 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               <option value="plo6" className="text-black">PLO6</option>
             </select>
           </span>
+          {debugMode && (
+            <span className="bg-slate-800 rounded px-2 py-1">
+              <label className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isTournament}
+                  onChange={(e) => setIsTournament(e.target.checked)}
+                  className="mr-1 align-middle"
+                />
+                <span className={'font-bold ' + (isTournament ? 'text-amber-300' : 'text-slate-500')}>MTT</span>
+              </label>
+              {isTournament && (
+                <>
+                  <select
+                    value={tournamentStage}
+                    onChange={(e) => { setTournamentStage(e.target.value); setAutoTournamentStage(null); }}
+                    className="ml-2 bg-transparent font-bold text-white uppercase cursor-pointer"
+                    title="Tournament stage (auto-detected when OCR data is available)"
+                  >
+                    <option value="early" className="text-black">EARLY</option>
+                    <option value="middle" className="text-black">MIDDLE</option>
+                    <option value="bubble" className="text-black">BUBBLE</option>
+                    <option value="itm" className="text-black">ITM</option>
+                    <option value="ft" className="text-black">FT</option>
+                  </select>
+                  {autoTournamentStage && autoTournamentStage.confidence >= 0.5 && (
+                    <span className="text-[9px] text-cyan-400 ml-1" title={autoTournamentStage.reasoning}>
+                      (auto)
+                    </span>
+                  )}
+                </>
+              )}
+            </span>
+          )}
+          {debugMode && (
+            <span className="bg-slate-800 rounded px-2 py-1">
+              <label className="cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={soundEnabled}
+                  onChange={(e) => {
+                    setSoundEnabled(e.target.checked);
+                    setSoundMuted(!e.target.checked);
+                  }}
+                  className="mr-1 align-middle"
+                />
+                <span className={'font-bold ' + (soundEnabled ? 'text-cyan-300' : 'text-slate-500')}>SFX</span>
+              </label>
+            </span>
+          )}
           <span className="bg-slate-800 rounded px-2 py-1">
-            <label className="cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isTournament}
-                onChange={(e) => setIsTournament(e.target.checked)}
-                className="mr-1 align-middle"
-              />
-              <span className={'font-bold ' + (isTournament ? 'text-amber-300' : 'text-slate-500')}>MTT</span>
-            </label>
-            {isTournament && (
-              <>
-                <select
-                  value={tournamentStage}
-                  onChange={(e) => { setTournamentStage(e.target.value); setAutoTournamentStage(null); }}
-                  className="ml-2 bg-transparent font-bold text-white uppercase cursor-pointer"
-                  title="Tournament stage (auto-detected when OCR data is available)"
-                >
-                  <option value="early" className="text-black">EARLY</option>
-                  <option value="middle" className="text-black">MIDDLE</option>
-                  <option value="bubble" className="text-black">BUBBLE</option>
-                  <option value="itm" className="text-black">ITM</option>
-                  <option value="ft" className="text-black">FT</option>
-                </select>
-                {autoTournamentStage && autoTournamentStage.confidence >= 0.5 && (
-                  <span className="text-[9px] text-cyan-400 ml-1" title={autoTournamentStage.reasoning}>
-                    (auto)
-                  </span>
-                )}
-              </>
-            )}
+            Pos: <span className="font-bold text-white">{position}</span>
           </span>
-          <span className="bg-slate-800 rounded px-2 py-1">
-            <label className="cursor-pointer">
-              <input
-                type="checkbox"
-                checked={soundEnabled}
-                onChange={(e) => {
-                  setSoundEnabled(e.target.checked);
-                  setSoundMuted(!e.target.checked);
-                }}
-                className="mr-1 align-middle"
-              />
-              <span className={'font-bold ' + (soundEnabled ? 'text-cyan-300' : 'text-slate-500')}>SFX</span>
-            </label>
-          </span>
-          <span className="bg-slate-800 rounded px-2 py-1">
-            Position: <span className="font-bold text-white">{position}</span>
-          </span>
-          {dealerSeat && (
+          {debugMode && dealerSeat && (
             <span className="bg-slate-800 rounded px-2 py-1">
               Dealer: <span className="font-bold text-white">{dealerSeat}</span>
             </span>
@@ -1895,7 +1884,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               Stack: <span className="font-bold text-white">{heroStack}</span>
             </span>
           )}
-          {effectiveStack > 0 && effectiveStack !== heroStack && (
+          {debugMode && effectiveStack > 0 && effectiveStack !== heroStack && (
             <span className="bg-slate-800 rounded px-2 py-1">
               Eff: <span className="font-bold text-white">{effectiveStack}</span>
             </span>
@@ -1905,12 +1894,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               BB: <span className="font-bold text-white">{bigBlind}</span>
             </span>
           )}
-          {betToCall > 0 && (
+          {debugMode && betToCall > 0 && (
             <span className="bg-slate-800 rounded px-2 py-1">
               To call: <span className="font-bold text-white">{betToCall}</span>
             </span>
           )}
-          {availableActions && availableActions.any && (
+          {debugMode && availableActions && availableActions.any && (
             <span className="bg-slate-800 rounded px-2 py-1">
               Buttons:
               <span className={'ml-1 font-bold ' + (availableActions.fold ? 'text-rose-300' : 'text-slate-600')}>F</span>
@@ -1918,21 +1907,25 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               <span className={'ml-1 font-bold ' + (availableActions.betRaise ? 'text-emerald-300' : 'text-slate-600')}>R</span>
             </span>
           )}
-          {/* Per-frame timing + frame counter removed per UX request.
-              State still tracked internally for the debug overlay. */}
-          <span className={'rounded px-2 py-1 ' + (storage.online ? 'bg-emerald-900/50 text-emerald-300' : 'bg-amber-900/50 text-amber-300')}>
-            {storage.online ? 'Online' : 'Offline (queued)'}
-          </span>
-          <button
-            onClick={newHand}
-            className="bg-slate-700 hover:bg-slate-600 rounded px-2 py-1 font-semibold text-white"
-          >
-            Reset Hand
-          </button>
+          {debugMode && (
+            <span className={'rounded px-2 py-1 ' + (storage.online ? 'bg-emerald-900/50 text-emerald-300' : 'bg-amber-900/50 text-amber-300')}>
+              {storage.online ? 'Online' : 'Offline (queued)'}
+            </span>
+          )}
+          {debugMode && (
+            <button
+              onClick={newHand}
+              className="bg-slate-700 hover:bg-slate-600 rounded px-2 py-1 font-semibold text-white"
+            >
+              Reset Hand
+            </button>
+          )}
         </div>
 
-        {/* DECISION BANNER */}
-        <div className={'mb-4 p-4 rounded-2xl bg-gradient-to-r ' + decisionColor + ' shadow-2xl'}>
+        {/* GTO SUGGESTION POPUP -- fixed overlay at bottom of viewport */}
+        <div
+          className={'fixed bottom-4 left-1/2 -translate-x-1/2 z-[9000] w-[95vw] max-w-md rounded-2xl p-3 bg-gradient-to-r ' + decisionColor + ' shadow-2xl shadow-black/50 border border-white/20 backdrop-blur-sm transition-all duration-300 ' + (decision && decision.ready ? 'opacity-100 scale-100' : 'opacity-80 scale-95')}
+        >
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-[10px] text-white/70 uppercase tracking-widest font-bold">
               {decision && decision.source === 'horse_brain'
@@ -1955,10 +1948,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               <span className="text-[9px] text-white/40 font-mono">{decision.engineMs}ms</span>
             )}
           </div>
-          <div className="text-4xl sm:text-5xl font-black text-white leading-none mt-1">
+          <div className="text-3xl font-black text-white leading-none">
             {displayAction}
             {decision && decision.ready && decision.raiseAmount > 0 && (
-              <span className="text-2xl ml-2">{decision.raiseAmount}</span>
+              <span className="text-2xl ml-2">to {decision.raiseAmount}</span>
             )}
           </div>
           <div className="text-sm text-white/90 mt-1">{displayReason}</div>
@@ -2106,8 +2099,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           )}
         </div>
 
-        {/* VALIDATOR WARNING */}
-        {validator && validator.severity && validator.severity !== 'ok' && (
+        {/* VALIDATOR WARNING -- debug only */}
+        {debugMode && validator && validator.severity && validator.severity !== 'ok' && (
           <div className={
             'mb-3 p-3 rounded-xl border-2 ' +
             (validator.severity === 'critical'
@@ -2122,9 +2115,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         )}
 
         {/* DETECTED CARDS */}
-        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border-2 border-amber-400/40">
-            <h2 className="text-sm font-bold text-amber-300 uppercase tracking-wider mb-3">
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-400/40">
+            <h2 className="text-[10px] font-bold text-amber-300 uppercase tracking-wider mb-1">
               Hole Cards
             </h2>
             <div className="flex gap-2">
@@ -2138,8 +2131,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border-2 border-emerald-400/30">
-            <h2 className="text-sm font-bold text-emerald-300 uppercase tracking-wider mb-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border border-emerald-400/30">
+            <h2 className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider mb-1">
               Board
             </h2>
             <div className="flex gap-1.5 flex-wrap">
@@ -2155,10 +2148,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         </div>
 
         {/* SCREEN CAPTURE */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Screen Capture Feed
+        <div className="mb-2">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              Capture
             </h2>
             <div className="flex items-center gap-2">
               {streamReady && !detecting && matcherReady && (
@@ -2177,24 +2170,19 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   Pause Detection
                 </button>
               )}
-              {streamReady && (
+              {/* Debug toggle: visible as a tiny dot when off, full button when on (press D key as shortcut) */}
+              {streamReady && debugMode && (
                 <button
                   onClick={() => {
-                    setDebugMode((v) => {
-                      const next = !v;
-                      // Mutually exclusive: turning on Debug turns off Calibrate
-                      if (next) {
-                        setCalibrationVisible(false);
-                        setCalibrationEditable(false);
-                        setCalibrationFullScreen(false);
-                      }
-                      return next;
-                    });
+                    setDebugMode(false);
+                    setCalibrationVisible(false);
+                    setCalibrationEditable(false);
+                    setCalibrationFullScreen(false);
                   }}
-                  className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (debugMode ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
-                  title="Toggle auto-detect overlay + matcher probe log"
+                  className="text-[11px] font-bold px-3 py-1 rounded-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white"
+                  title="Hide debug tools (or press D)"
                 >
-                  {debugMode ? 'Hide Debug' : 'Debug'}
+                  Hide Debug
                 </button>
               )}
               {debugMode && (
@@ -2205,39 +2193,19 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   )}
                 </span>
               )}
-              {useHardwired && !debugMode && hardwiredStats && (
-                <span className="text-[10px] font-mono px-2 py-1 rounded-full" style={{ backgroundColor: hardwiredStats.allPerfect ? '#064e3b' : '#1e293b', color: hardwiredStats.allPerfect ? '#6ee7b7' : '#94a3b8' }}>
-                  Hardwired{hardwiredStats.allPerfect ? ' -- Perfect Match' : ` -- avg dist ${hardwiredStats.avgDistance}`}
-                </span>
-              )}
-              {/* Visible diagnostic overlay -- shows video dims, scale, per-card distances */}
-              {diagInfo && (
-                <div className="text-[9px] font-mono bg-black/90 text-green-300 p-2 rounded mt-1 max-w-full overflow-x-auto whitespace-pre">
-                  {diagInfo.build} | video:{diagInfo.vw}x{diagInfo.vh} ref:{diagInfo.refW}x{diagInfo.refH} scale:{diagInfo.sX}/{diagInfo.sY} | tpl:{diagInfo.tpl} | hole:{diagInfo.holeFound}/{diagInfo.holeN} board:{diagInfo.boardFound}/{diagInfo.boardN} | cal:{diagInfo.calStatus || '?'}@f{diagInfo.calFrame ?? '-'}
-                  {'\n'}{(diagInfo.probe || []).map((p, i) =>
-                    `${p.kind}[${p.slot}] ${p.matched ? 'OK' : 'MISS'} best=${p.best} dist=${p.dist} @ ${p.region}`
+              {/* Hardwired stats badge: debug-mode only */}
+              {/* Diagnostic overlay -- only shown in debug mode */}
+              {debugMode && diagInfo && (
+                <div className="text-[8px] font-mono bg-black/90 text-green-300 p-1 rounded mt-1 max-w-full overflow-x-auto whitespace-pre leading-tight">
+                  {diagInfo.build} | {diagInfo.vw}x{diagInfo.vh} s:{diagInfo.sX}/{diagInfo.sY} | tpl:{diagInfo.tpl} | h:{diagInfo.holeFound}/{diagInfo.holeN} b:{diagInfo.boardFound}/{diagInfo.boardN}
+                  {'\n'}{(diagInfo.probe || []).map((p) =>
+                    `${p.kind}[${p.slot}] ${p.matched ? 'OK' : 'MISS'} best=${p.best} d=${p.dist}`
                   ).join('\n')}
                 </div>
               )}
-              {/* Auto-calibrate results panel */}
-              {autoCalResults && (
-                <div className="text-[9px] font-mono bg-black/90 text-cyan-300 p-2 rounded mt-1 max-w-full overflow-x-auto whitespace-pre border border-cyan-600/40">
-                  {'=== AUTO-CALIBRATE RESULTS ===\n'}
-                  {'HOLE CARDS (top 10):\n'}
-                  {(autoCalResults.hole || []).slice(0, 10).map((r, i) =>
-                    `  #${i + 1}: ${r.bestKey} @ (${r.x},${r.y}) ${r.w}x${r.h} dist=${r.distance} dH=${r.dDist} aH=${r.aDist}`
-                  ).join('\n')}
-                  {'\n\nBOARD CARDS (top 10):\n'}
-                  {(autoCalResults.board || []).slice(0, 10).map((r, i) =>
-                    `  #${i + 1}: ${r.bestKey} @ (${r.x},${r.y}) ${r.w}x${r.h} dist=${r.distance} dH=${r.dDist} aH=${r.aDist}`
-                  ).join('\n')}
-                  {autoCalResults.hole?.[0]?.distance <= 8
-                    ? '\n\n>> GOOD MATCHES FOUND -- layout auto-updated!'
-                    : '\n\n>> No strong matches. Cards may not be visible or templates need updating.'}
-                </div>
-              )}
-              {/* Template capture button */}
-              {streamReady && (
+              {/* Auto-calibrate results removed — was showing false positives */}
+              {/* DEV TOOLS: Only visible in debug mode (press D key) */}
+              {debugMode && streamReady && (
                 <button
                   onClick={() => {
                     const video = videoRef.current;
@@ -2269,8 +2237,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   Capture Templates
                 </button>
               )}
-              {/* Template capture preview panel */}
-              {capturePreview && (
+              {/* Template capture preview panel -- debug only */}
+              {debugMode && capturePreview && (
                 <div className="bg-black/95 border border-orange-500 rounded-lg p-3 mt-1 max-w-full">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-orange-400 font-bold text-sm">Template Capture</span>
@@ -2358,12 +2326,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   )}
                 </div>
               )}
-              {streamReady && (
+              {/* DEV TOOLS: Calibrate, Edit Regions, Full Screen, Auto-Calibrate, Hardwired, Confidence, Live Feed -- all debug-only */}
+              {debugMode && streamReady && (
                 <button
                   onClick={() => {
                     setCalibrationVisible((v) => {
                       const next = !v;
-                      // Mutually exclusive: turning on Calibrate turns off Debug
                       if (next) {
                         setDebugMode(false);
                       } else {
@@ -2378,7 +2346,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {calibrationVisible ? 'Hide Calibration' : 'Calibrate'}
                 </button>
               )}
-              {streamReady && calibrationVisible && (
+              {debugMode && streamReady && calibrationVisible && (
                 <button
                   onClick={() => setCalibrationEditable((v) => !v)}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (calibrationEditable ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
@@ -2386,7 +2354,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {calibrationEditable ? 'Lock' : 'Edit Regions'}
                 </button>
               )}
-              {streamReady && calibrationVisible && (
+              {debugMode && streamReady && calibrationVisible && (
                 <button
                   onClick={() => setCalibrationFullScreen((v) => !v)}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (calibrationFullScreen ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
@@ -2395,7 +2363,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {calibrationFullScreen ? 'Exit Full Screen' : 'Full Screen'}
                 </button>
               )}
-              {streamReady && (
+              {debugMode && streamReady && (
                 <button
                   onClick={runAutoCalibrate}
                   disabled={autoCalRunning}
@@ -2405,7 +2373,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {autoCalRunning ? 'Scanning...' : autoCalResults ? 'Re-Scan' : 'Auto-Calibrate'}
                 </button>
               )}
-              {streamReady && (
+              {debugMode && streamReady && (
                 <span
                   className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-600 text-white cursor-default"
                   title="Hardwired mode: fixed-coordinate pixel-perfect detection. Always on."
@@ -2413,7 +2381,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   Hardwired
                 </span>
               )}
-              {streamReady && (
+              {debugMode && streamReady && (
                 <button
                   onClick={() => setShowConfidence((v) => !v)}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (showConfidence ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
@@ -2422,7 +2390,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {showConfidence ? 'Confidence ON' : 'Confidence'}
                 </button>
               )}
-              {streamReady && (
+              {debugMode && streamReady && (
                 <button
                   onClick={() => setShowLiveFeed((v) => !v)}
                   className={'text-[11px] font-bold px-3 py-1 rounded-full ' + (showLiveFeed ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white')}
@@ -2431,7 +2399,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   {showLiveFeed ? 'Feed ON' : 'Live Feed'}
                 </button>
               )}
-              {streamReady && calibrationVisible && layoutOverrides && (
+              {debugMode && streamReady && calibrationVisible && layoutOverrides && (
                 <button
                   onClick={resetCalibration}
                   className="text-[10px] bg-rose-700 hover:bg-rose-600 text-white px-2 py-1 rounded-full"
@@ -2439,6 +2407,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   Reset
                 </button>
               )}
+              {/* Stop button always visible to users */}
               {streamReady && (
                 <button
                   onClick={stopStream}
@@ -2454,26 +2423,28 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             className={
               calibrationFullScreen
                 ? 'fixed inset-0 z-[9999] bg-black/95 p-4'
-                : 'relative rounded-xl overflow-hidden border border-white/10 bg-black mx-auto'
+                : debugMode
+                  ? 'relative rounded-xl overflow-hidden border border-white/10 bg-black mx-auto'
+                  : streamReady
+                    ? 'relative overflow-hidden bg-black mx-auto'
+                    : 'relative rounded-xl overflow-hidden border border-white/10 bg-black mx-auto'
             }
             style={
               calibrationFullScreen
                 ? undefined
-                : videoNativeDims
-                  ? {
-                      // Match the real emulator aspect ratio so the preview
-                      // isn't squished into a 16:9 box. Cap max-height at
-                      // ~80vh so the feed stays on-screen next to the HUD.
-                      aspectRatio: `${videoNativeDims.w} / ${videoNativeDims.h}`,
-                      maxHeight: '80vh',
-                      // Width derived from height*aspect, constrained by
-                      // the parent — the mx-auto centers the box inside
-                      // the HUD panel.
-                      width: 'auto',
-                      height: '80vh',
-                      maxWidth: '100%',
-                    }
-                  : { aspectRatio: '16 / 9' }
+                : debugMode
+                  ? videoNativeDims
+                    ? {
+                        aspectRatio: `${videoNativeDims.w} / ${videoNativeDims.h}`,
+                        maxHeight: '80vh',
+                        width: 'auto',
+                        height: '80vh',
+                        maxWidth: '100%',
+                      }
+                    : { aspectRatio: '16 / 9' }
+                  : streamReady
+                    ? { height: 0, overflow: 'hidden' }
+                    : { aspectRatio: '16 / 9' }
             }
           >
             {calibrationFullScreen && (
@@ -2612,14 +2583,14 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         </div>
 
         {/* LIVE FEED */}
-        {showLiveFeed && storage && storage.sessionId && (
+        {debugMode && showLiveFeed && storage && storage.sessionId && (
           <div className="mt-4">
             <LiveFeed storage={storage} sessionId={storage.sessionId} />
           </div>
         )}
 
-        {/* OPPONENT STATS */}
-        {opponentStatsDisplay && Object.keys(opponentStatsDisplay).length > 0 && (
+        {/* OPPONENT STATS -- debug only */}
+        {debugMode && opponentStatsDisplay && Object.keys(opponentStatsDisplay).length > 0 && (
           <div className="mt-4 bg-slate-800/80 rounded-xl border border-slate-700 p-3">
             <h3 className="text-sm font-semibold text-slate-300 mb-2">Opponent Stats</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -2647,8 +2618,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           </div>
         )}
 
-        {/* SESSION STATS */}
-        {sessionStats && sessionStats.handsPlayed > 0 && (
+        {/* SESSION STATS -- debug only */}
+        {debugMode && sessionStats && sessionStats.handsPlayed > 0 && (
           <div className="mt-4 bg-slate-800/80 rounded-xl border border-slate-700 p-3">
             <h3 className="text-sm font-semibold text-slate-300 mb-2">Session Stats</h3>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
@@ -2680,13 +2651,18 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           </div>
         )}
 
-        {/* KEYBOARD SHORTCUTS HINT */}
-        <div className="mt-3 text-center text-[10px] text-slate-600">
-          M=mute  Space=pause  Esc=clear  R=reset  D=debug  C=confidence
-        </div>
+        {/* KEYBOARD SHORTCUTS HINT -- debug only */}
+        {debugMode && (
+          <div className="mt-3 text-center text-[10px] text-slate-600">
+            M=mute  Space=pause  Esc=clear  R=reset  D=debug  C=confidence
+          </div>
+        )}
 
-        {/* HAND HISTORY */}
-        <HandHistory hands={recentHands} />
+        {/* HAND HISTORY -- debug only */}
+        {debugMode && <HandHistory hands={recentHands} />}
+
+        {/* Bottom padding to prevent content from being hidden behind GTO popup */}
+        <div className="pb-24" />
       </div>
     </div>
   );
