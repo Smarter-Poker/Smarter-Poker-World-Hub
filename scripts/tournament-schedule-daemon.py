@@ -79,7 +79,7 @@ SB_HDRS = {
 ON_CONFLICT = "venue_id,venue_name,day_of_week,event_date,start_time,buy_in,game_type"
 
 CHUNK_SIZE   = 25      # ← PUBLISH TO DB every 25 venues (matches Bravo)
-CYCLE_SLEEP  = 86400   # 24h between full daemon cycles
+CYCLE_SLEEP  = 259200  # 72h (3 days) between full daemon cycles
 VENUE_RATE_S = 2.5     # seconds between venues
 PAGE_RECYCLE = 50      # recycle StealthySession every N venues
 SESSION_MAX  = 21600   # 6h proactive session refresh
