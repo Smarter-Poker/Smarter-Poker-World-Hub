@@ -25,11 +25,156 @@
 
 import { verifyCardSuit } from './suit-color.js';
 
-// Hardwired mode threshold. Tightened to 10 after recalibrating coordinates.
-// With corrected layout positions, real card matches should be distance 0-8.
-// Threshold 10 lets real matches through while rejecting phantoms that were
-// previously matching at 10-12 when coordinates pointed at wrong areas.
-const HARDWIRED_MATCH_THRESHOLD = 10;
+// Hardwired mode threshold. With auto-calibration finding exact card positions,
+// real matches should be distance 0-8. Threshold 12 lets real matches through.
+const HARDWIRED_MATCH_THRESHOLD = 12;
+
+// ── AUTO-CALIBRATION ───────────────────────────────────────────────
+// Instead of trusting static layout coordinates, we SEARCH for the
+// actual card positions by sweeping a neighborhood around each nominal
+// position and using the dHash matcher to find the best template match.
+// This runs once (first frame with cards), caches the offset, and
+// applies it to all subsequent frames. ~100ms one-time cost.
+
+let _calibrationCache = null;
+let _calibrationAttempts = 0;
+const MAX_CALIBRATION_ATTEMPTS = 30; // try for first 30 frames (~7.5s at 4Hz)
+
+/**
+ * Auto-calibrate by searching around nominal positions for best template matches.
+ * Returns a global Y-offset (and X-offset) that corrects ALL card positions.
+ * Uses the actual dHash matcher, so it finds REAL cards, not just bright pixels.
+ */
+function autoCalibrate(videoElement, layout, matcher, scaleX, scaleY, offsetX, offsetY) {
+  const videoW = videoElement.videoWidth || videoElement.width;
+  const videoH = videoElement.videoHeight || videoElement.height;
+  if (!videoW || !videoH) return null;
+
+  // Draw full frame to canvas once
+  const canvas = document.createElement('canvas');
+  canvas.width = videoW;
+  canvas.height = videoH;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(videoElement, 0, 0, videoW, videoH);
+
+  // Try to calibrate using board cards (most reliable - 5 cards in a row)
+  const boardCards = layout.boardCards || [];
+  // Also try hole cards
+  const holeCards = layout.holeCardsByVariant?.nlhe || layout.holeCards || [];
+
+  const allRegions = [
+    ...boardCards.map((r, i) => ({ ...r, kind: 'board', idx: i })),
+    ...holeCards.map((r, i) => ({ ...r, kind: 'hole', idx: i })),
+  ];
+
+  // For each region, search Y from -100 to +50 and X from -40 to +40
+  const SEARCH_Y_MIN = -100, SEARCH_Y_MAX = 50, STEP_Y = 5;
+  const SEARCH_X_MIN = -40, SEARCH_X_MAX = 40, STEP_X = 5;
+
+  // Collect best offsets from each region that finds a good match
+  const goodOffsets = [];
+
+  for (const region of allRegions) {
+    const scaledW = Math.round(region.w * scaleX);
+    const scaledH = Math.round(region.h * scaleY);
+    const nomX = Math.round(region.x * scaleX + (offsetX || 0));
+    const nomY = Math.round(region.y * scaleY + (offsetY || 0));
+
+    let bestDist = 99;
+    let bestDy = 0;
+    let bestDx = 0;
+    let bestKey = null;
+
+    // Phase 1: Y-sweep (fix X at nominal)
+    for (let dy = SEARCH_Y_MIN; dy <= SEARCH_Y_MAX; dy += STEP_Y) {
+      const testY = nomY + dy;
+      if (testY < 0 || testY + scaledH > videoH) continue;
+
+      const testRegion = { x: nomX, y: testY, w: scaledW, h: scaledH };
+      const result = matcher.matchRegion(canvas, testRegion, videoW, videoH, { skipOffsets: true, threshold: 15 });
+
+      if (result.distance < bestDist) {
+        bestDist = result.distance;
+        bestDy = dy;
+        bestKey = result.key;
+      }
+    }
+
+    // Phase 2: X-sweep at best Y (refine X)
+    if (bestDist < 15) {
+      const fixedDy = bestDy;
+      for (let dx = SEARCH_X_MIN; dx <= SEARCH_X_MAX; dx += STEP_X) {
+        if (dx === 0) continue; // already tested
+        const testX = nomX + dx;
+        const testY = nomY + fixedDy;
+        if (testX < 0 || testX + scaledW > videoW) continue;
+
+        const testRegion = { x: testX, y: testY, w: scaledW, h: scaledH };
+        const result = matcher.matchRegion(canvas, testRegion, videoW, videoH, { skipOffsets: true, threshold: 15 });
+
+        if (result.distance < bestDist) {
+          bestDist = result.distance;
+          bestDx = dx;
+          bestKey = result.key;
+        }
+      }
+    }
+
+    // Only trust matches with distance < 10 (strong match)
+    if (bestDist < 10 && bestKey && bestKey !== 'back' && bestKey !== 'empty') {
+      goodOffsets.push({
+        kind: region.kind,
+        idx: region.idx,
+        dy: bestDy,
+        dx: bestDx,
+        distance: bestDist,
+        key: bestKey,
+      });
+    }
+  }
+
+  if (goodOffsets.length === 0) return null;
+
+  // Compute median offset (robust to outliers)
+  const dyValues = goodOffsets.map(o => o.dy).sort((a, b) => a - b);
+  const dxValues = goodOffsets.map(o => o.dx).sort((a, b) => a - b);
+  const medianDy = dyValues[Math.floor(dyValues.length / 2)];
+  const medianDx = dxValues[Math.floor(dxValues.length / 2)];
+
+  // Convert pixel offsets back to reference-space offsets
+  const refDy = Math.round(medianDy / scaleY);
+  const refDx = Math.round(medianDx / scaleX);
+
+  console.log(`[AutoCalibrate] Found ${goodOffsets.length} cards. Offset: dx=${refDx} dy=${refDy} (pixel: dx=${medianDx} dy=${medianDy})`);
+  for (const o of goodOffsets) {
+    console.log(`  ${o.kind}[${o.idx}] → ${o.key} d=${o.distance} dy=${o.dy} dx=${o.dx}`);
+  }
+
+  return {
+    refDx,
+    refDy,
+    pixelDx: medianDx,
+    pixelDy: medianDy,
+    cardsFound: goodOffsets.length,
+    details: goodOffsets,
+  };
+}
+
+/**
+ * Reset calibration cache (e.g., when layout or video source changes).
+ */
+export function resetCalibration() {
+  _calibrationCache = null;
+  _calibrationAttempts = 0;
+}
+
+/**
+ * Get the current calibration offset (for overlay rendering).
+ * Returns { pixelDx, pixelDy, refDx, refDy, cardsFound } or null if not calibrated.
+ */
+export function getCalibrationOffset() {
+  return _calibrationCache;
+}
 
 // In hardwired mode we skip the crop-offset sweep entirely. Instead we do a
 // single direct crop at the exact layout coordinates. This cuts per-region
@@ -98,9 +243,9 @@ function isRegionEmpty(videoElement, region) {
     const variance = (sumSq / pixelCount) - (mean * mean);
     // Cards have high variance (white background + colored rank/suit).
     // Empty felt has variance < 200. Cards typically > 800.
-    // Use 600 as threshold to aggressively reject non-card regions
-    // (avatars, table art, UI elements can have variance 400-550).
-    return variance < 600;
+    // Use 400 as threshold. With auto-calibration finding exact positions,
+    // we can use a less aggressive threshold since boxes land on actual cards.
+    return variance < 400;
   } catch (_) {
     return false;
   }
@@ -152,10 +297,6 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
   }
 
   // Scale from layout reference to actual video dimensions.
-  // If the video aspect ratio doesn't match the reference (e.g., the user
-  // captured the whole emulator window including side controls), use
-  // UNIFORM scaling (preserve aspect ratio) and CENTER the phone display
-  // within the capture. This prevents stretched coordinates that miss cards.
   const refW = layout.referenceSize?.w || 468;
   const refH = layout.referenceSize?.h || 932;
   const refAR = refW / refH;
@@ -165,19 +306,34 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
   let scaleX, scaleY, offsetX = 0, offsetY = 0;
 
   if (arDiff <= 0.03) {
-    // Aspect ratios match closely — simple stretch scaling
     scaleX = videoW / refW;
     scaleY = videoH / refH;
   } else {
-    // Aspect ratio MISMATCH: the capture includes extra pixels (emulator
-    // toolbar, window chrome, etc). Use uniform scaling to preserve the
-    // phone display's proportions, then center it in the capture frame.
     const uniformScale = Math.min(videoW / refW, videoH / refH);
     scaleX = uniformScale;
     scaleY = uniformScale;
-    // Center offset: the phone display is centered in the capture
     offsetX = Math.round((videoW - refW * uniformScale) / 2);
     offsetY = Math.round((videoH - refH * uniformScale) / 2);
+  }
+
+  // ── AUTO-CALIBRATION: find actual card positions on first frames ──
+  if (!_calibrationCache && _calibrationAttempts < MAX_CALIBRATION_ATTEMPTS) {
+    _calibrationAttempts++;
+    try {
+      const calibResult = autoCalibrate(videoElement, layout, matcher, scaleX, scaleY, offsetX, offsetY);
+      if (calibResult && calibResult.cardsFound >= 2) {
+        _calibrationCache = calibResult;
+        console.log(`[HardwiredDetect] Auto-calibration LOCKED after ${_calibrationAttempts} frames: dx=${calibResult.refDx} dy=${calibResult.refDy} (${calibResult.cardsFound} cards)`);
+      }
+    } catch (e) {
+      console.warn('[HardwiredDetect] Auto-calibration error:', e.message);
+    }
+  }
+
+  // Apply calibration offset on top of AR offset
+  if (_calibrationCache) {
+    offsetX += _calibrationCache.pixelDx;
+    offsetY += _calibrationCache.pixelDy;
   }
 
   // Resolve variant-specific hole card regions -- direct from layout, no localizer

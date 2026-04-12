@@ -14,7 +14,7 @@ import {
   findDealerButtonGlobal,
 } from '../../lib/poker-brain/dealer-detect';
 import { detectAvailableActions, validateAction } from '../../lib/poker-brain/action-detect';
-import { hardwiredDetect } from '../../lib/poker-brain/hardwired-detect';
+import { hardwiredDetect, resetCalibration, getCalibrationOffset } from '../../lib/poker-brain/hardwired-detect';
 import execOcrPass from '../../lib/poker-brain/ocr-loop';
 import { detectTournamentStage } from '../../lib/poker-brain/tournament-detect';
 import { findTableBounds } from '../../lib/poker-brain/table-finder';
@@ -1281,7 +1281,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 region: p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : 'n/a',
               }));
               setDiagInfo({
-                build: 'v11-recalibrated',
+                build: 'v12-autocalibrate',
                 vw, vh, refW, refH,
                 sX: Math.round(sX * 1000) / 1000,
                 sY: Math.round(sY * 1000) / 1000,
@@ -1327,7 +1327,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               const vh2 = video.videoHeight || video.height;
               const refW2 = detectionLayout.referenceSize?.w || 468;
               const refH2 = detectionLayout.referenceSize?.h || 932;
-              console.log(`[HUD detect] v10 | video:${vw2}x${vh2} ref:${refW2}x${refH2} scale:${(vw2/refW2).toFixed(2)}x${(vh2/refH2).toFixed(2)} AR:${(vw2/vh2).toFixed(3)} vs ref:${(refW2/refH2).toFixed(3)}`);
+              console.log(`[HUD detect] v12-autocal | video:${vw2}x${vh2} ref:${refW2}x${refH2} scale:${(vw2/refW2).toFixed(2)}x${(vh2/refH2).toFixed(2)} AR:${(vw2/vh2).toFixed(3)} vs ref:${(refW2/refH2).toFixed(3)}`);
               for (const p of result.probeLog) {
                 console.log(`  ${p.kind}[${p.slot}] best=${p.bestKey} d=${p.distance} region=${p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : '?'} matched=${p.matched}`);
               }
@@ -2557,7 +2557,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             {streamReady && (
               <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/70 px-2.5 py-1 rounded-full border border-white/20 z-10">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-semibold">LIVE v11</span>
+                <span className="text-[10px] font-semibold">LIVE v12</span>
               </div>
             )}
             {/* DETECTION REGION OVERLAY: always visible when streaming.
@@ -2585,6 +2585,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 oX = (vw - refW * us) / 2;
                 oY = (vh - refH * us) / 2;
               }
+              // Apply auto-calibration offset (if available)
+              const calOffset = getCalibrationOffset();
+              if (calOffset) {
+                oX += calOffset.pixelDx;
+                oY += calOffset.pixelDy;
+              }
               const holeRegions = layout.holeCardsByVariant?.[gameType] || layout.holeCards || [];
               const boardRegions = layout.boardCards || [];
               // Convert layout coords to percentage positions within the video
@@ -2610,7 +2616,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   ))}
                   {/* AR info badge */}
                   <div className="absolute bottom-2 right-2 bg-black/80 text-[8px] text-white px-1.5 py-0.5 rounded z-10 font-mono">
-                    {vw}x{vh} | ref:{refW}x{refH} | AR:{arDiff > 0.03 ? 'CORRECTED' : 'OK'} | s:{sX.toFixed(2)} o:{Math.round(oX)},{Math.round(oY)}
+                    {vw}x{vh} | ref:{refW}x{refH} | AR:{arDiff > 0.03 ? 'CORRECTED' : 'OK'} | s:{sX.toFixed(2)} o:{Math.round(oX)},{Math.round(oY)} | CAL:{calOffset ? `${calOffset.cardsFound}cards dx=${calOffset.refDx} dy=${calOffset.refDy}` : 'scanning...'}
                   </div>
                 </>
               );
