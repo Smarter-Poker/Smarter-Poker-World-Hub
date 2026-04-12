@@ -470,8 +470,35 @@ export default function SeriesDetailPage() {
           </div>
           <div className="stat-card">
             <div className="stat-label">Total Events</div>
-            <div className="stat-value">{series.total_events || 'TBD'}</div>
+            <div className="stat-value">{events.length || series.total_events || 'TBD'}</div>
           </div>
+          {(() => {
+            const buyIns = events.filter(e => e.buy_in).map(e => e.buy_in);
+            const minBuy = buyIns.length ? Math.min(...buyIns) : null;
+            const maxBuy = buyIns.length ? Math.max(...buyIns) : null;
+            return minBuy ? (
+              <div className="stat-card">
+                <div className="stat-label">Buy-In Range</div>
+                <div className="stat-value gold">{formatMoney(minBuy)} - {formatMoney(maxBuy)}</div>
+              </div>
+            ) : null;
+          })()}
+          {(() => {
+            const totalGtd = events.reduce((sum, e) => sum + (e.guarantee || 0), 0);
+            const seriesGtd = series.total_guaranteed || totalGtd;
+            return seriesGtd ? (
+              <div className="stat-card">
+                <div className="stat-label">Total Guaranteed</div>
+                <div className="stat-value gold">{formatMoney(seriesGtd)}</div>
+              </div>
+            ) : null;
+          })()}
+          {series.main_event_guaranteed && (
+            <div className="stat-card">
+              <div className="stat-label">Main Event GTD</div>
+              <div className="stat-value gold">{formatMoney(series.main_event_guaranteed)}</div>
+            </div>
+          )}
           <div className="stat-card">
             <div className="stat-label">Series Type</div>
             <div className="stat-value">
@@ -479,18 +506,6 @@ export default function SeriesDetailPage() {
               {(series.series_type || 'Tournament').charAt(0).toUpperCase() + (series.series_type || 'Tournament').slice(1)}
             </div>
           </div>
-          {series.main_event_guaranteed && (
-            <div className="stat-card">
-              <div className="stat-label">Main Event GTD</div>
-              <div className="stat-value gold">{formatMoney(series.main_event_guaranteed)}</div>
-            </div>
-          )}
-          {series.total_guaranteed && (
-            <div className="stat-card">
-              <div className="stat-label">Total Guaranteed</div>
-              <div className="stat-value gold">{formatMoney(series.total_guaranteed)}</div>
-            </div>
-          )}
         </div>
 
         {/* Venue Info */}
@@ -576,7 +591,9 @@ export default function SeriesDetailPage() {
                     <th>Event</th>
                     <th>Date</th>
                     <th>Buy-In</th>
+                    <th>GTD</th>
                     <th>Game</th>
+                    <th>Stack</th>
                     <th>Format</th>
                   </tr>
                 </thead>
@@ -597,12 +614,14 @@ export default function SeriesDetailPage() {
                           </td>
                           <td className="event-date">{formatEventDate(evt.start_date)}</td>
                           <td className="event-buyin">{evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}</td>
+                          <td className="event-gtd">{evt.guarantee ? formatMoney(evt.guarantee) : '--'}</td>
                           <td className="event-game">{evt.game_type ? formatGameType(evt.game_type) : '--'}</td>
+                          <td className="event-stack">{evt.starting_stack ? Number(evt.starting_stack).toLocaleString() : '--'}</td>
                           <td className="event-format">{evt.format || '--'}</td>
                         </tr>
                         {isExpanded && (
                           <tr className="event-detail-row">
-                            <td colSpan="6">
+                            <td colSpan="8">
                               <div className="event-detail-content">
                                 <div className="event-detail-grid">
                                   {evt.event_name && (
@@ -623,10 +642,10 @@ export default function SeriesDetailPage() {
                                       <span className="detail-value detail-highlight">{formatMoney(evt.buy_in)}</span>
                                     </div>
                                   )}
-                                  {evt.guaranteed && (
+                                  {(evt.guarantee || evt.guaranteed) && (
                                     <div className="detail-field">
                                       <span className="detail-label">Guaranteed</span>
-                                      <span className="detail-value detail-highlight">{formatMoney(evt.guaranteed)}</span>
+                                      <span className="detail-value detail-highlight">{formatMoney(evt.guarantee || evt.guaranteed)}</span>
                                     </div>
                                   )}
                                   {evt.game_type && (
@@ -653,10 +672,10 @@ export default function SeriesDetailPage() {
                                       <span className="detail-value">{evt.reg_open_until}</span>
                                     </div>
                                   )}
-                                  {evt.starting_chips && (
+                                  {(evt.starting_stack || evt.starting_chips) && (
                                     <div className="detail-field">
                                       <span className="detail-label">Starting Chips</span>
-                                      <span className="detail-value">{typeof evt.starting_chips === 'number' ? evt.starting_chips.toLocaleString() : evt.starting_chips}</span>
+                                      <span className="detail-value">{typeof (evt.starting_stack || evt.starting_chips) === 'number' ? (evt.starting_stack || evt.starting_chips).toLocaleString() : (evt.starting_stack || evt.starting_chips)}</span>
                                     </div>
                                   )}
                                   {(evt.levels || evt.blind_levels) && (
@@ -665,10 +684,10 @@ export default function SeriesDetailPage() {
                                       <span className="detail-value">{evt.levels || evt.blind_levels}{evt.level_duration_minutes ? ` (${evt.level_duration_minutes} min each)` : ''}</span>
                                     </div>
                                   )}
-                                  {(evt.late_reg || evt.late_registration) && (
+                                  {(evt.late_reg_levels || evt.late_reg || evt.late_registration) && (
                                     <div className="detail-field">
                                       <span className="detail-label">Late Registration</span>
-                                      <span className="detail-value detail-late-reg">{evt.late_reg || evt.late_registration}</span>
+                                      <span className="detail-value detail-late-reg">{evt.late_reg_levels || evt.late_reg || evt.late_registration}</span>
                                     </div>
                                   )}
                                   {evt.notes && (
