@@ -766,6 +766,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             detectedAuto: true,
             streetDecisions: hand.streetDecisions || null,
             engineSuggestion: lastDecision ? lastDecision.action : null,
+            // ActionTracker context: opponent action summary for this hand
+            actionContext: actionTrackerRef.current ? actionTrackerRef.current.getSummary() : null,
           }).catch((err) => console.warn('[HUD] logHand failed', err));
         }
       },
@@ -1348,6 +1350,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               // OCR failed — mark stale if last success was > 10s ago
               if (lastOcrSuccessRef.current > 0 && Date.now() - lastOcrSuccessRef.current > 10000) {
                 setOcrStale(true);
+                try { playCue('warning'); } catch (_) {}
               }
               return;
             }
