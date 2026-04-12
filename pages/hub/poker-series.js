@@ -82,24 +82,29 @@ function PokerSeriesCard({ series, index }) {
   const [hovered, setHovered] = useState(false);
   const tour = series.tour || 'Independent';
   const tc   = getTourStyle(tour);
-  const name = cleanName(series.series_name);
+  const name = cleanName(series.series_name || series.name);
   const dates    = formatDateRange(series.start_date, series.end_date);
   const buyin    = formatBuyIn(series.buy_in_min, series.buy_in_max);
-  const location = cleanLocation(series.city, series.state);
-  const tier     = (series.tier || 'regional').toUpperCase();
+  const venueName = series.venue_name || series.venue || '';
+  const location = venueName ? `${cleanLocation(series.city, series.state)}` : cleanLocation(series.city, series.state);
+  const tier     = (series.tier || series.series_type || 'regional').toUpperCase();
   const live     = isSerieLive(series.start_date, series.end_date);
+  const eventCount = series.events_count || series.events?.length || series.total_events || 0;
+  const detailUrl = '/hub/series/' + (series.id || index + 1);
 
   return (
     <div
       className={`psc${hovered ? ' psc--hover' : ''}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => { if (typeof window !== 'undefined') window.location.href = detailUrl; }}
       style={{
         '--th-border': tc.border,
         '--th-glow':   tc.glow,
         '--th-bg':     tc.bg,
         '--th-text':   tc.text,
         animationDelay: `${Math.min(index, 40) * 0.035}s`,
+        cursor: 'pointer',
       }}
       role="article"
       aria-label={`Poker series: ${name}`}
@@ -117,11 +122,15 @@ function PokerSeriesCard({ series, index }) {
       <div className="psc__header">
         <span className="psc__tour">{tour}</span>
         {live && <span className="psc__live">● LIVE</span>}
+        {eventCount > 0 && <span className="psc__evts">{eventCount} Events</span>}
         <span className="psc__tier">{tier}</span>
       </div>
 
       {/* Name */}
       <h3 className="psc__name">{name}</h3>
+
+      {/* Venue */}
+      {venueName && <div className="psc__venue">{cleanName(venueName)}</div>}
 
       {/* Stats bar */}
       <div className="psc__stats">
@@ -142,19 +151,27 @@ function PokerSeriesCard({ series, index }) {
       </div>
 
       {/* CTA */}
-      {series.source_url && (
-        <div className="psc__foot">
+      <div className="psc__foot">
+        <a
+          href={detailUrl}
+          className="psc__btn"
+          id={`series-btn-${series.id}`}
+          onClick={e => e.stopPropagation()}
+        >
+          View Schedule
+        </a>
+        {series.source_url && (
           <a
             href={series.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="psc__btn"
-            id={`series-btn-${series.id}`}
+            className="psc__btn psc__btn--ext"
+            onClick={e => e.stopPropagation()}
           >
-            View Series
+            Source
           </a>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -210,7 +227,7 @@ export default function PokerSeriesPage() {
   // Fetch series from API
   useEffect(() => {
     setLoading(true);
-    fetch('/api/poker/series?limit=200&order=series_name')
+    fetch('/api/poker/series?limit=300&order=series_name')
       .then(r => r.json())
       .then(json => {
         setSeries(json.data || json.series || []);
@@ -236,10 +253,11 @@ export default function PokerSeriesPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       r = r.filter(s =>
-        cleanName(s.series_name).toLowerCase().includes(q) ||
+        cleanName(s.series_name || s.name || '').toLowerCase().includes(q) ||
         (s.tour || '').toLowerCase().includes(q) ||
         (s.city || '').toLowerCase().includes(q) ||
-        (s.state || '').toLowerCase().includes(q)
+        (s.state || '').toLowerCase().includes(q) ||
+        (s.venue_name || s.venue || '').toLowerCase().includes(q)
       );
     }
     switch (sortBy) {
@@ -795,6 +813,41 @@ export default function PokerSeriesPage() {
         .ps-stats-banner .psc__bolt--tr { position: absolute; top: 6px; right: 6px; }
         .ps-stats-banner .psc__bolt--bl { position: absolute; bottom: 6px; left: 6px; }
         .ps-stats-banner .psc__bolt--br { position: absolute; bottom: 6px; right: 6px; }
+
+        /* Venue name */
+        .psc__venue {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          color: rgba(255,255,255,0.55);
+          padding: 0 14px;
+          margin-bottom: 12px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* Event count badge */
+        .psc__evts {
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 0.6rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          color: #4ade80;
+          background: rgba(74,222,128,0.12);
+          border: 1px solid rgba(74,222,128,0.3);
+          border-radius: 3px;
+          padding: 2px 6px;
+        }
+
+        /* Secondary CTA button */
+        .psc__foot { display: flex; justify-content: flex-end; gap: 8px; }
+        .psc__btn--ext {
+          opacity: 0.55;
+          font-size: 0.55rem;
+          padding: 5px 10px;
+        }
+        .psc__btn--ext:hover { opacity: 1; }
 
         /* Responsive */
         @media (max-width: 640px) {

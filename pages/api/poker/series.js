@@ -146,7 +146,7 @@ export default async function handler(req, res) {
         limit = 70,
       } = req.query;
 
-      const parsedLimit = Math.min(parseInt(limit, 10) || 70, 200);
+      const parsedLimit = Math.min(parseInt(limit, 10) || 70, 300);
 
       // --- Single series by ID ---
       if (id) {
