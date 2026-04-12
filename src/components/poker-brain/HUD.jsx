@@ -23,6 +23,9 @@ import {
   canonicalPosition,
 } from '../../lib/poker-brain/auto-table-state';
 import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
+import ActionTracker from '../../lib/poker-brain/action-tracker';
+import OpponentStats from '../../lib/poker-brain/opponent-stats';
+import { playCue, setMuted as setSoundMuted, setVolume as setSoundVolume } from '../../lib/poker-brain/sound-cues';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
@@ -376,6 +379,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const [gameType, setGameType] = useState(initialGameType || 'nlhe');
   const [heroName, setHeroName] = useState('');
   const [villainStacks, setVillainStacks] = useState({});
+  const [actionSummary, setActionSummary] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  // Sync initial mute state with sound-cues module
+  useEffect(() => { setSoundMuted(!soundEnabled); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Tournament / ICM context (user-set, not OCR'd)
   const [isTournament, setIsTournament] = useState(false);
   const [tournamentStage, setTournamentStage] = useState('early');
@@ -567,6 +574,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const lastDetectTimeRef = useRef(0);
   const lastOcrTimeRef = useRef(0);
   const stateMachineRef = useRef(null);
+  const actionTrackerRef = useRef(new ActionTracker({ tolerance: 0.4 }));
+  const opponentStatsRef = useRef(new OpponentStats());
+  const [opponentStatsDisplay, setOpponentStatsDisplay] = useState(null);
   const sessionIdRef = useRef(null);
   // Temporal stabilizer for auto-detected table state (bounds, player
   // count, position, dealer). Smooths frame-to-frame noise so HUD
@@ -689,16 +699,40 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             bigBlind: bigBlindRef.current,
           });
         }
+        // Reset ActionTracker for the new hand
+        if (actionTrackerRef.current) {
+          actionTrackerRef.current.reset(hand?.handId || null);
+          setActionSummary(null);
+        }
+        // Sound cue: new hand dealt
+        try { playCue('handStart'); } catch (_) {}
       },
       onStreetChange: (hand, prevStreet, nextStreet) => {
-        // Hook present so the state machine's street-change path fires
-        // callbacks; downstream consumers can key off street transitions
-        // via onStateChange. Reserved for future per-street side effects
-        // (sound cues, analytics events, etc.).
+        // Notify ActionTracker of street transition so per-street
+        // tracking (currentStreetBet, callers) resets while keeping
+        // hand-level context (foldedSeats, raiseCount, etc.)
+        if (actionTrackerRef.current) {
+          actionTrackerRef.current.onStreetChange(nextStreet);
+        }
+        // Sound cue: new street
+        try { playCue('streetChange'); } catch (_) {}
       },
       onHandEnd: (hand) => {
         if (!hand) return;
         setRecentHands((prev) => [hand, ...prev].slice(0, 20));
+        // Feed ActionTracker's accumulated actions to OpponentStats
+        if (actionTrackerRef.current && opponentStatsRef.current) {
+          try {
+            const tracker = actionTrackerRef.current;
+            const summary = tracker.getSummary();
+            opponentStatsRef.current.recordHand(summary.actionSequence, {
+              bigBlind: bigBlindRef.current || 1,
+            });
+            // Refresh the display stats
+            const allStats = opponentStatsRef.current.getAllStats();
+            setOpponentStatsDisplay(allStats.size > 0 ? Object.fromEntries(allStats) : null);
+          } catch (_) { /* swallow */ }
+        }
         if (storage.ready && sessionIdRef.current) {
           // Pick the most recent street decision as the canonical action
           // logged against the hand (river > turn > flop > preflop).
@@ -907,6 +941,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     }
     detectionSnapshotRef.current = null;
     if (tableStateRef.current) tableStateRef.current.reset();
+    if (actionTrackerRef.current) actionTrackerRef.current.reset();
+    setActionSummary(null);
     // Also wipe the hand state machine so a leftover in-progress hand
     // from the previous capture can't bleed into a new session.
     // `silent: true` so the in-progress hand is NOT logged to Supabase —
@@ -1326,6 +1362,27 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             if (r.villainStacks !== undefined) {
                setVillainStacks((prev) => ({ ...prev, ...r.villainStacks }));
             }
+            // Feed OCR observation to ActionTracker for opponent action inference
+            if (actionTrackerRef.current && r.potSize !== undefined) {
+              try {
+                const trackerResult = actionTrackerRef.current.observe({
+                  potSize: r.potSize,
+                  heroStack: r.heroStack,
+                  villainStacks: r.villainStacks || {},
+                  bigBlind: r.bigBlind || bigBlindRef.current || 1,
+                  timestamp: Date.now(),
+                  street: handState.street || 'preflop',
+                });
+                if (trackerResult) {
+                  setActionSummary(trackerResult.summary);
+                  // Sound cue: all-in detected
+                  const hasAllIn = trackerResult.newActions.some(a => a.type === 'all_in');
+                  if (hasAllIn) {
+                    try { playCue('allIn'); } catch (_) {}
+                  }
+                }
+              } catch (_atErr) { /* swallow action tracker errors */ }
+            }
             // Auto-detect tournament stage from OCR-derived blind level.
             // Only fires when in tournament mode AND the detected stage
             // differs from the current stage (avoids overriding manual
@@ -1432,6 +1489,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             isTournament,
             tournamentStage,
             villainStacks,
+            actionSummary: actionSummary || null,
           });
 
           // STALE GUARD: if a newer request has been issued while we
@@ -1439,6 +1497,11 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
           if (generation !== decisionGenerationRef.current) return;
 
           setDecision(bridged);
+
+          // Sound cue: decision ready (only for confident, actionable decisions)
+          if (bridged.ready && bridged.action && bridged.action !== 'WAIT') {
+            try { playCue('actionReady'); } catch (_) {}
+          }
 
           // Record the decision on the current street of the current hand
           if (bridged.ready && stateMachineRef.current) {
@@ -1483,7 +1546,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     return () => {
       if (decisionTimerRef.current) clearTimeout(decisionTimerRef.current);
     };
-  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, isTournament, tournamentStage, pokerBrosHandLabel, availableActions, villainStacks]);
+  }, [handState, potSize, heroStack, effectiveStack, bigBlind, betToCall, position, players, gameType, isTournament, tournamentStage, pokerBrosHandLabel, availableActions, villainStacks, actionSummary]);
 
   // ============================================================================
   // UI HELPERS
@@ -1510,6 +1573,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     // Supabase hand log. Real completed hands still flow through
     // observe() → _commit() → onHandEnd normally.
     if (stateMachineRef.current) stateMachineRef.current.reset({ silent: true });
+    if (actionTrackerRef.current) actionTrackerRef.current.reset();
+    setActionSummary(null);
   };
 
   // Engine returns equity/potOdds already as percentages (0-100), not 0-1.
@@ -1701,6 +1766,20 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 )}
               </>
             )}
+          </span>
+          <span className="bg-slate-800 rounded px-2 py-1">
+            <label className="cursor-pointer">
+              <input
+                type="checkbox"
+                checked={soundEnabled}
+                onChange={(e) => {
+                  setSoundEnabled(e.target.checked);
+                  setSoundMuted(!e.target.checked);
+                }}
+                className="mr-1 align-middle"
+              />
+              <span className={'font-bold ' + (soundEnabled ? 'text-cyan-300' : 'text-slate-500')}>SFX</span>
+            </label>
           </span>
           <span className="bg-slate-800 rounded px-2 py-1">
             Position: <span className="font-bold text-white">{position}</span>
@@ -2424,6 +2503,35 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         {showLiveFeed && storage && storage.sessionId && (
           <div className="mt-4">
             <LiveFeed storage={storage} sessionId={storage.sessionId} />
+          </div>
+        )}
+
+        {/* OPPONENT STATS */}
+        {opponentStatsDisplay && Object.keys(opponentStatsDisplay).length > 0 && (
+          <div className="mt-4 bg-slate-800/80 rounded-xl border border-slate-700 p-3">
+            <h3 className="text-sm font-semibold text-slate-300 mb-2">Opponent Stats</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {Object.entries(opponentStatsDisplay).map(([seat, stats]) => (
+                <div key={seat} className="bg-slate-900/60 rounded-lg p-2 text-xs">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-slate-400 font-mono">{seat}</span>
+                    <span className={`font-bold ${
+                      stats.playerType === 'TAG' ? 'text-emerald-400'
+                      : stats.playerType === 'LAG' ? 'text-amber-400'
+                      : stats.playerType === 'LP' ? 'text-rose-400'
+                      : stats.playerType === 'TP' ? 'text-blue-400'
+                      : 'text-slate-500'
+                    }`}>{stats.playerType}</span>
+                  </div>
+                  <div className="flex gap-2 text-slate-300">
+                    <span>V:{stats.vpip}</span>
+                    <span>P:{stats.pfr}</span>
+                    <span>AF:{stats.af}</span>
+                  </div>
+                  <div className="text-slate-500 mt-0.5">{stats.hands}h</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

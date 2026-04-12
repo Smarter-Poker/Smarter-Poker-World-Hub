@@ -182,6 +182,13 @@ function buildEngineState(body, userId) {
     tournamentStage = null,
     villainStacks = {},
     handId = null,
+    // ActionTracker-derived fields (from HUD client via decision-bridge)
+    numLimpers: actionNumLimpers = 0,
+    lastRaiser: actionLastRaiser = null,
+    preflopAction: actionPreflopAction = null,
+    raiseCount: actionRaiseCount = 0,
+    numCallers: actionNumCallers = 0,
+    activePlayers: actionActivePlayers = null,
   } = body;
 
   // Map game type to Horse Brain variant format
@@ -258,8 +265,11 @@ function buildEngineState(body, userId) {
     potTotal: potSize,
     currentBet: betToCall,
     tableId: `hud_${userId}_live`,
-    lastRaiser: null,  // OCR can't reliably determine this
-    numLimpers: 0,
+    lastRaiser: actionLastRaiser,
+    numLimpers: actionNumLimpers,
+    preflopAction: actionPreflopAction,
+    raiseCount: actionRaiseCount,
+    numCallers: actionNumCallers,
     hasStraddle: false,
     variant,
     gameType: isTournament ? 'tournament' : 'cash',

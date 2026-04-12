@@ -45,15 +45,34 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch sessions' });
     }
 
-    // Enrich with hand counts
-    const enriched = [];
-    for (const s of (sessions || [])) {
-      const { count: handCount } = await getSupabase()
+    // Fetch all hand counts in a single query
+    const sessionIds = (sessions || []).map(s => s.id);
+    const handCountMap = {};
+
+    if (sessionIds.length > 0) {
+      const { data: handCounts, error: handCountError } = await getSupabase()
         .from('pb_hands')
-        .select('*', { count: 'exact', head: true })
-        .eq('session_id', s.id);
-      enriched.push({ ...s, hands_played: handCount || 0 });
+        .select('session_id', { count: 'exact' })
+        .in('session_id', sessionIds);
+
+      if (handCountError) {
+        console.error('[poker-brain/sessions] hand count query error:', handCountError);
+        return res.status(500).json({ error: 'Failed to fetch hand counts' });
+      }
+
+      // Build map of session_id -> hand count
+      if (handCounts) {
+        handCounts.forEach(hc => {
+          handCountMap[hc.session_id] = (handCountMap[hc.session_id] || 0) + 1;
+        });
+      }
     }
+
+    // Enrich sessions with hand counts from map
+    const enriched = (sessions || []).map(s => ({
+      ...s,
+      hands_played: handCountMap[s.id] || 0
+    }));
 
     return res.status(200).json({
       sessions: enriched,

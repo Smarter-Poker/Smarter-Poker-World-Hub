@@ -157,6 +157,7 @@ export async function getBridgedDecision(input) {
     tournamentStage = 'early',
     preflopAction = null, // optional override: rfi/vs_limp/vs_raise/vs_3bet/vs_4bet
     confidenceFloor = DEFAULT_CONFIDENCE_FLOOR,
+    actionSummary = null, // from ActionTracker: { numLimpers, lastRaiser, preflopAction, ... }
   } = input;
 
   const holeResult = extractCards(rawHoleCards, confidenceFloor);
@@ -233,6 +234,13 @@ export async function getBridgedDecision(input) {
       isTournament,
       tournamentStage,
       villainStacks: input.villainStacks || {},
+      // ActionTracker-derived opponent context (replaces hardcoded nulls in API)
+      numLimpers: actionSummary?.numLimpers ?? 0,
+      lastRaiser: actionSummary?.lastRaiser ?? null,
+      preflopAction: actionSummary?.preflopAction ?? preflopAction ?? null,
+      raiseCount: actionSummary?.raiseCount ?? 0,
+      numCallers: actionSummary?.numCallers ?? 0,
+      activePlayers: actionSummary?.activePlayers ?? numPlayers,
     }, authToken);
 
     if (horseBrainResult && horseBrainResult.action) {
