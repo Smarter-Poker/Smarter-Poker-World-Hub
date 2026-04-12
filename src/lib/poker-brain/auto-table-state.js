@@ -47,6 +47,10 @@
 
 const DOWNSCALE_MAX_W = 400;
 
+// Module-level cached canvas for downscaleROI — avoids ~1 canvas alloc/sec
+let _dsCanvas = null;
+let _dsCtx = null;
+
 // Yellow stack-number signature (PokerBros stack text color).
 //
 // Adaptive test: we want a single predicate that works across dim
@@ -96,12 +100,17 @@ function downscaleROI(source, tableBounds) {
   const dw = Math.max(1, Math.round(roiW * scale));
   const dh = Math.max(1, Math.round(roiH * scale));
 
-  const canvas = document.createElement('canvas');
-  canvas.width = dw;
-  canvas.height = dh;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, roiX, roiY, roiW, roiH, 0, 0, dw, dh);
-  const imageData = ctx.getImageData(0, 0, dw, dh);
+  if (!_dsCanvas) {
+    _dsCanvas = document.createElement('canvas');
+    _dsCtx = _dsCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  if (_dsCanvas.width !== dw || _dsCanvas.height !== dh) {
+    _dsCanvas.width = dw;
+    _dsCanvas.height = dh;
+    _dsCtx = _dsCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  _dsCtx.drawImage(source, roiX, roiY, roiW, roiH, 0, 0, dw, dh);
+  const imageData = _dsCtx.getImageData(0, 0, dw, dh);
 
   return { imageData, roiX, roiY, roiW, roiH, dw, dh };
 }

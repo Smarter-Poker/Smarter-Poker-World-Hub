@@ -87,15 +87,23 @@ export function detectCards(videoElement, layout, matcher, options = {}) {
   const verifiedHole = (result.holeCards || []).map((card, i) => {
     const r = variantRegions[i];
     if (!r || !card || !card.suit) return card;
-    const scaledR = scaleRegion(r, scaleX, scaleY);
-    return verifyCardSuit(card, videoElement, scaledR);
+    try {
+      const scaledR = scaleRegion(r, scaleX, scaleY);
+      return verifyCardSuit(card, videoElement, scaledR);
+    } catch (_) {
+      return card;
+    }
   });
 
   const verifiedBoard = (result.boardCards || []).map((card, i) => {
     const r = layout.boardCards?.[i];
     if (!r || !card || !card.suit) return card;
-    const scaledR = scaleRegion(r, scaleX, scaleY);
-    return verifyCardSuit(card, videoElement, scaledR);
+    try {
+      const scaledR = scaleRegion(r, scaleX, scaleY);
+      return verifyCardSuit(card, videoElement, scaledR);
+    } catch (_) {
+      return card;
+    }
   });
 
   const timingMs = performance.now() - startTime;
