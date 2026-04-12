@@ -1109,16 +1109,17 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     let lastCalVariant = null; // Track variant for re-cal on switch
     let lastCalFrame = 0; // Frame when last auto-cal ran
 
-    // Restore cached calibration from localStorage on start
+    // DISABLED: Auto-calibrated hashes in localStorage are corrupted.
+    // The base PNG templates are the source of truth. Clear any persisted
+    // hashes so they don't poison the matcher on this load.
     try {
-      const matcher = matcherRef.current;
-      if (matcher && matcher.templateHashes) {
-        const restored = restoreCalibratedHashes(matcher);
-        if (restored > 0) {
-          autoCalDone = true;
-          console.log(`[HUD] Restored ${restored} cached calibration hashes`);
-        }
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('pb-cal-')) keys.push(k);
       }
+      keys.forEach(k => localStorage.removeItem(k));
+      if (keys.length > 0) console.log(`[HUD] Cleared ${keys.length} stale calibration hashes from localStorage`);
     } catch (_) { /* ignore */ }
 
     const loop = async () => {
@@ -1140,42 +1141,12 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             const expectedHole = PokerBrainEngine.expectedHoleCount(currentVariant);
 
             // ── AUTO-CALIBRATE LIVE TEMPLATES ─────────────────────────
-            // Triggers:
-            //   1. Initial: frame 8 (~2s after start) if no cached hashes
-            //   2. Variant change: immediately when game type switches
-            //   3. Periodic: every 200 frames (~50s) to handle skin/lighting drift
-            const variantChanged = lastCalVariant !== null && lastCalVariant !== currentVariant;
-            const periodicRecal = autoCalDone && (detectionFrameCount - lastCalFrame >= 200);
-            const initialCal = !autoCalDone && detectionFrameCount === 8;
-
-            if (initialCal || variantChanged || periodicRecal) {
-              try {
-                // Use hand-strength-verified calibration: only inject hashes
-                // when the matched card rank is consistent with OCR hand label.
-                // Falls back to tight threshold (dist <= 10) when no hand info.
-                const calResult = verifiedAutoCalibrate(
-                  video,
-                  effectiveLayoutRef.current,
-                  matcher,
-                  {
-                    variant: currentVariant,
-                    handStrength: handLabelRef.current || null,
-                    verifiedMaxDistance: 20,
-                    unverifiedMaxDistance: 10,
-                  },
-                );
-                if (calResult.injected > 0) {
-                  autoCalDone = true;
-                  lastCalVariant = currentVariant;
-                  lastCalFrame = detectionFrameCount;
-                  // Persist to localStorage so page refresh doesn't lose calibration
-                  try { persistCalibratedHashes(matcher.templateHashes); } catch (_) {}
-                  console.log(`[HUD] Verified-cal: ${calResult.injected} OK, ${calResult.rejected} rejected (trigger: ${variantChanged ? 'variant-change' : periodicRecal ? 'periodic' : 'initial'})`);
-                }
-              } catch (calErr) {
-                console.warn('[HUD] Verified auto-calibrate failed:', calErr.message);
-              }
-            }
+            // DISABLED: Auto-calibration was overwriting good base templates
+            // with hashes from live video (table art, avatars, empty regions).
+            // This corrupted the entire template database and caused phantom
+            // detections, wrong card identities, and phantom boards.
+            // The base templates (from PNG files) are the source of truth.
+            // If calibration is needed, use the manual Capture Templates UI.
             if (!lastCalVariant) lastCalVariant = currentVariant;
 
             // ── AUTO TABLE BOUNDS ──────────────────────────────────────
@@ -1259,7 +1230,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 region: p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : 'n/a',
               }));
               setDiagInfo({
-                build: 'v8-autocal-persist',
+                build: 'v9-no-autocal',
                 vw, vh, refW, refH,
                 sX: Math.round(sX * 1000) / 1000,
                 sY: Math.round(sY * 1000) / 1000,

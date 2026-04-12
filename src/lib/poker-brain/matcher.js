@@ -489,13 +489,10 @@ class PokerBrainMatcher {
     if (bestKey !== null) {
       if (bestDistance <= effectiveThreshold) {
         accepted = true;
-      } else if (bestDistance <= effectiveThreshold + 6 && gap >= 6) {
-        // Adaptive threshold: Even if raw distance is worse than the effective
-        // threshold, if there's a huge gap (>= 6) from the second best choice,
-        // it's highly likely this is a correct match experiencing sub-pixel
-        // rendering distortion. The adaptive ceiling scales with the effective
-        // threshold so hardwired mode (threshold=8) only accepts up to 14,
-        // not the camera-mode ceiling of 18.
+      } else if (bestDistance <= effectiveThreshold + 3 && gap >= 8) {
+        // Adaptive threshold: if raw distance is slightly above threshold but
+        // there's a very clear gap (>=8) to second-best, accept it. Tightened
+        // from +6/gap>=6 to +3/gap>=8 to reduce phantom detections.
         accepted = true;
       }
     }

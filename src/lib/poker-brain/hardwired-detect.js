@@ -25,13 +25,12 @@
 
 import { verifyCardSuit } from './suit-color.js';
 
-// Hardwired mode threshold. Originally 8, raised to 15, now 18.
-// Real-world PokerBros screen capture shows dHash distances of 8-14 for
-// hole cards (with correct individual per-card crops) and 16-20 for board
-// cards (templates extracted from 471x1063 reference vs 468x932 live feed).
-// Threshold 18 + adaptive gap acceptance (up to threshold+6 with gap>=6)
-// covers most real matches. Wrong-rank confusables typically score 22+.
-const HARDWIRED_MATCH_THRESHOLD = 18;
+// Hardwired mode threshold. Was 18 but that caused massive phantom detections
+// (table art, avatars, empty felt all matched as cards). With the base PNG
+// templates (not auto-calibrated), correct screen-share matches should be
+// 0-8 for hole cards and 8-14 for board cards. Threshold 12 + adaptive gap
+// (up to 15 with gap>=6) covers real matches while rejecting phantoms.
+const HARDWIRED_MATCH_THRESHOLD = 12;
 
 // In hardwired mode we skip the crop-offset sweep entirely. Instead we do a
 // single direct crop at the exact layout coordinates. This cuts per-region
@@ -62,6 +61,48 @@ function scaleRegion(region, scaleX, scaleY) {
     w: Math.round(region.w * scaleX),
     h: Math.round(region.h * scaleY),
   };
+}
+
+/**
+ * Check if a video region is "empty" (uniform color, no card present).
+ * PokerBros table felt is a dark, low-contrast surface. Card images are
+ * high-contrast with distinct rank/suit markings. If the pixel variance
+ * in a cropped region is below a threshold, there's no card there.
+ *
+ * @param {HTMLVideoElement|HTMLCanvasElement} videoElement
+ * @param {object} region - scaled region { x, y, w, h }
+ * @returns {boolean} true if the region appears empty (no card)
+ */
+function isRegionEmpty(videoElement, region) {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = region.w;
+    canvas.height = region.h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(
+      videoElement,
+      Math.max(0, region.x), Math.max(0, region.y), region.w, region.h,
+      0, 0, region.w, region.h,
+    );
+    const data = ctx.getImageData(0, 0, region.w, region.h).data;
+    // Compute mean and variance of grayscale values
+    let sum = 0;
+    let sumSq = 0;
+    const pixelCount = data.length / 4;
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+      sum += gray;
+      sumSq += gray * gray;
+    }
+    const mean = sum / pixelCount;
+    const variance = (sumSq / pixelCount) - (mean * mean);
+    // Cards have high variance (white background + colored rank/suit).
+    // Empty felt has variance < 200. Cards typically > 800.
+    // Use 400 as threshold to catch felt and dark table patterns.
+    return variance < 400;
+  } catch (_) {
+    return false;
+  }
 }
 
 /**
@@ -168,6 +209,12 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     if (!r || !card || !card.suit) return card;
     try {
       const scaledR = scaleRegion(r, scaleX, scaleY);
+      // EMPTINESS CHECK: reject board card matches on empty felt regions.
+      // This prevents phantom board detections where table background
+      // happens to hash close to a card template.
+      if (isRegionEmpty(videoElement, scaledR)) {
+        return { rank: null, suit: null, key: null, distance: 99, hardwired: true, emptyRegion: true };
+      }
       const verified = verifyCardSuit(card, videoElement, scaledR);
       return { ...(verified || card), hardwired: true };
     } catch (_) {
