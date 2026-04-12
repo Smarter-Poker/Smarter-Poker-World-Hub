@@ -261,7 +261,7 @@ export default function PokerSeriesPage() {
       );
     }
     switch (sortBy) {
-      case 'name':  r.sort((a,b) => cleanName(a.series_name).localeCompare(cleanName(b.series_name))); break;
+      case 'name':  r.sort((a,b) => cleanName(a.series_name || a.name || '').localeCompare(cleanName(b.series_name || b.name || ''))); break;
       case 'date':  r.sort((a,b) => (a.start_date || 'z').localeCompare(b.start_date || 'z')); break;
       case 'tour':  r.sort((a,b) => (a.tour || 'z').localeCompare(b.tour || 'z')); break;
       case 'buyin': r.sort((a,b) => (b.buy_in_max || 0) - (a.buy_in_max || 0)); break;
