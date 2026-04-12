@@ -348,6 +348,13 @@ export function autoCalibrateLive(videoElement, layout, matcher, options = {}) {
     console.log(`  ${m.kind}[${m.slot}] -> ${m.bestKey} dist=${m.bestDist} ${m.accepted ? 'OK' : 'SKIP'}`);
   });
 
+  // Persist injected hashes so they survive page reload.
+  // Without this, calibration data is lost on refresh and the matcher
+  // reverts to stock template hashes (which have high distances).
+  if (injected > 0) {
+    try { persistCalibratedHashes(matcher.templateHashes); } catch (_) {}
+  }
+
   return { injected, matches };
 }
 
