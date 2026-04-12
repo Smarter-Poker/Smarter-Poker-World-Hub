@@ -365,7 +365,13 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
   // Debug overlay: when true, matcher emits top-3 candidates per region
   // so we can diagnose template mismatches vs region offsets vs thresholds.
-  const [debugMode, setDebugMode] = useState(false);
+  const [debugMode, setDebugMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('debug') === '1' || params.get('debug') === 'true';
+    } catch (_) { return false; }
+  });
   const [debugProbe, setDebugProbe] = useState(null);
   const debugModeRef = useRef(false);
   useEffect(() => { debugModeRef.current = debugMode; }, [debugMode]);
@@ -2489,28 +2495,20 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             className={
               calibrationFullScreen
                 ? 'fixed inset-0 z-[9999] bg-black/95 p-4'
-                : debugMode
-                  ? 'relative rounded-xl overflow-hidden border border-white/10 bg-black mx-auto'
-                  : streamReady
-                    ? 'relative overflow-hidden bg-black mx-auto'
-                    : 'relative rounded-xl overflow-hidden border border-white/10 bg-black mx-auto'
+                : 'relative rounded-xl overflow-hidden border border-white/10 bg-black mx-auto'
             }
             style={
               calibrationFullScreen
                 ? undefined
-                : debugMode
-                  ? videoNativeDims
-                    ? {
-                        aspectRatio: `${videoNativeDims.w} / ${videoNativeDims.h}`,
-                        maxHeight: '80vh',
-                        width: 'auto',
-                        height: '80vh',
-                        maxWidth: '100%',
-                      }
-                    : { aspectRatio: '16 / 9' }
-                  : streamReady
-                    ? { height: 0, overflow: 'hidden' }
-                    : { aspectRatio: '16 / 9' }
+                : videoNativeDims
+                  ? {
+                      aspectRatio: `${videoNativeDims.w} / ${videoNativeDims.h}`,
+                      maxHeight: '45vh',
+                      width: 'auto',
+                      height: '45vh',
+                      maxWidth: '100%',
+                    }
+                  : { aspectRatio: '9 / 16', maxHeight: '45vh' }
             }
           >
             {calibrationFullScreen && (
@@ -2557,11 +2555,66 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               </div>
             )}
             {streamReady && (
-              <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/70 px-2.5 py-1 rounded-full border border-white/20">
+              <div className="absolute top-2 left-2 flex items-center gap-2 bg-black/70 px-2.5 py-1 rounded-full border border-white/20 z-10">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-semibold">LIVE</span>
+                <span className="text-[10px] font-semibold">LIVE v10</span>
               </div>
             )}
+            {/* DETECTION REGION OVERLAY: always visible when streaming.
+                Draws colored boxes showing EXACTLY where the detector is
+                looking for hole cards (red) and board cards (green).
+                If these boxes don't line up with the actual cards in the
+                video, the layout coordinates need recalibrating. */}
+            {streamReady && videoRef.current && videoNativeDims && (() => {
+              const layout = effectiveLayoutRef.current;
+              if (!layout) return null;
+              const refW = layout.referenceSize?.w || 468;
+              const refH = layout.referenceSize?.h || 932;
+              const vw = videoNativeDims.w;
+              const vh = videoNativeDims.h;
+              // Use same AR-correction logic as hardwired-detect.js
+              const refAR = refW / refH;
+              const videoAR = vw / vh;
+              const arDiff = Math.abs(videoAR - refAR) / refAR;
+              let sX, sY, oX = 0, oY = 0;
+              if (arDiff <= 0.03) {
+                sX = vw / refW; sY = vh / refH;
+              } else {
+                const us = Math.min(vw / refW, vh / refH);
+                sX = us; sY = us;
+                oX = (vw - refW * us) / 2;
+                oY = (vh - refH * us) / 2;
+              }
+              const holeRegions = layout.holeCardsByVariant?.[gameType] || layout.holeCards || [];
+              const boardRegions = layout.boardCards || [];
+              // Convert layout coords to percentage positions within the video
+              const toStyle = (r) => ({
+                position: 'absolute',
+                left: `${((r.x * sX + oX) / vw) * 100}%`,
+                top: `${((r.y * sY + oY) / vh) * 100}%`,
+                width: `${((r.w * sX) / vw) * 100}%`,
+                height: `${((r.h * sY) / vh) * 100}%`,
+                pointerEvents: 'none',
+              });
+              return (
+                <>
+                  {holeRegions.map((r, i) => (
+                    <div key={'hr-' + i} style={toStyle(r)} className="border-2 border-red-500/80 bg-red-500/10 z-10">
+                      <span className="text-[8px] text-red-400 bg-black/60 px-0.5">H{i}</span>
+                    </div>
+                  ))}
+                  {boardRegions.map((r, i) => (
+                    <div key={'br-' + i} style={toStyle(r)} className="border-2 border-green-500/80 bg-green-500/10 z-10">
+                      <span className="text-[8px] text-green-400 bg-black/60 px-0.5">B{i}</span>
+                    </div>
+                  ))}
+                  {/* AR info badge */}
+                  <div className="absolute bottom-2 right-2 bg-black/80 text-[8px] text-white px-1.5 py-0.5 rounded z-10 font-mono">
+                    {vw}x{vh} | ref:{refW}x{refH} | AR:{arDiff > 0.03 ? 'CORRECTED' : 'OK'} | s:{sX.toFixed(2)} o:{Math.round(oX)},{Math.round(oY)}
+                  </div>
+                </>
+              );
+            })()}
             {streamReady && (
               <CalibrationOverlay
                 videoRef={videoRef}
