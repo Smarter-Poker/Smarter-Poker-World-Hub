@@ -22,8 +22,9 @@
  */
 
 import PokerBrainEngine from './engine.js';
-// NOTE: ../supabase resolves to supabase.ts in Next.js (Webpack) and to
-// supabase.js (test mock) in raw Node ESM. Both paths work correctly.
+// NOTE: ../supabase.js is a no-op mock for Node ESM test runner.
+// In Next.js (Webpack), the alias in next.config.js forces resolution
+// to supabase.ts (real client). See next.config.js webpack section.
 import { supabase } from '../supabase.js';
 
 const DEFAULT_CONFIDENCE_FLOOR = 0.80;  // 80% match confidence required
