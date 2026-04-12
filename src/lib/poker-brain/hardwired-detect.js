@@ -25,12 +25,11 @@
 
 import { verifyCardSuit } from './suit-color.js';
 
-// Hardwired mode threshold. Was 18 but that caused massive phantom detections
-// (table art, avatars, empty felt all matched as cards). With the base PNG
-// templates (not auto-calibrated), correct screen-share matches should be
-// 0-8 for hole cards and 8-14 for board cards. Threshold 12 + adaptive gap
-// (up to 15 with gap>=6) covers real matches while rejecting phantoms.
-const HARDWIRED_MATCH_THRESHOLD = 12;
+// Hardwired mode threshold. Tightened to 10 after recalibrating coordinates.
+// With corrected layout positions, real card matches should be distance 0-8.
+// Threshold 10 lets real matches through while rejecting phantoms that were
+// previously matching at 10-12 when coordinates pointed at wrong areas.
+const HARDWIRED_MATCH_THRESHOLD = 10;
 
 // In hardwired mode we skip the crop-offset sweep entirely. Instead we do a
 // single direct crop at the exact layout coordinates. This cuts per-region
@@ -99,8 +98,9 @@ function isRegionEmpty(videoElement, region) {
     const variance = (sumSq / pixelCount) - (mean * mean);
     // Cards have high variance (white background + colored rank/suit).
     // Empty felt has variance < 200. Cards typically > 800.
-    // Use 400 as threshold to catch felt and dark table patterns.
-    return variance < 400;
+    // Use 600 as threshold to aggressively reject non-card regions
+    // (avatars, table art, UI elements can have variance 400-550).
+    return variance < 600;
   } catch (_) {
     return false;
   }
