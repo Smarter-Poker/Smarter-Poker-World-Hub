@@ -226,41 +226,60 @@ const AutoDetectOverlay = ({ videoRef, snapshotRef, visible }) => {
         ctx.fillText('table', mapX(b.x) + 4, mapY(b.y) + 4);
       }
 
-      // Hole cards
-      if (snap.holeRegions && snap.holeRegions.length) {
-        ctx.strokeStyle = 'rgba(250,204,21,0.95)';
-        ctx.fillStyle = 'rgba(250,204,21,0.15)';
-        for (let i = 0; i < snap.holeRegions.length; i++) {
-          const r = snap.holeRegions[i];
+      // ── Card region drawing (hole + board) with match quality ──
+      // Color code: green = matched (dist < 12), yellow = weak match (12-18),
+      //             red = no match or dist > 18
+      const drawCardRegions = (regions, label) => {
+        if (!regions || !regions.length) return;
+        for (let i = 0; i < regions.length; i++) {
+          const r = regions[i];
           const rx = mapX(r.x), ry = mapY(r.y);
-          ctx.fillRect(rx, ry, r.w * sx, r.h * sy);
-          ctx.strokeRect(rx, ry, r.w * sx, r.h * sy);
-        }
-        ctx.fillStyle = 'rgba(250,204,21,0.95)';
-        ctx.fillText(
-          'hole x' + snap.holeRegions.length,
-          mapX(snap.holeRegions[0].x),
-          mapY(snap.holeRegions[0].y) - 14,
-        );
-      }
+          const rw = r.w * sx, rh = r.h * sy;
 
-      // Board cards
-      if (snap.boardRegions && snap.boardRegions.length) {
-        ctx.strokeStyle = 'rgba(236,72,153,0.95)';
-        ctx.fillStyle = 'rgba(236,72,153,0.15)';
-        for (let i = 0; i < snap.boardRegions.length; i++) {
-          const r = snap.boardRegions[i];
-          const rx = mapX(r.x), ry = mapY(r.y);
-          ctx.fillRect(rx, ry, r.w * sx, r.h * sy);
-          ctx.strokeRect(rx, ry, r.w * sx, r.h * sy);
+          // Color by match quality
+          let strokeColor, fillColor, textColor;
+          if (r.matched && r.distance != null && r.distance <= 12) {
+            strokeColor = 'rgba(34,197,94,0.95)';   // green
+            fillColor = 'rgba(34,197,94,0.2)';
+            textColor = 'rgba(34,197,94,1)';
+          } else if (r.bestKey && r.distance != null && r.distance <= 18) {
+            strokeColor = 'rgba(250,204,21,0.95)';  // yellow
+            fillColor = 'rgba(250,204,21,0.15)';
+            textColor = 'rgba(250,204,21,1)';
+          } else {
+            strokeColor = 'rgba(239,68,68,0.95)';   // red
+            fillColor = 'rgba(239,68,68,0.12)';
+            textColor = 'rgba(239,68,68,1)';
+          }
+
+          ctx.strokeStyle = strokeColor;
+          ctx.fillStyle = fillColor;
+          ctx.lineWidth = 2;
+          ctx.fillRect(rx, ry, rw, rh);
+          ctx.strokeRect(rx, ry, rw, rh);
+
+          // Card label + distance inside the region
+          ctx.fillStyle = textColor;
+          ctx.font = 'bold 10px ui-monospace, monospace';
+          const cardText = r.bestKey || '?';
+          const distText = r.distance != null ? ('d' + r.distance) : '';
+          ctx.fillText(cardText, rx + 2, ry + 2);
+          if (distText) {
+            ctx.font = '9px ui-monospace, monospace';
+            ctx.fillText(distText, rx + 2, ry + 14);
+          }
         }
-        ctx.fillStyle = 'rgba(236,72,153,0.95)';
+        // Group label above first region
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = '10px ui-monospace, monospace';
         ctx.fillText(
-          'board x' + snap.boardRegions.length,
-          mapX(snap.boardRegions[0].x),
-          mapY(snap.boardRegions[0].y) - 14,
+          label + ' x' + regions.length,
+          mapX(regions[0].x),
+          mapY(regions[0].y) - 13,
         );
-      }
+      };
+      drawCardRegions(snap.holeRegions, 'hole');
+      drawCardRegions(snap.boardRegions, 'board');
 
       // Stack clusters
       if (snap.stackClusters && snap.stackClusters.length) {
@@ -1227,9 +1246,33 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               }
             } catch (trkErr) { /* swallow */ }
 
+            // ── Populate card region data for the debug overlay ──────────
+            // Merge layout regions with probeLog match results so the overlay
+            // can draw color-coded rectangles per card slot.
+            let snapHoleRegions = null;
+            let snapBoardRegions = null;
+            try {
+              const dlayout = effectiveLayoutRef.current;
+              const currentVar = gameTypeRef.current || 'nlhe';
+              const hRegs = dlayout.holeCardsByVariant?.[currentVar] || dlayout.holeCards || [];
+              const bRegs = dlayout.boardCards || [];
+              const probes = (result && result.probeLog) || [];
+              const annotate = (regions, kind) => regions.map((r, i) => {
+                const p = probes.find(pp => pp.kind === kind && pp.slot === i);
+                return {
+                  x: r.x, y: r.y, w: r.w, h: r.h,
+                  bestKey: p ? (p.bestKey || null) : null,
+                  distance: p ? p.distance : null,
+                  matched: p ? p.matched : false,
+                };
+              });
+              if (hRegs.length) snapHoleRegions = annotate(hRegs, 'hole');
+              if (bRegs.length) snapBoardRegions = annotate(bRegs, 'board');
+            } catch (_annErr) { /* keep nulls if anything fails */ }
+
             detectionSnapshotRef.current = {
               tableBounds: (stableSnapshot && stableSnapshot.bounds) || obs.tableBounds || null,
-              holeRegions: null, boardRegions: null, stackClusters,
+              holeRegions: snapHoleRegions, boardRegions: snapBoardRegions, stackClusters,
               dealerPoint: (stableSnapshot && stableSnapshot.dealerPoint) || obs.dealerPoint || null,
               position: (stableSnapshot && stableSnapshot.position) || obs.position || null,
               playerCount: (stableSnapshot && stableSnapshot.playerCount) || obs.playerCount || null,
