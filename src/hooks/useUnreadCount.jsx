@@ -85,46 +85,54 @@ export function UnreadProvider({ children }) {
             // Set up real-time subscription for new messages
             // We subscribe to INSERT events, then validate the message belongs
             // to a conversation the user participates in before incrementing
-            const channel = supabase
-                .channel(`unread-messages:${userId}`)
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'social_messages',
-                }, async (payload) => {
-                    // Ignore our own messages
-                    if (payload.new.sender_id === userId) return;
+            // Wrapped in try-catch: if supabase.channel().on() chaining fails
+            // (e.g. mock client resolved instead of real client), the page must
+            // NOT crash — periodic refreshUnread() is the fallback.
+            let channel = null;
+            try {
+                channel = supabase
+                    .channel(`unread-messages:${userId}`)
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'social_messages',
+                    }, async (payload) => {
+                        // Ignore our own messages
+                        if (payload.new.sender_id === userId) return;
 
-                    // Verify this message is in a conversation we participate in
-                    try {
-                        const { data: participation } = await supabase
-                            .from('social_conversation_participants')
-                            .select('conversation_id')
-                            .eq('user_id', userId)
-                            .eq('conversation_id', payload.new.conversation_id)
-                            .maybeSingle();
+                        // Verify this message is in a conversation we participate in
+                        try {
+                            const { data: participation } = await supabase
+                                .from('social_conversation_participants')
+                                .select('conversation_id')
+                                .eq('user_id', userId)
+                                .eq('conversation_id', payload.new.conversation_id)
+                                .maybeSingle();
 
-                        if (participation) {
+                            if (participation) {
+                                setUnreadCount(prev => prev + 1);
+                            }
+                        } catch (_) {
+                            // Fallback: increment anyway — refreshUnread will correct it
                             setUnreadCount(prev => prev + 1);
                         }
-                    } catch (_) {
-                        // Fallback: increment anyway — refreshUnread will correct it
-                        setUnreadCount(prev => prev + 1);
-                    }
-                })
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'social_messages',
-                }, (payload) => {
-                    // DEEP SWEEP FIX: Catch delete-for-everyone (Unsend) events
-                    // If a message we haven't read gets deleted, we must decrement the badge.
-                    // The safest real-time response is to just recalculate the badge completely:
-                    if (payload.new.is_deleted === true) {
-                        refreshUnread();
-                    }
-                })
-                .subscribe();
+                    })
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'social_messages',
+                    }, (payload) => {
+                        // DEEP SWEEP FIX: Catch delete-for-everyone (Unsend) events
+                        // If a message we haven't read gets deleted, we must decrement the badge.
+                        // The safest real-time response is to just recalculate the badge completely:
+                        if (payload.new.is_deleted === true) {
+                            refreshUnread();
+                        }
+                    })
+                    .subscribe();
+            } catch (realtimeErr) {
+                console.warn('[UnreadProvider] Realtime subscription failed — falling back to polling:', realtimeErr);
+            }
 
             // NOTE: EventBus MESSAGE_RECEIVED listener was removed here.
             // It caused double-counting: messenger.js emits MESSAGE_RECEIVED 
@@ -143,7 +151,7 @@ export function UnreadProvider({ children }) {
             const interval = setInterval(refreshUnread, 30000);
 
             return () => {
-                supabase.removeChannel(channel);
+                if (channel) { try { supabase.removeChannel(channel); } catch (_) {} }
                 clearInterval(interval);
                 cleanupUnreadSync();
             };

@@ -44,11 +44,15 @@ const mockClient = {
     upsert: () => Promise.resolve({ data: null, error: null }),
   }),
   rpc: () => Promise.resolve({ data: null, error: null }),
-  channel: () => ({
-    on: () => ({ subscribe: () => ({}) }),
-    subscribe: () => ({}),
-    unsubscribe: () => {},
-  }),
+  channel: () => {
+    const ch = {
+      on: () => ch,           // chainable — returns self like real supabase
+      subscribe: () => ch,
+      unsubscribe: () => {},
+    };
+    return ch;
+  },
+  removeChannel: () => {},
 };
 
 export const supabase = mockClient;
