@@ -1109,7 +1109,7 @@ const PokerBrainEngine = (() => {
       sb: 'sb', smallblind: 'sb',
       bb: 'bb', bigblind: 'bb',
     };
-    const pos = posMap[position] || 'mp';
+    const pos = posMap[String(position).toLowerCase()] || 'mp';
 
     // ========== PREFLOP ==========
     if (street === 'preflop') {
