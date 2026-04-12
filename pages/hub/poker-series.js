@@ -177,7 +177,7 @@ function PokerSeriesCard({ series, index }) {
 }
 
 // ─── STAT COUNTERS ───────────────────────────────────────────────────────────
-function StatBanner({ total, live, majors }) {
+function StatBanner({ total, live, withEvents }) {
   return (
     <div className="ps-stats-banner">
       <span className="psc__bolt psc__bolt--tl"/>
@@ -195,8 +195,8 @@ function StatBanner({ total, live, majors }) {
       </div>
       <div className="ps-stat-sep"/>
       <div className="ps-stat-item">
-        <span className="ps-stat-num" style={{ color: '#FF8C00' }}>{majors}</span>
-        <span className="ps-stat-label">Major Tours</span>
+        <span className="ps-stat-num" style={{ color: '#FF8C00' }}>{withEvents}</span>
+        <span className="ps-stat-label">With Events</span>
       </div>
     </div>
   );
@@ -211,7 +211,8 @@ export default function PokerSeriesPage() {
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
   const [tourFilter, setTourFilter] = useState('all');
-  const [sortBy, setSortBy]     = useState('name');
+  const [sortBy, setSortBy]     = useState('events');
+  const [hasEventsOnly, setHasEventsOnly] = useState(true);
   const searchRef = useRef(null);
 
   // Keyboard shortcut
@@ -244,11 +245,14 @@ export default function PokerSeriesPage() {
     return ['all', ...Array.from(s).sort()];
   }, [series]);
 
+  const getEvtCount = (s) => s.events_count || s.events?.length || s.total_events || s.event_count || 0;
   const liveCount  = useMemo(() => series.filter(s => isSerieLive(s.start_date, s.end_date)).length, [series]);
   const majorCount = useMemo(() => series.filter(s => ['WSOP','WPT','MSPT','RGPS','DSE'].includes(s.tour)).length, [series]);
+  const withEventsCount = useMemo(() => series.filter(s => getEvtCount(s) > 0).length, [series]);
 
   const filtered = useMemo(() => {
     let r = [...series];
+    if (hasEventsOnly) r = r.filter(s => getEvtCount(s) > 0);
     if (tourFilter !== 'all') r = r.filter(s => s.tour === tourFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -261,6 +265,7 @@ export default function PokerSeriesPage() {
       );
     }
     switch (sortBy) {
+      case 'events': r.sort((a,b) => getEvtCount(b) - getEvtCount(a)); break;
       case 'name':  r.sort((a,b) => cleanName(a.series_name || a.name || '').localeCompare(cleanName(b.series_name || b.name || ''))); break;
       case 'date':  r.sort((a,b) => (a.start_date || 'z').localeCompare(b.start_date || 'z')); break;
       case 'tour':  r.sort((a,b) => (a.tour || 'z').localeCompare(b.tour || 'z')); break;
@@ -268,7 +273,7 @@ export default function PokerSeriesPage() {
       default: break;
     }
     return r;
-  }, [series, tourFilter, search, sortBy]);
+  }, [series, tourFilter, search, sortBy, hasEventsOnly]);
 
   return (
     <>
@@ -300,7 +305,7 @@ export default function PokerSeriesPage() {
 
         <div className="ps-container">
           {/* ── Stats Banner ── */}
-          <StatBanner total={series.length} live={liveCount} majors={majorCount}/>
+          <StatBanner total={series.length} live={liveCount} withEvents={withEventsCount}/>
 
           {/* ── Controls ── */}
           <div className="ps-controls">
@@ -344,12 +349,21 @@ export default function PokerSeriesPage() {
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value)}
                 >
-                  <option value="name">Name A–Z</option>
+                  <option value="events">Most Events</option>
+                  <option value="name">Name A-Z</option>
                   <option value="date">Date</option>
                   <option value="tour">Tour</option>
                   <option value="buyin">Buy-In (High)</option>
                 </select>
               </div>
+
+              <button
+                className={'ps-toggle-btn' + (hasEventsOnly ? ' ps-toggle-btn--active' : '')}
+                onClick={() => setHasEventsOnly(!hasEventsOnly)}
+                aria-label="Toggle has events filter"
+              >
+                {hasEventsOnly ? `With Events (${withEventsCount})` : `All Series (${series.length})`}
+              </button>
 
               <div className="ps-results-count">
                 {filtered.length} series
@@ -848,6 +862,36 @@ export default function PokerSeriesPage() {
           padding: 5px 10px;
         }
         .psc__btn--ext:hover { opacity: 1; }
+
+        /* Has Events toggle */
+        .ps-toggle-btn {
+          font-family: 'Orbitron', sans-serif;
+          font-size: 0.58rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--text-muted);
+          background: linear-gradient(180deg, #1a2332 0%, #0d1117 100%);
+          border: 1px solid var(--metal-highlight);
+          border-radius: 6px;
+          padding: 7px 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+        .ps-toggle-btn:hover {
+          border-color: var(--neon-cyan);
+          color: var(--text-pri);
+        }
+        .ps-toggle-btn--active {
+          color: #4ade80;
+          border-color: rgba(74,222,128,0.4);
+          background: linear-gradient(180deg, rgba(74,222,128,0.08) 0%, #0d1117 100%);
+          box-shadow: 0 0 8px rgba(74,222,128,0.2);
+        }
+        .ps-toggle-btn--active:hover {
+          border-color: rgba(74,222,128,0.7);
+        }
 
         /* Responsive */
         @media (max-width: 640px) {
