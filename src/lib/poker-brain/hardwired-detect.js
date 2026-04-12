@@ -91,12 +91,14 @@ function autoCalibrate(videoElement, layout, matcher, scaleX, scaleY, offsetX, o
       if (testY < 0 || testY + scaledH > videoH) continue;
 
       const testRegion = { x: nomX, y: testY, w: scaledW, h: scaledH };
-      const result = matcher.matchRegion(canvas, testRegion, videoW, videoH, { skipOffsets: true, threshold: 15 });
+      const result = matcher.matchRegion(canvas, testRegion, videoW, videoH, { skipOffsets: true, threshold: 20 });
+      // Use key or bestGuess (bestGuess is set even when threshold rejects)
+      const matchKey = result.key || result.bestGuess || null;
 
       if (result.distance < bestDist) {
         bestDist = result.distance;
         bestDy = dy;
-        bestKey = result.key;
+        bestKey = matchKey;
       }
     }
 
@@ -110,12 +112,13 @@ function autoCalibrate(videoElement, layout, matcher, scaleX, scaleY, offsetX, o
         if (testX < 0 || testX + scaledW > videoW) continue;
 
         const testRegion = { x: testX, y: testY, w: scaledW, h: scaledH };
-        const result = matcher.matchRegion(canvas, testRegion, videoW, videoH, { skipOffsets: true, threshold: 15 });
+        const result = matcher.matchRegion(canvas, testRegion, videoW, videoH, { skipOffsets: true, threshold: 20 });
+        const matchKey = result.key || result.bestGuess || null;
 
         if (result.distance < bestDist) {
           bestDist = result.distance;
           bestDx = dx;
-          bestKey = result.key;
+          bestKey = matchKey;
         }
       }
     }

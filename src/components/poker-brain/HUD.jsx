@@ -1026,6 +1026,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
       // previous capture so nothing carries over.
       detectionSnapshotRef.current = null;
       if (tableStateRef.current) tableStateRef.current.reset();
+      resetCalibration(); // Clear cached calibration for new screen share
       setSource('screen');
       setStreamReady(true);
       // Hardwired mode is always on — no toggle needed.
