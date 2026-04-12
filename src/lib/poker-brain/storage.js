@@ -26,24 +26,53 @@ const DB_VERSION = 2;
 const STORE_QUEUE = 'offline_queue';
 const STORE_IDMAP = 'session_id_map';
 
+// Pooled IndexedDB connection — avoids opening a new connection per operation.
+// During flush cycles 10+ operations run in sequence; without pooling each
+// would pay the full IDB open overhead (~5-20ms).
+let _dbInstance = null;
+let _dbPromise = null;
+
 function openDB() {
-  return new Promise((resolve, reject) => {
+  // Return cached connection if still open
+  if (_dbInstance) {
+    try {
+      // Verify the connection is still alive by checking objectStoreNames
+      _dbInstance.objectStoreNames;
+      return Promise.resolve(_dbInstance);
+    } catch (_) {
+      // Connection was closed or invalidated — reopen
+      _dbInstance = null;
+      _dbPromise = null;
+    }
+  }
+  // Deduplicate concurrent open requests
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = (event) => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_QUEUE)) {
         db.createObjectStore(STORE_QUEUE, { keyPath: 'id', autoIncrement: true });
       }
-      // v2: persist temp→real session ID mappings so they survive page reload.
+      // v2: persist temp->real session ID mappings so they survive page reload.
       // Without this, offline-queued log_hand/end_session entries with
       // p_session_id = 'local_<ts>' become unresolvable after a refresh.
       if (!db.objectStoreNames.contains(STORE_IDMAP)) {
         db.createObjectStore(STORE_IDMAP, { keyPath: 'tempId' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      _dbInstance = req.result;
+      // Clear cached instance if the connection closes unexpectedly
+      _dbInstance.onclose = () => { _dbInstance = null; _dbPromise = null; };
+      resolve(_dbInstance);
+    };
+    req.onerror = () => {
+      _dbPromise = null;
+      reject(req.error);
+    };
   });
+  return _dbPromise;
 }
 
 async function idMapPut(tempId, realId) {
