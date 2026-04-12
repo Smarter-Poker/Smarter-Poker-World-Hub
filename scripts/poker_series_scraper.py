@@ -1110,7 +1110,9 @@ def load_missing_series(filter_state: str = "", filter_slug: str = "",
         sid = str(s.get("id", ""))
         db_row = db_map.get(sid, {})
         s["_db_state"] = db_row.get("state", "")
-        s["source_url"] = db_row.get("source_url") or db_row.get("scrape_url") or ""
+        # Prefer master list source_url, fallback to DB
+        if not s.get("source_url"):
+            s["source_url"] = db_row.get("source_url") or db_row.get("scrape_url") or ""
 
     # Filter by state
     if filter_state:
