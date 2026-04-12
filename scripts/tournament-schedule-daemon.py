@@ -1064,8 +1064,9 @@ def load_venues(batch_num: int = 0) -> list:
     params=(
         "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
         "pokeratlas_url,pokeratlas_slug,"
-        "scrape_url,schedule_scrape_url,schedule_last_scraped_at,has_tournaments"
+        "scrape_url,schedule_scrape_url,schedule_last_scraped_at,has_tournaments,is_suppressed"
         "&is_active=eq.true"
+        "&is_suppressed=eq.false"
         "&has_tournaments=eq.true"
         "&order=id.asc&limit=2000"
     )
@@ -1077,6 +1078,41 @@ def load_venues(batch_num: int = 0) -> list:
         start=(batch_num-1)*CHUNK_SIZE
         rows=rows[start:start+CHUNK_SIZE]
         log(f"  Batch {batch_num}: venues {start+1}–{start+len(rows)}")
+    return rows
+
+def load_missing_venues(venue_ids: list = None) -> list:
+    """Load venues that have NO tournament data yet. Ignores has_tournaments filter."""
+    params=(
+        "?select=id,name,state,city,venue_type,website,poker_atlas_url,"
+        "pokeratlas_url,pokeratlas_slug,"
+        "scrape_url,schedule_scrape_url,schedule_last_scraped_at,has_tournaments,is_suppressed"
+        "&is_active=eq.true"
+        "&is_suppressed=eq.false"
+        "&order=id.asc&limit=2000"
+    )
+    rows=sb_get("poker_venues",params)
+    before=len(rows)
+    rows=[v for v in rows if (v.get("venue_type") or "").lower() not in SKIP_TYPES]
+    log(f"  {before} venues loaded → {len(rows)} after type filter")
+
+    if venue_ids:
+        id_set = set(venue_ids)
+        rows = [v for v in rows if v["id"] in id_set]
+        log(f"  Filtered to {len(rows)} specified venue IDs")
+    else:
+        # Auto-detect: find venue_ids that already have active tournament data
+        existing_vids = set()
+        offset = 0
+        while True:
+            batch = sb_get("venue_daily_tournaments",
+                f"?select=venue_id&is_active=eq.true&limit=1000&offset={offset}")
+            if not batch: break
+            for r in batch:
+                if r.get("venue_id"): existing_vids.add(r["venue_id"])
+            if len(batch) < 1000: break
+            offset += 1000
+        rows = [v for v in rows if v["id"] not in existing_vids]
+        log(f"  {len(existing_vids)} venues already have data → {len(rows)} missing venues to scrape")
     return rows
 
 # ── Session factory ───────────────────────────────────────────────────────────
@@ -1625,8 +1661,11 @@ def main():
     p.add_argument("--batch", type=int, default=0,
                    help="Run single batch N (25 venues) and exit. 0=daemon mode (all venues, loops).")
     p.add_argument("--dry-run", action="store_true", help="No DB writes")
-
     p.add_argument("--enrich", action="store_true", help="Run enrichment pass on incomplete records")
+    p.add_argument("--missing", action="store_true",
+                   help="Scrape only venues that have NO tournament data yet (single pass, then exit)")
+    p.add_argument("--venue-ids", type=str, default="",
+                   help="Comma-separated venue IDs to scrape (overrides normal loading)")
     args=p.parse_args()
 
     if args.enrich:
@@ -1668,7 +1707,11 @@ def main():
         cp_map=fetch_cardplayer(session_mgr)
         time.sleep(3)
 
-        venues=load_venues(args.batch)
+        if args.missing or args.venue_ids:
+            vid_list = [int(x) for x in args.venue_ids.split(',') if x.strip()] if args.venue_ids else None
+            venues=load_missing_venues(vid_list)
+        else:
+            venues=load_venues(args.batch)
         log(f"\n  Processing {len(venues)} venues in chunks of {CHUNK_SIZE}\n")
         wall_start=time.time()
 
@@ -1771,6 +1814,9 @@ def main():
 
         if args.batch:
             log("Batch mode — exiting."); sys.exit(0)
+
+        if args.missing or args.venue_ids:
+            log("Missing/targeted mode — single pass done, exiting."); sys.exit(0)
 
         log(f"Sleeping {CYCLE_SLEEP//3600}h...\n{'='*70}\n")
         time.sleep(CYCLE_SLEEP)

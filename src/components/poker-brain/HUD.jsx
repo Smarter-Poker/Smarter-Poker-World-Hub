@@ -30,6 +30,7 @@ import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validat
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
 import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops, autoCalibrateLive, verifiedAutoCalibrate, persistCalibratedHashes, restoreCalibratedHashes } from '../../lib/poker-brain/template-capture';
+import { extractTemplatesFromFrame, buildTemplateBundle, injectTemplateBundle } from '../../lib/poker-brain/template-extractor';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
 import Onboarding from './Onboarding';
@@ -2147,7 +2148,14 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                     const video = videoRef.current;
                     if (!video) return;
                     const layout = effectiveLayoutRef.current;
-                    const crops = captureCardCrops(video, layout, { variant: gameType });
+                    // Use template-extractor for proper bilinear downscale + hash computation
+                    let crops;
+                    try {
+                      crops = extractTemplatesFromFrame(video, layout, { variant: gameType });
+                    } catch (_) {
+                      // Fallback to old capture if extractor fails
+                      crops = captureCardCrops(video, layout, { variant: gameType });
+                    }
                     const fullFrame = captureFullFrame(video);
                     setCapturePreview({ crops, fullFrame });
                     // Pre-populate labels from current diagInfo best matches
@@ -2175,12 +2183,21 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                       <button
                         onClick={() => {
                           const matcher = getMatcher();
-                          const allLabels = capturePreview.crops.map((c) => {
+                          // Build a properly-hashed template bundle using
+                          // template-extractor (canonical dHash/aHash algos)
+                          const labels = {};
+                          capturePreview.crops.forEach((c, i) => {
                             const key = `${c.kind}_${c.slot}`;
-                            return captureLabels[key] || null;
+                            const label = captureLabels[key];
+                            if (label) labels[i] = label;
                           });
-                          const count = injectLiveHashes(matcher, capturePreview.crops, allLabels);
-                          alert(`Injected ${count} live template hashes. Detection should improve immediately.`);
+                          const bundle = buildTemplateBundle(capturePreview.crops, labels);
+                          const injected = injectTemplateBundle(matcher, bundle);
+                          // Also persist so hashes survive page reload
+                          if (injected > 0 && matcher.templateHashes) {
+                            try { persistCalibratedHashes(matcher.templateHashes); } catch (_) {}
+                          }
+                          alert(`Injected ${injected} template hashes (extractor pipeline). Detection should improve immediately.`);
                         }}
                         className="text-[10px] px-2 py-1 rounded bg-green-600 hover:bg-green-500 text-white font-bold"
                       >
