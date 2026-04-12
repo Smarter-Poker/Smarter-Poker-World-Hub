@@ -250,6 +250,11 @@ class PokerOCR {
     this.cache = new Map();
     this.debounceTimers = new Map();
     this.lastChecksums = new Map();
+    // Persistent worker pool — avoids creating+terminating a worker per OCR call.
+    // Tesseract worker init takes 200-400ms, so reusing them is critical for perf.
+    this._worker = null;
+    this._workerReady = false;
+    this._workerBusy = false;
   }
   
   /**
@@ -345,11 +350,17 @@ class PokerOCR {
           
           this.lastChecksums.set(cacheKey, checksum);
           
-          // Preprocess image
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = canvas.width;
-          tempCanvas.height = canvas.height;
+          // Preprocess image — reuse a cached canvas to avoid allocs
+          if (!this._prepCanvas) {
+            this._prepCanvas = document.createElement('canvas');
+          }
+          const tempCanvas = this._prepCanvas;
+          if (tempCanvas.width !== canvas.width || tempCanvas.height !== canvas.height) {
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+          }
           const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.clearRect(0, 0, canvas.width, canvas.height);
           tempCtx.drawImage(canvas, 0, 0);
           
           const processed = preprocessForOCR(tempCanvas);
@@ -359,15 +370,25 @@ class PokerOCR {
           if (!this.isInitialized) {
             await this.initialize();
           }
-          
+
           if (!this.tesseract) {
             throw new Error('Tesseract.js is not available');
           }
-          
-          // Run OCR
-          const worker = await this.tesseract.createWorker(language);
-          const result = await worker.recognize(tempCanvas);
-          await worker.terminate();
+
+          // Reuse persistent worker — creating one per call is ~300ms overhead
+          if (!this._worker || !this._workerReady) {
+            try {
+              this._worker = await this.tesseract.createWorker(language);
+              this._workerReady = true;
+            } catch (workerErr) {
+              this._worker = null;
+              this._workerReady = false;
+              throw workerErr;
+            }
+          }
+
+          // Run OCR on persistent worker
+          const result = await this._worker.recognize(tempCanvas);
           
           const text = (result.data.text || '').trim();
           const confidence = result.data.confidence || 0;
@@ -477,12 +498,19 @@ class PokerOCR {
   destroy() {
     this.cache.clear();
     this.lastChecksums.clear();
-    
+
     for (const timer of this.debounceTimers.values()) {
       clearTimeout(timer);
     }
     this.debounceTimers.clear();
-    
+
+    // Terminate the persistent worker to free WASM memory
+    if (this._worker) {
+      try { this._worker.terminate(); } catch (_) { /* ignore */ }
+      this._worker = null;
+      this._workerReady = false;
+    }
+
     this.tesseract = null;
     this.isInitialized = false;
     this.isInitializing = false;

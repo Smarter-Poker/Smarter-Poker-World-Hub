@@ -90,6 +90,10 @@ function isFelt(r, g, b) {
 // Downscale
 // ─────────────────────────────────────────────────────────────────────
 
+// Module-level cached canvas for downscale — avoids ~1 canvas alloc/sec
+let _tfCanvas = null;
+let _tfCtx = null;
+
 function downscale(source) {
   const srcW = source.videoWidth || source.width || source.naturalWidth;
   const srcH = source.videoHeight || source.height || source.naturalHeight;
@@ -97,12 +101,17 @@ function downscale(source) {
   const scale = Math.min(1, DOWNSCALE_MAX_W / srcW);
   const dw = Math.max(1, Math.round(srcW * scale));
   const dh = Math.max(1, Math.round(srcH * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = dw;
-  canvas.height = dh;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, 0, 0, dw, dh);
-  const imageData = ctx.getImageData(0, 0, dw, dh);
+  if (!_tfCanvas) {
+    _tfCanvas = document.createElement('canvas');
+    _tfCtx = _tfCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  if (_tfCanvas.width !== dw || _tfCanvas.height !== dh) {
+    _tfCanvas.width = dw;
+    _tfCanvas.height = dh;
+    _tfCtx = _tfCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  _tfCtx.drawImage(source, 0, 0, dw, dh);
+  const imageData = _tfCtx.getImageData(0, 0, dw, dh);
   return { imageData, scaleBackX: srcW / dw, scaleBackY: srcH / dh, srcW, srcH };
 }
 

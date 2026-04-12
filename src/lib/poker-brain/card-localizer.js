@@ -115,6 +115,10 @@ const HOLDEM_MIN_COMPONENT_AREA = 20;
 // Stage 1 — downscale + adaptive mask
 // ═══════════════════════════════════════════════════════════════════════
 
+// Module-level cached canvas for getDownscaledImage — avoids ~1 canvas alloc/sec
+let _clCanvas = null;
+let _clCtx = null;
+
 /**
  * Downscale a source (video/canvas/image) into a working canvas. If a
  * `tableBounds` rectangle is provided (in source pixel coords), crop to
@@ -145,13 +149,18 @@ function getDownscaledImage(source, tableBounds) {
   const dw = Math.max(1, Math.round(roiW * scale));
   const dh = Math.max(1, Math.round(roiH * scale));
 
-  const canvas = document.createElement('canvas');
-  canvas.width = dw;
-  canvas.height = dh;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!_clCanvas) {
+    _clCanvas = document.createElement('canvas');
+    _clCtx = _clCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  if (_clCanvas.width !== dw || _clCanvas.height !== dh) {
+    _clCanvas.width = dw;
+    _clCanvas.height = dh;
+    _clCtx = _clCanvas.getContext('2d', { willReadFrequently: true });
+  }
   // drawImage(source, sx, sy, sw, sh, dx, dy, dw, dh) crops + scales in 1 op
-  ctx.drawImage(source, roiX, roiY, roiW, roiH, 0, 0, dw, dh);
-  const imageData = ctx.getImageData(0, 0, dw, dh);
+  _clCtx.drawImage(source, roiX, roiY, roiW, roiH, 0, 0, dw, dh);
+  const imageData = _clCtx.getImageData(0, 0, dw, dh);
 
   return {
     imageData,

@@ -297,6 +297,15 @@ class PokerBrainMatcher {
       this._cropCanvas.height = TEMPLATE_H + 2 * SCRATCH_PAD_PX;
       this._cropCtx = this._cropCanvas.getContext('2d', { willReadFrequently: true });
     }
+    if (!this._directCanvas) {
+      // Cached canvas for the hardwired direct-crop path (matchRegion
+      // with skipOffsets). Eliminates ~44 canvas allocs/sec at 4Hz with
+      // up to 11 card regions.
+      this._directCanvas = document.createElement('canvas');
+      this._directCanvas.width = TEMPLATE_W;
+      this._directCanvas.height = TEMPLATE_H;
+      this._directCtx = this._directCanvas.getContext('2d', { willReadFrequently: true });
+    }
   }
 
   /**
@@ -330,15 +339,9 @@ class PokerBrainMatcher {
       // Direct crop: source region → TEMPLATE_W x TEMPLATE_H canvas
       // This matches the template loading path exactly (line 259-263):
       //   ctx.drawImage(img, 0, 0, TEMPLATE_W, TEMPLATE_H);
-      const directCanvas = this._cropCanvas;
-      const directCtx = this._cropCtx;
-      // Use the crop canvas at template dimensions for direct match
-      // We temporarily resize if needed, but since we only need 64x88,
-      // just use an inline canvas approach.
-      const tmpCanvas = document.createElement('canvas');
-      tmpCanvas.width = TEMPLATE_W;
-      tmpCanvas.height = TEMPLATE_H;
-      const tmpCtx = tmpCanvas.getContext('2d', { willReadFrequently: true });
+      // Uses the cached _directCanvas to avoid ~44 canvas allocs/sec.
+      const tmpCanvas = this._directCanvas;
+      const tmpCtx = this._directCtx;
       tmpCtx.clearRect(0, 0, TEMPLATE_W, TEMPLATE_H);
 
       const srcX = Math.max(0, Math.round(region.x));
