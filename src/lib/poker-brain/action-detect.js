@@ -92,10 +92,17 @@ export function detectAvailableActions(source, layout, opts = {}) {
   const sx = srcW / refW;
   const sy = srcH / refH;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = srcW;
-  canvas.height = srcH;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  // Cached canvas to avoid creating a new one per call (~1 Hz)
+  if (!detectAvailableActions._canvas) {
+    detectAvailableActions._canvas = document.createElement('canvas');
+    detectAvailableActions._ctx = detectAvailableActions._canvas.getContext('2d', { willReadFrequently: true });
+  }
+  const canvas = detectAvailableActions._canvas;
+  if (canvas.width !== srcW || canvas.height !== srcH) {
+    canvas.width = srcW;
+    canvas.height = srcH;
+  }
+  const ctx = detectAvailableActions._ctx;
   ctx.drawImage(source, 0, 0, srcW, srcH);
   const imageData = ctx.getImageData(0, 0, srcW, srcH);
 

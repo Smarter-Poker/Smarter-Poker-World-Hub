@@ -22,9 +22,9 @@
  */
 
 import PokerBrainEngine from './engine.js';
-// NOTE: supabase import uses extensionless path because the source is .ts
-// (resolved by Next.js/Webpack at build time, not raw Node ESM).
-import { supabase } from '../supabase';
+// NOTE: ../supabase resolves to supabase.ts in Next.js (Webpack) and to
+// supabase.js (test mock) in raw Node ESM. Both paths work correctly.
+import { supabase } from '../supabase.js';
 
 const DEFAULT_CONFIDENCE_FLOOR = 0.80;  // 80% match confidence required
 const STRONG_CONFIDENCE_FLOOR  = 0.90;  // Used for high-stakes decisions
@@ -72,22 +72,41 @@ export function extractCards(matcherCards, confidenceFloor = DEFAULT_CONFIDENCE_
  * @param {string} authToken - Supabase JWT for authentication
  * @returns {Promise<object|null>} Horse Brain decision or null on failure
  */
+/**
+ * Retry config for Horse Brain API. Exponential backoff with jitter.
+ * Max 2 retries (3 total attempts) to keep latency under ~1.5s.
+ */
+const HB_MAX_RETRIES = 2;
+const HB_BASE_DELAY_MS = 150;
+
 async function callHorseBrain(params, authToken) {
-  try {
-    const resp = await fetch('/api/poker-brain/decide', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(params),
-    });
-    if (!resp.ok) return null;
-    return await resp.json();
-  } catch (err) {
-    console.warn('[decision-bridge] Horse Brain API unreachable, falling back to local engine:', err.message);
-    return null;
+  let lastErr = null;
+  for (let attempt = 0; attempt <= HB_MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch('/api/poker-brain/decide', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(params),
+      });
+      if (resp.ok) return await resp.json();
+      // 4xx = client error, don't retry
+      if (resp.status >= 400 && resp.status < 500) return null;
+      // 5xx = server error, retry
+      lastErr = new Error(`HTTP ${resp.status}`);
+    } catch (err) {
+      lastErr = err;
+    }
+    // Exponential backoff with jitter before retry
+    if (attempt < HB_MAX_RETRIES) {
+      const delay = HB_BASE_DELAY_MS * Math.pow(2, attempt) * (0.5 + Math.random() * 0.5);
+      await new Promise(r => setTimeout(r, delay));
+    }
   }
+  console.warn('[decision-bridge] Horse Brain API unreachable after retries, falling back to local engine:', lastErr?.message);
+  return null;
 }
 
 /**
@@ -254,6 +273,29 @@ export async function getBridgedDecision(input) {
           texture = PokerBrainEngine.classifyTexture(effectiveBoard);
         } catch (err) { warnings.push(`[texture] ${err.message}`); }
       }
+      // PLO Hi-Lo: evaluate best low hand (2 from hole + 3 from board, Omaha rules)
+      let lowHandStrength = null;
+      const isHiLo = String(gameType).includes('hilo') || String(gameType).includes('plo8');
+      if (isHiLo && effectiveBoard.length >= 3 && PokerBrainEngine.getBestLowFromCards) {
+        try {
+          // Omaha low: must use exactly 2 hole cards + 3 board cards
+          let bestLow = null;
+          for (let i = 0; i < holeTrimmed.length; i++) {
+            for (let j = i + 1; j < holeTrimmed.length; j++) {
+              for (let a = 0; a < effectiveBoard.length; a++) {
+                for (let b = a + 1; b < effectiveBoard.length; b++) {
+                  for (let c = b + 1; c < effectiveBoard.length; c++) {
+                    const five = [holeTrimmed[i], holeTrimmed[j], effectiveBoard[a], effectiveBoard[b], effectiveBoard[c]];
+                    const low = PokerBrainEngine.getBestLowFromCards(five);
+                    if (low && (!bestLow || low.score < bestLow.score)) bestLow = low;
+                  }
+                }
+              }
+            }
+          }
+          if (bestLow) lowHandStrength = bestLow.rank;
+        } catch (err) { warnings.push(`[lowHand] ${err.message}`); }
+      }
       let outs = 0;
       let outsImproves = [];
       if (!isOmahaVariant && (effectiveBoard.length === 3 || effectiveBoard.length === 4)) {
@@ -290,6 +332,7 @@ export async function getBridgedDecision(input) {
         isOmaha: isOmahaVariant,
         street,
         handStrength,
+        lowHandStrength,
         texture,
         outs,
         outsImproves,
@@ -389,6 +432,28 @@ export async function getBridgedDecision(input) {
       texture = PokerBrainEngine.classifyTexture(effectiveBoard);
     } catch (err) { warnings.push(`[texture] ${err.message}`); }
   }
+  // PLO Hi-Lo low hand eval (fallback engine path)
+  let lowHandStrength2 = null;
+  const isHiLo2 = !!engineResult?.isHiLo || String(gameType).includes('hilo') || String(gameType).includes('plo8');
+  if (isHiLo2 && effectiveBoard.length >= 3 && PokerBrainEngine.getBestLowFromCards) {
+    try {
+      let bestLow = null;
+      for (let i = 0; i < holeTrimmed.length; i++) {
+        for (let j = i + 1; j < holeTrimmed.length; j++) {
+          for (let a = 0; a < effectiveBoard.length; a++) {
+            for (let b = a + 1; b < effectiveBoard.length; b++) {
+              for (let c = b + 1; c < effectiveBoard.length; c++) {
+                const five = [holeTrimmed[i], holeTrimmed[j], effectiveBoard[a], effectiveBoard[b], effectiveBoard[c]];
+                const low = PokerBrainEngine.getBestLowFromCards(five);
+                if (low && (!bestLow || low.score < bestLow.score)) bestLow = low;
+              }
+            }
+          }
+        }
+      }
+      if (bestLow) lowHandStrength2 = bestLow.rank;
+    } catch (err) { warnings.push(`[lowHand] ${err.message}`); }
+  }
   let outs = 0;
   let outsImproves = [];
   if (!isOmahaVariant && (effectiveBoard.length === 3 || effectiveBoard.length === 4)) {
@@ -435,6 +500,7 @@ export async function getBridgedDecision(input) {
     isOmaha: !!engineResult.isOmaha,
     street,
     handStrength,
+    lowHandStrength: lowHandStrength2,
     texture,
     outs,
     outsImproves,

@@ -351,6 +351,8 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const [bigBlind, setBigBlind] = useState(0);
   const [betToCall, setBetToCall] = useState(0);
   const [position, setPosition] = useState('middle');
+  const [ocrStale, setOcrStale] = useState(false);
+  const lastOcrSuccessRef = useRef(0);
   const [dealerSeat, setDealerSeat] = useState(null);
   const [gameType, setGameType] = useState(initialGameType || 'nlhe');
   const [heroName, setHeroName] = useState('');
@@ -1252,7 +1254,15 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
         const ocrLayout = effectiveLayoutRef.current;
         if (video && ocr && ocrLayout.ocrRegions) {
           execOcrPass(video, ocrLayout, ocr).then((r) => {
-            if (!r) return;
+            if (!r) {
+              // OCR failed — mark stale if last success was > 10s ago
+              if (lastOcrSuccessRef.current > 0 && Date.now() - lastOcrSuccessRef.current > 10000) {
+                setOcrStale(true);
+              }
+              return;
+            }
+            lastOcrSuccessRef.current = Date.now();
+            setOcrStale(false);
             if (r.potSize !== undefined) setPotSize(r.potSize);
             if (r.heroStack !== undefined) setHeroStack(r.heroStack);
             if (r.bigBlind !== undefined) setBigBlind(r.bigBlind);
@@ -1659,8 +1669,9 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             />
           </span>
           {potSize > 0 && (
-            <span className="bg-slate-800 rounded px-2 py-1">
+            <span className={`rounded px-2 py-1 ${ocrStale ? 'bg-yellow-900/80' : 'bg-slate-800'}`}>
               Pot: <span className="font-bold text-white">{potSize}</span>
+              {ocrStale && <span className="text-yellow-400 text-[9px] ml-1">(stale)</span>}
             </span>
           )}
           {heroStack > 0 && (
@@ -1739,8 +1750,20 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               )}
               {decision.handStrength && (
                 <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
-                  <div className="text-[9px] text-white/60 uppercase">Hand</div>
+                  <div className="text-[9px] text-white/60 uppercase">{decision.isHiLo ? 'High' : 'Hand'}</div>
                   <div className="text-sm font-bold">{decision.handStrength}</div>
+                </div>
+              )}
+              {decision.isHiLo && decision.lowHandStrength && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">Low</div>
+                  <div className="text-sm font-bold text-cyan-300">{decision.lowHandStrength}</div>
+                </div>
+              )}
+              {decision.isHiLo && !decision.lowHandStrength && decision.boardCards?.length >= 3 && (
+                <div className="bg-black/30 rounded-lg px-2.5 py-1.5">
+                  <div className="text-[9px] text-white/60 uppercase">Low</div>
+                  <div className="text-sm font-bold text-white/40">No Low</div>
                 </div>
               )}
               {typeof decision.confidence === 'number' && (

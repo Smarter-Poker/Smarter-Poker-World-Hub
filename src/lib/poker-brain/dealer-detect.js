@@ -26,6 +26,22 @@ const DEFAULT_CONFIG = {
   searchRadius: 60, // px around seat anchor
 };
 
+// Cached canvas for pixel reads — avoids creating ~4 canvases/sec
+let _cachedCanvas = null;
+let _cachedCtx = null;
+
+function getCachedCanvas(w, h) {
+  if (!_cachedCanvas) {
+    _cachedCanvas = document.createElement('canvas');
+    _cachedCtx = _cachedCanvas.getContext('2d', { willReadFrequently: true });
+  }
+  if (_cachedCanvas.width !== w || _cachedCanvas.height !== h) {
+    _cachedCanvas.width = w;
+    _cachedCanvas.height = h;
+  }
+  return { canvas: _cachedCanvas, ctx: _cachedCtx };
+}
+
 /**
  * Test whether an RGB triplet is "red enough" to be the dealer button.
  * PokerBros button is roughly (200, 40, 55) - saturated crimson.
@@ -133,11 +149,8 @@ export function detectDealer(source, layout, overrides = {}) {
   const scaleX = srcW / refW;
   const scaleY = srcH / refH;
 
-  // Draw frame to a temp canvas so we can read pixels
-  const canvas = document.createElement('canvas');
-  canvas.width = srcW;
-  canvas.height = srcH;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  // Draw frame to cached canvas so we can read pixels
+  const { ctx } = getCachedCanvas(srcW, srcH);
   ctx.drawImage(source, 0, 0, srcW, srcH);
   const imageData = ctx.getImageData(0, 0, srcW, srcH);
 
@@ -293,10 +306,7 @@ export function findDealerButtonGlobal(source, tableBounds = null, overrides = {
 
   const srcW = roiW;
   const srcH = roiH;
-  const canvas = document.createElement('canvas');
-  canvas.width = srcW;
-  canvas.height = srcH;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const { ctx } = getCachedCanvas(srcW, srcH);
   ctx.drawImage(source, roiX, roiY, roiW, roiH, 0, 0, srcW, srcH);
   const imageData = ctx.getImageData(0, 0, srcW, srcH);
 
@@ -447,10 +457,7 @@ export function detectOccupiedSeats(source, layout) {
   const srcH = source.videoHeight || source.height || source.naturalHeight;
   if (!srcW || !srcH) return { occupiedSeats: [], playerCount: 0, hero: true };
 
-  const canvas = document.createElement('canvas');
-  canvas.width = srcW;
-  canvas.height = srcH;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const { ctx } = getCachedCanvas(srcW, srcH);
   ctx.drawImage(source, 0, 0, srcW, srcH);
 
   const scaleX = srcW / layout.referenceSize.w;
