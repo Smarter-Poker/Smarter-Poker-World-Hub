@@ -71,7 +71,12 @@
     "currentBet":    { "x": 298, "y": 895, "w": 150, "h": 28, "kind": "number" },
     "seat1Stack":    { "x": 190, "y": 165, "w": 100, "h": 24, "kind": "number" },
     "seat2Stack":    { "x": 42,  "y": 222, "w": 100, "h": 24, "kind": "number" },
-    "seat3Stack":    { "x": 320, "y": 222, "w": 100, "h": 24, "kind": "number" }
+    "seat3Stack":    { "x": 320, "y": 222, "w": 100, "h": 24, "kind": "number" },
+    "seat4Stack":    { "x": 8,   "y": 595, "w": 90,  "h": 24, "kind": "number" },
+    "seat5Stack":    { "x": 378, "y": 595, "w": 90,  "h": 24, "kind": "number" },
+    "seat6Stack":    { "x": 18,  "y": 770, "w": 90,  "h": 24, "kind": "number" },
+    "seat7Stack":    { "x": 360, "y": 770, "w": 90,  "h": 24, "kind": "number" },
+    "seat8Stack":    { "x": 15,  "y": 395, "w": 95,  "h": 24, "kind": "number" }
   },
 
   "actionButtons": {
@@ -86,7 +91,10 @@
     { "id": "seat2", "position": "topLeft",     "x": 35,  "y": 155, "w": 100, "h": 110 },
     { "id": "seat3", "position": "topRight",    "x": 328, "y": 155, "w": 100, "h": 110 },
     { "id": "seat4", "position": "middleLeft",  "x": 5,   "y": 528, "w": 90,  "h": 100 },
-    { "id": "seat5", "position": "middleRight", "x": 378, "y": 528, "w": 90,  "h": 100 }
+    { "id": "seat5", "position": "middleRight", "x": 378, "y": 528, "w": 90,  "h": 100 },
+    { "id": "seat6", "position": "lowerLeft",   "x": 20,  "y": 700, "w": 85,  "h": 95 },
+    { "id": "seat7", "position": "lowerRight",  "x": 365, "y": 700, "w": 85,  "h": 95 },
+    { "id": "seat8", "position": "upperLeft",   "x": 15,  "y": 330, "w": 90,  "h": 95 }
   ],
 
   "dealerButton": {

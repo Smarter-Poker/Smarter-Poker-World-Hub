@@ -26,7 +26,7 @@ import TableStateTracker from '../../lib/poker-brain/table-state-tracker';
 import { compareHandStrength } from '../../lib/poker-brain/hand-strength-validator';
 import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
-import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops, autoCalibrateLive, persistCalibratedHashes, restoreCalibratedHashes } from '../../lib/poker-brain/template-capture';
+import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops, autoCalibrateLive, verifiedAutoCalibrate, persistCalibratedHashes, restoreCalibratedHashes } from '../../lib/poker-brain/template-capture';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
 import Onboarding from './Onboarding';
@@ -595,6 +595,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const playersRef = useRef(players);
   const isTournamentRef = useRef(isTournament);
   const tournamentStageRef = useRef(tournamentStage);
+  const handLabelRef = useRef(pokerBrosHandLabel);
   useEffect(() => { positionRef.current = position; }, [position]);
   useEffect(() => { potSizeRef.current = potSize; }, [potSize]);
   useEffect(() => { heroStackRef.current = heroStack; }, [heroStack]);
@@ -604,6 +605,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   useEffect(() => { playersRef.current = players; }, [players]);
   useEffect(() => { isTournamentRef.current = isTournament; }, [isTournament]);
   useEffect(() => { tournamentStageRef.current = tournamentStage; }, [tournamentStage]);
+  useEffect(() => { handLabelRef.current = pokerBrosHandLabel; }, [pokerBrosHandLabel]);
 
   // Effective stack = min(hero, max villain with non-zero stack). Used as
   // the stack fed to the engine so SPR and commitment math reflect the
@@ -1000,11 +1002,19 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
             if (initialCal || variantChanged || periodicRecal) {
               try {
-                const calResult = autoCalibrateLive(
+                // Use hand-strength-verified calibration: only inject hashes
+                // when the matched card rank is consistent with OCR hand label.
+                // Falls back to tight threshold (dist <= 10) when no hand info.
+                const calResult = verifiedAutoCalibrate(
                   video,
                   effectiveLayoutRef.current,
                   matcher,
-                  { variant: currentVariant, maxDistance: 25 },
+                  {
+                    variant: currentVariant,
+                    handStrength: handLabelRef.current || null,
+                    verifiedMaxDistance: 20,
+                    unverifiedMaxDistance: 10,
+                  },
                 );
                 if (calResult.injected > 0) {
                   autoCalDone = true;
@@ -1012,10 +1022,10 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                   lastCalFrame = detectionFrameCount;
                   // Persist to localStorage so page refresh doesn't lose calibration
                   try { persistCalibratedHashes(matcher.templateHashes); } catch (_) {}
-                  console.log(`[HUD] Auto-calibrated ${calResult.injected} templates (trigger: ${variantChanged ? 'variant-change' : periodicRecal ? 'periodic' : 'initial'})`);
+                  console.log(`[HUD] Verified-cal: ${calResult.injected} OK, ${calResult.rejected} rejected (trigger: ${variantChanged ? 'variant-change' : periodicRecal ? 'periodic' : 'initial'})`);
                 }
               } catch (calErr) {
-                console.warn('[HUD] Auto-calibrate failed:', calErr.message);
+                console.warn('[HUD] Verified auto-calibrate failed:', calErr.message);
               }
             }
             if (!lastCalVariant) lastCalVariant = currentVariant;

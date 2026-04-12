@@ -139,7 +139,8 @@ export async function execOcrPass(video, layout, ocrEngine) {
   }
 
   const villainStacks = {};
-  ['seat1Stack', 'seat2Stack', 'seat3Stack'].forEach((seatKey) => {
+  ['seat1Stack', 'seat2Stack', 'seat3Stack', 'seat4Stack', 'seat5Stack',
+   'seat6Stack', 'seat7Stack', 'seat8Stack'].forEach((seatKey) => {
     if (layout.ocrRegions[seatKey]) {
       promises.push(run(seatKey, 'readStackSizes').then(r => {
         if (r && typeof r.value === 'number') {

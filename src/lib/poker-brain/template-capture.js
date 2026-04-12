@@ -358,6 +358,158 @@ function popcount32(v) {
   return c;
 }
 
+// ---- Hand-Strength-Verified Auto-Calibration ----
+// Parses OCR handStrength text (e.g., "Pair of Kings") to extract rank info,
+// then only injects hashes for cards that are CONSISTENT with the hand strength.
+// This prevents circular corruption where a wrong match at distance 20+ gets
+// injected and progressively poisons the entire hash map.
+
+const RANK_ALIASES = {
+  ace: 'A', aces: 'A', king: 'K', kings: 'K', queen: 'Q', queens: 'Q',
+  jack: 'J', jacks: 'J', ten: 'T', tens: 'T', nine: '9', nines: '9',
+  eight: '8', eights: '8', seven: '7', sevens: '7', six: '6', sixes: '6',
+  five: '5', fives: '5', four: '4', fours: '4', three: '3', threes: '3',
+  two: '2', twos: '2', deuce: '2', deuces: '2',
+};
+
+/**
+ * Parse hand strength text from OCR into a set of ranks that must be present
+ * in the hero's hole cards. Returns { ranks: Set<string>, confidence: string }.
+ *
+ * Examples:
+ *   "Pair of Kings"      -> { ranks: Set(['K']), confidence: 'rank' }
+ *   "Two Pair, A and 7"  -> { ranks: Set(['A','7']), confidence: 'rank' }
+ *   "High Card"          -> { ranks: Set(), confidence: 'none' }
+ *   null                 -> { ranks: Set(), confidence: 'none' }
+ */
+export function parseHandStrength(text) {
+  if (!text || typeof text !== 'string') return { ranks: new Set(), confidence: 'none' };
+
+  const t = text.toLowerCase().trim();
+  const foundRanks = new Set();
+
+  // Match rank words or single rank chars preceded by space/start
+  for (const [word, rank] of Object.entries(RANK_ALIASES)) {
+    if (t.includes(word)) foundRanks.add(rank);
+  }
+
+  // Also check for single-char ranks like "A" "K" in "Two Pair, A and 7"
+  const singleRankPattern = /\b([AKQJT2-9])\b/gi;
+  let m;
+  while ((m = singleRankPattern.exec(text)) !== null) {
+    foundRanks.add(m[1].toUpperCase());
+  }
+
+  return {
+    ranks: foundRanks,
+    confidence: foundRanks.size > 0 ? 'rank' : 'none',
+  };
+}
+
+/**
+ * Verified auto-calibration: only inject hashes when the matched card
+ * is consistent with the OCR hand strength. Falls back to tight threshold
+ * matching when no hand strength info is available.
+ *
+ * @param {HTMLVideoElement} videoElement
+ * @param {object} layout
+ * @param {PokerBrainMatcher} matcher
+ * @param {object} options
+ * @param {string} [options.variant='nlhe']
+ * @param {string} [options.handStrength] - OCR hand strength text
+ * @param {number} [options.verifiedMaxDistance=20] - max dist when verified by hand strength
+ * @param {number} [options.unverifiedMaxDistance=10] - max dist when NO hand strength (tight)
+ * @returns {{ injected: number, rejected: number, matches: Array }}
+ */
+export function verifiedAutoCalibrate(videoElement, layout, matcher, options = {}) {
+  if (!matcher || !matcher.templateHashes || matcher.templateHashes.size === 0) {
+    return { injected: 0, rejected: 0, matches: [] };
+  }
+
+  const variant = options.variant || 'nlhe';
+  const handStrength = options.handStrength || null;
+  const verifiedMaxDist = options.verifiedMaxDistance ?? 20;
+  const unverifiedMaxDist = options.unverifiedMaxDistance ?? 10;
+
+  const { ranks: hsRanks, confidence: hsConf } = parseHandStrength(handStrength);
+
+  const crops = captureCardCrops(videoElement, layout, { variant });
+  if (crops.length === 0) return { injected: 0, rejected: 0, matches: [] };
+
+  const matches = [];
+  let injected = 0;
+  let rejected = 0;
+
+  for (const crop of crops) {
+    const ctx = crop.canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, TEMPLATE_W, TEMPLATE_H);
+    const liveDHash = computeDHashLocal(imageData);
+    const liveAHash = computeAHashLocal(imageData);
+
+    let bestKey = null;
+    let bestDist = Infinity;
+    let bestDDist = Infinity;
+    let bestADist = Infinity;
+    for (const [key, tplHash] of matcher.templateHashes) {
+      if (key === 'back' || key === 'empty') continue;
+      const dDist = popcount32((liveDHash[0] ^ tplHash.dHash[0]) >>> 0) +
+                    popcount32((liveDHash[1] ^ tplHash.dHash[1]) >>> 0);
+      const aDist = popcount32((liveAHash[0] ^ tplHash.aHash[0]) >>> 0) +
+                    popcount32((liveAHash[1] ^ tplHash.aHash[1]) >>> 0);
+      const dist = Math.min(dDist, aDist);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestKey = key;
+        bestDDist = dDist;
+        bestADist = aDist;
+      }
+    }
+
+    // Determine if this match should be accepted
+    let accept = false;
+    let reason = '';
+
+    if (bestKey && crop.kind === 'hole' && hsConf === 'rank') {
+      // Hole card: verify rank against hand strength
+      const matchedRank = bestKey.charAt(0).toUpperCase();
+      if (hsRanks.has(matchedRank) && bestDist <= verifiedMaxDist) {
+        accept = true;
+        reason = 'verified-rank';
+      } else if (!hsRanks.has(matchedRank)) {
+        reason = 'rank-mismatch';
+      } else {
+        reason = 'dist-too-high';
+      }
+    } else if (bestKey && bestDist <= unverifiedMaxDist) {
+      // Board card or no hand strength: use tight threshold only
+      accept = true;
+      reason = crop.kind === 'board' ? 'board-tight' : 'unverified-tight';
+    } else {
+      reason = bestKey ? 'dist-too-high' : 'no-match';
+    }
+
+    matches.push({
+      kind: crop.kind, slot: crop.slot,
+      bestKey, bestDist, bestDDist, bestADist,
+      accepted: accept, reason,
+    });
+
+    if (accept && bestKey) {
+      matcher.templateHashes.set(bestKey, { dHash: liveDHash, aHash: liveAHash });
+      injected++;
+    } else {
+      rejected++;
+    }
+  }
+
+  console.log(`[VerifiedCal] ${injected} injected, ${rejected} rejected (handStrength="${handStrength || 'none'}", ranks=[${[...hsRanks]}])`);
+  matches.forEach(m => {
+    console.log(`  ${m.kind}[${m.slot}] -> ${m.bestKey} dist=${m.bestDist} ${m.accepted ? 'OK' : 'SKIP'} (${m.reason})`);
+  });
+
+  return { injected, rejected, matches };
+}
+
 // ---- localStorage Persistence ----
 // Save auto-calibrated hashes so they survive page refreshes.
 // Key format: 'pb-cal-{label}' → JSON { dHash: [hi, lo], aHash: [hi, lo] }
