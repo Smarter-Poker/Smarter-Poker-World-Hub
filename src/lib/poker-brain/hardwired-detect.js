@@ -53,11 +53,12 @@ export function isHardwiredEligible(captureMode) {
 
 /**
  * Scale a region from layout reference space to actual video dimensions.
+ * Supports offset for aspect-ratio-corrected scaling.
  */
-function scaleRegion(region, scaleX, scaleY) {
+function scaleRegion(region, scaleX, scaleY, offsetX, offsetY) {
   return {
-    x: Math.round(region.x * scaleX),
-    y: Math.round(region.y * scaleY),
+    x: Math.round(region.x * scaleX + (offsetX || 0)),
+    y: Math.round(region.y * scaleY + (offsetY || 0)),
     w: Math.round(region.w * scaleX),
     h: Math.round(region.h * scaleY),
   };
@@ -150,11 +151,34 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     };
   }
 
-  // Scale from layout reference to actual video dimensions
+  // Scale from layout reference to actual video dimensions.
+  // If the video aspect ratio doesn't match the reference (e.g., the user
+  // captured the whole emulator window including side controls), use
+  // UNIFORM scaling (preserve aspect ratio) and CENTER the phone display
+  // within the capture. This prevents stretched coordinates that miss cards.
   const refW = layout.referenceSize?.w || 468;
   const refH = layout.referenceSize?.h || 932;
-  const scaleX = videoW / refW;
-  const scaleY = videoH / refH;
+  const refAR = refW / refH;
+  const videoAR = videoW / videoH;
+  const arDiff = Math.abs(videoAR - refAR) / refAR;
+
+  let scaleX, scaleY, offsetX = 0, offsetY = 0;
+
+  if (arDiff <= 0.03) {
+    // Aspect ratios match closely — simple stretch scaling
+    scaleX = videoW / refW;
+    scaleY = videoH / refH;
+  } else {
+    // Aspect ratio MISMATCH: the capture includes extra pixels (emulator
+    // toolbar, window chrome, etc). Use uniform scaling to preserve the
+    // phone display's proportions, then center it in the capture frame.
+    const uniformScale = Math.min(videoW / refW, videoH / refH);
+    scaleX = uniformScale;
+    scaleY = uniformScale;
+    // Center offset: the phone display is centered in the capture
+    offsetX = Math.round((videoW - refW * uniformScale) / 2);
+    offsetY = Math.round((videoH - refH * uniformScale) / 2);
+  }
 
   // Resolve variant-specific hole card regions -- direct from layout, no localizer
   const variantKey = options.variant ? String(options.variant).toLowerCase() : null;
@@ -187,16 +211,26 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     topN,
     threshold: HARDWIRED_MATCH_THRESHOLD,
     skipOffsets: true,
+    // Pass AR-corrected offset so matcher uses correct coordinates
+    scaleOffsetX: offsetX,
+    scaleOffsetY: offsetY,
   });
 
-  // Suit-color verification pass
+  // Suit-color verification pass + EMPTINESS CHECK for hole cards
   const variantRegions = layout.holeCardsByVariant?.[variantKey] || layout.holeCards || [];
 
   const verifiedHole = (result.holeCards || []).map((card, i) => {
     const r = variantRegions[i];
     if (!r || !card || !card.suit) return card;
     try {
-      const scaledR = scaleRegion(r, scaleX, scaleY);
+      const scaledR = scaleRegion(r, scaleX, scaleY, offsetX, offsetY);
+      // EMPTINESS CHECK: reject hole card matches on empty/uniform regions.
+      // This is the PRIMARY defense against phantom detections — when
+      // coordinates point at table felt, avatars, or UI elements that
+      // happen to hash within threshold of a card template.
+      if (isRegionEmpty(videoElement, scaledR)) {
+        return { rank: null, suit: null, key: null, distance: 99, hardwired: true, emptyRegion: true };
+      }
       const verified = verifyCardSuit(card, videoElement, scaledR);
       return { ...(verified || card), hardwired: true };
     } catch (_) {
@@ -208,7 +242,7 @@ export function hardwiredDetect(videoElement, layout, matcher, options = {}) {
     const r = layout.boardCards?.[i];
     if (!r || !card || !card.suit) return card;
     try {
-      const scaledR = scaleRegion(r, scaleX, scaleY);
+      const scaledR = scaleRegion(r, scaleX, scaleY, offsetX, offsetY);
       // EMPTINESS CHECK: reject board card matches on empty felt regions.
       // This prevents phantom board detections where table background
       // happens to hash close to a card template.

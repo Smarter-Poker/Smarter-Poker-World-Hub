@@ -1108,6 +1108,51 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
     let lastCalVariant = null; // Track variant for re-cal on switch
     let lastCalFrame = 0; // Frame when last auto-cal ran
 
+    // ── TEMPORAL STABILITY TRACKER ──────────────────────────────────
+    // Prevents phantom card flashes: a card must be detected in N out
+    // of the last M frames (e.g. 3/4) before it's accepted. Single-frame
+    // glitches are discarded entirely.
+    const STABILITY_WINDOW = 4;    // look at last 4 frames
+    const STABILITY_REQUIRED = 3;  // card must appear in >= 3 of them
+    const holeHistory = [];        // circular buffer of last N hole results
+    const boardHistory = [];       // circular buffer of last N board results
+
+    /**
+     * Given the current frame's detected cards and a history buffer,
+     * return only cards that appeared in >= STABILITY_REQUIRED of the
+     * last STABILITY_WINDOW frames. Updates the buffer in-place.
+     */
+    function stabilize(currentCards, history) {
+      // Convert current frame's cards to a set of keys
+      const frameKeys = new Set();
+      const frameMap = new Map();
+      for (const c of currentCards) {
+        if (c && c.key && c.rank && c.suit) {
+          frameKeys.add(c.key);
+          if (!frameMap.has(c.key)) frameMap.set(c.key, c);
+        }
+      }
+      history.push(frameKeys);
+      if (history.length > STABILITY_WINDOW) history.shift();
+
+      // Count how many of the last N frames each key appeared in
+      const counts = new Map();
+      for (const frame of history) {
+        for (const key of frame) {
+          counts.set(key, (counts.get(key) || 0) + 1);
+        }
+      }
+
+      // Accept only cards that meet the stability threshold
+      const stable = [];
+      for (const [key, count] of counts) {
+        if (count >= STABILITY_REQUIRED && frameMap.has(key)) {
+          stable.push(frameMap.get(key));
+        }
+      }
+      return stable;
+    }
+
     // DISABLED: Auto-calibrated hashes in localStorage are corrupted.
     // The base PNG templates are the source of truth. Clear any persisted
     // hashes so they don't poison the matcher on this load.
@@ -1206,6 +1251,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               maxHoleCards: expectedHole,
               debug: true, // Always pass debug for probeLog
             });
+            // (diagnostic logging moved below after stability filter)
             // Update hardwired stats for the UI
             if (result.hardwiredStats) {
               setHardwiredStats(result.hardwiredStats);
@@ -1229,7 +1275,7 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
                 region: p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : 'n/a',
               }));
               setDiagInfo({
-                build: 'v9-no-autocal',
+                build: 'v10-stable-detect',
                 vw, vh, refW, refH,
                 sX: Math.round(sX * 1000) / 1000,
                 sY: Math.round(sY * 1000) / 1000,
@@ -1262,9 +1308,29 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
               });
             }
 
-            // Feed the state machine with color-verified cards
+            // ── TEMPORAL STABILITY FILTER ────────────────────────────
+            // Only feed cards to the state machine that have been stable
+            // across multiple frames. This eliminates phantom flashes
+            // caused by random hash collisions on single frames.
+            const stableHole = stabilize(result.holeCards || [], holeHistory);
+            const stableBoard = stabilize(result.boardCards || [], boardHistory);
+
+            // Log detection details every 20 frames (~5s) for diagnostics
+            if (frameNum % 20 === 0 && result.probeLog) {
+              const vw2 = video.videoWidth || video.width;
+              const vh2 = video.videoHeight || video.height;
+              const refW2 = detectionLayout.referenceSize?.w || 468;
+              const refH2 = detectionLayout.referenceSize?.h || 932;
+              console.log(`[HUD detect] v10 | video:${vw2}x${vh2} ref:${refW2}x${refH2} scale:${(vw2/refW2).toFixed(2)}x${(vh2/refH2).toFixed(2)} AR:${(vw2/vh2).toFixed(3)} vs ref:${(refW2/refH2).toFixed(3)}`);
+              for (const p of result.probeLog) {
+                console.log(`  ${p.kind}[${p.slot}] best=${p.bestKey} d=${p.distance} region=${p.scaledRegion ? `${p.scaledRegion.x},${p.scaledRegion.y} ${p.scaledRegion.w}x${p.scaledRegion.h}` : '?'} matched=${p.matched}`);
+              }
+              console.log(`  stableHole: ${stableHole.map(c=>c.key).join(',')||'none'} stableBoard: ${stableBoard.map(c=>c.key).join(',')||'none'}`);
+            }
+
+            // Feed the state machine with temporally-stable cards
             if (stateMachineRef.current) {
-              stateMachineRef.current.observe(result.holeCards, result.boardCards);
+              stateMachineRef.current.observe(stableHole, stableBoard);
             }
 
             // --- Auto player count via yellow stack-number clusters ---

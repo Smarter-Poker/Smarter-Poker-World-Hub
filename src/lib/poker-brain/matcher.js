@@ -566,15 +566,30 @@ class PokerBrainMatcher {
     this._offscreenCanvas.height = videoH;
     this._offscreenCtx.drawImage(videoElement, 0, 0, videoW, videoH);
 
-    // Scale layout coordinates from reference resolution to actual video resolution
+    // Scale layout coordinates from reference resolution to actual video resolution.
+    // When the caller provides scaleOffsetX/Y (from AR-corrected hardwired mode),
+    // use those to shift coordinates so they land on the actual phone display
+    // within a larger capture frame (e.g. emulator window with side controls).
     const refW = layout.referenceSize.w;
     const refH = layout.referenceSize.h;
-    const scaleX = videoW / refW;
-    const scaleY = videoH / refH;
+    const soX = options.scaleOffsetX || 0;
+    const soY = options.scaleOffsetY || 0;
+
+    // If offset was provided, use uniform scaling (the caller already computed it)
+    let scaleX, scaleY;
+    if (soX !== 0 || soY !== 0) {
+      // Uniform scale: derived from the offset the caller computed
+      const uniformScale = Math.min(videoW / refW, videoH / refH);
+      scaleX = uniformScale;
+      scaleY = uniformScale;
+    } else {
+      scaleX = videoW / refW;
+      scaleY = videoH / refH;
+    }
 
     const scaleRegion = (r) => ({
-      x: Math.round(r.x * scaleX),
-      y: Math.round(r.y * scaleY),
+      x: Math.round(r.x * scaleX + soX),
+      y: Math.round(r.y * scaleY + soY),
       w: Math.round(r.w * scaleX),
       h: Math.round(r.h * scaleY),
     });
