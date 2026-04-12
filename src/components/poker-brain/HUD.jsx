@@ -31,6 +31,10 @@ import { usePokerBrainStorage } from '../../lib/poker-brain/storage';
 import { analyzeSession } from '../../lib/poker-brain/session-audit';
 import { captureCardCrops, captureFullFrame, injectLiveHashes, downloadAllCrops, autoCalibrateLive, verifiedAutoCalibrate, persistCalibratedHashes, restoreCalibratedHashes } from '../../lib/poker-brain/template-capture';
 import { extractTemplatesFromFrame, buildTemplateBundle, injectTemplateBundle } from '../../lib/poker-brain/template-extractor';
+import SessionAnalytics from '../../lib/poker-brain/session-analytics';
+import PlayerDatabase from '../../lib/poker-brain/player-database';
+// RangeGrid and getOpeningRange available for future range display wiring
+// import RangeGrid, { getOpeningRange } from './RangeGrid';
 import { supabase } from '../../lib/supabase';
 import HandHistory from './HandHistory';
 import Onboarding from './Onboarding';
@@ -578,6 +582,16 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const actionTrackerRef = useRef(new ActionTracker({ tolerance: 0.4 }));
   const opponentStatsRef = useRef(new OpponentStats());
   const [opponentStatsDisplay, setOpponentStatsDisplay] = useState(null);
+  // Persistent analytics: session-level performance + name-linked player DB
+  const sessionAnalyticsRef = useRef(null);
+  if (sessionAnalyticsRef.current === null) {
+    sessionAnalyticsRef.current = new SessionAnalytics();
+  }
+  const playerDbRef = useRef(null);
+  if (playerDbRef.current === null) {
+    playerDbRef.current = new PlayerDatabase();
+  }
+  const [sessionStats, setSessionStats] = useState(null);
   const sessionIdRef = useRef(null);
   // Temporal stabilizer for auto-detected table state (bounds, player
   // count, position, dealer). Smooths frame-to-frame noise so HUD
@@ -646,6 +660,77 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
   const [showConfidence, setShowConfidence] = useState(false);
   const showConfidenceRef = useRef(false);
   useEffect(() => { showConfidenceRef.current = showConfidence; }, [showConfidence]);
+
+  // ============================================================================
+  // KEYBOARD HOTKEYS
+  // ============================================================================
+  useEffect(() => {
+    const handler = (e) => {
+      // Don't capture when user is typing in an input/select
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch (e.key.toLowerCase()) {
+        case 'm': // Toggle mute
+          setSoundEnabled((prev) => {
+            const next = !prev;
+            setSoundMuted(!next);
+            return next;
+          });
+          break;
+        case ' ': // Space = toggle detection pause/resume
+          e.preventDefault();
+          if (matcherReady && streamReady) setDetecting((prev) => !prev);
+          break;
+        case 'escape': // Esc = clear decision / reset hand
+          if (stateMachineRef.current) stateMachineRef.current.reset({ silent: true });
+          if (actionTrackerRef.current) actionTrackerRef.current.reset();
+          setActionSummary(null);
+          setDecision(null);
+          break;
+        case 'r': // Reset hand (same as Reset Hand button)
+          if (stateMachineRef.current) stateMachineRef.current.reset({ silent: true });
+          if (actionTrackerRef.current) actionTrackerRef.current.reset();
+          setActionSummary(null);
+          break;
+        case 'd': // Toggle debug overlay
+          setDebugMode((v) => {
+            const next = !v;
+            if (next) {
+              setCalibrationVisible(false);
+              setCalibrationEditable(false);
+              setCalibrationFullScreen(false);
+            }
+            return next;
+          });
+          break;
+        case 'c': // Toggle confidence indicators
+          setShowConfidence((prev) => !prev);
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [matcherReady, streamReady]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ============================================================================
+  // SESSION ANALYTICS: auto-start/end tied to detection
+  // ============================================================================
+  useEffect(() => {
+    const sa = sessionAnalyticsRef.current;
+    if (!sa) return;
+    if (detecting) {
+      if (!sa.isActive()) {
+        sa.startSession(gameType, bigBlind > 0 ? `${bigBlind / 2}/${bigBlind}` : '?/?');
+      }
+    } else {
+      if (sa.isActive()) {
+        sa.endSession();
+        setSessionStats(sa.getSessionSummary());
+      }
+    }
+  }, [detecting]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto tournament stage detection
   const [autoTournamentStage, setAutoTournamentStage] = useState(null);
@@ -733,6 +818,30 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             const allStats = opponentStatsRef.current.getAllStats();
             setOpponentStatsDisplay(allStats.size > 0 ? Object.fromEntries(allStats) : null);
           } catch (_) { /* swallow */ }
+        }
+        // Record to persistent SessionAnalytics
+        if (sessionAnalyticsRef.current) {
+          try {
+            const streetOrder2 = ['river', 'turn', 'flop', 'preflop'];
+            let ld = null;
+            for (const s2 of streetOrder2) {
+              if (hand.streetDecisions && hand.streetDecisions[s2]) { ld = hand.streetDecisions[s2]; break; }
+            }
+            sessionAnalyticsRef.current.recordHand({
+              holeCards: hand.holeCards || [],
+              boardCards: hand.finalBoard || [],
+              heroAction: ld ? ld.action : null,
+              engineAction: ld ? ld.action : null,
+              decisionSource: ld ? (ld.source || null) : null,
+              potSize: hand.potAtStart != null ? hand.potAtStart : potSizeRef.current,
+              stackBefore: hand.stackAtStart != null ? hand.stackAtStart : heroStackRef.current,
+              stackAfter: heroStackRef.current,
+              result: null, // we don't know win/loss from detection alone
+              street: ld ? (ld.street || 'preflop') : 'preflop',
+              position: hand.position || positionRef.current,
+            });
+            setSessionStats(sessionAnalyticsRef.current.getSessionSummary());
+          } catch (_sa) { /* swallow */ }
         }
         if (storage.ready && sessionIdRef.current) {
           // Pick the most recent street decision as the canonical action
@@ -1853,14 +1962,26 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
 
         {/* DECISION BANNER */}
         <div className={'mb-4 p-4 rounded-2xl bg-gradient-to-r ' + decisionColor + ' shadow-2xl'}>
-          <div className="text-[10px] text-white/70 uppercase tracking-widest font-bold">
-            {decision && decision.source === 'horse_brain'
-              ? 'Horse Brain says'
-              : decision && decision.source === 'local_fallback'
-                ? 'Poker Brain says (offline)'
-                : 'Poker Brain says'}
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[10px] text-white/70 uppercase tracking-widest font-bold">
+              {decision && decision.source === 'horse_brain'
+                ? 'Horse Brain says'
+                : decision && decision.source === 'local_fallback'
+                  ? 'Poker Brain says'
+                  : 'Poker Brain says'}
+            </span>
+            {decision && decision.source === 'horse_brain' && (
+              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-300 border border-emerald-400/40">
+                GTO Server
+              </span>
+            )}
+            {decision && decision.source === 'local_fallback' && (
+              <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 border border-amber-400/40">
+                Local Engine
+              </span>
+            )}
             {decision && decision.engineMs && (
-              <span className="ml-2 text-white/40 normal-case">{decision.engineMs}ms</span>
+              <span className="text-[9px] text-white/40 font-mono">{decision.engineMs}ms</span>
             )}
           </div>
           <div className="text-4xl sm:text-5xl font-black text-white leading-none mt-1">
@@ -2554,6 +2675,44 @@ const PokerBrainHUD = ({ preAcquiredStream = null, initialMode = 'screen', initi
             </div>
           </div>
         )}
+
+        {/* SESSION STATS */}
+        {sessionStats && sessionStats.handsPlayed > 0 && (
+          <div className="mt-4 bg-slate-800/80 rounded-xl border border-slate-700 p-3">
+            <h3 className="text-sm font-semibold text-slate-300 mb-2">Session Stats</h3>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
+              <div className="bg-slate-900/60 rounded-lg p-2">
+                <div className="text-slate-500">Hands</div>
+                <div className="text-white font-bold">{sessionStats.handsPlayed}</div>
+              </div>
+              <div className="bg-slate-900/60 rounded-lg p-2">
+                <div className="text-slate-500">Duration</div>
+                <div className="text-white font-bold">{sessionStats.duration}m</div>
+              </div>
+              <div className="bg-slate-900/60 rounded-lg p-2">
+                <div className="text-slate-500">VPIP</div>
+                <div className="text-white font-bold">{sessionStats.vpip}%</div>
+              </div>
+              <div className="bg-slate-900/60 rounded-lg p-2">
+                <div className="text-slate-500">PFR</div>
+                <div className="text-white font-bold">{sessionStats.pfr}%</div>
+              </div>
+              <div className="bg-slate-900/60 rounded-lg p-2">
+                <div className="text-slate-500">Follow Rate</div>
+                <div className="text-white font-bold">{sessionStats.followRate}%</div>
+              </div>
+              <div className="bg-slate-900/60 rounded-lg p-2">
+                <div className="text-slate-500">GTO Server</div>
+                <div className="text-emerald-400 font-bold">{sessionStats.horseBrainPct}%</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* KEYBOARD SHORTCUTS HINT */}
+        <div className="mt-3 text-center text-[10px] text-slate-600">
+          M=mute  Space=pause  Esc=clear  R=reset  D=debug  C=confidence
+        </div>
 
         {/* HAND HISTORY */}
         <HandHistory hands={recentHands} />

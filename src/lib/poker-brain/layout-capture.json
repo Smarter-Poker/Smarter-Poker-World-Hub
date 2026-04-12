@@ -79,6 +79,17 @@
     "seat8Stack":    { "x": 15,  "y": 395, "w": 95,  "h": 24, "kind": "number" }
   },
 
+  "playerNames": {
+    "seat1Name":     { "x": 190, "y": 140, "w": 100, "h": 15, "kind": "text" },
+    "seat2Name":     { "x": 42,  "y": 197, "w": 100, "h": 15, "kind": "text" },
+    "seat3Name":     { "x": 320, "y": 197, "w": 100, "h": 15, "kind": "text" },
+    "seat4Name":     { "x": 8,   "y": 570, "w": 90,  "h": 15, "kind": "text" },
+    "seat5Name":     { "x": 378, "y": 570, "w": 90,  "h": 15, "kind": "text" },
+    "seat6Name":     { "x": 18,  "y": 745, "w": 90,  "h": 15, "kind": "text" },
+    "seat7Name":     { "x": 360, "y": 745, "w": 90,  "h": 15, "kind": "text" },
+    "seat8Name":     { "x": 15,  "y": 370, "w": 95,  "h": 15, "kind": "text" }
+  },
+
   "actionButtons": {
     "fold":       { "x": 8,   "y": 895, "w": 150, "h": 52, "color": "#cc2237" },
     "checkCall":  { "x": 158, "y": 895, "w": 150, "h": 52, "color": "#2466c6" },
