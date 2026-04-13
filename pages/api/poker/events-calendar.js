@@ -214,8 +214,11 @@ export default async function handler(req, res) {
       let venueQ = sb.from('poker_venues')
         .select('id, name, city, state, latitude, longitude')
         .eq('is_active', true);
-      if (state) venueQ = venueQ.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
-      if (city) venueQ = venueQ.ilike('city', `%${city}%`);
+      // BUG FIX: sanitize city/state to block ILIKE wildcard injection
+      const safeState = state ? state.replace(/[%_\\]/g, '').trim() : null;
+      const safeCity  = city  ? city.replace(/[%_\\]/g, '').trim() : null;
+      if (safeState) venueQ = venueQ.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
+      if (safeCity)  venueQ = venueQ.ilike('city', `%${safeCity}%`);
       const { data: venueRows } = await venueQ.limit(2000);
       if (venueRows) {
         for (const v of venueRows) {
@@ -242,23 +245,29 @@ export default async function handler(req, res) {
 
         if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));
         if (maxBuyin) dq = dq.lte('buy_in', parseInt(maxBuyin));
-        if (gameType && gameType !== 'all') {
-          dq = dq.ilike('game_type', `%${gameType}%`);
+        // BUG FIX: sanitize gameType and search to block ILIKE wildcard injection
+        const safeGameType = gameType ? gameType.replace(/[%_\\]/g, '').trim() : null;
+        if (safeGameType && safeGameType !== 'all') {
+          dq = dq.ilike('game_type', `%${safeGameType}%`);
         }
         if (search) {
-          const s = search.replace(/[()'",;]/g, '').trim().slice(0, 200);
-          dq = dq.or(`venue_name.ilike.%${s}%,tournament_name.ilike.%${s}%`);
+          const s = search.replace(/[()'",;%_\\]/g, '').trim().slice(0, 200);
+          if (s) dq = dq.or(`venue_name.ilike.%${s}%,tournament_name.ilike.%${s}%`);
         }
 
         const { data: dtRows } = await dq.limit(5000);
 
         if (dtRows) {
           for (const t of dtRows) {
+            // BUG FIX: filter out @context / JSON-LD artifacts and invalid tournament names
+            const tName = t.tournament_name || '';
+            if (tName.startsWith('@') || tName.startsWith('{') || tName.startsWith('[')) continue;
+
             const venueInfo = getVenueInfo(t.venue_id, t.venue_name);
 
-            // State/city filter at application level
-            if (state && venueInfo?.state?.toUpperCase() !== state.toUpperCase()) continue;
-            if (city && !venueInfo?.city?.toLowerCase().includes(city.toLowerCase())) continue;
+            // State/city filter at application level (use sanitized values)
+            if (safeState && venueInfo?.state?.toUpperCase() !== safeState.toUpperCase()) continue;
+            if (safeCity && !venueInfo?.city?.toLowerCase().includes(safeCity.toLowerCase())) continue;
 
             // GPS/distance filter
             let distanceMi = null;
@@ -283,7 +292,7 @@ export default async function handler(req, res) {
               dailyEvents.push({
                 source: 'daily',
                 event_date: eDate,
-                event_name: t.tournament_name || (t.buy_in > 0 ? `$${t.buy_in} ${normalizeGameType(t.game_type)}` : `${normalizeGameType(t.game_type)} Tournament`),
+                event_name: tName || (t.buy_in > 0 ? `$${t.buy_in} ${normalizeGameType(t.game_type)}` : `${normalizeGameType(t.game_type)} Tournament`),
                 venue_name: t.venue_name,
                 venue_id: t.venue_id,
                 city: venueInfo?.city || null,
@@ -319,11 +328,12 @@ export default async function handler(req, res) {
           .not('start_date', 'is', null)
           .eq('is_suppressed', false);
 
-        if (state) sq = sq.ilike('state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
-        if (city) sq = sq.ilike('city', `%${city}%`);
+        // BUG FIX: use sanitized safeState/safeCity from venue query block above
+        if (safeState) sq = sq.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
+        if (safeCity)  sq = sq.ilike('city', `%${safeCity}%`);
         if (search) {
-          const s = search.replace(/[()'",;]/g, '').trim().slice(0, 200);
-          sq = sq.or(`series_name.ilike.%${s}%,venue_name.ilike.%${s}%`);
+          const ss = search.replace(/[()'",;%_\\]/g, '').trim().slice(0, 200);
+          if (ss) sq = sq.or(`series_name.ilike.%${ss}%,venue_name.ilike.%${ss}%`);
         }
 
         const { data: seriesRows } = await sq.limit(500);
@@ -390,13 +400,15 @@ export default async function handler(req, res) {
         let tq = sb.from('tour_stop_events')
           .select('id, tour_code, stop_name, stop_venue, stop_city, stop_state, event_name, start_date, start_time, buy_in, game_type, guarantee, is_main_event, is_high_roller');
 
-        if (state) tq = tq.ilike('stop_state', state.length === 2 ? state.toUpperCase() : `%${state}%`);
+        // BUG FIX: filter inactive/cancelled tour events; sanitize all ILIKE params
+        tq = tq.eq('is_active', true);
+        if (safeState) tq = tq.ilike('stop_state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
         if (minBuyin) tq = tq.gte('buy_in', parseInt(minBuyin));
         if (maxBuyin) tq = tq.lte('buy_in', parseInt(maxBuyin));
-        if (gameType && gameType !== 'all') tq = tq.ilike('game_type', `%${gameType}%`);
+        if (safeGameType && safeGameType !== 'all') tq = tq.ilike('game_type', `%${safeGameType}%`);
         if (search) {
-          const s = search.replace(/[()'",;]/g, '').trim().slice(0, 200);
-          tq = tq.or(`event_name.ilike.%${s}%,stop_name.ilike.%${s}%,stop_venue.ilike.%${s}%`);
+          const ts = search.replace(/[()'",;%_\\]/g, '').trim().slice(0, 200);
+          if (ts) tq = tq.or(`event_name.ilike.%${ts}%,stop_name.ilike.%${ts}%,stop_venue.ilike.%${ts}%`);
         }
 
         const { data: tourRows } = await tq.limit(2000);

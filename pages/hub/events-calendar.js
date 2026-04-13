@@ -17,6 +17,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -266,10 +267,12 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
   const [cityInput, setCityInput] = useState('');
   const [stateInput, setStateInput] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [locError, setLocError] = useState(''); // BUG FIX: replace alert() with inline error
 
   if (!isOpen) return null;
 
   const handleUseGps = () => {
+    setLocError('');
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -277,12 +280,13 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
         setGpsLoading(false);
         onClose();
       },
-      () => { setGpsLoading(false); alert('GPS not available. Please enter a city.'); },
+      () => { setGpsLoading(false); setLocError('GPS not available. Please enter a city.'); },
       { timeout: 8000 }
     );
   };
 
   const handleCitySelect = (cityStr) => {
+    setLocError('');
     const coords = resolveCityCoords(cityStr);
     if (coords) {
       onSetLocation({ lat: coords.lat, lng: coords.lng, label: cityStr, source: 'city' });
@@ -292,6 +296,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 
   const handleManualSubmit = (e) => {
     e.preventDefault();
+    setLocError('');
     const locationStr = stateInput ? `${cityInput}, ${stateInput}` : cityInput;
     const coords = resolveCityCoords(locationStr);
     if (coords) {
@@ -302,7 +307,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
       onSetLocation({ lat: null, lng: null, label: stateInput, source: 'state', state: stateInput });
       onClose();
     } else {
-      alert('City not found. Try selecting from the list or enter a state.');
+      setLocError('City not found. Try selecting from the list or enter a state.');
     }
   };
 
@@ -313,6 +318,13 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
           <h2>Change Location</h2>
           <button className="loc-close" onClick={onClose}><XIcon /></button>
         </div>
+
+        {/* Inline error — no blocking alert() */}
+        {locError && (
+          <p style={{ color: '#f87171', fontSize: 13, margin: '0 0 12px', padding: '8px 12px', background: 'rgba(248,113,113,0.1)', borderRadius: 6, border: '1px solid rgba(248,113,113,0.3)' }}>
+            {locError}
+          </p>
+        )}
 
         {/* GPS Button */}
         <button className="loc-gps-btn" onClick={handleUseGps} disabled={gpsLoading}>
@@ -363,6 +375,7 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 
 /* ───── Main Page Component ───── */
 export default function EventsCalendarPage() {
+  const router = useRouter(); // BUG FIX: use router.push instead of window.location.href
   const now = new Date();
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState('list');
@@ -527,9 +540,11 @@ export default function EventsCalendarPage() {
     setSelectedCalDate(todayKey);
   };
 
-  // Search debounce
+  // Search debounce with unmount cleanup
   const searchTimeoutRef = useRef(null);
   const [searchInput, setSearchInput] = useState('');
+  // BUG FIX: clear timeout on unmount to prevent setState on unmounted component
+  useEffect(() => { return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); }; }, []);
   const handleSearchInput = (val) => {
     setSearchInput(val);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -543,7 +558,7 @@ export default function EventsCalendarPage() {
         description="Search Thousands Of Poker Tournaments By Date, Location, Buy-In, And Game Type. Daily Tournaments, Series Events, And Tour Stops — All In One Place."
         canonical="/hub/events-calendar"
       />
-      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => { window.location.href = '/hub/poker-near-me-lobby'; }} />
+      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => router.push('/hub/poker-near-me-lobby')} />
       <HamburgerMenu
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
