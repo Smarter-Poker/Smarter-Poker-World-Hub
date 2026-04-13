@@ -1045,8 +1045,8 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                         date_str = f"{dm.group(3)}-{month}-{int(dm.group(1)):02d}"
                         continue
 
-                    # Buy-in detection
-                    bm = re.search(r'\$\s?([\d,]+)', cell)
+                    # Buy-in detection (handles $, €, £)
+                    bm = re.search(r'[$€£]\s?([\d,]+)', cell)
                     if bm and not buyin:
                         buyin = int(bm.group(1).replace(',', ''))
                         continue
@@ -1056,6 +1056,19 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                         event_name = cell[:100]
 
                 if not event_name or not buyin or buyin < 10 or buyin > 300000:
+                    continue
+
+                # Data Integrity Filter: Prevent hallucinated aggregation
+                # Ensure the ENTIRE row text contains at least ONE core word from the series name, or its acronym
+                full_row_text = " ".join(clean_cells).lower()
+                search_words = set(re.findall(r'[a-z0-9]+', series_name.lower())) - {'poker','series','classic','the','of','casino','resort','hotel','tour','championship','event','annual'}
+                if not search_words:
+                    search_words = set(re.findall(r'[a-z0-9]+', series_name.lower())) # Fallback
+                
+                acronym = "".join([w[0] for w in series_name.lower().replace('-', ' ').split() if w not in {'of', 'the'}]).strip()
+                row_words = set(re.findall(r'[a-z0-9]+', full_row_text))
+                
+                if acronym not in row_words and not search_words.intersection(row_words):
                     continue
 
                 # Detect game type from event name

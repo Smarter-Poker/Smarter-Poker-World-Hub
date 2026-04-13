@@ -1,40 +1,21 @@
 /**
- * API: Horse Opponent — Select a horse AI + make GTO-informed decisions
+ * API: Opponent Matchmaking + Decision Engine
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * GET  /api/training/horse-opponent              → Select a random active horse
- * POST /api/training/horse-opponent              → Get horse's decision for a game state
+ * GET  /api/training/horse-opponent      → Select a random opponent (from horse roster)
+ * POST /api/training/horse-opponent      → Get opponent's decision for a game state
+ *
+ * The player never knows the opponent is AI. Responses look identical to
+ * a real player's data. Internal _engine config drives decision personality.
  *
  * GET Response:
- *   {
- *     horse: { id, name, avatar, rating, personality, tier },
- *     isAI: true
- *   }
+ *   { player: { id, name, avatar, rating, tier }, _engine: { ... } }
  *
  * POST Body:
- *   {
- *     horseId: <uuid>,
- *     holeCards: ['Ah', 'Kd'],
- *     boardCards: ['Ts', '7h', '2c'],
- *     potSize: 150,
- *     betToCall: 50,
- *     stackSize: 950,
- *     bigBlind: 10,
- *     position: 'BTN',
- *     street: 'flop',
- *     numPlayers: 2,
- *     gameType: 'cash_6max',
- *     legalActions: ['fold', 'call', 'raise']
- *   }
+ *   { personality: {...}, holeCards, boardCards, potSize, betToCall, etc. }
  *
  * POST Response:
- *   {
- *     action: 'raise',
- *     amount: 120,
- *     confidence: 78,
- *     thinkTimeMs: 2400,
- *     personality: { aggression: 7, bluffFreq: 6 }
- *   }
+ *   { action, amount, confidence, thinkTimeMs }
  *
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -53,16 +34,18 @@ function getSupabase() {
     return _supabase;
 }
 
-// ── Horse Name Pool (fallback if DB unavailable) ──────────────────────────
+// ── Fallback personalities (when DB is unavailable) ───────────────────────
+// Horses already have real names & profiles in content_authors table.
+// These fallbacks are last resort only — personality drives AI decisions.
 const FALLBACK_HORSES = [
-    { name: 'Thunderhoof', avatar: '🐴', personality: { aggression: 8, humor: 4, technical: 9, contrarian: 3, gto: 'gto_purist', risk: 'aggressive' } },
-    { name: 'SilverMane', avatar: '🦄', personality: { aggression: 3, humor: 7, technical: 6, contrarian: 2, gto: 'balanced', risk: 'conservative' } },
-    { name: 'DarkHorse', avatar: '🐎', personality: { aggression: 9, humor: 2, technical: 8, contrarian: 8, gto: 'exploitative', risk: 'degen' } },
-    { name: 'IronSteed', avatar: '🏇', personality: { aggression: 5, humor: 5, technical: 7, contrarian: 4, gto: 'balanced', risk: 'moderate' } },
-    { name: 'MidnightRun', avatar: '🐴', personality: { aggression: 7, humor: 3, technical: 8, contrarian: 6, gto: 'exploitative', risk: 'aggressive' } },
-    { name: 'NobleTrot', avatar: '🦓', personality: { aggression: 2, humor: 8, technical: 5, contrarian: 1, gto: 'gto_purist', risk: 'conservative' } },
-    { name: 'StormGallop', avatar: '🐎', personality: { aggression: 10, humor: 1, technical: 9, contrarian: 9, gto: 'exploitative', risk: 'degen' } },
-    { name: 'VelvetHoof', avatar: '🐴', personality: { aggression: 4, humor: 6, technical: 7, contrarian: 3, gto: 'balanced', risk: 'moderate' } },
+    { name: 'PokerShark99', personality: { aggression: 8, humor: 4, technical: 9, contrarian: 3, gto: 'gto_purist', risk: 'aggressive' } },
+    { name: 'SolverPro', personality: { aggression: 3, humor: 7, technical: 6, contrarian: 2, gto: 'balanced', risk: 'conservative' } },
+    { name: 'RangeKing', personality: { aggression: 9, humor: 2, technical: 8, contrarian: 8, gto: 'exploitative', risk: 'degen' } },
+    { name: 'NitHunter', personality: { aggression: 5, humor: 5, technical: 7, contrarian: 4, gto: 'balanced', risk: 'moderate' } },
+    { name: 'BluffCatcher', personality: { aggression: 7, humor: 3, technical: 8, contrarian: 6, gto: 'exploitative', risk: 'aggressive' } },
+    { name: 'EquityKid', personality: { aggression: 2, humor: 8, technical: 5, contrarian: 1, gto: 'gto_purist', risk: 'conservative' } },
+    { name: 'ThreeBetQueen', personality: { aggression: 10, humor: 1, technical: 9, contrarian: 9, gto: 'exploitative', risk: 'degen' } },
+    { name: 'GTO_Grinder', personality: { aggression: 4, humor: 6, technical: 7, contrarian: 3, gto: 'balanced', risk: 'moderate' } },
 ];
 
 // ── Preflop hand strength tiers ───────────────────────────────────────────
@@ -271,22 +254,18 @@ function makeHorseDecision(gameState, personality) {
 }
 
 function buildDecision(action, amount, confidence, personality, reasoning) {
-    // Simulate "thinking time" — 1-5 seconds, faster for clear decisions
-    const baseThink = 1200 + Math.random() * 2000;
-    const confidenceAdj = confidence > 70 ? -400 : confidence < 40 ? 600 : 0;
-    const thinkTimeMs = Math.round(Math.max(800, baseThink + confidenceAdj));
+    // Simulate human-like "thinking time" — 1.5-6 seconds with natural variance
+    const baseThink = 1500 + Math.random() * 2500;
+    const confidenceAdj = confidence > 70 ? -500 : confidence < 40 ? 800 : 0;
+    // Add random jitter so timing doesn't feel mechanical
+    const jitter = (Math.random() - 0.5) * 600;
+    const thinkTimeMs = Math.round(Math.max(1000, baseThink + confidenceAdj + jitter));
 
     return {
         action,
         amount: amount ? Math.max(1, amount) : null,
         confidence: Math.round(Math.min(100, Math.max(5, typeof confidence === 'number' ? confidence : 50))),
         thinkTimeMs,
-        reasoning,
-        personality: personality ? {
-            aggression: personality.aggression,
-            gto: personality.gto,
-            risk: personality.risk,
-        } : undefined,
     };
 }
 
@@ -302,7 +281,7 @@ export default async function handler(req, res) {
             let horse = null;
 
             if (sb) {
-                // Try to load a random active horse from the DB
+                // Load a random active horse from the DB — they already have real names & profiles
                 const { data: horses, error } = await sb
                     .from('content_authors')
                     .select(`
@@ -315,9 +294,7 @@ export default async function handler(req, res) {
                             technical_depth,
                             contrarian_tendency,
                             gto_philosophy,
-                            risk_tolerance,
-                            catchphrases,
-                            origin_story
+                            risk_tolerance
                         )
                     `)
                     .eq('is_active', true)
@@ -326,12 +303,16 @@ export default async function handler(req, res) {
                 if (!error && horses && horses.length > 0) {
                     const pick = horses[Math.floor(Math.random() * horses.length)];
                     const p = pick.horse_personality?.[0] || pick.horse_personality || {};
+                    const rating = 1200 + Math.floor(Math.random() * 600);
                     horse = {
+                        // Public-facing fields — looks like a real player
                         id: pick.id,
-                        name: pick.display_name || 'Mystery Horse',
-                        avatar: pick.avatar_url || '🐴',
-                        rating: 1200 + Math.floor(Math.random() * 600),
-                        personality: {
+                        name: pick.display_name || 'Player',
+                        avatar: pick.avatar_url || null,
+                        rating,
+                        tier: getRankTierName(rating),
+                        // Internal only — personality drives AI decisions, never exposed to UI
+                        _personality: {
                             aggression: p.aggression_level || 5,
                             humor: p.humor_level || 5,
                             technical: p.technical_depth || 5,
@@ -339,45 +320,44 @@ export default async function handler(req, res) {
                             gto: p.gto_philosophy || 'balanced',
                             risk: p.risk_tolerance || 'moderate',
                         },
-                        catchphrase: Array.isArray(p.catchphrases) && p.catchphrases.length > 0
-                            ? p.catchphrases[Math.floor(Math.random() * p.catchphrases.length)]
-                            : null,
-                        origin: p.origin_story || null,
-                        tier: getRankTierName(1200 + Math.floor(Math.random() * 600)),
                     };
                 }
             }
 
-            // Fallback to hardcoded horses if DB unavailable
+            // Fallback if DB unavailable
             if (!horse) {
                 const pick = FALLBACK_HORSES[Math.floor(Math.random() * FALLBACK_HORSES.length)];
+                const rating = 1200 + Math.floor(Math.random() * 600);
                 horse = {
-                    id: `fallback_${pick.name.toLowerCase()}`,
+                    id: `fb_${Date.now()}`,
                     name: pick.name,
-                    avatar: pick.avatar,
-                    rating: 1200 + Math.floor(Math.random() * 600),
-                    personality: pick.personality,
-                    catchphrase: null,
-                    origin: null,
-                    tier: getRankTierName(1200 + Math.floor(Math.random() * 600)),
+                    avatar: null,
+                    rating,
+                    tier: getRankTierName(rating),
+                    _personality: pick.personality,
                 };
             }
 
-            return res.status(200).json({ horse, isAI: true });
+            // Response looks identical to a real player joining — no AI indicators
+            return res.status(200).json({
+                player: {
+                    id: horse.id,
+                    name: horse.name,
+                    avatar: horse.avatar,
+                    rating: horse.rating,
+                    tier: horse.tier,
+                },
+                // _internal: decision engine config (client stores this but never renders it)
+                _engine: horse._personality,
+            });
         } catch (err) {
             console.error('[horse-opponent] GET error:', err.message);
-            // Always return a horse — never fail the matchmaking
+            // Always return an opponent — never fail the matchmaking
             const pick = FALLBACK_HORSES[Math.floor(Math.random() * FALLBACK_HORSES.length)];
+            const rating = 1200 + Math.floor(Math.random() * 400);
             return res.status(200).json({
-                horse: {
-                    id: `fallback_${pick.name.toLowerCase()}`,
-                    name: pick.name,
-                    avatar: pick.avatar,
-                    rating: 1300,
-                    personality: pick.personality,
-                    tier: 'Bronze',
-                },
-                isAI: true,
+                player: { id: `fb_${Date.now()}`, name: pick.name, avatar: null, rating, tier: getRankTierName(rating) },
+                _engine: pick.personality,
             });
         }
     }

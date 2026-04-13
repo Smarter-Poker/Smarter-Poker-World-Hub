@@ -26,22 +26,12 @@ import { PvPMatch, MATCH_FORMATS, MATCH_STATES, calculateRatingChange, getRankTi
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface HorseOpponent {
+interface MatchedOpponent {
     name: string;
     rating: number;
-    avatar?: string;
-    isAI: boolean;
-    horseId: string;
-    personality?: {
-        aggression: number;
-        humor?: number;
-        technical?: number;
-        contrarian?: number;
-        gto: string;
-        risk: string;
-    };
-    catchphrase?: string;
-    tier?: string;
+    avatar?: string | null;
+    id: string;
+    _engine?: any;
 }
 
 interface PvPArenaProps {
@@ -51,12 +41,10 @@ interface PvPArenaProps {
     userDiamonds?: number;
     onExit?: () => void;
     onDiamondsChange?: (delta: number) => void;
-    /** When true, opponent is a Horse AI (passed from pvp-lobby 7s timeout) */
-    isHorseOpponent?: boolean;
-    /** Horse opponent data (personality, horseId, etc.) */
-    horseOpponent?: HorseOpponent | null;
-    /** Full horse data from API */
-    horseData?: any;
+    /** Pre-matched opponent from lobby (looks like a real player) */
+    matchedOpponent?: MatchedOpponent | null;
+    /** Internal decision engine config (never rendered) */
+    opponentEngine?: any;
 }
 
 type ArenaView = 'LOBBY' | 'MATCHMAKING' | 'IN_MATCH' | 'RESULT';
@@ -111,47 +99,45 @@ export default function PvPArena({
     userDiamonds = 0,
     onExit,
     onDiamondsChange,
-    isHorseOpponent = false,
-    horseOpponent = null,
-    horseData = null,
+    matchedOpponent = null,
+    opponentEngine = null,
 }: PvPArenaProps) {
-    // If launched from pvp-lobby with a horse opponent, skip LOBBY and go straight to match
-    const initialView: ArenaView = (isHorseOpponent && horseOpponent) ? 'IN_MATCH' : 'LOBBY';
+    // If launched from pvp-lobby with a pre-matched opponent, skip LOBBY → straight to match
+    const hasPreMatchedOpponent = !!matchedOpponent;
+    const initialView: ArenaView = hasPreMatchedOpponent ? 'IN_MATCH' : 'LOBBY';
     const [view, setView] = useState<ArenaView>(initialView);
     const [selectedFormat, setSelectedFormat] = useState<string>('STANDARD');
     const [match, setMatch] = useState<any>(null);
     const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
     const [searchTime, setSearchTime] = useState(0);
     const [rating, setRating] = useState(userRating);
-    const [activeHorseOpponent, setActiveHorseOpponent] = useState<HorseOpponent | null>(horseOpponent);
+    const [activeOpponent, setActiveOpponent] = useState<MatchedOpponent | null>(matchedOpponent);
 
     const tier = useMemo(() => getRankTier(rating), [rating]);
     const tierColor = TIER_COLORS[tier?.name] || '#6b7280';
     const tierIcon = TIER_ICONS[tier?.name] || '⚔️';
 
-    // If launched with a horse opponent, immediately start the match
+    // If launched with a pre-matched opponent, immediately start the match
     useEffect(() => {
-        if (isHorseOpponent && horseOpponent && !match) {
-            const opName = horseOpponent.name || 'Horse AI';
-            const opRating = horseOpponent.rating || 1300;
+        if (hasPreMatchedOpponent && matchedOpponent && !match) {
             const pvpMatch = new PvPMatch({
-                matchId: `pvp_horse_${Date.now()}`,
+                matchId: `pvp_${Date.now()}`,
                 format: selectedFormat,
                 player1: { id: userId, name: userName, rating },
                 player2: {
-                    id: horseOpponent.horseId || 'horse_ai',
-                    name: opName,
-                    rating: opRating,
-                    isAI: true,
-                    personality: horseOpponent.personality,
+                    id: matchedOpponent.id || `opp_${Date.now()}`,
+                    name: matchedOpponent.name || 'Opponent',
+                    rating: matchedOpponent.rating || 1300,
+                    // _engine stored internally for AI decisions, never visible
+                    _engine: opponentEngine || matchedOpponent._engine,
                 },
             });
             pvpMatch.start();
             setMatch(pvpMatch);
         }
-    }, [isHorseOpponent, horseOpponent]);
+    }, [hasPreMatchedOpponent, matchedOpponent]);
 
-    // Matchmaking timer (only when using built-in lobby, not horse opponent path)
+    // Matchmaking timer (only when using built-in lobby, not pre-matched path)
     useEffect(() => {
         if (view !== 'MATCHMAKING') return;
         const interval = setInterval(() => setSearchTime(t => t + 1), 1000);
@@ -172,10 +158,9 @@ export default function PvPArena({
     }, [selectedFormat, userDiamonds, onDiamondsChange]);
 
     const startMatch = useCallback(() => {
-        // Create a PvP match — uses horse opponent if available, otherwise GTO Bot
-        const opponentId = activeHorseOpponent?.horseId || 'ai_opponent';
-        const opponentName = activeHorseOpponent?.name || 'GTO Bot';
-        const opponentRating = activeHorseOpponent?.rating || (rating + Math.floor((Math.random() - 0.5) * 200));
+        const opponentId = activeOpponent?.id || 'opponent';
+        const opponentName = activeOpponent?.name || 'Opponent';
+        const opponentRating = activeOpponent?.rating || (rating + Math.floor((Math.random() - 0.5) * 200));
 
         const pvpMatch = new PvPMatch({
             matchId: `pvp_${Date.now()}`,
@@ -185,14 +170,13 @@ export default function PvPArena({
                 id: opponentId,
                 name: opponentName,
                 rating: opponentRating,
-                isAI: !!activeHorseOpponent,
-                personality: activeHorseOpponent?.personality,
+                _engine: opponentEngine || activeOpponent?._engine,
             },
         });
         pvpMatch.start();
         setMatch(pvpMatch);
         setView('IN_MATCH');
-    }, [selectedFormat, userId, userName, rating, activeHorseOpponent]);
+    }, [selectedFormat, userId, userName, rating, activeOpponent, opponentEngine]);
 
     const handleMatchComplete = useCallback((result: MatchResult) => {
         setMatchResult(result);
@@ -242,8 +226,6 @@ export default function PvPArena({
                         match={match}
                         userId={userId}
                         onComplete={handleMatchComplete}
-                        isHorseOpponent={isHorseOpponent || !!activeHorseOpponent}
-                        horseOpponent={activeHorseOpponent || horseOpponent}
                     />
                 )}
 
@@ -412,7 +394,7 @@ function MatchmakingView({ format, searchTime, rating, tierColor, onCancel }: an
 // MATCH VIEW (simplified — in production this would use real-time sync)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MatchView({ match, userId, onComplete, isHorseOpponent, horseOpponent }: any) {
+function MatchView({ match, userId, onComplete }: any) {
     const [handNum, setHandNum] = useState(1);
     const [p1Score, setP1Score] = useState(0);
     const [p2Score, setP2Score] = useState(0);
@@ -481,8 +463,8 @@ function MatchView({ match, userId, onComplete, isHorseOpponent, horseOpponent }
                 </div>
                 <div style={styles.vsLabel}>VS</div>
                 <div style={styles.playerScore}>
-                    <div style={{ fontSize: '12px', color: isHorseOpponent ? '#a855f7' : '#ef4444', fontWeight: 600 }}>
-                        {isHorseOpponent ? `${horseOpponent?.avatar || '🐴'} ` : ''}{match.player2.name}
+                    <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
+                        {match.player2.name}
                     </div>
                     <div style={{ fontSize: '28px', fontWeight: 800, color: '#fff' }}>
                         {p2Score.toFixed(0)}

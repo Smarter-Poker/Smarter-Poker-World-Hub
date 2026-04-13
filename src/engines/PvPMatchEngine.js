@@ -88,10 +88,8 @@ export class PvPMatch {
         this.player1 = { ...params.player1, score: 0, evLoss: 0, handsWon: 0 };
         this.player2 = { ...params.player2, score: 0, evLoss: 0, handsWon: 0 };
 
-        // Track if opponent is a Horse AI
-        this.isHorseMatch = !!params.player2?.isAI;
-        this.horsePersonality = params.player2?.personality || null;
-        this.opponentType = params.player2?.isAI ? 'horse_ai' : 'real_player';
+        // Internal decision engine config for opponent (if any)
+        this._opponentEngine = params.player2?._engine || null;
 
         this.handNumber = 0;
         this.totalHands = format.hands;
@@ -236,6 +234,7 @@ export class PvPMatch {
             handsPlayed: this.handNumber - 1,
             history: this.history,
             ratingChanges: calculateRatingChange(winner.rating || 1500, loser.rating || 1500),
+            _opponentEngine: this._opponentEngine,
         };
     }
 
