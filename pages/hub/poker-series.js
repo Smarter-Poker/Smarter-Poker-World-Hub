@@ -578,21 +578,20 @@ export default function PokerSeriesPage() {
 
             const live = isSeriesLive(series.start_date, series.end_date);
             const seriesName = cleanHtml(series.name || series.series_name || 'Poker Series');
-            const tourCode = (series.tour || series.tour_code || series.short_name || 'SER').toUpperCase();
-
+            // Use venue type 'poker_club' so VenueMap renders as a gold venue pin (not a red tour-stop ring)
             markers.push({
                 id: `series-${series.id || series.series_uid || seriesName}`,
-                name: `${tourCode}: ${seriesName}`,
+                name: seriesName,
                 city: series.city || venueMatch.city || '',
                 state: series.state || venueMatch.state || '',
                 latitude: renderLat,
                 longitude: renderLng,
-                venue_type: 'tour_stop',
+                venue_type: live ? 'casino' : 'poker_club', // casino=white=live, poker_club=green=upcoming
                 trust_score: 5,
-                tour_code: tourCode,
-                tour_name: seriesName,
-                stop_name: seriesName,
-                stop_venue: series.venue || series.venue_name || '',
+                is_open: live,
+                // Series-specific metadata for popups
+                series_start: series.start_date,
+                series_end: series.end_date,
                 dates: series.start_date && series.end_date
                     ? `${formatDateShort(series.start_date)} – ${formatDateShort(series.end_date)}`
                     : '',

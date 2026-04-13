@@ -944,6 +944,8 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
 
 # ── SOURCE 3 HELPER: CardPlayer event search ─────────────────────────────────
 def _try_cardplayer(series_uid, series_name, batch_id, session):
+    import urllib.parse, re
+    # We will assume fetch_with_retry and extract_html_events exist globally
     events = []
     try:
         cp_search = urllib.parse.quote(series_name.replace("'", "")[:40])
@@ -953,22 +955,14 @@ def _try_cardplayer(series_uid, series_name, batch_id, session):
         
         target_path = None
         if cp_status == 200 and cp_html:
-            # Look for the exact tournament link in results, scoring them by relevance
             best_score = 0
             search_words = set(re.findall(r'[a-z]+', series_name.lower()[:50])) - {'poker','series','classic','the','of'}
-            
             for match in re.finditer(r'href="(https://www.cardplayer.com/poker-tournaments/\d+-?([^"]*))"', cp_html, re.I):
                 path = match.group(1)
                 slug_part = match.group(2).lower()
-                
-                # Ignore generic ones
-                if 'monthly' in path or 'daily' in path or slug_part == '':
-                    continue
-                    
+                if 'monthly' in path or 'daily' in path or slug_part == '': continue
                 path_words = set(re.findall(r'[a-z]+', slug_part))
                 overlap = len(search_words.intersection(path_words))
-                
-                # Pick highest overlap. If identical, first one wins.
                 if overlap > best_score:
                     best_score = overlap
                     target_path = path
@@ -982,14 +976,45 @@ def _try_cardplayer(series_uid, series_name, batch_id, session):
             s_html, s_status, _, s_hash = fetch_with_retry(session, series_url)
             if s_status == 200 and s_html and has_tourn(s_html):
                 events = extract_html_events(s_html, series_uid, series_name, batch_id, series_url, s_hash)
-                if events:
-                    for e in events:
-                        e['source'] = 'cardplayer'
-                    log(f"        [CardPlayer] {len(events)} events extracted")
+                
+                # --- NEW DEEP SCRAPE LOGIC ---
+                # We attempt to find the deep /event/ links and match them to our extracted events
+                event_links_raw = re.findall(r'href="(https://www.cardplayer.com/poker-tournaments/\d+[^/]+/event/\d+[^"]*)"', s_html)
+                # Deduplicate while preserving order
+                unique_links = []
+                for l in event_links_raw:
+                    if l not in unique_links: unique_links.append(l)
+
+                if unique_links and events:
+                    log(f"        [CardPlayer] Found {len(unique_links)} event detail links. Deep scraping up to 10...")
+                    # We will align them by index (assuming chronological order matches)
+                    max_deep = min(len(events), len(unique_links), 10)
+                    for i in range(max_deep):
+                        e_url = unique_links[i]
+                        e_html, e_stat, _, _ = fetch_with_retry(session, e_url)
+                        if e_stat == 200 and e_html:
+                            # Search for Starting Stack
+                            stk_m = re.search(r"Starting Stack.*?([\d,]+)", e_html, re.I | re.DOTALL)
+                            if stk_m:
+                                v = int(re.sub(r'[^\d]', '', stk_m.group(1)))
+                                if v >= 1000: events[i]['starting_stack'] = v
+                                
+                            # Search for Blind Levels
+                            lvl_m = re.search(r"Blind Levels.*?(\d+)\s*min", e_html, re.I | re.DOTALL)
+                            if lvl_m:
+                                events[i]['blind_levels'] = int(lvl_m.group(1))
+                                
+                            # Search for Guarantee
+                            gtd_m = re.search(r"Guaranteed.*?\$([\d,]+)", e_html, re.I | re.DOTALL)
+                            if gtd_m:
+                                events[i]['guarantee'] = int(re.sub(r'[^\d]', '', gtd_m.group(1)))
+
+                for e in events:
+                    e['source'] = 'cardplayer'
+                log(f"        [CardPlayer] {len(events)} events extracted")
     except Exception as ex:
         log(f"        [CardPlayer] Error: {str(ex)[:60]}")
     return events
-
 
 # ── SOURCE 4 HELPER: HendonMob event-level search ─────────────────────────────
 def _try_hendonmob(series_uid, series_name, batch_id, session):
@@ -1034,6 +1059,18 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                 event_name = ''
                 buyin = 0
                 game_type = 'NLH'
+                event_url = None
+                
+                # Check for event detail link inside the row
+                href_m = re.search(r'href="(festival\.php\?a=e.*|event\.php\?a=e.*|.*?/event/.*?)"', row, re.I)
+                if href_m:
+                    e_part = href_m.group(1).replace('&amp;', '&')
+                    if e_part.startswith('http'):
+                        event_url = e_part
+                    elif hm_url.startswith('https://pokerdb'):
+                        event_url = 'https://pokerdb.thehendonmob.com/' + e_part
+                    else:
+                        event_url = 'https://www.summerinvegas.com/' + e_part.lstrip('/')
 
                 for cell in clean_cells:
                     # Date detection
@@ -1044,72 +1081,64 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                         month = months.get(dm.group(2).lower()[:3], '01')
                         date_str = f"{dm.group(3)}-{month}-{int(dm.group(1)):02d}"
                         continue
-
-                    # Buy-in detection (handles $, €, £)
-                    bm = re.search(r'[$€£]\s?([\d,]+)', cell)
-                    if bm and not buyin:
-                        buyin = int(bm.group(1).replace(',', ''))
+                        
+                    # Buy-in detection (we no longer use this exclusively to prevent overwrite, but keeping it for completeness)
+                    bi_m = re.search(r'(?:^|\s)(?:[$€£]|USD|EUR|GBP|A\$)\s*([\d,]+)(?:\s*\+\s*[$€£]?\s*([\d,]+))?', cell)
+                    if bi_m and not buyin:
+                        buyin = int(bi_m.group(1).replace(',', ''))
                         continue
+                        
+                    # Event Name detection
+                    if len(cell) > 10 and not re.match(r'^\d', cell) and 'NLH' not in cell.upper() and 'HOLD' not in cell.upper():
+                        if not event_name:
+                            event_name = cell.strip()
 
-                    # Event name — longest remaining cell
-                    if len(cell) > len(event_name) and len(cell) > 10:
-                        event_name = cell[:100]
+                if date_str and event_name:
+                    event_counter += 1
+                    event_uid = generate_consistent_id("hm", series_uid, str(event_counter))
+                    
+                    e_dict = {
+                        "event_uid": event_uid,
+                        "series_uid": series_uid,
+                        "event_name": event_name[:150],
+                        "event_number": str(event_counter),
+                        "buy_in": buyin if buyin else None,
+                        "start_date": date_str,
+                        "game_type": 'NLH',
+                        "source": 'hendonmob',
+                        "data_quality": "scraped_verified",
+                        "scrape_batch_id": batch_id,
+                        "scrape_html_hash": hm_hash,
+                        "scrape_timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                    
+                    # --- NEW DEEP SCRAPE LOGIC ---
+                    if event_url and event_counter <= 10:  # Cap deep limit
+                        e_html, e_stat, _, _ = fetch_with_retry(session, event_url)
+                        if e_stat == 200 and e_html:
+                            # Search for Starting Stack
+                            stk_m = re.search(r"Starting Stack.*?([\d,]+)", e_html, re.I | re.DOTALL)
+                            if stk_m:
+                                v = int(re.sub(r'[^\d]', '', stk_m.group(1)))
+                                if v >= 1000: e_dict['starting_stack'] = v
+                                
+                            # Search for Blind Levels
+                            lvl_m = re.search(r"Blind Levels.*?(\d+)\s*min", e_html, re.I | re.DOTALL)
+                            if lvl_m:
+                                e_dict['blind_levels'] = int(lvl_m.group(1))
+                                
+                            # Search for Guarantee
+                            gtd_m = re.search(r"Guarantee.*?\$([\d,]+)", e_html, re.I | re.DOTALL)
+                            if gtd_m:
+                                e_dict['guarantee'] = int(re.sub(r'[^\d]', '', gtd_m.group(1)))
+                    
+                    events.append(e_dict)
 
-                if not event_name or not buyin or buyin < 10 or buyin > 300000:
-                    continue
-
-                # Data Integrity Filter: Prevent hallucinated aggregation
-                # Ensure the ENTIRE row text contains at least ONE core word from the series name, or its acronym
-                full_row_text = " ".join(clean_cells).lower()
-                search_words = set(re.findall(r'[a-z0-9]+', series_name.lower())) - {'poker','series','classic','the','of','casino','resort','hotel','tour','championship','event','annual'}
-                if not search_words:
-                    search_words = set(re.findall(r'[a-z0-9]+', series_name.lower())) # Fallback
-                
-                acronym = "".join([w[0] for w in series_name.lower().replace('-', ' ').split() if w not in {'of', 'the'}]).strip()
-                row_words = set(re.findall(r'[a-z0-9]+', full_row_text))
-                
-                if acronym not in row_words and not search_words.intersection(row_words):
-                    continue
-
-                # Detect game type from event name
-                name_lower = event_name.lower()
-                if 'plo' in name_lower or 'pot limit omaha' in name_lower:
-                    game_type = 'PLO'
-                elif 'omaha' in name_lower and 'hi' in name_lower and 'lo' in name_lower:
-                    game_type = 'Omaha Hi-Lo'
-                elif 'mixed' in name_lower or 'horse' in name_lower:
-                    game_type = 'Mixed'
-
-                event_counter += 1
-                uid_seed = f"{series_uid}_hm_{event_name}_{date_str}_{buyin}_{event_counter}"
-                uid_hash = sha256h(uid_seed.encode('utf-8'))[:8]
-                event_uid = f"{series_uid}_hm_e{event_counter}_{uid_hash}"
-
-                events.append(make_event_rec(
-                    series_uid=series_uid, series_name=series_name,
-                    batch_id=batch_id, event_uid=event_uid,
-                    event_name=event_name, event_number=event_counter,
-                    buy_in=buyin, game_type=game_type, fmt=None,
-                    guarantee=None, start_date=date_str or None,
-                    start_time=None, end_date=None,
-                    starting_stack=None, blind_levels=None,
-                    fee=None, entries=None, prize_pool=None,
-                    day_number=None, flight=None, late_reg_levels=None,
-                    re_entry=False, re_entry_limit=None,
-                    unlimited_re_entry=False,
-                    venue_name='', city='', state='',
-                    source='hendonmob', source_url=hm_url,
-                    html_hash=hm_hash,
-                ))
-
-            if events:
-                log(f"        [HendonMob] {len(events)} events parsed from search results")
+            log(f"        [HendonMob] {len(events)} events extracted")
 
     except Exception as ex:
         log(f"        [HendonMob] Error: {str(ex)[:60]}")
-
     return events
-
 
 # ── Core per-series scraper ────────────────────────────────────────────────────
 def scrape_series(series: dict, session, batch_id: str,
@@ -1784,14 +1813,41 @@ def main():
 if __name__ == "__main__":
     if "--daemon" in sys.argv:
         log("\n🚀 Starting continuous daemon mode (6 hour cycles)...")
-        while True:
+        import signal
+        import os
+        
+        running = True
+        def signal_handler(sig, frame):
+            global running
+            log("⛔ Shutdown signal received, stopping...")
+            running = False
+            
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        
+        last_successful_save = time.time()
+        WATCHDOG_MAX_STALE_MINUTES = 8 * 60 # 8 hours
+        
+        while running:
+            stale_minutes = (time.time() - last_successful_save) / 60
+            if stale_minutes > WATCHDOG_MAX_STALE_MINUTES:
+                log(f"🚨 WATCHDOG: No successful data save in {stale_minutes:.0f} minutes. Exiting so launchd can cleanly restart process.")
+                os._exit(1)
             try:
                 main()
+                last_successful_save = time.time()
             except Exception as e:
                 log(f"\n❌ Daemon cycle crashed: {e}")
                 import traceback
                 traceback.print_exc()
-            log("\n💤 Daemon sleeping for 6 hours...")
-            time.sleep(3600 * 6)
+            
+            sleep_hours = 6
+            log(f"\n💤 Daemon sleeping for {sleep_hours} hours...")
+            for _ in range(3600 * sleep_hours):
+                if not running:
+                    break
+                time.sleep(1)
+                
+        log("🛑 Daemon strictly stopped.")
     else:
         main()
