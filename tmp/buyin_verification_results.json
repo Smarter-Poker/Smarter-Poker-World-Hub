@@ -1,0 +1,94 @@
+{
+  "Deadwood Mountain Grand": {
+    "error": "Could not fetch",
+    "urls_tried": [
+      "https://www.pokeratlas.com/poker-room/deadwood-mountain-grand-deadwood/tournaments",
+      "https://deadwoodmountaingrand.com/entertainment/poker",
+      "https://www.bravopokerlive.com/poker-rooms/deadwood-mountain-grand/"
+    ]
+  },
+  "Oxford Downs Poker Room": {
+    "url": "https://www.pokeratlas.com/poker-room/oxford-downs-summerfield/tournaments",
+    "html_hash": "1e6577971a28b87851ed41c53595e064436c557e9efffb439e0cd3a99549ebc0",
+    "all_buyins_found": [
+      35,
+      45,
+      49,
+      55,
+      59,
+      65,
+      70,
+      90,
+      100,
+      125,
+      135,
+      160,
+      200,
+      300,
+      500,
+      599,
+      1000,
+      22000
+    ],
+    "check_results": {
+      "599": true,
+      "100": true,
+      "200": true,
+      "300": true
+    },
+    "sample_times": [
+      "11:15am",
+      "6:15pm",
+      "11:15am",
+      "11:15am",
+      "6:15pm",
+      "10:15am",
+      "3:15pm",
+      "6:15pm",
+      "10:15am",
+      "6:15pm"
+    ]
+  },
+  "Santa Fe Station": {
+    "url": "https://www.pokeratlas.com/poker-room/santa-fe-station-las-vegas/tournaments",
+    "html_hash": "aceac8a2ff6835a0cbddcf7064b3bad3caec0adb6d47e7938129b4df871a9e1f",
+    "all_buyins_found": [
+      49,
+      59
+    ],
+    "check_results": {
+      "599": false,
+      "125": false,
+      "250": false
+    },
+    "sample_times": []
+  },
+  "Card House Port St. Lucie": {
+    "url": "https://www.pokeratlas.com/poker-room/card-house-port-st-lucie/tournaments",
+    "html_hash": "8f411341978a5c6d4d0904ce5cb900d72724450a6151c93c8fc2adba2e8ddb55",
+    "all_buyins_found": [
+      49,
+      59,
+      60,
+      100,
+      150
+    ],
+    "check_results": {
+      "599": false,
+      "100": true,
+      "200": false
+    },
+    "sample_times": [
+      "10:00am",
+      "3:00am",
+      "10:00am",
+      "3:00am",
+      "10:00am",
+      "3:00am",
+      "10:00am",
+      "3:00am",
+      "10:00am",
+      "3:00am"
+    ]
+  }
+}
