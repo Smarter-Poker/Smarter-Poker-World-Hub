@@ -20,6 +20,12 @@ import { PvPMatch, MATCH_FORMATS, calculateRatingChange, getRankTier } from '../
 const PvPArena = dynamic(() => import('../../../src/components/training/PvPArena'), { ssr: false });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// HORSE AI MATCHMAKING CONFIG
+// ═══════════════════════════════════════════════════════════════════════════
+const MATCHMAKING_TIMEOUT_MS = 7000; // 7 seconds before horse AI fallback
+const HORSE_ENTRANCE_DELAY_MS = 1200; // Dramatic pause before horse appears
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GAME FORMATS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -51,7 +57,7 @@ const STAKE_LEVELS = [
 // LOBBY PLAYER CARD
 // ═══════════════════════════════════════════════════════════════════════════
 
-function PlayerCard({ player, isReady, isSelf }) {
+function PlayerCard({ player, isReady, isSelf, isHorse }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -82,7 +88,7 @@ function PlayerCard({ player, isReady, isSelf }) {
               fontSize: 32,
             }}
           >
-            {isSelf ? '🎮' : '⚔️'}
+            {isSelf ? '🎮' : isHorse ? (player?.avatar || '🐴') : '⚔️'}
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0', marginBottom: 4 }}>
             {player.name || 'Player'}
@@ -433,6 +439,11 @@ export default function PvPLobbyPage() {
   const [inArena, setInArena] = useState(false); // When true, show PvPArena component
   const [currentUser, setCurrentUser] = useState({ name: 'You', rating: 1200 });
   const [onlineCount, setOnlineCount] = useState(null); // null until mounted (SSR-safe)
+  const [searchElapsed, setSearchElapsed] = useState(0); // Countdown timer display
+  const searchIntervalRef = useRef(null);
+  const [isHorseOpponent, setIsHorseOpponent] = useState(false); // Track if opponent is AI
+  const [horseData, setHorseData] = useState(null); // Full horse data for PvPArena
+
   useEffect(() => {
     try {
       const user = getAuthUser();
@@ -446,33 +457,77 @@ export default function PvPLobbyPage() {
     setOnlineCount(237 + Math.floor(Math.random() * 50));
   }, []);
 
-  // Simulate matchmaking search
+  // ═══════════════════════════════════════════════════════════════════════
+  // MATCHMAKING: 7-second timeout → Horse AI fallback
+  // ═══════════════════════════════════════════════════════════════════════
   const handleFindMatch = useCallback(() => {
     setIsSearching(true);
     setMatchFound(false);
     setOpponent(null);
     setSelfReady(false);
+    setSearchElapsed(0);
+    setIsHorseOpponent(false);
+    setHorseData(null);
 
-    // Simulate finding an opponent after 2-4 seconds
-    searchTimerRef.current = setTimeout(
-      () => {
-        setIsSearching(false);
-        setMatchFound(true);
-        setOpponent({
-          name: ['GTO_Grinder', 'PokerShark99', 'SolverPro', 'RangeKing', 'NitHunter'][
-            Math.floor(Math.random() * 5)
-          ],
-          rating: 1100 + Math.floor(Math.random() * 300),
-        });
-      },
-      2000 + Math.random() * 2000
-    );
+    // Tick every second for countdown display
+    searchIntervalRef.current = setInterval(() => {
+      setSearchElapsed(prev => prev + 1);
+    }, 1000);
+
+    // After 7 seconds: no real player found → fetch a Horse AI opponent
+    searchTimerRef.current = setTimeout(async () => {
+      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
+
+      try {
+        const res = await fetch('/api/training/horse-opponent');
+        const data = await res.json();
+
+        if (data?.horse) {
+          // Dramatic entrance delay
+          await new Promise(r => setTimeout(r, HORSE_ENTRANCE_DELAY_MS));
+
+          setIsSearching(false);
+          setMatchFound(true);
+          setIsHorseOpponent(true);
+          setHorseData(data.horse);
+          setOpponent({
+            name: data.horse.name,
+            rating: data.horse.rating,
+            avatar: data.horse.avatar,
+            isAI: true,
+            horseId: data.horse.id,
+            personality: data.horse.personality,
+            catchphrase: data.horse.catchphrase,
+            tier: data.horse.tier,
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('[PvP] Horse fetch failed, using fallback:', err.message);
+      }
+
+      // If API fails, still provide a horse opponent (never leave player hanging)
+      setIsSearching(false);
+      setMatchFound(true);
+      setIsHorseOpponent(true);
+      setOpponent({
+        name: 'Thunderhoof',
+        rating: 1200 + Math.floor(Math.random() * 400),
+        avatar: '🐴',
+        isAI: true,
+        horseId: 'fallback_thunderhoof',
+        personality: { aggression: 7, humor: 4, technical: 8, contrarian: 3, gto: 'balanced', risk: 'moderate' },
+        tier: 'Silver',
+      });
+    }, MATCHMAKING_TIMEOUT_MS);
   }, []);
 
   // Cancel search
   const handleCancelSearch = useCallback(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
     setIsSearching(false);
+    setSearchElapsed(0);
   }, []);
 
   // Ready up → launch PvPArena for the match
@@ -523,6 +578,9 @@ export default function PvPLobbyPage() {
             format,
             stakeLevel: STAKE_LEVELS[stakeLevel].name,
             opponent: opponent?.name,
+            opponentType: isHorseOpponent ? 'horse_ai' : 'real_player',
+            horseId: isHorseOpponent ? opponent?.horseId : null,
+            horsePersonality: isHorseOpponent ? opponent?.personality : null,
             ratingChange: result?.ratingChange,
           },
         }),
@@ -535,6 +593,7 @@ export default function PvPLobbyPage() {
   useEffect(() => {
     return () => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
     };
   }, []);
 
@@ -547,6 +606,9 @@ export default function PvPLobbyPage() {
         userName={currentUser?.name || 'You'}
         diamondBalance={100}
         onExit={(result) => handleArenaComplete(result || {})}
+        isHorseOpponent={isHorseOpponent}
+        horseOpponent={isHorseOpponent ? opponent : null}
+        horseData={horseData}
       />
     );
   }
@@ -772,7 +834,7 @@ export default function PvPLobbyPage() {
                     >
                       SEARCHING
                     </motion.span>
-                    ... (tap to cancel)
+                    {' '}({Math.max(0, 7 - searchElapsed)}s) — tap to cancel
                   </span>
                 ) : (
                   'FIND MATCH'
@@ -793,13 +855,39 @@ export default function PvPLobbyPage() {
                 style={{
                   textAlign: 'center',
                   marginBottom: 24,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: '#22c55e',
-                  fontFamily: "'Orbitron', monospace",
                 }}
               >
-                MATCH FOUND
+                <div style={{
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: isHorseOpponent ? '#a855f7' : '#22c55e',
+                  fontFamily: "'Orbitron', monospace",
+                  marginBottom: isHorseOpponent ? 8 : 0,
+                }}>
+                  {isHorseOpponent ? 'HORSE CHALLENGER ENTERS' : 'MATCH FOUND'}
+                </div>
+                {isHorseOpponent && opponent?.catchphrase && (
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>
+                    &ldquo;{opponent.catchphrase}&rdquo;
+                  </div>
+                )}
+                {isHorseOpponent && (
+                  <div style={{
+                    display: 'inline-block',
+                    marginTop: 6,
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    fontSize: 9,
+                    fontWeight: 700,
+                    background: 'rgba(168,85,247,0.12)',
+                    color: '#a855f7',
+                    border: '1px solid rgba(168,85,247,0.25)',
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                  }}>
+                    {opponent?.personality?.gto === 'exploitative' ? 'Exploitative' : opponent?.personality?.gto === 'gto_purist' ? 'GTO Purist' : 'Balanced'} · {opponent?.tier || 'Bronze'}
+                  </div>
+                )}
               </div>
 
               {/* Player Cards */}

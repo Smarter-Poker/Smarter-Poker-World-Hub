@@ -456,7 +456,7 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
         "game_type": game_type,
         "format": fmt,
         "guaranteed": guaranteed,
-        "starting_stack": int(starting_stack) if starting_stack else None,
+        "starting_stack": int(starting_stack) if starting_stack and int(starting_stack) >= 1000 else None,
         "level_duration_minutes": int(level_duration_minutes) if level_duration_minutes else (20 if n_levels else None),
         "number_of_levels": int(n_levels) if n_levels else None,
         "rebuy_addon": str(rebuy_addon)[:200] if rebuy_addon else None,
@@ -658,17 +658,23 @@ def extract_pa_next_data(html:str, venue_name:str, vid, batch_id:str, url:str, s
             if obj.get("buyIn") and obj.get("startTime"):
                 try:
                     buyin = _parse_money(obj.get("buyIn") or obj.get("buy_in") or "")
-                    if not buyin:
+                    if not buyin or buyin < 20:
                         for v in obj.values(): walk(v)
                         return
                     
                     st = normalize_time(str(obj.get("startTime") or ""))
-                    tname = (obj.get("name") or obj.get("title") or "")[:100]
+                    tname = sanitize_tournament_name((obj.get("name") or obj.get("title") or "")[:100])
                     game = game_from(tname or str(obj.get("gameType", "")))
                     fmt = fmt_from(tname or str(obj.get("format", "")))
                     gtd = _parse_money(str(obj.get("guarantee") or obj.get("guaranteed") or ""))
                     
                     stack = obj.get("startingStack") or obj.get("chips")
+                    # Validate starting stack (must be >= 1000 to be real chips)
+                    if stack:
+                        try:
+                            stack = int(stack)
+                            if stack < 1000: stack = None  # Not a real chip count
+                        except (ValueError, TypeError): stack = None
                     level_d = obj.get("levelDuration") or obj.get("minutesPerLevel")
                     n_levels = obj.get("numberOfLevels") or obj.get("levels")
                     late_r = obj.get("lateRegistration") or obj.get("late_reg")
@@ -701,7 +707,8 @@ def extract_pa_next_data(html:str, venue_name:str, vid, batch_id:str, url:str, s
                         if dk in seen: continue
                         seen.add(dk)
                         rec = make_rec(venue_name, vid, batch_id, day, ev_date, st, buyin, game, fmt, gtd, 
-                                     tname, url, "pokeratlas", h, starting_stack=stack, level_duration_minutes=level_d, 
+                                     tname or make_default_tournament_name(game, st, buyin, fmt),
+                                     url, "pokeratlas", h, starting_stack=stack, level_duration_minutes=level_d, 
                                      rebuy_addon=rebuy, late_reg=late_r, max_entries=max_e, bounty=bounty, sat_to=sat_to, 
                                      payout=payout, struct_url=struct_url, age=age, n_levels=n_levels, state=state)
                         results.append(rec)
@@ -740,7 +747,7 @@ def parse_pa_html(html:str, venue_name:str, vid, batch_id:str, url:str) -> list:
 
         # Name
         nm = re.search(r'class="name"[^>]*>\s*<span>([^<]{2,80})', block)
-        tname = nm.group(1).strip()[:100] if nm else None
+        tname = sanitize_tournament_name(nm.group(1).strip()[:100]) if nm else None
 
         # Buy-in — look for $ amount inside a buy-in span or any $ in the block
         bm = re.search(r'class=["\']buy-in[^>]*>\$?([\d,]+)', block)
@@ -748,7 +755,7 @@ def parse_pa_html(html:str, venue_name:str, vid, batch_id:str, url:str) -> list:
             # Broader: first $ amount of reasonable size in the block
             bm = re.search(r'\$([\d,]{2,7})', block)
         buyin = int(bm.group(1).replace(",","")) if bm else None
-        if buyin is None or not 10 <= buyin <= 50000: continue
+        if buyin is None or not 20 <= buyin <= 50000: continue
 
         # Game type
         gm = re.search(r'class="type"[^>]*>([^<]{1,40})', block)
@@ -774,7 +781,7 @@ def parse_pa_html(html:str, venue_name:str, vid, batch_id:str, url:str) -> list:
             if dk in seen: continue
             seen.add(dk)
             results.append(make_rec(venue_name, vid, batch_id, day, None, st, buyin, game,
-                fmt_from(tname or ""), gtd, tname, url, "pokeratlas", h))
+                fmt_from(tname or ""), gtd, tname or make_default_tournament_name(game, st, buyin, fmt_from(tname or "")), url, "pokeratlas", h))
     return results
 
 # ── Global source fetchers ───────────────────────────────────────────────────
