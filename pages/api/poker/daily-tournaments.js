@@ -1,8 +1,8 @@
 /**
  * Daily Tournaments API
  *
- * Source of Truth: data/tournament-venues.json (163 venues with confirmed tournaments)
- * Data Source: Venue scraping via venue_daily_tournaments table
+ * Source: venue_daily_tournaments table (324+ venues, 4,500+ records)
+ * Live-scraped data by tournament-schedule-daemon (72h cycle)
  *
  * Endpoints:
  *   GET /api/poker/daily-tournaments - Get daily tournament schedules
@@ -124,9 +124,12 @@ export default async function handler(req, res) {
               query = query.or(`day_of_week.ilike.${targetDay},day_of_week.ilike.daily`);
           }
 
-          // Filter by exact venue ID
+          // Filter by exact venue ID — must be a valid integer to prevent cast errors
           if (venue_id) {
-              query = query.eq('venue_id', venue_id);
+              const parsedVenueId = parseInt(venue_id, 10);
+              if (!isNaN(parsedVenueId) && parsedVenueId > 0) {
+                  query = query.eq('venue_id', parsedVenueId);
+              }
           }
 
           // Filter by venue name — strip SQL ILIKE wildcards (% _) to prevent wildcard injection
@@ -324,6 +327,7 @@ export default async function handler(req, res) {
               byState: groupByState(tournaments),
               stats: {
                   total: tournaments.length,
+                  venueCount: new Set(tournaments.map(t => t.venue_name)).size,
                   avgBuyin: tournaments.length > 0
                       ? Math.round(tournaments.reduce((sum, t) => sum + (t.buy_in || 0), 0) / tournaments.length)
                       : 0,

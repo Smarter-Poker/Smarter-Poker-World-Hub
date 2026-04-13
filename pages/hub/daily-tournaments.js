@@ -1,6 +1,6 @@
 /**
  * DAILY TOURNAMENTS - Find poker tournaments happening today
- * Source of Truth: data/tournament-venues.json (163 confirmed venues)
+ * Live data from venue_daily_tournaments — 324+ venues, 4,500+ records
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -236,7 +236,7 @@ export default function DailyTournaments() {
                 {/* Page Header */}
                 <div className="dt-header">
                     <h1><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
-                    <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {Object.keys(stats.byType || {}).reduce((sum, k) => sum + (stats.byType[k] || 0), 0) > 0 ? new Set((swrData?.tournaments || []).map(t => t.venue_name)).size : '...'} VENUES</span>
+                    <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
                 </div>
 
                 {/* Day Selector */}
