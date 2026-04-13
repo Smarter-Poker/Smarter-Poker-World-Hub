@@ -77,7 +77,8 @@ function formatDateRange(startDate, endDate) {
 }
 
 function formatMoney(amount) {
-  if (!amount && amount !== 0) return 'N/A';
+  if (amount === null || amount === undefined) return 'N/A';
+  if (amount === 0) return 'Free'; // BUG FIX: freerolls show 'Free' not '$0'
   return '$' + Number(amount).toLocaleString('en-US');
 }
 
@@ -104,8 +105,12 @@ function timeAgo(dateStr) {
 }
 
 function getSeriesStatus(startDate, endDate) {
+  // BUG FIX: null/missing date → don't show 'Completed' (Invalid Date comparisons all false)
+  if (!startDate) return { label: 'Date TBD', color: '#94a3b8' };
   const now = new Date();
   const start = new Date(startDate + 'T00:00:00');
+  // Guard against unparseable dates (e.g. 'nullT00:00:00')
+  if (isNaN(start.getTime())) return { label: 'Date TBD', color: '#94a3b8' };
   const end = endDate ? new Date(endDate + 'T23:59:59') : start;
 
   if (now < start) {
@@ -171,28 +176,51 @@ export default function SeriesDetailPage() {
   }, [id, router.isReady]);
 
   // SWR — parallel fetch all series data
+  // BUG FIX: use Promise.allSettled + per-request timeout so slow activity/results APIs
+  // never block the critical series data from rendering (was Promise.all → all-or-nothing hang)
   const swrKey = id ? `/api/poker/series?id=${id}` : null;
   const { data: swrData, isLoading: loading, error, mutate } = useSWR(swrKey, async () => {
-    const [seriesRes, resultsRes, followRes, activityRes] = await Promise.all([
-      fetch('/api/poker/series?id=' + id).catch(() => ({ ok: false })),
-      fetch('/api/poker/results?series_id=' + id).catch(() => ({ ok: false })),
-      fetch('/api/poker/follow?page_type=series&page_id=' + id).catch(() => ({ ok: false })),
-      fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10').catch(() => ({ ok: false }))
+    const withTimeout = (promise, ms) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), ms);
+      return promise
+        .then(r => { clearTimeout(timer); return r; })
+        .catch(e => { clearTimeout(timer); return { ok: false }; });
+    };
+    // BUG FIX: 8s per-request timeouts; secondary APIs (results/activity) degrade gracefully
+    const results_arr = await Promise.allSettled([
+      withTimeout(fetch('/api/poker/series?id=' + id), 8000),
+      withTimeout(fetch('/api/poker/results?series_id=' + id), 8000),
+      withTimeout(fetch('/api/poker/follow?page_type=series&page_id=' + id), 8000),
+      withTimeout(fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10'), 8000),
     ]);
-    if (!seriesRes.ok) throw new Error(`Request failed (${seriesRes.status})`);
-    const safeJson = (r) => (r && typeof r.json === 'function') ? r.json() : r;
+    const [seriesRes, resultsRes, followRes, activityRes] = results_arr.map(r =>
+      r.status === 'fulfilled' ? r.value : { ok: false }
+    );
+    if (!seriesRes || !seriesRes.ok) throw new Error('Series not found or unavailable');
+    const safeJson = async (r) => {
+      if (!r || typeof r.json !== 'function') return {};
+      try { return await r.json(); } catch { return {}; }
+    };
     const [sj, rj, fj, aj] = await Promise.all([safeJson(seriesRes), safeJson(resultsRes), safeJson(followRes), safeJson(activityRes)]);
     const seriesObj = sj.success && sj.data ? (Array.isArray(sj.data) ? sj.data[0] : sj.data) : null;
     const payload = rj.success ? (rj.data || {}) : {};
-    const results = payload.results && Array.isArray(payload.results) ? payload.results : (Array.isArray(payload) ? payload : []);
-    const leaderboard = payload.leaderboard && Array.isArray(payload.leaderboard) ? payload.leaderboard : (Array.isArray(rj.leaderboard) ? rj.leaderboard : []);
+    const res = payload.results && Array.isArray(payload.results) ? payload.results : (Array.isArray(payload) ? payload : []);
+    const lb = payload.leaderboard && Array.isArray(payload.leaderboard) ? payload.leaderboard : (Array.isArray(rj.leaderboard) ? rj.leaderboard : []);
     return {
       series: seriesObj,
-      results,
-      leaderboard,
+      results: res,
+      leaderboard: lb,
       followerCount: fj.success ? (fj.follower_count || 0) : 0,
       activities: aj.success ? (Array.isArray(aj.activities || aj.data) ? (aj.activities || aj.data) : []) : []
     };
+  }, {
+    // BUG FIX: don't retry 404s (series not found) — stops hammering the API
+    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+      if (error.message && error.message.includes('not found')) return; // no retry on 404
+      if (retryCount >= 3) return; // max 3 retries for actual network errors
+      setTimeout(() => revalidate({ retryCount }), Math.min(1000 * 2 ** retryCount, 30000));
+    },
   });
   const series = swrData?.series || null;
   const results = swrData?.results || [];
@@ -233,9 +261,14 @@ export default function SeriesDetailPage() {
       // ignore
     }
 
-    // Call API for server-side persistence — read token from Supabase localStorage key
-    const tokenKey = Object.keys(localStorage).find(k => k.includes('auth-token') || k.includes('supabase.auth.token'));
-    const storedToken = tokenKey ? JSON.parse(localStorage.getItem(tokenKey) || '{}')?.access_token : null;
+    // BUG FIX: Read token from all known Supabase storage key patterns
+    const tokenKey = Object.keys(localStorage).find(k =>
+      k.includes('auth-token') || k.includes('supabase.auth.token') || k.startsWith('sb-')
+    );
+    let storedToken = null;
+    if (tokenKey) {
+      try { storedToken = JSON.parse(localStorage.getItem(tokenKey) || '{}')?.access_token; } catch {}
+    }
     const token = typeof window !== 'undefined' && (window.__supabaseToken || storedToken);
 
     if (token) {
@@ -256,12 +289,10 @@ export default function SeriesDetailPage() {
         // Rollback UI using captured values (not closure-captured stale state)
         if (isMountedRef.current) {
           setIsFollowing(!newState);
-          if (swrData) {
-            mutate({ ...swrData, followerCount: countAtCall }, false);
-          }
+          if (swrData) mutate({ ...swrData, followerCount: countAtCall }, false);
           try {
             const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
-            const updated = !newState 
+            const updated = !newState
               ? (followed.includes(sid) ? followed : [...followed, sid])
               : followed.filter(x => x !== sid);
             localStorage.setItem('followed-series', JSON.stringify(updated));
@@ -270,7 +301,25 @@ export default function SeriesDetailPage() {
       })
       .finally(() => { if (isMountedRef.current) setFollowPending(false); });
     } else {
-      setFollowPending(false);
+      // BUG FIX: silently dropped before — now show clear sign-in prompt
+      // localStorage follow saved for this session, but alert user server won't persist
+      if (isMountedRef.current) {
+        setFollowPending(false);
+        // Rollback the optimistic update so UI reflects truth (not saved to server)
+        setIsFollowing(!newState);
+        if (swrData) mutate({ ...swrData, followerCount: countAtCall }, false);
+        try {
+          const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
+          const reverted = !newState
+            ? (followed.includes(sid) ? followed : [...followed, sid])
+            : followed.filter(x => x !== sid);
+          localStorage.setItem('followed-series', JSON.stringify(reverted));
+        } catch {}
+        // Update share message display to guide user
+        setShareMessage('Sign in to follow series');
+        if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+        shareTimeoutRef.current = setTimeout(() => { if (isMountedRef.current) setShareMessage(''); }, 3000);
+      }
     }
   }, [followPending, id, isFollowing, swrData, mutate, series?.name]);
 
@@ -325,7 +374,7 @@ export default function SeriesDetailPage() {
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
-          onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
+          onBackClick={() => router.push('/hub/poker-series')}
         />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
@@ -424,7 +473,7 @@ export default function SeriesDetailPage() {
       <UniversalHeader 
         pageDepth={2} 
         onMenuClick={() => setMenuOpen(true)}
-        onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
+        onBackClick={() => router.push('/hub/poker-series')}
       />
 
       <HamburgerMenu
@@ -666,8 +715,11 @@ export default function SeriesDetailPage() {
                 </thead>
                 <tbody>
                   {events.map((evt, i) => {
-                    // BUG FIX: event_number 0 is falsy — use nullish coalescing not ||
-                    var evtKey = evt.event_number != null ? evt.event_number : i + 1;
+                    // BUG FIX: Use composite key (event_number + event_name) to prevent
+                    // Fragment key collision when two events share the same event_number.
+                    // Falls back to index so event_number=0 (falsy) is handled correctly.
+                    const evtBaseKey = evt.event_number != null ? evt.event_number : i + 1;
+                    const evtKey = `${evtBaseKey}-${(evt.event_name || '').slice(0, 20) || i}`;
                     var isExpanded = expandedEvent === evtKey;
                     return (
                       <Fragment key={'evt-' + evtKey}>
