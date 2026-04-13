@@ -299,15 +299,16 @@ export default function PokerSeriesPage() {
         const abortController = new AbortController();
         setLoading(true);
 
-        // Get user location for map
+        // Get user location for map centering ONLY — do NOT auto-set distance filter
+        // so the user sees ALL series by default, not just nearby ones.
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     if (!isMounted) return;
                     const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     setUserLocation(loc);
-                    // Auto-set to 100mi radius so map zooms to user on first load
-                    setDistanceFilter('100');
+                    // DO NOT set distanceFilter here — let the user decide if they
+                    // want to filter by distance.
                 },
                 () => {} // silent fail — leave full US view
             );
@@ -318,10 +319,18 @@ export default function PokerSeriesPage() {
             .then(json => {
                 if (!isMounted) return;
                 const raw = json.data || json.series || [];
-                // Exclude records explicitly typed as tours (poker tours, not series)
+                // Exclude records that are:
+                // 1. Explicitly typed as tours (poker tours, not series)
+                // 2. Stub records with no location AND no events AND no dates
+                //    These are incomplete scraper ingestions with empty data
                 const data = raw.filter(s => {
                     const et = (s.entity_type || s.record_type || '').toLowerCase();
-                    return et !== 'tour' && et !== 'poker_tour';
+                    if (et === 'tour' || et === 'poker_tour') return false;
+                    // Keep records that have at least one of: city, state, venue, events, or start_date
+                    const hasLocation = !!(s.city || s.state || s.venue || s.venue_name);
+                    const hasEvents = (s.total_events || s.events_count || s.event_count || 0) > 0;
+                    const hasDates = !!(s.start_date || s.end_date);
+                    return hasLocation || hasEvents || hasDates;
                 });
                 setAllSeries(data);
             })
@@ -1038,8 +1047,8 @@ export default function PokerSeriesPage() {
                         display: flex;
                         flex-direction: row;
                         flex-wrap: nowrap;
-                        align-items: center;
-                        gap: 6px;
+                        align-items: stretch;
+                        gap: 8px;
                         max-width: 1400px;
                         margin: 0 auto;
                         overflow-x: auto;
@@ -1048,11 +1057,11 @@ export default function PokerSeriesPage() {
                     }
                     .pnm-top-filters-inner::-webkit-scrollbar { display: none; }
                     .pnm-filter-select {
-                        flex: 1 1 0;
-                        min-width: 90px;
-                        max-width: 160px;
+                        flex: 1 1 140px;
+                        min-width: 120px;
+                        max-width: 200px;
                         height: 36px;
-                        padding: 0 8px;
+                        padding: 0 10px 0 10px;
                         background: rgba(12, 22, 40, 0.85);
                         border: 1.5px solid rgba(212,168,83,0.25);
                         border-radius: 8px;
@@ -1067,6 +1076,7 @@ export default function PokerSeriesPage() {
                         white-space: nowrap;
                         overflow: hidden;
                         text-overflow: ellipsis;
+                        box-sizing: border-box;
                     }
                     .pnm-filter-select:hover, .pnm-filter-select:focus {
                         border-color: rgba(212,168,83,0.55);

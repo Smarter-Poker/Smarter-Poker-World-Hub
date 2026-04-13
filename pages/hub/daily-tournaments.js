@@ -307,9 +307,11 @@ export default function DailyTournaments() {
                         <div className="sidebar-section venue-type-breakdown">
                             <h3>Venue Types</h3>
                             <div className="type-list">
-                                {stats.byType && Object.entries(stats.byType).map(([type, count]) => (
+                                {stats.byType && Object.entries(stats.byType)
+                                    .filter(([type]) => type !== 'Unknown')
+                                    .map(([type, count]) => (
                                     <div key={type} className="type-item">
-                                        <span>{type}</span>
+                                        <span>{formatVenueType(type) || type}</span>
                                         <span className="count">{count}</span>
                                     </div>
                                 ))}
@@ -995,7 +997,7 @@ function TournamentCard({ tournament }) {
                 <span className="card-time">{formatTime(t.start_time)}</span>
                 <span className="card-buyin">${t.buy_in}</span>
             </div>
-            {t.tournament_name && t.tournament_name !== t.venue_name && (
+            {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && (
                 <p className="card-tournament-name">{t.tournament_name}</p>
             )}
             {t.venue_id ? (
