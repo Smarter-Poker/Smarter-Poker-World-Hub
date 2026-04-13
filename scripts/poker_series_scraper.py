@@ -782,6 +782,221 @@ def extract_html_events(html: str, series_uid: str, series_name: str,
         if len(line) >= 12 and "$" in line: try_block(line)
     return results
 
+# ── SOURCE 4 HELPER: Bravo Poker venue tournament schedule ─────────────────────
+def _try_bravo_venue(series_uid, series_name, batch_id, session):
+    """Try scraping tournament schedule from Bravo Poker venue page."""
+    # Load venue mapping to find Bravo slug
+    venues_file = PROJECT_ROOT / 'data' / 'all-venues.json'
+    if not venues_file.exists():
+        return []
+
+    try:
+        with open(venues_file) as f:
+            v_data = json.load(f)
+        venues = v_data if isinstance(v_data, list) else v_data.get('venues', [])
+    except Exception:
+        return []
+
+    # Try to match series name to a venue
+    # Series names often contain venue names like "Graton Poker Series" -> "Graton"
+    series_lower = series_name.lower()
+    best_venue = None
+    for v in venues:
+        vname = (v.get('name') or '').lower()
+        if not vname:
+            continue
+        # Check if venue name appears in series name
+        # Strip common suffixes for matching
+        vname_core = vname.replace(' casino', '').replace(' resort', '').replace(' hotel', '')
+        vname_core = vname_core.replace(' poker room', '').replace(' poker', '').strip()
+        if len(vname_core) >= 4 and vname_core in series_lower:
+            best_venue = v
+            break
+
+    if not best_venue:
+        return []
+
+    bravo_slug = best_venue.get('bravo_slug') or ''
+    venue_slug = best_venue.get('slug') or ''
+    website = best_venue.get('website') or best_venue.get('url') or ''
+
+    # Auto-generate Bravo slug from venue name if not stored
+    if not bravo_slug:
+        vname = best_venue.get('name', '')
+        bravo_slug = slugify(vname)
+
+    # Try Bravo tournament schedule page
+    events = []
+    if bravo_slug:
+        bravo_url = f"https://bravo.poker/poker-rooms/{bravo_slug}/tournaments"
+        log(f"      [Src 4a: Bravo] Trying {bravo_url[:70]}")
+        try:
+            b_req = urllib.request.Request(bravo_url, headers={
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+            })
+            with urllib.request.urlopen(b_req, timeout=15) as resp:
+                b_html = resp.read().decode('utf-8', errors='replace')
+                b_hash = sha256h(b_html.encode('utf-8'))
+                if has_tourn(b_html):
+                    events = extract_html_events(b_html, series_uid, series_name, batch_id, bravo_url, b_hash)
+                    if events:
+                        for e in events:
+                            e['source'] = 'bravo_venue'
+                        log(f"        [Bravo] {len(events)} events extracted")
+        except Exception as ex:
+            log(f"        [Bravo] Error: {str(ex)[:60]}")
+
+    # If no Bravo results, try venue website directly
+    if not events and website:
+        log(f"      [Src 4b: Venue Web] Trying {website[:70]}")
+        try:
+            v_req = urllib.request.Request(website, headers={
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+            })
+            with urllib.request.urlopen(v_req, timeout=15) as resp:
+                v_html = resp.read().decode('utf-8', errors='replace')
+                v_hash = sha256h(v_html.encode('utf-8'))
+                if has_tourn(v_html):
+                    events = extract_html_events(v_html, series_uid, series_name, batch_id, website, v_hash)
+                    if events:
+                        for e in events:
+                            e['source'] = 'venue_website'
+                        log(f"        [Venue Web] {len(events)} events extracted")
+
+                # Try linked tournament/poker subpages
+                if not events:
+                    for href_m in re.finditer(r'href="([^"]*(?:tournament|poker|schedule)[^"]*)"', v_html, re.I):
+                        sub_url = href_m.group(1)
+                        if sub_url.startswith('/'):
+                            sub_url = urllib.parse.urljoin(website, sub_url)
+                        if not sub_url.startswith('http'):
+                            continue
+                        try:
+                            s_req = urllib.request.Request(sub_url, headers={
+                                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+                            })
+                            with urllib.request.urlopen(s_req, timeout=10) as s_resp:
+                                s_html = s_resp.read().decode('utf-8', errors='replace')
+                                s_hash = sha256h(s_html.encode('utf-8'))
+                                if has_tourn(s_html):
+                                    events = extract_html_events(s_html, series_uid, series_name, batch_id, sub_url, s_hash)
+                                    if events:
+                                        for e in events:
+                                            e['source'] = 'venue_subpage'
+                                        log(f"        [Venue Subpage] {len(events)} events from {sub_url[:50]}")
+                                        break
+                        except Exception:
+                            pass
+        except Exception as ex:
+            log(f"        [Venue Web] Error: {str(ex)[:60]}")
+
+    return events
+
+
+# ── SOURCE 5 HELPER: HendonMob event-level search ─────────────────────────────
+def _try_hendonmob(series_uid, series_name, batch_id):
+    """Search HendonMob for tournament events matching this series."""
+    # Clean series name for search
+    clean_name = re.sub(r"[''`]", "", series_name)
+    clean_name = re.sub(r"\s*(Series|Poker|Casino|Resort|Hotel)\s*", " ", clean_name, flags=re.I).strip()
+    search_q = urllib.parse.quote(clean_name[:50])
+    hm_url = f"https://pokerdb.thehendonmob.com/event.php?a=l&search={search_q}&buyin_cur=USD"
+
+    log(f"      [Src 5: HendonMob] Searching: {clean_name[:40]}")
+    events = []
+
+    try:
+        hm_req = urllib.request.Request(hm_url, headers={
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+            'Accept': 'text/html'
+        })
+        with urllib.request.urlopen(hm_req, timeout=15) as resp:
+            hm_html = resp.read().decode('utf-8', errors='replace')
+            hm_hash = sha256h(hm_html.encode('utf-8'))
+
+            # HendonMob event tables have rows with: Date, Event Name, Buy-in, Location
+            rows = re.findall(r'<tr[^>]*>(.*?)</tr>', hm_html, re.DOTALL | re.I)
+            event_counter = 0
+
+            for row in rows:
+                if '<th' in row.lower():
+                    continue
+                cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL | re.I)
+                if len(cells) < 3:
+                    continue
+
+                # Strip HTML tags from cells
+                clean_cells = [re.sub(r'<[^>]+>', '', c).strip() for c in cells]
+
+                # Try to extract: date, event name, buy-in
+                date_str = ''
+                event_name = ''
+                buyin = 0
+                game_type = 'NLH'
+
+                for cell in clean_cells:
+                    # Date detection
+                    dm = re.search(r'(\d{1,2})\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*(\d{4})', cell, re.I)
+                    if dm and not date_str:
+                        months = {'jan':'01','feb':'02','mar':'03','apr':'04','may':'05','jun':'06',
+                                  'jul':'07','aug':'08','sep':'09','oct':'10','nov':'11','dec':'12'}
+                        month = months.get(dm.group(2).lower()[:3], '01')
+                        date_str = f"{dm.group(3)}-{month}-{int(dm.group(1)):02d}"
+                        continue
+
+                    # Buy-in detection
+                    bm = re.search(r'\$\s?([\d,]+)', cell)
+                    if bm and not buyin:
+                        buyin = int(bm.group(1).replace(',', ''))
+                        continue
+
+                    # Event name — longest remaining cell
+                    if len(cell) > len(event_name) and len(cell) > 10:
+                        event_name = cell[:100]
+
+                if not event_name or not buyin or buyin < 10 or buyin > 300000:
+                    continue
+
+                # Detect game type from event name
+                name_lower = event_name.lower()
+                if 'plo' in name_lower or 'pot limit omaha' in name_lower:
+                    game_type = 'PLO'
+                elif 'omaha' in name_lower and 'hi' in name_lower and 'lo' in name_lower:
+                    game_type = 'Omaha Hi-Lo'
+                elif 'mixed' in name_lower or 'horse' in name_lower:
+                    game_type = 'Mixed'
+
+                event_counter += 1
+                uid_seed = f"{series_uid}_hm_{event_name}_{date_str}_{buyin}_{event_counter}"
+                uid_hash = sha256h(uid_seed.encode('utf-8'))[:8]
+                event_uid = f"{series_uid}_hm_e{event_counter}_{uid_hash}"
+
+                events.append(make_event_rec(
+                    series_uid=series_uid, series_name=series_name,
+                    batch_id=batch_id, event_uid=event_uid,
+                    event_name=event_name, event_number=event_counter,
+                    buy_in=buyin, game_type=game_type, fmt=None,
+                    guarantee=None, start_date=date_str or None,
+                    start_time=None, end_date=None,
+                    starting_stack=None, blind_levels=None,
+                    fee=None, entries=None, prize_pool=None,
+                    day_number=None, flight=None, late_reg_levels=None,
+                    re_entry=False, re_entry_limit=None,
+                    unlimited_re_entry=False,
+                    venue_name='', city='', state='',
+                    source='hendonmob', source_url=hm_url,
+                    html_hash=hm_hash,
+                ))
+
+            if events:
+                log(f"        [HendonMob] {len(events)} events parsed from search results")
+
+    except Exception as ex:
+        log(f"        [HendonMob] Error: {str(ex)[:60]}")
+
+    return events
+
+
 # ── Core per-series scraper ────────────────────────────────────────────────────
 def scrape_series(series: dict, session, batch_id: str,
                   enrich_mode: bool = False) -> dict:
@@ -799,9 +1014,10 @@ def scrape_series(series: dict, session, batch_id: str,
         # Numeric ID — use source_url from DB if available
         pa_url = series.get("source_url") or series.get("scrape_url") or ""
         if not pa_url:
-            log(f"      [SKIPPED] Generic numeric PA series ID without explicit URL. (Avoids 404 + circuit breaker)")
-            return {"series_uid": series_uid, "series_name": series_name, "found": False, "events": [], "skipped": True}
-        log(f"      [NOTE] Numeric ID {series_uid} — using URL: {pa_url[:80]}")
+            log(f"      [NOTE] No PA URL — will try Bravo + HendonMob fallback sources")
+            pa_url = ""  # Skip Source 1, fall through to Source 4/5
+        else:
+            log(f"      [NOTE] Numeric ID {series_uid} — using URL: {pa_url[:80]}")
     else:
         slug = series_uid
         pa_url = f"https://www.pokeratlas.com/poker-tournament-series/{slug}"
@@ -813,8 +1029,12 @@ def scrape_series(series: dict, session, batch_id: str,
     )
 
     # ── SOURCE 1: PokerAtlas series page (Scrapling StealthySession) ────────
-    log(f"      [Src 1: PokerAtlas] {pa_url}")
-    html, status, raw_body, html_hash = fetch_with_retry(session, pa_url)
+    if pa_url:
+        log(f"      [Src 1: PokerAtlas] {pa_url}")
+        html, status, raw_body, html_hash = fetch_with_retry(session, pa_url)
+    else:
+        html, status, raw_body, html_hash = "", 0, b"", ""
+        log(f"      [Src 1: PokerAtlas] SKIPPED (no URL)")
 
     if status == 200 and html:
         byte_count = len(raw_body)
@@ -943,6 +1163,24 @@ def scrape_series(series: dict, session, batch_id: str,
                 for k, v in enrichment.items():
                     if not rec.get(k):
                         rec[k] = v
+
+    # ── SOURCE 4: Bravo Poker venue tournament schedule ─────────────────────
+    if not result["found"]:
+        bravo_events = _try_bravo_venue(series_uid, series_name, batch_id, session)
+        if bravo_events:
+            result["events"] = bravo_events
+            result["found"] = True
+            result["source"] = "bravo_venue"
+            log(f"      [Src 4: Bravo] {len(bravo_events)} events from venue page")
+
+    # ── SOURCE 5: HendonMob event search ───────────────────────────────────
+    if not result["found"]:
+        hm_events = _try_hendonmob(series_uid, series_name, batch_id)
+        if hm_events:
+            result["events"] = hm_events
+            result["found"] = True
+            result["source"] = "hendonmob"
+            log(f"      [Src 5: HendonMob] {len(hm_events)} events")
 
     # ── Anti-hallucination guard ────────────────────────────────────────────
     if result["events"] and not anti_hallucination_ok(result["events"]):

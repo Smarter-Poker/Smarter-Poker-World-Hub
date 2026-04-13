@@ -597,6 +597,10 @@ export default async function handler(req, res) {
                                       const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
                                       const todayIdx = new Date(localCurrentTime).getDay();
                                       const todayKey = DAYS_ORDER[todayIdx];
+
+                                      // Compute fallback buy-in from all schedule days
+                                      const schedBuyIns = Object.values(schedule).map(d => d?.buy_in).filter(b => b != null && b > 0 && b < 10000);
+                                      const schedFallbackBuyIn = schedBuyIns.length > 0 ? schedBuyIns.sort((a,b) => { const f = {}; schedBuyIns.forEach(v => f[v]=(f[v]||0)+1); return (f[b]||0)-(f[a]||0); })[0] : null;
                                       
                                       if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
                                           isOpenToday = true;
@@ -605,7 +609,7 @@ export default async function handler(req, res) {
                                               location: schedule[todayKey].location.trim(),
                                               start_time: schedule[todayKey].start_time || null,
                                               door_open_time: schedule[todayKey].start_time || null,
-                                              buy_in: schedule[todayKey].buy_in || null,
+                                              buy_in: (schedule[todayKey].buy_in > 0 ? schedule[todayKey].buy_in : schedFallbackBuyIn) || null,
                                               state: jsonVenue.state || null,
                                           };
                                       } else {
@@ -621,7 +625,7 @@ export default async function handler(req, res) {
                                                       location: nextDayData.location.trim(),
                                                       start_time: nextDayData.start_time || null,
                                                       door_open_time: nextDayData.start_time || null,
-                                                      buy_in: nextDayData.buy_in || null,
+                                                      buy_in: (nextDayData.buy_in > 0 ? nextDayData.buy_in : schedFallbackBuyIn) || null,
                                                   };
                                                   break;
                                               }
@@ -678,12 +682,16 @@ export default async function handler(req, res) {
                                   const localCurrentTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
                                   const todayIdx = new Date(localCurrentTime).getDay();
                                   const todayKey = DAYS_ORDER[todayIdx];
+                                  // Compute fallback buy-in from all schedule days
+                                  const unlinkedSchedBuyIns = Object.values(schedule).map(d => d?.buy_in).filter(b => b != null && b > 0 && b < 10000);
+                                  const unlinkedFallbackBuyIn = unlinkedSchedBuyIns.length > 0 ? unlinkedSchedBuyIns[0] : null;
+
                                   if (schedule[todayKey] && schedule[todayKey].open && schedule[todayKey].location) {
                                       isOpenToday = true;
                                       todayLocation = schedule[todayKey].location.trim();
                                       // Bug-9 fix: also capture today's start_time + buy_in
                                       todayStartTime = schedule[todayKey].start_time || null;
-                                      todayBuyIn = schedule[todayKey].buy_in || null;
+                                      todayBuyIn = (schedule[todayKey].buy_in > 0 ? schedule[todayKey].buy_in : unlinkedFallbackBuyIn) || null;
                                   } else {
                                       // Find the next available event date
                                       for (let i = 1; i <= 7; i++) {
@@ -697,7 +705,7 @@ export default async function handler(req, res) {
                                                   days_away: i,
                                                   location: nextDayData.location.trim(),
                                                   start_time: nextDayData.start_time || null,
-                                                  buy_in: nextDayData.buy_in || null,
+                                                  buy_in: (nextDayData.buy_in > 0 ? nextDayData.buy_in : unlinkedFallbackBuyIn) || null,
                                               };
                                               break;
                                           }
@@ -1139,6 +1147,21 @@ export default async function handler(req, res) {
                           
                           const hasTours = toursByVenue[v.id] || toursByVenue[v.name] || [];
                           if (hasTours.length === 0) return; 
+
+                          // Compute fallback buy-in: most common non-zero buy_in across all this venue's tournaments
+                          const knownBuyIns = hasTours.map(t => t.buy_in).filter(b => b != null && b > 0 && b < 10000);
+                          let fallbackBuyIn = null;
+                          if (knownBuyIns.length > 0) {
+                              // Use most common value as the fallback
+                              const freq = {};
+                              knownBuyIns.forEach(b => { freq[b] = (freq[b] || 0) + 1; });
+                              fallbackBuyIn = Number(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+                          }
+                          // Helper: resolve buy-in for a tournament row, using fallback when missing
+                          const resolveBuyIn = (t) => {
+                              if (t.buy_in != null && t.buy_in > 0) return t.buy_in;
+                              return fallbackBuyIn;
+                          };
                           
                           // Collect ALL tournaments for today (not just the first)
                           const todayTours = hasTours.filter(t => t.day_of_week.toLowerCase() === todayStr);
@@ -1152,7 +1175,7 @@ export default async function handler(req, res) {
                                   start_time: todayTour.start_time || (v.today_event?.door_open_time) || null,
                                   door_open_time: v.today_event?.door_open_time || null,
                                   tournament_name: todayTour.tournament_name || todayTour.name || null,
-                                  buy_in: todayTour.buy_in != null ? todayTour.buy_in : (v.today_event?.buy_in || null),
+                                  buy_in: resolveBuyIn(todayTour) ?? (v.today_event?.buy_in || null),
                                   location: v.today_event?.location || v.city || 'Local Area',
                                   address: v.address || null,
                                   state: v.today_event?.state || v.state || null,
@@ -1162,7 +1185,7 @@ export default async function handler(req, res) {
                               v.today_tournaments = todayTours.slice(0, 3).map(t => ({
                                   start_time: t.start_time || null,
                                   tournament_name: t.tournament_name || t.name || null,
-                                  buy_in: t.buy_in != null ? t.buy_in : null,
+                                  buy_in: resolveBuyIn(t),
                                   starting_stack: t.starting_stack || null,
                               }));
                           } else {
@@ -1181,7 +1204,7 @@ export default async function handler(req, res) {
                                           start_time: nextTour.start_time || (v.next_event?.door_open_time) || null,
                                           door_open_time: v.next_event?.door_open_time || null,
                                           tournament_name: nextTour.tournament_name || nextTour.name || null,
-                                          buy_in: nextTour.buy_in != null ? nextTour.buy_in : null,
+                                          buy_in: resolveBuyIn(nextTour),
                                           location: v.next_event?.location || v.city || 'Local Area',
                                           address: v.address || null,
                                           state: v.next_event?.state || v.state || null,
@@ -1191,7 +1214,7 @@ export default async function handler(req, res) {
                                       v.next_tournaments = nextDayTours.slice(0, 3).map(t => ({
                                           start_time: t.start_time || null,
                                           tournament_name: t.tournament_name || t.name || null,
-                                          buy_in: t.buy_in != null ? t.buy_in : null,
+                                          buy_in: resolveBuyIn(t),
                                           starting_stack: t.starting_stack || null,
                                       }));
                                       break;

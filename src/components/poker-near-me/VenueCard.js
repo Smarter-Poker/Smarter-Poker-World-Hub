@@ -765,7 +765,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                             <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                                             <div className="vc3-tourney-details">
                                                                 <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
-                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
+                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : 'Buy-In TBD'}</span>
                                                             </div>
                                                             {evt.starting_stack != null && String(evt.starting_stack) !== '0' && String(evt.starting_stack) !== 'N/A' && (
                                                                 <div className="vc3-tourney-stack">{evt.starting_stack} Starting Stack</div>
@@ -805,7 +805,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                             <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                                             <div className="vc3-tourney-details">
                                                                 <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
-                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : (evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
+                                                                <span className="vc3-tourney-buyin">{evt.buy_in != null && !isNaN(Number(evt.buy_in)) && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Buy-In` : 'Buy-In TBD'}</span>
                                                             </div>
                                                             {evt.starting_stack != null && String(evt.starting_stack) !== '0' && String(evt.starting_stack) !== 'N/A' && (
                                                                 <div className="vc3-tourney-stack">{evt.starting_stack} Starting Stack</div>
@@ -849,7 +849,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                                     <div className="vc3-tourney-name" title={tName}>{tName}</div>
                                                     <div className="vc3-tourney-details">
                                                         <span className="vc3-tourney-time">{formatTime(t?.start_time) || 'Time TBD'}</span>
-                                                        <span className="vc3-tourney-buyin">{t?.buy_in != null && Number(t.buy_in) > 0 ? `$${t.buy_in} Buy-In` : (t?.buy_in != null && String(t.buy_in) !== 'N/A' && Number(t.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
+                                                        <span className="vc3-tourney-buyin">{t?.buy_in != null && Number(t.buy_in) > 0 ? `$${t.buy_in} Buy-In` : (venue.venue_type !== 'charity' && t?.buy_in != null && String(t.buy_in) !== 'N/A' && Number(t.buy_in) === 0 ? 'Free Entry' : 'Buy-In TBD')}</span>
                                                         {t?.guaranteed != null && Number(t.guaranteed) > 0 ? <span className="vc3-tourney-gtd">{formatMoney(t.guaranteed)} GTD</span> : null}
                                                     </div>
                                                     {t?.starting_stack != null && String(t.starting_stack) !== '0' && String(t.starting_stack) !== 'N/A' && (
@@ -882,7 +882,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             }
                                             const buyInStr = ntp.buy_in != null && Number(ntp.buy_in) > 0
                                                 ? `$${ntp.buy_in} Buy-In`
-                                                : (ntp.buy_in === 0 ? 'Free Entry' : 'Buy-In TBD');
+                                                : (venue.venue_type !== 'charity' && ntp.buy_in === 0 ? 'Free Entry' : 'Buy-In TBD');
                                             const tName = ntp.tournament_name || (ntp.buy_in > 0 ? `$${ntp.buy_in} NLH` : 'Tournament');
                                             return (
                                                 <div className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
