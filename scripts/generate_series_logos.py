@@ -13,8 +13,12 @@ Usage:
 """
 
 import os, re, json, time, requests
+from dotenv import load_dotenv
 from supabase import create_client
 from io import BytesIO
+
+# Load from .env.local
+load_dotenv('/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.env.local')
 
 # ─── Credentials — always from environment, never hardcoded ───
 SUPABASE_URL     = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', 'https://kuklfnapbkmacvwxktbh.supabase.co')

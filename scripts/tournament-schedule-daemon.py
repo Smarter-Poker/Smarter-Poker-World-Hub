@@ -473,7 +473,7 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
         "venue_id": venue_id,
         "venue_name": venue_name,
         "day_of_week": day or ("Daily" if not event_date else None),
-        "event_date": event_date,
+        "event_date": event_date or "1970-01-01",  # sentinel for recurring (NULL breaks upsert key)
         "start_time": start_time,
         "buy_in": buy_in,
         "game_type": game_type,

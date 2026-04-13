@@ -38,20 +38,45 @@ const BUYIN_RANGES = [
 
 function formatTime(timeStr) {
     if (!timeStr) return '';
-    // Handle HH:MM:SS format from database
-    const colonParts = timeStr.split(':');
-    if (colonParts.length >= 2 && !timeStr.match(/[AP]M/i)) {
-        let h = parseInt(colonParts[0], 10);
-        const m = colonParts[1];
-        if (!isNaN(h)) {
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            if (h === 0) h = 12;
-            else if (h > 12) h -= 12;
-            return `${h}:${m} ${ampm}`;
+
+    // ── Step 1: Strip HH:MM:SS seconds (keep only HH:MM) ──────────────────
+    const clean = timeStr.trim().replace(/^(\d{1,2}:\d{2}):\d{2}\s*(AM|PM)?/i, (_, hm, ap) => ap ? `${hm}${ap}` : hm);
+
+    // ── Step 2: Handle bare 24-hr or ambiguous HH:MM (no AM/PM) ──────────
+    if (!clean.match(/[AP]M/i)) {
+        const parts = clean.split(':');
+        if (parts.length >= 2) {
+            let h = parseInt(parts[0], 10);
+            const m = parts[1].replace(/\D/g, '').slice(0, 2).padStart(2, '0');
+            if (!isNaN(h)) {
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                if (h === 0) h = 12;
+                else if (h > 12) h -= 12;
+                return `${h}:${m} ${ampm}`;
+            }
         }
+        // No-colon bare hour: "10AM", "6PM"
+        const noColon = clean.match(/^(\d{1,2})([AP]M)$/i);
+        if (noColon) {
+            return `${parseInt(noColon[1])}:00 ${noColon[2].toUpperCase()}`;
+        }
+        return clean;
     }
-    // Handle existing AM/PM strings — ensure proper capitalization
-    return timeStr.replace(/([AP])M$/i, (_, p) => ` ${p.toUpperCase()}M`);
+
+    // ── Step 3: Already has AM/PM — normalize whitespace & capitalization ──
+    // Handles: "7:00PM" → "7:00 PM", "1 PM" → "1:00 PM", "10AM" → "10:00 AM"
+    // No-colon with period: "7PM" "1 PM"
+    const noColonAMPM = clean.match(/^(\d{1,2})\s*([AP]M)$/i);
+    if (noColonAMPM) {
+        return `${parseInt(noColonAMPM[1])}:00 ${noColonAMPM[2].toUpperCase()}`;
+    }
+
+    // HH:MM[AM/PM] with optional space — strip leading hour zero, collapse double spaces
+    return clean
+        .replace(/(\d)(([AP]M))$/i, (_, d, ampm) => `${d} ${ampm.toUpperCase()}`)
+        .replace(/\s{2,}/g, ' ')
+        .replace(/([ap]m)/i, s => s.toUpperCase())
+        .replace(/^0(\d)/, '$1'); // "06:00 PM" → "6:00 PM"
 }
 
 function formatGameType(raw) {
@@ -86,7 +111,6 @@ export default function DailyTournaments() {
     const [selectedType, setSelectedType] = useState('');
     const [selectedBuyin, setSelectedBuyin] = useState(BUYIN_RANGES[0]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
 
     const menuConfig = getMenuConfig('tournaments', null, {}, {});
 
@@ -108,11 +132,6 @@ export default function DailyTournaments() {
     useVenueRealtime(() => refreshTournaments());
     const tournaments = swrData?.tournaments || [];
     const stats = swrData?.stats || {};
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        refreshTournaments();
-    };
 
     const clearFilters = () => {
         setSelectedState(null);
@@ -137,14 +156,38 @@ export default function DailyTournaments() {
 
     function parseTimeToMinutes(timeStr) {
         if (!timeStr) return 0;
-        const match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
-        if (!match) return 0;
-        let hours = parseInt(match[1]);
-        const minutes = parseInt(match[2] || '0');
-        const period = (match[3] || '').toUpperCase();
-        if (period === 'PM' && hours !== 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
-        return hours * 60 + minutes;
+        const t = timeStr.trim();
+        // Handle HH:MM:SS (strip seconds first)
+        const hhmmss = t.match(/^(\d{1,2}):(\d{2}):\d{2}\s*([AP]M)?$/i);
+        if (hhmmss) {
+            let h = parseInt(hhmmss[1]);
+            const m = parseInt(hhmmss[2]);
+            const p = (hhmmss[3] || '').toUpperCase();
+            if (p === 'PM' && h !== 12) h += 12;
+            if (p === 'AM' && h === 12) h = 0;
+            return h * 60 + m;
+        }
+        // Handle HH:MM with or without AM/PM (bare 24-hr or explicit AM/PM)
+        const hhmm = t.match(/^(\d{1,2}):(\d{2})\s*([AP]M)?$/i);
+        if (hhmm) {
+            let h = parseInt(hhmm[1]);
+            const m = parseInt(hhmm[2]);
+            const p = (hhmm[3] || '').toUpperCase();
+            if (p === 'PM' && h !== 12) h += 12;
+            if (p === 'AM' && h === 12) h = 0;
+            // No period and h < 13 → treat as 24-hr or absolute (leave as-is)
+            return h * 60 + m;
+        }
+        // Handle no-colon: "7PM", "10AM", "7 PM", "1 AM"
+        const hOnly = t.match(/^(\d{1,2})\s*([AP]M)$/i);
+        if (hOnly) {
+            let h = parseInt(hOnly[1]);
+            const p = hOnly[2].toUpperCase();
+            if (p === 'PM' && h !== 12) h += 12;
+            if (p === 'AM' && h === 12) h = 0;
+            return h * 60;
+        }
+        return 0;
     }
 
     return (
@@ -196,128 +239,62 @@ export default function DailyTournaments() {
                     </div>
                 </div>
 
-                {/* Search Section */}
-                <div className="dt-search-section">
-                    <div className="search-container">
-                        <form className="search-form" onSubmit={handleSearch}>
-                            <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {/* Top Level Filters Command Bar */}
+                <div className="pnm-top-filters" style={{ padding: '0 20px', marginBottom: '20px' }}>
+                    <div className="pnm-top-filters-inner">
+                        <div className="pnm-search-box" style={{ flex: '1 1 200px', position: 'relative' }}>
+                            <svg style={{ position: 'absolute', left: '10px', top: '10px', color: 'rgba(255,255,255,0.4)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
                             </svg>
                             <input
                                 type="text"
-                                placeholder="Search Venue Name"
+                                className="pnm-filter-select"
+                                style={{ width: '100%', paddingLeft: '34px', boxSizing: 'border-box' }}
+                                placeholder="Search Venue..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    refreshTournaments(); // instant search
+                                }}
                             />
-                        </form>
-
-                        <div className="search-controls">
-                            <button className={`btn-filters ${showFilters ? 'active' : ''}`} onClick={() => setShowFilters(!showFilters)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
-                                    <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
-                                    <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
-                                </svg>
-                                Filters
-                            </button>
-
-                            {stats.total > 0 && (
-                                <div className="stats-display">
-                                    <span className="stat">{stats.total} tournaments</span>
-                                    {stats.avgBuyin > 0 && <span className="stat">Avg ${stats.avgBuyin}</span>}
-                                </div>
-                            )}
                         </div>
+                        
+                        <select className="pnm-filter-select" value={selectedState ? selectedState.abbr : ''} onChange={(e) => {
+                            const st = POPULAR_STATES.find(s => s.abbr === e.target.value);
+                            setSelectedState(st || null);
+                        }}>
+                            <option value="">All States</option>
+                            {POPULAR_STATES.map(state => (
+                                <option key={state.abbr} value={state.abbr}>{state.name}</option>
+                            ))}
+                        </select>
+                        
+                        <select className="pnm-filter-select" value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
+                            {VENUE_TYPES.map(type => (
+                                <option key={type.value} value={type.value}>{type.label}</option>
+                            ))}
+                        </select>
+
+                        <select className="pnm-filter-select" value={selectedBuyin.label} onChange={(e) => {
+                            const range = BUYIN_RANGES.find(r => r.label === e.target.value);
+                            setSelectedBuyin(range || BUYIN_RANGES[0]);
+                        }}>
+                            {BUYIN_RANGES.map((range, i) => (
+                                <option key={i} value={range.label}>{range.label}</option>
+                            ))}
+                        </select>
+
+                        {searchQuery || selectedState || selectedType || selectedBuyin.min ? (
+                            <button className="pnm-filter-select" style={{ flex: '0 0 auto', padding: '0 16px', background: 'rgba(255,0,0,0.1)', borderColor: 'rgba(255,0,0,0.3)', color: '#ff4444', cursor: 'pointer' }} onClick={clearFilters}>
+                                Clear
+                            </button>
+                        ) : null}
                     </div>
                 </div>
 
-                {/* Filter Panel */}
-                {showFilters && (
-                    <div className="filter-panel">
-                        <div className="filter-group">
-                            <label>State</label>
-                            <div className="filter-chips">
-                                <button className={`chip ${!selectedState ? 'active' : ''}`} onClick={() => setSelectedState(null)}>All States</button>
-                                {POPULAR_STATES.map(state => (
-                                    <button key={state.abbr} className={`chip ${selectedState?.abbr === state.abbr ? 'active' : ''}`}
-                                        onClick={() => setSelectedState(state)}>
-                                        {state.abbr}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="filter-group">
-                            <label>Venue Type</label>
-                            <div className="filter-chips">
-                                {VENUE_TYPES.map(type => (
-                                    <button key={type.value} className={`chip ${selectedType === type.value ? 'active' : ''}`}
-                                        onClick={() => setSelectedType(type.value)}>
-                                        {type.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="filter-group">
-                            <label>Buy-In Range</label>
-                            <div className="filter-chips">
-                                {BUYIN_RANGES.map((range, i) => (
-                                    <button key={i} className={`chip ${selectedBuyin.label === range.label ? 'active' : ''}`}
-                                        onClick={() => setSelectedBuyin(range)}>
-                                        {range.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="filter-actions">
-                            <button className="btn-clear" onClick={clearFilters}>Clear All</button>
-                            <button className="btn-apply" onClick={() => { refreshTournaments(); setShowFilters(false); }}>Apply Filters</button>
-                        </div>
-                    </div>
-                )}
-
                 {/* Main Layout */}
                 <div className="dt-layout">
-                    {/* Left Sidebar */}
-                    <aside className="sidebar-left">
-                        <div className="sidebar-section">
-                            <h3>Popular States</h3>
-                            <div className="state-chips">
-                                {POPULAR_STATES.map(state => (
-                                    <button key={state.abbr} className={`state-chip ${selectedState?.abbr === state.abbr ? 'active' : ''}`}
-                                        onClick={() => setSelectedState(state)}>
-                                        <span className="state-abbr">{state.abbr}</span>
-                                        <span className="state-name">{state.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="sidebar-section source-info">
-                            <h3>Data Source</h3>
-                            <p>Tournament Schedules From {new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} Verified Venues With Confirmed Daily Tournaments.</p>
-                            <div className="source-badge">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                    <polyline points="22 4 12 14.01 9 11.01" />
-                                </svg>
-                                Verified Source
-                            </div>
-                        </div>
-
-                        <div className="sidebar-section venue-type-breakdown">
-                            <h3>Venue Types</h3>
-                            <div className="type-list">
-                                {stats.byType && Object.entries(stats.byType)
-                                    .filter(([type]) => type !== 'Unknown')
-                                    .map(([type, count]) => (
-                                    <div key={type} className="type-item">
-                                        <span>{formatVenueType(type) || type}</span>
-                                        <span className="count">{count}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </aside>
+                    
 
                     {/* Center - Tournament Cards */}
                     <main className="tournament-feed">
@@ -381,68 +358,7 @@ export default function DailyTournaments() {
                         )}
                     </main>
 
-                    {/* Right Sidebar - Quick Stats */}
-                    <aside className="sidebar-right">
-                        <div className="sidebar-section">
-                            <h3>Today's Highlights</h3>
-                            <div className="highlight-cards">
-                                <div className="highlight-card">
-                                    <span className="highlight-label">Total Tournaments</span>
-                                    <span className="highlight-value">{stats.total || 0}</span>
-                                </div>
-                                <div className="highlight-card">
-                                    <span className="highlight-label">Average Buy-In</span>
-                                    <span className="highlight-value">${stats.avgBuyin || 0}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="sidebar-section">
-                            <h3>By Game Type</h3>
-                            <div className="game-breakdown">
-                                {stats.byGameType && Object.entries(stats.byGameType).map(([game, count]) => (
-                                    <div key={game} className="game-item">
-                                        <span className="game-name">{formatGameType(game)}</span>
-                                        <span className="game-count">{count}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="sidebar-section quick-links">
-                            <h3>Quick Links</h3>
-                            <Link href="/hub/poker-near-me-lobby" className="quick-link">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                                    <circle cx="12" cy="10" r="3" />
-                                </svg>
-                                Find Poker Rooms
-                            </Link>
-                            <Link href="/hub/pages" className="quick-link">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="2" y="3" width="20" height="18" rx="2" />
-                                    <line x1="2" y1="9" x2="22" y2="9" />
-                                </svg>
-                                Browse Venue Pages
-                            </Link>
-                            <Link href="/hub/events-calendar" className="quick-link">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                    <line x1="16" y1="2" x2="16" y2="6" />
-                                    <line x1="8" y1="2" x2="8" y2="6" />
-                                    <line x1="3" y1="10" x2="21" y2="10" />
-                                </svg>
-                                Events Calendar
-                            </Link>
-                            <Link href="/hub/promotions" className="quick-link">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                                    <line x1="2" y1="10" x2="22" y2="10" />
-                                </svg>
-                                Promotions &amp; Deals
-                            </Link>
-                        </div>
-                    </aside>
+                    
                 </div>
 
                 <style jsx>{`
@@ -456,6 +372,47 @@ export default function DailyTournaments() {
                         --neon-cyan-glow: rgba(0, 212, 255, 0.6);
                         --metal-gradient: linear-gradient(180deg, #3d4f5f 0%, #1a2332 50%, #0d1117 100%);
                         --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan-glow);
+                    }
+
+                    
+                    .pnm-top-filters-inner {
+                        display: flex;
+                        flex-direction: row;
+                        flex-wrap: nowrap;
+                        align-items: stretch;
+                        gap: 8px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                        overflow-x: auto;
+                        padding-bottom: 5px;
+                    }
+                    .pnm-top-filters-inner::-webkit-scrollbar { display: none; }
+                    .pnm-filter-select {
+                        flex: 1 1 140px;
+                        min-width: 120px;
+                        max-width: 200px;
+                        height: 36px;
+                        padding: 0 10px;
+                        background: rgba(12, 22, 40, 0.85);
+                        border: 1.5px solid rgba(0,212,255,0.25);
+                        border-radius: 8px;
+                        color: #fff;
+                        font-size: 13px;
+                        font-weight: 500;
+                        outline: none;
+                        appearance: none;
+                        transition: all 0.2s;
+                        box-sizing: border-box;
+                    }
+                    .pnm-filter-select:hover, .pnm-filter-select:focus {
+                        border-color: rgba(0,212,255,0.55);
+                        box-shadow: 0 0 10px rgba(0,212,255,0.1);
+                    }
+                    select.pnm-filter-select {
+                        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300D4FF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+                        background-repeat: no-repeat;
+                        background-position: right 10px top 50%;
+                        background-size: 8px auto;
                     }
 
                     .dt-page {
@@ -707,7 +664,6 @@ export default function DailyTournaments() {
                         min-height: calc(100vh - 350px);
                         padding: 0 20px;
                     }
-                    .sidebar-left, .sidebar-right { display: none; }
                     .tournament-feed { flex: 1; }
 
                     /* Sidebar Sections */
@@ -919,67 +875,12 @@ export default function DailyTournaments() {
                     }
 
                     @media (min-width: 1024px) {
-                        .dt-layout {
-                            display: grid;
-                            grid-template-columns: 260px 1fr 300px;
-                            gap: 0;
-                            padding: 0;
-                        }
-                        .sidebar-left {
-                            display: flex;
-                            flex-direction: column;
-                            border-right: 1px solid rgba(255,255,255,0.08);
-                            background: rgba(0,0,0,0.2);
-                            backdrop-filter: blur(8px);
-                        }
-                        .sidebar-right {
-                            display: block;
-                            border-left: 1px solid rgba(255,255,255,0.08);
-                            background: rgba(0,0,0,0.2);
-                            backdrop-filter: blur(8px);
-                        }
-                        .tournament-feed { padding: 20px; }
-                        .tournament-list { grid-template-columns: 1fr; }
-                        .dt-search-section {
-                            padding: 0 20px 20px;
-                            margin-left: 260px;
-                            margin-right: 300px;
-                        }
-                        .dt-header {
-                            margin-left: 260px;
-                        }
-                        .day-selector {
-                            margin-left: 260px;
-                            margin-right: 300px;
-                        }
-                        .filter-panel {
-                            margin-left: calc(260px + 20px);
-                            margin-right: calc(300px + 20px);
-                        }
+                        .tournament-list { grid-template-columns: repeat(3, 1fr); }
+                        .dt-layout { padding: 0 40px; }
                     }
 
                     @media (min-width: 1280px) {
-                        .dt-layout {
-                            grid-template-columns: 280px 1fr 320px;
-                        }
-                        .tournament-list {
-                            grid-template-columns: repeat(2, 1fr);
-                        }
-                        .dt-search-section {
-                            margin-left: 280px;
-                            margin-right: 320px;
-                        }
-                        .dt-header {
-                            margin-left: 280px;
-                        }
-                        .day-selector {
-                            margin-left: 280px;
-                            margin-right: 320px;
-                        }
-                        .filter-panel {
-                            margin-left: calc(280px + 20px);
-                            margin-right: calc(320px + 20px);
-                        }
+                        .tournament-list { grid-template-columns: repeat(4, 1fr); }
                     }
                 `}</style>
             </div>
@@ -997,7 +898,7 @@ function TournamentCard({ tournament }) {
                 <span className="card-time">{formatTime(t.start_time)}</span>
                 <span className="card-buyin">${t.buy_in}</span>
             </div>
-            {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && (
+            {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
                 <p className="card-tournament-name">{t.tournament_name}</p>
             )}
             {t.venue_id ? (
