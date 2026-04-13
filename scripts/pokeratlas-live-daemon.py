@@ -631,6 +631,25 @@ class PokerAtlasSessionManager:
 
         log.info('🔌 Establishing new StealthySession...')
 
+        # CRITICAL: Clear any stale asyncio event loop before starting Playwright.
+        # The daemon's threading.Timer watchdogs and Scrapling internals can leave
+        # a running event loop that causes "Playwright Sync API inside asyncio loop".
+        try:
+            import asyncio
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    log.info('  🧹 Closing stale asyncio event loop before Playwright start')
+                    loop.stop()
+                if not loop.is_closed():
+                    loop.close()
+            except RuntimeError:
+                pass
+            # Force a fresh event loop
+            asyncio.set_event_loop(asyncio.new_event_loop())
+        except Exception as e:
+            log.debug(f'  Event loop cleanup: {e}')
+
         # Arm a hard-kill timer
         watchdog_timer = threading.Timer(
             CONNECT_TIMEOUT_SECONDS,

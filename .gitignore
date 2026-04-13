@@ -66,6 +66,13 @@ data/pokeratlas-logs/
 # Background shell state
 .bg-shell/
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # Poker Brain dev assets (reference screenshots, debug crops)
 pokerbrain-assets/
 scripts/poker-brain/.venv/
+
+# Ephemeral daemon state logs
+data/tournament-logs/

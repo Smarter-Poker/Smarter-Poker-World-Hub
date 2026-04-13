@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 # completeness_scheduler.sh
 # Wrapper fired by launchd every 6 hours.
 # Reads completeness_state.json to determine whether to run and respects 3-day cooldown.

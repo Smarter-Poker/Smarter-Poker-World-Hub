@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 # run_series_pipeline.sh
 # Wrapper script for the poker series pipeline
 # Runs discovery first, then event scraping
