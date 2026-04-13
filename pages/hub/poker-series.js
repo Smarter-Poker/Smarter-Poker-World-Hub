@@ -1,914 +1,1825 @@
 /**
  * Poker Series — Live Tournament Series Directory
- * Smarter.Poker Hub — Futuristic Metal UI Design System
+ * Smarter.Poker Hub
  * ═══════════════════════════════════════════════════════
- * Displays all 50 poker series from the poker_series table
- * with premium Skeuomorphic Sci-Fi venue cards.
+ * Matches Poker Tours page layout: sidebar + map + 2-col card grid
+ * Shows currently running + upcoming (≤60 days) series by default
  */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
+import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
+// ─── Lazy-load components ───
 const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
-const HamburgerMenu  = dynamic(() => import('../../src/components/ui/HamburgerMenu'),  { ssr: false });
+const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
+const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
+const MapErrorBoundary = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.MapErrorBoundary })), { ssr: false });
 
-// ─── Tour color palette (Futuristic Metal) ─────────────────────────────────
+// ─── Menu Config ───
+function getMenuConfig() {
+    return {
+        menuItems: [
+            { label: 'Poker Near Me', href: '/hub/poker-near-me-lobby', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> },
+            { label: 'Poker Tours', href: '/hub/poker-tours', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg> },
+            { label: 'Poker Series', href: '/hub/poker-series', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+            { label: 'Daily Tournaments', href: '/hub/daily-tournaments', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 19.24 7 20v2"/><path d="M17 20c0-.76-.85-1.25-2.03-1.79C14.47 17.98 14 17.55 14 17v-2.34"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> },
+            { label: 'Events Calendar', href: '/hub/events-calendar', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+        ],
+        bottomLinks: []
+    };
+}
+
+// ─── Tour Colors ───
 const TOUR_COLORS = {
-  WSOP:        { bg: 'rgba(26,10,0,0.85)',   border: '#FF8C00', glow: 'rgba(255,140,0,0.55)',  text: '#FF8C00'  },
-  WPT:         { bg: 'rgba(0,26,16,0.85)',   border: '#00FF88', glow: 'rgba(0,255,136,0.55)',  text: '#00FF88'  },
-  MSPT:        { bg: 'rgba(10,0,26,0.85)',   border: '#C000FF', glow: 'rgba(192,0,255,0.55)',  text: '#C000FF'  },
-  RGPS:        { bg: 'rgba(26,0,0,0.85)',    border: '#FF3333', glow: 'rgba(255,51,51,0.55)',   text: '#FF3333'  },
-  DSE:         { bg: 'rgba(0,16,32,0.85)',   border: '#00D4FF', glow: 'rgba(0,212,255,0.55)',  text: '#00D4FF'  },
-  MPT:         { bg: 'rgba(10,10,26,0.85)',  border: '#6699FF', glow: 'rgba(102,153,255,0.55)', text: '#6699FF'  },
-  Independent: { bg: 'rgba(8,16,8,0.85)',   border: '#44CC77', glow: 'rgba(68,204,119,0.4)',  text: '#44CC77'  },
+    'WSOP':    { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227', fill: '#c9a227' },
+    'WPT':     { bg: 'linear-gradient(135deg, #dc2626, #991b1b)', text: '#fff', border: '#dc2626', fill: '#dc2626' },
+    'WSOPC':   { bg: 'linear-gradient(135deg, #c9a227, #8b6914)', text: '#000', border: '#c9a227', fill: '#c9a227' },
+    'MSPT':    { bg: 'linear-gradient(135deg, #1e40af, #1e3a8a)', text: '#fff', border: '#3b82f6', fill: '#3b82f6' },
+    'RGPS':    { bg: 'linear-gradient(135deg, #059669, #047857)', text: '#fff', border: '#10b981', fill: '#10b981' },
+    'PGT':     { bg: 'linear-gradient(135deg, #7c3aed, #5b21b6)', text: '#fff', border: '#8b5cf6', fill: '#8b5cf6' },
+    'DSE':     { bg: 'linear-gradient(135deg, #0891b2, #0e7490)', text: '#fff', border: '#06b6d4', fill: '#06b6d4' },
+    'MPT':     { bg: 'linear-gradient(135deg, #4338ca, #312e81)', text: '#fff', border: '#818cf8', fill: '#818cf8' },
+    'LIPS':    { bg: 'linear-gradient(135deg, #be185d, #831843)', text: '#fff', border: '#ec4899', fill: '#ec4899' },
+    'VENETIAN':{ bg: 'linear-gradient(135deg, #854d0e, #713f12)', text: '#fff', border: '#d97706', fill: '#d97706' },
+    'default': { bg: 'linear-gradient(135deg, #374151, #1f2937)', text: '#fff', border: '#4b5563', fill: '#6b7280' }
 };
 
-function getTourStyle(tour) {
-  return TOUR_COLORS[tour] || TOUR_COLORS.Independent;
+const SERIES_TYPE_INFO = {
+    major:      { label: 'Major', color: '#c9a227' },
+    circuit:    { label: 'Circuit', color: '#3b82f6' },
+    high_roller:{ label: 'High Roller', color: '#8b5cf6' },
+    regional:   { label: 'Regional', color: '#10b981' },
+    grassroots: { label: 'Grassroots', color: '#f59e0b' },
+    charity:    { label: 'Charity', color: '#ec4899' },
+};
+
+// ─── Helpers ───
+function formatMoney(amount) {
+    if (amount === null || amount === undefined || amount === '') return '';
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(num)) return '';
+    if (num >= 1000000) return '$' + (num / 1000000).toFixed(0) + 'M';
+    if (num >= 1000) return '$' + (num / 1000).toFixed(0) + 'K';
+    return '$' + num.toLocaleString();
 }
 
-function cleanName(s) {
-  return (s || '').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (parts) {
+        const date = new Date(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]));
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function formatBuyIn(min, max) {
-  if (!min && !max) return 'TBA';
-  const fmt = n => '$' + Number(n).toLocaleString();
-  if (min === max || !max) return fmt(min || max);
-  return `${fmt(min)} – ${fmt(max)}`;
+function formatDateShort(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (parts) {
+        const date = new Date(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]));
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return '';
 }
 
-function formatDateRange(start, end) {
-  if (!start && !end) return 'Dates TBA';
-  const opts = { month: 'short', day: 'numeric' };
-  const s = start ? new Date(start + 'T00:00:00').toLocaleDateString('en-US', opts) : '';
-  const e = end   ? new Date(end   + 'T00:00:00').toLocaleDateString('en-US', opts) : '';
-  if (!e || s === e) return s || 'TBA';
-  return `${s} – ${e}`;
+function cleanHtml(s) {
+    return (s || '').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"');
 }
 
-function cleanLocation(city, state) {
-  if (!city && !state) return '—';
-  if (!city) return state;
-  // city field typically has "Venue Name City" — grab last 1-2 real words
-  const tokens = city.trim().split(/\s+/);
-  const cleaned = tokens.length > 2 ? tokens.slice(-2).join(' ') : tokens.join(' ');
-  return state ? `${cleaned}, ${state}` : cleaned;
+function isSeriesLive(start, end) {
+    if (!start || !end) return false;
+    const now = new Date();
+    const s = new Date(start + 'T00:00:00');
+    const e = new Date(end + 'T23:59:59');
+    return now >= s && now <= e;
 }
 
-function isSerieLive(start, end) {
-  if (!start || !end) return false;
-  const now = new Date();
-  const s = new Date(start + 'T00:00:00');
-  const e = new Date(end   + 'T23:59:59');
-  return now >= s && now <= e;
+function isSeriesUpcoming(start, daysAhead = 60) {
+    if (!start) return false;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const s = new Date(start + 'T00:00:00');
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() + daysAhead);
+    return s > now && s <= cutoff;
 }
 
-// ─── Menu Config ────────────────────────────────────────────────────────────
-function getMenuConfig() {
-  return {
-    menuItems: [
-      { label: 'Poker Near Me', href: '/hub/poker-near-me-lobby', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> },
-      { label: 'Poker Tours',   href: '/hub/poker-tours',          icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg> },
-      { label: 'Poker Series',  href: '/hub/poker-series',         icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-      { label: 'Events Calendar', href: '/hub/events-calendar',   icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg> },
-    ],
-    bottomLinks: [],
-  };
-}
+// ─── City coordinate fallback ───
+const CITY_COORDS = {
+    'las vegas, nv': { lat: 36.1699, lng: -115.1398 },
+    'hollywood, fl': { lat: 26.0112, lng: -80.1495 },
+    'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
+    'lincoln, ca': { lat: 38.8916, lng: -121.2930 },
+    'durant, ok': { lat: 33.9943, lng: -96.3709 },
+    'tampa, fl': { lat: 27.9506, lng: -82.4572 },
+    'bell gardens, ca': { lat: 33.9653, lng: -118.1514 },
+    'elgin, il': { lat: 42.0354, lng: -88.2826 },
+    'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
+    'tunica, ms': { lat: 34.6846, lng: -90.3829 },
+    'biloxi, ms': { lat: 30.3960, lng: -88.8853 },
+    'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
+    'san diego, ca': { lat: 32.7157, lng: -117.1611 },
+    'portland, or': { lat: 45.5155, lng: -122.6789 },
+    'council bluffs, ia': { lat: 41.2619, lng: -95.8608 },
+    'black hawk, co': { lat: 39.7969, lng: -105.4903 },
+    'choctaw, ok': { lat: 35.4976, lng: -97.2687 },
+    'shreveport, la': { lat: 32.5252, lng: -93.7502 },
+    'new orleans, la': { lat: 29.9511, lng: -90.0715 },
+    'kinder, la': { lat: 30.4855, lng: -92.8510 },
+    'gulfport, ms': { lat: 30.3674, lng: -89.0928 },
+    'marksville, la': { lat: 31.1268, lng: -92.0632 },
+    'oklahoma city, ok': { lat: 35.4676, lng: -97.5164 },
+    'minneapolis, mn': { lat: 44.9778, lng: -93.2650 },
+    'kansas city, mo': { lat: 39.0997, lng: -94.5786 },
+    'st. louis, mo': { lat: 38.6270, lng: -90.1994 },
+    'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
+    'phoenix, az': { lat: 33.4484, lng: -112.0740 },
+    'chicago, il': { lat: 41.8781, lng: -87.6298 },
+    'detroit, mi': { lat: 42.3314, lng: -83.0458 },
+    'bismarck, nd': { lat: 46.8083, lng: -100.7837 },
+    'fargo, nd': { lat: 46.8772, lng: -96.7898 },
+    'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
+    'thackerville, ok': { lat: 33.7918, lng: -97.1303 },
+    'gary, in': { lat: 41.5934, lng: -87.3464 },
+    'mount pleasant, mi': { lat: 43.5978, lng: -84.7753 },
+    'prior lake, mn': { lat: 44.7133, lng: -93.4227 },
+    'welch, mn': { lat: 44.5669, lng: -92.7233 },
+    'charleston, wv': { lat: 38.3498, lng: -81.6326 },
+    'temecula, ca': { lat: 33.4936, lng: -117.1484 },
+    'west palm beach, fl': { lat: 26.7153, lng: -80.0534 },
+    'jacksonville, fl': { lat: 30.3322, lng: -81.6557 },
+    'austin, tx': { lat: 30.2672, lng: -97.7431 },
+    'round rock, tx': { lat: 30.5083, lng: -97.6789 },
+    'houston, tx': { lat: 29.7604, lng: -95.3698 },
+    'san jose, ca': { lat: 37.3382, lng: -121.8863 },
+    'commerce, ca': { lat: 33.9975, lng: -118.1597 },
+    'bossier city, la': { lat: 32.5160, lng: -93.7321 },
+    'philadelphia, pa': { lat: 39.9526, lng: -75.1652 },
+    'miami, fl': { lat: 25.7617, lng: -80.1918 },
+    'reno, nv': { lat: 39.5296, lng: -119.8138 },
+    'denver, co': { lat: 39.7392, lng: -104.9903 },
+    'seattle, wa': { lat: 47.6062, lng: -122.3321 },
+    'nashville, tn': { lat: 36.1627, lng: -86.7816 },
+    'st. petersburg, fl': { lat: 27.7676, lng: -82.6403 },
+    'fort lauderdale, fl': { lat: 26.1224, lng: -80.1373 },
+    'scottsdale, az': { lat: 33.4942, lng: -111.9261 },
+};
 
-// ─── Inline PokerSeriesCard ─────────────────────────────────────────────────
-function PokerSeriesCard({ series, index }) {
-  const [hovered, setHovered] = useState(false);
-  const tour = series.tour || 'Independent';
-  const tc   = getTourStyle(tour);
-  const name = cleanName(series.series_name || series.name);
-  const dates    = formatDateRange(series.start_date, series.end_date);
-  const buyin    = formatBuyIn(series.buy_in_min, series.buy_in_max);
-  const venueName = series.venue_name || series.venue || '';
-  const location = venueName ? `${cleanLocation(series.city, series.state)}` : cleanLocation(series.city, series.state);
-  const tier     = (series.tier || series.series_type || 'regional').toUpperCase();
-  const live     = isSerieLive(series.start_date, series.end_date);
-  const eventCount = series.events_count || series.events?.length || series.total_events || 0;
-  const detailUrl = '/hub/series/' + (series.id || index + 1);
 
-  return (
-    <div
-      className={`psc${hovered ? ' psc--hover' : ''}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={() => { if (typeof window !== 'undefined') window.location.href = detailUrl; }}
-      style={{
-        '--th-border': tc.border,
-        '--th-glow':   tc.glow,
-        '--th-bg':     tc.bg,
-        '--th-text':   tc.text,
-        animationDelay: `${Math.min(index, 40) * 0.035}s`,
-        cursor: 'pointer',
-      }}
-      role="article"
-      aria-label={`Poker series: ${name}`}
-    >
-      {/* Bolts */}
-      <span className="psc__bolt psc__bolt--tl"/>
-      <span className="psc__bolt psc__bolt--tr"/>
-      <span className="psc__bolt psc__bolt--bl"/>
-      <span className="psc__bolt psc__bolt--br"/>
-      {/* Side strips */}
-      <span className="psc__strip psc__strip--l"/>
-      <span className="psc__strip psc__strip--r"/>
-
-      {/* Header */}
-      <div className="psc__header">
-        <span className="psc__tour">{tour}</span>
-        {live && <span className="psc__live">● LIVE</span>}
-        {eventCount > 0 && <span className="psc__evts">{eventCount} Events</span>}
-        <span className="psc__tier">{tier}</span>
-      </div>
-
-      {/* Name */}
-      <h3 className="psc__name">{name}</h3>
-
-      {/* Venue */}
-      {venueName && <div className="psc__venue">{cleanName(venueName)}</div>}
-
-      {/* Stats bar */}
-      <div className="psc__stats">
-        <div className="psc__stat">
-          <span className="psc__lbl">Dates</span>
-          <span className="psc__val psc__val--date">{dates}</span>
-        </div>
-        <div className="psc__div"/>
-        <div className="psc__stat">
-          <span className="psc__lbl">Buy-In</span>
-          <span className="psc__val psc__val--buyin">{buyin}</span>
-        </div>
-        <div className="psc__div"/>
-        <div className="psc__stat">
-          <span className="psc__lbl">Location</span>
-          <span className="psc__val psc__val--loc">{location}</span>
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div className="psc__foot">
-        <a
-          href={detailUrl}
-          className="psc__btn"
-          id={`series-btn-${series.id}`}
-          onClick={e => e.stopPropagation()}
-        >
-          View Schedule
-        </a>
-        {series.source_url && (
-          <a
-            href={series.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="psc__btn psc__btn--ext"
-            onClick={e => e.stopPropagation()}
-          >
-            Source
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── STAT COUNTERS ───────────────────────────────────────────────────────────
-function StatBanner({ total, live, withEvents }) {
-  return (
-    <div className="ps-stats-banner">
-      <span className="psc__bolt psc__bolt--tl"/>
-      <span className="psc__bolt psc__bolt--tr"/>
-      <span className="psc__bolt psc__bolt--bl"/>
-      <span className="psc__bolt psc__bolt--br"/>
-      <div className="ps-stat-item">
-        <span className="ps-stat-num" style={{ color: '#00D4FF' }}>{total}</span>
-        <span className="ps-stat-label">Total Series</span>
-      </div>
-      <div className="ps-stat-sep"/>
-      <div className="ps-stat-item">
-        <span className="ps-stat-num" style={{ color: '#44FF88' }}>{live}</span>
-        <span className="ps-stat-label">Live Now</span>
-      </div>
-      <div className="ps-stat-sep"/>
-      <div className="ps-stat-item">
-        <span className="ps-stat-num" style={{ color: '#FF8C00' }}>{withEvents}</span>
-        <span className="ps-stat-label">With Events</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── MAIN PAGE ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ═══════════════════════════════════════════════
 export default function PokerSeriesPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuConfig = useMemo(() => getMenuConfig(), []);
+    const router = useRouter();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuConfig = useMemo(() => getMenuConfig(), []);
 
-  const [series, setSeries]     = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
-  const [tourFilter, setTourFilter] = useState('all');
-  const [sortBy, setSortBy]     = useState('events');
-  const [hasEventsOnly, setHasEventsOnly] = useState(true);
-  const searchRef = useRef(null);
+    // ─── Data State ───
+    const [allSeries, setAllSeries] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [allVenues, setAllVenues] = useState([]);
+    const [userLocation, setUserLocation] = useState(null);
+    const [iframeModal, setIframeModal] = useState({ isOpen: false, url: '', title: '' });
 
-  // Keyboard shortcut
-  useEffect(() => {
-    const fn = e => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); searchRef.current?.focus(); }
-      if (e.key === 'Escape' && search) setSearch('');
-    };
-    window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
-  }, [search]);
+    // ─── Filter State ───
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedTour, setSelectedTour] = useState('all');
+    const [sortBy, setSortBy] = useState('date');
+    const [dateRange, setDateRange] = useState('60d'); // Default: upcoming 60 days
+    const [distanceFilter, setDistanceFilter] = useState('all');
+    const searchInputRef = useRef(null);
+    const [searchFocused, setSearchFocused] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [favorites, setFavorites] = useState(() => {
+        if (typeof window === 'undefined') return {};
+        try {
+            return JSON.parse(localStorage.getItem('pnm_series_favorites') || '{}');
+        } catch { return {}; }
+    });
 
-  // Fetch series from API
-  useEffect(() => {
-    setLoading(true);
-    fetch('/api/poker/series?limit=300&order=series_name')
-      .then(r => r.json())
-      .then(json => {
-        setSeries(json.data || json.series || []);
-        setLoading(false);
-      })
-      .catch(() => {
-        // Fallback: try direct Supabase (anon key)
-        setLoading(false);
-      });
-  }, []);
+    // ─── Cross-Tab Favorites Sync ───
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleStorage = (e) => {
+            if (e.key === 'pnm_series_favorites') {
+                try { setFavorites(JSON.parse(e.newValue || '{}')); }
+                catch { setFavorites({}); }
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, []);
 
-  const tours = useMemo(() => {
-    const s = new Set(series.map(x => x.tour).filter(Boolean));
-    return ['all', ...Array.from(s).sort()];
-  }, [series]);
+    // ─── URL Deep-link ───
+    useEffect(() => {
+        if (!router.isReady || isInitialized) return;
+        const safeString = (val) => Array.isArray(val) ? val[0] : val;
+        const q = safeString(router.query.q);
+        const range = safeString(router.query.range);
+        const tour = safeString(router.query.tour);
+        const distance = safeString(router.query.distance);
+        const sort = safeString(router.query.sort);
 
-  const getEvtCount = (s) => s.events_count || s.events?.length || s.total_events || s.event_count || 0;
-  const liveCount  = useMemo(() => series.filter(s => isSerieLive(s.start_date, s.end_date)).length, [series]);
-  const majorCount = useMemo(() => series.filter(s => ['WSOP','WPT','MSPT','RGPS','DSE'].includes(s.tour)).length, [series]);
-  const withEventsCount = useMemo(() => series.filter(s => getEvtCount(s) > 0).length, [series]);
+        if (q) setSearchQuery(q);
+        if (range && ['7d','14d','30d','60d','90d','6m','1y','all'].includes(range)) setDateRange(range);
+        if (tour) setSelectedTour(tour);
+        if (distance && ['50','100','250','500','1000'].includes(distance)) setDistanceFilter(distance);
+        if (sort) setSortBy(sort);
+        setIsInitialized(true);
+    }, [router.isReady, router.query, isInitialized]);
 
-  const filtered = useMemo(() => {
-    let r = [...series];
-    if (hasEventsOnly) r = r.filter(s => getEvtCount(s) > 0);
-    if (tourFilter !== 'all') r = r.filter(s => s.tour === tourFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      r = r.filter(s =>
-        cleanName(s.series_name || s.name || '').toLowerCase().includes(q) ||
-        (s.tour || '').toLowerCase().includes(q) ||
-        (s.city || '').toLowerCase().includes(q) ||
-        (s.state || '').toLowerCase().includes(q) ||
-        (s.venue_name || s.venue || '').toLowerCase().includes(q)
-      );
-    }
-    switch (sortBy) {
-      case 'events': r.sort((a,b) => getEvtCount(b) - getEvtCount(a)); break;
-      case 'name':  r.sort((a,b) => cleanName(a.series_name || a.name || '').localeCompare(cleanName(b.series_name || b.name || ''))); break;
-      case 'date':  r.sort((a,b) => (a.start_date || 'z').localeCompare(b.start_date || 'z')); break;
-      case 'tour':  r.sort((a,b) => (a.tour || 'z').localeCompare(b.tour || 'z')); break;
-      case 'buyin': r.sort((a,b) => (b.buy_in_max || 0) - (a.buy_in_max || 0)); break;
-      default: break;
-    }
-    return r;
-  }, [series, tourFilter, search, sortBy, hasEventsOnly]);
+    // ─── URL sync ───
+    useEffect(() => {
+        if (!isInitialized || !router.isReady) return;
+        const params = {};
+        if (searchQuery) params.q = searchQuery;
+        if (dateRange !== '60d') params.range = dateRange;
+        if (selectedTour !== 'all') params.tour = selectedTour;
+        if (distanceFilter !== 'all') params.distance = distanceFilter;
+        if (sortBy !== 'date') params.sort = sortBy;
+        const url = new URL(window.location);
+        url.search = new URLSearchParams(params).toString();
+        if (url.search !== window.location.search) {
+            router.replace(url, undefined, { shallow: true });
+        }
+    }, [searchQuery, dateRange, selectedTour, distanceFilter, sortBy, isInitialized, router.isReady, router]);
 
-  return (
-    <>
-      <Head>
-        <title>Poker Series — Live Tournament Series Directory | Smarter.Poker</title>
-        <meta name="description" content="Browse all 50+ live poker tournament series happening now. Filter by tour (WSOP, WPT, MSPT, RGPS), date, buy-in, and location." />
-        <meta property="og:title"       content="Poker Series Directory | Smarter.Poker" />
-        <meta property="og:description" content="50+ live poker series tracked in real-time. Find your next big tournament." />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet" />
-      </Head>
+    // ─── Keyboard shortcut ───
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+            if (e.key === 'Escape' && searchQuery) {
+                setSearchQuery('');
+                searchInputRef.current?.blur();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [searchQuery]);
 
-      <div className="ps-page">
-        <UniversalHeader onMenuOpen={() => setMenuOpen(true)}/>
-        <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} config={menuConfig}/>
+    // ─── Haversine distance (miles) ───
+    const haversineDistance = useCallback((lat1, lng1, lat2, lng2) => {
+        const R = 3959;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }, []);
 
-        {/* ── Hero ── */}
-        <div className="ps-hero">
-          <div className="ps-hero__scanline"/>
-          <h1 className="ps-hero__title">
-            <span className="ps-hero__icon">🃏</span>
-            Poker Series Directory
-          </h1>
-          <p className="ps-hero__sub">
-            Real-time tracking of live &amp; upcoming poker tournament series across North America &amp; beyond
-          </p>
-        </div>
+    // ─── Distance filter: auto-request geolocation ───
+    const handleDistanceChange = useCallback((val) => {
+        if (val === 'all') { setDistanceFilter('all'); return; }
+        if (userLocation) { setDistanceFilter(val); return; }
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            setDistanceFilter(val);
+            navigator.geolocation.getCurrentPosition(
+                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                () => { alert('Location access is required for distance filtering. Please enable location services.'); setDistanceFilter('all'); },
+                { timeout: 10000, enableHighAccuracy: false }
+            );
+        } else {
+            alert('Geolocation is not supported by your browser.');
+            setDistanceFilter('all');
+        }
+    }, [userLocation]);
 
-        <div className="ps-container">
-          {/* ── Stats Banner ── */}
-          <StatBanner total={series.length} live={liveCount} withEvents={withEventsCount}/>
+    // ─── Fetch series data ───
+    useEffect(() => {
+        let isMounted = true;
+        const abortController = new AbortController();
+        setLoading(true);
 
-          {/* ── Controls ── */}
-          <div className="ps-controls">
-            {/* Search */}
-            <div className="ps-search-wrap">
-              <svg className="ps-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input
-                ref={searchRef}
-                className="ps-search"
-                type="text"
-                placeholder="Search series, tour, city… (⌘K)"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                aria-label="Search poker series"
-                id="series-search"
-              />
-              {search && <button className="ps-search-clear" onClick={() => setSearch('')} aria-label="Clear search">✕</button>}
+        // Get user location for map
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => { if (isMounted) setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+                () => {} // silent fail
+            );
+        }
+
+        fetch('/api/poker/series?limit=300&order=start_date', { signal: abortController.signal })
+            .then(r => r.json())
+            .then(json => {
+                if (!isMounted) return;
+                const data = json.data || json.series || [];
+                setAllSeries(data);
+            })
+            .catch((e) => {
+                if (!isMounted || e.name === 'AbortError') return;
+                setAllSeries([]);
+            })
+            .finally(() => { if (isMounted) setLoading(false); });
+
+        return () => { isMounted = false; abortController.abort(); };
+    }, []);
+
+    // ─── Fetch all venues for coordinate lookup ───
+    useEffect(() => {
+        let isMounted = true;
+        const abortController = new AbortController();
+        fetch('/data/all-venues.json', { signal: abortController.signal })
+            .then(r => r.json())
+            .then(json => {
+                if (!isMounted) return;
+                const v = json.venues || json.data || json || [];
+                setAllVenues(Array.isArray(v) ? v : []);
+            })
+            .catch((e) => {
+                if (!isMounted || e.name === 'AbortError') return;
+                setAllVenues([]);
+            });
+        return () => { isMounted = false; abortController.abort(); };
+    }, []);
+
+    // ─── Find venue coordinates ───
+    const findVenueCoords = useCallback((series) => {
+        const venueName = (series.venue || series.venue_name || '').toLowerCase();
+        const city = (series.city || '').toLowerCase();
+        const state = (series.state || '').toLowerCase();
+
+        if (allVenues.length > 0) {
+            // 1. Exact venue name match
+            let match = allVenues.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
+            if (match) return match;
+
+            // 2. Venue name contains
+            if (venueName.length > 3) {
+                match = allVenues.find(v => {
+                    if (!v.name || !v.latitude) return false;
+                    const n = v.name.toLowerCase();
+                    return n.includes(venueName) || venueName.includes(n);
+                });
+                if (match) return match;
+            }
+
+            // 3. City + state match
+            if (city && state) {
+                match = allVenues.find(v =>
+                    v.latitude &&
+                    (v.city || '').toLowerCase() === city &&
+                    (v.state || '').toLowerCase() === state
+                );
+                if (match) return match;
+            }
+
+            // 4. City-only match
+            if (city) {
+                match = allVenues.find(v =>
+                    v.latitude && (v.city || '').toLowerCase() === city
+                );
+                if (match) return match;
+            }
+        }
+
+        // 5. Fallback: city coordinate lookup
+        const cityKey = (city + (state ? ', ' + state : '')).toLowerCase();
+        if (cityKey) {
+            const coords = CITY_COORDS[cityKey];
+            if (coords) return { latitude: coords.lat, longitude: coords.lng, city, state };
+        }
+
+        // 6. Last resort: partial match
+        if (city) {
+            for (const [key, coords] of Object.entries(CITY_COORDS)) {
+                if (key.startsWith(city + ',') || key === city) {
+                    return { latitude: coords.lat, longitude: coords.lng, city, state };
+                }
+            }
+        }
+
+        return null;
+    }, [allVenues]);
+
+    // ─── Get unique tours from series data ───
+    const availableTours = useMemo(() => {
+        const tours = new Set();
+        allSeries.forEach(s => {
+            const tour = (s.tour || s.tour_code || s.short_name || '').toUpperCase();
+            if (tour) tours.add(tour);
+        });
+        return Array.from(tours).sort();
+    }, [allSeries]);
+
+    // ─── Date range cutoff computation ───
+    const dateRangeCutoff = useMemo(() => {
+        if (dateRange === 'all') return null;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const daysMap = {
+            '7d': 7, '14d': 14, '30d': 30, '60d': 60, '90d': 90,
+            '6m': 180, '1y': 365,
+        };
+        const days = daysMap[dateRange];
+        if (!days) return null;
+        const cutoff = new Date(now);
+        cutoff.setDate(cutoff.getDate() + days);
+        return { start: now, end: cutoff };
+    }, [dateRange]);
+
+    // ─── Filtered & sorted series ───
+    const filteredSeries = useMemo(() => {
+        let result = [...allSeries];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Date range filter — show currently running + upcoming within window
+        if (dateRangeCutoff) {
+            result = result.filter(s => {
+                if (!s.start_date) return false;
+                const startDate = new Date(s.start_date + 'T00:00:00');
+                const endDate = s.end_date ? new Date(s.end_date + 'T23:59:59') : startDate;
+                // Currently running (end_date >= today) OR upcoming within cutoff (start_date <= cutoff end)
+                const isRunning = endDate >= today && startDate <= today;
+                const isUpcoming = startDate > today && startDate <= dateRangeCutoff.end;
+                return isRunning || isUpcoming;
+            });
+        }
+
+        // Tour filter
+        if (selectedTour !== 'all') {
+            result = result.filter(s => {
+                const tour = (s.tour || s.tour_code || s.short_name || '').toUpperCase();
+                return tour === selectedTour;
+            });
+        }
+
+        // Search filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim();
+            result = result.filter(s =>
+                cleanHtml(s.name || s.series_name || '').toLowerCase().includes(q) ||
+                (s.tour || '').toLowerCase().includes(q) ||
+                (s.short_name || '').toLowerCase().includes(q) ||
+                (s.city || '').toLowerCase().includes(q) ||
+                (s.state || '').toLowerCase().includes(q) ||
+                (s.venue || s.venue_name || '').toLowerCase().includes(q)
+            );
+        }
+
+        // Distance filter
+        if (distanceFilter !== 'all' && userLocation) {
+            const maxMiles = parseInt(distanceFilter, 10);
+            if (!isNaN(maxMiles)) {
+                result = result.filter(s => {
+                    const coords = findVenueCoords(s);
+                    if (coords && coords.latitude && coords.longitude) {
+                        const dist = haversineDistance(userLocation.lat, userLocation.lng, coords.latitude, coords.longitude);
+                        return dist <= maxMiles;
+                    }
+                    return false;
+                });
+            }
+        }
+
+        // Sort
+        switch (sortBy) {
+            case 'date':
+                result.sort((a, b) => (a.start_date || 'z').localeCompare(b.start_date || 'z'));
+                break;
+            case 'name':
+                result.sort((a, b) => cleanHtml(a.name || a.series_name || '').localeCompare(cleanHtml(b.name || b.series_name || '')));
+                break;
+            case 'tour':
+                result.sort((a, b) => (a.tour || 'z').localeCompare(b.tour || 'z'));
+                break;
+            case 'events':
+                result.sort((a, b) => (b.events_count || b.total_events || 0) - (a.events_count || a.total_events || 0));
+                break;
+            case 'distance':
+                if (userLocation) {
+                    result.sort((a, b) => {
+                        const cA = findVenueCoords(a);
+                        const cB = findVenueCoords(b);
+                        const dA = cA ? haversineDistance(userLocation.lat, userLocation.lng, cA.latitude, cA.longitude) : Infinity;
+                        const dB = cB ? haversineDistance(userLocation.lat, userLocation.lng, cB.latitude, cB.longitude) : Infinity;
+                        return dA - dB;
+                    });
+                }
+                break;
+            default: break;
+        }
+
+        return result;
+    }, [allSeries, selectedTour, searchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
+
+    // ─── Stats ───
+    const liveCount = useMemo(() => filteredSeries.filter(s => isSeriesLive(s.start_date, s.end_date)).length, [filteredSeries]);
+    const totalEvents = useMemo(() => filteredSeries.reduce((acc, s) => acc + (s.events_count || s.total_events || 0), 0), [filteredSeries]);
+
+    // ─── Build map markers ───
+    const seriesVenuesForMap = useMemo(() => {
+        if (filteredSeries.length === 0) return [];
+        const markers = [];
+        const coordsOffsetMap = {};
+
+        filteredSeries.forEach(series => {
+            const venueMatch = findVenueCoords(series);
+            if (!venueMatch || !venueMatch.latitude || !venueMatch.longitude) return;
+
+            let renderLat = venueMatch.latitude;
+            let renderLng = venueMatch.longitude;
+
+            // Offset jitter for overlapping pins
+            const offsetKey = `${renderLat.toFixed(1)}_${renderLng.toFixed(1)}`;
+            if (coordsOffsetMap[offsetKey] === undefined) coordsOffsetMap[offsetKey] = 0;
+            const shiftIndex = coordsOffsetMap[offsetKey];
+            const shiftPattern = [0, 0.008, -0.008, 0.016, -0.016, 0.024, -0.024];
+            renderLng += (shiftPattern[shiftIndex % shiftPattern.length] || 0);
+            coordsOffsetMap[offsetKey]++;
+
+            const live = isSeriesLive(series.start_date, series.end_date);
+            const seriesName = cleanHtml(series.name || series.series_name || 'Poker Series');
+            const tourCode = (series.tour || series.tour_code || series.short_name || 'SER').toUpperCase();
+
+            markers.push({
+                id: `series-${series.id || series.series_uid || seriesName}`,
+                name: `${tourCode}: ${seriesName}`,
+                city: series.city || venueMatch.city || '',
+                state: series.state || venueMatch.state || '',
+                latitude: renderLat,
+                longitude: renderLng,
+                venue_type: 'tour_stop',
+                trust_score: 5,
+                tour_code: tourCode,
+                tour_name: seriesName,
+                stop_name: seriesName,
+                stop_venue: series.venue || series.venue_name || '',
+                dates: series.start_date && series.end_date
+                    ? `${formatDateShort(series.start_date)} – ${formatDateShort(series.end_date)}`
+                    : '',
+                is_running: live,
+            });
+        });
+
+        return markers;
+    }, [filteredSeries, findVenueCoords]);
+
+    // ─── Active filter count ───
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (searchQuery) count++;
+        if (dateRange !== '60d') count++;
+        if (selectedTour !== 'all') count++;
+        if (distanceFilter !== 'all') count++;
+        return count;
+    }, [searchQuery, dateRange, selectedTour, distanceFilter]);
+
+    // ─── Favorites toggle ───
+    const toggleFavorite = useCallback((seriesId, e) => {
+        if (e) { e.stopPropagation(); e.preventDefault(); }
+        setFavorites(prev => {
+            let current = prev;
+            try {
+                const stored = localStorage.getItem('pnm_series_favorites');
+                if (stored) current = JSON.parse(stored);
+            } catch {}
+            const next = { ...current };
+            if (next[seriesId]) delete next[seriesId];
+            else next[seriesId] = Date.now();
+            try { localStorage.setItem('pnm_series_favorites', JSON.stringify(next)); } catch {}
+            return next;
+        });
+    }, []);
+
+    // ─── Reset all filters ───
+    const resetFilters = useCallback(() => {
+        setSearchQuery('');
+        setDateRange('60d');
+        setSelectedTour('all');
+        setDistanceFilter('all');
+        setSortBy('date');
+    }, []);
+
+    return (
+        <>
+            <Head>
+                <title>Poker Series — Live Tournament Series Directory | Smarter.Poker</title>
+                <meta name="description" content="Browse all live and upcoming poker tournament series. Filter by tour (WSOP, WPT, MSPT, RGPS), date, buy-in, and location." />
+                <meta property="og:title" content="Poker Series Directory | Smarter.Poker" />
+                <meta property="og:description" content="Live and upcoming poker series tracked in real-time. Find your next big tournament." />
+            </Head>
+
+            <div className="pnm-page">
+                {/* Space Background */}
+                <div className="space-bg" />
+                <div className="space-overlay" />
+
+                {/* Header */}
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
+
+                {/* Hamburger Menu */}
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={null}
+                    showProfile={false}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
+
+                {/* ═══ PAGE TITLE ═══ */}
+                <div className="pnm-title-bar">
+                    <h1 className="pnm-title">POKER SERIES</h1>
+                    <p className="pnm-subtitle">
+                        {allSeries.length} Series &bull; {liveCount} Live Now &bull; {totalEvents} Events
+                    </p>
+
+                    {/* ═══ MAIN SEARCH BAR ═══ */}
+                    <form className="tours-search-bar" onSubmit={e => e.preventDefault()}>
+                        <div className={`tours-search-wrap${searchFocused ? ' focused' : ''}`}>
+                            <svg className="tours-search-bar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                className="tours-search-bar-input"
+                                placeholder="Search Series, Venues, Cities, States... (Ctrl+K)"
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                onFocus={() => setSearchFocused(true)}
+                                onBlur={() => setSearchFocused(false)}
+                                autoComplete="off"
+                                aria-label="Search poker series"
+                                id="series-search"
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    className="tours-search-clear"
+                                    onClick={() => { setSearchQuery(''); searchInputRef.current?.focus(); }}
+                                    aria-label="Clear search"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                    </svg>
+                                </button>
+                            )}
+                            {/* Date Range Dropdown */}
+                            <div className="tours-date-divider" />
+                            <select
+                                className="tours-date-select"
+                                value={dateRange}
+                                onChange={e => setDateRange(e.target.value)}
+                                aria-label="Filter by date range"
+                            >
+                                <option value="all">All Dates</option>
+                                <option value="7d">Next 7 Days</option>
+                                <option value="14d">Next 2 Weeks</option>
+                                <option value="30d">Next 30 Days</option>
+                                <option value="60d">Next 2 Months</option>
+                                <option value="90d">Next 3 Months</option>
+                                <option value="6m">Next 6 Months</option>
+                                <option value="1y">Next Year</option>
+                            </select>
+                            {/* Distance Radius Dropdown */}
+                            <div className="tours-date-divider" />
+                            <select
+                                className="tours-date-select tours-distance-select"
+                                value={distanceFilter}
+                                onChange={e => handleDistanceChange(e.target.value)}
+                                aria-label="Filter by distance"
+                            >
+                                <option value="all">Any Distance</option>
+                                <option value="50">Within 50 Miles</option>
+                                <option value="100">Within 100 Miles</option>
+                                <option value="250">Within 250 Miles</option>
+                                <option value="500">Within 500 Miles</option>
+                                <option value="1000">Within 1,000 Miles</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
+                <div className="pnm-layout">
+
+                    {/* ─── LEFT SIDEBAR ─── */}
+                    <aside className="pnm-sidebar" role="navigation" aria-label="Poker Series navigation">
+                        <nav className="sidebar-nav">
+                            {[
+                                { key: 'all', label: 'All Series', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
+                                ...availableTours.map(tour => ({
+                                    key: tour,
+                                    label: tour,
+                                    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
+                                }))
+                            ].map(tab => (
+                                <button
+                                    key={tab.key}
+                                    className={'sidebar-tab' + (selectedTour === tab.key ? ' active' : '')}
+                                    onClick={() => setSelectedTour(tab.key)}
+                                    role="tab"
+                                    aria-selected={selectedTour === tab.key}
+                                    aria-label={tab.label + ' tab'}
+                                >
+                                    <span className="sidebar-tab-icon">{tab.icon}</span>
+                                    <span className="sidebar-tab-label">{tab.label}</span>
+                                    {tab.key !== 'all' && (
+                                        <span className="sidebar-tab-count">
+                                            {allSeries.filter(s => (s.tour || s.tour_code || s.short_name || '').toUpperCase() === tab.key).length}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </nav>
+
+                        {/* ─── FILTERS ─── */}
+                        <div className="sidebar-filters">
+                            {/* Sort */}
+                            <div className="sidebar-filter-group">
+                                <label>Sort By</label>
+                                <select
+                                    className="sidebar-select"
+                                    value={sortBy}
+                                    onChange={e => setSortBy(e.target.value)}
+                                >
+                                    <option value="date">Start Date</option>
+                                    <option value="name">Name A-Z</option>
+                                    <option value="tour">Tour</option>
+                                    <option value="events">Most Events</option>
+                                    <option value="distance">Nearest To You</option>
+                                </select>
+                            </div>
+
+                            {/* Active Filters Summary */}
+                            {activeFilterCount > 0 && (
+                                <div className="sidebar-active-filters">
+                                    <div className="sidebar-active-filters-header">
+                                        <span>{activeFilterCount} Active Filter{activeFilterCount > 1 ? 's' : ''}</span>
+                                        <button className="sidebar-clear-btn" onClick={resetFilters}>
+                                            Reset All
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </aside>
+
+                    {/* ─── MAIN CONTENT ─── */}
+                    <main className="pnm-main">
+
+                        {/* ═══ MAP ═══ */}
+                        <div className="tours-map-container">
+                            <MapErrorBoundary>
+                            <VenueMap
+                                venues={seriesVenuesForMap}
+                                userLocation={userLocation}
+                                hideLegend={true}
+                                uniformColor="#ffffff"
+                                disableClustering={true}
+                                onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
+                            />
+                            </MapErrorBoundary>
+                        </div>
+
+                        {/* ═══ RESULTS BAR ═══ */}
+                        <div className="tours-results-bar">
+                            <div className="tours-results-count">
+                                <strong>{filteredSeries.length}</strong> {filteredSeries.length === 1 ? 'Series' : 'Series'}
+                                {liveCount > 0 && <span className="tours-stops-count"> &bull; {liveCount} Live Now</span>}
+                                {totalEvents > 0 && <span className="tours-stops-count"> &bull; {totalEvents} Events</span>}
+                                {searchQuery && <span className="tours-results-query"> &mdash; &ldquo;{searchQuery}&rdquo;</span>}
+                                {dateRange !== 'all' && <span className="tours-results-query"> &bull; {{
+                                    '7d': 'Next 7 Days', '14d': 'Next 2 Weeks', '30d': 'Next 30 Days',
+                                    '60d': 'Next 2 Months', '90d': 'Next 3 Months', '6m': 'Next 6 Months', '1y': 'Next Year'
+                                }[dateRange]}</span>}
+                                {distanceFilter !== 'all' && <span className="tours-results-query"> &bull; Within {distanceFilter} Miles</span>}
+                            </div>
+                            <div className="tours-results-actions">
+                                {activeFilterCount > 0 && (
+                                    <button className="tours-clear-all-btn" onClick={resetFilters}>
+                                        Clear All ({activeFilterCount})
+                                    </button>
+                                )}
+                                <div className="tours-results-sort">
+                                    <span>Sort:</span>
+                                    <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                                        <option value="date">Start Date</option>
+                                        <option value="name">Name A-Z</option>
+                                        <option value="tour">Tour</option>
+                                        <option value="events">Most Events</option>
+                                        <option value="distance">Nearest To You</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ═══ SERIES CARDS GRID ═══ */}
+                        {loading ? (
+                            <div className="tours-loading">
+                                <div className="tours-spinner" />
+                                <span>Loading Series...</span>
+                            </div>
+                        ) : filteredSeries.length === 0 ? (
+                            <div className="tours-empty">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.3 }}>
+                                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                                <h3>No Matching Series</h3>
+                                <p>No series match your current filters{searchQuery ? ` for "${searchQuery}"` : ''}{dateRange !== 'all' ? ` within ${{'7d':'7 days','14d':'2 weeks','30d':'30 days','60d':'2 months','90d':'3 months','6m':'6 months','1y':'1 year'}[dateRange]}` : ''}.</p>
+                                <button className="tours-empty-reset" onClick={resetFilters}>
+                                    Reset All Filters
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="tours-grid">
+                                {filteredSeries.map((series, idx) => {
+                                    const tourCode = (series.tour || series.tour_code || series.short_name || '').toUpperCase();
+                                    const colors = TOUR_COLORS[tourCode] || TOUR_COLORS.default;
+                                    const seriesName = cleanHtml(series.name || series.series_name || 'Poker Series');
+                                    const venueName = cleanHtml(series.venue || series.venue_name || '');
+                                    const live = isSeriesLive(series.start_date, series.end_date);
+                                    const upcoming = !live && isSeriesUpcoming(series.start_date, 60);
+                                    const seriesType = series.series_type || 'regional';
+                                    const typeInfo = SERIES_TYPE_INFO[seriesType] || { label: seriesType || 'Series', color: '#6b7280' };
+                                    const evtCount = series.events_count || series.total_events || series.event_count || 0;
+                                    const isFav = !!(favorites[series.id] || favorites[series.series_uid]);
+                                    const favKey = series.id || series.series_uid;
+                                    const detailUrl = '/hub/series/' + (series.id || idx + 1);
+                                    const location = [series.city, series.state].filter(Boolean).join(', ') || '';
+
+                                    // Build event preview (up to 5)
+                                    const events = series.events || [];
+                                    const upcomingEvents = events.filter(e => {
+                                        if (!e.start_date) return true;
+                                        const d = new Date(e.start_date + 'T00:00:00');
+                                        return d >= new Date(new Date().toDateString());
+                                    }).slice(0, 5);
+
+                                    return (
+                                        <div
+                                            key={series.id || series.series_uid || idx}
+                                            className="tour-card-premium"
+                                            style={{
+                                                borderColor: colors.border + 'A6',
+                                                '--card-accent': colors.border,
+                                            }}
+                                            onClick={() => { window.location.href = detailUrl; }}
+                                        >
+                                            {/* Favorite Button */}
+                                            <button
+                                                className={'tour-fav-btn' + (isFav ? ' active' : '')}
+                                                onClick={e => toggleFavorite(favKey, e)}
+                                                aria-label="Favorite series"
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke={isFav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
+                                                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                                                </svg>
+                                            </button>
+
+                                            {/* Card Header — Badge + Type */}
+                                            <div className="tour-card-header">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <div
+                                                        className="tour-code-badge"
+                                                        style={{ background: colors.bg, border: '1px solid ' + colors.border }}
+                                                    >
+                                                        <span style={{ color: colors.text, fontSize: 14, fontWeight: 800, letterSpacing: '0.5px' }}>
+                                                            {tourCode || 'SER'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    className="tour-type-pill"
+                                                    style={{ color: typeInfo.color, borderColor: typeInfo.color + '40', background: typeInfo.color + '15' }}
+                                                >
+                                                    {typeInfo.label}
+                                                </span>
+                                            </div>
+
+                                            {/* Series Name */}
+                                            <h4 className="tour-card-name">{seriesName}</h4>
+
+                                            {/* Venue + Location with LIVE/UPCOMING badge */}
+                                            <div className="tour-card-location-live">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={live ? '#22c55e' : upcoming ? '#60a5fa' : 'currentColor'} strokeWidth="2" style={{ flexShrink: 0 }}>
+                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                                                    </svg>
+                                                    {live && (
+                                                        <span style={{ color: '#22c55e', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                                                            LIVE NOW
+                                                        </span>
+                                                    )}
+                                                    {upcoming && !live && (
+                                                        <span style={{ color: '#60a5fa', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
+                                                            UPCOMING
+                                                        </span>
+                                                    )}
+                                                    {!live && !upcoming && (
+                                                        <span style={{ color: 'rgba(148,163,184,0.6)', fontWeight: 600, fontSize: 11 }}>
+                                                            SCHEDULED
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {venueName && <span className="tour-stop-venue">{venueName}</span>}
+                                                {location && <span className="tour-stop-location">{location}</span>}
+                                            </div>
+
+                                            {/* Date Range */}
+                                            {(series.start_date || series.end_date) && (
+                                                <div className="tour-card-buyins">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                                    </svg>
+                                                    <span>
+                                                        {formatDate(series.start_date)}{series.end_date ? ' – ' + formatDate(series.end_date) : ''}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Buy-In + Guarantee + Event Count Tags */}
+                                            <div className="tour-card-tags">
+                                                {evtCount > 0 && (
+                                                    <span className="tour-region-tag" style={{ background: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.3)', color: 'rgba(34,197,94,0.85)' }}>
+                                                        {evtCount} Events
+                                                    </span>
+                                                )}
+                                                {series.main_event_buyin && (
+                                                    <span className="tour-region-tag" style={{ background: 'rgba(212,168,83,0.1)', borderColor: 'rgba(212,168,83,0.3)', color: '#d4a853' }}>
+                                                        {formatMoney(series.main_event_buyin)} Main
+                                                    </span>
+                                                )}
+                                                {(series.total_guaranteed || series.main_event_guaranteed) && (
+                                                    <span className="tour-region-tag" style={{ background: 'rgba(251,191,36,0.1)', borderColor: 'rgba(251,191,36,0.3)', color: '#fbbf24' }}>
+                                                        {formatMoney(series.total_guaranteed || series.main_event_guaranteed)} GTD
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Event Preview (up to 5 events) */}
+                                            {upcomingEvents.length > 0 && (
+                                                <div className="tour-card-series">
+                                                    <div className="tour-series-header">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                                        </svg>
+                                                        Events ({events.length})
+                                                    </div>
+                                                    {upcomingEvents.map((evt, i) => (
+                                                        <div key={i} className="tour-series-item">
+                                                            <span className="tour-series-name">{cleanHtml(evt.event_name || evt.name || `Event ${i + 1}`)}</span>
+                                                            <span className="tour-series-dates">
+                                                                {evt.buy_in ? formatMoney(evt.buy_in) : formatDateShort(evt.start_date)}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    {events.length > 5 && (
+                                                        <div className="tour-series-more">
+                                                            +{events.length - 5} more event{events.length - 5 > 1 ? 's' : ''}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Card Footer */}
+                                            <div className="tour-card-footer">
+                                                <span className="tour-card-established"></span>
+                                                <div className="tour-card-actions">
+                                                    <span className="tour-action-btn primary">View Schedule</span>
+                                                    {series.source_url && (
+                                                        <a
+                                                            href={series.source_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="tour-action-btn"
+                                                            onClick={e => e.stopPropagation()}
+                                                        >
+                                                            Source
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </main>
+                </div>
+
+                <FullScreenPageOverlay
+                    isOpen={iframeModal.isOpen}
+                    onClose={() => setIframeModal({ isOpen: false, url: '', title: '' })}
+                    url={iframeModal.url}
+                    title={iframeModal.title}
+                />
+
+                {/* ═══════════════════════════════════════ */}
+                {/* STYLES — Matching Poker Tours layout   */}
+                {/* ═══════════════════════════════════════ */}
+                <style jsx global>{`
+                    .pnm-page {
+                        min-height: 100vh;
+                        padding-bottom: 70px;
+                        display: flex;
+                        flex-direction: column;
+                        position: relative;
+                        color: #fff;
+                        font-family: 'Inter', -apple-system, sans-serif;
+                        overflow-x: hidden;
+                    }
+
+                    /* ═══ PAGE TITLE BAR ═══ */
+                    .pnm-title-bar {
+                        text-align: center;
+                        padding: clamp(12px, 2vh, 28px) 20px clamp(8px, 1.5vh, 18px);
+                        position: relative;
+                        flex-shrink: 0;
+                    }
+                    .pnm-title {
+                        font-size: clamp(22px, 3.5vw, 36px);
+                        font-weight: 900;
+                        letter-spacing: clamp(1.5px, 0.3vw, 3px);
+                        margin: 0;
+                        background: linear-gradient(135deg, #d4a853 0%, #f5d799 40%, #d4a853 60%, #b8860b 100%);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        background-clip: text;
+                        text-shadow: none;
+                        filter: drop-shadow(0 0 20px rgba(212,168,83,0.3));
+                    }
+                    .pnm-subtitle {
+                        margin: clamp(3px, 0.5vh, 6px) 0 0;
+                        font-size: clamp(11px, 1.2vw, 14px);
+                        color: rgba(148,163,184,0.6);
+                        letter-spacing: 1px;
+                        font-weight: 500;
+                    }
+
+                    /* ═══ MAIN SEARCH BAR ═══ */
+                    .tours-search-bar {
+                        max-width: 680px;
+                        margin: 16px auto 0;
+                        width: 100%;
+                        padding: 0 16px;
+                    }
+                    .tours-search-wrap {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 0 16px;
+                        height: 52px;
+                        background: rgba(6, 21, 37, 0.7);
+                        backdrop-filter: blur(16px);
+                        -webkit-backdrop-filter: blur(16px);
+                        border: 1.5px solid rgba(212,168,83,0.2);
+                        border-radius: 14px;
+                        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+                    }
+                    .tours-search-wrap.focused {
+                        border-color: rgba(212,168,83,0.5);
+                        box-shadow: 0 0 24px rgba(212,168,83,0.15), 0 4px 20px rgba(0,0,0,0.25);
+                    }
+                    .tours-search-bar-icon {
+                        flex-shrink: 0;
+                        color: rgba(212,168,83,0.5);
+                        transition: color 0.3s;
+                    }
+                    .tours-search-wrap.focused .tours-search-bar-icon {
+                        color: #d4a853;
+                    }
+                    .tours-search-bar-input {
+                        flex: 1;
+                        background: transparent;
+                        border: none;
+                        color: #e2e8f0;
+                        font-size: 15px;
+                        font-family: inherit;
+                        font-weight: 500;
+                        outline: none;
+                        min-width: 0;
+                        letter-spacing: 0.2px;
+                    }
+                    .tours-search-bar-input::placeholder {
+                        color: rgba(148,163,184,0.4);
+                        font-weight: 400;
+                    }
+                    .tours-search-clear {
+                        flex-shrink: 0;
+                        width: 30px;
+                        height: 30px;
+                        border-radius: 50%;
+                        border: none;
+                        background: rgba(255,255,255,0.08);
+                        color: rgba(148,163,184,0.6);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .tours-search-clear:hover {
+                        background: rgba(239,68,68,0.15);
+                        color: #ef4444;
+                    }
+
+                    /* ═══ DATE DROPDOWN ═══ */
+                    .tours-date-divider {
+                        width: 1px;
+                        height: 28px;
+                        background: rgba(212,168,83,0.2);
+                        flex-shrink: 0;
+                    }
+                    .tours-date-select {
+                        flex-shrink: 0;
+                        background: transparent;
+                        border: none;
+                        color: #d4a853;
+                        font-size: 13px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        outline: none;
+                        padding: 6px 4px;
+                        appearance: auto;
+                        min-width: 120px;
+                    }
+                    .tours-date-select option {
+                        background: #0c1423;
+                        color: #e2e8f0;
+                    }
+
+                    /* ═══ SIDEBAR + MAIN LAYOUT ═══ */
+                    .pnm-layout {
+                        display: flex;
+                        width: 100%;
+                        max-width: 1600px;
+                        margin: 0 auto;
+                        min-height: calc(100vh - 160px);
+                        gap: 0;
+                    }
+
+                    /* ═══ LEFT SIDEBAR ═══ */
+                    .pnm-sidebar {
+                        width: clamp(130px, 12vw, 175px);
+                        min-width: clamp(130px, 12vw, 175px);
+                        flex-shrink: 0;
+                        background: linear-gradient(180deg, rgba(12,20,35,0.97) 0%, rgba(8,14,26,0.99) 100%);
+                        border-right: 2px solid rgba(148,163,184,0.12);
+                        padding: 6px 0;
+                        position: sticky;
+                        top: 64px;
+                        height: calc(100vh - 64px);
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                        z-index: 50;
+                        box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(212,168,83,0.3) transparent;
+                    }
+                    .pnm-sidebar::-webkit-scrollbar { width: 4px; }
+                    .pnm-sidebar::-webkit-scrollbar-thumb { background: rgba(212,168,83,0.25); border-radius: 2px; }
+
+                    .sidebar-nav {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1px;
+                        padding: 0 6px;
+                        margin-bottom: 10px;
+                    }
+
+                    .sidebar-tab {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        width: 100%;
+                        padding: 7px 8px;
+                        border-radius: 6px;
+                        background: transparent;
+                        border: 1.5px solid transparent;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        color: rgba(148,163,184,0.65);
+                        position: relative;
+                        text-align: left;
+                    }
+                    .sidebar-tab:hover {
+                        background: rgba(148,163,184,0.06);
+                        color: rgba(200,214,229,0.85);
+                    }
+                    .sidebar-tab.active {
+                        background: linear-gradient(135deg, rgba(212,168,83,0.12) 0%, rgba(184,134,11,0.06) 100%);
+                        border-color: rgba(212,168,83,0.3);
+                        color: #d4a853;
+                        box-shadow: inset 0 0 12px rgba(212,168,83,0.06), 0 0 8px rgba(212,168,83,0.08);
+                    }
+                    .sidebar-tab.active::before {
+                        content: '';
+                        position: absolute;
+                        left: 0;
+                        top: 6px;
+                        bottom: 6px;
+                        width: 3px;
+                        background: #d4a853;
+                        border-radius: 0 3px 3px 0;
+                        box-shadow: 0 0 8px rgba(212,168,83,0.4);
+                    }
+                    .sidebar-tab-icon {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 24px;
+                        height: 24px;
+                        flex-shrink: 0;
+                    }
+                    .sidebar-tab-label {
+                        font-size: 12px;
+                        font-weight: 600;
+                        white-space: nowrap;
+                    }
+                    .sidebar-tab-count {
+                        margin-left: auto;
+                        font-size: 11px;
+                        font-weight: 700;
+                        color: rgba(148,163,184,0.4);
+                        min-width: 18px;
+                        text-align: center;
+                    }
+                    .sidebar-tab.active .sidebar-tab-count { color: rgba(212,168,83,0.6); }
+
+                    /* ═══ SIDEBAR FILTERS ═══ */
+                    .sidebar-filters {
+                        padding: 0 8px;
+                        border-top: 1px solid rgba(148,163,184,0.08);
+                        margin-top: 6px;
+                        padding-top: 8px;
+                    }
+                    .sidebar-filter-group { margin-bottom: 10px; }
+                    .sidebar-filter-group label {
+                        display: block;
+                        font-size: 11px;
+                        font-weight: 700;
+                        color: rgba(255,255,255,0.5);
+                        margin-bottom: 4px;
+                        padding: 0 2px;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                    }
+                    .sidebar-select {
+                        width: 100%;
+                        padding: 7px 8px;
+                        background: rgba(0,0,0,0.35);
+                        border: 1.5px solid rgba(148,163,184,0.15);
+                        border-radius: 6px;
+                        color: #e2e8f0;
+                        font-size: 12px;
+                        font-family: inherit;
+                        cursor: pointer;
+                        appearance: auto;
+                    }
+                    .sidebar-select:focus { border-color: rgba(212,168,83,0.4); outline: none; }
+
+                    .sidebar-active-filters {
+                        margin-top: 6px;
+                        padding: 8px;
+                        background: rgba(212,168,83,0.06);
+                        border: 1px solid rgba(212,168,83,0.15);
+                        border-radius: 8px;
+                    }
+                    .sidebar-active-filters-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        font-size: 11px;
+                        color: rgba(212,168,83,0.7);
+                        font-weight: 600;
+                    }
+                    .sidebar-clear-btn {
+                        background: none;
+                        border: 1px solid rgba(239,68,68,0.25);
+                        color: rgba(239,68,68,0.7);
+                        font-size: 10px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                        transition: all 0.2s;
+                    }
+                    .sidebar-clear-btn:hover {
+                        background: rgba(239,68,68,0.1);
+                        color: #ef4444;
+                    }
+
+                    /* ═══ MAIN CONTENT ═══ */
+                    .pnm-main {
+                        flex: 1;
+                        min-width: 0;
+                        padding: 0 clamp(10px, 1.5vw, 20px) 20px;
+                    }
+
+                    /* ═══ MAP CONTAINER ═══ */
+                    .tours-map-container {
+                        margin-bottom: 16px;
+                        border-radius: 12px;
+                        overflow: hidden;
+                    }
+
+                    /* ═══ RESULTS BAR ═══ */
+                    .tours-results-bar {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        flex-wrap: wrap;
+                        gap: 12px;
+                        padding: 12px 16px;
+                        margin-bottom: 16px;
+                        background: linear-gradient(90deg, rgba(12,20,35,0.9) 0%, rgba(8,14,26,0.9) 100%);
+                        border: 1px solid rgba(148,163,184,0.1);
+                        border-radius: 10px;
+                    }
+                    .tours-results-count {
+                        font-size: 14px;
+                        color: rgba(148,163,184,0.7);
+                    }
+                    .tours-results-count strong {
+                        color: #d4a853;
+                        font-weight: 800;
+                    }
+                    .tours-stops-count {
+                        color: rgba(34,197,94,0.7);
+                        font-weight: 600;
+                        font-size: 13px;
+                    }
+                    .tours-results-query {
+                        color: rgba(212,168,83,0.6);
+                        font-style: italic;
+                        font-size: 13px;
+                    }
+                    .tours-results-actions {
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                    }
+                    .tours-clear-all-btn {
+                        padding: 6px 14px;
+                        border-radius: 6px;
+                        border: 1px solid rgba(239,68,68,0.25);
+                        background: rgba(239,68,68,0.08);
+                        color: rgba(239,68,68,0.8);
+                        font-size: 12px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        white-space: nowrap;
+                    }
+                    .tours-clear-all-btn:hover {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.4);
+                        color: #ef4444;
+                    }
+                    .tours-results-sort {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 13px;
+                        color: rgba(148,163,184,0.5);
+                    }
+                    .tours-results-sort select {
+                        padding: 6px 10px;
+                        background: rgba(0,0,0,0.35);
+                        border: 1px solid rgba(148,163,184,0.15);
+                        border-radius: 6px;
+                        color: #d4a853;
+                        font-size: 12px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                    }
+
+                    /* ═══ SERIES CARDS GRID ═══ */
+                    .tours-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 16px;
+                    }
+
+                    /* ═══ PREMIUM SERIES CARD ═══ */
+                    .tour-card-premium {
+                        position: relative;
+                        background: linear-gradient(145deg, rgba(15,23,42,0.95) 0%, rgba(10,15,28,0.98) 100%);
+                        border: 2px solid var(--card-accent, rgba(100,116,139,0.4));
+                        border-radius: 14px;
+                        padding: 18px 20px 14px;
+                        cursor: pointer;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        box-shadow:
+                            0 2px 12px rgba(0,0,0,0.3),
+                            0 0 10px rgba(100,116,139,0.1),
+                            inset 0 1px 0 rgba(255,255,255,0.04);
+                        overflow: hidden;
+                    }
+                    .tour-card-premium::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 3px;
+                        background: linear-gradient(90deg, transparent, var(--card-accent, rgba(100,116,139,0.5)), transparent);
+                        opacity: 1;
+                        transition: opacity 0.3s;
+                    }
+                    .tour-card-premium:hover {
+                        transform: translateY(-2px);
+                        box-shadow:
+                            0 8px 32px rgba(0,0,0,0.4),
+                            0 0 18px rgba(212,168,83,0.15),
+                            inset 0 1px 0 rgba(255,255,255,0.06);
+                    }
+
+                    /* Card Header */
+                    .tour-card-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-bottom: 12px;
+                    }
+                    .tour-code-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 6px 14px;
+                        border-radius: 6px;
+                        min-width: 60px;
+                    }
+                    .tour-type-pill {
+                        font-size: 11px;
+                        font-weight: 600;
+                        padding: 3px 10px;
+                        border-radius: 20px;
+                        border: 1px solid;
+                        letter-spacing: 0.3px;
+                        margin-left: auto;
+                    }
+
+                    .tour-card-name {
+                        font-size: 17px;
+                        font-weight: 700;
+                        color: #fff;
+                        margin: 0 0 8px;
+                        line-height: 1.3;
+                    }
+
+                    .tour-card-location-live {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 3px;
+                        margin: 0 0 10px;
+                        padding: 8px 10px;
+                        background: rgba(0,0,0,0.25);
+                        border: 1px solid rgba(148,163,184,0.08);
+                        border-radius: 8px;
+                    }
+                    .tour-stop-venue {
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.85);
+                        padding-left: 20px;
+                    }
+                    .tour-stop-location {
+                        font-size: 11px;
+                        color: rgba(148,163,184,0.6);
+                        padding-left: 20px;
+                    }
+
+                    .tour-card-buyins {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 12px;
+                        color: rgba(212,168,83,0.85);
+                        font-weight: 600;
+                        margin-bottom: 10px;
+                    }
+
+                    .tour-card-tags {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                        margin-bottom: 10px;
+                    }
+                    .tour-region-tag {
+                        padding: 3px 10px;
+                        border-radius: 6px;
+                        background: rgba(59,130,246,0.1);
+                        border: 1px solid rgba(59,130,246,0.2);
+                        color: rgba(59,130,246,0.8);
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+
+                    .tour-card-series {
+                        margin-bottom: 12px;
+                        padding: 10px 12px;
+                        background: rgba(0,0,0,0.2);
+                        border: 1px solid rgba(148,163,184,0.06);
+                        border-radius: 8px;
+                    }
+                    .tour-series-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        color: rgba(148,163,184,0.5);
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        margin-bottom: 8px;
+                    }
+                    .tour-series-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 4px 0;
+                        border-top: 1px solid rgba(148,163,184,0.06);
+                    }
+                    .tour-series-item:first-of-type { border-top: none; }
+                    .tour-series-name {
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.8);
+                        font-weight: 500;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        max-width: 60%;
+                    }
+                    .tour-series-dates {
+                        font-size: 11px;
+                        color: rgba(34,197,94,0.7);
+                        font-weight: 600;
+                        white-space: nowrap;
+                    }
+                    .tour-series-more {
+                        font-size: 11px;
+                        color: rgba(148,163,184,0.4);
+                        text-align: center;
+                        padding-top: 6px;
+                        border-top: 1px solid rgba(148,163,184,0.06);
+                        margin-top: 4px;
+                        font-style: italic;
+                    }
+
+                    .tour-card-footer {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-top: auto;
+                        padding-top: 12px;
+                        border-top: 1px solid rgba(148,163,184,0.08);
+                    }
+                    .tour-card-established {
+                        font-size: 11px;
+                        color: rgba(148,163,184,0.4);
+                        font-weight: 500;
+                    }
+                    .tour-card-actions {
+                        display: flex;
+                        gap: 8px;
+                        margin-left: auto;
+                    }
+                    .tour-action-btn {
+                        padding: 6px 14px;
+                        border-radius: 6px;
+                        font-size: 12px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        text-decoration: none;
+                        background: rgba(255,255,255,0.06);
+                        border: 1px solid rgba(148,163,184,0.12);
+                        color: rgba(255,255,255,0.7);
+                    }
+                    .tour-action-btn:hover {
+                        background: rgba(255,255,255,0.1);
+                        border-color: rgba(148,163,184,0.25);
+                        color: #fff;
+                    }
+                    .tour-action-btn.primary {
+                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        border: none;
+                        color: #000;
+                        font-weight: 700;
+                        letter-spacing: 0.3px;
+                    }
+                    .tour-action-btn.primary:hover {
+                        box-shadow: 0 4px 16px rgba(212,168,83,0.3);
+                        transform: translateY(-1px);
+                    }
+
+                    .tour-fav-btn {
+                        position: absolute;
+                        top: 12px;
+                        right: 12px;
+                        background: rgba(0,0,0,0.4);
+                        border: 1px solid rgba(255,255,255,0.12);
+                        border-radius: 50%;
+                        width: 32px;
+                        height: 32px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        z-index: 2;
+                    }
+                    .tour-fav-btn:hover {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.3);
+                    }
+                    .tour-fav-btn.active {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.4);
+                    }
+
+                    /* Loading & Empty States */
+                    .tours-loading {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 16px;
+                        padding: 60px 20px;
+                        color: rgba(212,168,83,0.6);
+                        font-size: 14px;
+                        font-weight: 600;
+                    }
+                    .tours-spinner {
+                        width: 40px;
+                        height: 40px;
+                        border: 3px solid rgba(212,168,83,0.15);
+                        border-top-color: #d4a853;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    }
+                    .tours-empty {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 60px 20px;
+                        text-align: center;
+                    }
+                    .tours-empty h3 {
+                        font-size: 18px;
+                        font-weight: 700;
+                        color: rgba(255,255,255,0.7);
+                        margin: 0;
+                    }
+                    .tours-empty p {
+                        font-size: 13px;
+                        color: rgba(148,163,184,0.5);
+                        margin: 0;
+                        max-width: 400px;
+                    }
+                    .tours-empty-reset {
+                        margin-top: 8px;
+                        padding: 10px 24px;
+                        border-radius: 8px;
+                        border: 1.5px solid rgba(212,168,83,0.3);
+                        background: rgba(212,168,83,0.08);
+                        color: #d4a853;
+                        font-size: 13px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        transition: all 0.25s;
+                    }
+                    .tours-empty-reset:hover {
+                        background: rgba(212,168,83,0.15);
+                        border-color: rgba(212,168,83,0.5);
+                        box-shadow: 0 0 16px rgba(212,168,83,0.1);
+                    }
+
+                    /* ═══ SPACE BACKGROUND ═══ */
+                    .space-bg {
+                        position: fixed;
+                        inset: 0;
+                        background:
+                            radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+                            radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                            radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
+                            linear-gradient(180deg, #020408 0%, #0a1628 30%, #0d1b2a 50%, #0a1628 70%, #020408 100%);
+                        z-index: -2;
+                    }
+                    .space-bg::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        background-image:
+                            repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(148,163,184,0.04) 39px, rgba(148,163,184,0.04) 40px),
+                            repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(148,163,184,0.04) 39px, rgba(148,163,184,0.04) 40px);
+                        background-size: 40px 40px;
+                    }
+                    .space-overlay {
+                        position: fixed;
+                        inset: 0;
+                        background:
+                            radial-gradient(ellipse at 50% 0%, rgba(148,163,184,0.05) 0%, transparent 50%),
+                            linear-gradient(180deg, rgba(3,7,18,0.4) 0%, transparent 15%, transparent 85%, rgba(3,7,18,0.6) 100%);
+                        z-index: -1;
+                    }
+
+                    .universal-header { flex-shrink: 0; }
+                    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+                    /* ═══ MOBILE ═══ */
+                    @media (max-width: 768px) {
+                        .pnm-title-bar {
+                            padding: clamp(6px, 1.5vh, 14px) 14px clamp(4px, 1vh, 10px);
+                        }
+                        .pnm-title {
+                            font-size: clamp(20px, 5.5vw, 28px);
+                            letter-spacing: clamp(1px, 0.4vw, 2px);
+                        }
+                        .tours-search-bar { padding: 0 10px; margin-top: 12px; }
+                        .tours-search-wrap { height: 46px; border-radius: 12px; padding: 0 12px; }
+                        .tours-search-bar-input { font-size: 13px; }
+                        .tours-date-select { font-size: 12px; min-width: 100px; }
+                        .pnm-layout { flex-direction: column; }
+                        .pnm-sidebar {
+                            width: 100%;
+                            min-width: 100%;
+                            height: auto;
+                            flex-shrink: 0;
+                            max-height: none;
+                            border-right: none;
+                            border-bottom: 2px solid rgba(148,163,184,0.12);
+                            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+                            padding: 6px 0 8px;
+                            position: sticky;
+                            top: 56px;
+                            z-index: 100;
+                        }
+                        .sidebar-nav {
+                            flex-direction: row;
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                            scrollbar-width: none;
+                            gap: 4px;
+                            padding: 0 10px;
+                            margin-bottom: 6px;
+                        }
+                        .sidebar-nav::-webkit-scrollbar { display: none; }
+                        .sidebar-tab {
+                            flex-direction: column;
+                            gap: 3px;
+                            padding: 8px 12px;
+                            min-width: 60px;
+                            align-items: center;
+                            text-align: center;
+                        }
+                        .sidebar-tab.active::before { display: none; }
+                        .sidebar-tab.active {
+                            box-shadow: inset 0 -2px 0 #d4a853, inset 0 0 8px rgba(212,168,83,0.08);
+                        }
+                        .sidebar-tab-label { font-size: 10px; }
+                        .sidebar-tab-icon { width: 20px; height: 20px; }
+                        .sidebar-tab-count { display: none; }
+                        .sidebar-filters {
+                            padding: 0 10px 6px;
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 6px;
+                            align-items: flex-start;
+                        }
+                        .sidebar-filter-group { margin-bottom: 0; flex: 1; min-width: 120px; }
+                        .sidebar-active-filters { flex-basis: 100%; }
+                        .pnm-main { padding: 0 10px 40px; }
+                        .tours-grid {
+                            grid-template-columns: 1fr;
+                        }
+                        .tour-card-name { font-size: 15px; }
+                        .tours-results-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
+                        .tours-results-actions { width: 100%; justify-content: space-between; }
+                    }
+
+                    @media (max-width: 480px) {
+                        .tours-results-bar {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 8px;
+                            padding: 10px 14px;
+                        }
+                        .tour-card-premium {
+                            padding: 14px 16px 12px;
+                        }
+                    }
+                `}</style>
             </div>
-
-            {/* Tour filter */}
-            <div className="ps-filter-row">
-              <div className="ps-filter-group">
-                <label className="ps-filter-label" htmlFor="tour-filter">Tour</label>
-                <select
-                  id="tour-filter"
-                  className="ps-select"
-                  value={tourFilter}
-                  onChange={e => setTourFilter(e.target.value)}
-                >
-                  {tours.map(t => (
-                    <option key={t} value={t}>{t === 'all' ? 'All Tours' : t}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="ps-filter-group">
-                <label className="ps-filter-label" htmlFor="sort-filter">Sort</label>
-                <select
-                  id="sort-filter"
-                  className="ps-select"
-                  value={sortBy}
-                  onChange={e => setSortBy(e.target.value)}
-                >
-                  <option value="events">Most Events</option>
-                  <option value="name">Name A-Z</option>
-                  <option value="date">Date</option>
-                  <option value="tour">Tour</option>
-                  <option value="buyin">Buy-In (High)</option>
-                </select>
-              </div>
-
-              <button
-                className={'ps-toggle-btn' + (hasEventsOnly ? ' ps-toggle-btn--active' : '')}
-                onClick={() => setHasEventsOnly(!hasEventsOnly)}
-                aria-label="Toggle has events filter"
-              >
-                {hasEventsOnly ? `With Events (${withEventsCount})` : `All Series (${series.length})`}
-              </button>
-
-              <div className="ps-results-count">
-                {filtered.length} series
-              </div>
-            </div>
-          </div>
-
-          {/* ── Cards Grid ── */}
-          {loading ? (
-            <div className="ps-loading">
-              <div className="ps-spinner"/>
-              <span>Loading series from database…</span>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="ps-empty">
-              <span style={{ fontSize: '3rem' }}>🃏</span>
-              <p>No series match your filters.<br/>Try clearing the search or changing your tour filter.</p>
-            </div>
-          ) : (
-            <div className="ps-grid">
-              {filtered.map((s, i) => (
-                <PokerSeriesCard key={s.id || s.series_uid} series={s} index={i}/>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          STYLES — Futuristic Metal UI Design System
-          All styles are scoped inline for zero-config deployment
-         ══════════════════════════════════════════════════════════════════ */}
-      <style jsx global>{`
-        /* ── Root Tokens ── */
-        :root {
-          --metal-dark:      #0a0a15;
-          --metal-base:      #0d1117;
-          --metal-mid:       #1a2332;
-          --metal-light:     #2a3a4a;
-          --metal-highlight: #3d4f5f;
-          --neon-cyan:       #00D4FF;
-          --neon-cyan-glow:  rgba(0,212,255,0.55);
-          --gold-vip:        #FFD700;
-          --text-pri:        #e8edf2;
-          --text-muted:      rgba(232,237,242,0.5);
-          --card-bg:         linear-gradient(145deg, #1c2c3c 0%, #111827 55%, #0a0e17 100%);
-          --glow-cyan:       0 0 10px #00D4FF, 0 0 20px rgba(0,212,255,0.55);
-        }
-
-        /* ── Page Shell ── */
-        .ps-page { background: var(--metal-dark); min-height: 100vh; color: var(--text-pri); }
-
-        /* ── Hero ── */
-        .ps-hero {
-          position: relative;
-          overflow: hidden;
-          padding: 56px 24px 40px;
-          background: linear-gradient(180deg, #0f1728 0%, #0a0a15 100%);
-          border-bottom: 1px solid rgba(0,212,255,0.18);
-          text-align: center;
-        }
-        .ps-hero::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(0,212,255,0.1) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        .ps-hero__scanline {
-          position: absolute;
-          inset: 0;
-          background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,212,255,0.02) 3px, rgba(0,212,255,0.02) 4px);
-          pointer-events: none;
-        }
-        .ps-hero__icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
-        .ps-hero__title {
-          font-family: 'Orbitron', sans-serif;
-          font-size: clamp(1.5rem, 4vw, 2.5rem);
-          font-weight: 900;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: #fff;
-          text-shadow: 0 0 30px rgba(0,212,255,0.5), 0 2px 8px rgba(0,0,0,0.8);
-          margin: 0 0 14px;
-        }
-        .ps-hero__sub {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 1.05rem;
-          color: var(--text-muted);
-          max-width: 560px;
-          margin: 0 auto;
-        }
-
-        /* ── Container ── */
-        .ps-container { max-width: 1400px; margin: 0 auto; padding: 0 24px 80px; }
-
-        /* ── Stats Banner ── */
-        .ps-stats-banner {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0;
-          background: linear-gradient(180deg, #1a2332 0%, #111827 100%);
-          border: 2px solid var(--metal-highlight);
-          border-radius: 12px;
-          margin: 28px 0;
-          overflow: hidden;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 4px 20px rgba(0,0,0,0.4);
-        }
-        .ps-stat-item { flex: 1; text-align: center; padding: 20px 16px; }
-        .ps-stat-sep  { width: 1px; background: rgba(255,255,255,0.1); height: 48px; }
-        .ps-stat-num  {
-          display: block;
-          font-family: 'Orbitron', sans-serif;
-          font-size: 2rem;
-          font-weight: 800;
-          text-shadow: 0 0 16px currentColor;
-        }
-        .ps-stat-label {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 0.7rem;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          margin-top: 4px;
-        }
-
-        /* ── Controls ── */
-        .ps-controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
-        .ps-search-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-        .ps-search-icon {
-          position: absolute;
-          left: 14px;
-          width: 18px;
-          color: var(--text-muted);
-          pointer-events: none;
-        }
-        .ps-search {
-          width: 100%;
-          background: linear-gradient(180deg, #0a0e17 0%, #111827 100%);
-          border: 2px solid var(--metal-highlight);
-          border-radius: 10px;
-          color: var(--text-pri);
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 1rem;
-          padding: 13px 44px 13px 44px;
-          outline: none;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
-        }
-        .ps-search:focus {
-          border-color: var(--neon-cyan);
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.4), 0 0 12px var(--neon-cyan-glow);
-        }
-        .ps-search::placeholder { color: var(--text-muted); }
-        .ps-search-clear {
-          position: absolute;
-          right: 14px;
-          background: none;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          font-size: 1rem;
-          padding: 4px;
-          transition: color 0.15s ease;
-        }
-        .ps-search-clear:hover { color: var(--text-pri); }
-
-        .ps-filter-row {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .ps-filter-group { display: flex; align-items: center; gap: 8px; }
-        .ps-filter-label {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 0.6rem;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          white-space: nowrap;
-        }
-        .ps-select {
-          background: linear-gradient(180deg, #1a2332 0%, #0d1117 100%);
-          border: 1px solid var(--metal-highlight);
-          border-radius: 6px;
-          color: var(--text-pri);
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 0.88rem;
-          padding: 7px 28px 7px 12px;
-          outline: none;
-          cursor: pointer;
-          transition: border-color 0.2s ease;
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' viewBox='0 0 12 8'%3E%3Cpath stroke='%2300D4FF' stroke-width='1.5' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 10px center;
-        }
-        .ps-select:focus { border-color: var(--neon-cyan); }
-
-        .ps-results-count {
-          margin-left: auto;
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 0.82rem;
-          color: var(--text-muted);
-          letter-spacing: 0.04em;
-        }
-
-        /* ── Grid ── */
-        .ps-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-          gap: 20px;
-        }
-
-        /* ── Card ── */
-        .psc {
-          position: relative;
-          background: var(--card-bg);
-          border: 2px solid var(--th-border, var(--metal-highlight));
-          border-radius: 12px;
-          padding: 20px 22px 18px;
-          overflow: hidden;
-          transition: transform 0.25s cubic-bezier(.22,.68,0,1.22),
-                      box-shadow  0.25s ease,
-                      border-color 0.2s ease;
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.07),
-            inset 0 -1px 0 rgba(0,0,0,0.3),
-            0 4px 24px rgba(0,0,0,0.5);
-          animation: psc-in 0.45s ease both;
-          cursor: default;
-        }
-        .psc::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, var(--th-bg, transparent) 0%, transparent 60%);
-          border-radius: 10px;
-          pointer-events: none;
-          opacity: 0.7;
-        }
-        .psc--hover {
-          transform: translateY(-5px) scale(1.015);
-          border-color: var(--th-border, var(--neon-cyan));
-          box-shadow:
-            inset 0 1px 0 rgba(255,255,255,0.1),
-            0 10px 36px rgba(0,0,0,0.65),
-            0 0 22px var(--th-glow, var(--neon-cyan-glow));
-        }
-
-        /* Bolts */
-        .psc__bolt {
-          position: absolute;
-          width: 10px; height: 10px;
-          background: radial-gradient(circle, #5a6a7a 30%, #2a3a4a 70%);
-          border-radius: 50%;
-          border: 1px solid #1a2a3a;
-          box-shadow: inset 0 1px 2px rgba(255,255,255,0.2);
-          z-index: 2;
-        }
-        .psc__bolt::after {
-          content: '+';
-          position: absolute;
-          top: 50%; left: 50%;
-          transform: translate(-50%,-50%);
-          font-size: 7px;
-          color: rgba(255,255,255,0.2);
-          font-family: monospace;
-        }
-        .psc__bolt--tl { top: 6px;  left: 6px; }
-        .psc__bolt--tr { top: 6px;  right: 6px; }
-        .psc__bolt--bl { bottom: 6px; left: 6px; }
-        .psc__bolt--br { bottom: 6px; right: 6px; }
-
-        /* Neon strips */
-        .psc__strip {
-          position: absolute;
-          width: 3px;
-          top: 22%; bottom: 22%;
-          background: var(--th-border, var(--neon-cyan));
-          box-shadow: 0 0 8px var(--th-glow, var(--neon-cyan-glow));
-          border-radius: 2px;
-          opacity: 0.65;
-          transition: opacity 0.2s ease;
-        }
-        .psc--hover .psc__strip { opacity: 1; }
-        .psc__strip--l { left: 6px; }
-        .psc__strip--r { right: 6px; }
-
-        /* Card header */
-        .psc__header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 12px;
-          position: relative;
-        }
-        .psc__tour {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 0.63rem;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: var(--th-text, var(--neon-cyan));
-          background: var(--th-bg, rgba(0,212,255,0.08));
-          border: 1px solid var(--th-border, var(--neon-cyan));
-          border-radius: 4px;
-          padding: 3px 8px;
-          box-shadow: 0 0 6px var(--th-glow, rgba(0,212,255,0.3));
-        }
-        .psc__live {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 0.56rem;
-          font-weight: 800;
-          color: #44FF88;
-          letter-spacing: 0.12em;
-          text-shadow: 0 0 8px rgba(68,255,136,0.8);
-          animation: live-pulse 1.4s ease-in-out infinite;
-        }
-        @keyframes live-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
-        .psc__tier {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 0.58rem;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.35);
-          border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 3px;
-          padding: 2px 7px;
-          margin-left: auto;
-        }
-
-        /* Name */
-        .psc__name {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: clamp(1rem, 2.2vw, 1.15rem);
-          font-weight: 700;
-          color: var(--text-pri);
-          margin: 0 0 16px;
-          line-height: 1.3;
-          padding: 0 14px;
-          text-shadow: 0 1px 4px rgba(0,0,0,0.6);
-        }
-
-        /* Stats bar */
-        .psc__stats {
-          display: flex;
-          align-items: stretch;
-          background: linear-gradient(180deg, #0a0e17 0%, #050810 100%);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 8px;
-          overflow: hidden;
-          margin-bottom: 16px;
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-        }
-        .psc__stat {
-          flex: 1;
-          padding: 10px 12px;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          min-width: 0;
-        }
-        .psc__div {
-          width: 1px;
-          background: rgba(255,255,255,0.08);
-          margin: 8px 0;
-        }
-        .psc__lbl {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 0.52rem;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--text-muted);
-        }
-        .psc__val {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 0.82rem;
-          font-weight: 700;
-          color: var(--text-pri);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .psc__val--date  { color: #90bcd8; }
-        .psc__val--buyin { color: var(--th-text, var(--neon-cyan)); text-shadow: 0 0 8px var(--th-glow, rgba(0,212,255,0.4)); }
-        .psc__val--loc   { color: rgba(255,255,255,0.7); font-size: 0.75rem; }
-
-        /* Footer CTA */
-        .psc__foot { display: flex; justify-content: flex-end; }
-        .psc__btn {
-          display: inline-flex;
-          align-items: center;
-          font-family: 'Orbitron', sans-serif;
-          font-size: 0.62rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--th-text, var(--neon-cyan));
-          background: transparent;
-          border: 1px solid var(--th-border, var(--neon-cyan));
-          border-radius: 5px;
-          padding: 7px 16px;
-          text-decoration: none;
-          cursor: pointer;
-          transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-          box-shadow: 0 0 6px var(--th-glow, rgba(0,212,255,0.3));
-        }
-        .psc__btn:hover {
-          background: var(--th-bg, rgba(0,212,255,0.1));
-          box-shadow: 0 0 14px var(--th-glow, var(--neon-cyan-glow));
-          transform: translateY(-1px);
-        }
-
-        /* Card entrance animation */
-        @keyframes psc-in {
-          from { opacity: 0; transform: translateY(18px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Loading / Empty */
-        .ps-loading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 20px;
-          padding: 80px 0;
-          color: var(--text-muted);
-          font-family: 'Rajdhani', sans-serif;
-        }
-        .ps-spinner {
-          width: 48px; height: 48px;
-          border: 3px solid rgba(0,212,255,0.2);
-          border-top-color: var(--neon-cyan);
-          border-radius: 50%;
-          animation: spin 0.9s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .ps-empty {
-          text-align: center;
-          padding: 80px 20px;
-          color: var(--text-muted);
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 1.1rem;
-          line-height: 1.6;
-        }
-
-        /* Stats banner bolts */
-        .ps-stats-banner .psc__bolt--tl { position: absolute; top: 6px; left: 6px; }
-        .ps-stats-banner .psc__bolt--tr { position: absolute; top: 6px; right: 6px; }
-        .ps-stats-banner .psc__bolt--bl { position: absolute; bottom: 6px; left: 6px; }
-        .ps-stats-banner .psc__bolt--br { position: absolute; bottom: 6px; right: 6px; }
-
-        /* Venue name */
-        .psc__venue {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 0.82rem;
-          font-weight: 500;
-          color: rgba(255,255,255,0.55);
-          padding: 0 14px;
-          margin-bottom: 12px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        /* Event count badge */
-        .psc__evts {
-          font-family: 'Rajdhani', sans-serif;
-          font-size: 0.6rem;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          color: #4ade80;
-          background: rgba(74,222,128,0.12);
-          border: 1px solid rgba(74,222,128,0.3);
-          border-radius: 3px;
-          padding: 2px 6px;
-        }
-
-        /* Secondary CTA button */
-        .psc__foot { display: flex; justify-content: flex-end; gap: 8px; }
-        .psc__btn--ext {
-          opacity: 0.55;
-          font-size: 0.55rem;
-          padding: 5px 10px;
-        }
-        .psc__btn--ext:hover { opacity: 1; }
-
-        /* Has Events toggle */
-        .ps-toggle-btn {
-          font-family: 'Orbitron', sans-serif;
-          font-size: 0.58rem;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          background: linear-gradient(180deg, #1a2332 0%, #0d1117 100%);
-          border: 1px solid var(--metal-highlight);
-          border-radius: 6px;
-          padding: 7px 14px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          white-space: nowrap;
-        }
-        .ps-toggle-btn:hover {
-          border-color: var(--neon-cyan);
-          color: var(--text-pri);
-        }
-        .ps-toggle-btn--active {
-          color: #4ade80;
-          border-color: rgba(74,222,128,0.4);
-          background: linear-gradient(180deg, rgba(74,222,128,0.08) 0%, #0d1117 100%);
-          box-shadow: 0 0 8px rgba(74,222,128,0.2);
-        }
-        .ps-toggle-btn--active:hover {
-          border-color: rgba(74,222,128,0.7);
-        }
-
-        /* Responsive */
-        @media (max-width: 640px) {
-          .ps-grid { grid-template-columns: 1fr; gap: 14px; }
-          .ps-hero { padding: 44px 16px 32px; }
-          .ps-container { padding: 0 14px 60px; }
-          .ps-stat-num { font-size: 1.5rem; }
-          .ps-filter-row { gap: 8px; }
-          .psc__name { font-size: 0.95rem; padding: 0 10px; }
-          .psc__stats { flex-wrap: wrap; }
-          .psc__stat { min-width: 80px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .psc, .psc--hover { animation: none; transition: none; }
-          .ps-spinner { animation: none; border: 3px solid var(--neon-cyan); border-radius: 50%; }
-        }
-      `}</style>
-    </>
-  );
+        </>
+    );
 }
