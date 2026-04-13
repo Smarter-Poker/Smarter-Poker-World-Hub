@@ -503,8 +503,29 @@
 
 ---
 
+## PHASE 22 — In Progress (2026-04-13)
+
+### Poker Brain Integration: Heads-Up Training with AI Opponents
+
+| Deliverable | Status | Detail |
+|---|---|---|
+| Horse opponent API endpoint | DONE | New `/api/training/horse-opponent` — GET selects random active horse from `content_authors` + `horse_personality` tables, returns player-looking profile + internal `_engine` personality config. POST accepts game state, returns GTO-informed decision modulated by personality (aggression, risk tolerance, GTO philosophy, contrarian tendency). LRU-cached preflop/postflop ranges. Fallback pool if DB unavailable. |
+| 7-second matchmaking timeout | DONE | `pvp-lobby.js` handleFindMatch now waits exactly 7 seconds for a real player. If none joins, fetches a horse opponent from the API. Visual countdown timer during search. |
+| Seamless AI opponent integration | DONE | Horse opponents appear as real players — same name format, avatar, rating, tier display. No UI element reveals the opponent is AI. Internal `_engine` config drives decisions only, never rendered. |
+| PvPArena pre-matched opponent | DONE | PvPArena accepts `matchedOpponent` + `opponentEngine` props. When pre-matched from lobby, skips LOBBY view and starts match immediately. |
+| PvPMatchEngine `_opponentEngine` | DONE | Engine stores internal decision config on player2 for AI-driven opponents. Returned in match results for analytics without client exposure. |
+| Human-like think time | DONE | Decision engine returns `thinkTimeMs` with 1-6 second range, natural jitter, confidence-based speed variation. Prevents mechanical timing tells. |
+| Horse personality decision engine | DONE | Full decision tree: preflop hand-tier system (premium/strong/medium/speculative/weak) + postflop equity-based decisions. Personality modulation: aggression widens raise ranges + increases bet sizing, risk profile adjusts fold/raise thresholds, GTO philosophy tunes balance vs exploitation, contrarian tendency injects surprise plays (slowplays, bluffs). SPR-aware commit-or-fold logic. |
+| Session persistence | DONE | Session save includes opponent ID for analytics. No AI indicator in client-facing data. |
+
+**Files Created:** `pages/api/training/horse-opponent.js`
+**Files Changed:** `pages/hub/training/pvp-lobby.js`, `src/components/training/PvPArena.tsx`, `src/engines/PvPMatchEngine.js`
+**Impact:** Players now always get a match within 7 seconds. If no real opponent joins, one of 300+ horses with unique personalities seamlessly fills the seat — the player experiences it as a normal human opponent with distinct playing style.
+
+---
+
 ## FUTURE PHASES (Not Yet Started)
-- **Phase 22: Commander SSR Auth** — Revisit when staging environment available
-- **Phase 23: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
-- **Phase 24: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
-- **Phase 25: Database Migration Safety** — Supabase migration tooling and rollback procedures
+- **Phase 23: Commander SSR Auth** — Revisit when staging environment available
+- **Phase 24: Club Arena E2E Expansion** — Game flow, poker hands, V8 Bible compliance E2E tests
+- **Phase 25: Shared TypeScript Package** — Cross-repo type safety (requires careful migration plan)
+- **Phase 26: Database Migration Safety** — Supabase migration tooling and rollback procedures

@@ -42,8 +42,9 @@ Next.js 14, React 19, Vite 6, Supabase (Postgres + Auth + Storage), PostHog (ana
 
 - **Phases 1-4**: COMPLETE (toolkit plugin, E2E tests, live audit, cron fix cascade)
 - **Phase 5**: SKIPPED (Commander SSR Auth — high risk of admin lockout)
-- **Phases 6-9**: IN PROGRESS (cron monitoring, session memory, cross-project dashboard, performance baseline)
-- **Phase 10**: PENDING (infrastructure hardening)
+- **Phases 6-10**: COMPLETE (cron monitoring, session memory, cross-project dashboard, performance baseline, infra hardening)
+- **Phases 11-21**: COMPLETE (GTO Wizard Parity — training arena overhaul, smart training engine, analytics, leaderboards, range grid, blocker analysis, ghost replay, study streak)
+- **Phase 22**: COMPLETE (Poker Brain Integration — 7s matchmaking timeout, horse AI opponents as invisible "real players", personality-modulated GTO decisions, human-like think time)
 
 ## Key Metrics
 

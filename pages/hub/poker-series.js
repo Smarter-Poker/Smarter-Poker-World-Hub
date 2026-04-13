@@ -311,7 +311,12 @@ export default function PokerSeriesPage() {
             .then(r => r.json())
             .then(json => {
                 if (!isMounted) return;
-                const data = json.data || json.series || [];
+                const raw = json.data || json.series || [];
+                // Exclude records explicitly typed as tours (poker tours, not series)
+                const data = raw.filter(s => {
+                    const et = (s.entity_type || s.record_type || '').toLowerCase();
+                    return et !== 'tour' && et !== 'poker_tour';
+                });
                 setAllSeries(data);
             })
             .catch((e) => {
@@ -701,30 +706,32 @@ export default function PokerSeriesPage() {
                             )}
                         </div>
                     </form>
+                </div>
 
-                    {/* ═══ TOP FILTERS BAR ═══ */}
-                    <div className="pnm-top-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '15px' }}>
-                        <select className="tours-date-select" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} aria-label="Filter by status">
+                {/* ═══ TOP FILTERS BAR — outside title bar, full-width row ═══ */}
+                <div className="pnm-top-filters">
+                    <div className="pnm-top-filters-inner">
+                        <select className="pnm-filter-select" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} aria-label="Filter by status">
                             <option value="all">Status: All</option>
                             <option value="live">Status: Live Now</option>
                             <option value="upcoming">Status: Upcoming</option>
                         </select>
 
-                        <select className="tours-date-select" value={selectedTour} onChange={e => setSelectedTour(e.target.value)} aria-label="Filter by tour">
+                        <select className="pnm-filter-select" value={selectedTour} onChange={e => setSelectedTour(e.target.value)} aria-label="Filter by tour">
                             <option value="all">Tour: All</option>
                             {availableTours.map(tour => (
                                 <option key={tour} value={tour}>{tour}</option>
                             ))}
                         </select>
 
-                        <select className="tours-date-select" value={selectedState} onChange={e => setSelectedState(e.target.value)} aria-label="Filter by state">
+                        <select className="pnm-filter-select" value={selectedState} onChange={e => setSelectedState(e.target.value)} aria-label="Filter by state">
                             <option value="all">State: All</option>
                             {availableStates.map(st => (
                                 <option key={st} value={st}>{st}</option>
                             ))}
                         </select>
 
-                        <select className="tours-date-select" value={dateRange} onChange={e => setDateRange(e.target.value)} aria-label="Filter by date range">
+                        <select className="pnm-filter-select" value={dateRange} onChange={e => setDateRange(e.target.value)} aria-label="Filter by date range">
                             <option value="all">Dates: All</option>
                             <option value="7d">Next 7 Days</option>
                             <option value="14d">Next 2 Weeks</option>
@@ -735,8 +742,8 @@ export default function PokerSeriesPage() {
                             <option value="1y">Next Year</option>
                         </select>
 
-                        <select className="tours-date-select tours-distance-select" value={distanceFilter} onChange={e => handleDistanceChange(e.target.value)} aria-label="Filter by distance">
-                            <option value="all">Distance: Any</option>
+                        <select className="pnm-filter-select" value={distanceFilter} onChange={e => handleDistanceChange(e.target.value)} aria-label="Filter by distance">
+                            <option value="all">Within: Any Distance</option>
                             <option value="50">Within 50 Miles</option>
                             <option value="100">Within 100 Miles</option>
                             <option value="250">Within 250 Miles</option>
@@ -744,20 +751,16 @@ export default function PokerSeriesPage() {
                             <option value="1000">Within 1,000 Miles</option>
                         </select>
 
-                        <select className="tours-date-select" value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
+                        <select className="pnm-filter-select" value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
                             <option value="date">Sort: Start Date</option>
                             <option value="name">Sort: Name A-Z</option>
                             <option value="tour">Sort: Tour</option>
                             <option value="events">Sort: Most Events</option>
                             <option value="distance">Sort: Nearest To You</option>
                         </select>
-                        
+
                         {activeFilterCount > 0 && (
-                            <button 
-                                className="tours-clear-all-btn" 
-                                onClick={resetFilters}
-                                style={{ padding: '0 15px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
-                            >
+                            <button className="pnm-filter-clear-btn" onClick={resetFilters}>
                                 Clear All
                             </button>
                         )}
@@ -766,17 +769,19 @@ export default function PokerSeriesPage() {
 
                 {/* ═══ MAP ═══ */}
                 <div className="tours-map-container" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
-                            <MapErrorBoundary>
-                            <VenueMap
-                                venues={seriesVenuesForMap}
-                                userLocation={userLocation}
-                                hideLegend={true}
-                                uniformColor="#ffffff"
-                                disableClustering={true}
-                                onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
-                            />
-                            </MapErrorBoundary>
-                        </div>
+                    <MapErrorBoundary>
+                        <VenueMap
+                            venues={seriesVenuesForMap}
+                            userLocation={userLocation}
+                            initialCenter={userLocation ? [userLocation.lat, userLocation.lng] : undefined}
+                            initialZoom={userLocation ? 8 : 4}
+                            hideLegend={true}
+                            uniformColor="#ffffff"
+                            disableClustering={true}
+                            onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
+                        />
+                    </MapErrorBoundary>
+                </div>
 
                         {/* ═══ RESULTS BAR ═══ */}
                         <div className="tours-results-bar" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
@@ -1010,9 +1015,74 @@ export default function PokerSeriesPage() {
                     /* ═══ PAGE TITLE BAR ═══ */
                     .pnm-title-bar {
                         text-align: center;
-                        padding: clamp(12px, 2vh, 28px) 20px clamp(8px, 1.5vh, 18px);
+                        padding: clamp(12px, 2vh, 28px) 20px clamp(8px, 1.5vh, 12px);
                         position: relative;
                         flex-shrink: 0;
+                    }
+
+                    /* ═══ TOP FILTERS BAR ═══ */
+                    .pnm-top-filters {
+                        width: 100%;
+                        padding: 10px 20px 14px;
+                        background: rgba(6, 14, 26, 0.6);
+                        border-top: 1px solid rgba(212,168,83,0.1);
+                        border-bottom: 1px solid rgba(212,168,83,0.1);
+                        flex-shrink: 0;
+                    }
+                    .pnm-top-filters-inner {
+                        display: flex;
+                        flex-direction: row;
+                        flex-wrap: nowrap;
+                        align-items: center;
+                        gap: 8px;
+                        max-width: 1400px;
+                        margin: 0 auto;
+                        overflow-x: auto;
+                        scrollbar-width: none;
+                    }
+                    .pnm-top-filters-inner::-webkit-scrollbar { display: none; }
+                    .pnm-filter-select {
+                        flex-shrink: 0;
+                        height: 38px;
+                        padding: 0 10px;
+                        background: rgba(12, 22, 40, 0.8);
+                        border: 1.5px solid rgba(212,168,83,0.25);
+                        border-radius: 8px;
+                        color: #d4a853;
+                        font-size: 13px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        outline: none;
+                        appearance: auto;
+                        min-width: 110px;
+                        transition: border-color 0.2s;
+                    }
+                    .pnm-filter-select:hover {
+                        border-color: rgba(212,168,83,0.5);
+                    }
+                    .pnm-filter-select option {
+                        background: #0c1423;
+                        color: #e2e8f0;
+                    }
+                    .pnm-filter-clear-btn {
+                        flex-shrink: 0;
+                        height: 38px;
+                        padding: 0 14px;
+                        background: rgba(212,168,83,0.12);
+                        border: 1.5px solid rgba(212,168,83,0.3);
+                        border-radius: 8px;
+                        color: #d4a853;
+                        font-size: 13px;
+                        font-weight: 600;
+                        font-family: inherit;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        white-space: nowrap;
+                    }
+                    .pnm-filter-clear-btn:hover {
+                        background: rgba(212,168,83,0.22);
+                        border-color: rgba(212,168,83,0.5);
                     }
                     .pnm-title {
                         font-size: clamp(22px, 3.5vw, 36px);
