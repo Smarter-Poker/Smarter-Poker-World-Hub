@@ -89,8 +89,9 @@ export default async function handler(req, res) {
 
       if (req.method === 'GET') {
         const { page_type, page_id, user_id, feed, limit = '20', offset = '0' } = req.query;
-        const limitNum = parseInt(limit, 10);
-        const offsetNum = parseInt(offset, 10);
+        // BUG FIX: cap limit+offset to safe bounds to prevent runaway range queries
+        const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+        const offsetNum = Math.min(Math.max(parseInt(offset, 10) || 0, 0), 10000);
 
         // User feed mode: get activities from pages the user follows
         if (user_id && feed === 'true') {

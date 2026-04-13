@@ -8,7 +8,7 @@
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { eventBus } from '../../../src/engine/EventBus';
@@ -141,6 +141,10 @@ export default function SeriesDetailPage() {
   const [shareMessage, setShareMessage] = useState('');
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'event_number', direction: 'asc' });
+  const [followPending, setFollowPending] = useState(false); // double-click guard
+  const shareTimeoutRef = useRef(null); // for cleanup on unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => { isMountedRef.current = true; return () => { isMountedRef.current = false; if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current); }; }, []);
 
   const handleSort = (key) => {
     let direction = 'asc';
@@ -196,11 +200,15 @@ export default function SeriesDetailPage() {
   const followerCount = swrData?.followerCount || 0;
   const activities = swrData?.activities || [];
 
-  const toggleFollow = () => {
+  const toggleFollow = useCallback(() => {
+    if (followPending) return; // guard: block double-click
     const sid = String(id);
     const newState = !isFollowing;
     setIsFollowing(newState);
-    const newCount = newState ? followerCount + 1 : Math.max(0, followerCount - 1);
+    setFollowPending(true);
+    // Capture current count at call time for rollback integrity
+    const countAtCall = swrData?.followerCount || 0;
+    const newCount = newState ? countAtCall + 1 : Math.max(0, countAtCall - 1);
     
     if (swrData) {
       mutate({ ...swrData, followerCount: newCount }, false);
@@ -225,28 +233,31 @@ export default function SeriesDetailPage() {
       // ignore
     }
 
-    // Call API for server-side persistence (requires auth token)
-    try {
-      const token = typeof window !== 'undefined' && window.__supabaseToken;
-      if (token) {
-        fetch('/api/poker/follow', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({
-            page_type: 'series',
-            page_id: sid,
-            action: newState ? 'follow' : 'unfollow',
-          }),
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (!data.success) throw new Error(data.error || 'Failed to update follow status');
-        })
-        .catch(() => {
-          // Rollback UI to previous state on failure
+    // Call API for server-side persistence — read token from Supabase localStorage key
+    const tokenKey = Object.keys(localStorage).find(k => k.includes('auth-token') || k.includes('supabase.auth.token'));
+    const storedToken = tokenKey ? JSON.parse(localStorage.getItem(tokenKey) || '{}')?.access_token : null;
+    const token = typeof window !== 'undefined' && (window.__supabaseToken || storedToken);
+
+    if (token) {
+      fetch('/api/poker/follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+          page_type: 'series',
+          page_id: sid,
+          action: newState ? 'follow' : 'unfollow',
+        }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) throw new Error(data.error || 'Failed to update follow status');
+      })
+      .catch(() => {
+        // Rollback UI using captured values (not closure-captured stale state)
+        if (isMountedRef.current) {
           setIsFollowing(!newState);
           if (swrData) {
-            mutate({ ...swrData, followerCount: followerCount }, false);
+            mutate({ ...swrData, followerCount: countAtCall }, false);
           }
           try {
             const followed = JSON.parse(localStorage.getItem('followed-series') || '[]');
@@ -255,10 +266,13 @@ export default function SeriesDetailPage() {
               : followed.filter(x => x !== sid);
             localStorage.setItem('followed-series', JSON.stringify(updated));
           } catch { }
-        });
-      }
-    } catch { }
-  };
+        }
+      })
+      .finally(() => { if (isMountedRef.current) setFollowPending(false); });
+    } else {
+      setFollowPending(false);
+    }
+  }, [followPending, id, isFollowing, swrData, mutate, series?.name]);
 
   function getAnonymousUserId() {
     try {
@@ -275,25 +289,26 @@ export default function SeriesDetailPage() {
 
   const handleShare = async () => {
     const url = window.location.href;
+    const setMsg = (msg) => {
+      if (!isMountedRef.current) return;
+      setShareMessage(msg);
+      // Clear previous timer before setting a new one
+      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+      shareTimeoutRef.current = setTimeout(() => { if (isMountedRef.current) setShareMessage(''); }, 2500);
+    };
     try {
       if (navigator.share) {
-        await navigator.share({
-          title: series?.name || 'Tournament Series',
-          url,
-        });
+        await navigator.share({ title: series?.name || 'Tournament Series', url });
       } else {
         await navigator.clipboard.writeText(url);
-        setShareMessage('Link copied!');
-        setTimeout(() => setShareMessage(''), 2500);
+        setMsg('Link copied!');
       }
     } catch {
       try {
         await navigator.clipboard.writeText(url);
-        setShareMessage('Link copied!');
-        setTimeout(() => setShareMessage(''), 2500);
+        setMsg('Link copied!');
       } catch {
-        setShareMessage('Could not copy link');
-        setTimeout(() => setShareMessage(''), 2500);
+        setMsg('Could not copy link');
       }
     }
   };
@@ -332,13 +347,30 @@ export default function SeriesDetailPage() {
         <UniversalHeader 
           pageDepth={2} 
           onMenuClick={() => setMenuOpen(true)}
-          onBackClick={() => router.push('/hub/poker-near-me?tab=events&sub_tab=series')}
+          onBackClick={() => router.push('/hub/poker-series')}
         />
         <HamburgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
         <div className="series-page">
-          <div className="error-container">
-            <h2 className="error-title">Series Not Found</h2>
-            <p className="error-text">{(error && error.message) || 'This tournament series could not be found.'}</p>
+          <div className="error-container" style={{ textAlign: 'center', padding: '80px 20px' }}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>🎴</div>
+            <h2 className="error-title" style={{ fontSize: 24, color: '#fff', marginBottom: 8 }}>Series Not Found</h2>
+            <p className="error-text" style={{ color: 'rgba(148,163,184,0.7)', marginBottom: 32, maxWidth: 400, margin: '0 auto 32px' }}>
+              {(error && error.message) || 'This tournament series could not be found. It may have ended or been removed.'}
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => router.push('/hub/poker-series')}
+                style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #d4a853, #b8860b)', color: '#000', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+              >
+                Browse All Series
+              </button>
+              <button
+                onClick={() => router.back()}
+                style={{ padding: '12px 24px', background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+              >
+                Go Back
+              </button>
+            </div>
           </div>
         </div>
         <style jsx>{styles}</style>
@@ -634,7 +666,8 @@ export default function SeriesDetailPage() {
                 </thead>
                 <tbody>
                   {events.map((evt, i) => {
-                    var evtKey = evt.event_number || i + 1;
+                    // BUG FIX: event_number 0 is falsy — use nullish coalescing not ||
+                    var evtKey = evt.event_number != null ? evt.event_number : i + 1;
                     var isExpanded = expandedEvent === evtKey;
                     return (
                       <Fragment key={'evt-' + evtKey}>
