@@ -301,9 +301,13 @@ export default function PokerSeriesPage() {
         if (val === 'all') { setDistanceFilter('all'); return; }
         if (userLocation) { setDistanceFilter(val); return; }
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
-            setDistanceFilter(val);
+            // BUG FIX: Don't setDistanceFilter BEFORE GPS resolves (causes empty results for ~10s)
+            // Instead: wait for position then apply filter atomically
             navigator.geolocation.getCurrentPosition(
-                (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                (pos) => {
+                    setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    setDistanceFilter(val); // Applied AFTER location is set
+                },
                 () => {
                     // Never block JS thread with alert() — show accessible notification instead
                     console.warn('[Geo] Location access required for distance filter');
@@ -342,16 +346,9 @@ export default function PokerSeriesPage() {
             .then(r => r.json())
             .then(json => {
                 if (!isMounted) return;
-                const raw = json.data || json.series || [];
-                // Exclude records that are:
-                // 1. Explicitly typed as tours (poker tours, not series)
-                // 2. Stub records with no location AND no events AND no dates
-                //    These are incomplete scraper ingestions with empty data
-                const data = raw.filter(s => {
+                const filtered = raw.filter(s => {
                     const et = (s.entity_type || s.record_type || '').toLowerCase();
                     const eventCount = s.total_events || s.events_count || s.event_count || 0;
-                    // Tours with multiple events ARE series — keep them.
-                    // Only exclude single-tournament tour stops (0 or 1 events).
                     if ((et === 'tour' || et === 'poker_tour') && eventCount <= 1) return false;
                     // Keep records that have at least one of: city, state, venue, events, or start_date
                     const hasLocation = !!(s.city || s.state || s.venue || s.venue_name);
@@ -359,6 +356,44 @@ export default function PokerSeriesPage() {
                     const hasDates = !!(s.start_date || s.end_date);
                     return hasLocation || hasEvents || hasDates;
                 });
+
+                // ── Deduplicate by series_uid: when multiple records share
+                //    the same uid (same event pool), keep only the most complete one.
+                const uidSeen = new Map();
+                const nameSeen = new Map();
+                const data = [];
+                const scoreRecord = (s) => {
+                    let score = 0;
+                    if (s.city || s.state) score += 3;
+                    if (s.venue || s.venue_name) score += 2;
+                    if (s.start_date) score += 2;
+                    if (s.end_date) score += 1;
+                    score += Math.min(s.total_events || s.events_count || 0, 10);
+                    return score;
+                };
+                for (const s of filtered) {
+                    const uid = s.series_uid;
+                    const nameKey = (s.name || '').toLowerCase().trim();
+                    // Dedup by series_uid first
+                    if (uid) {
+                        if (uidSeen.has(uid)) {
+                            const existing = uidSeen.get(uid);
+                            if (scoreRecord(s) > scoreRecord(existing)) {
+                                // Replace with better record
+                                const idx = data.indexOf(existing);
+                                if (idx !== -1) data.splice(idx, 1, s);
+                                uidSeen.set(uid, s);
+                            }
+                            continue;
+                        }
+                        uidSeen.set(uid, s);
+                    } else if (nameKey) {
+                        // No uid — dedup by exact name only
+                        if (nameSeen.has(nameKey)) continue;
+                        nameSeen.set(nameKey, true);
+                    }
+                    data.push(s);
+                }
                 setAllSeries(data);
             })
             .catch((e) => {
@@ -868,8 +903,10 @@ export default function PokerSeriesPage() {
                                     const seriesType = series.series_type || 'regional';
                                     const typeInfo = SERIES_TYPE_INFO[seriesType] || { label: seriesType || 'Series', color: '#6b7280' };
                                     const evtCount = series.events_count || series.total_events || series.event_count || 0;
-                                    const isFav = !!(favorites[series.id] || favorites[series.series_uid]);
-                                    const favKey = series.id || series.series_uid;
+                                    // BUG FIX: Use series_uid as primary key (stable across data sources)
+                                    // series.id is index-based from JSON fallback vs real DB int — unstable
+                                    const isFav = !!(favorites[series.series_uid || series.id]);
+                                    const favKey = series.series_uid || series.id;
                                     const detailUrl = '/hub/series/' + (series.id || idx + 1);
                                     const location = [series.city, series.state].filter(Boolean).join(', ') || '';
 

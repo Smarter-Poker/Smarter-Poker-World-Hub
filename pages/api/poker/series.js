@@ -130,6 +130,11 @@ export default async function handler(req, res) {
   try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
+    // CDN cache: fresh 300s, serve stale up to 600s (series data changes infrequently)
+    if (req.method === 'GET') {
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    }
+
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -149,33 +154,70 @@ export default async function handler(req, res) {
       const parsedLimit = Math.min(parseInt(limit, 10) || 70, 300);
 
       // --- Single series by ID ---
+      // CRITICAL: Must search BOTH tables since list endpoint merges tournament_series
+      // AND poker_series. Cards link to real DB IDs from either table.
       if (id) {
         const numericId = parseInt(id, 10);
         if (isNaN(numericId) || numericId < 1) {
           return res.status(400).json({ success: false, error: 'Invalid id parameter' });
         }
 
-        // Try Supabase first for single series
         let singleSeries = null;
         try {
-          const { data, error } = await getSupabase()
+          // Search tournament_series first
+          const { data: ts, error: tsErr } = await getSupabase()
             .from('tournament_series')
             .select('*')
             .eq('id', numericId)
             .maybeSingle();
 
-          if (!error && data) {
-            // Bug #6-equivalent Fix: reject suppressed series on direct ID lookup
-            if (data.is_suppressed) {
+          if (!tsErr && ts) {
+            if (ts.is_suppressed) {
               return res.status(404).json({ success: false, error: 'Series not found' });
             }
-            singleSeries = data;
+            singleSeries = ts;
+          }
+
+          // If not found in tournament_series, check poker_series
+          if (!singleSeries) {
+            const { data: ps, error: psErr } = await getSupabase()
+              .from('poker_series')
+              .select('*')
+              .eq('id', numericId)
+              .maybeSingle();
+
+            if (!psErr && ps) {
+              if (ps.is_suppressed) {
+                return res.status(404).json({ success: false, error: 'Series not found' });
+              }
+              // Normalize poker_series fields to match tournament_series shape
+              singleSeries = {
+                id: ps.id,
+                name: ps.series_name || ps.name,
+                short_name: ps.tour,
+                series_uid: ps.series_uid,
+                tour: ps.tour,
+                tour_code: ps.tour,
+                venue: ps.venue_name,
+                venue_id: findVenueId(ps.venue_name),
+                city: ps.city,
+                state: ps.state,
+                start_date: ps.start_date,
+                end_date: ps.end_date,
+                total_events: ps.event_count,
+                main_event_buyin: ps.main_event_buyin,
+                main_event_guaranteed: ps.total_guaranteed,
+                series_type: ps.tier === 'A' ? 'major' : ps.tier === 'B' ? 'circuit' : 'regional',
+                source_url: ps.source_url,
+                logo_url: ps.logo_url,
+              };
+            }
           }
         } catch (dbErr) {
           // DB unavailable, fall through to JSON
         }
 
-        // Fall back to JSON data
+        // Fall back to JSON data (only for legacy index-based IDs)
         if (!singleSeries) {
           const allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
           singleSeries = allSeries.find((s) => s.id === numericId) || null;
@@ -187,8 +229,22 @@ export default async function handler(req, res) {
 
         // Try to load events for this series
         const events = loadEventsForSeries(singleSeries);
-        if (events) {
-          singleSeries.events = events;
+        if (events) singleSeries.events = events;
+
+        // Also try DB events enrichment
+        if (singleSeries.series_uid && (!singleSeries.events || singleSeries.events.length === 0)) {
+          try {
+            const { data: evts } = await getSupabase()
+              .from('poker_events')
+              .select('*')
+              .eq('series_uid', singleSeries.series_uid)
+              .order('start_date', { ascending: true })
+              .limit(200);
+            if (evts && evts.length > 0) {
+              singleSeries.events = evts;
+              singleSeries.events_count = evts.length;
+            }
+          } catch {}
         }
 
         return res.status(200).json({
