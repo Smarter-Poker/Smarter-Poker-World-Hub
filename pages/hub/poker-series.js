@@ -699,127 +699,73 @@ export default function PokerSeriesPage() {
                                     </svg>
                                 </button>
                             )}
-                            {/* Date Range Dropdown */}
-                            <div className="tours-date-divider" />
-                            <select
-                                className="tours-date-select"
-                                value={dateRange}
-                                onChange={e => setDateRange(e.target.value)}
-                                aria-label="Filter by date range"
-                            >
-                                <option value="all">All Dates</option>
-                                <option value="7d">Next 7 Days</option>
-                                <option value="14d">Next 2 Weeks</option>
-                                <option value="30d">Next 30 Days</option>
-                                <option value="60d">Next 2 Months</option>
-                                <option value="90d">Next 3 Months</option>
-                                <option value="6m">Next 6 Months</option>
-                                <option value="1y">Next Year</option>
-                            </select>
-                            {/* Distance Radius Dropdown */}
-                            <div className="tours-date-divider" />
-                            <select
-                                className="tours-date-select tours-distance-select"
-                                value={distanceFilter}
-                                onChange={e => handleDistanceChange(e.target.value)}
-                                aria-label="Filter by distance"
-                            >
-                                <option value="all">Any Distance</option>
-                                <option value="50">Within 50 Miles</option>
-                                <option value="100">Within 100 Miles</option>
-                                <option value="250">Within 250 Miles</option>
-                                <option value="500">Within 500 Miles</option>
-                                <option value="1000">Within 1,000 Miles</option>
-                            </select>
                         </div>
                     </form>
+
+                    {/* ═══ TOP FILTERS BAR ═══ */}
+                    <div className="pnm-top-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '15px' }}>
+                        <select className="tours-date-select" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} aria-label="Filter by status">
+                            <option value="all">Status: All</option>
+                            <option value="live">Status: Live Now</option>
+                            <option value="upcoming">Status: Upcoming</option>
+                        </select>
+
+                        <select className="tours-date-select" value={selectedTour} onChange={e => setSelectedTour(e.target.value)} aria-label="Filter by tour">
+                            <option value="all">Tour: All</option>
+                            {availableTours.map(tour => (
+                                <option key={tour} value={tour}>{tour}</option>
+                            ))}
+                        </select>
+
+                        <select className="tours-date-select" value={selectedState} onChange={e => setSelectedState(e.target.value)} aria-label="Filter by state">
+                            <option value="all">State: All</option>
+                            {availableStates.map(st => (
+                                <option key={st} value={st}>{st}</option>
+                            ))}
+                        </select>
+
+                        <select className="tours-date-select" value={dateRange} onChange={e => setDateRange(e.target.value)} aria-label="Filter by date range">
+                            <option value="all">Dates: All</option>
+                            <option value="7d">Next 7 Days</option>
+                            <option value="14d">Next 2 Weeks</option>
+                            <option value="30d">Next 30 Days</option>
+                            <option value="60d">Next 2 Months</option>
+                            <option value="90d">Next 3 Months</option>
+                            <option value="6m">Next 6 Months</option>
+                            <option value="1y">Next Year</option>
+                        </select>
+
+                        <select className="tours-date-select tours-distance-select" value={distanceFilter} onChange={e => handleDistanceChange(e.target.value)} aria-label="Filter by distance">
+                            <option value="all">Distance: Any</option>
+                            <option value="50">Within 50 Miles</option>
+                            <option value="100">Within 100 Miles</option>
+                            <option value="250">Within 250 Miles</option>
+                            <option value="500">Within 500 Miles</option>
+                            <option value="1000">Within 1,000 Miles</option>
+                        </select>
+
+                        <select className="tours-date-select" value={sortBy} onChange={e => setSortBy(e.target.value)} aria-label="Sort by">
+                            <option value="date">Sort: Start Date</option>
+                            <option value="name">Sort: Name A-Z</option>
+                            <option value="tour">Sort: Tour</option>
+                            <option value="events">Sort: Most Events</option>
+                            <option value="distance">Sort: Nearest To You</option>
+                        </select>
+                        
+                        {activeFilterCount > 0 && (
+                            <button 
+                                className="tours-clear-all-btn" 
+                                onClick={resetFilters}
+                                style={{ padding: '0 15px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
-                <div className="pnm-layout">
-
-                    {/* ─── LEFT SIDEBAR — All Dropdown Selectors ─── */}
-                    <aside className="pnm-sidebar" role="navigation" aria-label="Poker Series filters">
-                        <div className="sidebar-filters">
-                            {/* Status */}
-                            <div className="sidebar-filter-group">
-                                <label>Status</label>
-                                <select
-                                    className="sidebar-select"
-                                    value={selectedStatus}
-                                    onChange={e => setSelectedStatus(e.target.value)}
-                                >
-                                    <option value="all">All Series</option>
-                                    <option value="live">Live Now</option>
-                                    <option value="upcoming">Upcoming</option>
-                                </select>
-                            </div>
-
-                            {/* Tour Association */}
-                            <div className="sidebar-filter-group">
-                                <label>Tour</label>
-                                <select
-                                    className="sidebar-select"
-                                    value={selectedTour}
-                                    onChange={e => setSelectedTour(e.target.value)}
-                                >
-                                    <option value="all">All Tours</option>
-                                    {availableTours.map(tour => (
-                                        <option key={tour} value={tour}>{tour}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* State */}
-                            <div className="sidebar-filter-group">
-                                <label>State</label>
-                                <select
-                                    className="sidebar-select"
-                                    value={selectedState}
-                                    onChange={e => setSelectedState(e.target.value)}
-                                >
-                                    <option value="all">All States</option>
-                                    {availableStates.map(st => (
-                                        <option key={st} value={st}>{st}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Sort By */}
-                            <div className="sidebar-filter-group">
-                                <label>Sort By</label>
-                                <select
-                                    className="sidebar-select"
-                                    value={sortBy}
-                                    onChange={e => setSortBy(e.target.value)}
-                                >
-                                    <option value="date">Start Date</option>
-                                    <option value="name">Name A-Z</option>
-                                    <option value="tour">Tour</option>
-                                    <option value="events">Most Events</option>
-                                    <option value="distance">Nearest To You</option>
-                                </select>
-                            </div>
-
-                            {/* Active Filters Summary */}
-                            {activeFilterCount > 0 && (
-                                <div className="sidebar-active-filters">
-                                    <div className="sidebar-active-filters-header">
-                                        <span>{activeFilterCount} Active Filter{activeFilterCount > 1 ? 's' : ''}</span>
-                                        <button className="sidebar-clear-btn" onClick={resetFilters}>
-                                            Reset All
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </aside>
-
-                    {/* ─── MAIN CONTENT ─── */}
-                    <main className="pnm-main">
-
-                        {/* ═══ MAP ═══ */}
-                        <div className="tours-map-container">
+                {/* ═══ MAP ═══ */}
+                <div className="tours-map-container" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
                             <MapErrorBoundary>
                             <VenueMap
                                 venues={seriesVenuesForMap}
@@ -833,7 +779,7 @@ export default function PokerSeriesPage() {
                         </div>
 
                         {/* ═══ RESULTS BAR ═══ */}
-                        <div className="tours-results-bar">
+                        <div className="tours-results-bar" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
                             <div className="tours-results-count">
                                 <strong>{filteredSeries.length}</strong> {filteredSeries.length === 1 ? 'Series' : 'Series'}
                                 {liveCount > 0 && <span className="tours-stops-count"> &bull; {liveCount} Live Now</span>}
@@ -844,23 +790,6 @@ export default function PokerSeriesPage() {
                                     '60d': 'Next 2 Months', '90d': 'Next 3 Months', '6m': 'Next 6 Months', '1y': 'Next Year'
                                 }[dateRange]}</span>}
                                 {distanceFilter !== 'all' && <span className="tours-results-query"> &bull; Within {distanceFilter} Miles</span>}
-                            </div>
-                            <div className="tours-results-actions">
-                                {activeFilterCount > 0 && (
-                                    <button className="tours-clear-all-btn" onClick={resetFilters}>
-                                        Clear All ({activeFilterCount})
-                                    </button>
-                                )}
-                                <div className="tours-results-sort">
-                                    <span>Sort:</span>
-                                    <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                                        <option value="date">Start Date</option>
-                                        <option value="name">Name A-Z</option>
-                                        <option value="tour">Tour</option>
-                                        <option value="events">Most Events</option>
-                                        <option value="distance">Nearest To You</option>
-                                    </select>
-                                </div>
                             </div>
                         </div>
 
@@ -882,7 +811,7 @@ export default function PokerSeriesPage() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="tours-grid">
+                            <div className="tours-grid" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
                                 {filteredSeries.map((series, idx) => {
                                     const tourCode = (series.tour || series.tour_code || series.short_name || '').toUpperCase();
                                     const colors = TOUR_COLORS[tourCode] || TOUR_COLORS.default;

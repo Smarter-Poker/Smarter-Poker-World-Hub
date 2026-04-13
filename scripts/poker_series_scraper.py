@@ -942,7 +942,41 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
     return events
 
 
-# ── SOURCE 5 HELPER: HendonMob event-level search ─────────────────────────────
+# ── SOURCE 3 HELPER: CardPlayer event search ─────────────────────────────────
+def _try_cardplayer(series_uid, series_name, batch_id):
+    events = []
+    try:
+        cp_search = urllib.parse.quote(series_name.replace("'", "")[:40])
+        cp_url = f"https://www.cardplayer.com/poker-tournaments?search={cp_search}"
+        log(f"      [Src 3: CardPlayer] Searching: {series_name[:35]}")
+        cp_html, cp_status, _, _ = scrapling_fetch(cp_url)
+        
+        target_path = None
+        if cp_status == 200 and cp_html:
+            # Look for the exact tournament link in results
+            for match in re.finditer(r'<a href="(/poker-tournaments/\d+-?[^"]*)"', cp_html, re.I):
+                path = match.group(1)
+                # Ignore generic ones
+                if 'monthly' not in path and 'daily' not in path:
+                    target_path = path
+                    break
+                    
+        if target_path:
+            series_url = f"https://www.cardplayer.com{target_path}"
+            log(f"      [Src 3: CardPlayer] Found series page: {series_url}")
+            s_html, s_status, _, s_hash = scrapling_fetch(series_url)
+            if s_status == 200 and s_html and has_tourn(s_html):
+                events = extract_html_events(s_html, series_uid, series_name, batch_id, series_url, s_hash)
+                if events:
+                    for e in events:
+                        e['source'] = 'cardplayer'
+                    log(f"        [CardPlayer] {len(events)} events extracted")
+    except Exception as ex:
+        log(f"        [CardPlayer] Error: {str(ex)[:60]}")
+    return events
+
+
+# ── SOURCE 4 HELPER: HendonMob event-level search ─────────────────────────────
 def _try_hendonmob(series_uid, series_name, batch_id):
     """Search HendonMob for tournament events matching this series."""
     # Clean series name for search
@@ -951,7 +985,7 @@ def _try_hendonmob(series_uid, series_name, batch_id):
     search_q = urllib.parse.quote(clean_name[:50])
     hm_url = f"https://pokerdb.thehendonmob.com/event.php?a=l&search={search_q}&buyin_cur=USD"
 
-    log(f"      [Src 5: HendonMob] Searching: {clean_name[:40]}")
+    log(f"      [Src 4: HendonMob] Searching: {clean_name[:40]}")
     events = []
 
     try:
@@ -1143,11 +1177,45 @@ def scrape_series(series: dict, session, batch_id: str,
         elif status2 != 200:
             log(f"        HTTP {status2} — skipped")
 
-    # ── SOURCE 3: Multi-source enrichment (CardPlayer + venue websites) ─────
+    # ── SOURCE 3: CardPlayer ────────────────────────────────────────────────
+    if not result["found"]:
+        cp_events = _try_cardplayer(series_uid, series_name, batch_id)
+        if cp_events:
+            result["events"] = cp_events
+            result["found"] = True
+            result["source"] = "cardplayer"
+            
+    # ── SOURCE 4: HendonMob / SummerInVegas ─────────────────────────────────
+    if not result["found"]:
+        hm_events = _try_hendonmob(series_uid, series_name, batch_id)
+        if hm_events:
+            result["events"] = hm_events
+            result["found"] = True
+            result["source"] = "hendonmob"
+
+    # ── SOURCE 5: Venue Web / Bravo ─────────────────────────────────────────
+    if not result["found"]:
+        v_events = _try_bravo_venue(series_uid, series_name, batch_id, session)
+        if v_events:
+            result["events"] = v_events
+            result["found"] = True
+            result["source"] = v_events[0].get("source", "venue")
+
+    # ── Multi-source enrichment (Payouts, GTDs, etc) ────────────────────────
     # These sources were validated to provide payout_levels, structure_sheet_url,
     # rebuy_addon, bounty_amount, and late_reg_levels during enrichment passes.
     if result["found"] and result["events"]:
         enrichment = {}
+        # Try to pull supplemental details from Venue Web logic if available
+        if result["source"] == "pokeratlas" and args.enrich:
+            v_events = _try_bravo_venue(series_uid, series_name, batch_id, session)
+            if v_events:
+                # Merge logic...
+                pass
+        
+        # Finally compute completeness
+        cmp = compute_completeness(result["events"][0])
+        log(f"      → Final events: {len(result['events'])}, Completeness score: {cmp}")
         # 3a: CardPlayer.com — reliable for payout structure info
         try:
             cp_search = urllib.parse.quote(series_name.replace("'", ""))
@@ -1685,4 +1753,16 @@ def main():
     log(f"Log: {log_path}")
 
 if __name__ == "__main__":
-    main()
+    if "--daemon" in sys.argv:
+        log("\n🚀 Starting continuous daemon mode (6 hour cycles)...")
+        while True:
+            try:
+                main()
+            except Exception as e:
+                log(f"\n❌ Daemon cycle crashed: {e}")
+                import traceback
+                traceback.print_exc()
+            log("\n💤 Daemon sleeping for 6 hours...")
+            time.sleep(3600 * 6)
+    else:
+        main()
