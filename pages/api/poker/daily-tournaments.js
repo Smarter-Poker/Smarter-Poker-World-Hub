@@ -31,17 +31,35 @@ function getCurrentDay() {
     return days[new Date(localCurrentTime).getDay()];
 }
 
-// Parse time string to sortable number
+// Parse time string to sortable number (handles: "7:30 PM", "19:30", "7PM", "7:30pm")
 function parseTime(timeStr) {
     if (!timeStr) return 0;
-    const match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(AM|PM)?/i);
-    if (!match) return 0;
-    let hours = parseInt(match[1]);
-    const minutes = parseInt(match[2] || '0');
-    const period = (match[3] || '').toUpperCase();
-    if (period === 'PM' && hours !== 12) hours += 12;
-    if (period === 'AM' && hours === 12) hours = 0;
-    return hours * 60 + minutes;
+    const t = timeStr.trim();
+    // HH:MM:SS optional AM/PM
+    let m = t.match(/^(\d{1,2}):(\d{2}):\d{2}\s*([AP]M)?$/i);
+    if (m) {
+        let h = parseInt(m[1]), mn = parseInt(m[2]), p = (m[3] || '').toUpperCase();
+        if (p === 'PM' && h !== 12) h += 12;
+        if (p === 'AM' && h === 12) h = 0;
+        return h * 60 + mn;
+    }
+    // HH:MM optional AM/PM
+    m = t.match(/^(\d{1,2}):(\d{2})\s*([AP]M)?$/i);
+    if (m) {
+        let h = parseInt(m[1]), mn = parseInt(m[2]), p = (m[3] || '').toUpperCase();
+        if (p === 'PM' && h !== 12) h += 12;
+        if (p === 'AM' && h === 12) h = 0;
+        return h * 60 + mn;
+    }
+    // Bare hour with AM/PM: "7PM", "10 AM", "1 PM"
+    m = t.match(/^(\d{1,2})\s*([AP]M)$/i);
+    if (m) {
+        let h = parseInt(m[1]), p = m[2].toUpperCase();
+        if (p === 'PM' && h !== 12) h += 12;
+        if (p === 'AM' && h === 12) h = 0;
+        return h * 60;
+    }
+    return 0;
 }
 
 export default async function handler(req, res) {
@@ -111,17 +129,17 @@ export default async function handler(req, res) {
               query = query.eq('venue_id', venue_id);
           }
 
-          // Filter by venue name
+          // Filter by venue name — strip SQL ILIKE wildcards (% _) to prevent wildcard injection
           if (venue) {
-              const safeVenue = venue.replace(/[,().]/g, ' ').trim();
+              const safeVenue = venue.replace(/[,().%_\\]/g, ' ').trim().slice(0, 100);
               if (safeVenue) {
                   query = query.ilike('venue_name', `%${safeVenue}%`);
               }
           }
 
-          // Filter by game type
+          // Filter by game type — strip SQL ILIKE wildcards
           if (game_type && game_type !== 'all') {
-              const safeGameType = game_type.replace(/[()'",.;]/g, '').trim().slice(0, 100);
+              const safeGameType = game_type.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50);
               if (safeGameType) query = query.ilike('game_type', `%${safeGameType}%`);
           }
 
@@ -148,10 +166,12 @@ export default async function handler(req, res) {
           let charityQuery = getSupabase()
               .from('charity_events_schedule')
               .select('*')
-              .eq('data_quality', 'scraped_verified');
+              .eq('data_quality', 'scraped_verified')
+              .eq('is_active', true)  // BUG FIX: was missing is_active filter
+              .limit(100);
               
           if (state) {
-              const safeState = state.replace(/[()'",.;]/g, '').trim().slice(0, 50);
+              const safeState = state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50);
               if (safeState) charityQuery = charityQuery.ilike('state', safeState);
           }
           const { data: dbCharityEvents } = await charityQuery;
@@ -160,10 +180,12 @@ export default async function handler(req, res) {
           let toursQuery = getSupabase()
               .from('poker_tour_series_events')
               .select('*')
-              .eq('data_quality', 'scraped_verified');
+              .eq('data_quality', 'scraped_verified')
+              .eq('is_active', true)  // BUG FIX: was missing is_active filter
+              .limit(200);
               
           if (state) {
-              const safeState = state.replace(/[()'",.;]/g, '').trim().slice(0, 50);
+              const safeState = state.replace(/[()'",.;%_\\]/g, '').trim().slice(0, 50);
               if (safeState) toursQuery = toursQuery.ilike('state', safeState);
           }
           const { data: dbToursEvents } = await toursQuery;

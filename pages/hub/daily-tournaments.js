@@ -5,7 +5,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -114,17 +114,32 @@ export default function DailyTournaments() {
 
     const menuConfig = getMenuConfig('tournaments', null, {}, {});
 
-    // SWR-backed tournament fetch — cached 60s, instant on filter change
+    // Debounce search query — only fires API request after 500ms of no typing
+    const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+    const searchDebounceRef = useRef(null);
+    const handleSearchChange = (val) => {
+        setSearchQuery(val);
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        searchDebounceRef.current = setTimeout(() => setDebouncedSearch(val), 500);
+    };
+    useEffect(() => () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); }, []);
+
     const swrParams = new URLSearchParams({ day: selectedDay });
     if (selectedState) swrParams.set('state', selectedState.abbr);
     if (selectedType) swrParams.set('type', selectedType);
     if (selectedBuyin.min) swrParams.set('minBuyin', selectedBuyin.min.toString());
     if (selectedBuyin.max) swrParams.set('maxBuyin', selectedBuyin.max.toString());
-    if (searchQuery) swrParams.set('venue', searchQuery);
+    if (debouncedSearch) swrParams.set('venue', debouncedSearch);
 
     const { data: swrData, isLoading: loading, mutate: refreshTournaments } = useSWR(
         `/api/poker/daily-tournaments?${swrParams}`,
-        (url) => fetch(url).then(r => r.json()).then(d => d.success ? d : { tournaments: [], stats: {} })
+        (url) => fetch(url).then(r => r.json()).then(d => d.success ? d : { tournaments: [], stats: {} }),
+        {
+            // dedupingInterval=0 ensures realtime triggers always cause a fresh fetch
+            dedupingInterval: 0,
+            // Don’t auto-refetch on window focus (realtime handles updates)
+            revalidateOnFocus: false,
+        }
     );
 
     // [HARDENING] Real-time synchronization for global table/venue changes.
@@ -138,6 +153,7 @@ export default function DailyTournaments() {
         setSelectedType('');
         setSelectedBuyin(BUYIN_RANGES[0]);
         setSearchQuery('');
+        setDebouncedSearch('');
     };
 
     // Group tournaments by time slot
@@ -252,10 +268,7 @@ export default function DailyTournaments() {
                                 style={{ width: '100%', paddingLeft: '34px', boxSizing: 'border-box' }}
                                 placeholder="Search Venue..."
                                 value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    // SWR key auto-updates on re-render — no manual refresh needed
-                                }}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                             />
                         </div>
                         
@@ -632,7 +645,7 @@ function TournamentCard({ tournament }) {
         <div className="tournament-card">
             <div className="card-header">
                 <span className="card-time">{formatTime(t.start_time)}</span>
-                <span className="card-buyin">${t.buy_in}</span>
+                <span className="card-buyin">{t.buy_in > 0 ? `$${t.buy_in}` : 'Free'}</span>
             </div>
             {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
                 <p className="card-tournament-name">{t.tournament_name}</p>
