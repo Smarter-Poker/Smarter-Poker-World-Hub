@@ -177,7 +177,7 @@ export default function DailyTournaments() {
                 {/* Page Header */}
                 <div className="dt-header">
                     <h1><span className="white">DAILY</span> <span className="gold">TOURNAMENTS</span></h1>
-                    <span className="subtitle">163 VERIFIED VENUES WITH TOURNAMENTS</span>
+                    <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {Object.keys(stats.byType || {}).reduce((sum, k) => sum + (stats.byType[k] || 0), 0) > 0 ? new Set((swrData?.tournaments || []).map(t => t.venue_name)).size : '...'} VENUES</span>
                 </div>
 
                 {/* Day Selector */}
@@ -294,7 +294,7 @@ export default function DailyTournaments() {
 
                         <div className="sidebar-section source-info">
                             <h3>Data Source</h3>
-                            <p>Tournament Schedules For 163 Verified Venues With Confirmed Daily Tournaments.</p>
+                            <p>Tournament Schedules From {new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} Verified Venues With Confirmed Daily Tournaments.</p>
                             <div className="source-badge">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -307,18 +307,12 @@ export default function DailyTournaments() {
                         <div className="sidebar-section venue-type-breakdown">
                             <h3>Venue Types</h3>
                             <div className="type-list">
-                                <div className="type-item">
-                                    <span>Casinos</span>
-                                    <span className="count">60</span>
-                                </div>
-                                <div className="type-item">
-                                    <span>Card Rooms</span>
-                                    <span className="count">76</span>
-                                </div>
-                                <div className="type-item">
-                                    <span>Charity</span>
-                                    <span className="count">27</span>
-                                </div>
+                                {stats.byType && Object.entries(stats.byType).map(([type, count]) => (
+                                    <div key={type} className="type-item">
+                                        <span>{type}</span>
+                                        <span className="count">{count}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </aside>
@@ -1001,6 +995,9 @@ function TournamentCard({ tournament }) {
                 <span className="card-time">{formatTime(t.start_time)}</span>
                 <span className="card-buyin">${t.buy_in}</span>
             </div>
+            {t.tournament_name && t.tournament_name !== t.venue_name && (
+                <p className="card-tournament-name">{t.tournament_name}</p>
+            )}
             {t.venue_id ? (
                 <Link href={`/hub/venues/${t.venue_id}`} legacyBehavior>
                     <a className="card-venue card-venue-link">{t.venue_name}</a>
@@ -1064,6 +1061,13 @@ function TournamentCard({ tournament }) {
                     font-weight: 600;
                     margin: 0 0 4px;
                     color: #fff;
+                }
+                .card-tournament-name {
+                    font-size: 13px;
+                    font-weight: 500;
+                    color: rgba(255, 255, 255, 0.7);
+                    margin: 0 0 6px;
+                    line-height: 1.3;
                 }
                 .card-location {
                     font-size: 13px;

@@ -185,6 +185,7 @@ export default async function handler(req, res) {
               for (const t of dbTournaments) {
                   const key = [
                       (t.venue_name || '').toLowerCase().trim(),
+                      (t.day_of_week || '').toLowerCase().trim(),
                       (t.start_time || '').toLowerCase().trim(),
                       (t.game_type || 'nlh').toLowerCase().trim(),
                       (t.buy_in || 0).toString()

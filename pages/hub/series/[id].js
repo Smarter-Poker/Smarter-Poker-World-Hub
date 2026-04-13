@@ -642,6 +642,12 @@ export default function SeriesDetailPage() {
                                       <span className="detail-value detail-highlight">{formatMoney(evt.buy_in)}</span>
                                     </div>
                                   )}
+                                  {evt.fee && (
+                                    <div className="detail-field">
+                                      <span className="detail-label">Fee</span>
+                                      <span className="detail-value">{formatMoney(evt.fee)}</span>
+                                    </div>
+                                  )}
                                   {(evt.guarantee || evt.guaranteed) && (
                                     <div className="detail-field">
                                       <span className="detail-label">Guaranteed</span>

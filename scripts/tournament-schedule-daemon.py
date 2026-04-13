@@ -265,7 +265,7 @@ def extract_buyin_from_block(block: str) -> tuple:
     if buyin is None:
         for m in re.finditer(r'\$(\d{1,3}(?:,\d{3})*)', block):
             amt = int(m.group(1).replace(',', ''))
-            if amt < 10 or amt > 50000:
+            if amt < 20 or amt > 5000:
                 continue
 
             # Check if this specific $ amount is followed by K (shorthand for thousands)
@@ -329,7 +329,8 @@ def sanitize_tournament_name(name: str | None) -> str | None:
     if name.strip().lower() in (
         'image', 'none', 'null', 'undefined', '', 'details', 'date',
         'nlh', 'plo', 'omaha', 'start', 'title', 'description',
-        'en-us', 'en_us',
+        'en-us', 'en_us', 'canonical', 'listitem', 'header', 'slug',
+        'mini', 'single_item_id', '_updateddate', 'pro_version_enabled',
     ):
         return None
     # Reject names that are just numbers/symbols (e.g. ":315851,")
@@ -337,6 +338,12 @@ def sanitize_tournament_name(name: str | None) -> str | None:
         return None
     # Reject names starting with '>' (HTML fragment)
     if name.strip().startswith('>'):
+        return None
+    # Reject names starting with '_' (internal field names)
+    if name.strip().startswith('_'):
+        return None
+    # Reject date strings mistakenly captured as names (e.g. "2026-04-18 14:05:00")
+    if re.match(r'^\d{4}-\d{2}-\d{2}', name.strip()):
         return None
     return name.strip()[:200]
 
@@ -651,7 +658,7 @@ def _parse_money(s: str):
     if m:
         try:
             v = int(m.group().replace(',', ''))
-            return v if 10 <= v <= 250000 else None
+            return v if 20 <= v <= 5000 else None
         except: pass
     return None
 
@@ -835,7 +842,7 @@ def fetch_hendonmob(session) -> dict:
             bi=re.search(r"\$(\d{1,3}(?:,\d{3})*)",text)
             if not bi: continue
             buyin=int(bi.group(1).replace(",",""))
-            if not 10<=buyin<=250000: continue
+            if not 20<=buyin<=5000: continue
             vname=max((c for c in cells if "$" not in c and len(c)>5),key=len,default="")
             if not vname: continue
             vkey=vname.strip().lower()
@@ -854,7 +861,7 @@ def fetch_hendonmob(session) -> dict:
                 bi=re.search(r'\$(\d{1,3}(?:,\d{3})*)',block)
                 if not bi: continue
                 buyin=int(bi.group(1).replace(',',''))
-                if not 10<=buyin<=250000: continue
+                if not 20<=buyin<=5000: continue
                 # venue name heuristic: longest text chunk without $
                 parts=[p.strip() for p in block.split() if '$' not in p and len(p)>4]
                 if not parts: continue
@@ -896,7 +903,7 @@ def fetch_cardplayer(session) -> dict:
             bi=re.search(r"\$(\d{1,3}(?:,\d{3})*)",text)
             if not bi: continue
             buyin=int(bi.group(1).replace(",",""))
-            if not 10<=buyin<=250000: continue
+            if not 20<=buyin<=5000: continue
             vname=max((c for c in cells if "$" not in c and len(c)>5),key=len,default="")
             if not vname: continue
             vkey=vname.strip().lower()
