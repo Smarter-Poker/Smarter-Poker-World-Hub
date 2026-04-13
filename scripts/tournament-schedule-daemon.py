@@ -268,6 +268,16 @@ def extract_buyin_from_block(block: str) -> tuple:
             if amt < 20 or amt > 5000:
                 continue
 
+            # Block known-corrupt amounts that appear on venue sites but are NOT buy-ins:
+            # $599 = PokerAtlas annual membership fee
+            # $1099 = tech/software pricing artifacts
+            # $2026/$2011/$2024 = year numbers scraped as dollar amounts
+            # $387/$229/$241/$202 = non-poker HTML price artifacts
+            KNOWN_CORRUPT_AMOUNTS = {599, 1099, 2026, 2025, 2024, 2023, 2022, 2011,
+                                     387, 241, 229, 202, 4591}
+            if amt in KNOWN_CORRUPT_AMOUNTS:
+                continue
+
             # Check if this specific $ amount is followed by K (shorthand for thousands)
             end_pos = m.end()
             after = block[end_pos:end_pos+5].strip()
@@ -658,6 +668,10 @@ def _parse_money(s: str):
     if m:
         try:
             v = int(m.group().replace(',', ''))
+            # Block known-corrupt amounts (membership fees, year numbers, price artifacts)
+            CORRUPT = {599, 1099, 2026, 2025, 2024, 2023, 2022, 2011, 387, 241, 229, 202, 4591}
+            if v in CORRUPT:
+                return None
             return v if 20 <= v <= 5000 else None
         except: pass
     return None
