@@ -314,13 +314,20 @@ def sanitize_tournament_name(name: str | None) -> str | None:
         r'class=', r'elementor-', r'wix-', r'application/', r'row-unique',
         r'</script>', r'</div>', r'<script', r'type=', r'src=',
         r'data-', r'style=', r'id="', r'href=',
+        r'card-kh', r'card-rank', r'card-suit',  # Playing card CSS classes
     ]
     name_lower = name.lower()
     for pat in JUNK_PATTERNS:
         if pat in name_lower:
             return None
-    # Reject if name is just "image" or similar DOM artifact
-    if name.strip().lower() in ('image', 'none', 'null', 'undefined', ''):
+    # Reject names that end with backslash (truncated DOM content)
+    if name.strip().endswith('\\'):
+        return None
+    # Reject if name is just a short artifact
+    if name.strip().lower() in ('image', 'none', 'null', 'undefined', '', 'details', 'date', 'nlh', 'plo', 'omaha'):
+        return None
+    # Reject names that are just numbers/symbols (e.g. ":315851,")
+    if re.match(r'^[:\d,\s]+$', name.strip()):
         return None
     return name.strip()[:200]
 
