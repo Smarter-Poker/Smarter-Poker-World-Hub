@@ -561,7 +561,7 @@ export default function PokerSeriesPage() {
         }
 
         return result;
-    }, [allSeries, selectedTour, selectedStatus, searchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
+    }, [allSeries, selectedTour, selectedStatus, selectedState, searchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
 
     // ─── Stats ───
     const liveCount = useMemo(() => filteredSeries.filter(s => isSeriesLive(s.start_date, s.end_date)).length, [filteredSeries]);
