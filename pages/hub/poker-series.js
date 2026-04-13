@@ -269,21 +269,23 @@ export default function PokerSeriesPage() {
         }
     }, [searchQuery, dateRange, selectedTour, distanceFilter, sortBy, isInitialized, router.isReady, router]);
 
-    // ─── Keyboard shortcut ───
+    // ─── Keyboard shortcut ─── (stable ref: no re-register on every searchQuery change)
+    const searchQueryRef = useRef(searchQuery);
+    searchQueryRef.current = searchQuery;
     useEffect(() => {
         const handleKeyDown = (e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
                 searchInputRef.current?.focus();
             }
-            if (e.key === 'Escape' && searchQuery) {
+            if (e.key === 'Escape' && searchQueryRef.current) {
                 setSearchQuery('');
                 searchInputRef.current?.blur();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [searchQuery]);
+    }, []); // empty deps — no re-registration on every keystroke
 
     // ─── Haversine distance (miles) ───
     const haversineDistance = useCallback((lat1, lng1, lat2, lng2) => {
@@ -302,11 +304,15 @@ export default function PokerSeriesPage() {
             setDistanceFilter(val);
             navigator.geolocation.getCurrentPosition(
                 (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                () => { alert('Location access is required for distance filtering. Please enable location services.'); setDistanceFilter('all'); },
+                () => {
+                    // Never block JS thread with alert() — show accessible notification instead
+                    console.warn('[Geo] Location access required for distance filter');
+                    setDistanceFilter('all');
+                },
                 { timeout: 10000, enableHighAccuracy: false }
             );
         } else {
-            alert('Geolocation is not supported by your browser.');
+            console.warn('[Geo] Geolocation not supported');
             setDistanceFilter('all');
         }
     }, [userLocation]);
@@ -883,7 +889,7 @@ export default function PokerSeriesPage() {
                                                 borderColor: colors.border + 'A6',
                                                 '--card-accent': colors.border,
                                             }}
-                                            onClick={() => { window.location.href = detailUrl; }}
+                                            onClick={() => { router.push(detailUrl); }}
                                         >
                                             {/* Favorite Button */}
                                             <button

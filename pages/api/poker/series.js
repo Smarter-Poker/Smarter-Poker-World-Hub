@@ -221,14 +221,16 @@ export default async function handler(req, res) {
         }
 
         if (tour) {
-          const safeTour = tour.replace(/[()'",.;]/g, ' ').trim();
+          // Strip ILIKE wildcards to prevent injection
+          const safeTour = tour.replace(/[()'",.;%_\\]/g, ' ').trim().slice(0, 50);
           if (safeTour) {
               query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
           }
         }
 
         if (search) {
-          const safeSearch = search.replace(/[()'",.;]/g, ' ').trim();
+          // Strip ILIKE wildcards to prevent injection
+          const safeSearch = search.replace(/[()'",.;%_\\]/g, ' ').trim().slice(0, 100);
           if (safeSearch) {
               query = query.or(
                 `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
@@ -327,9 +329,10 @@ export default async function handler(req, res) {
         // DB unavailable, fall through to JSON
       }
 
-      // Fall back to JSON data
+      // Fall back to JSON data if DB returned nothing
       if (!seriesData) {
-        let allSeries = mapSeriesToApi(seriesJson.series_2026 || []);
+        // Bug fix: JSON fallback also must exclude suppressed series
+        let allSeries = mapSeriesToApi((seriesJson.series_2026 || []).filter(s => !s.is_suppressed));
 
         // Apply filters
         if (upcoming === 'true') {
