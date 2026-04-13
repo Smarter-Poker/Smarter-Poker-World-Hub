@@ -302,8 +302,14 @@ export default function PokerSeriesPage() {
         // Get user location for map
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (pos) => { if (isMounted) setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
-                () => {} // silent fail
+                (pos) => {
+                    if (!isMounted) return;
+                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    setUserLocation(loc);
+                    // Auto-set to 100mi radius so map zooms to user on first load
+                    setDistanceFilter('100');
+                },
+                () => {} // silent fail — leave full US view
             );
         }
 
@@ -773,8 +779,8 @@ export default function PokerSeriesPage() {
                         <VenueMap
                             venues={seriesVenuesForMap}
                             userLocation={userLocation}
-                            initialCenter={userLocation ? [userLocation.lat, userLocation.lng] : undefined}
-                            initialZoom={userLocation ? 8 : 4}
+                            centerLocation={userLocation || undefined}
+                            radiusMiles={distanceFilter !== 'all' ? distanceFilter : undefined}
                             hideLegend={true}
                             uniformColor="#ffffff"
                             disableClustering={true}
@@ -1023,7 +1029,7 @@ export default function PokerSeriesPage() {
                     /* ═══ TOP FILTERS BAR ═══ */
                     .pnm-top-filters {
                         width: 100%;
-                        padding: 10px 20px 14px;
+                        padding: 8px 20px 10px;
                         background: rgba(6, 14, 26, 0.6);
                         border-top: 1px solid rgba(212,168,83,0.1);
                         border-bottom: 1px solid rgba(212,168,83,0.1);
@@ -1034,32 +1040,37 @@ export default function PokerSeriesPage() {
                         flex-direction: row;
                         flex-wrap: nowrap;
                         align-items: center;
-                        gap: 8px;
+                        gap: 6px;
                         max-width: 1400px;
                         margin: 0 auto;
                         overflow-x: auto;
                         scrollbar-width: none;
+                        -webkit-overflow-scrolling: touch;
                     }
                     .pnm-top-filters-inner::-webkit-scrollbar { display: none; }
                     .pnm-filter-select {
-                        flex-shrink: 0;
-                        height: 38px;
-                        padding: 0 10px;
-                        background: rgba(12, 22, 40, 0.8);
+                        flex: 1 1 0;
+                        min-width: 90px;
+                        max-width: 160px;
+                        height: 36px;
+                        padding: 0 8px;
+                        background: rgba(12, 22, 40, 0.85);
                         border: 1.5px solid rgba(212,168,83,0.25);
                         border-radius: 8px;
                         color: #d4a853;
-                        font-size: 13px;
+                        font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
                         cursor: pointer;
                         outline: none;
                         appearance: auto;
-                        min-width: 110px;
                         transition: border-color 0.2s;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
                     }
-                    .pnm-filter-select:hover {
-                        border-color: rgba(212,168,83,0.5);
+                    .pnm-filter-select:hover, .pnm-filter-select:focus {
+                        border-color: rgba(212,168,83,0.55);
                     }
                     .pnm-filter-select option {
                         background: #0c1423;
@@ -1067,13 +1078,13 @@ export default function PokerSeriesPage() {
                     }
                     .pnm-filter-clear-btn {
                         flex-shrink: 0;
-                        height: 38px;
+                        height: 36px;
                         padding: 0 14px;
                         background: rgba(212,168,83,0.12);
                         border: 1.5px solid rgba(212,168,83,0.3);
                         border-radius: 8px;
                         color: #d4a853;
-                        font-size: 13px;
+                        font-size: 12px;
                         font-weight: 600;
                         font-family: inherit;
                         cursor: pointer;
