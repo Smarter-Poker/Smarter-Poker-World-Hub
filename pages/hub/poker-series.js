@@ -109,6 +109,45 @@ function formatSeriesDateRange(start, end) {
     }
 }
 
+// ── Derive short venue identifier for series without a named tour brand ──
+// Scraper stores venue name in city field ("Wynn Las Vegas Las Vegas") or it
+// can be extracted from the series name itself. Returns ≤14-char uppercase label.
+function deriveVenueBadge(series, seriesName) {
+    // 1. Explicit venue_name / venue field
+    const venue = (series.venue || series.venue_name || '').trim();
+    if (venue) return venue.split(/\s+/).slice(0, 2).join(' ').toUpperCase().slice(0, 14);
+    // 2. city field — scraper format: "VenueName CityName" merged together
+    const cityRaw = (series.city || '').trim();
+    if (cityRaw) {
+        const words = cityRaw.split(/\s+/);
+        const venueWords = words.length >= 3 ? words.slice(0, 2) : words.slice(0, Math.max(1, words.length - 1));
+        const badge = venueWords.join(' ').toUpperCase().slice(0, 14);
+        if (badge.length >= 3) return badge;
+    }
+    // 3. Extract venue portion from series name — stop at first generic keyword
+    const STOP = /^(poker|series|championship|open|classic|tournament|cup|challenge|circuit|festival|main|event|invitational|showdown|spring|summer|fall|winter|january|february|march|april|may|june|july|august|september|october|november|december|\d{4})$/i;
+    const words = seriesName.split(/\s+/);
+    const stopIdx = words.findIndex(w => STOP.test(w));
+    const venueWords = stopIdx > 0 ? words.slice(0, stopIdx) : words.slice(0, 2);
+    return venueWords.join(' ').toUpperCase().slice(0, 14) || 'SERIES';
+}
+
+// ── Derive venue category pill for series typed as 'regional' ──
+// Returns same shape as SERIES_TYPE_INFO entries: { label, color }
+function deriveSeriesCategory(seriesName, city) {
+    const n = ((seriesName || '') + ' ' + (city || '')).toLowerCase();
+    if (/\b(card house|card room|cardroom|lounge|poker room|poker lounge|tcl\b|tch\b|lodge|hustler|bay 101|kings|lucky hearts|peppermill|bicycle|commerce|garden|rivers casino|harlow|foxhole|bestbet|parx|prime social|social poker|elite poker|live poker classic)\b/.test(n))
+        return { label: 'Card Room', color: '#8b5cf6' };
+    if (/\b(park|downs|kennel|track|meadow|racing|fairground)\b/.test(n))
+        return { label: 'Card Room', color: '#8b5cf6' };
+    if (/\b(charity|benefit|foundation)\b/.test(n))
+        return { label: 'Charity', color: '#ec4899' };
+    if (/\b(online|social club)\b/.test(n))
+        return { label: 'Poker Club', color: '#06b6d4' };
+    // Everything else is hosted by a casino
+    return { label: 'Casino', color: '#f59e0b' };
+}
+
 function isSeriesLive(start, end) {
     if (!start || !end) return false;
     const now = new Date();
@@ -487,7 +526,8 @@ export default function PokerSeriesPage() {
         const tours = new Set();
         allSeries.forEach(s => {
             const tour = (s.tour || s.tour_code || s.short_name || '').toUpperCase();
-            if (tour) tours.add(tour);
+            // Exclude scraper default values — only show real recognized tour brands
+            if (tour && tour !== 'INDEPENDENT' && TOUR_COLORS[tour]) tours.add(tour);
         });
         return Array.from(tours).sort();
     }, [allSeries]);
@@ -894,14 +934,21 @@ export default function PokerSeriesPage() {
                         ) : (
                             <div className="tours-grid" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
                                 {filteredSeries.map((series, idx) => {
-                                    const tourCode = (series.tour || series.tour_code || series.short_name || '').toUpperCase();
-                                    const colors = TOUR_COLORS[tourCode] || TOUR_COLORS.default;
+                                    const rawTourCode = (series.tour || series.tour_code || series.short_name || '').toUpperCase();
+                                    const isKnownTour = rawTourCode && rawTourCode !== 'INDEPENDENT' && TOUR_COLORS[rawTourCode];
+                                    const tourCode = isKnownTour ? rawTourCode : '';
+                                    const colors = TOUR_COLORS[rawTourCode] || TOUR_COLORS.default;
                                     const seriesName = cleanHtml(series.name || series.series_name || 'Poker Series');
                                     const venueName = cleanHtml(series.venue || series.venue_name || '');
                                     const live = isSeriesLive(series.start_date, series.end_date);
                                     const upcoming = !live && isSeriesUpcoming(series.start_date, 60);
                                     const seriesType = series.series_type || 'regional';
-                                    const typeInfo = SERIES_TYPE_INFO[seriesType] || { label: seriesType || 'Series', color: '#6b7280' };
+                                    // Only use SERIES_TYPE_INFO for non-regional known types
+                                    const typeInfo = (seriesType !== 'regional' && SERIES_TYPE_INFO[seriesType])
+                                        ? SERIES_TYPE_INFO[seriesType]
+                                        : deriveSeriesCategory(seriesName, series.city);
+                                    // Badge label: known tour code OR derived venue name
+                                    const badgeLabel = tourCode || deriveVenueBadge(series, seriesName);
                                     const evtCount = series.events_count || series.total_events || series.event_count || 0;
                                     // BUG FIX: Use series_uid as primary key (stable across data sources)
                                     // series.id is index-based from JSON fallback vs real DB int — unstable
@@ -946,8 +993,8 @@ export default function PokerSeriesPage() {
                                                         className="tour-code-badge"
                                                         style={{ background: colors.bg, border: '1px solid ' + colors.border }}
                                                     >
-                                                        <span style={{ color: colors.text, fontSize: 14, fontWeight: 800, letterSpacing: '0.5px' }}>
-                                                            {tourCode || 'SER'}
+                                                        <span style={{ color: colors.text, fontSize: isKnownTour ? 14 : 11, fontWeight: 800, letterSpacing: isKnownTour ? '0.5px' : '0.3px', textTransform: 'uppercase' }}>
+                                                            {badgeLabel}
                                                         </span>
                                                     </div>
                                                 </div>
