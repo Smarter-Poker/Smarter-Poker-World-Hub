@@ -800,21 +800,41 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
     # Try to match series name to a venue
     # Series names often contain venue names like "Graton Poker Series" -> "Graton"
     series_lower = series_name.lower()
+    # Strip common poker words from series name for matching
+    noise_words = {'poker', 'series', 'tournament', 'classic', 'championship', 'open', 'cup',
+                   'spring', 'summer', 'fall', 'winter', 'bounty', 'mystery', 'deepstack',
+                   'the', 'at', 'of', 'in', '&', 'and', "'26", "'25", '2026', '2025'}
+    series_words = set(re.split(r'[\s\-\']+', series_lower)) - noise_words
+    
     best_venue = None
+    best_score = 0
     for v in venues:
         vname = (v.get('name') or '').lower()
         if not vname:
             continue
-        # Check if venue name appears in series name
         # Strip common suffixes for matching
-        vname_core = vname.replace(' casino', '').replace(' resort', '').replace(' hotel', '')
-        vname_core = vname_core.replace(' poker room', '').replace(' poker', '').strip()
-        if len(vname_core) >= 4 and vname_core in series_lower:
-            best_venue = v
-            break
+        vname_clean = re.sub(r'\s*(&amp;|&)\s*', ' ', vname)
+        vname_clean = re.sub(r'\s*(casino|resort|hotel|poker room|poker|room|entertainment|gaming)\s*', ' ', vname_clean)
+        venue_words = set(re.split(r'[\s\-\']+', vname_clean.strip())) - noise_words - {''}
+        
+        # Score by word overlap — more matching words = better
+        overlap = series_words & venue_words
+        if overlap and len(overlap) >= 1:
+            # Prioritize venues where distinctive words match
+            score = len(overlap)
+            # Bonus for matching the first word of the venue name
+            first_word = vname_clean.strip().split()[0] if vname_clean.strip() else ''
+            if first_word and first_word in series_words:
+                score += 2
+            if score > best_score:
+                best_score = score
+                best_venue = v
 
     if not best_venue:
+        log(f"      [Src 4: Bravo] No venue match for '{series_name[:30]}'")
         return []
+
+    log(f"      [Src 4: Bravo] Matched venue: {best_venue.get('name', '?')[:40]} (score:{best_score})")
 
     bravo_slug = best_venue.get('bravo_slug') or ''
     venue_slug = best_venue.get('slug') or ''
@@ -907,8 +927,10 @@ def _try_hendonmob(series_uid, series_name, batch_id):
 
     try:
         hm_req = urllib.request.Request(hm_url, headers={
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-            'Accept': 'text/html'
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.google.com/',
         })
         with urllib.request.urlopen(hm_req, timeout=15) as resp:
             hm_html = resp.read().decode('utf-8', errors='replace')
