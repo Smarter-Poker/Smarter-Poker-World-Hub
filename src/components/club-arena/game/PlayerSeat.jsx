@@ -1,5 +1,5 @@
 /**
- * PlayerSeat -- PokerBros-style player seat on the game table
+ * PlayerSeat -- premium-style player seat on the game table
  * Renders avatar, name, stack, position badges, action tags, timer ring, bet display
  */
 import React, { useEffect, useState } from 'react';

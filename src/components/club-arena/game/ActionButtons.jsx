@@ -1,5 +1,5 @@
 /**
- * ActionButtons -- PokerBros-style Fold / Check-Call / Raise-Bet button bar
+ * ActionButtons -- premium-style Fold / Check-Call / Raise-Bet button bar
  * Shown at the bottom of the screen when it is the hero's turn to act.
  */
 import React from 'react';

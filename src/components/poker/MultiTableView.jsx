@@ -1,5 +1,5 @@
 /**
- * MultiTableView — PokerBros-style 4-slot multi-table system (Phase 2)
+ * MultiTableView — premium-style 4-slot multi-table system (Phase 2)
  * ═════════════════════════════════════════════════════════════════════
  *
  * Phase 2 Enhancements:
@@ -87,7 +87,7 @@ function haptic(type = 'light') {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// TAB BAR — PokerBros 4-Slot Replica
+// TAB BAR — Premium 4-Slot Layout
 // ═══════════════════════════════════════════════════════════════════════
 function TableTabBar({
   slots,
@@ -888,7 +888,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
       flexDirection: 'column',
       overflow: 'hidden',
     }}>
-      {/* ── PokerBros Tab Bar ── */}
+      {/* ── Table Tab Bar ── */}
       <TableTabBar
         slots={slots}
         activeIndex={activeIndex}

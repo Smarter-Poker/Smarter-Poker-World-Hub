@@ -1,5 +1,5 @@
 /**
- * MultiTableTabs -- Tab bar at top of screen for multi-tabling (PokerBros-style)
+ * MultiTableTabs -- Tab bar at top of screen for multi-tabling (premium-style)
  * Shows mini hole cards per table, active table highlighted, "+" to add table
  */
 import React from 'react';

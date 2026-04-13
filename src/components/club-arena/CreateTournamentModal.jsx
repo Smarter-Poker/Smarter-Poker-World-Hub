@@ -1,7 +1,7 @@
 /**
  * CreateTournamentModal — Comprehensive SNG + MTT creation
  * ═══════════════════════════════════════════════════════════════════════
- * Matches PokerBros feature-for-feature from Images 7-12:
+ * Matches premium feature-for-feature from Images 7-12:
  * 
  * SNG: VIP Only, Satellite, Ban Chat, Label NEW, Table Size, Action Time,
  *      Auto Restart, Auto Create, Fee %, Buy-in, Blind Structure (Slow/Standard/
@@ -300,7 +300,7 @@ export default function CreateTournamentModal({ club, onClose, onCreated, apiCal
               background: 'none', border: 'none', color: FB.textDim, fontSize: 20, cursor: 'pointer',
             }}>✕</button>
           </div>
-          {/* SNG / MTT tabs (like PokerBros Regular|SNG|MTT) */}
+          {/* SNG / MTT tabs (Regular|SNG|MTT) */}
           <div style={{ display: 'flex', gap: 4 }}>
             {[{ key: 'sng', label: 'SNG' }, { key: 'mtt', label: 'MTT' }].map(tab => (
               <button key={tab.key} onClick={() => set('type', tab.key)} style={{

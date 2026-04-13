@@ -8224,7 +8224,7 @@ function LivePokerTable({
         )}
       </AnimatePresence>
 
-      {/* ═══════════ ANIMATED THROWABLES (PokerBros-style) ═══════════ */}
+      {/* ═══════════ ANIMATED THROWABLES (premium-style) ═══════════ */}
       <ThrowableEmojis
         userId={userId}
         seats={seats}

@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — CLUB ARENA LOBBY
-   Software Neutrality Architecture (PokerBros/Pokerrrr Standard)
+   Software Neutrality Architecture (Premium Club Standard)
    Mandatory Legal Disclaimer + Play Money Gate
    ═══════════════════════════════════════════════════════════════════════════ */
 

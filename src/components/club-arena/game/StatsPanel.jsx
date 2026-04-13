@@ -1,5 +1,5 @@
 /**
- * StatsPanel -- "REAL TIME RESULT" slide-in panel (PokerBros-style)
+ * StatsPanel -- "REAL TIME RESULT" slide-in panel (premium-style)
  * Shows session duration, hands played, blinds, buy-in, winnings, VPIP
  */
 import React from 'react';

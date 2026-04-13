@@ -254,7 +254,7 @@ export default function DailyTournaments() {
                                 value={searchQuery}
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
-                                    refreshTournaments(); // instant search
+                                    // SWR key auto-updates on re-render — no manual refresh needed
                                 }}
                             />
                         </div>

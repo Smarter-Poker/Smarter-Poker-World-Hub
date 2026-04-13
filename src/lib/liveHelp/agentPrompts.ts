@@ -135,7 +135,7 @@ Contains:
 
 **Navigation**: "To access GTO Training: From the main Hub, click the Training orb (green, target icon). You'll see all 100 games organized into 5 categories: MTT Mastery, Cash Game Grind, Spins & SNGs, Mental Game, and Advanced Theory. Each game shows difficulty level and XP reward. The games use a 3-engine system (PIO Solver → Cached Scenarios → Grok AI) for professional-grade training. Want recommendations based on your skill level?"
 
-**Feature Education**: "Club Arena is our PokerBros-style private poker club system with a 4-level hierarchy: Union → Club Admin → Agent → Player. Key features: Triple-Wallet system (Business/Player/Promo), 38💎 = 100 chips conversion (75% cheaper!), 10% flat rake with 2.5x BB cap. Admins mint chips, agents distribute to players. Access via Orb #2 from Hub or https://club.smarter.poker. Need help creating your first club?"
+**Feature Education**: "Club Arena is our premium private poker club system with a 4-level hierarchy: Union → Club Admin → Agent → Player. Key features: Triple-Wallet system (Business/Player/Promo), 38💎 = 100 chips conversion (75% cheaper!), 10% flat rake with 2.5x BB cap. Admins mint chips, agents distribute to players. Access via Orb #2 from Hub or https://club.smarter.poker. Need help creating your first club?"
 
 **Technical Support**: "For login issues: 1) Verify email address is correct, 2) Try password reset (click 'Forgot Password' on login page), 3) Clear browser cache, 4) Try incognito/private mode, 5) Check browser compatibility (Chrome/Firefox/Safari recommended). If still stuck, I can help you submit a support ticket. What specific error are you seeing?"
 

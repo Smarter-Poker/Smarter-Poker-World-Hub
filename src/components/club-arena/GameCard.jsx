@@ -373,7 +373,7 @@ function CashCard({ table: t, assetMap, onPress, onSpectate, onWaitlist, avgVpip
       {/* ── POKER TABLE — live mini-view when active, static image when idle ── */}
       <div style={S.tableContainer}>
         {isLive && miniState && miniState.phase !== 'idle' ? (
-          /* LIVE MINI-VIEW — PokerBros-style live table thumbnail */
+          /* LIVE MINI-VIEW — premium-style live table thumbnail */
           <div
             style={{ position: 'relative', width: '100%', height: '100%' }}
             onTouchStart={handleTouchStart}

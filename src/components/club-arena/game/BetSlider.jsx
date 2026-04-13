@@ -1,5 +1,5 @@
 /**
- * BetSlider -- PokerBros-style bet sizing interface
+ * BetSlider -- premium-style bet sizing interface
  * Replaces action buttons when player taps Raise/Bet.
  * Presets change based on street: preflop (2X/3X/4X) vs post-flop (1/2/2/3/POT)
  */

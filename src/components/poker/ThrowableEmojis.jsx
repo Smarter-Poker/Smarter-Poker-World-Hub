@@ -1,5 +1,5 @@
 /**
- * ThrowableEmojis — Animated Throwable System (PokerBros-style)
+ * ThrowableEmojis — Animated Throwable System (premium-style)
  * ═══════════════════════════════════════════════════════════════
  * 
  * NOT static emojis — each throwable is an SVG illustration with:
@@ -9,7 +9,7 @@
  *   4. Linger + fade out
  * 
  * Categories: Taunts | Reactions | Food & Drinks | Objects
- * Modeled after PokerBros / PokerStars / PartyPoker throwables
+ * Modeled after PokerStars / PartyPoker throwables
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';

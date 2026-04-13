@@ -325,10 +325,13 @@ export default function PokerSeriesPage() {
                 //    These are incomplete scraper ingestions with empty data
                 const data = raw.filter(s => {
                     const et = (s.entity_type || s.record_type || '').toLowerCase();
-                    if (et === 'tour' || et === 'poker_tour') return false;
+                    const eventCount = s.total_events || s.events_count || s.event_count || 0;
+                    // Tours with multiple events ARE series — keep them.
+                    // Only exclude single-tournament tour stops (0 or 1 events).
+                    if ((et === 'tour' || et === 'poker_tour') && eventCount <= 1) return false;
                     // Keep records that have at least one of: city, state, venue, events, or start_date
                     const hasLocation = !!(s.city || s.state || s.venue || s.venue_name);
-                    const hasEvents = (s.total_events || s.events_count || s.event_count || 0) > 0;
+                    const hasEvents = eventCount > 0;
                     const hasDates = !!(s.start_date || s.end_date);
                     return hasLocation || hasEvents || hasDates;
                 });
@@ -558,7 +561,7 @@ export default function PokerSeriesPage() {
         }
 
         return result;
-    }, [allSeries, selectedTour, searchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
+    }, [allSeries, selectedTour, selectedStatus, searchQuery, sortBy, dateRangeCutoff, distanceFilter, userLocation, findVenueCoords, haversineDistance]);
 
     // ─── Stats ───
     const liveCount = useMemo(() => filteredSeries.filter(s => isSeriesLive(s.start_date, s.end_date)).length, [filteredSeries]);

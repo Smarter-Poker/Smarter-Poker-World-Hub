@@ -1,5 +1,5 @@
 /**
- * PokerTableView -- Main game table component (PokerBros-style)
+ * PokerTableView -- Main game table component (premium-style)
  *
  * Renders the complete poker table UI:
  *   - Oval felt table with gold rim

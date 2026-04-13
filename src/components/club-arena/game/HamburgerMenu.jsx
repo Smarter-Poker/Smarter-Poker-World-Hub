@@ -1,5 +1,5 @@
 /**
- * HamburgerMenu -- Slide-out sidebar menu (PokerBros-style)
+ * HamburgerMenu -- Slide-out sidebar menu (premium-style)
  * Contains: Top Up, Table Settings, Auto Top-Up, Stand Up, Stand Up Next BB,
  * Sounds, Vibrations, Share, VIP, Exit
  */

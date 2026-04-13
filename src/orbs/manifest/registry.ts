@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    HUB VANGUARD — 13-ORB MANIFEST (FINAL ORDER)
-   PokerBros-style card registry with official names
+   premium card registry with official names
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export interface OrbConfig {
