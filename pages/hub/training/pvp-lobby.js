@@ -905,7 +905,7 @@ export default function PvPLobbyPage() {
                 >
                   VS
                 </div>
-                <PlayerCard player={opponent} isReady={false} isSelf={false} />
+                <PlayerCard player={opponent} isReady={isHorseOpponent} isSelf={false} isHorse={isHorseOpponent} />
               </div>
 
               {/* Format Info */}
