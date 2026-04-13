@@ -1582,6 +1582,7 @@ def main():
     p.add_argument("--min-score",  type=int, default=60,
                    help="Enrich series with avg completeness below this (default 60)")
     p.add_argument("--pass-limit", type=int, default=3, help="Max enrichment passes")
+    p.add_argument("--daemon",     action="store_true", help="Run continuously as a 6-hour daemon")
     args = p.parse_args()
 
     from scrapling.fetchers import StealthySession

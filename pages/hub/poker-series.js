@@ -984,9 +984,7 @@ export default function PokerSeriesPage() {
                                 })}
                             </div>
                         )}
-                    </main>
-                </div>
-
+    
                 <FullScreenPageOverlay
                     isOpen={iframeModal.isOpen}
                     onClose={() => setIframeModal({ isOpen: false, url: '', title: '' })}
