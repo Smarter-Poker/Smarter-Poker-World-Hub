@@ -91,6 +91,24 @@ function cleanHtml(s) {
     return (s || '').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"');
 }
 
+// Smart date range — detects multi-month/season series and labels them properly
+function formatSeriesDateRange(start, end) {
+    if (!start) return '';
+    const startFmt = formatDate(start);
+    if (!end) return startFmt;
+    try {
+        const s = new Date(start + 'T00:00:00');
+        const e = new Date(end + 'T23:59:59');
+        const days = Math.round((e - s) / (1000 * 60 * 60 * 24));
+        if (days <= 0) return startFmt; // same-day fallback
+        if (days > 180) return `${startFmt} — Season Series`;
+        if (days > 45) return `${startFmt} – ${formatDateShort(end)} · ${days}-Day Series`;
+        return `${startFmt} – ${formatDate(end)}`;
+    } catch {
+        return startFmt;
+    }
+}
+
 function isSeriesLive(start, end) {
     if (!start || !end) return false;
     const now = new Date();
@@ -934,7 +952,7 @@ export default function PokerSeriesPage() {
                                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
                                                     </svg>
                                                     <span>
-                                                        {formatDate(series.start_date)}{series.end_date ? ' – ' + formatDate(series.end_date) : ''}
+                                                        {formatSeriesDateRange(series.start_date, series.end_date)}
                                                     </span>
                                                 </div>
                                             )}
