@@ -189,6 +189,8 @@ export default function PokerSeriesPage() {
     // ─── Filter State ───
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTour, setSelectedTour] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [selectedState, setSelectedState] = useState('all');
     const [sortBy, setSortBy] = useState('date');
     const [dateRange, setDateRange] = useState('60d'); // Default: upcoming 60 days
     const [distanceFilter, setDistanceFilter] = useState('all');
@@ -408,6 +410,16 @@ export default function PokerSeriesPage() {
         return Array.from(tours).sort();
     }, [allSeries]);
 
+    // ─── Get unique states from series data ───
+    const availableStates = useMemo(() => {
+        const states = new Set();
+        allSeries.forEach(s => {
+            const state = (s.state || '').toUpperCase().trim();
+            if (state) states.add(state);
+        });
+        return Array.from(states).sort();
+    }, [allSeries]);
+
     // ─── Date range cutoff computation ───
     const dateRangeCutoff = useMemo(() => {
         if (dateRange === 'all') return null;
@@ -443,11 +455,29 @@ export default function PokerSeriesPage() {
             });
         }
 
+        // Status filter
+        if (selectedStatus !== 'all') {
+            result = result.filter(s => {
+                const live = isSeriesLive(s.start_date, s.end_date);
+                const upcoming = !live && isSeriesUpcoming(s.start_date, 60);
+                if (selectedStatus === 'live') return live;
+                if (selectedStatus === 'upcoming') return upcoming;
+                return true;
+            });
+        }
+
         // Tour filter
         if (selectedTour !== 'all') {
             result = result.filter(s => {
                 const tour = (s.tour || s.tour_code || s.short_name || '').toUpperCase();
                 return tour === selectedTour;
+            });
+        }
+
+        // State filter
+        if (selectedState !== 'all') {
+            result = result.filter(s => {
+                return (s.state || '').toUpperCase().trim() === selectedState;
             });
         }
 
@@ -568,9 +598,11 @@ export default function PokerSeriesPage() {
         if (searchQuery) count++;
         if (dateRange !== '60d') count++;
         if (selectedTour !== 'all') count++;
+        if (selectedStatus !== 'all') count++;
+        if (selectedState !== 'all') count++;
         if (distanceFilter !== 'all') count++;
         return count;
-    }, [searchQuery, dateRange, selectedTour, distanceFilter]);
+    }, [searchQuery, dateRange, selectedTour, selectedStatus, selectedState, distanceFilter]);
 
     // ─── Favorites toggle ───
     const toggleFavorite = useCallback((seriesId, e) => {
@@ -594,6 +626,8 @@ export default function PokerSeriesPage() {
         setSearchQuery('');
         setDateRange('60d');
         setSelectedTour('all');
+        setSelectedStatus('all');
+        setSelectedState('all');
         setDistanceFilter('all');
         setSortBy('date');
     }, []);
@@ -704,39 +738,54 @@ export default function PokerSeriesPage() {
                 {/* ═══ SIDEBAR + MAIN LAYOUT ═══ */}
                 <div className="pnm-layout">
 
-                    {/* ─── LEFT SIDEBAR ─── */}
-                    <aside className="pnm-sidebar" role="navigation" aria-label="Poker Series navigation">
-                        <nav className="sidebar-nav">
-                            {[
-                                { key: 'all', label: 'All Series', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-                                ...availableTours.map(tour => ({
-                                    key: tour,
-                                    label: tour,
-                                    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
-                                }))
-                            ].map(tab => (
-                                <button
-                                    key={tab.key}
-                                    className={'sidebar-tab' + (selectedTour === tab.key ? ' active' : '')}
-                                    onClick={() => setSelectedTour(tab.key)}
-                                    role="tab"
-                                    aria-selected={selectedTour === tab.key}
-                                    aria-label={tab.label + ' tab'}
-                                >
-                                    <span className="sidebar-tab-icon">{tab.icon}</span>
-                                    <span className="sidebar-tab-label">{tab.label}</span>
-                                    {tab.key !== 'all' && (
-                                        <span className="sidebar-tab-count">
-                                            {allSeries.filter(s => (s.tour || s.tour_code || s.short_name || '').toUpperCase() === tab.key).length}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
-                        </nav>
-
-                        {/* ─── FILTERS ─── */}
+                    {/* ─── LEFT SIDEBAR — All Dropdown Selectors ─── */}
+                    <aside className="pnm-sidebar" role="navigation" aria-label="Poker Series filters">
                         <div className="sidebar-filters">
-                            {/* Sort */}
+                            {/* Status */}
+                            <div className="sidebar-filter-group">
+                                <label>Status</label>
+                                <select
+                                    className="sidebar-select"
+                                    value={selectedStatus}
+                                    onChange={e => setSelectedStatus(e.target.value)}
+                                >
+                                    <option value="all">All Series</option>
+                                    <option value="live">Live Now</option>
+                                    <option value="upcoming">Upcoming</option>
+                                </select>
+                            </div>
+
+                            {/* Tour Association */}
+                            <div className="sidebar-filter-group">
+                                <label>Tour</label>
+                                <select
+                                    className="sidebar-select"
+                                    value={selectedTour}
+                                    onChange={e => setSelectedTour(e.target.value)}
+                                >
+                                    <option value="all">All Tours</option>
+                                    {availableTours.map(tour => (
+                                        <option key={tour} value={tour}>{tour}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* State */}
+                            <div className="sidebar-filter-group">
+                                <label>State</label>
+                                <select
+                                    className="sidebar-select"
+                                    value={selectedState}
+                                    onChange={e => setSelectedState(e.target.value)}
+                                >
+                                    <option value="all">All States</option>
+                                    {availableStates.map(st => (
+                                        <option key={st} value={st}>{st}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Sort By */}
                             <div className="sidebar-filter-group">
                                 <label>Sort By</label>
                                 <select

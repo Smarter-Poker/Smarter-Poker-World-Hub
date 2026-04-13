@@ -215,7 +215,7 @@ function EventCard({ event, isToday, todayKey }) {
           )}
           {(event.city || event.state) && (
             <span className="ev-meta-item ev-location">
-              {[event.city, event.state].filter(Boolean).join(', ')}
+              &middot; {[event.city, event.state].filter(Boolean).join(', ')}
             </span>
           )}
           {event.start_time && (
@@ -804,7 +804,7 @@ export default function EventsCalendarPage() {
         currentLocation={userLocation}
       />
 
-      <style jsx>{`
+      <style jsx global>{`
         /* ═══ BASE ═══ */
         .ec-page {
           min-height: 100vh; padding-bottom: 70px;

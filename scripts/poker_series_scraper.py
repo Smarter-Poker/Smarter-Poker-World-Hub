@@ -104,6 +104,33 @@ def sha256h(raw: bytes) -> str:
 def slugify(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", re.sub(r"[''`]", "", s).lower()).strip("-")
 
+# ── Scrapling Fetcher for non-Cloudflare sites (MANDATORY per Data Integrity) ──
+def scrapling_fetch(url: str, timeout: int = 15) -> tuple:
+    """Fetch a URL using Scrapling Fetcher (non-CF). Returns (html_str, status, raw_bytes, sha256_hash).
+    Falls back to urllib only if Scrapling import fails."""
+    try:
+        from scrapling.fetchers import Fetcher
+        page = Fetcher.get(url, stealthy_headers=True, timeout=timeout)
+        body = page.body or (page.text.encode() if page.text else b'')
+        html_str = body.decode('utf-8', errors='replace') if isinstance(body, bytes) else str(body)
+        h = sha256h(body if isinstance(body, bytes) else html_str.encode('utf-8'))
+        return html_str, page.status, body, h
+    except ImportError:
+        # Fetcher not available in this env — fall back but log warning
+        log("      ⚠️  Scrapling Fetcher unavailable — using urllib (NOT RECOMMENDED)")
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.google.com/',
+        })
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read()
+            html_str = body.decode('utf-8', errors='replace')
+            h = sha256h(body)
+            return html_str, resp.status, body, h
+    except Exception as e:
+        return "", 0, b"", ""
+
 # ── Network pre-check (MANDATORY per Scrapling skill) ─────────────────────────
 def network_ok() -> bool:
     """HEAD https://1.1.1.1 — MUST pass before any StealthySession.start()."""
@@ -851,31 +878,22 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
         bravo_url = f"https://bravo.poker/poker-rooms/{bravo_slug}/tournaments"
         log(f"      [Src 4a: Bravo] Trying {bravo_url[:70]}")
         try:
-            b_req = urllib.request.Request(bravo_url, headers={
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-            })
-            with urllib.request.urlopen(b_req, timeout=15) as resp:
-                b_html = resp.read().decode('utf-8', errors='replace')
-                b_hash = sha256h(b_html.encode('utf-8'))
-                if has_tourn(b_html):
-                    events = extract_html_events(b_html, series_uid, series_name, batch_id, bravo_url, b_hash)
-                    if events:
-                        for e in events:
-                            e['source'] = 'bravo_venue'
-                        log(f"        [Bravo] {len(events)} events extracted")
+            b_html, b_status, b_raw, b_hash = scrapling_fetch(bravo_url)
+            if b_status == 200 and b_html and has_tourn(b_html):
+                events = extract_html_events(b_html, series_uid, series_name, batch_id, bravo_url, b_hash)
+                if events:
+                    for e in events:
+                        e['source'] = 'bravo_venue'
+                    log(f"        [Bravo] {len(events)} events extracted")
         except Exception as ex:
             log(f"        [Bravo] Error: {str(ex)[:60]}")
 
-    # If no Bravo results, try venue website directly
+    # If no Bravo results, try venue website directly (using Scrapling Fetcher)
     if not events and website:
         log(f"      [Src 4b: Venue Web] Trying {website[:70]}")
         try:
-            v_req = urllib.request.Request(website, headers={
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-            })
-            with urllib.request.urlopen(v_req, timeout=15) as resp:
-                v_html = resp.read().decode('utf-8', errors='replace')
-                v_hash = sha256h(v_html.encode('utf-8'))
+            v_html, v_status, v_raw, v_hash = scrapling_fetch(website)
+            if v_status == 200 and v_html:
                 if has_tourn(v_html):
                     events = extract_html_events(v_html, series_uid, series_name, batch_id, website, v_hash)
                     if events:
@@ -892,23 +910,34 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
                         if not sub_url.startswith('http'):
                             continue
                         try:
-                            s_req = urllib.request.Request(sub_url, headers={
-                                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-                            })
-                            with urllib.request.urlopen(s_req, timeout=10) as s_resp:
-                                s_html = s_resp.read().decode('utf-8', errors='replace')
-                                s_hash = sha256h(s_html.encode('utf-8'))
-                                if has_tourn(s_html):
-                                    events = extract_html_events(s_html, series_uid, series_name, batch_id, sub_url, s_hash)
-                                    if events:
-                                        for e in events:
-                                            e['source'] = 'venue_subpage'
-                                        log(f"        [Venue Subpage] {len(events)} events from {sub_url[:50]}")
-                                        break
+                            s_html, s_status, s_raw, s_hash = scrapling_fetch(sub_url, timeout=10)
+                            if s_status == 200 and s_html and has_tourn(s_html):
+                                events = extract_html_events(s_html, series_uid, series_name, batch_id, sub_url, s_hash)
+                                if events:
+                                    for e in events:
+                                        e['source'] = 'venue_subpage'
+                                    log(f"        [Venue Subpage] {len(events)} events from {sub_url[:50]}")
+                                    break
                         except Exception:
                             pass
         except Exception as ex:
             log(f"        [Venue Web] Error: {str(ex)[:60]}")
+
+    # Source 4c: CardPlayer tournament search (event-level, not just enrichment)
+    if not events:
+        try:
+            cp_search = urllib.parse.quote(series_name.replace("'", "")[:40])
+            cp_url = f"https://www.cardplayer.com/poker-tournaments?search={cp_search}"
+            log(f"      [Src 4c: CardPlayer] Searching: {series_name[:35]}")
+            cp_html, cp_status, cp_raw, cp_hash = scrapling_fetch(cp_url)
+            if cp_status == 200 and cp_html and has_tourn(cp_html):
+                events = extract_html_events(cp_html, series_uid, series_name, batch_id, cp_url, cp_hash)
+                if events:
+                    for e in events:
+                        e['source'] = 'cardplayer'
+                    log(f"        [CardPlayer] {len(events)} events extracted")
+        except Exception as ex:
+            log(f"        [CardPlayer] Error: {str(ex)[:60]}")
 
     return events
 
@@ -926,17 +955,18 @@ def _try_hendonmob(series_uid, series_name, batch_id):
     events = []
 
     try:
-        hm_req = urllib.request.Request(hm_url, headers={
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.google.com/',
-        })
-        with urllib.request.urlopen(hm_req, timeout=15) as resp:
-            hm_html = resp.read().decode('utf-8', errors='replace')
-            hm_hash = sha256h(hm_html.encode('utf-8'))
+        # Primary: HendonMob event search (via Scrapling Fetcher)
+        hm_html, hm_status, hm_raw, hm_hash = scrapling_fetch(hm_url)
 
-            # HendonMob event tables have rows with: Date, Event Name, Buy-in, Location
+        # Fallback: try summerinvegas.com (HendonMob sister site)
+        if not hm_html or hm_status != 200:
+            siv_url = f"https://www.summerinvegas.com/?s={search_q}"
+            log(f"      [Src 5b: SummerInVegas] Trying fallback")
+            hm_html, hm_status, hm_raw, hm_hash = scrapling_fetch(siv_url)
+            if hm_status == 200:
+                hm_url = siv_url
+
+        if hm_status == 200 and hm_html:
             rows = re.findall(r'<tr[^>]*>(.*?)</tr>', hm_html, re.DOTALL | re.I)
             event_counter = 0
 
