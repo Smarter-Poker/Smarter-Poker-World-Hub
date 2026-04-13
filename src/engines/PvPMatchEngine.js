@@ -88,6 +88,11 @@ export class PvPMatch {
         this.player1 = { ...params.player1, score: 0, evLoss: 0, handsWon: 0 };
         this.player2 = { ...params.player2, score: 0, evLoss: 0, handsWon: 0 };
 
+        // Track if opponent is a Horse AI
+        this.isHorseMatch = !!params.player2?.isAI;
+        this.horsePersonality = params.player2?.personality || null;
+        this.opponentType = params.player2?.isAI ? 'horse_ai' : 'real_player';
+
         this.handNumber = 0;
         this.totalHands = format.hands;
         this.currentHand = null;

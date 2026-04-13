@@ -26,6 +26,24 @@ import { PvPMatch, MATCH_FORMATS, MATCH_STATES, calculateRatingChange, getRankTi
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
+interface HorseOpponent {
+    name: string;
+    rating: number;
+    avatar?: string;
+    isAI: boolean;
+    horseId: string;
+    personality?: {
+        aggression: number;
+        humor?: number;
+        technical?: number;
+        contrarian?: number;
+        gto: string;
+        risk: string;
+    };
+    catchphrase?: string;
+    tier?: string;
+}
+
 interface PvPArenaProps {
     userId: string;
     userName: string;
@@ -33,6 +51,12 @@ interface PvPArenaProps {
     userDiamonds?: number;
     onExit?: () => void;
     onDiamondsChange?: (delta: number) => void;
+    /** When true, opponent is a Horse AI (passed from pvp-lobby 7s timeout) */
+    isHorseOpponent?: boolean;
+    /** Horse opponent data (personality, horseId, etc.) */
+    horseOpponent?: HorseOpponent | null;
+    /** Full horse data from API */
+    horseData?: any;
 }
 
 type ArenaView = 'LOBBY' | 'MATCHMAKING' | 'IN_MATCH' | 'RESULT';
@@ -87,19 +111,47 @@ export default function PvPArena({
     userDiamonds = 0,
     onExit,
     onDiamondsChange,
+    isHorseOpponent = false,
+    horseOpponent = null,
+    horseData = null,
 }: PvPArenaProps) {
-    const [view, setView] = useState<ArenaView>('LOBBY');
+    // If launched from pvp-lobby with a horse opponent, skip LOBBY and go straight to match
+    const initialView: ArenaView = (isHorseOpponent && horseOpponent) ? 'IN_MATCH' : 'LOBBY';
+    const [view, setView] = useState<ArenaView>(initialView);
     const [selectedFormat, setSelectedFormat] = useState<string>('STANDARD');
     const [match, setMatch] = useState<any>(null);
     const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
     const [searchTime, setSearchTime] = useState(0);
     const [rating, setRating] = useState(userRating);
+    const [activeHorseOpponent, setActiveHorseOpponent] = useState<HorseOpponent | null>(horseOpponent);
 
     const tier = useMemo(() => getRankTier(rating), [rating]);
     const tierColor = TIER_COLORS[tier?.name] || '#6b7280';
     const tierIcon = TIER_ICONS[tier?.name] || '⚔️';
 
-    // Matchmaking timer
+    // If launched with a horse opponent, immediately start the match
+    useEffect(() => {
+        if (isHorseOpponent && horseOpponent && !match) {
+            const opName = horseOpponent.name || 'Horse AI';
+            const opRating = horseOpponent.rating || 1300;
+            const pvpMatch = new PvPMatch({
+                matchId: `pvp_horse_${Date.now()}`,
+                format: selectedFormat,
+                player1: { id: userId, name: userName, rating },
+                player2: {
+                    id: horseOpponent.horseId || 'horse_ai',
+                    name: opName,
+                    rating: opRating,
+                    isAI: true,
+                    personality: horseOpponent.personality,
+                },
+            });
+            pvpMatch.start();
+            setMatch(pvpMatch);
+        }
+    }, [isHorseOpponent, horseOpponent]);
+
+    // Matchmaking timer (only when using built-in lobby, not horse opponent path)
     useEffect(() => {
         if (view !== 'MATCHMAKING') return;
         const interval = setInterval(() => setSearchTime(t => t + 1), 1000);
@@ -120,18 +172,27 @@ export default function PvPArena({
     }, [selectedFormat, userDiamonds, onDiamondsChange]);
 
     const startMatch = useCallback(() => {
-        // Create a PvP match with a simulated opponent
-        const opponentRating = rating + Math.floor((Math.random() - 0.5) * 200);
+        // Create a PvP match — uses horse opponent if available, otherwise GTO Bot
+        const opponentId = activeHorseOpponent?.horseId || 'ai_opponent';
+        const opponentName = activeHorseOpponent?.name || 'GTO Bot';
+        const opponentRating = activeHorseOpponent?.rating || (rating + Math.floor((Math.random() - 0.5) * 200));
+
         const pvpMatch = new PvPMatch({
             matchId: `pvp_${Date.now()}`,
             format: selectedFormat,
             player1: { id: userId, name: userName, rating },
-            player2: { id: 'ai_opponent', name: 'GTO Bot', rating: opponentRating },
+            player2: {
+                id: opponentId,
+                name: opponentName,
+                rating: opponentRating,
+                isAI: !!activeHorseOpponent,
+                personality: activeHorseOpponent?.personality,
+            },
         });
         pvpMatch.start();
         setMatch(pvpMatch);
         setView('IN_MATCH');
-    }, [selectedFormat, userId, userName, rating]);
+    }, [selectedFormat, userId, userName, rating, activeHorseOpponent]);
 
     const handleMatchComplete = useCallback((result: MatchResult) => {
         setMatchResult(result);
@@ -181,6 +242,8 @@ export default function PvPArena({
                         match={match}
                         userId={userId}
                         onComplete={handleMatchComplete}
+                        isHorseOpponent={isHorseOpponent || !!activeHorseOpponent}
+                        horseOpponent={activeHorseOpponent || horseOpponent}
                     />
                 )}
 
@@ -349,7 +412,7 @@ function MatchmakingView({ format, searchTime, rating, tierColor, onCancel }: an
 // MATCH VIEW (simplified — in production this would use real-time sync)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function MatchView({ match, userId, onComplete }: any) {
+function MatchView({ match, userId, onComplete, isHorseOpponent, horseOpponent }: any) {
     const [handNum, setHandNum] = useState(1);
     const [p1Score, setP1Score] = useState(0);
     const [p2Score, setP2Score] = useState(0);
@@ -418,8 +481,8 @@ function MatchView({ match, userId, onComplete }: any) {
                 </div>
                 <div style={styles.vsLabel}>VS</div>
                 <div style={styles.playerScore}>
-                    <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: 600 }}>
-                        {match.player2.name}
+                    <div style={{ fontSize: '12px', color: isHorseOpponent ? '#a855f7' : '#ef4444', fontWeight: 600 }}>
+                        {isHorseOpponent ? `${horseOpponent?.avatar || '🐴'} ` : ''}{match.player2.name}
                     </div>
                     <div style={{ fontSize: '28px', fontWeight: 800, color: '#fff' }}>
                         {p2Score.toFixed(0)}

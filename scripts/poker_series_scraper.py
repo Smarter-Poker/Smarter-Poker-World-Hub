@@ -943,28 +943,43 @@ def _try_bravo_venue(series_uid, series_name, batch_id, session):
 
 
 # ── SOURCE 3 HELPER: CardPlayer event search ─────────────────────────────────
-def _try_cardplayer(series_uid, series_name, batch_id):
+def _try_cardplayer(series_uid, series_name, batch_id, session):
     events = []
     try:
         cp_search = urllib.parse.quote(series_name.replace("'", "")[:40])
         cp_url = f"https://www.cardplayer.com/poker-tournaments?search={cp_search}"
         log(f"      [Src 3: CardPlayer] Searching: {series_name[:35]}")
-        cp_html, cp_status, _, _ = scrapling_fetch(cp_url)
+        cp_html, cp_status, _, _ = fetch_with_retry(session, cp_url)
         
         target_path = None
         if cp_status == 200 and cp_html:
-            # Look for the exact tournament link in results
-            for match in re.finditer(r'<a href="(/poker-tournaments/\d+-?[^"]*)"', cp_html, re.I):
+            # Look for the exact tournament link in results, scoring them by relevance
+            best_score = 0
+            search_words = set(re.findall(r'[a-z]+', series_name.lower()[:50])) - {'poker','series','classic','the','of'}
+            
+            for match in re.finditer(r'href="(https://www.cardplayer.com/poker-tournaments/\d+-?([^"]*))"', cp_html, re.I):
                 path = match.group(1)
+                slug_part = match.group(2).lower()
+                
                 # Ignore generic ones
-                if 'monthly' not in path and 'daily' not in path:
+                if 'monthly' in path or 'daily' in path or slug_part == '':
+                    continue
+                    
+                path_words = set(re.findall(r'[a-z]+', slug_part))
+                overlap = len(search_words.intersection(path_words))
+                
+                # Pick highest overlap. If identical, first one wins.
+                if overlap > best_score:
+                    best_score = overlap
                     target_path = path
-                    break
+
+            if best_score == 0 and target_path is None:
+                log(f"      [Src 3: CardPlayer] No relevant matching link found")
                     
         if target_path:
-            series_url = f"https://www.cardplayer.com{target_path}"
+            series_url = target_path
             log(f"      [Src 3: CardPlayer] Found series page: {series_url}")
-            s_html, s_status, _, s_hash = scrapling_fetch(series_url)
+            s_html, s_status, _, s_hash = fetch_with_retry(session, series_url)
             if s_status == 200 and s_html and has_tourn(s_html):
                 events = extract_html_events(s_html, series_uid, series_name, batch_id, series_url, s_hash)
                 if events:
@@ -977,7 +992,7 @@ def _try_cardplayer(series_uid, series_name, batch_id):
 
 
 # ── SOURCE 4 HELPER: HendonMob event-level search ─────────────────────────────
-def _try_hendonmob(series_uid, series_name, batch_id):
+def _try_hendonmob(series_uid, series_name, batch_id, session):
     """Search HendonMob for tournament events matching this series."""
     # Clean series name for search
     clean_name = re.sub(r"[''`]", "", series_name)
@@ -990,13 +1005,13 @@ def _try_hendonmob(series_uid, series_name, batch_id):
 
     try:
         # Primary: HendonMob event search (via Scrapling Fetcher)
-        hm_html, hm_status, hm_raw, hm_hash = scrapling_fetch(hm_url)
+        hm_html, hm_status, hm_raw, hm_hash = fetch_with_retry(session, hm_url)
 
         # Fallback: try summerinvegas.com (HendonMob sister site)
         if not hm_html or hm_status != 200:
             siv_url = f"https://www.summerinvegas.com/?s={search_q}"
             log(f"      [Src 5b: SummerInVegas] Trying fallback")
-            hm_html, hm_status, hm_raw, hm_hash = scrapling_fetch(siv_url)
+            hm_html, hm_status, hm_raw, hm_hash = fetch_with_retry(session, siv_url)
             if hm_status == 200:
                 hm_url = siv_url
 
@@ -1179,7 +1194,7 @@ def scrape_series(series: dict, session, batch_id: str,
 
     # ── SOURCE 3: CardPlayer ────────────────────────────────────────────────
     if not result["found"]:
-        cp_events = _try_cardplayer(series_uid, series_name, batch_id)
+        cp_events = _try_cardplayer(series_uid, series_name, batch_id, session)
         if cp_events:
             result["events"] = cp_events
             result["found"] = True
@@ -1187,7 +1202,7 @@ def scrape_series(series: dict, session, batch_id: str,
             
     # ── SOURCE 4: HendonMob / SummerInVegas ─────────────────────────────────
     if not result["found"]:
-        hm_events = _try_hendonmob(series_uid, series_name, batch_id)
+        hm_events = _try_hendonmob(series_uid, series_name, batch_id, session)
         if hm_events:
             result["events"] = hm_events
             result["found"] = True
