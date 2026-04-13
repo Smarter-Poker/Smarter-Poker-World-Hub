@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Optional
 #!/usr/bin/env python3
 """
 poker_series_scraper.py — Poker Series Tournament Event Scraper
@@ -157,7 +159,7 @@ _PA_DAYS  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sund
 DAY_NUM   = {"Monday":0,"Tuesday":1,"Wednesday":2,"Thursday":3,
              "Friday":4,"Saturday":5,"Sunday":6}
 
-def parse_date(text: str) -> str | None:
+def parse_date(text: str) -> Optional[str]:
     now = datetime.now(timezone.utc)
     m = re.search(r"\b(20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b", text)
     if m: return m.group(0)
@@ -182,7 +184,7 @@ def parse_date(text: str) -> str | None:
             except: pass
     return None
 
-def parse_date_series(text: str, series_year: int = 0) -> str | None:
+def parse_date_series(text: str, series_year: int = 0) -> Optional[str]:
     """
     Series-aware date parser — NEVER rolls dates forward.
     Series events have fixed dates; Mar 25 2026 stays 2026 even if past.
@@ -239,7 +241,7 @@ def normalize_time(raw: str) -> str:
     if t.endswith("P"): t += "M"
     return t
 
-def normalize_time_to_24h(raw: str) -> str | None:
+def normalize_time_to_24h(raw: str) -> Optional[str]:
     """Convert '11:00am' / '6:00 PM' → '11:00:00' (24h HH:MM:SS for DB)."""
     if not raw: return None
     raw = raw.strip().upper().replace("A.M.","AM").replace("P.M.","PM")
@@ -272,7 +274,7 @@ def game_from_pa(text: str) -> str:
     if "LIMIT HOLD" in u and "NO LIMIT" not in u: return "Limit Holdem"
     return text[:50] if text else "NL Holdem"
 
-def fmt_from(text: str) -> str | None:
+def fmt_from(text: str) -> Optional[str]:
     for f,pat in [
         ("Mystery Bounty","mystery.?bounty"),("Progressive KO","progressive|PKO"),
         ("Bounty","bounty"),("Deep Stack","deep.?stack"),("Turbo","turbo"),
@@ -550,7 +552,7 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
 
     results, seen = [], set()
 
-    def _parse_rebuy(obj: dict) -> str | None:
+    def _parse_rebuy(obj: dict) -> Optional[str]:
         has_r = obj.get("hasRebuy") or obj.get("rebuy") or obj.get("reentry") or obj.get("hasReentry")
         if not has_r: return None
         rf = safe_int(obj, ["rebuyFee","rebuyAmount","reentryFee","rebuyPrice"], 0)
@@ -560,7 +562,7 @@ def extract_pa_next_data(html: str, series_uid: str, series_name: str,
         if af: parts.append(f"Addon: ${af}")
         return ", ".join(parts) if parts else "Rebuy available"
 
-    def _parse_late_reg(obj: dict) -> str | None:
+    def _parse_late_reg(obj: dict) -> Optional[str]:
         lr = obj.get("lateRegistration") or obj.get("lateReg") or obj.get("lateRegistrationLevel")
         if lr is None: return None
         return str(lr)[:80].strip()
@@ -993,6 +995,11 @@ def _try_cardplayer(series_uid, series_name, batch_id, session):
                         e_url = unique_links[i]
                         e_html, e_stat, _, _ = fetch_with_retry(session, e_url)
                         if e_stat == 200 and e_html:
+                            # Search for fee in Buy-In format like $400 + $50 or Buy-in: $1,100 ($1,000 + $100)
+                            fee_m = re.search(r"Buy-In.*?\$?[\d,]+\s*(?:\(|-\s*)?\$?[\d,]+\s*\+\s*\$?([\d,]+)", e_html, re.I | re.DOTALL)
+                            if fee_m:
+                                events[i]['fee'] = int(re.sub(r'[^\d]', '', fee_m.group(1)))
+                            
                             # Search for Starting Stack
                             stk_m = re.search(r"Starting Stack.*?([\d,]+)", e_html, re.I | re.DOTALL)
                             if stk_m:
@@ -1116,6 +1123,11 @@ def _try_hendonmob(series_uid, series_name, batch_id, session):
                     if event_url and event_counter <= 10:  # Cap deep limit
                         e_html, e_stat, _, _ = fetch_with_retry(session, event_url)
                         if e_stat == 200 and e_html:
+                            # Search for fee in HendonMob format Buy-in: $ 400 + 40
+                            fee_m = re.search(r"Buy-in[^$€£]*[$€£A-Z]*\s*[\d,]+\s*\+\s*[$€£A-Z]*\s*([\d,]+)", e_html, re.I | re.DOTALL)
+                            if fee_m:
+                                e_dict['fee'] = int(re.sub(r'[^\d]', '', fee_m.group(1)))
+                                
                             # Search for Starting Stack
                             stk_m = re.search(r"Starting Stack.*?([\d,]+)", e_html, re.I | re.DOTALL)
                             if stk_m:

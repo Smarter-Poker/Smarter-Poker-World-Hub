@@ -315,6 +315,8 @@ def sanitize_tournament_name(name: str | None) -> str | None:
         r'</script>', r'</div>', r'<script', r'type=', r'src=',
         r'data-', r'style=', r'id="', r'href=',
         r'card-kh', r'card-rank', r'card-suit',  # Playing card CSS classes
+        r'text-align', r'zn-row', r'simcal-', r'gb-text', r'calendardiv',
+        r'aria-hidden', r'tournamententry', r'container ', r'</p>',
     ]
     name_lower = name.lower()
     for pat in JUNK_PATTERNS:
@@ -324,10 +326,17 @@ def sanitize_tournament_name(name: str | None) -> str | None:
     if name.strip().endswith('\\'):
         return None
     # Reject if name is just a short artifact
-    if name.strip().lower() in ('image', 'none', 'null', 'undefined', '', 'details', 'date', 'nlh', 'plo', 'omaha'):
+    if name.strip().lower() in (
+        'image', 'none', 'null', 'undefined', '', 'details', 'date',
+        'nlh', 'plo', 'omaha', 'start', 'title', 'description',
+        'en-us', 'en_us',
+    ):
         return None
     # Reject names that are just numbers/symbols (e.g. ":315851,")
     if re.match(r'^[:\d,\s]+$', name.strip()):
+        return None
+    # Reject names starting with '>' (HTML fragment)
+    if name.strip().startswith('>'):
         return None
     return name.strip()[:200]
 
