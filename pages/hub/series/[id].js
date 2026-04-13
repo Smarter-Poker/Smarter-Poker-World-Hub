@@ -140,6 +140,15 @@ export default function SeriesDetailPage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [expandedEvent, setExpandedEvent] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'event_number', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
   // Load follow state from localStorage instantly and sync across tabs
   useEffect(() => {
@@ -343,7 +352,33 @@ export default function SeriesDetailPage() {
   const location = getLocationParts(series);
   const venueName = series.venue_name || series.venue || '';
   const sourceUrl = series.source_url || series.website || series.schedule_url || '';
-  const events = series.events || [];
+  const rawEvents = series.events || [];
+  
+  const sortEvents = (eventsToSort, config) => {
+    return [...eventsToSort].sort((a, b) => {
+      let valA = a[config.key];
+      let valB = b[config.key];
+
+      // Handle null/undefined values by pushing them to bottom
+      if (valA === null || valA === undefined) return config.direction === 'asc' ? 1 : -1;
+      if (valB === null || valB === undefined) return config.direction === 'asc' ? -1 : 1;
+
+      // Type specific sorting
+      if (config.key === 'start_date') {
+        valA = new Date(valA).getTime();
+        valB = new Date(valB).getTime();
+      } else if (config.key === 'buy_in' || config.key === 'guarantee' || config.key === 'event_number') {
+        valA = Number(valA) || 0;
+        valB = Number(valB) || 0;
+      }
+
+      if (valA < valB) return config.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return config.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const events = sortConfig.key ? sortEvents(rawEvents, sortConfig) : rawEvents;
 
   return (
     <>
@@ -587,11 +622,11 @@ export default function SeriesDetailPage() {
               <table className="events-table">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th onClick={() => handleSort('event_number')} style={{ cursor: 'pointer' }}># {sortConfig.key === 'event_number' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
                     <th>Event</th>
-                    <th>Date</th>
-                    <th>Buy-In</th>
-                    <th>GTD</th>
+                    <th onClick={() => handleSort('start_date')} style={{ cursor: 'pointer' }}>Date {sortConfig.key === 'start_date' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th onClick={() => handleSort('buy_in')} style={{ cursor: 'pointer' }}>Buy-In {sortConfig.key === 'buy_in' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                    <th onClick={() => handleSort('guarantee')} style={{ cursor: 'pointer' }}>GTD {sortConfig.key === 'guarantee' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
                     <th>Game</th>
                     <th>Stack</th>
                     <th>Format</th>
