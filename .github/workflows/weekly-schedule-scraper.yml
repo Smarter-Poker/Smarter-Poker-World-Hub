@@ -45,8 +45,10 @@ jobs:
 
       - name: Install Scrapling + dependencies
         run: |
-          pip install scrapling==0.4.2 camoufox playwright
-          playwright install chromium --with-deps
+          python -m pip install --upgrade pip
+          pip install "scrapling[all]" camoufox
+          scrapling install
+          python -m camoufox fetch
 
       - name: Install Smarter.Poker Python deps
         run: |
@@ -79,8 +81,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: |
-          pip install scrapling==0.4.2 camoufox playwright
-          playwright install chromium --with-deps
+          python -m pip install --upgrade pip
+          pip install "scrapling[all]" camoufox
+          scrapling install
+          python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
       - name: Run Batches 8–14
         env:
@@ -109,8 +113,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: |
-          pip install scrapling==0.4.2 camoufox playwright
-          playwright install chromium --with-deps
+          python -m pip install --upgrade pip
+          pip install "scrapling[all]" camoufox
+          scrapling install
+          python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
       - name: Run Batches 15–21
         env:
@@ -139,8 +145,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - run: |
-          pip install scrapling==0.4.2 camoufox playwright
-          playwright install chromium --with-deps
+          python -m pip install --upgrade pip
+          pip install "scrapling[all]" camoufox
+          scrapling install
+          python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
       - name: Run Batches 22–28
         env:

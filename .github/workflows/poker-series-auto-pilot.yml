@@ -34,8 +34,10 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install scrapling==0.4.2 camoufox playwright bs4 pdfplumber
-          playwright install chromium --with-deps
+          python -m pip install --upgrade pip
+          pip install "scrapling[all]" camoufox bs4 pdfplumber
+          scrapling install
+          python -m camoufox fetch
           if [ -f scripts/requirements.txt ]; then pip install -r scripts/requirements.txt; fi
 
       # ---------------------------------------------------------
