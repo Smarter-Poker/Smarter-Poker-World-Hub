@@ -176,6 +176,94 @@ def has_tournament_content(html: str) -> bool:
     return bool(TOURN_KEYWORDS.search(html))
 
 
+# ── GTD-vs-BuyIn Discrimination ──────────────────────────────────────────────
+# Patterns that indicate a dollar amount is a GUARANTEED amount, not a buy-in
+DOLLAR_K_RE = re.compile(r'\$(\d{1,3})\s*K\b', re.IGNORECASE)
+BUYIN_LABEL_RE = re.compile(
+    r'(?:buy[- ]?in|entry(?:\s*fee)?|registration)[:\s]*\$([\d,]+)',
+    re.IGNORECASE
+)
+
+def extract_buyin_from_block(block: str) -> tuple:
+    """Extract (buy_in, guaranteed) from a text block, correctly distinguishing the two.
+    Returns (buy_in_int_or_None, guaranteed_int_or_None)."""
+    gtd = None
+    buyin = None
+
+    # Step 1: Handle $XK shorthand → multiply by 1000
+    km = DOLLAR_K_RE.search(block)
+    if km:
+        gtd = int(km.group(1)) * 1000
+
+    # Handle "$X GTD" or "Guaranteed $X"
+    gm = re.search(r'(?:GTD|Guaranteed|guarantee)[:\s]*\$?([\d,]+)', block, re.I)
+    if gm:
+        try:
+            g_val = int(gm.group(1).replace(',', ''))
+            if g_val > 0: gtd = g_val
+        except ValueError: pass
+    gm2 = re.search(r'\$([\d,]+)\s*(?:GTD|Guaranteed)', block, re.I)
+    if gm2:
+        try:
+            g_val = int(gm2.group(1).replace(',', ''))
+            if g_val >= 1000: gtd = g_val
+        except ValueError: pass
+
+    # Step 2: Look for EXPLICIT buy-in label
+    bm = BUYIN_LABEL_RE.search(block)
+    if bm:
+        try: buyin = int(bm.group(1).replace(',', ''))
+        except ValueError: pass
+
+    # Step 3: If no explicit label, find dollar amounts that are NOT GTD
+    if buyin is None:
+        for m in re.finditer(r'\$(\d{1,3}(?:,\d{3})*)', block):
+            amt = int(m.group(1).replace(',', ''))
+            if amt < 10 or amt > 50000: continue
+            end_pos = m.end()
+            after = block[end_pos:end_pos+5].strip()
+            if after and after[0].upper() == 'K':
+                if gtd is None: gtd = amt * 1000
+                continue
+            context_start = max(0, m.start() - 5)
+            context_end = min(len(block), m.end() + 40)
+            context = block[context_start:context_end]
+            if re.search(r'(?:GTD|Guaranteed|guarantee|prize|pool|1st|first)', context, re.I):
+                if gtd is None: gtd = amt
+                continue
+            buyin = amt
+            break
+
+    if buyin is not None and (buyin < 20 or buyin > 25000):
+        buyin = None
+    return (buyin, gtd)
+
+def sanitize_tournament_name(name):
+    """Remove HTML fragments, CSS selectors, and junk from scraped tournament names."""
+    if not name: return None
+    if '<' in name or '>' in name: return None
+    JUNK = ['class=','elementor-','wix-','application/','row-unique',
+            '</script>','</div>','<script','type=','src=','data-','style=','id="','href=']
+    nl = name.lower()
+    for p in JUNK:
+        if p in nl: return None
+    if name.strip().lower() in ('image','none','null','undefined',''): return None
+    return name.strip()[:200]
+
+def game_full_name(gt):
+    NAMES = {"NLH":"No Limit Hold'em","PLO":"Pot Limit Omaha","Mixed":"Mixed Game",
+             "Stud":"Seven Card Stud","Razz":"Razz","Big-O":"Big-O","Omaha":"Pot Limit Omaha"}
+    return NAMES.get(gt, gt)
+
+def make_default_tournament_name(game_type, start_time, buy_in, fmt=None):
+    full_game = game_full_name(game_type or 'NLH')
+    prefix = f"{fmt} " if fmt else ""
+    time_str = start_time or ''
+    if buy_in:
+        return f"{prefix}{full_game} {time_str} ${buy_in} Buy In".strip()
+    return f"{prefix}{full_game} {time_str}".strip()
+
+
 def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: str) -> list:
     """
     Extract ALL tournament entries: both recurring (day_of_week) and dated (event_date).
@@ -193,12 +281,9 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
         if not 8 < len(block) < 900:
             continue
 
-        # Buy-in
-        bi = re.search(r'\$(\d{1,3}(?:,\d{3})*)', block)
-        if not bi:
-            continue
-        buyin = int(bi.group(1).replace(',', ''))
-        if not 10 <= buyin <= 50000:
+        # Use smart GTD-vs-BuyIn extraction
+        buyin, gtd_extracted = extract_buyin_from_block(block)
+        if buyin is None:
             continue
 
         # Time — required (handle 1:00 PM, 1:00p, 13:00, 11a)
@@ -237,11 +322,8 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
                 fmt = f
                 break
 
-        # Guarantee
-        gtd = None
-        gm = re.search(r'(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)', block, re.I)
-        if gm:
-            gtd = int(gm.group(1).replace(',', ''))
+        # Use GTD from extraction
+        gtd = gtd_extracted
 
         # Starting stack
         stack = None
@@ -270,11 +352,11 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
         if lrm:
             late_reg = lrm.group(1).strip()[:50]
 
-        # Tournament name
+        # Tournament name (sanitized)
         tourn_name = None
         nm = re.search(r'(?:"([^"]{4,60})"|\'([^\']{4,60})\')', block)
         if nm:
-            tourn_name = (nm.group(1) or nm.group(2))[:100]
+            tourn_name = sanitize_tournament_name((nm.group(1) or nm.group(2))[:100])
 
         dedup_key = f"{event_date or day_of_week}-{start_time}-{buyin}-{game}"
         if dedup_key in seen:
@@ -294,7 +376,7 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
             "blind_levels":   blind_lvl,
             "rebuy_addon":    rebuy_info,
             "late_registration": late_reg,
-            "tournament_name": tourn_name,
+            "tournament_name": tourn_name or make_default_tournament_name(game, start_time, buyin, fmt),
             "source_url":     source_url,
             "data_quality":   "scraped_verified",
             "scrape_html_hash":  html_hash,
@@ -315,9 +397,7 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
     for row in row_blocks:
         if '<th' in row.lower():
             continue
-        # Extract text from cell-like structures
         cells = re.findall(r'<(?:td|div|span|p|li)[^>]*>(.*?)</(?:td|div|span|p|li)>', row, re.DOTALL | re.IGNORECASE)
-        # Fallback if no deep cells found
         if len(cells) < 2:
             row_text = re.sub(r'<[^>]+>', ' ', row).strip()
         else:
@@ -327,14 +407,10 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
         if '$' not in row_text:
             continue
 
-        bi = re.search(r'\$(\d{1,3}(?:,\d{3})*)', row_text)
-        # Use our robust time regex
+        # Use smart GTD-vs-BuyIn extraction
+        buyin, gtd = extract_buyin_from_block(row_text)
         tm = re.search(r'((?:[01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|am|pm|a|p)?|\b[1-9]\d?\s*(?:AM|PM|am|pm|a|p)\b)', row_text)
-        if not bi or not tm:
-            continue
-
-        buyin = int(bi.group(1).replace(',', ''))
-        if not 10 <= buyin <= 50000:
+        if buyin is None or not tm:
             continue
             
         start_time = tm.group(1).upper().strip()
@@ -352,11 +428,6 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
         for f, pat in [("Turbo","turbo"),("Deep Stack","deep.?stack"),("Bounty","bounty"),("Satellite","satellite")]:
             if re.search(pat, row_text, re.I):
                 fmt = f; break
-
-        gtd = None
-        gm = re.search(r'(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)', row_text, re.I)
-        if gm:
-            gtd = int(gm.group(1).replace(',', ''))
 
         # Stack from table
         stack = None
@@ -384,7 +455,7 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
             "blind_levels":   None,
             "rebuy_addon":    None,
             "late_registration": None,
-            "tournament_name": None,
+            "tournament_name": make_default_tournament_name(game, start_time, buyin, fmt),
             "source_url":     source_url,
             "data_quality":   "scraped_verified",
             "scrape_html_hash":  html_hash,
@@ -409,11 +480,11 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
         if len(line) < 12 or len(line) > 300 or '$' not in line:
             continue
         tm = re.search(r'((?:[01]?\d|2[0-3]):[0-5]\d\s*(?:AM|PM|am|pm|a\.m\.|p\.m\.)?|\b[1-9]\d?\s*(?:AM|PM|am|pm)\b)', line)
-        bi = re.search(r'\$(\d{1,3}(?:,\d{3})*)', line)
-        if not tm or not bi:
+        if not tm:
             continue
-        buyin = int(bi.group(1).replace(',', ''))
-        if not 10 <= buyin <= 50000:
+        # Use smart GTD-vs-BuyIn extraction
+        buyin, gtd = extract_buyin_from_block(line)
+        if buyin is None:
             continue
         start_time = tm.group(1).upper().strip().replace('A.M.','AM').replace('P.M.','PM')
         if start_time.endswith('A'): start_time += 'M'
@@ -433,9 +504,6 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
                        ("Mystery Bounty","mystery.?bounty"),("Rebuy","rebuy"),
                        ("Turbo","turbo"),("Satellite","satellite")]:
             if re.search(pat, line, re.I): fmt = f; break
-        gtd = None
-        gm = re.search(r'(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)', line, re.I)
-        if gm: gtd = int(gm.group(1).replace(',',''))
         dedup_key = f"{event_date or day_of_week}-{start_time}-{buyin}-{game}"
         if dedup_key in seen:
             continue
@@ -445,7 +513,8 @@ def extract_tournaments(html: str, venue_name: str, source_url: str, html_hash: 
             "event_date": event_date, "start_time": start_time, "buy_in": buyin,
             "game_type": game, "format": fmt, "guaranteed": gtd,
             "starting_stack": None, "blind_levels": None, "rebuy_addon": None,
-            "late_registration": None, "tournament_name": None,
+            "late_registration": None,
+            "tournament_name": make_default_tournament_name(game, start_time, buyin, fmt),
             "source_url": source_url, "data_quality": "scraped_verified",
             "scrape_html_hash": html_hash, "scrape_timestamp": ts_now,
             "scrape_batch_id": BATCH_ID, "scrape_confidence": "medium",

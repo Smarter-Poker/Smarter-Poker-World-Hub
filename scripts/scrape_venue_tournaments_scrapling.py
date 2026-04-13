@@ -57,6 +57,78 @@ DAY_ABBR = {
     "daily": "Daily", "everyday": "Daily", "every day": "Daily"
 }
 
+# ── GTD-vs-BuyIn Discrimination ──────────────────────────────────────────────
+DOLLAR_K_RE = re.compile(r'\$(\d{1,3})\s*K\b', re.IGNORECASE)
+BUYIN_LABEL_RE = re.compile(
+    r'(?:buy[- ]?in|entry(?:\s*fee)?|registration)[:\s]*\$([\d,]+)',
+    re.IGNORECASE
+)
+
+def extract_buyin_from_block(block: str) -> tuple:
+    """Extract (buy_in, guaranteed) from a text block, correctly distinguishing the two."""
+    gtd = None
+    buyin = None
+    km = DOLLAR_K_RE.search(block)
+    if km: gtd = int(km.group(1)) * 1000
+    gm = re.search(r'(?:GTD|Guaranteed|guarantee)[:\s]*\$?([\d,]+)', block, re.I)
+    if gm:
+        try:
+            g_val = int(gm.group(1).replace(',', ''))
+            if g_val > 0: gtd = g_val
+        except ValueError: pass
+    gm2 = re.search(r'\$([\d,]+)\s*(?:GTD|Guaranteed)', block, re.I)
+    if gm2:
+        try:
+            g_val = int(gm2.group(1).replace(',', ''))
+            if g_val >= 1000: gtd = g_val
+        except ValueError: pass
+    bm = BUYIN_LABEL_RE.search(block)
+    if bm:
+        try: buyin = int(bm.group(1).replace(',', ''))
+        except ValueError: pass
+    if buyin is None:
+        for m in re.finditer(r'\$(\d{1,3}(?:,\d{3})*)', block):
+            amt = int(m.group(1).replace(',', ''))
+            if amt < 10 or amt > 50000: continue
+            end_pos = m.end()
+            after = block[end_pos:end_pos+5].strip()
+            if after and after[0].upper() == 'K':
+                if gtd is None: gtd = amt * 1000
+                continue
+            ctx_s, ctx_e = max(0, m.start()-5), min(len(block), m.end()+40)
+            context = block[ctx_s:ctx_e]
+            if re.search(r'(?:GTD|Guaranteed|guarantee|prize|pool|1st|first)', context, re.I):
+                if gtd is None: gtd = amt
+                continue
+            buyin = amt
+            break
+    if buyin is not None and (buyin < 20 or buyin > 25000): buyin = None
+    return (buyin, gtd)
+
+def sanitize_tournament_name(name):
+    if not name: return None
+    if '<' in name or '>' in name: return None
+    JUNK = ['class=','elementor-','wix-','application/','row-unique',
+            '</script>','</div>','<script','type=','src=','data-','style=']
+    nl = name.lower()
+    for p in JUNK:
+        if p in nl: return None
+    if name.strip().lower() in ('image','none','null','undefined',''): return None
+    return name.strip()[:200]
+
+def game_full_name(gt):
+    NAMES = {"NLH":"No Limit Hold'em","PLO":"Pot Limit Omaha","Mixed":"Mixed Game",
+             "Stud":"Seven Card Stud","Big-O":"Big-O","Omaha":"Pot Limit Omaha"}
+    return NAMES.get(gt, gt)
+
+def make_default_tournament_name(game_type, start_time, buy_in, fmt=None):
+    full_game = game_full_name(game_type or 'NLH')
+    prefix = f"{fmt} " if fmt else ""
+    time_str = start_time or ''
+    if buy_in:
+        return f"{prefix}{full_game} {time_str} ${buy_in} Buy In".strip()
+    return f"{prefix}{full_game} {time_str}".strip()
+
 
 def extract_tournaments_from_html(html: str, venue_name: str) -> list:
     """
@@ -72,19 +144,15 @@ def extract_tournaments_from_html(html: str, venue_name: str) -> list:
     text = re.sub(r"\s+", " ", text)
 
     # Strategy 1: Find blocks containing both $ amounts and times
-    # Split on dollar signs to find tournament blocks
     blocks = re.split(r"(?=\$\d)", text)
 
     for block in blocks:
         if len(block) > 600 or len(block) < 10:
             continue
 
-        # Extract buy-in
-        buyin_match = re.search(r"\$(\d{1,3}(?:,\d{3})*)", block)
-        if not buyin_match:
-            continue
-        buyin = int(buyin_match.group(1).replace(",", ""))
-        if buyin < 10 or buyin > 50000:
+        # Use smart GTD-vs-BuyIn extraction
+        buyin, gtd = extract_buyin_from_block(block)
+        if buyin is None:
             continue
 
         # Extract time
@@ -135,17 +203,11 @@ def extract_tournaments_from_html(html: str, venue_name: str) -> list:
         elif re.search(r"rebuy", block, re.IGNORECASE):
             fmt = "Rebuy"
 
-        # Extract guaranteed
-        gtd = None
-        gtd_match = re.search(r"(?:GTD|Guaranteed|guarantee)[:\s]*\$?([\d,]+)", block, re.IGNORECASE)
-        if gtd_match:
-            gtd = int(gtd_match.group(1).replace(",", ""))
-
         # Extract tournament name (look for named events)
         name_match = re.search(r"(?:\"([^\"]+)\"|'([^']+)')", block)
         tourn_name = None
         if name_match:
-            tourn_name = name_match.group(1) or name_match.group(2)
+            tourn_name = sanitize_tournament_name(name_match.group(1) or name_match.group(2))
 
         tournaments.append({
             "venue_name": venue_name,
@@ -155,7 +217,7 @@ def extract_tournaments_from_html(html: str, venue_name: str) -> list:
             "game_type": game_type,
             "format": fmt,
             "guaranteed": gtd,
-            "tournament_name": tourn_name,
+            "tournament_name": tourn_name or make_default_tournament_name(game_type, start_time, buyin, fmt),
         })
 
     # Strategy 2: Look for table rows with tournament data
@@ -171,13 +233,10 @@ def extract_tournaments_from_html(html: str, venue_name: str) -> list:
         if "$" not in row_text:
             continue
 
-        buyin_match = re.search(r"\$(\d{1,3}(?:,\d{3})*)", row_text)
+        # Use smart GTD-vs-BuyIn extraction
+        buyin, gtd = extract_buyin_from_block(row_text)
         time_match = re.search(r"(\d{1,2}:\d{2}\s*(?:AM|PM)?)", row_text, re.IGNORECASE)
-        if not buyin_match or not time_match:
-            continue
-
-        buyin = int(buyin_match.group(1).replace(",", ""))
-        if buyin < 10 or buyin > 50000:
+        if buyin is None or not time_match:
             continue
 
         start_time = time_match.group(1).upper().replace(" ", "")
@@ -204,11 +263,6 @@ def extract_tournaments_from_html(html: str, venue_name: str) -> list:
         elif re.search(r"satellite", row_text, re.IGNORECASE):
             fmt = "Satellite"
 
-        gtd = None
-        gtd_match = re.search(r"(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)", row_text, re.IGNORECASE)
-        if gtd_match:
-            gtd = int(gtd_match.group(1).replace(",", ""))
-
         tournaments.append({
             "venue_name": venue_name,
             "day_of_week": day,
@@ -217,7 +271,7 @@ def extract_tournaments_from_html(html: str, venue_name: str) -> list:
             "game_type": game_type,
             "format": fmt,
             "guaranteed": gtd,
-            "tournament_name": None,
+            "tournament_name": make_default_tournament_name(game_type, start_time, buyin, fmt),
         })
 
     # Deduplicate

@@ -188,12 +188,152 @@ def game_from(text: str) -> str:
     if "BIG-O" in u or "BIG O" in u: return "Big-O"
     return "NLH"
 
+def game_full_name(game_type: str) -> str:
+    """Convert game type abbreviation to full human-readable name."""
+    NAMES = {
+        "NLH": "No Limit Hold'em", "PLO": "Pot Limit Omaha",
+        "Mixed": "Mixed Game", "Stud": "Seven Card Stud",
+        "Razz": "Razz", "Big-O": "Big-O",
+        "Limit Holdem": "Limit Hold'em",
+    }
+    return NAMES.get(game_type, game_type)
+
 def fmt_from(text: str) -> str | None:
     for f,pat in [("Mystery Bounty","mystery.?bounty"),("Progressive KO","progressive|PKO"),
                   ("Bounty","bounty"),("Deep Stack","deep.?stack"),("Turbo","turbo"),
                   ("Rebuy","rebuy"),("Freezeout","freezeout"),("Satellite","satellite")]:
         if re.search(pat, text, re.I): return f
     return None
+
+# ── GTD-vs-BuyIn Discrimination ──────────────────────────────────────────────
+# The scraper was capturing guaranteed prize pool amounts ($15K GTD → buy_in=15)
+# as buy-in values. These helpers distinguish the two.
+
+# Patterns that indicate a dollar amount is a GUARANTEED amount, not a buy-in
+GTD_CONTEXT_RE = re.compile(
+    r'\$\d[\d,]*\s*K?\s*(?:GTD|Guaranteed|guarantee|prize\s*pool|first\s*place|1st\s*place)',
+    re.IGNORECASE
+)
+# Pattern: "$15K" (shorthand for $15,000 guaranteed)
+DOLLAR_K_RE = re.compile(r'\$(\d{1,3})\s*K\b', re.IGNORECASE)
+# Pattern: explicit buy-in label
+BUYIN_LABEL_RE = re.compile(
+    r'(?:buy[- ]?in|entry(?:\s*fee)?|registration)[:\s]*\$([\d,]+)',
+    re.IGNORECASE
+)
+
+def extract_buyin_from_block(block: str) -> tuple:
+    """Extract (buy_in, guaranteed) from a text block, correctly distinguishing the two.
+    Returns (buy_in_int_or_None, guaranteed_int_or_None)."""
+    gtd = None
+    buyin = None
+
+    # Step 1: Extract guaranteed amount (look for "$XK GTD" or "$X,000 GTD" patterns)
+    # Handle $XK shorthand → multiply by 1000
+    km = DOLLAR_K_RE.search(block)
+    if km:
+        gtd = int(km.group(1)) * 1000
+
+    # Handle "GTD $X" or "Guaranteed $X" or "$X GTD"
+    gm = re.search(r'(?:GTD|Guaranteed|guarantee)[:\s]*\$?([\d,]+)', block, re.I)
+    if gm:
+        try:
+            g_val = int(gm.group(1).replace(',', ''))
+            if g_val > 0:
+                gtd = g_val
+        except ValueError:
+            pass
+    # Also: "$X,000 GTD" where the full number is before GTD
+    gm2 = re.search(r'\$([\d,]+)\s*(?:GTD|Guaranteed)', block, re.I)
+    if gm2:
+        try:
+            g_val = int(gm2.group(1).replace(',', ''))
+            if g_val >= 1000:
+                gtd = g_val
+        except ValueError:
+            pass
+
+    # Step 2: Look for EXPLICIT buy-in label (strongest signal)
+    bm = BUYIN_LABEL_RE.search(block)
+    if bm:
+        try:
+            buyin = int(bm.group(1).replace(',', ''))
+        except ValueError:
+            pass
+
+    # Step 3: If no explicit label, find dollar amounts that are NOT GTD
+    if buyin is None:
+        for m in re.finditer(r'\$(\d{1,3}(?:,\d{3})*)', block):
+            amt = int(m.group(1).replace(',', ''))
+            if amt < 10 or amt > 50000:
+                continue
+
+            # Check if this specific $ amount is followed by K (shorthand for thousands)
+            end_pos = m.end()
+            after = block[end_pos:end_pos+5].strip()
+            if after and after[0].upper() == 'K':
+                # This is a "$XK" shorthand (GTD), not a buy-in
+                if gtd is None:
+                    gtd = amt * 1000
+                continue
+
+            # Check if this $ amount is immediately near GTD/Guaranteed context
+            context_start = max(0, m.start() - 5)
+            context_end = min(len(block), m.end() + 40)
+            context = block[context_start:context_end]
+            if re.search(r'(?:GTD|Guaranteed|guarantee|prize|pool|1st|first)', context, re.I):
+                # This amount is associated with a guarantee — skip as buy-in
+                if gtd is None:
+                    try:
+                        gtd = amt
+                    except:
+                        pass
+                continue
+
+            # This dollar amount is NOT near a GTD keyword — likely a buy-in
+            buyin = amt
+            break  # Take the first non-GTD amount
+
+    # Sanity check: buy-in should be reasonable ($20-$25,000 for real tournaments)
+    if buyin is not None and (buyin < 20 or buyin > 25000):
+        # Values outside this range are almost certainly not buy-ins
+        # $10-$19 are likely blind levels; $25,000+ are likely GTD amounts
+        buyin = None
+
+    return (buyin, gtd)
+
+def sanitize_tournament_name(name: str | None) -> str | None:
+    """Remove HTML fragments, CSS selectors, and junk from scraped tournament names."""
+    if not name:
+        return None
+    # Reject names containing HTML tags
+    if '<' in name or '>' in name:
+        return None
+    # Reject CSS/DOM selectors and class names
+    JUNK_PATTERNS = [
+        r'class=', r'elementor-', r'wix-', r'application/', r'row-unique',
+        r'</script>', r'</div>', r'<script', r'type=', r'src=',
+        r'data-', r'style=', r'id="', r'href=',
+    ]
+    name_lower = name.lower()
+    for pat in JUNK_PATTERNS:
+        if pat in name_lower:
+            return None
+    # Reject if name is just "image" or similar DOM artifact
+    if name.strip().lower() in ('image', 'none', 'null', 'undefined', ''):
+        return None
+    return name.strip()[:200]
+
+def make_default_tournament_name(game_type: str, start_time: str, buy_in, fmt: str = None) -> str:
+    """Generate a descriptive default name when no tournament name was scraped.
+    Format: 'No Limit Hold'em 2:00 PM $100 Buy In'"""
+    full_game = game_full_name(game_type or 'NLH')
+    prefix = f"{fmt} " if fmt else ""
+    time_str = start_time or ''
+    if buy_in:
+        return f"{prefix}{full_game} {time_str} ${buy_in} Buy In".strip()
+    else:
+        return f"{prefix}{full_game} {time_str}".strip()
 
 TOURN_KW = re.compile(
     r"tournament|tourney|buy.?in|\$\d{2,}.*?(?:buy|entry)|bounty|freeroll|"
@@ -329,7 +469,7 @@ def make_rec(venue_name:str, venue_id, batch_id:str, day:str, event_date,
         "structure_sheet_url": struct_url,
         "age_requirement": None,
         "timezone": tz or STATE_TZ.get(state, "America/New_York"),
-        "tournament_name": tournament_name[:200] if tournament_name else f"${buy_in} {game_type}",
+        "tournament_name": sanitize_tournament_name(tournament_name) or make_default_tournament_name(game_type, start_time, buy_in, fmt),
         "source_url": source_url,
         "scrape_html_hash": html_hash,
         "scrape_timestamp": ts,
@@ -413,18 +553,14 @@ def extract_html(html:str, venue_name:str, vid, batch_id:str, source_url:str, sr
     seen, results = set(), []
 
     def try_block(txt: str):
-        bi = BUY_RE.search(txt); tm = TIME_RE.search(txt)
-        if not bi or not tm: return
-        buyin = int(bi.group(1).replace(",",""))
-        if not 10<=buyin<=50000: return
+        tm = TIME_RE.search(txt)
+        if not tm: return
+        # Use smart GTD-vs-BuyIn extraction instead of grabbing first $ amount
+        buyin, gtd = extract_buyin_from_block(txt)
+        if buyin is None: return  # No valid buy-in found — skip this block
         st = normalize_time(tm.group(1))
         ed = parse_date(txt)
         day = normalize_day(txt) if not ed else None
-        gtd = None
-        gm = re.search(r"(?:GTD|Guaranteed)[:\s]*\$?([\d,]+)",txt,re.I)
-        if gm:
-            try: gtd=int(gm.group(1).replace(",",""))
-            except: pass
         stack = None
         sm = re.search(r"(?:stack|chips)[:\s]*([0-9,]+)",txt,re.I)
         if sm:
