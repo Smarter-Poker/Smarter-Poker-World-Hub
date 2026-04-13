@@ -385,6 +385,7 @@ export default function PokerSeriesPage() {
             .then(r => r.json())
             .then(json => {
                 if (!isMounted) return;
+                const raw = json.data || json.series || [];
                 const filtered = raw.filter(s => {
                     const et = (s.entity_type || s.record_type || '').toLowerCase();
                     const eventCount = s.total_events || s.events_count || s.event_count || 0;
