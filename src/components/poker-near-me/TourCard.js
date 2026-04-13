@@ -35,6 +35,7 @@ function formatMoney(amount) {
     if (amount === null || amount === undefined || amount === '') return '';
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(num)) return '';
+    if (num === 0) return 'Free'; // BUG FIX: freerolls show 'Free' not '$0'
     if (num >= 1000000) return '$' + (num / 1000000).toFixed(0) + 'M';
     if (num >= 1000) return '$' + (num / 1000).toFixed(0) + 'K';
     return '$' + num.toLocaleString();
@@ -124,9 +125,14 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                 {tour.established && <span className="established">Est. {tour.established}</span>}
                 <div className="card-actions">
                     <span className="action-btn primary">Details</span>
-                    {(tour.official_website || tour.website) && (
-                        <a href={(() => { const w = tour.official_website || tour.website; return w.startsWith('http') ? w : 'https://' + w; })()} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Website</a>
-                    )}
+                    {(tour.official_website || tour.website) && (() => {
+                        // BUG FIX: Sanitize URL — block javascript: protocol XSS
+                        const raw = tour.official_website || tour.website;
+                        const trimmed = (raw || '').trim().toLowerCase();
+                        if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) return null;
+                        const href = raw.startsWith('http') ? raw : 'https://' + raw;
+                        return <a href={href} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Website</a>;
+                    })()}
                 </div>
             </div>
         </div>

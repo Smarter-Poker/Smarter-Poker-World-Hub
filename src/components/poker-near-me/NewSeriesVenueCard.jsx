@@ -1,5 +1,25 @@
 import React from 'react';
-import { TourBadge, formatDate, formatMoney } from './TourCard';
+import { TourBadge, formatDate } from './TourCard';
+
+// BUG FIX: Use local formatMoney so freerolls (amount=0) show 'Free' not '$0'
+// TourCard's formatMoney(0) returns '$0' — this one is correct
+function formatMoney(amount) {
+    if (amount === null || amount === undefined || amount === '') return '';
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(num)) return '';
+    if (num === 0) return 'Free'; // freerolls
+    if (num >= 1000000) return '$' + (num / 1000000).toFixed(0) + 'M';
+    if (num >= 1000) return '$' + (num / 1000).toFixed(0) + 'K';
+    return '$' + num.toLocaleString();
+}
+
+// BUG FIX: Sanitize URLs to block javascript: protocol XSS vectors
+function safeHref(url) {
+    if (!url || typeof url !== 'string') return null;
+    const trimmed = url.trim().toLowerCase();
+    if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) return null;
+    return url;
+}
 
 /**
  * NewSeriesVenueCard - Premium Metal Series Card
@@ -9,10 +29,22 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
     if (!s) return null;
     
     const isVenueEntry = s.venue_type === 'series'; // Legacy compat
-    const detailUrl = '/hub/series/' + (s.series_code || s.id || (index + 1));
+    
+    // BUG FIX: detailUrl now uses series_uid (stable) or numeric id only.
+    // NEVER use s.series_code — it can be a string slug like 'WSOP-2026' → /hub/series/WSOP-2026
+    // which fails the API's parseInt guard and returns 400.
+    // Fallback to (index + 1) only if index is a valid number.
+    const numericId = Number.isInteger(s.id) ? s.id : null;
+    const safeIndex = Number.isFinite(index) ? index + 1 : null;
+    const detailId = numericId || safeIndex || '';
+    const detailUrl = detailId ? '/hub/series/' + detailId : '/hub/poker-series';
+
     const shortCode = s.tour_code || s.tour || s.short_name || (s.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'SER';
     const displayLocation = s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD');
     const isNew = s.is_new || s.is_featured;
+
+    // BUG FIX: sanitize source_url/website before using as href
+    const externalUrl = safeHref(s.source_url || s.website);
 
     return (
         <div className="metal-series-card" onClick={() => onNavigate && onNavigate(detailUrl)}>
@@ -62,8 +94,8 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                 
                 <div className="series-tags">
                     {(s.events_count || s.total_events) > 0 && <span className="series-tag">{s.events_count || s.total_events} Events</span>}
-                    {s.main_event_buyin && <span className="series-tag">{formatMoney(s.main_event_buyin)} Main</span>}
-                    {(s.total_guaranteed || s.main_event_guaranteed) && <span className="series-tag" style={{ color: '#fbbf24', borderColor: 'rgba(251,191,36,0.3)' }}>{formatMoney(s.total_guaranteed || s.main_event_guaranteed)} GTD</span>}
+                    {s.main_event_buyin != null && <span className="series-tag">{formatMoney(s.main_event_buyin)} Main</span>}
+                    {(s.total_guaranteed || s.main_event_guaranteed) != null && <span className="series-tag" style={{ color: '#fbbf24', borderColor: 'rgba(251,191,36,0.3)' }}>{formatMoney(s.total_guaranteed || s.main_event_guaranteed)} GTD</span>}
                     {isNew && <span className="series-tag" style={{ color: '#00D4FF', borderColor: 'rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.1)' }}>NEW ADDITION</span>}
                 </div>
             </div>
@@ -73,9 +105,9 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
                     <button className="hex-btn-small" onClick={(e) => { e.stopPropagation(); onNavigate && onNavigate(detailUrl); }}>
                         View Events
                     </button>
-                    {(s.source_url || s.website) && (
+                    {externalUrl && (
                         <a 
-                            href={s.source_url || s.website} 
+                            href={externalUrl} 
                             target="_blank" 
                             rel="noopener noreferrer" 
                             className="hex-btn-small" 
