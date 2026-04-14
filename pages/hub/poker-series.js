@@ -149,18 +149,23 @@ function deriveSeriesCategory(seriesName, city) {
 }
 
 function isSeriesLive(start, end) {
-    if (!start || !end) return false;
+    if (!start) return false;
     const now = new Date();
-    const s = new Date(start + 'T00:00:00');
-    const e = new Date(end + 'T23:59:59');
+    const startMs = Date.parse(start + 'T00:00:00');
+    if (isNaN(startMs)) return false;
+    const s = new Date(startMs);
+    const endMs = end ? Date.parse(end + 'T23:59:59') : startMs;
+    const e = new Date(isNaN(endMs) ? startMs : endMs);
     return now >= s && now <= e;
 }
 
 function isSeriesUpcoming(start, daysAhead = 60) {
     if (!start) return false;
+    const startMs = Date.parse(start + 'T00:00:00');
+    if (isNaN(startMs)) return false;
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const s = new Date(start + 'T00:00:00');
+    const s = new Date(startMs);
     const cutoff = new Date(now);
     cutoff.setDate(cutoff.getDate() + daysAhead);
     return s > now && s <= cutoff;
@@ -440,8 +445,16 @@ export default function PokerSeriesPage() {
                         uidSeen.set(uid, s);
                     } else if (nameKey) {
                         // No uid — dedup by exact name only
-                        if (nameSeen.has(nameKey)) continue;
-                        nameSeen.set(nameKey, true);
+                        if (nameSeen.has(nameKey)) {
+                            const existing = nameSeen.get(nameKey);
+                            if (scoreRecord(s) > scoreRecord(existing)) {
+                                const idx = data.indexOf(existing);
+                                if (idx !== -1) data.splice(idx, 1, s);
+                                nameSeen.set(nameKey, s);
+                            }
+                            continue;
+                        }
+                        nameSeen.set(nameKey, s);
                     }
                     data.push(s);
                 }
@@ -742,6 +755,7 @@ export default function PokerSeriesPage() {
                 trust_score: 5,
                 is_open: live,
                 // Series-specific metadata for popups
+                detailUrl: series.id ? `/hub/series/${series.id}` : null,
                 series_start: series.start_date,
                 series_end: series.end_date,
                 dates: series.start_date && series.end_date

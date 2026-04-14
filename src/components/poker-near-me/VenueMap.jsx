@@ -541,9 +541,9 @@ function buildPopupHtml(venue) {
   const trust = getTrustLevel(venue.trust_score);
   const colors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
   const typeBadge = VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type || '';
-  const detailPath = venue.is_social_page
+  const detailPath = venue.detailUrl || (venue.is_social_page
     ? '/club/' + venue.social_page_id
-    : '/hub/venues/' + venue.id;
+    : '/hub/venues/' + venue.id);
   
   const games = (venue.games_offered || []).slice(0, 3).join(', ');
   const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
