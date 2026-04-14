@@ -900,6 +900,7 @@ export default async function handler(req, res) {
                       .select('*')
                       .eq('venue_id', parseInt(id, 10))
                       .eq('is_active', true)
+                      .or('is_suppressed.is.null,is_suppressed.eq.false')
                       .order('day_of_week')
                       .limit(100);
 
@@ -1010,7 +1011,8 @@ export default async function handler(req, res) {
                           .select('venue_id')
                           .in('venue_id', seriesResultIds)
                           .eq('day_of_week', todayKey)
-                          .eq('is_active', true);
+                          .eq('is_active', true)
+                          .or('is_suppressed.is.null,is_suppressed.eq.false');
                           
                       if (todaySeriesTournaments) {
                           todaySeriesTournaments.forEach(t => activeSeriesIds.add(t.venue_id));
@@ -1100,6 +1102,7 @@ export default async function handler(req, res) {
                               .select('venue_id, venue_name, day_of_week, start_time, buy_in, tournament_name, starting_stack')
                               .in('venue_id', charityIds)
                               .eq('is_active', true)
+                              .or('is_suppressed.is.null,is_suppressed.eq.false')
                           : Promise.resolve({ data: [] }),
                       charityNames.length > 0
                           ? getSupabase()
@@ -1108,6 +1111,7 @@ export default async function handler(req, res) {
                               .is('venue_id', null)
                               .in('venue_name', charityNames)
                               .eq('is_active', true)
+                              .or('is_suppressed.is.null,is_suppressed.eq.false')
                           : Promise.resolve({ data: [] }),
                   ]);
 
@@ -1252,6 +1256,7 @@ export default async function handler(req, res) {
                           .select('venue_id, day_of_week, start_time, buy_in, tournament_name, game_type, guaranteed')
                           .in('venue_id', regularIds)
                           .eq('is_active', true)
+                          .or('is_suppressed.is.null,is_suppressed.eq.false')
                           .order('start_time', { ascending: true });
 
                       if (regTours && regTours.length > 0) {

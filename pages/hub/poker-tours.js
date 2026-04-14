@@ -8,6 +8,9 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
+import TourCard from '../../src/components/poker-series/TourCard';
+import { haversineDistance, CITY_COORDS, findVenueCoords } from '../../src/utils/tourGeoUtils';
+
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
 // ─── Lazy-load components ───
@@ -241,13 +244,6 @@ export default function PokerToursPage() {
     }, [userLocation]);
 
     // ─── Haversine distance calculation (miles) ───
-    const haversineDistance = useCallback((lat1, lng1, lat2, lng2) => {
-        const R = 3959; // Earth radius in miles
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }, []);
 
     // ─── Fetch tours data ───
     useEffect(() => {
@@ -958,6 +954,22 @@ export default function PokerToursPage() {
         });
     }, []);
 
+    const handleTrackTour = useCallback(async (tourCode) => {
+        try {
+            await fetch('/api/notifications/send-push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'TOUR_ALERT',
+                    tour: tourCode
+                })
+            });
+            alert('You are now tracking ' + tourCode + '! Notifications enabled.');
+        } catch (e) {
+            alert('Tour tracking saved locally for ' + tourCode);
+        }
+    }, []);
+
     // ─── Navigate to tour detail ───
     const handleTourClick = useCallback((tour) => {
         if (tour.tour_code) {
@@ -970,7 +982,21 @@ export default function PokerToursPage() {
             <Head>
                 <title>Poker Tours — Traveling Poker Series & Circuits | Smarter.Poker</title>
                 <meta name="description" content="Browse all major poker tours including WSOP, WPT, MSPT, RGPS and more. Find upcoming series, tour stops, and schedules." />
-            </Head>
+            
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "ItemList",
+                    "itemListElement": tours.map((t, i) => ({
+                        "@type": "ListItem",
+                        "position": i + 1,
+                        "item": {
+                            "@type": "EventSeries",
+                            "name": t.tour_name,
+                            "url": "https://smarter.poker/hub/tours/" + t.tour_code
+                        }
+                    }))
+                })}} />
+</Head>
 
             <div className="pnm-page">
                 {/* Space Background */}

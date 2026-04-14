@@ -142,6 +142,7 @@ export default async function handler(req, res) {
                   is_active
               `)
               .eq('is_active', true)
+              .or('is_suppressed.is.null,is_suppressed.eq.false')
               .eq('data_quality', 'scraped_verified')
               .order('buy_in', { ascending: true });
 

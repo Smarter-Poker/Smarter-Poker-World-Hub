@@ -286,7 +286,7 @@ export default async function handler(req, res) {
         let dq = sb.from('venue_daily_tournaments')
           .select('venue_id, venue_name, day_of_week, start_time, buy_in, game_type, tournament_name, guaranteed, starting_stack, format, event_date, is_recurring')
           .eq('is_active', true)
-          .eq('is_suppressed', false);
+          .or('is_suppressed.is.null,is_suppressed.eq.false');
 
         if (minBuyin) dq = dq.gte('buy_in', parseInt(minBuyin));
         if (maxBuyin) dq = dq.lte('buy_in', parseInt(maxBuyin));

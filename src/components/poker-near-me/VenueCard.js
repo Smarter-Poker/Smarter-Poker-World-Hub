@@ -761,9 +761,9 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
                                         {/* Show today tournaments: cap at 2, show +N More badge if there are more */}
                                         {(() => {
-                                            const allToday = Array.isArray(venue.today_tournaments) && venue.today_tournaments.length > 1
+                                            const allToday = (Array.isArray(venue.today_tournaments) && venue.today_tournaments.length > 1
                                                 ? venue.today_tournaments
-                                                : [venue.today_event];
+                                                : [venue.today_event]).filter(evt => evt && !evt.is_suppressed);
                                             const shown = allToday.slice(0, 2);
                                             const extraCount = allToday.length - shown.length;
                                             return (
@@ -850,7 +850,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                     </div>
                                 ) : hasRegularToday ? (
                                     <div className="vc3-list-scrollable vc3-list-scrollable-tourneys">
-                                        {venue.daily_tournaments.slice(0, 3).map((t, idx) => {
+                                        {venue.daily_tournaments.filter(t => !t?.is_suppressed).slice(0, 3).map((t, idx) => {
                                             const tName = t?.tournament_name || t?.name || 'Tournament';
                                             return (
                                                 <div key={`daily-tourney-${t?.id || tName.replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-tourney-item">
