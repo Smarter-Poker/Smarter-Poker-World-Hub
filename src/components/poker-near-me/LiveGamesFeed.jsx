@@ -214,7 +214,19 @@ export default function LiveGamesFeed({
     const effectiveLocation = userLocation || restoredLocation;
     
     const [filterState, setFilterState] = useState(savedFilters.filterState || 'all');
-    const [filterRadius, setFilterRadius] = useState(savedFilters.filterRadius || 'any');
+    // When location is available and no radius was explicitly saved by the user, default to 50mi
+    // This prevents the feed from showing all 239+ global venues when the user expects local results
+    const [filterRadius, setFilterRadius] = useState(() => {
+        if (savedFilters.filterRadius && savedFilters.filterRadius !== 'any') {
+            return savedFilters.filterRadius; // Respect explicit user preference
+        }
+        // If location is available (via prop or localStorage), default to 50mi
+        const hasLocation = !!(userLocation) || !!(typeof window !== 'undefined' && (
+            localStorage.getItem('sp-user-gps') ||
+            (localStorage.getItem('pnm_last_location') && localStorage.getItem('pnm_location_enabled') === '1')
+        ));
+        return hasLocation ? '50' : 'any';
+    });
     const [filterSort, setFilterSort] = useState(savedFilters.filterSort || 'distance');
     const [filterGameType, setFilterGameType] = useState(savedFilters.filterGameType || 'all');
     const [filterStakes, setFilterStakes] = useState(savedFilters.filterStakes || 'any');
@@ -223,6 +235,17 @@ export default function LiveGamesFeed({
     useEffect(() => {
         saveFilters('lgf', { mapExpanded, filterState, filterRadius, filterSort, filterGameType, filterStakes });
     }, [mapExpanded, filterState, filterRadius, filterSort, filterGameType, filterStakes]);
+
+    // ─── AUTO-APPLY LOCAL RADIUS when location becomes available ───
+    // If filterRadius is still 'any' but we now have a location, snap to 50mi
+    // This handles the case where location resolves after mount (GPS callback)
+    const locationAppliedRef = useRef(false);
+    useEffect(() => {
+        if (effectiveLocation && filterRadius === 'any' && !locationAppliedRef.current) {
+            locationAppliedRef.current = true;
+            setFilterRadius('50');
+        }
+    }, [effectiveLocation, filterRadius]);
     
     // Single Venue drill-down (from autocomplete or clicking a card)
     const [searchQuery, setSearchQuery] = useState('');
