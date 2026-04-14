@@ -38,6 +38,14 @@ const formatTime = (t) => {
     return `${h}:${min} ${period}`;
 };
 
+function safeHref(url) {
+    if (!url) return '';
+    const cleanUrl = String(url).replace(/[\x00-\x20]/g, '');
+    const lower = cleanUrl.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return '#';
+    return cleanUrl;
+}
+
 const VENUE_TYPE_LABELS = {
     casino: 'Casino',
     card_room: 'Poker Club',
@@ -495,11 +503,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                     <div className="vc3-host-info">
                         <span className="vc3-host-name">Hosted By {venue.host_display_name}</span>
                         {venue.host_username && (
-                            <a href={'/hub/user/' + venue.host_username} onClick={e => e.stopPropagation()} className="vc3-host-profile-link">@{venue.host_username}</a>
+                            <a href={'/hub/user/' + encodeURIComponent(venue.host_username)} onClick={e => e.stopPropagation()} className="vc3-host-profile-link">@{venue.host_username}</a>
                         )}
                     </div>
                     {venue.host_social_page_slug && (
-                        <a href={'/social/@' + venue.host_social_page_slug} onClick={e => e.stopPropagation()} className="vc3-host-link">View Page</a>
+                        <a href={'/social/@' + encodeURIComponent(venue.host_social_page_slug)} onClick={e => e.stopPropagation()} className="vc3-host-link">View Page</a>
                     )}
                 </div>
             )}
@@ -634,7 +642,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             const buyin = g?.buyin ? ` · ${g.buyin}` : '';
                                             const displayName = `${gameName}${buyin}`;
                                             return (
-                                                <div key={idx} className="vc3-list-item vc3-game-item">
+                                                <div key={`live-game-${gameName.replace(/\\s+/g,'-')}-${buyin.replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-game-item">
                                                     <span className="vc3-game-name" title={displayName}>{displayName.length > 28 ? displayName.substring(0, 25) + '...' : displayName}</span>
                                                     <span className="vc3-game-tables">
                                                         {g?.tables_running > 0 ? `${g.tables_running} ${Number(g.tables_running) === 1 ? 'Table' : 'Tables'}` : 'WAIT'}
@@ -676,7 +684,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         <div className="vc3-col-title" style={{ textAlign: 'center' }}>Stakes Played</div>
                                         <div className="vc3-stakes-list">
                                             {venue.stakes_cash.slice(0, 5).map((stake, idx) => (
-                                                <div key={idx} className="vc3-list-item vc3-stake-item">
+                                                <div key={`stake-${String(stake).replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-stake-item">
                                                     {stake}
                                                 </div>
                                             ))}
@@ -761,7 +769,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             return (
                                                 <>
                                                     {shown.map((evt, tIdx) => (
-                                                        <div key={tIdx} className="vc3-list-item vc3-tourney-item">
+                                                        <div key={`today-tourney-${evt.id || evt.tournament_name || 'base'}-${tIdx}`} className="vc3-list-item vc3-tourney-item">
                                                             <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                                             <div className="vc3-tourney-details">
                                                                 <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
@@ -801,7 +809,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                             return (
                                                 <>
                                                     {shown.map((evt, tIdx) => (
-                                                        <div key={tIdx} className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
+                                                        <div key={`upcoming-tourney-${evt.id || evt.tournament_name || 'base'}-${tIdx}`} className="vc3-list-item vc3-tourney-item vc3-tourney-item-upcoming">
                                                             <div className="vc3-tourney-name">{evt.tournament_name || (evt.buy_in != null && Number(evt.buy_in) > 0 ? `$${evt.buy_in} Poker Tournament` : 'Charity Poker Event')}</div>
                                                             <div className="vc3-tourney-details">
                                                                 <span className="vc3-tourney-time">{formatTime(evt.start_time) || 'Time TBD'}</span>
@@ -845,7 +853,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                                         {venue.daily_tournaments.slice(0, 3).map((t, idx) => {
                                             const tName = t?.tournament_name || t?.name || 'Tournament';
                                             return (
-                                                <div key={idx} className="vc3-list-item vc3-tourney-item">
+                                                <div key={`daily-tourney-${t?.id || tName.replace(/\\s+/g,'-')}-${idx}`} className="vc3-list-item vc3-tourney-item">
                                                     <div className="vc3-tourney-name" title={tName}>{tName}</div>
                                                     <div className="vc3-tourney-details">
                                                         <span className="vc3-tourney-time">{formatTime(t?.start_time) || 'Time TBD'}</span>
@@ -925,7 +933,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 {/* Secondary actions (Web/Call/Map) */}
                 <div className="vc3-actions-secondary">
                     {venue.website && (
-                        <a href={venue.website.startsWith('http') ? venue.website : 'https://' + venue.website}
+                        <a href={venue.website.toLowerCase().startsWith('http') ? safeHref(venue.website) : safeHref('https://' + venue.website)}
                             target="_blank" rel="noopener noreferrer" className="vc3-icon-btn" onClick={e => e.stopPropagation()} title="Website">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />

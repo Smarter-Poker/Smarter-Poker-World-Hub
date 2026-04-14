@@ -734,53 +734,43 @@ export default function EventsCalendarPage({ fallbackData }) {
           <div className="ec-filters">
             <div className="ec-filter-group">
               <label>Date Range</label>
-              <div className="ec-chips">
+              <select className="ec-dropdown" value={dateRange} onChange={e => setDateRange(e.target.value)}>
                 {DATE_RANGES.map(r => (
-                  <button key={r.key} className={`ec-chip ${dateRange === r.key ? 'active' : ''}`} onClick={() => setDateRange(r.key)}>
-                    {r.label}
-                  </button>
+                  <option key={r.key} value={r.key}>{r.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
             <div className="ec-filter-group">
               <label>Event Type</label>
-              <div className="ec-chips">
+              <select className="ec-dropdown" value={eventType} onChange={e => setEventType(e.target.value)}>
                 {EVENT_TYPES.map(t => (
-                  <button key={t.key} className={`ec-chip ${eventType === t.key ? 'active' : ''}`} onClick={() => setEventType(t.key)}>
-                    {t.label}
-                  </button>
+                  <option key={t.key} value={t.key}>{t.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
             <div className="ec-filter-group">
               <label>Buy-In</label>
-              <div className="ec-chips">
+              <select className="ec-dropdown" value={buyInTier} onChange={e => setBuyInTier(e.target.value)}>
                 {BUY_IN_TIERS.map(t => (
-                  <button key={t.key} className={`ec-chip ${buyInTier === t.key ? 'active' : ''}`} onClick={() => setBuyInTier(t.key)}>
-                    {t.label}
-                  </button>
+                  <option key={t.key} value={t.key}>{t.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
             <div className="ec-filter-group">
               <label>Game Type</label>
-              <div className="ec-chips">
+              <select className="ec-dropdown" value={gameType} onChange={e => setGameType(e.target.value)}>
                 {GAME_TYPES.map(g => (
-                  <button key={g.key} className={`ec-chip ${gameType === g.key ? 'active' : ''}`} onClick={() => setGameType(g.key)}>
-                    {g.label}
-                  </button>
+                  <option key={g.key} value={g.key}>{g.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
             <div className="ec-filter-group">
               <label>Sort By</label>
-              <div className="ec-chips">
+              <select className="ec-dropdown" value={sortBy} onChange={e => setSortBy(e.target.value)}>
                 {SORT_OPTIONS.map(s => (
-                  <button key={s.key} className={`ec-chip ${sortBy === s.key ? 'active' : ''}`} onClick={() => setSortBy(s.key)}>
-                    {s.label}
-                  </button>
+                  <option key={s.key} value={s.key}>{s.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
             <div className="ec-filter-actions">
               <button className="ec-clear-btn" onClick={clearFilters}>Clear All Filters</button>
@@ -1044,16 +1034,18 @@ export default function EventsCalendarPage({ fallbackData }) {
           display: block; font-size: 11px; color: rgba(255,255,255,0.45);
           text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600;
         }
-        .ec-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-        .ec-chip {
-          padding: 7px 14px; background: rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.12); border-radius: 20px;
-          color: rgba(255,255,255,0.65); font-size: 12px; font-weight: 600;
-          cursor: pointer; transition: all 0.15s; font-family: inherit; white-space: nowrap;
+        .ec-dropdown {
+          width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.3);
+          border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+          color: #fff; font-size: 14px; outline: none; font-family: inherit;
+          appearance: none; cursor: pointer; transition: all 0.2s;
+          background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+          background-repeat: no-repeat; background-position: right 14px center; background-size: 10px auto;
         }
-        .ec-chip:hover { background: rgba(255,255,255,0.08); }
-        .ec-chip.active { background: rgba(0,212,255,0.15); border-color: rgba(0,212,255,0.4); color: #00D4FF; }
-        .ec-filter-actions { display: flex; justify-content: flex-end; }
+        .ec-dropdown:hover { border-color: rgba(255,255,255,0.3); }
+        .ec-dropdown:focus { border-color: #00D4FF; box-shadow: 0 0 0 1px rgba(0,212,255,0.5); }
+        .ec-dropdown option { background: #0f172a; color: #fff; }
+        .ec-filter-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
         .ec-clear-btn {
           padding: 8px 16px; background: none; border: 1px solid rgba(255,255,255,0.15);
           border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 600;
