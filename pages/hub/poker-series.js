@@ -824,7 +824,7 @@ export default function PokerSeriesPage() {
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
-                    isOpen={menuOpen}
+                    isOpen={isMenuOpen}
                     onClose={() => setMenuOpen(false)}
                     direction="left"
                     theme="dark"
