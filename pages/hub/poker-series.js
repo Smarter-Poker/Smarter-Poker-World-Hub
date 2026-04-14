@@ -249,7 +249,8 @@ export default function PokerSeriesPage() {
     const [selectedStatus, setSelectedStatus] = useState('all');
     const [selectedState, setSelectedState] = useState('all');
     const [sortBy, setSortBy] = useState('date');
-    const [dateRange, setDateRange] = useState('60d'); // Default: upcoming 60 days
+    const [dateRange, setDateRange] = useState('all'); // BUG FIX: default 'all' not '60d'
+    // '60d' default was hiding 51% of series (105/206 have null start_date, all filtered out)
     const [distanceFilter, setDistanceFilter] = useState('all');
     const searchInputRef = useRef(null);
     const [searchFocused, setSearchFocused] = useState(false);
@@ -284,7 +285,10 @@ export default function PokerSeriesPage() {
         const distance = safeString(router.query.distance);
         const sort = safeString(router.query.sort);
 
-        if (q) setSearchQuery(q);
+        if (q) {
+            setSearchQuery(q);
+            if (!range) setDateRange('all');
+        }
         if (range && ['7d','14d','30d','60d','90d','6m','1y','all'].includes(range)) setDateRange(range);
         if (tour) setSelectedTour(tour);
         if (distance && ['50','100','250','500','1000'].includes(distance)) setDistanceFilter(distance);
@@ -297,7 +301,7 @@ export default function PokerSeriesPage() {
         if (!isInitialized || !router.isReady) return;
         const params = {};
         if (searchQuery) params.q = searchQuery;
-        if (dateRange !== '60d') params.range = dateRange;
+        if (dateRange !== 'all') params.range = dateRange;
         if (selectedTour !== 'all') params.tour = selectedTour;
         if (distanceFilter !== 'all') params.distance = distanceFilter;
         if (sortBy !== 'date') params.sort = sortBy;
@@ -306,7 +310,8 @@ export default function PokerSeriesPage() {
         if (url.search !== window.location.search) {
             router.replace(url, undefined, { shallow: true });
         }
-    }, [searchQuery, dateRange, selectedTour, distanceFilter, sortBy, isInitialized, router.isReady, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchQuery, dateRange, selectedTour, distanceFilter, sortBy, isInitialized, router.isReady]);
 
     // ─── Keyboard shortcut ─── (stable ref: no re-register on every searchQuery change)
     const searchQueryRef = useRef(searchQuery);
@@ -544,7 +549,28 @@ export default function PokerSeriesPage() {
     }, [allSeries]);
 
     // ─── Date range cutoff computation ───
+    // BUG FIX: Recalculate at midnight so users who leave the page open overnight see
+    // correct date boundaries without needing to reload/change filter
+    const [nowTick, setNowTick] = useState(0);
+    useEffect(() => {
+        const msUntilMidnight = () => {
+            const n = new Date();
+            const midnight = new Date(n); midnight.setHours(24, 0, 0, 0);
+            return midnight.getTime() - n.getTime();
+        };
+        let timer;
+        const scheduleMidnightRefresh = () => {
+            timer = setTimeout(() => {
+                setNowTick(t => t + 1); // force recalc
+                scheduleMidnightRefresh(); // set tomorrow's timer
+            }, msUntilMidnight());
+        };
+        scheduleMidnightRefresh();
+        return () => clearTimeout(timer);
+    }, []);
     const dateRangeCutoff = useMemo(() => {
+        // eslint-disable-next-line no-unused-vars
+        void nowTick; // dependency: recompute when midnight tick fires
         if (dateRange === 'all') return null;
         const now = new Date();
         now.setHours(0, 0, 0, 0);
@@ -769,7 +795,7 @@ export default function PokerSeriesPage() {
                 <div className="space-overlay" />
 
                 {/* Header */}
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => router.push('/hub/poker-near-me-lobby')} />
 
                 {/* Hamburger Menu */}
                 <HamburgerMenu
@@ -787,7 +813,7 @@ export default function PokerSeriesPage() {
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER SERIES</h1>
                     <p className="pnm-subtitle">
-                        {allSeries.length} Series &bull; {liveCount} Live Now &bull; {totalEvents} Events
+                        {filteredSeries.length} Series &bull; {liveCount} Live Now &bull; {totalEvents} Events
                     </p>
 
                     {/* ═══ MAIN SEARCH BAR ═══ */}
@@ -903,7 +929,7 @@ export default function PokerSeriesPage() {
                         {/* ═══ RESULTS BAR ═══ */}
                         <div className="tours-results-bar" style={{ margin: '0 auto', maxWidth: '1400px', width: '100%', padding: '0 20px', boxSizing: 'border-box' }}>
                             <div className="tours-results-count">
-                                <strong>{filteredSeries.length}</strong> {filteredSeries.length === 1 ? 'Series' : 'Series'}
+                                <strong>{filteredSeries.length}</strong> {filteredSeries.length === 1 ? 'Series' : 'Series Found'}
                                 {liveCount > 0 && <span className="tours-stops-count"> &bull; {liveCount} Live Now</span>}
                                 {totalEvents > 0 && <span className="tours-stops-count"> &bull; {totalEvents} Events</span>}
                                 {searchQuery && <span className="tours-results-query"> &mdash; &ldquo;{searchQuery}&rdquo;</span>}
@@ -968,7 +994,7 @@ export default function PokerSeriesPage() {
 
                                     return (
                                         <div
-                                            key={series.id || series.series_uid || idx}
+                                            key={series.series_uid || series.id || idx}
                                             className="tour-card-premium"
                                             style={{
                                                 borderColor: colors.border + 'A6',
@@ -1077,7 +1103,7 @@ export default function PokerSeriesPage() {
                                                         Events ({events.length})
                                                     </div>
                                                     {upcomingEvents.map((evt, i) => (
-                                                        <div key={i} className="tour-series-item">
+                                                        <div key={evt.id || evt.event_uid || i} className="tour-series-item">
                                                             <span className="tour-series-name">{cleanHtml(evt.event_name || evt.name || `Event ${i + 1}`)}</span>
                                                             <span className="tour-series-dates">
                                                                 {evt.buy_in ? formatMoney(evt.buy_in) : formatDateShort(evt.start_date)}

@@ -88,6 +88,47 @@ function formatEventDate(dateStr) {
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+// Strip day-of-week + date + time text that the scraper embedded inside event_name.
+// e.g. "$200 Monster Stack NLH Wednesday, October 1 10 a.m" → "$200 Monster Stack NLH"
+// Also decodes HTML entities like &ndash; → –
+function cleanEventName(raw) {
+  if (!raw) return '';
+  // Decode HTML entities first
+  let name = raw
+    .replace(/&ndash;/gi, '\u2013')
+    .replace(/&mdash;/gi, '\u2014')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+  // Strip trailing day/time patterns like:
+  //   "Wednesday, October 1 10 a.m"
+  //   "Thursday, April 30"
+  //   "Mon, Apr 30 10:00 AM"
+  //   "10 a.m" / "2 p.m" / "10:00am" standalone
+  name = name
+    .replace(/\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+[A-Za-z]+\s+\d+([^$]*)$/i, '')
+    .replace(/\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+[A-Za-z]+\.?\s+\d+([^$]*)$/i, '')
+    .replace(/\s+\d{1,2}:\d{2}\s*(am|pm|a\.m|p\.m)/i, '')
+    .replace(/\s+\d{1,2}\s*(a\.m|p\.m|am|pm)$/i, '')
+    .trim();
+  return name;
+}
+
+// Extract start time that was embedded in event_name by the scraper.
+// Returns formatted time string or empty string.
+function extractTimeFromName(raw) {
+  if (!raw) return '';
+  // Match patterns like "10 a.m", "2 p.m", "10:30am", "2:00 PM"
+  const m = raw.match(/\b(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?))/i);
+  if (!m) return '';
+  // Normalize: "10 a.m" → "10:00 AM", "2 p.m" → "2:00 PM"
+  return m[1].replace(/\./g, '').replace(/\s/g, '').toUpperCase()
+    .replace(/(\d+)([AP]M)$/, (_, h, ap) => h + ':00 ' + ap)
+    .replace(/(\d+:\d+)([AP]M)$/, (_, t, ap) => t + ' ' + ap);
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const now = new Date();
@@ -497,7 +538,7 @@ export default function SeriesDetailPage() {
             </li>
             {series.tour && (
               <li className="breadcrumb-item">
-                <Link href={'/hub/tours/' + series.tour.toLowerCase()} legacyBehavior><a className="breadcrumb-link">{series.tour}</a></Link>
+                <Link href={'/hub/poker-series?tour=' + encodeURIComponent(series.tour)} legacyBehavior><a className="breadcrumb-link">{series.tour}</a></Link>
                 <span className="breadcrumb-sep">/</span>
               </li>
             )}
@@ -727,12 +768,17 @@ export default function SeriesDetailPage() {
                           className={'event-row-clickable' + (isExpanded ? ' expanded' : '')}
                           onClick={function () { setExpandedEvent(isExpanded ? null : evtKey); }}
                         >
-                          <td className="event-num">{evtKey}</td>
+                          <td className="event-num">{evt.event_number != null && evt.event_number !== '' ? evt.event_number : i + 1}</td>
                           <td className="event-name">
-                            {decodeHtml(evt.event_name) || 'TBD'}
+                            {cleanEventName(evt.event_name) || 'TBD'}
                             <span className="expand-indicator">{isExpanded ? '\u25B2' : '\u25BC'}</span>
                           </td>
-                          <td className="event-date">{formatEventDate(evt.start_date)}</td>
+                          <td className="event-date">
+                            <span className="event-date-main">{formatEventDate(evt.start_date)}</span>
+                            {(evt.start_time || extractTimeFromName(evt.event_name)) && (
+                              <span className="event-time-sub">{evt.start_time || extractTimeFromName(evt.event_name)}</span>
+                            )}
+                          </td>
                           <td className="event-buyin">{evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}</td>
                           <td className="event-gtd">{evt.guarantee ? formatMoney(evt.guarantee) : '--'}</td>
                           <td className="event-game">{evt.game_type ? formatGameType(evt.game_type) : '--'}</td>

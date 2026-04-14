@@ -6,6 +6,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -99,12 +100,15 @@ function formatVenueType(raw) {
 }
 
 function formatMoney(amount) {
+    if (amount === null || amount === undefined || amount === '') return '';
+    if (amount === 0) return 'Free'; // BUG FIX: freerolls show 'Free' — must check BEFORE !amount (0 is falsy)
     if (!amount) return '';
     if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
     return `$${amount.toLocaleString()}`;
 }
 
 export default function DailyTournaments() {
+    const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
     const [selectedDay, setSelectedDay] = useState(DAYS[new Date().getDay()]);
     const [selectedState, setSelectedState] = useState(null);
@@ -223,7 +227,7 @@ export default function DailyTournaments() {
                 <div className="space-bg"></div>
                 <div className="space-overlay"></div>
 
-                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => window.location.href = '/hub/poker-near-me-lobby'} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} onBackClick={() => router.push('/hub/poker-near-me-lobby')} />
                 <HamburgerMenu
                     isOpen={menuOpen}
                     onClose={() => setMenuOpen(false)}

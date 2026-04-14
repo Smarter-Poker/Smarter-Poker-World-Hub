@@ -130,14 +130,13 @@ export default async function handler(req, res) {
   try {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    // CDN cache: fresh 300s, serve stale up to 600s (series data changes infrequently)
-    if (req.method === 'GET') {
-      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-    }
-
     if (req.method !== 'GET') {
       return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
+
+    // CDN cache: fresh 300s, serve stale up to 600s (series data changes infrequently)
+    // Set AFTER method guard so non-GET responses are never cached
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
 
     try {
       const {
@@ -278,7 +277,7 @@ export default async function handler(req, res) {
 
         if (tour) {
           // Strip ILIKE wildcards to prevent injection
-          const safeTour = tour.replace(/[()'",.;%_\\]/g, ' ').trim().slice(0, 50);
+          const safeTour = tour.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 50);
           if (safeTour) {
               query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
           }
@@ -286,7 +285,7 @@ export default async function handler(req, res) {
 
         if (search) {
           // Strip ILIKE wildcards to prevent injection
-          const safeSearch = search.replace(/[()'",.;%_\\]/g, ' ').trim().slice(0, 100);
+          const safeSearch = search.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 100);
           if (safeSearch) {
               query = query.or(
                 `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
