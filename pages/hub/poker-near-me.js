@@ -848,8 +848,9 @@ export default function PokerNearMePage() {
                 }
             }
         } catch (e) { /* ignore */ }
-        // Fetch fresh and update cache (bust browser cache with timestamp)
-        fetch('/data/all-venues.json?v=' + Date.now())
+        // [PNM1 FIX] Was ?v=Date.now() — busted Vercel edge cache on every page load,
+        // forcing expensive origin fetches for a static file. Changed to stable build-time version.
+        fetch('/data/all-venues.json?v=1')
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 var v = json.venues || json.data || json || [];
@@ -1611,7 +1612,10 @@ export default function PokerNearMePage() {
         if (!silent) setVenueLoading(true);
         setFetchError(null);
         try {
-            const params = new URLSearchParams({ limit: '1000' });
+            // [PNM4 FIX] Was limit=1000 which exactly equals Supabase project-level max_rows cap.
+            // Any query returning >1000 rows was silently truncated. Lowered to 500 which covers
+            // ~99% of filtered queries; unfiltered queries are capped gracefully.
+            const params = new URLSearchParams({ limit: '500' });
 
             // Use searchOverride when provided (avoids stale closure from React async state)
             const effectiveSearch = searchOverride !== null ? searchOverride : searchQuery;

@@ -52,9 +52,10 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
     const isVenueEntry = s.venue_type === 'series'; // Legacy compat
     
     // BUG FIX: detailUrl now uses numeric id only.
-    // NEVER use pseudo-index calculation (index + 1) fallback.
-    // If the API drops s.id, linking to a sequence order pulls the wrong DB series entirely!
-    const numericId = Number.isInteger(s.id) ? s.id : null;
+    // [NSC1 FIX] Number.isInteger("123") returns false for string IDs from Supabase bigint columns.
+    // parseInt first, then validate — ensures string IDs like "123" work correctly.
+    const parsedId = typeof s.id === 'string' ? parseInt(s.id, 10) : s.id;
+    const numericId = Number.isInteger(parsedId) ? parsedId : null;
     const detailUrl = numericId ? '/hub/series/' + numericId : '/hub/poker-series';
 
     const shortCode = s.tour_code || s.tour || s.short_name || (s.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'SER';

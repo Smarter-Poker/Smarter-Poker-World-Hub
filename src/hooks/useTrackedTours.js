@@ -69,10 +69,19 @@ export default function useTrackedTours() {
         };
     }, []);
 
+    // [UT2 FIX] Lock ref prevents concurrent toggles from reading stale closure state.
+    // Without this, rapid double-click reads the same `trackedTours` snapshot for both clicks,
+    // causing duplicate entries in the optimistic state.
+    const toggleLockRef = useRef(false);
+
     const toggleTrackTour = useCallback(async (tourCode) => {
+        if (toggleLockRef.current) return; // Prevent concurrent toggles
+        toggleLockRef.current = true;
+
         const user = getAuthUser();
         const token = getAccessToken();
         if (!user || !token) {
+            toggleLockRef.current = false;
             alert('Please sign in to track tours.');
             return;
         }
@@ -114,6 +123,8 @@ export default function useTrackedTours() {
             setTrackedTours(trackedTours);
             emitChange();
             alert('A network error occurred.');
+        } finally {
+            toggleLockRef.current = false;
         }
     }, [trackedTours]);
 
