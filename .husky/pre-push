@@ -48,15 +48,13 @@ if [ $ERRORS -eq 0 ]; then echo "  ✓ No unused hooks"; fi
 
 # ─── CHECK 2: No .single() calls ───────────────────────────────────────────
 echo "CHECK 2: No .single() in Supabase queries..."
-# [PP1 FIX] Previous version filtered entire files with 'maybeSingle' anywhere.
-# If a file had BOTH maybeSingle AND .single(), it would pass falsely.
-# Now grep per-occurrence so each .single() line is evaluated independently.
-SINGLES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | while IFS= read -r file; do
+# [PP1 FIX] Per-line check so a file with BOTH maybeSingle and .single() isn't falsely cleared.
+# Scoped to JS/JSX/TS/TSX only — shell scripts (like this hook) contain the pattern as text.
+SINGLES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | grep -E '\.(js|jsx|ts|tsx)$' | while IFS= read -r file; do
   [ -f "$file" ] || continue
   grep -n '\.single()' "$file" 2>/dev/null | while IFS= read -r hit; do
-    line_num=$(echo "$hit" | cut -d: -f1)
     # Only flag if this specific line does NOT have maybeSingle on it
-    echo "$hit" | grep -q 'maybeSingle' || echo "$file:$line_num"
+    echo "$hit" | grep -q 'maybeSingle' || echo "$file:$(echo "$hit" | cut -d: -f1)"
   done
 done || true)
 if [ -n "$SINGLES" ]; then

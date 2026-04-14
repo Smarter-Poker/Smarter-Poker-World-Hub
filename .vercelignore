@@ -17,10 +17,10 @@ node_modules/
 # ── DATA (11,553 files — #1 cause of Vercel 15k limit breach) ─
 # Served as static JSON at runtime via /data/ route is NOT needed
 # in Vercel upload — Next.js reads from public/ not data/
-data/
+/data/
 
 # ── Build / deploy / agent scripts ───────────────────────────
-scripts/
+/scripts/
 .agent/
 .agents/
 .gemini/
@@ -37,10 +37,10 @@ scripts/
 .ocr/
 
 # ── Database migrations (executed separately) ─────────────────
-supabase/
-database/
-migrations/
-sql/
+/supabase/
+/database/
+/migrations/
+/sql/
 
 # ── Legacy directories ────────────────────────────────────────
 _legacy_backups/
@@ -50,27 +50,27 @@ _legacy_logs/
 _legacy_sql/
 
 # ── Test / QA ─────────────────────────────────────────────────
-tests/
-e2e/
-__tests__/
-playwright/
-playwright-report/
-test-results/
+/tests/
+/e2e/
+/__tests__/
+/playwright/
+/playwright-report/
+/test-results/
 
 # ── Temporary / output / logs ─────────────────────────────────
-tmp/
-output/
-logs/
+/tmp/
+/output/
+/logs/
 
 # ── Documentation ─────────────────────────────────────────────
-docs/
+/docs/
 
 # ── Heavy asset directories not needed by Next.js runtime ─────
-pokerbrain-assets/
+/pokerbrain-assets/
 
 # ── Misc agent/tooling ────────────────────────────────────────
-services/
-skills/
-templates/
-worker/
-eslint-plugin-smarter-poker/
+/services/
+/skills/
+/templates/
+/worker/
+/eslint-plugin-smarter-poker/
