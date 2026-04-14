@@ -16,9 +16,11 @@ function formatMoney(amount) {
 // BUG FIX: Sanitize URLs to block javascript: protocol XSS vectors
 function safeHref(url) {
     if (!url || typeof url !== 'string') return null;
-    const trimmed = url.trim().toLowerCase();
-    if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) return null;
-    return url;
+    // Remove all ASCII control characters and whitespace
+    const cleanUrl = url.replace(/[\x00-\x20]/g, '');
+    const lower = cleanUrl.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return null;
+    return cleanUrl;
 }
 
 /**
@@ -30,14 +32,11 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
     
     const isVenueEntry = s.venue_type === 'series'; // Legacy compat
     
-    // BUG FIX: detailUrl now uses series_uid (stable) or numeric id only.
-    // NEVER use s.series_code — it can be a string slug like 'WSOP-2026' → /hub/series/WSOP-2026
-    // which fails the API's parseInt guard and returns 400.
-    // Fallback to (index + 1) only if index is a valid number.
+    // BUG FIX: detailUrl now uses numeric id only.
+    // NEVER use pseudo-index calculation (index + 1) fallback.
+    // If the API drops s.id, linking to a sequence order pulls the wrong DB series entirely!
     const numericId = Number.isInteger(s.id) ? s.id : null;
-    const safeIndex = Number.isFinite(index) ? index + 1 : null;
-    const detailId = numericId || safeIndex || '';
-    const detailUrl = detailId ? '/hub/series/' + detailId : '/hub/poker-series';
+    const detailUrl = numericId ? '/hub/series/' + numericId : '/hub/poker-series';
 
     const shortCode = s.tour_code || s.tour || s.short_name || (s.name || '').replace(/[^A-Z]/g, '').slice(0, 4) || 'SER';
     const displayLocation = s.location || (((s.city || s.venue || '') + (s.state ? ', ' + s.state : '')) || 'Location TBD');
@@ -54,11 +53,18 @@ export default function NewSeriesVenueCard({ series: s, index, isFavorited, onFa
             <div className="frame-bolt" style={{ bottom: '8px', right: '8px' }} />
             <div className="neon-strip left" />
             <div className="neon-strip right" />
+            {s.logo_url && (
+                <div className="series-banner-image" style={{ width: '100%', height: '140px', borderRadius: '4px', marginBottom: '16px', backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+                    <img src={s.logo_url} alt={s.name || s.series_name || 'Series'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                </div>
+            )}
             
             <div className="series-header">
                 <div>
                     <div className="series-tour">{shortCode}</div>
-                    <h4 className="series-title">{s.name || s.series_name || 'Upcoming Series'}</h4>
+                    <a href={detailUrl} onClick={e => e.preventDefault()} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <h4 className="series-title">{s.name || s.series_name || 'Upcoming Series'}</h4>
+                    </a>
                 </div>
                 <button 
                     className={'fav-btn' + (isFavorited ? ' active' : '')} 
