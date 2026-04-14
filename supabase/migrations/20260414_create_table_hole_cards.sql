@@ -68,7 +68,13 @@ CREATE POLICY "Players see own hole cards"
 --    Supabase Realtime will apply the SELECT RLS policy, so each client
 --    only receives INSERT events for their own user_id rows.
 -- ─────────────────────────────────────────────────────────────────────
-ALTER PUBLICATION supabase_realtime ADD TABLE public.table_hole_cards;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.table_hole_cards;
+EXCEPTION WHEN duplicate_object THEN
+  -- Already registered — safe to ignore
+  RAISE NOTICE 'table_hole_cards already in supabase_realtime publication';
+END $$;
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 6. Create insert_hole_cards RPC
