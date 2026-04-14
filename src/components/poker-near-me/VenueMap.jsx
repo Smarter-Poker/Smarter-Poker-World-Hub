@@ -319,10 +319,13 @@ export class MapErrorBoundary extends React.Component {
           </svg>
           <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 8 }}>Map Unavailable</p>
           <p style={{ fontSize: 13 }}>Unable to load the map. This may be caused by an ad blocker or network issue.</p>
-          <div style={{ fontSize: 11, color: 'red', marginTop: 10, textAlign: 'left', background: '#222', padding: 8 }}>
-            <strong>Error:</strong> {this.state.error?.message}<br />
-            {this.state.error?.stack}
-          </div>
+          {/* [VM8 FIX] Stack trace hidden in production — was leaking internal file paths and source structure to end users. */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{ fontSize: 11, color: 'red', marginTop: 10, textAlign: 'left', background: '#222', padding: 8 }}>
+              <strong>Error:</strong> {this.state.error?.message}<br />
+              {this.state.error?.stack}
+            </div>
+          )}
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
             style={{ marginTop: 16, padding: '10px 20px', background: 'rgba(212,168,83,0.2)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8, color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
@@ -355,14 +358,17 @@ function createVenueIcon(L, venue, overrideColor) {
   
   const logoUrl = venue?.logo_url || venue?.profile_photo_url || venue?.cover_photo_url || venue?.image_url || '';
   const initials = (venue?.name || 'V').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
+  // [VM4 FIX] initials injected into HTML template raw — if venue.name starts with < > & the first
+  // character is inserted unescaped. escapeHtml() prevents any HTML injection via venue name data.
+  const escapedInitials = escapeHtml(initials);
 
   // When logo exists: fill entire circle with the logo (edge-to-edge, no white gap)
   // When no logo: white circle with colored initials
   const hasLogo = !!logoUrl;
   const innerContent = hasLogo
     ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:50%;background:#fff;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
-       <div style="display:none;font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`
-    : `<div style="font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`;
+       <div style="display:none;font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${escapedInitials}</div>`
+    : `<div style="font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${escapedInitials}</div>`;
 
   // Name label — dark pill badge underneath (same style as tour pins)
   const labelHtml = escapedLabel
@@ -648,8 +654,13 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       return new Promise((resolve, reject) => {
         const existing = document.querySelector(`script[src="${src}"]`);
         if (existing) {
-          existing.addEventListener('load', resolve);
-          if (existing.dataset.loaded === 'true') resolve();
+          // [VM1/VM6 FIX] Check dataset.loaded FIRST before adding listener.
+          // Previous order added listener then checked — if already loaded, listener was
+          // orphaned (load event never re-fires). Also handles race where script is in DOM
+          // but dataset.loaded not yet set by our onload handler (which means it was injected
+          // by a different code path). In that case, fall through and add the load listener.
+          if (existing.dataset.loaded === 'true') { resolve(); return; }
+          existing.addEventListener('load', () => resolve(), { once: true });
           return;
         }
 
@@ -758,13 +769,16 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
       }
     };
     
-    // Attach to the container so it catches all popup clicks
-    const container = mapContainerRef.current;
-    container.addEventListener('click', handlePopupClicks);
-    
+    // [VM3 FIX] Move listener attachment AFTER the early-return guard.
+    // Previous: listener added before guard, then if map already existed, returned a cleanup
+    // that only removed that listener. On re-mount with existing mapInstanceRef, listeners
+    // could accumulate if the effect re-ran before the cleanup ran.
     if (mapInstanceRef.current) {
+        container.addEventListener('click', handlePopupClicks);
         return () => container.removeEventListener('click', handlePopupClicks);
     }
+    // New mount — add listener for this session (cleaned up in the full destructor below)
+    container.addEventListener('click', handlePopupClicks);
 
     const L = window.L;
     // Continental US bounds — tight fit
