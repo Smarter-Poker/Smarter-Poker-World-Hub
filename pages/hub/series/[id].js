@@ -136,6 +136,28 @@ function extractTimeFromName(raw) {
     .replace(/(\d+:\d+)([AP]M)$/, (_, t, ap) => t + ' ' + ap);
 }
 
+// Convert any time string (military "15:00:00" or arbitrary) to clean "3:00 PM" format
+function format12HourTime(timeStr) {
+  if (!timeStr) return '';
+  
+  // If it already contains AM/PM, it's likely already formatted or extracted cleanly
+  if (/am|pm/i.test(timeStr)) return timeStr.toUpperCase();
+  
+  // Handle military time from database (e.g. "15:00:00" or "15:00")
+  const parts = timeStr.split(':');
+  if (parts.length >= 2) {
+    let h = parseInt(parts[0], 10);
+    const m = parts[1];
+    if (!isNaN(h)) {
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      h = h ? h : 12; // the hour '0' should be '12'
+      return `${h}:${m} ${ampm}`;
+    }
+  }
+  return timeStr;
+}
+
 // Derive short venue label for series with no recognized tour brand
 function deriveDetailVenueBadge(series) {
   const tour = (series.tour || series.tour_code || '').toUpperCase();
@@ -852,7 +874,7 @@ export default function SeriesDetailPage() {
                           <td className="event-date">
                             <span className="event-date-main">{formatEventDate(evt.start_date)}</span>
                             {(evt.start_time || extractTimeFromName(evt.event_name)) && (
-                              <span className="event-time-sub">{evt.start_time || extractTimeFromName(evt.event_name)}</span>
+                              <span className="event-time-sub">{format12HourTime(evt.start_time) || extractTimeFromName(evt.event_name)}</span>
                             )}
                           </td>
                           <td className="event-buyin">{evt.buy_in ? formatMoney(evt.buy_in) : 'TBD'}</td>
@@ -911,7 +933,7 @@ export default function SeriesDetailPage() {
                                   {evt.start_time && (
                                     <div className="detail-field">
                                       <span className="detail-label">Start Time</span>
-                                      <span className="detail-value">{evt.start_time}</span>
+                                      <span className="detail-value">{format12HourTime(evt.start_time)}</span>
                                     </div>
                                   )}
                                   {evt.reg_open_until && (

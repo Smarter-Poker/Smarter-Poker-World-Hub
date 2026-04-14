@@ -145,6 +145,32 @@ Stores:             src/stores/
 - `npm install` — modifies `node_modules` and `package-lock.json`, can crash other agents mid-compilation
 - Dev server restart — wait 10 seconds before restarting, another agent may already be restarting it
 
+### PROTECTED FILE ZONES (ZERO EXCEPTIONS)
+
+**The following directories are PROTECTED ZONES. Only agents explicitly assigned to that area may modify files within them. All other agents MUST NOT touch, overwrite, delete, rename, or move any file in these directories — even if you see bugs, even during git rebase, even if your commit touches adjacent files.**
+
+**Protected Zone: `public/hub/club-arena/`**
+- Owner: Club Arena agents ONLY (agents explicitly told to work on Club Arena)
+- Contains: Compiled Vite SPA output (index.html, assets/, manifest.json, images/, sw.ts)
+- WHY: Club Arena is a separately-built Vite SPA. Its compiled output uses content-hashed filenames (e.g., `index-D3P3kOTd.css`). If ANY non-Club-Arena agent modifies, deletes, or overwrites files here during a git rebase or push, the entire Club Arena app breaks (blank page, missing styles, broken JS).
+- WHAT TO DO: If `git-safe-push.sh` reports a merge conflict in `public/hub/club-arena/`, ALWAYS accept the EXISTING version (theirs/remote). Never auto-resolve by taking your version.
+- ENFORCEMENT: `git-safe-push.sh` will reject pushes from non-Club-Arena agents that modify files in `public/hub/club-arena/`. If you see this error, remove those files from your commit with `git reset HEAD public/hub/club-arena/` and re-commit.
+
+**Protected Zone: `pages/api/club-arena/`**
+- Owner: Club Arena agents ONLY
+- Contains: API routes for Club Arena backend
+- Same rules as above — do not modify unless you are a Club Arena agent.
+
+**How to know if you are a Club Arena agent:** Your task description explicitly mentions "Club Arena", "poker table", "club-arena", or references files in `~/Documents/club-arena/` or `public/hub/club-arena/`. If your task is about Commander, Series, Training, World Hub pages, or anything else — you are NOT a Club Arena agent and MUST NOT touch these zones.
+
+### Vercel Deploy Hook (for agents that cannot use git-safe-push.sh)
+
+If `git-safe-push.sh` fails due to auth issues (e.g., sandbox environment), you can trigger a Vercel deployment after pushing via:
+```bash
+curl -X POST "https://api.vercel.com/v1/integrations/deploy/prj_op66GkZyZcygXQKm76iyycfVFAQx/Tw4O1eDeVc"
+```
+This triggers a production deployment of the latest `main` branch. Use this AFTER your git push succeeds but Vercel doesn't auto-deploy.
+
 ### KI & Artifact Policy
 - Do NOT read Knowledge Items for Tier 1 or Tier 2 tasks
 - Create `task.md` / `implementation_plan.md` / `walkthrough.md` ONLY for Tier 3 tasks
