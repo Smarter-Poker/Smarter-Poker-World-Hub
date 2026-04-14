@@ -195,14 +195,10 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
     const router = useRouter();
     const [isMenuOpen, setMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
-<<<<<<< Updated upstream
-    const [rtNonce, setRtNonce] = useState(0);
-=======
     // ─── Data State ───
     const [allSeries, setAllSeries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [allVenues, setAllVenues] = useState([]);
->>>>>>> Stashed changes
 
     // Bind realtime venue and series updates to cache invalidation
     // BUG FIX: poker-series relies exclusively on getStaticProps initialSeries.
@@ -216,10 +212,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
         setAllSeries(prev => {
             let next = [...prev];
             if (eventType === 'INSERT' && newRec) {
-<<<<<<< Updated upstream
-=======
                 // Ensure no dupes
->>>>>>> Stashed changes
                 if (!next.some(s => s.id === newRec.id)) next.push(newRec);
             } else if (eventType === 'UPDATE' && newRec) {
                 const idx = next.findIndex(s => s.id === newRec.id);
