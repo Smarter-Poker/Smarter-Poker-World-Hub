@@ -8,8 +8,8 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
+import { resolveEntityCoordinates, haversineDistance } from '../../src/lib/geoUtils';
 import TourCard from '../../src/components/poker-series/TourCard';
-import { haversineDistance, CITY_COORDS, findVenueCoords } from '../../src/utils/tourGeoUtils';
 
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
 
@@ -93,7 +93,7 @@ function formatDate(dateStr) {
 // ═══════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ═══════════════════════════════════════════════
-export default function PokerToursPage() {
+export default function PokerToursPage({ initialTours = [] }) {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuConfig = useMemo(() => getMenuConfig('events'), []);
@@ -248,28 +248,13 @@ export default function PokerToursPage() {
     // ─── Fetch tours data ───
     useEffect(() => {
         let isMounted = true;
-        const abortController = new AbortController();
-        setLoading(true);
-        
-        // Try to get user location for the map
+        // Try to get user location for the map (not tied to loading state)
         if (typeof navigator !== 'undefined' && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => { if (isMounted) setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }) },
                 () => {} // silent fail
             );
         }
-
-        fetch('/api/poker/tours?include_series=true&traveling_only=true&limit=100', { signal: abortController.signal })
-            .then(r => r.json())
-            .then(json => {
-                if (!isMounted) return;
-                const tourData = json.data || json.tours || [];
-                // API handles stationary filtering with traveling_only=true
-                setTours(tourData);
-            })
-            .catch((e) => {
-                if (!isMounted || e.name === 'AbortError') return;
-                setTours([]);
             })
             .finally(() => {
                 if (isMounted) setLoading(false);
@@ -345,128 +330,10 @@ export default function PokerToursPage() {
     }, []);
 
     // ─── Fallback city coordinates for common poker tour locations ───
-    const CITY_COORDS = {
-        'las vegas, nv': { lat: 36.1699, lng: -115.1398 },
-        'hollywood, fl': { lat: 26.0112, lng: -80.1495 },
-        'atlantic city, nj': { lat: 39.3643, lng: -74.4229 },
-        'lincoln, ca': { lat: 38.8916, lng: -121.2930 },
-        'durant, ok': { lat: 33.9943, lng: -96.3709 },
-        'tampa, fl': { lat: 27.9506, lng: -82.4572 },
-        'bell gardens, ca': { lat: 33.9653, lng: -118.1514 },
-        'elgin, il': { lat: 42.0354, lng: -88.2826 },
-        'lake tahoe, nv': { lat: 39.0968, lng: -120.0324 },
-        'tunica, ms': { lat: 34.6846, lng: -90.3829 },
-        'biloxi, ms': { lat: 30.3960, lng: -88.8853 },
-        'cherokee, nc': { lat: 35.4743, lng: -83.3146 },
-        'san diego, ca': { lat: 32.7157, lng: -117.1611 },
-        'portland, or': { lat: 45.5155, lng: -122.6789 },
-        'council bluffs, ia': { lat: 41.2619, lng: -95.8608 },
-        'black hawk, co': { lat: 39.7969, lng: -105.4903 },
-        'choctaw, ok': { lat: 35.4976, lng: -97.2687 },
-        'shreveport, la': { lat: 32.5252, lng: -93.7502 },
-        'new orleans, la': { lat: 29.9511, lng: -90.0715 },
-        'kinder, la': { lat: 30.4855, lng: -92.8510 },
-        'gulfport, ms': { lat: 30.3674, lng: -89.0928 },
-        'marksville, la': { lat: 31.1268, lng: -92.0632 },
-        'oklahoma city, ok': { lat: 35.4676, lng: -97.5164 },
-        'minneapolis, mn': { lat: 44.9778, lng: -93.2650 },
-        'kansas city, mo': { lat: 39.0997, lng: -94.5786 },
-        'st. louis, mo': { lat: 38.6270, lng: -90.1994 },
-        'los angeles, ca': { lat: 34.0522, lng: -118.2437 },
-        'phoenix, az': { lat: 33.4484, lng: -112.0740 },
-        'chicago, il': { lat: 41.8781, lng: -87.6298 },
-        'detroit, mi': { lat: 42.3314, lng: -83.0458 },
-        'bismarck, nd': { lat: 46.8083, lng: -100.7837 },
-        'fargo, nd': { lat: 46.8772, lng: -96.7898 },
-        'deadwood, sd': { lat: 44.3767, lng: -103.7296 },
-        'thackerville, ok': { lat: 33.7918, lng: -97.1303 },
-        'gary, in': { lat: 41.5934, lng: -87.3464 },
-        'mount pleasant, mi': { lat: 43.5978, lng: -84.7753 },
-        'prior lake, mn': { lat: 44.7133, lng: -93.4227 },
-        'welch, mn': { lat: 44.5669, lng: -92.7233 },
-        'charleston, wv': { lat: 38.3498, lng: -81.6326 },
-        'temecula, ca': { lat: 33.4936, lng: -117.1484 },
-        'west palm beach, fl': { lat: 26.7153, lng: -80.0534 },
-        'jacksonville, fl': { lat: 30.3322, lng: -81.6557 },
-        'austin, tx': { lat: 30.2672, lng: -97.7431 },
-        'round rock, tx': { lat: 30.5083, lng: -97.6789 },
-        'houston, tx': { lat: 29.7604, lng: -95.3698 },
-        'san jose, ca': { lat: 37.3382, lng: -121.8863 },
-        'commerce, ca': { lat: 33.9975, lng: -118.1597 },
-        'bossier city, la': { lat: 32.5160, lng: -93.7321 },
-        'fort yates, nd': { lat: 46.0886, lng: -100.6301 },
-        'mandan, nd': { lat: 46.8267, lng: -100.8891 },
-        'dickinson, nd': { lat: 46.8792, lng: -102.7896 },
-        'belcourt, nd': { lat: 48.8411, lng: -99.7457 },
-        'philadelphia, pa': { lat: 39.9526, lng: -75.1652 },
-        'choctaw, ms': { lat: 32.7693, lng: -89.1170 },
-    };
-
+    
     // ─── Find venue coordinates by fuzzy name + city fallback ───
     const findVenueCoords = useCallback((stop) => {
-        const venueName = (stop.venue || stop.name || '').toLowerCase().trim();
-        const location = (stop.location || '').toLowerCase().trim();
-        const city = (stop.city || '').toLowerCase().trim();
-        const state = (stop.state || '').toLowerCase().trim();
-
-        // Try to extract city from location field (e.g. "Las Vegas, NV")
-        const locationCity = location.split(',')[0]?.trim().toLowerCase() || '';
-        const locationState = location.split(',')[1]?.trim().toLowerCase() || '';
-
-        if (allVenues.length > 0) {
-            // 1. Exact venue name match
-            let match = allVenues.find(v => v.name && v.name.toLowerCase() === venueName && v.latitude);
-            if (match) return match;
-
-            // 2. Venue name contains or is contained in
-            if (venueName.length > 3) {
-                match = allVenues.find(v => {
-                    if (!v.name || !v.latitude) return false;
-                    const n = v.name.toLowerCase();
-                    return n.includes(venueName) || venueName.includes(n);
-                });
-                if (match) return match;
-            }
-
-            // 3. City + state match (first venue in that city)
-            const c = city || locationCity;
-            const s = state || locationState;
-            if (c && s) {
-                match = allVenues.find(v =>
-                    v.latitude &&
-                    (v.city || '').toLowerCase() === c &&
-                    (v.state || '').toLowerCase() === s
-                );
-                if (match) return match;
-            }
-
-            // 4. City-only match
-            if (c) {
-                match = allVenues.find(v =>
-                    v.latitude && (v.city || '').toLowerCase() === c
-                );
-                if (match) return match;
-            }
-        }
-
-        // 5. Fallback: city coordinate lookup
-        const cityKey = location || ((city || locationCity) + (state || locationState ? ', ' + (state || locationState) : ''));
-        if (cityKey) {
-            const coords = CITY_COORDS[cityKey.toLowerCase()];
-            if (coords) return { latitude: coords.lat, longitude: coords.lng, city: locationCity || city, state: locationState || state };
-        }
-
-        // 6. Last resort: try matching just city name in fallback table
-        const justCity = locationCity || city;
-        if (justCity) {
-            for (const [key, coords] of Object.entries(CITY_COORDS)) {
-                if (key.startsWith(justCity + ',') || key === justCity) {
-                    return { latitude: coords.lat, longitude: coords.lng, city: justCity, state: locationState || state };
-                }
-            }
-        }
-
-        return null;
+        return resolveEntityCoordinates(stop, allVenues);
     }, [allVenues]);
 
     // ─── Compute current/next stop for each tour (used by both map and cards) ───
@@ -956,7 +823,7 @@ export default function PokerToursPage() {
 
     const handleTrackTour = useCallback(async (tourCode) => {
         try {
-            await fetch('/api/notifications/send-push', {
+            await fetch('/api/notifications/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -1266,197 +1133,20 @@ export default function PokerToursPage() {
                             </div>
                         ) : (
                             <div className="tours-grid">
-                                {filteredTours.map(tour => {
-                                    const colors = TOUR_COLORS[tour.tour_code] || TOUR_COLORS.default;
-                                    const typeInfo = TOUR_TYPE_INFO[tour.tour_type] || { label: tour.tour_type || 'Tour', color: '#6b7280' };
-                                    const isFav = !!favorites[tour.tour_code];
-                                    const buyinMin = tour.typical_buyins?.min;
-                                    const buyinMax = tour.typical_buyins?.max;
-                                    const hasBuyins = buyinMin != null || buyinMax != null;
-                                    // Prefer API-provided upcoming_series, fall back to registry stops
-                                    let series = tour.upcoming_series || [];
-                                    if (series.length === 0) {
-                                        const allStops = [...(tour.stops_2026 || []), ...(tour.series_2026 || [])];
-                                        // Convert to display format, only include today or upcoming
-                                        const today = new Date(); today.setHours(0,0,0,0);
-                                        series = allStops.map(s => {
-                                            const parsed = parseStopDates(s.dates);
-                                            if (!parsed || parsed.end < today) return null;
-                                            return {
-                                                short_name: s.name || s.venue || 'Tour Stop',
-                                                start_date: parsed.start.toISOString().split('T')[0],
-                                                end_date: parsed.end.toISOString().split('T')[0],
-                                                dates: s.dates,
-                                            };
-                                        }).filter(Boolean).sort((a, b) => a.start_date.localeCompare(b.start_date));
-                                    }
-                                    const regions = tour.regions || [];
-
-                                    return (
-                                        <div
-                                            key={tour.tour_code || tour.tour_name}
-                                            className="tour-card-premium"
-                                            onClick={() => handleTourClick(tour)}
-                                        >
-                                            {/* Favorite Button */}
-                                            <button
-                                                className={'tour-fav-btn' + (isFav ? ' active' : '')}
-                                                onClick={e => toggleFavorite(tour.tour_code, e)}
-                                                aria-label="Favorite tour"
-                                            >
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill={isFav ? '#ef4444' : 'none'} stroke={isFav ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
-                                                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-                                                </svg>
-                                            </button>
-
-                                            {/* Card Header — Logo + Badge + Type */}
-                                            <div className="tour-card-header">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                    {tour.logo_url && (
-                                                        <div className="tour-logo-container">
-                                                            <img
-                                                                src={tour.logo_url}
-                                                                alt={tour.tour_name + ' logo'}
-                                                                className="tour-logo-img"
-                                                                onError={e => { e.target.style.display = 'none'; }}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    <div
-                                                        className="tour-code-badge"
-                                                        style={{ background: colors.bg, border: '1px solid ' + colors.border }}
-                                                    >
-                                                        <span style={{ color: colors.text, fontSize: 14, fontWeight: 800, letterSpacing: '0.5px' }}>
-                                                            {tour.tour_code || 'TOUR'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <span
-                                                    className="tour-type-pill"
-                                                    style={{ color: typeInfo.color, borderColor: typeInfo.color + '40', background: typeInfo.color + '15' }}
-                                                >
-                                                    {typeInfo.label}
-                                                </span>
-                                            </div>
-
-                                            {/* Tour Name */}
-                                            <h4 className="tour-card-name">{tour.tour_name || 'Unknown Tour'}</h4>
-
-                                            {/* Current Location — shows active stop, not headquarters */}
-                                            {(() => {
-                                                const stopInfo = tourCurrentStops[tour.tour_code];
-                                                const activeStop = stopInfo?.activeStop;
-                                                if (activeStop) {
-                                                    const stopLocation = activeStop.location || activeStop.venue || '';
-                                                    const stopVenue = activeStop.venue || '';
-                                                    return (
-                                                        <div className="tour-card-location-live">
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stopInfo.isLive ? '#22c55e' : '#60a5fa'} strokeWidth="2" style={{ flexShrink: 0 }}>
-                                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                                                                </svg>
-                                                                <span style={{ color: stopInfo.isLive ? '#22c55e' : '#60a5fa', fontWeight: 700, fontSize: 11, letterSpacing: '0.3px' }}>
-                                                                    {stopInfo.isLive ? 'LIVE NOW' : 'NEXT STOP'}
-                                                                </span>
-                                                            </div>
-                                                            {stopVenue && <span className="tour-stop-venue">{stopVenue}</span>}
-                                                            <span className="tour-stop-location">{stopLocation}</span>
-                                                        </div>
-                                                    );
-                                                }
-                                                // Fallback to headquarters when no active stop
-                                                return tour.headquarters ? (
-                                                    <p className="tour-card-location">
-                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
-                                                        </svg>
-                                                        {tour.headquarters}
-                                                    </p>
-                                                ) : null;
-                                            })()}
-
-                                            {/* Buy-in Range */}
-                                            {hasBuyins && (
-                                                <div className="tour-card-buyins">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                                        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-                                                    </svg>
-                                                    <span>
-                                                        Buy-ins: {formatMoney(buyinMin)}{buyinMin != null && buyinMax != null ? ' – ' : ''}{formatMoney(buyinMax)}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* Regions */}
-                                            {regions.length > 0 && (
-                                                <div className="tour-card-tags">
-                                                    {regions.slice(0, 5).map(r => (
-                                                        <span key={r} className="tour-region-tag">{r}</span>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            {/* Upcoming Series — with search-highlighted stops */}
-                                            {(() => {
-                                                const matchedStops = getMatchingStops(tour);
-                                                const displayStops = matchedStops || (series.length > 0 ? series : null);
-                                                if (!displayStops || displayStops.length === 0) return null;
-
-                                                const isHighlighted = !!matchedStops && (searchQuery || dateRange !== 'all');
-                                                const headerLabel = isHighlighted
-                                                    ? `Matching Stops (${displayStops.length})`
-                                                    : `Upcoming Stops (${displayStops.length})`;
-
-                                                return (
-                                                    <div className={`tour-card-series${isHighlighted ? ' highlighted' : ''}`}>
-                                                        <div className="tour-series-header">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isHighlighted ? '#d4a853' : 'currentColor'} strokeWidth="2">
-                                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                                            </svg>
-                                                            {headerLabel}
-                                                        </div>
-                                                        {displayStops.slice(0, 5).map((s, i) => (
-                                                            <div key={i} className={`tour-series-item${s.isSearchMatch ? ' search-match' : ''}`}>
-                                                                <span className="tour-series-name">{s.short_name || s.name || s.venue || 'TBD'}</span>
-                                                                <span className="tour-series-dates">
-                                                                    {s.dates ? s.dates : (
-                                                                        formatDate(s.start_date) + (s.end_date ? ' – ' + formatDate(s.end_date) : '')
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                        {displayStops.length > 5 && (
-                                                            <div className="tour-series-more">
-                                                                +{displayStops.length - 5} more stop{displayStops.length - 5 > 1 ? 's' : ''}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })()}
-
-                                            {/* Card Footer */}
-                                            <div className="tour-card-footer">
-                                                {tour.established && (
-                                                    <span className="tour-card-established">Est. {tour.established}</span>
-                                                )}
-                                                <div className="tour-card-actions">
-                                                    <span className="tour-action-btn primary">Details</span>
-                                                    {(tour.official_website) && (
-                                                        <a
-                                                            href={safeHref(tour.official_website.startsWith('http') ? tour.official_website : 'https://' + tour.official_website)}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="tour-action-btn"
-                                                            onClick={e => e.stopPropagation()}
-                                                        >
-                                                            Website
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {filteredTours.map(tour => (
+                                    <TourCard 
+                                        key={tour.tour_code || tour.tour_name}
+                                        tour={tour}
+                                        tourCurrentStops={tourCurrentStops}
+                                        favorites={favorites}
+                                        toggleFavorite={toggleFavorite}
+                                        handleTourClick={handleTourClick}
+                                        searchQuery={searchQuery}
+                                        dateRangeCutoff={dateRangeCutoff}
+                                        getMatchingStops={getMatchingStops}
+                                        onTrackTour={handleTrackTour}
+                                    />
+                                ))}
                             </div>
                         )}
                     </main>
@@ -2365,4 +2055,33 @@ export default function PokerToursPage() {
             </div>
         </>
     );
+}
+
+
+// ═══════════════════════════════════════════════
+// ON-DEMAND STATIC DATA (ISR)
+// ═══════════════════════════════════════════════
+import { supabaseAdmin } from '../../src/lib/supabaseAdmin';
+
+export async function getStaticProps() {
+    try {
+        // Mock the logic of /api/poker/tours
+        const { data, error } = await supabaseAdmin
+            .from('poker_series')
+            .select('*')
+            .not('tour', 'is', null)
+            .not('tour', 'eq', 'INDEPENDENT')
+            .order('start_date', { ascending: true })
+            .limit(300);
+            
+        if (error) throw error;
+        
+        return {
+            props: { initialTours: data || [] },
+            revalidate: 60, // 60 second Edge caching
+        };
+    } catch (e) {
+        console.error('ISR Build Failed:', e.message);
+        return { props: { initialTours: [] }, revalidate: 60 };
+    }
 }
