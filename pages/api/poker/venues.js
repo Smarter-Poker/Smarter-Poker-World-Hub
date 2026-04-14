@@ -239,22 +239,42 @@ export default async function handler(req, res) {
 
       try {
           const {
-              id,
-              state,
-              city,
-              type,
-              venue_type,
-              tournaments,
-              search,
-              lat,
-              lng,
-              radius = 100,
-              limit = 10000,
-              featured,
-              hasNLH,
-              hasPLO,
-              hasMixed,
+              id: _id,
+              state: _state,
+              city: _city,
+              type: _type,
+              venue_type: _venue_type,
+              tournaments: _tournaments,
+              search: _search,
+              lat: _lat,
+              lng: _lng,
+              radius: _radius = 100,
+              limit: _limit = 10000,
+              featured: _featured,
+              hasNLH: _hasNLH,
+              hasPLO: _hasPLO,
+              hasMixed: _hasMixed,
           } = req.query;
+
+          // [B1 FIX] Guard against array injection — Next.js parses ?search[]=A&search[]=B as an array.
+          // Passing an array to .ilike() silently breaks the Supabase filter (matches nothing).
+          const safeStr = (v) => Array.isArray(v) ? v[0] : v;
+          const id = safeStr(_id);
+          const state = safeStr(_state);
+          const city = safeStr(_city);
+          const type = safeStr(_type);
+          const venue_type = safeStr(_venue_type);
+          const tournaments = safeStr(_tournaments);
+          const search = safeStr(_search);
+          const lat = safeStr(_lat);
+          const lng = safeStr(_lng);
+          const radius = safeStr(_radius) || 100;
+          const limit = safeStr(_limit) || 10000;
+          const featured = safeStr(_featured);
+          const hasNLH = safeStr(_hasNLH);
+          const hasPLO = safeStr(_hasPLO);
+          const hasMixed = safeStr(_hasMixed);
+
 
           const maxResults = Math.min(parseInt(limit, 10) || 1000, 1000);
           const offset = parseInt(req.query.offset, 10) || 0;
