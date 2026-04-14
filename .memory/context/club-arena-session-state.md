@@ -79,7 +79,7 @@ cat /etc/nginx/sites-enabled/* 2>/dev/null
 - **Hetzner Server ID:** 125093929
 - **Supabase Project:** `kuklfnapbkmacvwxktbh`
 - **Test Account:** daniel@bekavactrading.com / Bek454545!!
-- **GitHub Token:** `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`
+- **GitHub Token:** `[REDACTED_GH_TOKEN]`
 - **Vercel Deploy Hook:** `https://api.vercel.com/v1/integrations/deploy/prj_op66GkZyZcygXQKm76iyycfVFAQx/Tw4O1eDeVc`
 
 ## Dan's Rules (NEVER FORGET)

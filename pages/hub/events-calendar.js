@@ -498,6 +498,9 @@ export default function EventsCalendarPage({ fallbackData }) {
     return () => { isMounted = false; };
   }, []);
 
+  // ─── Deferred Filter States for 120hz Unblocked Input ───
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
   // Build API URL from filters
   const apiUrl = useMemo(() => {
     const params = new URLSearchParams();
@@ -506,7 +509,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     if (eventType !== 'all') params.set('eventType', eventType);
     if (gameType !== 'all') params.set('gameType', gameType);
     if (sortBy) params.set('sort', sortBy);
-    if (searchQuery) params.set('search', searchQuery);
+    if (deferredSearchQuery) params.set('search', deferredSearchQuery);
 
     const buyInConfig = BUY_IN_TIERS.find(t => t.key === buyInTier);
     if (buyInConfig?.min != null) params.set('minBuyin', buyInConfig.min);
@@ -522,7 +525,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     }
 
     return `/api/poker/events-calendar?${params.toString()}`;
-  }, [dateRange, buyInTier, gameType, eventType, sortBy, searchQuery, userLocation, distance]);
+  }, [dateRange, buyInTier, gameType, eventType, sortBy, deferredSearchQuery, userLocation, distance]);
 
   // BUG FIX: fallbackData must be keyed to the initial SSR URL for SWR v2 to hydrate correctly.
   // Using fallbackData directly (without key scoping) caused the SSR data to override

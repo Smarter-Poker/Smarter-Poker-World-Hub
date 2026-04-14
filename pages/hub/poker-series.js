@@ -79,6 +79,13 @@ function cleanHtml(s) {
     return (s || '').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"');
 }
 
+function safeHref(url) {
+    if (!url) return undefined;
+    const s = String(url).replace(/[\x00-\x20\x7F]/g, '');
+    if (/^(javascript|data|vbscript|file):/i.test(s)) return '#xss';
+    return s;
+}
+
 // Smart date range — detects multi-month/season series and labels them properly
 function formatSeriesDateRange(start, end) {
     if (!start) return '';
@@ -486,9 +493,9 @@ export default function PokerSeriesPage() {
 
     // ─── Find venue coordinates ───
     const findVenueCoords = useCallback((series) => {
-        const venueName = (series.venue || series.venue_name || '').toLowerCase();
-        const city = (series.city || '').toLowerCase();
-        const state = (series.state || '').toLowerCase();
+        const venueName = (series.venue || series.venue_name || '').toLowerCase().trim();
+        const city = (series.city || '').toLowerCase().trim();
+        const state = (series.state || '').toLowerCase().trim();
 
         if (allVenues.length > 0) {
             // 1. Exact venue name match
@@ -949,7 +956,7 @@ export default function PokerSeriesPage() {
                             hideLegend={true}
                             uniformColor="#ffffff"
                             disableClustering={true}
-                            onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url, title })}
+                            onOpenIframeModal={(url, title) => setIframeModal({ isOpen: true, url: safeHref(url), title })}
                         />
                     </MapErrorBoundary>
                 </div>
@@ -1195,7 +1202,7 @@ export default function PokerSeriesPage() {
                                                     {detailUrl && <span className="tour-action-btn primary">View Schedule</span>}
                                                     {series.source_url && (
                                                         <a
-                                                            href={series.source_url}
+                                                            href={safeHref(series.source_url)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="tour-action-btn"
