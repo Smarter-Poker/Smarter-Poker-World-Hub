@@ -163,7 +163,9 @@ export default async function handler(req, res) {
       end_date = safeString(end_date);
       limit = safeString(limit);
 
-      const parsedLimit = Math.min(parseInt(limit, 10) || 70, 300);
+      // [API-S1 FIX] Was Math.min(..., 300) — meaning the list endpoint max was 300 even with
+      // 999+ series in DB. Raised to 999 to match the actual query range below.
+      const parsedLimit = Math.min(parseInt(limit, 10) || 70, 999);
 
       // --- Single series by ID ---
       // CRITICAL: Must search BOTH tables since list endpoint merges tournament_series
@@ -290,7 +292,9 @@ export default async function handler(req, res) {
 
         if (tour) {
           // Strip ILIKE wildcards to prevent injection
-          const safeTour = tour.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 50);
+          // [API-S4 FIX] Added [ and ] to sanitization — PostgREST uses [ ] in filter operators.
+          // Without stripping them, a crafted tour= param like 'WSOP]' could break the filter chain.
+          const safeTour = tour.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 50);
           if (safeTour) {
               query = query.or(`tour.ilike.%${safeTour}%,short_name.ilike.%${safeTour}%`);
           }
@@ -298,7 +302,7 @@ export default async function handler(req, res) {
 
         if (search) {
           // Strip ILIKE wildcards to prevent injection
-          const safeSearch = search.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 100);
+          const safeSearch = search.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 100);
           if (safeSearch) {
               query = query.or(
                 `name.ilike.%${safeSearch}%,short_name.ilike.%${safeSearch}%,venue.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`
@@ -336,11 +340,11 @@ export default async function handler(req, res) {
             if (tierMap[type]) psQuery = psQuery.eq('tier', tierMap[type]);
           }
           if (tour) {
-            const safeTour = tour.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 50);
+            const safeTour = tour.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 50);
             if (safeTour) psQuery = psQuery.or(`tour.ilike.%${safeTour}%`);
           }
           if (search) {
-            const safeSearch = search.replace(/[()'",.;%_\\)]/g, ' ').trim().slice(0, 100);
+            const safeSearch = search.replace(/[()'",.;%_\\\[\]]/g, ' ').trim().slice(0, 100);
             if (safeSearch) {
               psQuery = psQuery.or(
                 `name.ilike.%${safeSearch}%,series_name.ilike.%${safeSearch}%,venue_name.ilike.%${safeSearch}%,city.ilike.%${safeSearch}%`

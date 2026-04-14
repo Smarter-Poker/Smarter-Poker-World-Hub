@@ -960,10 +960,8 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                     {/* Square venue logo — top-left corner */}
                                                     {series.logo_url && (
                                                         <div style={{
-                                                            width: 116,
-                                                            height: 116,
-                                                            flexShrink: 0,
-                                                            borderRadius: 12,
+                                                            // [PS-STYLE1 FIX] Removed duplicate width/height/borderRadius keys
+                                                            // (116/116/12 were silently overridden by 58/58/8 — JS takes last value)
                                                             width: 58,
                                                             height: 58,
                                                             flexShrink: 0,
@@ -983,8 +981,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                                                                     height: '100%',
                                                                     objectFit: 'contain',
                                                                     display: 'block',
-                                                                    padding: 8,
-                                                                    padding: 8,
+                                                                    // [PS-STYLE2 FIX] padding appeared 3x (8, 8, 4) — kept only final value
                                                                     padding: 4,
                                                                     boxSizing: 'border-box',
                                                                 }}
@@ -2033,7 +2030,8 @@ export async function getStaticProps() {
             .from('poker_series')
             .select('*')
             .order('start_date', { ascending: true })
-            .limit(300);
+            .range(0, 499); // [GSP1 FIX] Was .limit(300) — silently dropped series #301+ on every ISR rebuild
+            // Using .range(0,499) handles current dataset (300-400 rows) with headroom
             
         if (error) throw error;
         
