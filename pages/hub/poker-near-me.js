@@ -344,6 +344,7 @@ export default function PokerNearMePage() {
 
     // Live table count for map stats (fetched from live-tables API)
     const [liveTableCount, setLiveTableCount] = useState(0);
+    const [liveVenueCount, setLiveVenueCount] = useState(0);
 
     // UI states
     const [loading, setLoading] = useState(true);
@@ -789,6 +790,19 @@ export default function PokerNearMePage() {
         }
     }, [filters.radius]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // ═══ AUTO-REFETCH on venueType change — dropdown auto-submit (no button needed) ═══
+    const prevVenueTypeRef = useRef(filters.venueType);
+    useEffect(() => {
+        if (prevVenueTypeRef.current === filters.venueType) return;
+        prevVenueTypeRef.current = filters.venueType;
+        // Re-fetch venues with new type filter whenever user has a location/city context
+        // Use fetchVenuesRef.current to avoid temporal dead zone (fetchVenues declared later)
+        if (userLocation || selectedCity || hasSearched) {
+            setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
+            if (fetchVenuesRef.current) fetchVenuesRef.current();
+        }
+    }, [filters.venueType]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Load all venues for the map (from static JSON) on mount — with offline cache
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -846,8 +860,13 @@ export default function PokerNearMePage() {
     const fetchLiveCount = useCallback(async () => {
         try {
             const json = await cachedFetch('/api/poker/live-tables');
-            if (json && json.metadata && typeof json.metadata.total_tables_running === 'number') {
-                setLiveTableCount(json.metadata.total_tables_running);
+            if (json && json.metadata) {
+                if (typeof json.metadata.total_tables_running === 'number') {
+                    setLiveTableCount(json.metadata.total_tables_running);
+                }
+                if (typeof json.metadata.venues_with_live_data === 'number') {
+                    setLiveVenueCount(json.metadata.venues_with_live_data);
+                }
             }
         } catch (e) {
             /* silent fail */
@@ -2207,8 +2226,41 @@ export default function PokerNearMePage() {
         // Dedupe: don't add a tour stop if a matching venue is already in `venues`
         const venueIds = new Set(venues.map(v => String(v.id)));
         const uniqueTourStops = tourStops.filter(t => !venueIds.has(String(t.id)));
-        return [...venues, ...uniqueTourStops];
-    }, [venues, allVenuesWithTours]);
+        let combined = [...venues, ...uniqueTourStops];
+
+        // ─── CLIENT-SIDE: Auto-filter by gameType (cash/tournaments/mixed) ───
+        // venueType is server-side; gameType and stakes are applied here instantly
+        if (filters.gameType && filters.gameType !== 'all') {
+            combined = combined.filter(v => {
+                const games = v.games_offered || [];
+                const hasCash = games.some(g => {
+                    const name = (g.game_type || g.name || g || '').toString().toLowerCase();
+                    return !name.includes('tournament') && !name.includes('mtt');
+                });
+                const hasTournament = games.some(g => {
+                    const name = (g.game_type || g.name || g || '').toString().toLowerCase();
+                    return name.includes('tournament') || name.includes('mtt');
+                });
+                if (filters.gameType === 'cash') return hasCash || games.length === 0;
+                if (filters.gameType === 'mtt') return hasTournament || v.has_tournaments;
+                if (filters.gameType === 'mixed') return hasCash && hasTournament;
+                return true;
+            });
+        }
+
+        // ─── CLIENT-SIDE: Auto-filter by stakes ───
+        if (filters.stakes && filters.stakes !== 'all') {
+            combined = combined.filter(v => {
+                const games = v.games_offered || [];
+                return games.some(g => {
+                    const s = (g.stakes || g.stake || g || '').toString();
+                    return s.includes(filters.stakes.replace('$', ''));
+                }) || games.length === 0; // keep venues with no game data (unknown stakes)
+            });
+        }
+
+        return combined;
+    }, [venues, allVenuesWithTours, filters.gameType, filters.stakes]);
 
     // Shared VenuesTabPanel JSX — single definition for 3 render paths
     const venuesTabJsx = (
@@ -2267,16 +2319,46 @@ export default function PokerNearMePage() {
             />
         );
         if (showLiveTab) return (
-            <LiveGamesFeed
-                venues={allVenuesWithTours.length > 0 ? allVenuesWithTours : venues}
-                userLocation={userLocation}
-                favorites={favorites}
-                handleToggleFavorite={(venueId, venueData) => toggleFavorite('venue', venueId, null, venueData)}
-                router={router}
-                openVenueModal={openVenueModal}
-                setSelectedVenueForReview={setReviewVenue}
-                user={user}
-            />
+            <div>
+                {/* ─── LIVE CASH GAMES SECTION HEADER ─── */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '14px 20px 10px',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    marginBottom: 0,
+                }}>
+                    <span style={{
+                        width: 9,
+                        height: 9,
+                        borderRadius: '50%',
+                        background: '#ef4444',
+                        boxShadow: '0 0 10px #ef4444',
+                        animation: 'lgf-pulse 1.5s ease-in-out infinite',
+                        flexShrink: 0,
+                        display: 'inline-block',
+                    }} />
+                    <h2 style={{
+                        margin: 0,
+                        fontSize: 18,
+                        fontWeight: 800,
+                        color: '#ffffff',
+                        letterSpacing: '1.5px',
+                        textTransform: 'uppercase',
+                    }}>Live Cash Games</h2>
+                </div>
+                <LiveGamesFeed
+                    venues={allVenuesWithTours.length > 0 ? allVenuesWithTours : venues}
+                    userLocation={userLocation}
+                    favorites={favorites}
+                    handleToggleFavorite={(venueId, venueData) => toggleFavorite('venue', venueId, null, venueData)}
+                    router={router}
+                    openVenueModal={openVenueModal}
+                    setSelectedVenueForReview={setReviewVenue}
+                    user={user}
+                />
+            </div>
         );
         if (activeTab === 'saved') return (
             <FavoritesTabPanel
@@ -2508,15 +2590,13 @@ export default function PokerNearMePage() {
                 <div className="pnm-title-bar">
                     <h1 className="pnm-title">POKER NEAR ME</h1>
                     <p className="pnm-subtitle">
-                        {dbStats.total === 0 && liveTableCount === 0 ? (
-                            'Loading Venue Data...'
+                        {liveVenueCount === 0 && liveTableCount === 0 ? (
+                            'Loading Live Data...'
                         ) : (
                             <>
-                                {dbStats.total.toLocaleString()} Venues
+                                {liveVenueCount.toLocaleString()} Live Venues
                                 &nbsp;&bull;&nbsp;
                                 {liveTableCount.toLocaleString()} Live Tables
-                                &nbsp;&bull;&nbsp;
-                                {dbStats.tournaments.toLocaleString()} Today&apos;s Tournaments
                             </>
                         )}
                     </p>
@@ -2631,7 +2711,7 @@ export default function PokerNearMePage() {
                             >
                                 <span className="pnm-live-dot" />
                                 Live Games
-                                {liveGames.length > 0 && <span className="pnm-tab-badge">{liveGames.length}</span>}
+                                {liveTableCount > 0 && <span className="pnm-tab-badge">{liveTableCount}</span>}
                             </button>
                         </div>
                     </>
