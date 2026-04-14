@@ -36,9 +36,8 @@ function getCurrentDay() {
     return days[new Date(localCurrentTime).getDay()];
 }
 
-// Parse time string to sortable number (handles: "7:30 PM", "19:30", "7PM", "7:30pm")
 function parseTime(timeStr) {
-    if (!timeStr) return 0;
+    if (!timeStr) return -1;
     const t = timeStr.trim();
     // HH:MM:SS optional AM/PM
     let m = t.match(/^(\d{1,2}):(\d{2}):\d{2}\s*([AP]M)?$/i);
@@ -64,7 +63,7 @@ function parseTime(timeStr) {
         if (p === 'AM' && h === 12) h = 0;
         return h * 60;
     }
-    return 0;
+    return -1;
 }
 
 // Map day string "Monday" to "2026-04-13" upcoming date
@@ -113,6 +112,7 @@ export default async function handler(req, res) {
       try {
           const {
               day,
+              exact_date, // Direct calendar bypass targeting
               state,
               venue,
               type,      // Card Room, Casino, Charity
@@ -207,7 +207,8 @@ export default async function handler(req, res) {
 
           const { data: dbTournaments, error } = await query;
           
-          const targetDateStr = getNextDateForDay(targetDay);
+          // Bug 2 Fix: If user utilizes the calendar modal, lock entirely to the precise date provided
+          let targetDateStr = exact_date ? exact_date.replace(/[,()_%]/g, '').trim().slice(0, 10) : getNextDateForDay(targetDay);
           
           // Also fetch active charity events from charity_events_schedule
           let charityQuery = getSupabase()
@@ -341,28 +342,14 @@ export default async function handler(req, res) {
                   };
               });
 
-              // Filter by state if provided
-              if (state) {
-                  tournaments = tournaments.filter(t =>
-                      t.state?.toUpperCase() === state.toUpperCase()
-                  );
-              }
-
-              // Filter by venue type
-              if (type) {
-                  tournaments = tournaments.filter(t =>
-                      t.venueType?.toLowerCase().includes(type.toLowerCase())
-                  );
-              }
-              
-              // Integrate charity events dynamically
+              // Integrate charity events dynamically FIRST
               if (dbCharityEvents && dbCharityEvents.length > 0) {
                   dbCharityEvents.forEach(c => {
                       tournaments.push({
                           id: `charity_${c.id}`,
                           venue_id: `charity_${c.id}`,
                           venue_name: c.charity_name,
-                          venueType: 'Charity Room',
+                          venueType: 'Charity',
                           day_of_week: c.start_date, // Mapped for sorting/fallback
                           start_time: '12:00 PM', // Default
                           buy_in: 0, // Or extract if available
@@ -378,7 +365,7 @@ export default async function handler(req, res) {
                   });
               }
               
-              // Integrate traveling tours and series events dynamically
+              // Integrate traveling tours and series events dynamically FIRST
               if (dbToursEvents && dbToursEvents.length > 0) {
                   dbToursEvents.forEach(e => {
                       tournaments.push({
@@ -400,6 +387,20 @@ export default async function handler(req, res) {
                       });
                   });
               }
+
+              // Filter by state if provided (Ensures Charity/Tours are caught)
+              if (state) {
+                  tournaments = tournaments.filter(t =>
+                      t.state?.toUpperCase() === state.toUpperCase()
+                  );
+              }
+
+              // Filter by venue type (Ensures Charity/Tours are cleanly routed)
+              if (type) {
+                  tournaments = tournaments.filter(t =>
+                      t.venueType?.toLowerCase().includes(type.toLowerCase())
+                  );
+              }
           } else {
               // No database data available — return empty (never generate fake data)
               tournaments = [];
@@ -410,17 +411,18 @@ export default async function handler(req, res) {
           // Scraper artifacts produce 12 AM / 1 AM / 2 AM times that don't exist.
           // These are flagged for manual review and hidden from the public feed.
           // ═══════════════════════════════════════════════════════════
+          // ZERO-INDEX BUG FIX: Catch 12:00 AM artifacts returning '0'. Missing values return '-1' explicitly.
           const suspiciousCount = tournaments.filter(t => {
               const mins = parseTime(t.start_time);
-              return mins > 0 && mins < SUSPICIOUS_TIME_FLOOR_MINUTES;
+              return mins >= 0 && mins < SUSPICIOUS_TIME_FLOOR_MINUTES;
           }).length;
           if (suspiciousCount > 0) {
               console.warn(`[daily-tournaments] Suppressed ${suspiciousCount} pre-10AM records — flagged for manual review`);
           }
           tournaments = tournaments.filter(t => {
               const mins = parseTime(t.start_time);
-              // Keep: midnight sentinel (0 = no time set) AND times >= 10 AM
-              return mins === 0 || mins >= SUSPICIOUS_TIME_FLOOR_MINUTES;
+              // Keep: Unparseable/TBD (-1) AND times >= 10:00 AM (600 mins)
+              return mins < 0 || mins >= SUSPICIOUS_TIME_FLOOR_MINUTES;
           });
 
           // ═══════════════════════════════════════════════════════════

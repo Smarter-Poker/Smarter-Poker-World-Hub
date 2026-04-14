@@ -5,13 +5,14 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getInitialsColor } from '../../src/components/poker-near-me/pnm-utils';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -123,6 +124,12 @@ export default function DailyTournaments() {
     const [selectedType, setSelectedType] = useState('');
     const [selectedBuyin, setSelectedBuyin] = useState(BUYIN_RANGES[0]);
     const [searchQuery, setSearchQuery] = useState('');
+    // Calendar state
+    const [calendarOpen, setCalendarOpen] = useState(false);
+    const [calendarMonth, setCalendarMonth] = useState(() => {
+        const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() };
+    });
+    const [selectedDate, setSelectedDate] = useState(null); // null = use day-of-week mode
 
     const menuConfig = getMenuConfig('tournaments', null, {}, {});
 
@@ -142,6 +149,11 @@ export default function DailyTournaments() {
     if (selectedBuyin.min) swrParams.set('minBuyin', selectedBuyin.min.toString());
     if (selectedBuyin.max) swrParams.set('maxBuyin', selectedBuyin.max.toString());
     if (debouncedSearch) swrParams.set('venue', debouncedSearch);
+    // When a specific date is selected from the calendar, override day and provide exact targeting
+    if (selectedDate) {
+        swrParams.set('day', DAYS[new Date(selectedDate + 'T12:00:00').getDay()]);
+        swrParams.set('exact_date', selectedDate);
+    }
 
     const { data: swrData, error, isLoading: loading, mutate: refreshTournaments } = useSWR(
         `/api/poker/daily-tournaments?${swrParams}`,
@@ -179,7 +191,30 @@ export default function DailyTournaments() {
         setSelectedBuyin(BUYIN_RANGES[0]);
         setSearchQuery('');
         setDebouncedSearch('');
+        setSelectedDate(null);
     };
+
+    // Calendar helpers
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const calDays = useCallback(() => {
+        const { year, month } = calendarMonth;
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        return { firstDay, daysInMonth, year, month };
+    }, [calendarMonth]);
+
+    function toDateStr(year, month, day) {
+        return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+
+    function handleCalendarDateClick(dateStr) {
+        const d = new Date(dateStr + 'T12:00:00');
+        const dayName = DAYS[d.getDay()];
+        setSelectedDate(dateStr);
+        setSelectedDay(dayName);
+        setCalendarOpen(false);
+    }
 
     // Group tournaments by time slot
     const morningTournaments = tournaments.filter(t => {
@@ -264,21 +299,112 @@ export default function DailyTournaments() {
                     <span className="subtitle">{stats.total || 0} TOURNAMENTS AT {stats.venueCount || new Set((swrData?.tournaments || []).map(t => t.venue_name)).size || '...'} VENUES</span>
                 </div>
 
-                {/* Day Selector */}
+                {/* Day Selector + Calendar Button */}
                 <div className="day-selector">
-                    <div className="day-tabs">
-                        {DAYS.map(day => (
-                            <button
-                                key={day}
-                                className={`day-tab ${selectedDay === day ? 'active' : ''}`}
-                                onClick={() => setSelectedDay(day)}
-                            >
-                                <span className="day-short">{day.substring(0, 3)}</span>
-                                <span className="day-full">{day}</span>
-                            </button>
-                        ))}
+                    <div className="day-tabs-row">
+                        <div className="day-tabs">
+                            {DAYS.map(day => {
+                                // Find the upcoming date for this day-of-week
+                                const todayIdx = new Date().getDay();
+                                const dayIdx = DAYS.indexOf(day);
+                                let daysAhead = dayIdx - todayIdx;
+                                if (daysAhead < 0) daysAhead += 7;
+                                const tabDate = new Date();
+                                tabDate.setDate(tabDate.getDate() + daysAhead);
+                                const tabDateStr = toDateStr(tabDate.getFullYear(), tabDate.getMonth(), tabDate.getDate());
+                                const isActive = selectedDate
+                                    ? selectedDate === tabDateStr
+                                    : selectedDay === day;
+                                const isToday = daysAhead === 0;
+                                return (
+                                    <button
+                                        key={day}
+                                        className={`day-tab ${isActive ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setSelectedDay(day);
+                                            setSelectedDate(null);
+                                        }}
+                                    >
+                                        {isToday && <span className="day-today-dot" />}
+                                        <span className="day-short">{day.substring(0, 3)}</span>
+                                        <span className="day-full">{day}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <button
+                            className="calendar-btn"
+                            onClick={() => setCalendarOpen(true)}
+                            title="Browse by Calendar Date"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span>Calendar</span>
+                        </button>
                     </div>
+                    {selectedDate && (
+                        <div className="selected-date-banner">
+                            Showing schedule for: <strong>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</strong>
+                            <button onClick={() => setSelectedDate(null)} className="clear-date-btn">&#x2715; Back to Week</button>
+                        </div>
+                    )}
                 </div>
+
+                {/* Calendar Modal */}
+                {calendarOpen && (() => {
+                    const { firstDay, daysInMonth, year, month } = calDays();
+                    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+                    const calCells = [];
+                    for (let i = 0; i < firstDay; i++) calCells.push(null);
+                    for (let d = 1; d <= daysInMonth; d++) calCells.push(d);
+                    const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 365);
+                    return (
+                        <div className="cal-overlay" onClick={() => setCalendarOpen(false)}>
+                            <div className="cal-modal" onClick={e => e.stopPropagation()}>
+                                <div className="cal-nav">
+                                    <button className="cal-nav-btn" onClick={() => setCalendarMonth(m => {
+                                        if (m.month === 0) return { year: m.year - 1, month: 11 };
+                                        return { year: m.year, month: m.month - 1 };
+                                    })}>&#8249;</button>
+                                    <span className="cal-month-label">{MONTH_NAMES[month]} {year}</span>
+                                    <button className="cal-nav-btn" onClick={() => setCalendarMonth(m => {
+                                        if (m.month === 11) return { year: m.year + 1, month: 0 };
+                                        return { year: m.year, month: m.month + 1 };
+                                    })}>&#8250;</button>
+                                    <button className="cal-close-btn" onClick={() => setCalendarOpen(false)}>&#x2715;</button>
+                                </div>
+                                <div className="cal-weekdays">
+                                    {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} className="cal-wd">{d}</div>)}
+                                </div>
+                                <div className="cal-grid">
+                                    {calCells.map((d, i) => {
+                                        if (!d) return <div key={`e-${i}`} className="cal-cell empty" />;
+                                        const dateStr = toDateStr(year, month, d);
+                                        const cellDate = new Date(dateStr + 'T12:00:00');
+                                        const isPast = cellDate < today;
+                                        const isFuture = cellDate > maxDate;
+                                        const isSelected = selectedDate === dateStr;
+                                        const isToday2 = dateStr === toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
+                                        return (
+                                            <button
+                                                key={dateStr}
+                                                className={`cal-cell ${isPast || isFuture ? 'disabled' : ''} ${isSelected ? 'selected' : ''} ${isToday2 ? 'today' : ''}`}
+                                                disabled={isPast || isFuture}
+                                                onClick={() => handleCalendarDateClick(dateStr)}
+                                            >
+                                                {d}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* Top Level Filters Command Bar */}
                 <div className="pnm-top-filters" style={{ padding: '0 20px', marginBottom: '20px' }}>
@@ -514,17 +640,26 @@ export default function DailyTournaments() {
                         letter-spacing: 1px;
                     }
 
-                    /* Day Selector */
                     .day-selector {
                         padding: 0 20px 16px;
                         overflow-x: auto;
+                    }
+                    .day-tabs-row {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        min-width: 0;
                     }
                     .day-tabs {
                         display: flex;
                         gap: 4px;
                         min-width: min-content;
+                        overflow-x: auto;
+                        flex: 1;
                     }
+                    .day-tabs::-webkit-scrollbar { display: none; }
                     .day-tab {
+                        position: relative;
                         padding: 10px 16px;
                         background: linear-gradient(180deg, rgba(61, 79, 95, 0.2) 0%, rgba(26, 35, 50, 0.4) 100%);
                         border: 1px solid var(--metal-highlight);
@@ -539,6 +674,13 @@ export default function DailyTournaments() {
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
                     }
+                    .day-today-dot {
+                        position: absolute;
+                        top: 5px; right: 5px;
+                        width: 5px; height: 5px;
+                        border-radius: 50%;
+                        background: #00D4FF;
+                    }
                     .day-tab:hover {
                         background: linear-gradient(180deg, rgba(61, 79, 95, 0.4) 0%, rgba(26, 35, 50, 0.6) 100%);
                         border-color: var(--neon-cyan);
@@ -549,6 +691,168 @@ export default function DailyTournaments() {
                         border-color: #00D4FF;
                         color: #000;
                         box-shadow: 0 0 15px rgba(0, 212, 255, 0.5), 0 0 30px rgba(0, 212, 255, 0.2);
+                    }
+                    .calendar-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 8px 14px;
+                        background: rgba(0,212,255,0.1);
+                        border: 1.5px solid rgba(0,212,255,0.35);
+                        border-radius: 8px;
+                        color: #00D4FF;
+                        font-size: 13px;
+                        font-weight: 600;
+                        font-family: 'Rajdhani', sans-serif;
+                        cursor: pointer;
+                        white-space: nowrap;
+                        flex-shrink: 0;
+                        transition: all 0.2s;
+                    }
+                    .calendar-btn:hover {
+                        background: rgba(0,212,255,0.2);
+                        border-color: rgba(0,212,255,0.6);
+                        box-shadow: 0 0 12px rgba(0,212,255,0.2);
+                    }
+                    .selected-date-banner {
+                        margin-top: 10px;
+                        padding: 8px 14px;
+                        background: rgba(0,212,255,0.08);
+                        border: 1px solid rgba(0,212,255,0.25);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.8);
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        flex-wrap: wrap;
+                    }
+                    .selected-date-banner strong { color: #00D4FF; }
+                    .clear-date-btn {
+                        background: none;
+                        border: none;
+                        color: rgba(255,255,255,0.5);
+                        cursor: pointer;
+                        font-size: 12px;
+                        padding: 2px 6px;
+                        margin-left: auto;
+                        transition: color 0.15s;
+                    }
+                    .clear-date-btn:hover { color: #fff; }
+
+                    /* Calendar Modal */
+                    .cal-overlay {
+                        position: fixed;
+                        inset: 0;
+                        background: rgba(0,0,0,0.7);
+                        z-index: 1000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 20px;
+                    }
+                    .cal-modal {
+                        background: #0d1117;
+                        border: 1.5px solid rgba(0,212,255,0.35);
+                        border-radius: 16px;
+                        padding: 20px;
+                        width: 320px;
+                        max-width: 100%;
+                        box-shadow: 0 0 40px rgba(0,212,255,0.15), 0 20px 60px rgba(0,0,0,0.6);
+                    }
+                    .cal-nav {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 14px;
+                    }
+                    .cal-month-label {
+                        flex: 1;
+                        text-align: center;
+                        font-size: 16px;
+                        font-weight: 700;
+                        color: #fff;
+                        font-family: 'Rajdhani', sans-serif;
+                        letter-spacing: 0.5px;
+                    }
+                    .cal-nav-btn {
+                        width: 30px; height: 30px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 6px;
+                        color: #fff;
+                        font-size: 18px;
+                        cursor: pointer;
+                        display: flex; align-items: center; justify-content: center;
+                        transition: all 0.15s;
+                    }
+                    .cal-nav-btn:hover {
+                        background: rgba(0,212,255,0.15);
+                        border-color: rgba(0,212,255,0.4);
+                    }
+                    .cal-close-btn {
+                        width: 28px; height: 28px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 6px;
+                        color: rgba(255,255,255,0.6);
+                        font-size: 14px;
+                        cursor: pointer;
+                        display: flex; align-items: center; justify-content: center;
+                        transition: all 0.15s;
+                        margin-left: auto;
+                    }
+                    .cal-close-btn:hover { background: rgba(255,0,0,0.1); border-color: rgba(255,0,0,0.3); color: #ff4444; }
+                    .cal-weekdays {
+                        display: grid;
+                        grid-template-columns: repeat(7, 1fr);
+                        gap: 2px;
+                        margin-bottom: 6px;
+                    }
+                    .cal-wd {
+                        text-align: center;
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.4);
+                        padding: 4px 0;
+                        text-transform: uppercase;
+                    }
+                    .cal-grid {
+                        display: grid;
+                        grid-template-columns: repeat(7, 1fr);
+                        gap: 3px;
+                    }
+                    .cal-cell {
+                        aspect-ratio: 1;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 6px;
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        background: rgba(255,255,255,0.04);
+                        border: 1px solid transparent;
+                        color: rgba(255,255,255,0.8);
+                        transition: all 0.15s;
+                    }
+                    .cal-cell.empty { background: none; border: none; cursor: default; }
+                    .cal-cell.disabled { color: rgba(255,255,255,0.2); cursor: not-allowed; background: none; }
+                    .cal-cell:not(.disabled):not(.empty):hover {
+                        background: rgba(0,212,255,0.15);
+                        border-color: rgba(0,212,255,0.4);
+                        color: #00D4FF;
+                    }
+                    .cal-cell.today {
+                        border-color: rgba(0,212,255,0.5);
+                        color: #00D4FF;
+                        font-weight: 700;
+                    }
+                    .cal-cell.selected {
+                        background: linear-gradient(135deg, #00D4FF, #0099CC);
+                        border-color: #00D4FF;
+                        color: #000;
+                        font-weight: 700;
                     }
                     .day-full { display: none; }
                     @media (min-width: 768px) {
@@ -672,11 +976,22 @@ export default function DailyTournaments() {
 function TournamentCard({ tournament }) {
     const t = tournament;
     const isRealVenue = t.venue_id && !String(t.venue_id).startsWith('charity_') && !String(t.venue_id).startsWith('tour_event_');
+    const initials = (t.venue_name || 'V').substring(0, 1).toUpperCase();
+    const initialsColors = getInitialsColor(t.venue_id || t.venue_name || 'V');
 
     return (
         <div className="tournament-card">
             <div className="card-header">
-                <span className="card-time">{formatTime(t.start_time)}</span>
+                <div className="card-header-left">
+                    {t.logo_url ? (
+                        <img src={t.logo_url} alt={initials} className="card-logo" />
+                    ) : (
+                        <div className="card-initials" style={{ backgroundColor: initialsColors.bg, color: initialsColors.text, borderColor: initialsColors.border }}>
+                            {initials}
+                        </div>
+                    )}
+                    <span className="card-time">{formatTime(t.start_time)}</span>
+                </div>
                 <span className="card-buyin">{typeof t.buy_in === 'number' && t.buy_in > 0 ? `$${t.buy_in}` : (t.buy_in === 0 ? 'Free' : 'TBD')}</span>
             </div>
             {t.tournament_name && t.tournament_name !== t.venue_name && !t.tournament_name.match(/Buy In$/i) && !t.tournament_name.match(/^(pdf_action|viewport|fc-head|rh-flat|cookie|null|undefined)$/i) && t.tournament_name.length < 120 && (
@@ -725,7 +1040,32 @@ function TournamentCard({ tournament }) {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 10px;
+                    margin-bottom: 12px;
+                }
+                .card-header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+                .card-logo {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    object-fit: contain;
+                    background: rgba(255, 255, 255, 0.9);
+                    padding: 2px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                .card-initials {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                    font-weight: 700;
+                    border: 1px solid;
                 }
                 .card-time {
                     font-size: 13px;
