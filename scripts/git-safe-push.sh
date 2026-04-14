@@ -212,6 +212,40 @@ done
 # This is required because git diff --cached is empty until git add.
 git add -A 2>/dev/null || true
 
+# ── 0.5-PROTECTED: PROTECTED FILE ZONE ENFORCEMENT ──
+# Club Arena compiled output is a PROTECTED ZONE. Only agents whose commit
+# message contains "club-arena" or "Club Arena" may modify these files.
+# All other agents must NOT touch public/hub/club-arena/ to prevent
+# accidental overwrites during rebase/merge that break the Vite SPA.
+PROTECTED_ZONE_FILES=$(git diff --cached --name-only 2>/dev/null | grep '^public/hub/club-arena/' || true)
+if [ -n "$PROTECTED_ZONE_FILES" ]; then
+    # Check if the commit message indicates this is a Club Arena agent
+    if ! echo "$MSG" | grep -qiE '(club.?arena|poker.?table|pokerbros|club.?engine)'; then
+        echo ""
+        echo "PROTECTED ZONE VIOLATION: public/hub/club-arena/"
+        echo "================================================="
+        echo "   Your commit modifies files in a PROTECTED ZONE:"
+        echo "$PROTECTED_ZONE_FILES" | head -10 | sed 's/^/      /'
+        echo ""
+        echo "   Only Club Arena agents may modify public/hub/club-arena/."
+        echo "   Your commit message does not indicate Club Arena work."
+        echo ""
+        echo "   To fix: unstage these files and re-commit:"
+        echo "     git reset HEAD public/hub/club-arena/"
+        echo "     git add -A && git commit -m \"$MSG\""
+        echo ""
+        echo "   Or if you ARE a Club Arena agent, include 'club-arena'"
+        echo "   in your commit message."
+        echo "================================================="
+        # Auto-fix: unstage the protected files and continue
+        echo "   AUTO-FIX: Unstaging protected files and continuing..."
+        git reset HEAD public/hub/club-arena/ 2>/dev/null || true
+        echo "   Protected files removed from staging area."
+    else
+        echo "Club Arena agent detected — protected zone access GRANTED"
+    fi
+fi
+
 # ── 0.5a. VAGUE COMMIT MESSAGE GATE ──
 # Block lazy/generic commit messages that hide destructive bulk changes
 BLOCKED_MESSAGES="Daily update|daily update|Update files|update files|Auto commit|auto commit|WIP|wip"
