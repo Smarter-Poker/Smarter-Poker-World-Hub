@@ -728,7 +728,7 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                             <input
                                 ref={searchInputRef}
                                 type="text"
-                                className="tours-search-bar-input"
+                                className="tours-search-bar-input outline-none focus:outline-none focus:ring-0"
                                 placeholder="Search Series, Venues, Cities, States... (Ctrl+K)"
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
@@ -1246,14 +1246,20 @@ export default function PokerSeriesPage({ initialSeries = [] }) {
                     .tours-search-bar-input {
                         flex: 1;
                         background: transparent;
-                        border: none;
+                        border: none !important;
                         color: #e2e8f0;
                         font-size: 15px;
                         font-family: inherit;
                         font-weight: 500;
-                        outline: none;
+                        outline: none !important;
                         min-width: 0;
                         letter-spacing: 0.2px;
+                        box-shadow: none !important;
+                    }
+                    .tours-search-bar-input:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
+                        border: none !important;
                     }
                     .tours-search-bar-input::placeholder {
                         color: rgba(148,163,184,0.4);

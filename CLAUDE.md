@@ -1,5 +1,31 @@
 # Claude Instructions for Smarter-Poker-World-Hub
 
+## 🚨 MANDATORY PREFLIGHT PROTOCOL — RUN BEFORE ANY WORK
+
+At the start of EVERY new session or feature request, you MUST execute the appropriate preflight protocol. Do not write code or make plans until the preflight is complete and its output is provided to the user.
+
+**Step 1: Classify the Task**
+Identify if the user's request is Tier 1, Tier 2, or Tier 3 (see "Task Classification" section below).
+
+**Step 2: Execute Preflight**
+- **If Tier 1 (Quick Fix):** 
+  1. Read `/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.memory/WORKING-RULES.md`.
+  2. State the single atomic unit you are about to fix in one sentence.
+  3. Attest that there are no forbidden words (wait, soak, defer, later) in your plan.
+  4. Proceed with work.
+  
+- **If Tier 2 or 3 (Feature/Architecture):**
+  1. You MUST run the **10-Phase Military Grade Realign Protocol**.
+  2. Open and follow exactly the steps in `/Users/smarter.poker/Documents/Smarter-Poker-World-Hub/.memory/REALIGN-PROTOCOL.md`.
+  3. Perform the [INTEL] read and [GREP] state checks.
+  4. Fill out the [KILL-SWITCH] and [RED-TEAM] evaluations.
+  5. Provide the [MISSION BRIEF] with the exact verification commands.
+  6. Execute ONLY the atomic unit defined.
+
+**Do NOT rely on memory. Do not skip phases. Do not "skim".**
+
+---
+
 ## 🚨 MANDATORY: TypeScript Check Before EVERY Commit (NON-NEGOTIABLE)
 
 **Before EVERY `git commit`, run `npx tsc --noEmit`. If it has ANY errors, DO NOT commit. Fix all errors first.**
