@@ -397,8 +397,21 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
 }
 
 
+export async function getServerSideProps(context) {
+  try {
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const host = context.req.headers.host || 'localhost:3000';
+    const url = `${protocol}://${host}/api/poker/events-calendar?dateRange=14days&limit=500`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return { props: { fallbackData: data?.success ? data : null } };
+  } catch (err) {
+    return { props: { fallbackData: null } };
+  }
+}
+
 /* ───── Main Page Component ───── */
-export default function EventsCalendarPage() {
+export default function EventsCalendarPage({ fallbackData }) {
   const router = useRouter(); // BUG FIX: use router.push instead of window.location.href
   const now = new Date();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -477,15 +490,14 @@ export default function EventsCalendarPage() {
     return `/api/poker/events-calendar?${params.toString()}`;
   }, [dateRange, buyInTier, gameType, eventType, sortBy, searchQuery, userLocation, distance]);
 
-  // SWR-backed data fetch
+  // SWR-backed data fetch (with SSR fallback)
   const { data: apiData, error, isLoading: loading, mutate } = useSWR(
     apiUrl,
     (url) => fetch(url).then(r => r.json()).then(data => {
-      // BUG FIX: SWR gracefully passes soft 200 JSON errors. Force strict extraction.
       if (data && data.success === false) throw new Error(data.error || 'Failed to fetch API events');
       return data;
     }),
-    { revalidateOnFocus: false, dedupingInterval: 30000 }
+    { fallbackData, revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
   // Bind realtime venue and tournament updates to cache invalidation

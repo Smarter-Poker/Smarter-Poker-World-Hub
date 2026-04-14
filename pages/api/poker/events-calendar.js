@@ -177,8 +177,9 @@ export default async function handler(req, res) {
 
     const sb = getSupabase();
     const { dayIndex, dayName, dateKey: todayKey } = getCurrentDayInfo();
-    const parsedOffset = parseInt(offset) || 0;
-    const parsedLimit = Math.min(parseInt(limit) || 100, 500);
+    // BUG FIX: Prevent negative offset/limit allowing massive Array.slice() bypasses
+    const parsedOffset = Math.max(0, parseInt(offset) || 0);
+    const parsedLimit = Math.max(1, Math.min(parseInt(limit) || 100, 500));
     const userLat = parseFloat(lat);
     const userLng = parseFloat(lng);
     // BUG FIX: Strictly validate floats to prevent NaN pollution in haversine
