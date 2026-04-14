@@ -48,7 +48,17 @@ if [ $ERRORS -eq 0 ]; then echo "  ✓ No unused hooks"; fi
 
 # ─── CHECK 2: No .single() calls ───────────────────────────────────────────
 echo "CHECK 2: No .single() in Supabase queries..."
-SINGLES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | xargs grep -ln '\.single()' 2>/dev/null | xargs grep -L 'maybeSingle' 2>/dev/null || true)
+# [PP1 FIX] Previous version filtered entire files with 'maybeSingle' anywhere.
+# If a file had BOTH maybeSingle AND .single(), it would pass falsely.
+# Now grep per-occurrence so each .single() line is evaluated independently.
+SINGLES=$(echo "$CHANGED_FILES" | grep -v 'public/hub/club-arena/assets/' | while IFS= read -r file; do
+  [ -f "$file" ] || continue
+  grep -n '\.single()' "$file" 2>/dev/null | while IFS= read -r hit; do
+    line_num=$(echo "$hit" | cut -d: -f1)
+    # Only flag if this specific line does NOT have maybeSingle on it
+    echo "$hit" | grep -q 'maybeSingle' || echo "$file:$line_num"
+  done
+done || true)
 if [ -n "$SINGLES" ]; then
   echo "  ❌ Found .single() calls (must use .maybeSingle()):"
   echo "$SINGLES" | sed 's/^/    /'
@@ -59,7 +69,12 @@ fi
 
 # ─── CHECK 3: No raw Supabase imports in API routes ────────────────────────
 echo "CHECK 3: No raw Supabase imports..."
-RAW_IMPORTS=$(echo "$CHANGED_FILES" | grep 'pages/api/' | xargs grep -ln "await import.*@supabase/supabase-js" 2>/dev/null || true)
+# [PP2 FIX] Added static import pattern — previous version only caught dynamic `await import` calls.
+# Static `import { createClient } from '@supabase/supabase-js'` in API routes was not caught.
+RAW_IMPORTS=$(
+  { echo "$CHANGED_FILES" | grep 'pages/api/' | xargs grep -ln "await import.*@supabase/supabase-js" 2>/dev/null || true; \
+    echo "$CHANGED_FILES" | grep 'pages/api/' | xargs grep -ln "from '@supabase/supabase-js'" 2>/dev/null | xargs grep -L 'supabaseServerClient\|supabaseAdmin' 2>/dev/null || true; } | sort -u
+)
 if [ -n "$RAW_IMPORTS" ]; then
   echo "  BLOCKED: Found raw @supabase/supabase-js imports:"
   echo "$RAW_IMPORTS" | sed 's/^/    /'

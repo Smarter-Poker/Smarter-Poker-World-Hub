@@ -14,6 +14,10 @@ export default function useVenueRealtime(onUpdate) {
 
     const channelRef = useRef(null);
     const missedUpdateRef = useRef(false);
+    // [RTH1 FIX] Track whether this is the first SUBSCRIBED event.
+    // The null-payload hard-refresh should NOT fire on initial connection (SWR already fetches on mount).
+    // It SHOULD fire on RE-subscriptions (network reconnect) to recover missed events.
+    const firstSubscribeRef = useRef(true);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -39,8 +43,13 @@ export default function useVenueRealtime(onUpdate) {
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
                     console.log(`[Realtime] ✅ Connected: ${channelName}`);
-                    // Fire hard refresh (null payload) to auto-correct any events dropped while offline.
-                    onUpdateRef.current?.(null);
+                    if (firstSubscribeRef.current) {
+                        // First connection: SWR already fetching — skip double-fetch
+                        firstSubscribeRef.current = false;
+                    } else {
+                        // RE-subscribe (reconnect after drop): hard-refresh to recover missed events
+                        onUpdateRef.current?.(null);
+                    }
                 } else if (status === 'CLOSED') {
                     console.warn(`[Realtime] ⚠️ Channel Closed: ${channelName}`);
                 } else if (status === 'CHANNEL_ERROR') {

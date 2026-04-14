@@ -3,7 +3,7 @@
  * Extracted from poker-near-me-lobby.js for bundle splitting
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 // ─── Game type normalization ───
 function formatGameType(raw) {
@@ -37,9 +37,19 @@ function formatTime(timeStr) {
 }
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const TODAY_INDEX = new Date().getDay();
+// [DTP1 FIX] Removed module-level TODAY_INDEX — it would be stale across midnight for long-lived tabs.
+// Now computed inside the component so it refreshes per-mount.
 const GAME_TYPES = ['all', 'NLH', 'PLO', 'Mixed', 'Omaha'];
 const SORT_OPTS = [{ v: 'time', l: 'Start Time' }, { v: 'buyin', l: 'Buy-In' }, { v: 'guaranteed', l: 'Guaranteed' }];
+
+// [DTP2 FIX] Sanitize structure PDF URLs against javascript: / data: XSS vectors
+function safeHref(url) {
+    if (!url || typeof url !== 'string') return null;
+    const clean = url.replace(/[\x00-\x20]/g, '');
+    const lower = clean.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) return null;
+    return clean;
+}
 
 // Buy-in color coding: green <$100, gold $100-500, red $500+
 const getBuyinColor = (buyIn) => {
@@ -50,7 +60,9 @@ const getBuyinColor = (buyIn) => {
 };
 
 export default function DailyTournamentsPanel({ tournaments = [], onDayChange, openVenueModal }) {
-  const [selectedDay, setSelectedDay] = useState(DAYS[TODAY_INDEX]);
+  // [DTP1 FIX] Compute today inside component, not at module load time (stale after midnight)
+  const todayIndex = useMemo(() => new Date().getDay(), []);
+  const [selectedDay, setSelectedDay] = useState(DAYS[todayIndex]);
   const [gameType, setGameType] = useState('all');
   const [sortBy, setSortBy] = useState('time');
   const [minBuyin, setMinBuyin] = useState('');
@@ -60,40 +72,61 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   const [selectedState, setSelectedState] = useState('all');
   const [expandedCards, setExpandedCards] = useState({});
 
+  // [DTP3] Capture now once per render-cycle for countdown comparisons
+  const now = useMemo(() => new Date(), []);
+
   const handleDayChange = (day) => {
     setSelectedDay(day);
     onDayChange?.(day);
   };
 
-  // Client-side filters
-  let filtered = tournaments.filter(t => {
-    if (!t.day_of_week) return false;
-    // [B8 FIX] Case-insensitive 'Daily' check: DB stores as 'daily', 'Daily', 'DAILY'
-    const dow = t.day_of_week.toLowerCase();
-    if (dow !== selectedDay.toLowerCase() && dow !== 'daily') return false;
-    if (gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(gameType.toLowerCase())) return false;
-    if (selectedState && selectedState !== 'all' && (t.venue_state || t.state) !== selectedState) return false;
-    if (minBuyin && t.buy_in < parseInt(minBuyin, 10)) return false;
-    if (maxBuyin && t.buy_in > parseInt(maxBuyin, 10)) return false;
-    if (minGuaranteed && (t.guaranteed || 0) < parseInt(minGuaranteed, 10)) return false;
-    return true;
-  });
+  // [DTP4 FIX] Memoized — was computed inline in render body (O(N) filter ran on every re-render)
+  const filtered = useMemo(() => {
+    let result = tournaments.filter(t => {
+      if (!t.day_of_week) return false;
+      const dow = t.day_of_week.toLowerCase();
+      if (dow !== selectedDay.toLowerCase() && dow !== 'daily') return false;
+      if (gameType !== 'all' && t.game_type && !t.game_type.toLowerCase().includes(gameType.toLowerCase())) return false;
+      if (selectedState && selectedState !== 'all' && (t.venue_state || t.state) !== selectedState) return false;
+      if (minBuyin && t.buy_in < parseInt(minBuyin, 10)) return false;
+      if (maxBuyin && t.buy_in > parseInt(maxBuyin, 10)) return false;
+      if (minGuaranteed && (t.guaranteed || 0) < parseInt(minGuaranteed, 10)) return false;
+      return true;
+    });
 
-  // Sort
-  if (sortBy === 'buyin') filtered.sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
-  else if (sortBy === 'guaranteed') filtered.sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
-  else {
-    const parseT = (s) => { if (!s) return 9999; const m = s.match(/(\d+):(\d+)\s*(am|pm)/i); if (!m) return 9999; let h = parseInt(m[1]); if (m[3].toLowerCase() === 'pm' && h !== 12) h += 12; if (m[3].toLowerCase() === 'am' && h === 12) h = 0; return h * 60 + parseInt(m[2]); };
-    filtered.sort((a, b) => parseT(a.start_time) - parseT(b.start_time));
-  }
+    // Sort
+    if (sortBy === 'buyin') result.sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
+    else if (sortBy === 'guaranteed') result.sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
+    else {
+      const parseT = (s) => { if (!s) return 9999; const m = s.match(/(\d+):(\d+)\s*(am|pm)/i); if (!m) return 9999; let h = parseInt(m[1]); if (m[3].toLowerCase() === 'pm' && h !== 12) h += 12; if (m[3].toLowerCase() === 'am' && h === 12) h = 0; return h * 60 + parseInt(m[2]); };
+      result.sort((a, b) => parseT(a.start_time) - parseT(b.start_time));
+    }
+    return result;
+  }, [tournaments, selectedDay, gameType, selectedState, minBuyin, maxBuyin, minGuaranteed, sortBy]);
 
-  // State grouping
-  const groupedByState = groupByState ? filtered.reduce((acc, t) => {
-    const st = t.venue_state || t.state || 'Unknown';
-    if (!acc[st]) acc[st] = [];
-    acc[st].push(t);
-    return acc;
-  }, {}) : null;
+  // [DTP5 FIX] Memoize grouped-by-state object — was recomputed on every render
+  const groupedByState = useMemo(() => {
+    if (!groupByState) return null;
+    return filtered.reduce((acc, t) => {
+      const st = t.venue_state || t.state || 'Unknown';
+      if (!acc[st]) acc[st] = [];
+      acc[st].push(t);
+      return acc;
+    }, {});
+  }, [filtered, groupByState]);
+
+  // [DTP5 FIX] State counts also memoized — iterates raw tournaments prop on every render otherwise
+  const topStates = useMemo(() => {
+    const stateCounts = {};
+    tournaments.filter(t => {
+      const dow = (t.day_of_week || '').toLowerCase();
+      return dow === selectedDay.toLowerCase() || dow === 'daily';
+    }).forEach(t => {
+      const st = t.venue_state || t.state;
+      if (st) stateCounts[st] = (stateCounts[st] || 0) + 1;
+    });
+    return Object.entries(stateCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }, [tournaments, selectedDay]);
 
   const renderTournamentCard = (t, idx) => {
     const buyinStyle = getBuyinColor(t.buy_in);
@@ -108,10 +141,9 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
       borderRadius: 12, padding: '12px 16px', transition: 'all 0.25s', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 8px rgba(0,0,0,0.3)',
       position: 'relative',
     }}>
-      {/* Countdown Timer */}
+      {/* Countdown Timer — uses `now` from outer useMemo, not a new Date() per card */}
       {(() => {
         if (!t.start_time) return null;
-        const now = new Date();
         const [timePart, ampm] = (t.start_time || '').match(/(\d{1,2}:\d{2})\s*(AM|PM)?/i)?.slice(1) || [];
         if (!timePart) return null;
         const [h, m] = timePart.split(':').map(Number);
@@ -197,9 +229,10 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         )}
       </div>
 
-      {/* Structure Sheet Button */}
-      {t.structure_sheet_url && (
-        <a href={t.structure_sheet_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{
+      {/* [DTP2 FIX] safeHref() sanitizes structure_sheet_url — field comes from scraped Supabase data
+           and could contain javascript: or data: XSS payloads if data is corrupted. */}
+      {safeHref(t.structure_sheet_url) && (
+        <a href={safeHref(t.structure_sheet_url)} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 800,
           background: 'linear-gradient(180deg, rgba(14,165,233,0.15), rgba(2,132,199,0.05))', color: '#38bdf8', border: '1px solid rgba(14,165,233,0.2)',
           padding: '6px 12px', borderRadius: 6, marginTop: 10, textDecoration: 'none', letterSpacing: '0.05em'
@@ -241,7 +274,8 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
               textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.25s', boxShadow: selectedDay === day ? 'inset 0 1px 0 rgba(255,255,255,0.15), 0 0 10px rgba(255,255,255,0.1)' : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 4px rgba(0,0,0,0.3)'
             }}
           >
-            {day === DAYS[TODAY_INDEX] ? 'Today' : day.slice(0, 3)}
+            {/* [DTP1] Uses todayIndex from useMemo inside component, not stale module-level TODAY_INDEX */}
+            {day === DAYS[todayIndex] ? 'Today' : day.slice(0, 3)}
           </button>
         ))}
       </div>
@@ -291,21 +325,8 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         {selectedState && selectedState !== 'all' && <span> in <span style={{ color: '#ffffff' }}>{selectedState}</span></span>}
       </div>
 
-      {/* Top States quick filter */}
-      {(() => {
-        const stateCounts = {};
-        // [B15 FIX] Use toLowerCase for both sides to match filter logic exactly
-        // [B16 FIX] Remove dead 'selectedDay === all' branch — selectedDay is always a DAYS element
-        tournaments.filter(t => {
-          const dow = (t.day_of_week || '').toLowerCase();
-          return dow === selectedDay.toLowerCase() || dow === 'daily';
-        }).forEach(t => {
-          const st = t.venue_state || t.state;
-          if (st) stateCounts[st] = (stateCounts[st] || 0) + 1;
-        });
-        const topStates = Object.entries(stateCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
-        if (topStates.length < 2) return null;
-        return (
+      {/* Top States quick filter — [DTP5] uses memoized topStates (was an IIFE re-running 400+ items per render) */}
+      {topStates.length >= 2 && (
           <div style={{ display: 'flex', gap: 4, marginBottom: 12, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
             <button onClick={() => setSelectedState('all')}
               style={{
@@ -324,8 +345,7 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
                 }}>{st} <span style={{ fontSize: 8, opacity: 0.6 }}>({count})</span></button>
             ))}
           </div>
-        );
-      })()}
+      )}
 
       {/* Tournament cards — grouped or flat */}
       {groupByState && groupedByState ? (
