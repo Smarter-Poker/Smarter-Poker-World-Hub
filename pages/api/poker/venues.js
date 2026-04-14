@@ -383,12 +383,14 @@ export default async function handler(req, res) {
                           const cleanSlug = (slug.startsWith('pa-') ? slug.slice(3) : slug);
                           const searchName = cleanSlug
                               .replace(/-amp-/g, ' & ')
-                              .replace(/-s-/g, "'s ")
+                              .replace(/-s-/g, 's ')
                               .replace(/-/g, ' ');
+                          // [VA1 FIX] Sanitize PostgREST-special chars from slug-derived searchName
+                          const sanitizedSlugSearch = searchName.trim().slice(0, 200).replace(/[()'\",.;]/g, '');
                           const { data } = await getSupabase()
                               .from('poker_venues')
                               .select('*')
-                              .ilike('name', `%${searchName}%`)
+                              .ilike('name', `%${sanitizedSlugSearch}%`)
                               .limit(1);
                           if (data && data.length > 0) {
                               venues = [data[0]];

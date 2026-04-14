@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { resolveCityCoordsArray as resolveCityCoords } from '../data/city-coordinates';
 export default function useTourMapStops({ tours, allVenuesForMap, userLocation, selectedCity, filters, globalSearchModeRef, hasSearched, centerLat, centerLng, effRad, consumedVenueNames, consumedVenueStems, charityBestIds, tourPins, filteredVenues }) {
     return useMemo(() => { try {
         const today = new Date();
