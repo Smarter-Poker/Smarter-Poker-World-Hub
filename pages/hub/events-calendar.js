@@ -310,14 +310,14 @@ function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {
   const [cityInput, setCityInput] = useState('');
   const [stateInput, setStateInput] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [locError, setLocError] = useState(''); // BUG FIX: replace alert() with inline error
-
-  if (!isOpen) return null;
-
+  const [locError, setLocError] = useState('');
+  // BUG FIX: isMountedRef and useEffect MUST be above any early return (Rules of Hooks)
   const isMountedRef = useRef(true);
   useEffect(() => {
     return () => { isMountedRef.current = false; };
   }, []);
+
+  if (!isOpen) return null;
 
   const handleUseGps = () => {
     setLocError('');
@@ -468,9 +468,8 @@ export default function EventsCalendarPage({ fallbackData }) {
 
   // Pagination
   const [visibleCount, setVisibleCount] = useState(50);
-  const loadMoreRef = useRef(null);
-
-  const todayKey = getTodayKey();
+  // BUG FIX: removed unused loadMoreRef; memoized todayKey to prevent re-renders
+  const todayKey = useMemo(() => getTodayKey(), []);
 
   // Try GPS on mount
   useEffect(() => {
@@ -519,6 +518,19 @@ export default function EventsCalendarPage({ fallbackData }) {
     return `/api/poker/events-calendar?${params.toString()}`;
   }, [dateRange, buyInTier, gameType, eventType, sortBy, searchQuery, userLocation, distance]);
 
+  // BUG FIX: fallbackData must be keyed to the initial SSR URL for SWR v2 to hydrate correctly.
+  // Using fallbackData directly (without key scoping) caused the SSR data to override
+  // ALL filter states, making filters appear to have no effect until re-fetched.
+  const initSsrUrl = useMemo(
+    () => `/api/poker/events-calendar?dateRange=14days&limit=500`,
+    []
+  );
+  const swrFallback = useMemo(
+    () => (fallbackData ? { [initSsrUrl]: fallbackData } : {}),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   // SWR-backed data fetch (with SSR fallback)
   const { data: apiData, error, isLoading: loading, mutate } = useSWR(
     apiUrl,
@@ -526,7 +538,7 @@ export default function EventsCalendarPage({ fallbackData }) {
       if (data && data.success === false) throw new Error(data.error || 'Failed to fetch API events');
       return data;
     }),
-    { fallbackData, revalidateOnFocus: false, dedupingInterval: 30000 }
+    { fallback: swrFallback, revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
   // Bind realtime venue and tournament updates to cache invalidation
@@ -594,6 +606,7 @@ export default function EventsCalendarPage({ fallbackData }) {
   }, [events, selectedCalDate]);
 
   // Aggregate events by venue for Map View
+  // BUG FIX: replaced Math.random() key with stable deterministic string
   const mapEvents = useMemo(() => {
     const venueMap = {};
     events.forEach(e => {
@@ -603,9 +616,11 @@ export default function EventsCalendarPage({ fallbackData }) {
       if (!vKey) return;
 
       if (!venueMap[vKey]) {
-        // Create pseudo-venue object for VenueMap
+        // Use stable ID: prefer real IDs, fall back to lat+lng combo
+        const stableId = e.venue_id || e.series_id || e.tour_event_id ||
+          `loc-${e.latitude.toFixed(4)}-${e.longitude.toFixed(4)}`;
         venueMap[vKey] = {
-          id: e.venue_id || e.series_id || e.tour_event_id || Math.random().toString(),
+          id: stableId,
           name: vKey,
           venue_type: (e.source === 'series' || e.source === 'tour') ? 'poker_tour' : 'card_room',
           tour_code: e.tour_code,

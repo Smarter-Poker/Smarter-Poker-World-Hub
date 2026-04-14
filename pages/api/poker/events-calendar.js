@@ -368,6 +368,8 @@ export default async function handler(req, res) {
         // BUG FIX: use sanitized safeState/safeCity from venue query block above
         if (safeState) sq = sq.ilike('state', safeState.length === 2 ? safeState.toUpperCase() : `%${safeState}%`);
         if (safeCity)  sq = sq.ilike('city', `%${safeCity}%`);
+        // BUG FIX: apply gameType filter to series - was missing, causing series to ignore game type filter
+        if (safeGameType && safeGameType !== 'all') sq = sq.ilike('series_type', `%${safeGameType}%`);
         if (search) {
           const ss = search.replace(/[()'",;%_\\]/g, '').trim().slice(0, 200);
           if (ss) sq = sq.or(`series_name.ilike.%${ss}%,venue_name.ilike.%${ss}%`);
@@ -460,8 +462,8 @@ export default async function handler(req, res) {
               if (t.start_date < rangeStartKey || t.start_date > rangeEndKey) continue;
             }
 
-            // City filter
-            if (city && !t.stop_city?.toLowerCase().includes(city.toLowerCase())) continue;
+            // City filter — BUG FIX: use sanitized safeCity not raw city variable (was injection vector)
+            if (safeCity && !t.stop_city?.toLowerCase().includes(safeCity.toLowerCase())) continue;
 
             // Distance filter — try to find venue coords
             let distanceMi = null;
