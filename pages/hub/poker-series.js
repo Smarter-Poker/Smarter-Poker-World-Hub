@@ -314,11 +314,13 @@ export default function PokerSeriesPage() {
         if (selectedTour !== 'all') params.tour = selectedTour;
         if (distanceFilter !== 'all') params.distance = distanceFilter;
         if (sortBy !== 'date') params.sort = sortBy;
-        const url = new URL(window.location);
-        url.search = new URLSearchParams(params).toString();
-        if (url.search !== window.location.search) {
-            router.replace(url, undefined, { shallow: true });
-        }
+        
+        // Use clean Next.js object syntax to avoid DOM URL serialization bugs
+        router.replace(
+            { pathname: router.pathname, query: params },
+            undefined, 
+            { shallow: true }
+        );
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, dateRange, selectedTour, distanceFilter, sortBy, isInitialized, router.isReady]);
 

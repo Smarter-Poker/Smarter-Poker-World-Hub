@@ -1980,8 +1980,85 @@ const styles = `
     }
 
     .events-table-wrap {
-      margin: 0 -16px;
-      padding: 0 16px;
+      margin: 0;
+      padding: 0;
+    }
+    .events-table {
+      min-width: 100%;
+      display: block;
+    }
+    .events-table thead {
+      display: none;
+    }
+    .events-table tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .events-table tbody tr:not(.event-detail-row) {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 16px;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      position: relative;
+    }
+    .events-table tbody td {
+      border: none;
+      padding: 0;
+    }
+    .event-num {
+      width: auto;
+      font-size: 12px;
+      background: rgba(255,255,255,0.1);
+      padding: 2px 8px;
+      border-radius: 12px;
+      color: #cbd5e1;
+    }
+    .event-name {
+      flex: 1 1 calc(100% - 50px);
+      max-width: none;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .event-date {
+      flex: 1 1 100%;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .event-date-main, .event-time-sub {
+      display: inline-block;
+      margin: 0;
+    }
+    .event-buyin {
+      flex: 1 1 45%;
+      font-size: 16px;
+    }
+    .event-gtd {
+      flex: 1 1 45%;
+      text-align: right;
+    }
+    .event-gtd::before {
+      content: 'GTD ';
+      font-size: 10px;
+      color: #64748b;
+    }
+    .event-game, .event-stack, .event-format {
+      display: none; /* Keep mobile view clean, they can click to expand */
+    }
+    .event-detail-row td {
+      padding: 0 0 16px !important;
+      border: none !important;
+    }
+    .event-row-clickable.expanded {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      background: rgba(0, 212, 255, 0.08) !important;
     }
 
     .leaderboard-table-wrap {
