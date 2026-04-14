@@ -219,8 +219,12 @@ export default function LiveGamesFeed({
         } catch { /* ignore corrupt data */ }
     }, [userLocation]);
 
-    // Effective location = prop (userLocation || selectedCity) OR restored from localStorage
-    const effectiveLocation = userLocation || (selectedCity ? { lat: selectedCity.latitude || selectedCity.lat, lng: selectedCity.longitude || selectedCity.lng } : restoredLocation);
+    // [LGF-A1 FIX] Memoize effectiveLocation — was an inline const that created a new {lat,lng}
+    // object every render when selectedCity is truthy. New object → calcDist identity changes →
+    // mergedVenues useMemo recalculates (400+ venue filter/sort) on EVERY parent re-render.
+    const effectiveLocation = useMemo(() => {
+        return userLocation || (selectedCity ? { lat: selectedCity.latitude || selectedCity.lat, lng: selectedCity.longitude || selectedCity.lng } : restoredLocation);
+    }, [userLocation, selectedCity, restoredLocation]);
     
     // If globalFilters are provided by the parent, use them. Otherwise, fall back to internal local state.
     const [internalFilterState, setInternalFilterState] = useState(savedFilters.filterState || 'all');

@@ -874,7 +874,11 @@ export default function VenueMap({ venues, userLocation, centerLocation, fullHei
     loadOverlays();
 
     // ═══ VENUE MARKERS — Cluster group (populated by separate useEffect) ═══
-    const clusterGroup = disableClustering ? L.layerGroup() : L.markerClusterGroup({
+    // [VM-A1 FIX] Guard: if markercluster CDN failed to load (5s timeout path),
+    // L.markerClusterGroup is undefined → crash. Fall back to plain L.layerGroup().
+    const clusterGroup = (disableClustering || typeof L.markerClusterGroup !== 'function')
+      ? L.layerGroup()
+      : L.markerClusterGroup({
       maxClusterRadius: 30,
       iconCreateFunction: function(cluster) {
         return createClusterIcon(L, cluster);
