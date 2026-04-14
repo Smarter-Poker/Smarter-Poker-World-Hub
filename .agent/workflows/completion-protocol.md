@@ -25,10 +25,25 @@ cd /Users/smarter.poker/Documents/Smarter-Poker-World-Hub
 bash scripts/git-safe-push.sh --build-check "your commit message"
 ```
 
-2. **Verify deployment on production:**
+2. **Verify deployment on production (MANDATORY — NOT OPTIONAL):**
 ```bash
-open https://smarter.poker
+# Confirm local and remote SHA match
+git log --oneline -1
+git log --oneline origin/main -1
+
+# Wait for Vercel to build and verify health
+node scripts/verify-deploy.js --wait 60
 ```
+
+3. **If verification fails — FIX IT BEFORE ENDING YOUR SESSION:**
+   - Check build logs for errors
+   - Fix the code
+   - Push again with `--build-check`
+   - Verify again
+   - **DO NOT STOP until `DEPLOY_VERIFIED:true`**
+
+> [!CAUTION]
+> **CLAIMING SUCCESS WITHOUT VERIFICATION IS FORBIDDEN.** On 4/14/2026, unresolved merge conflicts in 4 files blocked ALL deployments because agents pushed without verifying. Every push MUST be verified to be healthy on production.
 
 ### Rule 3: Write SQL LAST — After Building and Testing
 
@@ -44,13 +59,27 @@ open https://smarter.poker
 1. WRITE CODE         — Make all changes
 2. BUILD              — next build (verify it compiles)
 3. PUSH TO GITHUB     — bash scripts/git-safe-push.sh --build-check "message"
-4. TEST ON PROD       — Verify on https://smarter.poker
-5. WRITE SQL (LAST)   — Only after everything else is confirmed working
-6. EXECUTE SQL        — npm run db:push
+4. VERIFY PUSH        — git log --oneline -1 && git log --oneline origin/main -1
+5. VERIFY DEPLOY      — node scripts/verify-deploy.js --wait 60
+6. FIX IF BROKEN      — If DEPLOY_VERIFIED:false, fix and repeat steps 2-5
+7. TEST ON PROD       — Verify on https://smarter.poker
+8. WRITE SQL (LAST)   — Only after everything else is confirmed working
+9. EXECUTE SQL        — npm run db:push
 ```
 
 ## DO NOT End a Session Without
 
 - [ ] All code changes committed and pushed to GitHub
-- [ ] Vercel deployment triggered and verified
+- [ ] `git log` confirms local SHA matches `origin/main` SHA
+- [ ] `verify-deploy.js` returns `DEPLOY_VERIFIED:true`
+- [ ] If SHA mismatch, waited for Vercel build and re-verified
 - [ ] SQL migrations written and executed (if any schema changes)
+
+## HARD LAW: File Count Safety
+
+Before committing bulk file additions (images, assets, data files):
+```bash
+git ls-files | wc -l  # Must stay under 12,000
+```
+If approaching 12,000, alert the user and move assets to Supabase Storage instead.
+Vercel hard-fails at ~15,000 files. See `/deploy` workflow for full details.

@@ -39,6 +39,77 @@ That's it. **Do NOT run individual git commands.** The script handles everything
 > [!CAUTION]
 > **On 3/25/2026, a broken import (`C` instead of `SOCIAL_COLORS as C`) blocked ALL deployments for 2 days because no agent ran `next build` locally before pushing.** The `--build-check` flag prevents this. NEVER skip it.
 
+---
+
+## HARD LAW: Post-Push Verification — MANDATORY
+
+> [!CAUTION]
+> **Every agent MUST verify their push succeeded AND that Vercel deployment is healthy. No exceptions. Claiming "done" without verification is a FAILURE.**
+
+After EVERY push, the agent MUST execute this verification sequence:
+
+### Step 1: Confirm Git Push Landed
+```bash
+git log --oneline -1  # Verify your commit is HEAD
+git log --oneline origin/main -1  # Verify remote matches local
+```
+Both SHAs must match. If they don't, the push failed silently — re-run the push script.
+
+### Step 2: Wait for Vercel Build + Verify Health
+```bash
+# Wait 60s for Vercel to pick up the commit and start building
+node scripts/verify-deploy.js --wait 60
+```
+Expected output: `DEPLOY_VERIFIED:true`
+
+### Step 3: If SHA Mismatch, Wait and Retry
+If `verify-deploy.js` shows SHA mismatch (Vercel still building previous commit):
+```bash
+# Wait another 90s and check again
+node scripts/verify-deploy.js --wait 90
+```
+
+### Step 4: If Verification Fails — FIX IT
+If `DEPLOY_VERIFIED:false` or HTTP error:
+1. Check Vercel dashboard or `npm run build` locally for errors
+2. Fix the issue
+3. Push again with `--build-check`
+4. Verify again — DO NOT STOP until `DEPLOY_VERIFIED:true`
+
+> [!WARNING]
+> **An agent that pushes broken code and walks away is WORSE than an agent that writes no code.** You MUST verify. You MUST fix failures. Vercel auto-deploys from GitHub — if your push has merge conflicts, broken imports, or syntax errors, it blocks ALL other agents from deploying.
+
+---
+
+## HARD LAW: File Count Limit — 15,000 Maximum
+
+> [!CAUTION]
+> **Vercel has a hard limit of ~15,000 files per deployment. If the tracked file count approaches this, deployments WILL fail with cryptic upload errors.**
+
+### Current Status (as of April 2026)
+- Git tracked files: ~7,200
+- Vercel-deployable files (after .vercelignore): ~6,400
+- **Headroom: ~8,600 files before hitting the wall**
+
+### Rules
+1. **CHECK file count before adding bulk assets:**
+   ```bash
+   git ls-files | wc -l  # Must stay under 12,000 tracked files
+   ```
+2. **NEVER commit bulk image/asset directories** without checking the count first
+3. **Use `.vercelignore`** to exclude non-deployment files (scripts, tests, docs, legacy)
+4. **If approaching 12,000 tracked files**, stop and alert the user before adding more
+5. **Large asset uploads** (card images, audio, video) should go to Supabase Storage or a CDN, NOT the git repo
+6. **Legacy directories** (`_legacy_*`, `.ocr/`, `tmp/`) should be reviewed for cleanup periodically
+
+### If Vercel Upload Fails with File Limit Error
+1. Add bulk directories to `.vercelignore`
+2. Move large assets to Supabase Storage
+3. Clean up legacy/temp files with `git rm`
+4. Use `--archive=tgz` flag if Vercel CLI suggests it
+
+---
+
 ## Examples
 
 ```bash
