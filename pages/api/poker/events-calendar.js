@@ -39,15 +39,21 @@ const DAYS_ORDER = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'fri
 function getCurrentDayInfo() {
   const localTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
   const d = new Date(localTime);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
   return {
     dayIndex: d.getDay(),
     dayName: DAYS_ORDER[d.getDay()],
-    dateKey: d.toISOString().slice(0, 10),
+    dateKey: `${yyyy}-${mm}-${dd}`,
   };
 }
 
 function getDateKey(date) {
-  return date.toISOString().slice(0, 10);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 // Project a recurring day_of_week into actual dates within a range
@@ -385,8 +391,10 @@ export default async function handler(req, res) {
             if (sEnd < rangeStartKey || sStart > rangeEndKey) continue;
 
             // Buy-in filter (use buy_in_min and buy_in_max)
-            if (minBuyin && (s.buy_in_max || 0) < parseInt(minBuyin)) continue;
-            if (maxBuyin && (s.buy_in_min || 0) > parseInt(maxBuyin)) continue;
+            const resolvedMax = s.buy_in_max != null ? s.buy_in_max : s.buy_in_min;
+            const resolvedMin = s.buy_in_min != null ? s.buy_in_min : s.buy_in_max;
+            if (minBuyin && (resolvedMax || 0) < parseInt(minBuyin)) continue;
+            if (maxBuyin && (resolvedMin || 0) > parseInt(maxBuyin)) continue;
 
             // GPS distance
             const venueInfo = getVenueInfo(s.venue_id, s.venue_name);
@@ -518,6 +526,7 @@ export default async function handler(req, res) {
         e.event_date || '',
         (e.start_time || '').toLowerCase().trim(),
         (e.buy_in || 0).toString(),
+        (e.game_type || '').toLowerCase().trim()
       ].join('|');
       if (seenKeys.has(key)) return false;
       seenKeys.add(key);

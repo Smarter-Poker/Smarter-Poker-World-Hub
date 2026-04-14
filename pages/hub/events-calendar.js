@@ -144,7 +144,13 @@ function formatDateFull(dateStr) {
 
 function formatTime(timeStr) {
   if (!timeStr) return '';
-  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  const str = String(timeStr).trim().toUpperCase();
+  
+  if (str.includes('AM') || str.includes('PM')) {
+    return str.replace(/([AP]M)$/, ' $1').replace(/\s+/g, ' ').trim();
+  }
+
+  const match24 = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (match24) {
     let h = parseInt(match24[1]);
     const m = match24[2];
@@ -506,7 +512,7 @@ export default function EventsCalendarPage({ fallbackData }) {
     if (buyInConfig?.min != null) params.set('minBuyin', buyInConfig.min);
     if (buyInConfig?.max != null) params.set('maxBuyin', buyInConfig.max);
 
-    if (userLocation?.lat && userLocation?.lng) {
+    if (userLocation?.lat != null && userLocation?.lng != null) {
       params.set('lat', userLocation.lat);
       params.set('lng', userLocation.lng);
       if (distance !== 'any') params.set('radius', distance);
