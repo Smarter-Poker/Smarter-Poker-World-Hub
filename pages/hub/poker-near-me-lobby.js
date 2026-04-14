@@ -573,11 +573,18 @@ export default function PokerNearMeLobby() {
   // [HARDENING] Real-time synchronization for global table/venue changes on Lobby Panel.
   // [RT2 FIX] Invalidate cachedFetch for daily-tournaments before fetching so the
   // next manual fetchDaily call also gets fresh data (not stale cached 60s-TTL data).
+  // [LB7 FIX] Stale closure: filters.dailyDay was captured at mount in the RT callback.
+  // Now use a ref so the callback always reads the CURRENT day filter, not mount-time value.
+  const dailyDayFilterRef = useRef(null);
+  useEffect(() => {
+    dailyDayFilterRef.current = (filters.dailyDay === 'all' || !filters.dailyDay) ? null : filters.dailyDay;
+  }, [filters.dailyDay]);
   useVenueRealtime(() => {
     if (activePod === 'daily') {
         // Bust the cache for all daily-tournament URLs so next cachedFetch bypasses TTL
         invalidateCache('/api/poker/daily-tournaments');
-        const dayFilter = (filters.dailyDay === 'all' || !filters.dailyDay) ? null : filters.dailyDay;
+        // [LB7 FIX] Read current day filter from ref — not stale closure
+        const dayFilter = dailyDayFilterRef.current;
         let url = '/api/poker/daily-tournaments';
         const params = [`_rt=${Date.now()}`];
         if (dayFilter) params.push(`day=${encodeURIComponent(dayFilter)}`);
@@ -660,21 +667,32 @@ export default function PokerNearMeLobby() {
   // ─── Real-time Supabase Data Hydration ───
   // [L1 FIX] Channel names now unique per mount — static names cause silent duplicate
   // subscription conflicts when React StrictMode double-invokes effects or rapid nav occurs.
+  // [LB8 FIX] Changed event: 'UPDATE' to event: '*' — INSERT and DELETE were silently ignored.
+  // New venues added to DB or deleted venues were never reflected in the UI without a full refresh.
   useEffect(() => {
     const uid = Math.random().toString(36).substring(2, 8);
     const venueChannel = supabase.channel(`public:venues_lobby_${uid}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'poker_venues' }, (payload) => {
-        setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_venues' }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          setVenues(prev => prev.map(v => v.id === payload.new.id ? { ...v, ...payload.new } : v));
+        } else if (payload.eventType === 'INSERT') {
+          // Trigger a full re-fetch — inserting a single venue requires sorting/filtering context
+          fetchVenues(searchQuery);
+        } else if (payload.eventType === 'DELETE') {
+          setVenues(prev => prev.filter(v => v.id !== payload.old.id));
+        }
       }).subscribe();
       
     const tourChannel = supabase.channel(`public:tours_lobby_${uid}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tour_source_registry' }, (payload) => {
-        setTours(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tour_source_registry' }, (payload) => {
+        if (payload.eventType === 'UPDATE') setTours(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
+        else if (payload.eventType === 'DELETE') setTours(prev => prev.filter(t => t.id !== payload.old.id));
       }).subscribe();
 
     const seriesChannel = supabase.channel(`public:series_lobby_${uid}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tournament_series' }, (payload) => {
-        setSeries(prev => prev.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s));
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_series' }, (payload) => {
+        if (payload.eventType === 'UPDATE') setSeries(prev => prev.map(s => s.id === payload.new.id ? { ...s, ...payload.new } : s));
+        else if (payload.eventType === 'DELETE') setSeries(prev => prev.filter(s => s.id !== payload.old.id));
       }).subscribe();
 
     return () => {
@@ -682,12 +700,14 @@ export default function PokerNearMeLobby() {
       supabase.removeChannel(tourChannel);
       supabase.removeChannel(seriesChannel);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Batch fetch check-in counts when venues change ───
+  // [LB5 FIX] URL was unbounded (up to 200 IDs * 37 chars = 7,400 chars) — approaching nginx URL length limits.
+  // Cap at 100 IDs per request to stay well under the 8,192-char limit.
   useEffect(() => {
     if (venues.length === 0) return;
-    const ids = venues.map(v => v.id).filter(Boolean).join(',');
+    const ids = venues.map(v => v.id).filter(Boolean).slice(0, 100).join(',');
     if (!ids) return;
     fetch('/api/poker/checkins/batch-counts?venue_ids=' + ids)
       .then(r => r.json())
@@ -775,8 +795,10 @@ export default function PokerNearMeLobby() {
 
 
   // ─── Fetch total venue count (platform-wide) ───
+  // [LB2 FIX] Was fetched with ?v=Date.now() — this busted Vercel edge cache on every visit,
+  // forcing expensive origin fetches for a static file. Changed to a stable build-time version string.
   useEffect(() => {
-    fetch('/data/all-venues.json?v=' + Date.now())
+    fetch('/data/all-venues.json?v=1')
       .then(r => r.json())
       .then(json => {
         const v = json.venues || json.data || json || [];
@@ -1534,10 +1556,25 @@ export default function PokerNearMeLobby() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showPanel, handlePanelClose]);
 
+  // ─── Series/Tour token helper ───
+  // [LB6 FIX] Defined BEFORE handleToggleFavorite to avoid temporal dead zone (TDZ).
+  // const declarations are not hoisted; calling getAuthToken() before its declaration
+  // would throw ReferenceError at runtime.
+  const getAuthToken = useCallback(async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      return data?.session?.access_token || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
   // ─── Favorite toggle ───
   const handleToggleFavorite = useCallback(async (id, dataObj, type = 'venue') => {
     if (!userId && type === 'venue') return; // Venues currently require userId for PG tables
-    const token = typeof window !== 'undefined' && window.__supabaseToken;
+    // [LB6 FIX] Was window.__supabaseToken — bypassed SDK auth, silent failure if undefined.
+    // Now uses supabase.auth.getSession() via getAuthToken() helper for reliable JWT retrieval.
+    const token = type !== 'venue' ? await getAuthToken() : null;
     if (!token && type !== 'venue') return; // Series/Tours follow API requires JWT
     
     // For venues we use favorites map, for series/tours we will use the same local map for now 
@@ -1604,7 +1641,7 @@ export default function PokerNearMeLobby() {
         setFavoritedVenues(prev => prev.filter(f => f.id !== id));
       }
     }
-  }, [userId, favorites]);
+  }, [userId, favorites, getAuthToken]);
 
   // ─── Auth-gated venue navigation ───
   const handleVenueNavigate = useCallback((url, venue) => {
