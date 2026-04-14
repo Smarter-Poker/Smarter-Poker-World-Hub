@@ -61,11 +61,38 @@ fi
 echo "CHECK 3: No raw Supabase imports..."
 RAW_IMPORTS=$(echo "$CHANGED_FILES" | grep 'pages/api/' | xargs grep -ln "await import.*@supabase/supabase-js" 2>/dev/null || true)
 if [ -n "$RAW_IMPORTS" ]; then
-  echo "  ❌ Found raw @supabase/supabase-js imports:"
+  echo "  BLOCKED: Found raw @supabase/supabase-js imports:"
   echo "$RAW_IMPORTS" | sed 's/^/    /'
   ERRORS=$((ERRORS + 1))
 else
   echo "  ✓ No raw Supabase imports"
+fi
+
+# ─── CHECK 4: No merge conflict markers ─────────────────────────────────────
+echo "CHECK 4: No merge conflict markers..."
+CONFLICT_FILES=$(git ls-files '*.js' '*.jsx' '*.ts' '*.tsx' '*.css' | xargs grep -ln '^<<<<<<< \|^=======$\|^>>>>>>> ' 2>/dev/null | grep -v 'node_modules' | grep -v 'public/hub/club-arena/assets/' || true)
+if [ -n "$CONFLICT_FILES" ]; then
+  echo "  BLOCKED: Merge conflict markers found in committed files:"
+  echo "$CONFLICT_FILES" | sed 's/^/    /'
+  echo ""
+  echo "  These WILL break the Vercel build. Resolve all conflict markers before pushing."
+  ERRORS=$((ERRORS + 1))
+else
+  echo "  ✓ No merge conflict markers"
+fi
+
+# ─── CHECK 5: Dirty working tree warning ────────────────────────────────────
+echo "CHECK 5: Clean working tree..."
+DIRTY_FILES=$(git status --porcelain 2>/dev/null | grep -v '^??' | grep -v '^\s*M .memory/' | head -10)
+if [ -n "$DIRTY_FILES" ]; then
+  echo "  WARNING: Uncommitted changes detected (not blocking, but review):"
+  echo "$DIRTY_FILES" | head -5 | sed 's/^/    /'
+  DIRTY_COUNT=$(echo "$DIRTY_FILES" | wc -l | tr -d ' ')
+  if [ "$DIRTY_COUNT" -gt 5 ]; then
+    echo "    ... and $((DIRTY_COUNT - 5)) more"
+  fi
+else
+  echo "  ✓ Working tree clean"
 fi
 
 # ─── RESTORE ────────────────────────────────────────────────────────────────
@@ -75,7 +102,7 @@ fi
 
 echo ""
 if [ $ERRORS -gt 0 ]; then
-  echo "❌ $ERRORS check(s) FAILED — push BLOCKED"
+  echo "BLOCKED: $ERRORS check(s) FAILED — push BLOCKED"
   echo "   Fix the errors above before pushing."
   echo "   To bypass: git push --no-verify"
   echo ""
