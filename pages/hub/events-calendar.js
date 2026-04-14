@@ -229,29 +229,62 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
   else if (event.series_id) href = `/hub/series/${event.series_id}`;
   else if (event.tour_code && event.source === 'tour') href = `/hub/poker-series?tour=${encodeURIComponent(event.tour_code)}`;
 
+  // Generate initials fallback for venues without logos
+  const initials = (event.venue_name || event.event_name || 'T')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(w => w[0])
+    .join('')
+    .toUpperCase();
+
   return (
     <div className="ev-card" data-today={dateIsToday ? '1' : ''}>
-      <div className="ev-card-left">
-        <span className="ev-source" style={{ background: source.bg, borderColor: source.border, color: source.text }}>
-          {source.label}
-        </span>
+      {/* ── LEFT: Full-height logo (appears ONCE) ── */}
+      <div className="ev-card-logo">
+        {event.logo_url ? (
+          <img
+            src={event.logo_url}
+            alt={event.venue_name || ''}
+            className="ev-logo-img"
+            loading="lazy"
+          />
+        ) : (
+          <div className="ev-logo-fallback">{initials}</div>
+        )}
+      </div>
 
-        <h3 className="ev-name" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {event.logo_url && (
-            <img 
-              src={event.logo_url} 
-              alt="" 
-              style={{ height: '24px', width: '24px', objectFit: 'contain', borderRadius: '4px', flexShrink: 0 }} 
-              loading="lazy" 
-            />
-          )}
-          {href ? (
-            <Link href={href} className="ev-name-link">{event.event_name || 'Tournament'}</Link>
-          ) : (
-            event.event_name || 'Tournament'
-          )}
-        </h3>
+      {/* ── RIGHT: All tournament data ── */}
+      <div className="ev-card-data">
+        {/* Top row: source badge + buy-in/GTD */}
+        <div className="ev-data-top">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span className="ev-source" style={{ background: source.bg, borderColor: source.border, color: source.text }}>
+              {source.label}
+            </span>
 
+            <h3 className="ev-name">
+              {href ? (
+                <Link href={href} className="ev-name-link">{event.event_name || 'Tournament'}</Link>
+              ) : (
+                event.event_name || 'Tournament'
+              )}
+            </h3>
+          </div>
+
+          <div className="ev-data-numbers">
+            {event.buy_in != null && event.buy_in > 0 && (
+              <div className="ev-buyin">{formatMoney(event.buy_in)}</div>
+            )}
+            {event.buy_in_range && event.source === 'series' && (
+              <div className="ev-buyin-range">{event.buy_in_range}</div>
+            )}
+            {event.guaranteed != null && event.guaranteed > 0 && (
+              <div className="ev-gtd">{formatMoney(event.guaranteed)} GTD</div>
+            )}
+          </div>
+        </div>
+
+        {/* Meta row */}
         <div className="ev-meta">
           {event.venue_name && (
             <span className="ev-meta-item">
@@ -283,39 +316,24 @@ const EventCard = memo(function EventCard({ event, todayKey }) {
               {event.recurrence_label}
             </span>
           )}
+          {event.game_type && event.game_type !== 'Unknown' && (
+            <span className="ev-game-type">{event.game_type}</span>
+          )}
+          {event.events_count && event.source === 'series' && (
+            <span className="ev-event-count">{event.events_count} Events</span>
+          )}
         </div>
 
-        {event.tour_code && (
-          <span className="ev-tour-code">{event.tour_code}</span>
-        )}
-        {event.stop_name && event.source === 'tour' && (
-          <span className="ev-stop-name">{event.stop_name}</span>
-        )}
-      </div>
-
-      <div className="ev-card-right">
-        {event.logo_url && (
-          <img
-            src={event.logo_url}
-            alt={event.venue_name || ''}
-            className="ev-venue-logo"
-            loading="lazy"
-          />
-        )}
-        {event.buy_in != null && event.buy_in > 0 && (
-          <div className="ev-buyin">{formatMoney(event.buy_in)}</div>
-        )}
-        {event.buy_in_range && event.source === 'series' && (
-          <div className="ev-buyin-range">{event.buy_in_range}</div>
-        )}
-        {event.guaranteed != null && event.guaranteed > 0 && (
-          <div className="ev-gtd">{formatMoney(event.guaranteed)} GTD</div>
-        )}
-        {event.game_type && event.game_type !== 'Unknown' && (
-          <span className="ev-game-type">{event.game_type}</span>
-        )}
-        {event.events_count && event.source === 'series' && (
-          <span className="ev-event-count">{event.events_count} Events</span>
+        {/* Tour badge row */}
+        {(event.tour_code || (event.stop_name && event.source === 'tour')) && (
+          <div className="ev-badges">
+            {event.tour_code && (
+              <span className="ev-tour-code">{event.tour_code}</span>
+            )}
+            {event.stop_name && event.source === 'tour' && (
+              <span className="ev-stop-name">{event.stop_name}</span>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -1334,16 +1352,48 @@ export default function EventsCalendarPage({ fallbackData }) {
 
         /* ═══ EVENT CARD ═══ */
         .ev-card {
-          display: flex; justify-content: space-between; gap: 12px;
-          padding: 14px 16px; margin-bottom: 6px;
+          display: flex; align-items: stretch; gap: 0;
+          margin-bottom: 6px;
           background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(8px);
           border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
-          transition: all 0.15s;
+          transition: all 0.15s; overflow: hidden;
         }
         .ev-card:hover { background: rgba(15, 23, 42, 0.7); border-color: rgba(255,255,255,0.15); }
         .ev-card[data-today="1"] { border-color: rgba(0,212,255,0.3); }
-        .ev-card-left { flex: 1; min-width: 0; }
-        .ev-card-right { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+
+        /* ── Logo column: full height, fixed width ── */
+        .ev-card-logo {
+          width: 80px; min-height: 80px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: rgba(0,0,0,0.25);
+          border-right: 1px solid rgba(255,255,255,0.06);
+        }
+        .ev-logo-img {
+          width: 56px; height: 56px; object-fit: contain; border-radius: 8px;
+        }
+        .ev-logo-fallback {
+          width: 56px; height: 56px; border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(168,85,247,0.15));
+          border: 1px solid rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.5); font-size: 18px; font-weight: 700;
+          letter-spacing: 1px; font-family: 'Rajdhani', sans-serif;
+        }
+
+        /* ── Data column: all tournament info ── */
+        .ev-card-data {
+          flex: 1; min-width: 0; padding: 12px 14px;
+          display: flex; flex-direction: column; justify-content: center; gap: 4px;
+        }
+        .ev-data-top {
+          display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+        }
+        .ev-data-numbers {
+          flex-shrink: 0; text-align: right;
+          display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+        }
+        .ev-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
+
         .ev-source {
           display: inline-block; font-size: 10px; font-weight: 700;
           padding: 2px 8px; border-radius: 4px; border: 1px solid;
@@ -1352,7 +1402,7 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ev-name { margin: 0; font-size: 14px; font-weight: 600; color: #fff; line-height: 1.3; }
         .ev-name-link { color: #fff; text-decoration: none; }
         .ev-name-link:hover { color: #00D4FF; }
-        .ev-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+        .ev-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; align-items: center; }
         .ev-meta-item {
           display: flex; align-items: center; gap: 4px;
           font-size: 12px; color: rgba(255,255,255,0.5);
@@ -1363,11 +1413,11 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ev-distance { color: rgba(0,212,255,0.7); font-weight: 600; }
         .ev-recurrence { color: rgba(245,158,11,0.6); font-style: italic; }
         .ev-tour-code {
-          display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 700;
+          display: inline-block; font-size: 10px; font-weight: 700;
           color: rgba(245,158,11,0.8); background: rgba(245,158,11,0.1);
           padding: 1px 6px; border-radius: 3px;
         }
-        .ev-stop-name { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; display: block; }
+        .ev-stop-name { font-size: 11px; color: rgba(255,255,255,0.35); }
         .ev-buyin { font-size: 16px; font-weight: 700; color: #fff; }
         .ev-buyin-range { font-size: 12px; color: rgba(168,85,247,0.8); font-weight: 600; }
         .ev-gtd { font-size: 12px; font-weight: 600; color: #22c55e; }
@@ -1522,8 +1572,12 @@ export default function EventsCalendarPage({ fallbackData }) {
           .ec-cell { min-height: 52px; padding: 4px 2px; }
           .ec-day-num { font-size: 12px; width: 24px; height: 24px; }
           .ec-month-label { font-size: 17px; min-width: 140px; }
-          .ev-card { flex-direction: column; gap: 8px; }
-          .ev-card-right { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+          .ev-card { flex-direction: row; }
+          .ev-card-logo { width: 64px; min-height: 64px; }
+          .ev-logo-img { width: 44px; height: 44px; }
+          .ev-logo-fallback { width: 44px; height: 44px; font-size: 15px; }
+          .ev-data-top { flex-direction: column; gap: 4px; }
+          .ev-data-numbers { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
         }
         @media (max-width: 480px) {
           .ec-filter-select { min-width: 95px; padding: 8px 22px 8px 10px; }
