@@ -16,6 +16,8 @@ export default function useVenueRealtime(onUpdate) {
     const channelRef = useRef(null);
     const debounceTimerRef = useRef(null);
 
+    const missedUpdateRef = useRef(false);
+
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -23,7 +25,12 @@ export default function useVenueRealtime(onUpdate) {
         if (!client) return;
 
         const debouncedUpdate = () => {
-            if (typeof document !== 'undefined' && document.hidden) return; // skip if hidden
+            if (typeof document !== 'undefined' && document.hidden) {
+                // BUG FIX: Flag that we missed an update while backgrounded,
+                // instead of unconditionally discarding it forever and leaving UI stale.
+                missedUpdateRef.current = true;
+                return;
+            }
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
             debounceTimerRef.current = setTimeout(() => {
                 debounceTimerRef.current = null;
@@ -48,8 +55,19 @@ export default function useVenueRealtime(onUpdate) {
 
         channelRef.current = channel;
 
+        // [HARDENING] Tab visibility sync: fetch lost updates
+        const handleVisibilityChange = () => {
+            if (!document.hidden && missedUpdateRef.current) {
+                console.log(`[Realtime] 🔄 Recovering missed updates from background state...`);
+                missedUpdateRef.current = false;
+                onUpdateRef.current?.(); // Hard refresh
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
         return () => {
             if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (channelRef.current) {
                 try { 
                     client.removeChannel(channelRef.current); 
