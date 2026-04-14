@@ -66,3 +66,30 @@
 @media(max-width:768px){.chip-stack__chip{width:22px;height:22px;margin-top:-17px}}
 @media(max-width:480px){.chip-stack__chip{width:18px;height:18px;margin-top:-14px}}
 @media(prefers-reduced-motion:reduce){.chip-bet--from-seat-0,.chip-bet--from-seat-1,.chip-bet--from-seat-2,.chip-bet--from-seat-3,.chip-bet--from-seat-4,.chip-bet--from-seat-5,.chip-bet--from-seat-6,.chip-bet--from-seat-7,.chip-bet--from-seat-8,.chip-win--to-seat-0,.chip-win--to-seat-1,.chip-win--to-seat-2,.chip-win--to-seat-3,.chip-win--to-seat-4,.chip-win--to-seat-5,.chip-win--to-seat-6,.chip-win--to-seat-7,.chip-win--to-seat-8,.chip-merge,.chip-sidepot,.chip-allin{animation:none;opacity:1;transform:none;filter:none}}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   HOTFIX OVERRIDES — Dan's UI corrections (2026-04-13)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* FIX 1: BBJ widget centered instead of right-aligned */
+.bbj-widget{left:50%!important;right:auto!important;transform:translateX(-50%)}
+.bbj-widget:hover{transform:translateX(-50%) translateY(-2px)}
+
+/* FIX 2: Dealer button forced WHITE regardless of theme */
+.dealer-button{background:linear-gradient(145deg,#ffffff,#e0e0e0)!important;color:#1a1a2e!important;border:2px solid rgba(255,255,255,0.4)!important;box-shadow:0 2px 6px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.9)!important}
+
+/* FIX 3: Table shape — wider PokerBros-style oval */
+.table-rail{border-radius:50%/42%!important}
+.table-rail::before{border-radius:50%/42%!important}
+.table-rail::after{border-radius:49%/41%!important}
+.table-surface{border-radius:50%/42%!important}
+
+/* FIX 4: Pot chips overlap like a pile, not spread out */
+.pot-display__chips{gap:0!important;margin-left:-4px}
+.pot-display__chip-stack{margin-left:-6px!important}
+.pot-display__chip{transform:translateY(calc(var(--chip-offset,0) - 1px))!important}
+
+/* FIX 5: Stats box emoji removed (CSS can't fix this, done in source) */
+/* PlayerStats report button — ensure no emoji leaks */
+.player-stats__report{text-indent:0}
+
