@@ -324,6 +324,10 @@ export default function SeriesDetailPage() {
       setTimeout(() => revalidate({ retryCount }), Math.min(1000 * 2 ** retryCount, 30000));
     },
   });
+
+  // Bind realtime venue and series updates to cache invalidation
+  useVenueRealtime(() => mutate());
+
   const series = swrData?.series || null;
   const results = swrData?.results || [];
   const leaderboard = swrData?.leaderboard || [];

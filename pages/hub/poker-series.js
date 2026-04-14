@@ -233,7 +233,7 @@ export default function PokerSeriesPage() {
     // Bind realtime venue and series updates to cache invalidation
     useVenueRealtime(() => setRtNonce(n => n + 1));
 
-    const menuItems = getMenuConfig('hub');
+    const menuConfig = getMenuConfig('events');
 
     // ─── Data State ───
     const [allSeries, setAllSeries] = useState([]);

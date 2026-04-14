@@ -444,7 +444,7 @@ export default function EventsCalendarPage({ fallbackData }) {
   const router = useRouter(); // BUG FIX: use router.push instead of window.location.href
   const now = new Date();
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuConfig = useMemo(() => getMenuConfig(), []);
+  const menuConfig = useMemo(() => getMenuConfig('events'), []);
   
   // View states: 'list' | 'calendar' | 'map'
   const [viewMode, setViewMode] = useState('list');
