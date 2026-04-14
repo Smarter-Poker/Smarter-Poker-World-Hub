@@ -10,26 +10,14 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import FullScreenPageOverlay from '../../src/components/ui/FullScreenPageOverlay';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 
 // ─── Lazy-load components ───
-const UniversalHeader = dynamic(() => import('../../src/components/ui/UniversalHeader'), { ssr: false });
-const HamburgerMenu = dynamic(() => import('../../src/components/ui/HamburgerMenu'), { ssr: false });
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.default })), { ssr: false });
 const MapErrorBoundary = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => ({ default: m.MapErrorBoundary })), { ssr: false });
-
-// ─── Menu Config ───
-function getMenuConfig() {
-    return {
-        menuItems: [
-            { label: 'Poker Near Me', href: '/hub/poker-near-me-lobby', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> },
-            { label: 'Poker Tours', href: '/hub/poker-tours', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg> },
-            { label: 'Poker Series', href: '/hub/poker-series', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-            { label: 'Daily Tournaments', href: '/hub/daily-tournaments', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 9H4.5a2.5 2.5 0 010-5H6"/><path d="M18 9h1.5a2.5 2.5 0 000-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 19.24 7 20v2"/><path d="M17 20c0-.76-.85-1.25-2.03-1.79C14.47 17.98 14 17.55 14 17v-2.34"/><path d="M18 2H6v7a6 6 0 0012 0V2z"/></svg> },
-            { label: 'Events Calendar', href: '/hub/events-calendar', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-        ],
-        bottomLinks: []
-    };
-}
 
 // ─── Tour Colors ───
 const TOUR_COLORS = {
@@ -238,8 +226,14 @@ const CITY_COORDS = {
 // ═══════════════════════════════════════════════
 export default function PokerSeriesPage() {
     const router = useRouter();
-    const [menuOpen, setMenuOpen] = useState(false);
-    const menuConfig = useMemo(() => getMenuConfig(), []);
+    const [isMenuOpen, setMenuOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [rtNonce, setRtNonce] = useState(0);
+
+    // Bind realtime venue and series updates to cache invalidation
+    useVenueRealtime(() => setRtNonce(n => n + 1));
+
+    const menuItems = getMenuConfig('hub');
 
     // ─── Data State ───
     const [allSeries, setAllSeries] = useState([]);
@@ -472,7 +466,7 @@ export default function PokerSeriesPage() {
             .finally(() => { if (isMounted) setLoading(false); });
 
         return () => { isMounted = false; abortController.abort(); };
-    }, []);
+    }, [rtNonce]);
 
     // ─── Fetch all venues for coordinate lookup ───
     useEffect(() => {

@@ -356,7 +356,7 @@ function createVenueIcon(L, venue, overrideColor) {
 
   // Logo or initials — matches the Poker Tours round-circle style
   const innerContent = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:34px;height:34px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+    ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:34px;height:34px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
        <div style="display:none;font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`
     : `<div style="font-size:13px;font-weight:900;color:${colors.fill};letter-spacing:0.5px;">${initials}</div>`;
 
@@ -461,7 +461,7 @@ function createTourLogoIcon(L, venue) {
   const pulseRing = `<div style="position:absolute;top:-4px;left:${circleLeft - 4}px;width:${circleSize + 8}px;height:${circleSize + 8}px;border-radius:50%;border:2px solid ${tourColor};opacity:0.6;animation:markerPulse 2s ease-in-out infinite;z-index:4;"></div>`;
 
   const tourInner = tourLogoUrl
-    ? `<img src="${tourLogoUrl}" alt="" style="width:${circleSize - 8}px;height:${circleSize - 8}px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+    ? `<img src="${escapeHtml(tourLogoUrl)}" alt="" style="width:${circleSize - 8}px;height:${circleSize - 8}px;object-fit:contain;border-radius:50%;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
        <div style="display:none;font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`
     : `<div style="font-size:10px;font-weight:900;color:${tourColor};letter-spacing:0.5px;">${tourCode}</div>`;
 
@@ -495,7 +495,7 @@ function buildTourPopupHtml(venue) {
   // Poker tours always use red ring — they are poker tour stops, not regular venues
   const ringColor = '#ef4444';
   const logoHtml = venue.logo_url
-    ? `<img src="${venue.logo_url}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:3px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`
+    ? `<img src="${escapeHtml(venue.logo_url)}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:3px;border:1.5px solid ${tourColor}40;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`
     : `<div style="display:flex;width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}66);align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0;">${(venue.tour_code || '').slice(0, 4)}</div>`;
 
   const statusBadge = venue.is_running
@@ -511,16 +511,16 @@ function buildTourPopupHtml(venue) {
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <span style="padding:3px 10px;border-radius:6px;background:${tourColor}20;color:${tourColor};font-size:11px;font-weight:700;letter-spacing:0.3px;border:1px solid ${tourColor}30;">${venue.tour_code}</span>
+      <span style="padding:3px 10px;border-radius:6px;background:${tourColor}20;color:${tourColor};font-size:11px;font-weight:700;letter-spacing:0.3px;border:1px solid ${tourColor}30;">${escapeHtml(venue.tour_code || '')}</span>
       ${statusBadge}
     </div>
     <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:4px;">${escapeHtml(venue.stop_name || venue.name || 'Tour Stop')}</div>
-    ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${venue.dates}</div>` : ''}
+    ${venue.dates ? `<div style="font-size:11px;color:rgba(34,197,94,0.8);font-weight:600;margin-bottom:12px;">📅 ${escapeHtml(venue.dates)}</div>` : ''}
     ${venue.host_venue_name ? `<div style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.08);">
       <div style="font-size:10px;font-weight:700;color:rgba(148,163,184,0.5);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;">Host Venue</div>
       <div style="display:flex;align-items:center;gap:10px;">
         ${venue.host_venue_logo_url
-          ? `<img src="${venue.host_venue_logo_url}" alt="" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1px solid rgba(255,255,255,0.15);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:34px;height:34px;border-radius:8px;background:rgba(148,163,184,0.2);align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#94a3b8;flex-shrink:0;">${escapeHtml((venue.host_venue_name||'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'V')}</div>`
+          ? `<img src="${escapeHtml(venue.host_venue_logo_url)}" alt="" style="width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1px solid rgba(255,255,255,0.15);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:34px;height:34px;border-radius:8px;background:rgba(148,163,184,0.2);align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#94a3b8;flex-shrink:0;">${escapeHtml((venue.host_venue_name||'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'V')}</div>`
           : `<div style="display:flex;width:34px;height:34px;border-radius:8px;background:rgba(148,163,184,0.2);align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#94a3b8;flex-shrink:0;">${escapeHtml((venue.host_venue_name||'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'V')}</div>`
         }
         <div style="flex:1;min-width:0;">
@@ -529,7 +529,7 @@ function buildTourPopupHtml(venue) {
       </div>
     </div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="fsp-trigger" data-url="/hub/tours/${venue.tour_code}" data-title="${escapeHtml(venue.tour_name || venue.tour_code)}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;border:none;cursor:pointer;">View Tour</button>
+      <button class="fsp-trigger" data-url="/hub/tours/${escapeHtml(venue.tour_code || '')}" data-title="${escapeHtml(venue.tour_name || venue.tour_code)}" style="flex:1;padding:8px 14px;border-radius:8px;background:linear-gradient(135deg,${tourColor},${tourColor}cc);color:#000;text-decoration:none;font-size:12px;font-weight:700;text-align:center;letter-spacing:0.3px;border:none;cursor:pointer;">View Tour</button>
       <button class="directions-trigger" data-addr="${encodeURIComponent((venue.city || '') + ', ' + (venue.state || ''))}" data-lat="${venue.latitude}" data-lng="${venue.longitude}" style="padding:8px 14px;border-radius:8px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8);font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.12);text-align:center;cursor:pointer;">Directions</button>
       <button class="viewmap-trigger" data-addr="${encodeURIComponent((venue.tour_name || venue.tour_code || '') + ' ' + (venue.city || '') + ' ' + (venue.state || ''))}" style="padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);color:rgba(148,163,184,0.6);font-size:11px;font-weight:600;border:1px solid rgba(255,255,255,0.08);text-align:center;cursor:pointer;">View on Map</button>
     </div>
@@ -542,8 +542,8 @@ function buildPopupHtml(venue) {
   const colors = VENUE_TYPE_COLORS[venue.venue_type] || DEFAULT_VENUE_COLOR;
   const typeBadge = VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type || '';
   const detailPath = venue.detailUrl || (venue.is_social_page
-    ? '/club/' + venue.social_page_id
-    : '/hub/venues/' + venue.id);
+    ? '/club/' + encodeURIComponent(venue.social_page_id || '')
+    : '/hub/venues/' + encodeURIComponent(venue.id || ''));
   
   const games = (venue.games_offered || []).slice(0, 3).join(', ');
   const hours = venue.is_24_hours ? '24/7' : (venue.hours_of_operation || '');
@@ -561,11 +561,12 @@ function buildPopupHtml(venue) {
   const logoUrl = venue.logo_url || venue.profile_photo_url || venue.cover_photo_url || venue.image_url || '';
   const initials = (venue.name || '').split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase();
   const logoBadge = logoUrl
-    ? `<img src="${logoUrl}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid rgba(212,168,83,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
+    ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;border:1.5px solid rgba(212,168,83,0.3);flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div style="display:none;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`
     : `<div style="display:flex;width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,${colors.fill},rgba(0,0,0,0.3));align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.2);">${initials}</div>`;
 
   // Phone call button
-  const phoneBtn = venue.phone ? `<a href="tel:${venue.phone}" class="popup-call-trigger" style="padding:8px 10px;border-radius:8px;background:rgba(34,197,94,0.08);color:rgba(34,197,94,0.8);font-size:11px;font-weight:600;border:1px solid rgba(34,197,94,0.15);text-align:center;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Call</a>` : '';
+  const safePhone = venue.phone ? String(venue.phone).replace(/[^0-9+\-\\.\() ]/g, '') : '';
+  const phoneBtn = safePhone ? `<a href="tel:${safePhone}" class="popup-call-trigger" style="padding:8px 10px;border-radius:8px;background:rgba(34,197,94,0.08);color:rgba(34,197,94,0.8);font-size:11px;font-weight:600;border:1px solid rgba(34,197,94,0.15);text-align:center;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Call</a>` : '';
 
   // Address line
   const addrLine = venue.address

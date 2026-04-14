@@ -39,6 +39,7 @@ export default function useVenueRealtime(onUpdate) {
         const channel = client.channel(channelName)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_venues' }, debouncedUpdate)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_daily_tournaments' }, debouncedUpdate)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'poker_series' }, debouncedUpdate)
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
                     console.log(`[Realtime] ✅ Connected: global venues sync`);

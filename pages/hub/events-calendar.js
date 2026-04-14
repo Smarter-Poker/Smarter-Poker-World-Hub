@@ -27,6 +27,35 @@ import { resolveCityCoords } from '../../src/data/city-coordinates';
 import dynamic from 'next/dynamic';
 const VenueMap = dynamic(() => import('../../src/components/poker-near-me/VenueMap').then(m => m.default || m), { ssr: false });
 
+// -- COMPONENT DOM VIRTUALIZATION ENGINE --
+function LazyRender({ children, height = '120px' }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const domRef = useRef();
+
+  useEffect(() => {
+    let observer;
+    if (domRef.current) {
+      observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { rootMargin: '400px 0px' });
+      observer.observe(domRef.current);
+    }
+    return () => { if (observer) observer.disconnect(); };
+  }, []);
+
+  return (
+    <div ref={domRef} style={{ minHeight: isVisible ? 'auto' : height }}>
+      {isVisible ? children : null}
+    </div>
+  );
+}
+// ----------------------------------------
+
 /* ───── Constants ───── */
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -829,7 +858,11 @@ export default function EventsCalendarPage({ fallbackData }) {
                       </div>
                       {dateGroups.groups[dk].map((evt, idx) => {
                         const uniqueKey = `${dk}-${evt.source}-${evt.venue_id || evt.series_id || evt.tour_event_id || 'base'}-${idx}`;
-                        return <EventCard key={uniqueKey} event={evt} todayKey={todayKey} />;
+                        return (
+                          <LazyRender key={uniqueKey}>
+                            <EventCard event={evt} todayKey={todayKey} />
+                          </LazyRender>
+                        );
                       })}
                     </div>
                   ))}
@@ -892,7 +925,9 @@ export default function EventsCalendarPage({ fallbackData }) {
                     <p className="ec-cal-no-events">No events scheduled for this date.</p>
                   ) : (
                     selectedCalEvents.map((evt, idx) => (
-                      <EventCard key={idx} event={evt} todayKey={todayKey} />
+                      <LazyRender key={idx}>
+                        <EventCard event={evt} todayKey={todayKey} />
+                      </LazyRender>
                     ))
                   )}
                 </div>
