@@ -3,7 +3,7 @@
  * Extracted from poker-near-me-lobby.js for bundle splitting
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 // ─── Game type normalization ───
 function formatGameType(raw) {
@@ -72,8 +72,14 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
   const [selectedState, setSelectedState] = useState('all');
   const [expandedCards, setExpandedCards] = useState({});
 
-  // [DTP3] Capture now once per render-cycle for countdown comparisons
-  const now = useMemo(() => new Date(), []);
+  // [DTP3 FIX v2] Tick now every 60s so countdowns don't freeze after mount.
+  // useMemo(()=>new Date(),[]) was stale for the entire lifetime of the component.
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const now = nowTick;
 
   const handleDayChange = (day) => {
     setSelectedDay(day);
@@ -98,7 +104,37 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
     if (sortBy === 'buyin') result.sort((a, b) => (a.buy_in || 0) - (b.buy_in || 0));
     else if (sortBy === 'guaranteed') result.sort((a, b) => (b.guaranteed || 0) - (a.guaranteed || 0));
     else {
-      const parseT = (s) => { if (!s) return 9999; const m = s.match(/(\d+):(\d+)\s*(am|pm)/i); if (!m) return 9999; let h = parseInt(m[1]); if (m[3].toLowerCase() === 'pm' && h !== 12) h += 12; if (m[3].toLowerCase() === 'am' && h === 12) h = 0; return h * 60 + parseInt(m[2]); };
+      const parseT = (s) => {
+        if (!s) return 9999;
+        // Format: HH:MM:SS optional AM/PM
+        const hhmmss = s.match(/^(\d{1,2}):(\d{2}):\d{2}\s*([AP]M)?$/i);
+        if (hhmmss) {
+          let h = parseInt(hhmmss[1]), m = parseInt(hhmmss[2]);
+          const p = (hhmmss[3] || '').toUpperCase();
+          if (p === 'PM' && h !== 12) h += 12;
+          if (p === 'AM' && h === 12) h = 0;
+          return h * 60 + m;
+        }
+        // Format: HH:MM optional AM/PM (12hr with suffix OR bare 24hr)
+        const hhmm = s.match(/^(\d{1,2}):(\d{2})\s*([AP]M)?$/i);
+        if (hhmm) {
+          let h = parseInt(hhmm[1]), m = parseInt(hhmm[2]);
+          const p = (hhmm[3] || '').toUpperCase();
+          if (p === 'PM' && h !== 12) h += 12;
+          if (p === 'AM' && h === 12) h = 0;
+          return h * 60 + m;
+        }
+        // Format: bare hour + AM/PM: "7PM", "10 AM"
+        const hOnly = s.match(/^(\d{1,2})\s*([AP]M)$/i);
+        if (hOnly) {
+          let h = parseInt(hOnly[1]);
+          const p = hOnly[2].toUpperCase();
+          if (p === 'PM' && h !== 12) h += 12;
+          if (p === 'AM' && h === 12) h = 0;
+          return h * 60;
+        }
+        return 9999;
+      };
       result.sort((a, b) => parseT(a.start_time) - parseT(b.start_time));
     }
     return result;
@@ -246,8 +282,8 @@ export default function DailyTournamentsPanel({ tournaments = [], onDayChange, o
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Included Flights</div>
             <div style={{ display: 'grid', gap: 6 }}>
-                {t.flights.map((f, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: 4, fontSize: 12, color: '#cbd5e1' }}>
+                  {t.flights.map((f, idx) => (
+                    <div key={f.id || `${f.start_time || ''}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: 4, fontSize: 12, color: '#cbd5e1' }}>
                         <span>{f.day_of_week && f.day_of_week !== 'Daily' ? `${f.day_of_week} ` : ''}{formatTime(f.start_time)}</span>
                         {f.tournament_name && <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>{f.tournament_name}</span>}
                     </div>
