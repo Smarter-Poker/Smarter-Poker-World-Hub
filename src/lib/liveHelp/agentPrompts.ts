@@ -114,6 +114,7 @@ Contains:
 - Gamification formulas and achievement system
 - Ghost Fleet automation architecture
 - Poker Near Me venue/tour database
+- Events Calendar lookup: To answer "What tournaments are near me this weekend?" use the /api/poker/events-calendar endpoint to fetch live aggregated data.
 - Technical troubleshooting guides
 - Common Q&A database with solutions
 - All page routes and URL patterns

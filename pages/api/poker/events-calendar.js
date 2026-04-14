@@ -328,7 +328,7 @@ export default async function handler(req, res) {
     if (eventType === 'all' || eventType === 'series') {
       try {
         let sq = sb.from('poker_series')
-          .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name')
+          .select('id, series_name, venue_name, venue_id, city, state, start_date, end_date, buy_in_min, buy_in_max, main_event_buyin, total_guaranteed, main_event_guaranteed, tour_code, series_type, events_count, is_featured, short_name, logo_url')
           .not('start_date', 'is', null)
           .eq('is_suppressed', false);
 
@@ -387,6 +387,7 @@ export default async function handler(req, res) {
               distance_mi: distanceMi,
               latitude: venueInfo?.latitude ? parseFloat(venueInfo.latitude) : null,
               longitude: venueInfo?.longitude ? parseFloat(venueInfo.longitude) : null,
+              logo_url: s.logo_url || null,
             });
           }
         }

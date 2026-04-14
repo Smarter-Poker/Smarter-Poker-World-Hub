@@ -16,7 +16,7 @@
 
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -177,7 +177,7 @@ function CrosshairIcon() {
 }
 
 /* ───── Event Card Component ───── */
-function EventCard({ event, isToday, todayKey }) {
+const EventCard = memo(function EventCard({ event, isToday, todayKey }) {
   const source = SOURCE_COLORS[event.source] || SOURCE_COLORS.daily;
   const hasDate = !!event.event_date;
   const dateIsToday = event.event_date === todayKey;
@@ -196,7 +196,15 @@ function EventCard({ event, isToday, todayKey }) {
         </span>
 
         {/* Event name */}
-        <h3 className="ev-name">
+        <h3 className="ev-name" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {event.logo_url && (
+            <img 
+              src={event.logo_url} 
+              alt="" 
+              style={{ height: '24px', width: '24px', objectFit: 'contain', borderRadius: '4px', flexShrink: 0 }} 
+              loading="lazy" 
+            />
+          )}
           {href ? (
             <Link href={href} className="ev-name-link">{event.event_name || 'Tournament'}</Link>
           ) : (
@@ -260,7 +268,7 @@ function EventCard({ event, isToday, todayKey }) {
       </div>
     </div>
   );
-}
+});
 
 /* ───── Location Modal ───── */
 function LocationModal({ isOpen, onClose, onSetLocation, currentLocation }) {

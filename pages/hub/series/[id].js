@@ -54,8 +54,11 @@ const PODIUM_COLORS = {
 
 function formatDateRange(startDate, endDate) {
   if (!startDate) return 'TBD';
-  const start = new Date(startDate + 'T00:00:00');
-  const end = endDate ? new Date(endDate + 'T00:00:00') : null;
+  const startMs = Date.parse(startDate + 'T00:00:00');
+  if (isNaN(startMs)) return startDate; // Gracefully handle unparseable
+  const start = new Date(startMs);
+  const endMs = endDate ? Date.parse(endDate + 'T00:00:00') : startMs;
+  const end = !isNaN(endMs) && endDate ? new Date(endMs) : null;
 
   const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
   const startDay = start.getDate();
@@ -84,7 +87,9 @@ function formatMoney(amount) {
 
 function formatEventDate(dateStr) {
   if (!dateStr) return '';
-  const d = new Date(dateStr + 'T00:00:00');
+  const ms = Date.parse(dateStr + 'T00:00:00');
+  if (isNaN(ms)) return dateStr;
+  const d = new Date(ms);
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
@@ -266,19 +271,19 @@ export default function SeriesDetailPage() {
   // never block the critical series data from rendering (was Promise.all → all-or-nothing hang)
   const swrKey = id ? `/api/poker/series?id=${id}` : null;
   const { data: swrData, isLoading: loading, error, mutate } = useSWR(swrKey, async () => {
-    const withTimeout = (promise, ms) => {
+    const fetchWithTimeout = (url, options = {}, ms = 8000) => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), ms);
-      return promise
+      return fetch(url, { ...options, signal: controller.signal })
         .then(r => { clearTimeout(timer); return r; })
         .catch(e => { clearTimeout(timer); return { ok: false }; });
     };
     // BUG FIX: 8s per-request timeouts; secondary APIs (results/activity) degrade gracefully
     const results_arr = await Promise.allSettled([
-      withTimeout(fetch('/api/poker/series?id=' + id), 8000),
-      withTimeout(fetch('/api/poker/results?series_id=' + id), 8000),
-      withTimeout(fetch('/api/poker/follow?page_type=series&page_id=' + id), 8000),
-      withTimeout(fetch('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10'), 8000),
+      fetchWithTimeout('/api/poker/series?id=' + id),
+      fetchWithTimeout('/api/poker/results?series_id=' + id),
+      fetchWithTimeout('/api/poker/follow?page_type=series&page_id=' + id),
+      fetchWithTimeout('/api/poker/activity?page_type=series&page_id=' + id + '&limit=10'),
     ]);
     const [seriesRes, resultsRes, followRes, activityRes] = results_arr.map(r =>
       r.status === 'fulfilled' ? r.value : { ok: false }
@@ -538,8 +543,10 @@ export default function SeriesDetailPage() {
 
       // Type specific sorting
       if (config.key === 'start_date') {
-        valA = new Date(valA).getTime();
-        valB = new Date(valB).getTime();
+        const msA = Date.parse(valA + 'T00:00:00');
+        const msB = Date.parse(valB + 'T00:00:00');
+        valA = isNaN(msA) ? 0 : msA;
+        valB = isNaN(msB) ? 0 : msB;
       } else if (config.key === 'buy_in' || config.key === 'guarantee' || config.key === 'event_number') {
         valA = Number(valA) || 0;
         valB = Number(valB) || 0;
