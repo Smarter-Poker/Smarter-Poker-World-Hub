@@ -139,12 +139,13 @@ function extractTimeFromName(raw) {
 // Convert any time string (military "15:00:00" or arbitrary) to clean "3:00 PM" format
 function format12HourTime(timeStr) {
   if (!timeStr) return '';
+  const str = String(timeStr).trim();
   
   // If it already contains AM/PM, it's likely already formatted or extracted cleanly
-  if (/am|pm/i.test(timeStr)) return timeStr.toUpperCase();
+  if (/am|pm/i.test(str)) return str.toUpperCase();
   
   // Handle military time from database (e.g. "15:00:00" or "15:00")
-  const parts = timeStr.split(':');
+  const parts = str.split(':');
   if (parts.length >= 2) {
     let h = parseInt(parts[0], 10);
     const m = parts[1];
@@ -155,7 +156,7 @@ function format12HourTime(timeStr) {
       return `${h}:${m} ${ampm}`;
     }
   }
-  return timeStr;
+  return str;
 }
 
 // Derive short venue label for series with no recognized tour brand
