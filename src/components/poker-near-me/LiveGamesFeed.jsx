@@ -702,10 +702,11 @@ export default function LiveGamesFeed({
         const trustPct = Math.round((trustScore / 5) * 100);
         const trustColor = trustScore >= 4.5 ? '#22c55e' : trustScore >= 4.0 ? '#3b82f6' : trustScore >= 3.0 ? '#f59e0b' : '#ef4444';
         const trustLabel = trustScore >= 4.5 ? 'Excellent' : trustScore >= 4.0 ? 'Good' : trustScore >= 3.0 ? 'Moderate' : 'Low';
-        // Venue type border color
+        // Venue type border — match VenueCard.js VENUE_TYPE_COLORS exactly
         const vType = (v.venue_type || '').toLowerCase();
-        const venueBorderColor = vType === 'casino' ? '#ffffff' : (vType === 'poker_club' || vType === 'card_room') ? '#22c55e' : vType === 'charity' ? '#3b82f6' : 'rgba(148,163,184,0.16)';
-        const venueBorder = `2px solid ${venueBorderColor}`;
+        const venueBorderColor = vType === 'casino' ? 'rgba(255,255,255,0.28)' : (vType === 'poker_club' || vType === 'card_room') ? 'rgba(34,197,94,0.28)' : vType === 'charity' ? 'rgba(59,130,246,0.28)' : 'rgba(255,255,255,0.14)';
+        const venueAccentColor = vType === 'casino' ? '#ffffff' : (vType === 'poker_club' || vType === 'card_room') ? '#4ade80' : vType === 'charity' ? '#60a5fa' : 'rgba(255,255,255,0.28)';
+        const venueBorder = `2px solid ${venueAccentColor}`;
         // Collect unique game type chips from breakdown
         const gameTypeChips = (() => {
             if (!v.games || v.games.length === 0) return [];
@@ -743,7 +744,7 @@ export default function LiveGamesFeed({
                     borderRadius: 14, 
                     overflow: 'hidden', 
                     padding: '16px 18px 14px',
-                    boxShadow: `0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px ${venueBorderColor}11`,
+                    boxShadow: `0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px ${venueBorderColor}`,
                     transition: 'all 0.2s ease',
                     cursor: router ? 'pointer' : 'default',
                     flex: 1,

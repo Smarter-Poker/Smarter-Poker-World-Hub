@@ -755,16 +755,16 @@ export default function EventsCalendarPage({ fallbackData }) {
             </p>
           </div>
           
-          <div className="ec-search-wrap" style={{ width: '100%', maxWidth: '320px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="ec-search-wrap" style={{ width: '100%', maxWidth: '220px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <SearchIcon />
             <input
               type="text"
-              placeholder="Search Venue, Event, or Series"
+              placeholder="Search Venue or Event"
               value={searchInput}
               onChange={e => handleSearchInput(e.target.value)}
               className="ec-search-input"
               id="ec-search-input"
-              style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%' }}
+              style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: '13px' }}
             />
             {searchInput && (
               <button className="ec-search-clear" onClick={() => { setSearchInput(''); setSearchQuery(''); }} style={{ background: 'transparent', border: 'none', color: '#8b8d9b', cursor: 'pointer', padding: 4 }}>
@@ -789,7 +789,7 @@ export default function EventsCalendarPage({ fallbackData }) {
                 return (
                   <button
                     key={day}
-                    className={`ec-day-tab${isActive ? ' active' : ''}`}
+                    className={`ec-day-tab${isActive ? ' active' : ''}${isToday ? ' today' : ''}`}
                     onClick={() => setDayOfWeek(isActive ? '' : day)}
                   >
                     {isToday && <span className="ec-day-today-dot" />}
@@ -810,7 +810,6 @@ export default function EventsCalendarPage({ fallbackData }) {
               <div className="pnm-location-pill">
                 <div className="pnm-location-dot" />
                 <span className="pnm-location-label">Location Active</span>
-                <span className="pnm-location-city">{userLocation.label}</span>
                 <button
                   className="pnm-location-clear"
                   onClick={() => { handleLocationChange(null); }}
@@ -843,19 +842,6 @@ export default function EventsCalendarPage({ fallbackData }) {
             </select>
           </div>
 
-          {/* Event Type */}
-          <div className="ec-filter-group">
-            <label className="ec-filter-label">Event Type</label>
-            <select
-              className="ec-filter-select"
-              value={eventType}
-              onChange={e => setEventType(e.target.value)}
-              id="ec-event-type"
-            >
-              {EVENT_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-            </select>
-          </div>
-
           {/* Buy-In */}
           <div className="ec-filter-group">
             <label className="ec-filter-label">Buy-In</label>
@@ -866,19 +852,6 @@ export default function EventsCalendarPage({ fallbackData }) {
               id="ec-buyin"
             >
               {BUY_IN_TIERS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-            </select>
-          </div>
-
-          {/* Game Type */}
-          <div className="ec-filter-group">
-            <label className="ec-filter-label">Game Type</label>
-            <select
-              className="ec-filter-select"
-              value={gameType}
-              onChange={e => setGameType(e.target.value)}
-              id="ec-game-type"
-            >
-              {GAME_TYPES.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
             </select>
           </div>
 
@@ -1123,8 +1096,10 @@ export default function EventsCalendarPage({ fallbackData }) {
         .ec-filter-bar {
           max-width: 1100px; margin: 0 auto;
           padding: 8px 16px 12px;
-          display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap;
+          display: flex; align-items: flex-end; gap: 8px; flex-wrap: nowrap;
+          overflow-x: auto;
         }
+        .ec-filter-bar::-webkit-scrollbar { display: none; }
         .ec-filter-group {
           display: flex; flex-direction: column; gap: 4px; min-width: 0;
         }
@@ -1137,17 +1112,17 @@ export default function EventsCalendarPage({ fallbackData }) {
           padding-left: 2px;
         }
         .ec-filter-select {
-          padding: 9px 28px 9px 12px; min-width: 120px;
+          padding: 8px 24px 8px 10px; min-width: 100px;
           background: rgba(0,0,0,0.35);
           border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-          color: #fff; font-size: 13px; font-weight: 500; outline: none;
+          color: #fff; font-size: 12px; font-weight: 500; outline: none;
           font-family: inherit; cursor: pointer; transition: all 0.2s;
           appearance: none;
           background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23aaaaaa%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-          background-repeat: no-repeat; background-position: right 10px center; background-size: 9px auto;
+          background-repeat: no-repeat; background-position: right 8px center; background-size: 8px auto;
         }
         .ec-filter-select:hover  { border-color: rgba(255,255,255,0.3); }
-        .ec-filter-select:focus  { border-color: #00D4FF; box-shadow: 0 0 0 1px rgba(0,212,255,0.4); }
+        .ec-filter-select:focus  { border-color: #00D4FF; outline: none; box-shadow: none; }
         .ec-filter-select option  { background: #0f172a; color: #fff; }
         .ec-filter-select:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -1230,9 +1205,20 @@ export default function EventsCalendarPage({ fallbackData }) {
           font-family: 'Rajdhani', sans-serif; cursor: pointer; transition: all 0.2s;
           white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
         }
+        /* Today tab — highlighted gold/amber like the calendar today indicator */
+        .ec-day-tab.today {
+          border-color: #F59E0B;
+          color: #F59E0B;
+          background: linear-gradient(180deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.08) 100%);
+        }
+        .ec-day-tab.today.active {
+          background: linear-gradient(135deg, #F59E0B, #D97706);
+          border-color: #F59E0B; color: #000;
+          box-shadow: 0 0 15px rgba(245,158,11,0.5), 0 0 30px rgba(245,158,11,0.2);
+        }
         .ec-day-today-dot {
           position: absolute; top: 5px; right: 5px;
-          width: 5px; height: 5px; border-radius: 50%; background: #00D4FF;
+          width: 5px; height: 5px; border-radius: 50%; background: #F59E0B;
         }
         .ec-day-tab:hover {
           background: linear-gradient(180deg, rgba(61,79,95,0.4) 0%, rgba(26,35,50,0.6) 100%);
