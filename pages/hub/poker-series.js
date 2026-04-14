@@ -1033,6 +1033,33 @@ export default function PokerSeriesPage() {
                                                 </span>
                                             </div>
 
+                                            {/* Series Logo Image — generated venue-inspired art */}
+                                            {series.logo_url && (
+                                                <div style={{
+                                                    width: '100%',
+                                                    height: 130,
+                                                    borderRadius: 8,
+                                                    overflow: 'hidden',
+                                                    margin: '8px 0 10px',
+                                                    border: '1px solid rgba(255,255,255,0.07)',
+                                                    flexShrink: 0,
+                                                }}>
+                                                    <img
+                                                        src={series.logo_url}
+                                                        alt={seriesName}
+                                                        style={{
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'cover',
+                                                            objectPosition: 'center top',
+                                                            display: 'block',
+                                                        }}
+                                                        loading="lazy"
+                                                        onError={e => { e.target.style.display = 'none'; }}
+                                                    />
+                                                </div>
+                                            )}
+
                                             {/* Series Name */}
                                             <h4 className="tour-card-name">{seriesName}</h4>
 
