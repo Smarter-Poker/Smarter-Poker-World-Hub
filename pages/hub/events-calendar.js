@@ -22,7 +22,7 @@ import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import useTrainingBus from '../../src/hooks/useTrainingBus';
+import useVenueRealtime from '../../src/hooks/useVenueRealtime';
 import { resolveCityCoords } from '../../src/data/city-coordinates';
 import VenueMap from '../../src/components/poker-near-me/VenueMap';
 
@@ -427,8 +427,6 @@ export default function EventsCalendarPage() {
   const [visibleCount, setVisibleCount] = useState(50);
   const loadMoreRef = useRef(null);
 
-  useTrainingBus('events-calendar');
-
   const todayKey = getTodayKey();
 
   // Try GPS on mount
@@ -479,7 +477,7 @@ export default function EventsCalendarPage() {
   }, [dateRange, buyInTier, gameType, eventType, sortBy, searchQuery, userLocation, distance]);
 
   // SWR-backed data fetch
-  const { data: apiData, error, isLoading: loading } = useSWR(
+  const { data: apiData, error, isLoading: loading, mutate } = useSWR(
     apiUrl,
     (url) => fetch(url).then(r => r.json()).then(data => {
       // BUG FIX: SWR gracefully passes soft 200 JSON errors. Force strict extraction.
@@ -488,6 +486,9 @@ export default function EventsCalendarPage() {
     }),
     { revalidateOnFocus: false, dedupingInterval: 30000 }
   );
+
+  // Bind realtime venue and tournament updates to cache invalidation
+  useVenueRealtime(() => mutate());
 
   const events = apiData?.events || [];
   const totalCount = apiData?.total || 0;
