@@ -788,27 +788,29 @@ export default function EventsCalendarPage({ fallbackData }) {
         <div className="ec-day-selector">
           <div className="ec-day-tabs-row">
             <div className="ec-day-tabs">
-              const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-              // [B2 FIX] Compute todayIdx once outside the map loop, not on every iteration
-              const todayIdx = new Date().getDay();
-              return (['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']).map(day => {
-                const dayIdx = DAYS.indexOf(day);
-                let daysAhead = dayIdx - todayIdx;
-                if (daysAhead < 0) daysAhead += 7;
-                const isToday = daysAhead === 0;
-                const isActive = dayOfWeek === day;
-                return (
-                  <button
-                    key={day}
-                    className={`ec-day-tab${isActive ? ' active' : ''}${isToday ? ' today' : ''}`}
-                    onClick={() => setDayOfWeek(isActive ? '' : day)}
-                  >
-                    {isToday && <span className="ec-day-today-dot" />}
-                    <span className="ec-day-short">{day.substring(0, 3).toUpperCase()}</span>
-                    <span className="ec-day-full">{day}</span>
-                  </button>
-                );
-              })}
+              {(() => {
+                // [B2 FIX] Compute today index once for all 7 tabs instead of 7× per render
+                const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                const todayIdx = new Date().getDay();
+                return DAYS.map(day => {
+                  const dayIdx = DAYS.indexOf(day);
+                  let daysAhead = dayIdx - todayIdx;
+                  if (daysAhead < 0) daysAhead += 7;
+                  const isToday = daysAhead === 0;
+                  const isActive = dayOfWeek === day;
+                  return (
+                    <button
+                      key={day}
+                      className={`ec-day-tab${isActive ? ' active' : ''}${isToday ? ' today' : ''}`}
+                      onClick={() => setDayOfWeek(isActive ? '' : day)}
+                    >
+                      {isToday && <span className="ec-day-today-dot" />}
+                      <span className="ec-day-short">{day.substring(0, 3).toUpperCase()}</span>
+                      <span className="ec-day-full">{day}</span>
+                    </button>
+                  );
+                });
+              })()}
             </div>
           </div>
         </div>
