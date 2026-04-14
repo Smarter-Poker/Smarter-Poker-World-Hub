@@ -341,6 +341,7 @@ export default async function handler(req, res) {
           if (uid && uidMap.has(uid)) {
             const existing = uidMap.get(uid);
             existing.series_uid = uid;
+            if (ps.logo_url) existing.logo_url = ps.logo_url;
             continue;
           }
           
@@ -348,6 +349,7 @@ export default async function handler(req, res) {
           if (mergedMap.has(key)) {
             const existing = mergedMap.get(key);
             existing.series_uid = existing.series_uid || uid;
+            if (ps.logo_url) existing.logo_url = ps.logo_url;
             if (uid) uidMap.set(uid, existing);
             continue;
           }
@@ -356,18 +358,25 @@ export default async function handler(req, res) {
           const newEntry = {
             id: ps.id,
             name: ps.series_name || ps.name,
+            series_name: ps.series_name || ps.name,
             short_name: ps.tour,
             series_uid: uid,
             tour: ps.tour,
             venue: ps.venue_name,
+            venue_name: ps.venue_name,
             city: ps.city,
             state: ps.state,
             start_date: ps.start_date,
             end_date: ps.end_date,
             total_events: ps.event_count,
+            event_count: ps.event_count,
+            total_guaranteed: ps.total_guaranteed,
+            main_event_guaranteed: ps.main_event_guaranteed,
+            main_event_buyin: ps.main_event_buyin,
             is_new: ps.event_count === 0 || !ps.event_count,
             series_type: (ps.tier === 'A' ? 'major' : ps.tier === 'B' ? 'circuit' : 'regional'),
             source_url: ps.source_url,
+            logo_url: ps.logo_url || null,
           };
           mergedMap.set(uid || key, newEntry);
           if (uid) uidMap.set(uid, newEntry);
