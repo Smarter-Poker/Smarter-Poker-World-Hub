@@ -42,3 +42,13 @@ docs/
 supabase/
 database/
 migrations/
+
+# Prevent Vercel from tracking heavy folders
+playwright-report/
+test-results/
+pokerbrain-assets/
+node_modules/
+.git/
+tmp/
+output/
+scripts/
